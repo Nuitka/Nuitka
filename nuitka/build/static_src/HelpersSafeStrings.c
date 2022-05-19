@@ -31,10 +31,6 @@
 #include <stdbool.h>
 #endif
 
-#if defined(_WIN32)
-#include <Shlwapi.h>
-#endif
-
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
     if (strlen(source) >= buffer_size) {
         abort();
@@ -112,6 +108,34 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 
 #if defined(_WIN32)
 
+// Note: Keep this separate line, must be included before other Windows headers.
+#include <windows.h>
+
+#include <shlobj.h>
+#include <shlwapi.h>
+
+// For less complete C compilers.
+#ifndef CSIDL_LOCAL_APPDATA
+#define CSIDL_LOCAL_APPDATA 28
+#endif
+#ifndef CSIDL_PROFILE
+#define CSIDL_PROFILE 40
+#endif
+
+static bool appendStringWCSIDLPath(wchar_t *target, int csidl_id, size_t buffer_size) {
+    wchar_t path_buffer[MAX_PATH];
+
+    int res = SHGetFolderPathW(NULL, csidl_id, NULL, 0, path_buffer);
+
+    if (res != S_OK) {
+        return false;
+    }
+
+    appendWStringSafeW(target, path_buffer, buffer_size);
+
+    return true;
+}
+
 bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size) {
     target[0] = 0;
 
@@ -145,6 +169,26 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                     snprintf(pid_buffer, sizeof(pid_buffer), "%d", GetCurrentProcessId());
 
                     appendStringSafeW(target, pid_buffer, buffer_size);
+                } else if (wcsicmp(var_name, L"HOME") == 0) {
+                    if (appendStringWCSIDLPath(target, CSIDL_PROFILE, buffer_size) == false) {
+                        return false;
+                    }
+                } else if (wcsicmp(var_name, L"CACHE_DIR") == 0) {
+                    if (appendStringWCSIDLPath(target, CSIDL_LOCAL_APPDATA, buffer_size) == false) {
+                        return false;
+                    }
+#ifdef NUITKA_COMPANY_NAME
+                } else if (wcsicmp(var_name, L"COMPANY") == 0) {
+                    appendWStringSafeW(target, L"" NUITKA_COMPANY_NAME, buffer_size);
+#endif
+#ifdef NUITKA_PRODUCT_NAME
+                } else if (wcsicmp(var_name, L"PRODUCT") == 0) {
+                    appendWStringSafeW(target, L"" NUITKA_PRODUCT_NAME, buffer_size);
+#endif
+#ifdef NUITKA_VERSION_COMBINED
+                } else if (wcsicmp(var_name, L"VERSION") == 0) {
+                    appendWStringSafeW(target, L"" NUITKA_VERSION_COMBINED, buffer_size);
+#endif
                 } else if (wcsicmp(var_name, L"TIME") == 0) {
                     char time_buffer[1024];
 
@@ -192,6 +236,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 
 #else
 
+#include <pwd.h>
 #include <strings.h>
 #include <sys/time.h>
 
@@ -229,6 +274,39 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                     snprintf(pid_buffer, sizeof(pid_buffer), "%d", getpid());
 
                     appendStringSafe(target, pid_buffer, buffer_size);
+                } else if (strcasecmp(var_name, "HOME") == 0) {
+                    char const *home_path = getenv("HOME");
+
+                    if (home_path == NULL) {
+                        struct passwd *pw_data = getpwuid(getuid());
+
+                        if (unlikely(pw_data == NULL)) {
+                            return false;
+                        }
+
+                        home_path = pw_data->pw_dir;
+                    }
+
+                    appendStringSafe(target, home_path, buffer_size);
+                } else if (strcasecmp(var_name, "CACHE_DIR") == 0) {
+                    if (expandTemplatePath(target, "HOME", buffer_size - strlen(target)) == false) {
+                        return false;
+                    }
+
+                    appendCharSafe(target, '/', buffer_size);
+                    appendStringSafe(target, ".cache", buffer_size);
+#ifdef NUITKA_COMPANY_NAME
+                } else if (strcasecmp(var_name, "COMPANY") == 0) {
+                    appendStringSafe(target, NUITKA_COMPANY_NAME, buffer_size);
+#endif
+#ifdef NUITKA_PRODUCT_NAME
+                } else if (strcasecmp(var_name, "PRODUCT") == 0) {
+                    appendStringSafe(target, NUITKA_PRODUCT_NAME, buffer_size);
+#endif
+#ifdef NUITKA_VERSION_COMBINED
+                } else if (strcasecmp(var_name, "VERSION") == 0) {
+                    appendStringSafe(target, NUITKA_VERSION_COMBINED, buffer_size);
+#endif
                 } else if (strcasecmp(var_name, "TIME") == 0) {
                     char time_buffer[1024];
 

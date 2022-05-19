@@ -25,6 +25,7 @@ stuff. It will also frequently add sorting for determinism.
 from __future__ import print_function
 
 import errno
+import fnmatch
 import glob
 import os
 import shutil
@@ -173,18 +174,40 @@ def isPathExecutable(path):
 
 # Make sure we don't repeat this too much.
 _real_path_windows_cache = {}
+_powershell_path = None
 
 
 def _getRealPathWindows(path):
     # Slow, because we are using an external process, we use it's only for standalone and Python2,
     # which is slow already.
 
-    if path not in _real_path_windows_cache:
-        import subprocess
+    # Singleton, pylint: disable=global-statement
+    global _powershell_path
+    if _powershell_path is None:
+        from .Execution import getExecutablePath
 
-        result = subprocess.check_output(
-            """powershell -NoProfile "Get-Item '%s' | Select-Object -ExpandProperty Target" """
-            % path
+        _powershell_path = getExecutablePath("powershell")
+
+        # Try to find it only once, otherwise ignore its absence, symlinks are not
+        # that important.
+        if _powershell_path is None:
+            _powershell_path = False
+
+    if path not in _real_path_windows_cache and _powershell_path:
+        from .Execution import check_output
+
+        result = check_output(
+            [
+                _powershell_path,
+                "-NoProfile",
+                "Get-Item",
+                path,
+                "|",
+                "Select-Object",
+                "-ExpandProperty",
+                "Target",
+            ],
+            shell=False,
         )
 
         if str is not bytes:
@@ -227,7 +250,7 @@ def listDir(path):
 
     Returns:
         Sorted list of tuples of full filename, and basename of
-        a directory.
+        files in that directory.
 
     Notes:
         Typically the full name and the basename are both needed
@@ -318,6 +341,7 @@ def getSubDirectories(path, ignore_dirs=()):
 
     Args:
         path: directory to create a recursive listing from
+        ignore_dirs: directories named that like will be ignored
 
     Returns:
         Sorted list of all directories below that directory,
@@ -346,6 +370,55 @@ def getSubDirectories(path, ignore_dirs=()):
 
     result.sort()
     return result
+
+
+def listDllFilesFromDirectory(path, prefix=""):
+    """Give a sorted listing of DLLs filenames in a path.
+
+    Args:
+        path: directory to create a DLL listing from
+        prefix: shell pattern to match filename start against, can be None
+
+    Returns:
+        Sorted list of tuples of full filename, and basename of
+        DLLs in that directory.
+
+    Notes:
+        Typically the full name and the basename are both needed
+        so this function simply does both, for ease of use on the
+        calling side.
+    """
+
+    # Accept None value as well.
+    prefix = prefix or ""
+
+    pattern_list = [prefix + "*." + suffix for suffix in ("dll", "so.*", "dylib")]
+
+    for fullpath, filename in listDir(path):
+        for pattern in pattern_list:
+            if fnmatch.fnmatch(filename, pattern):
+                yield fullpath, filename
+                break
+
+
+def getSubDirectoriesWithDlls(path):
+    """Get all directories below a given path.
+
+    Args:
+        path: directory to create a recursive listing from
+
+    Returns:
+        Sorted list of all directories below that directory,
+        relative to it, that contain DLL files.
+
+    Notes:
+        This function descends into directories, but does
+        not follow symlinks.
+    """
+
+    for sub_directory in getSubDirectories(path=path, ignore_dirs=("__pycache__",)):
+        if any(listDllFilesFromDirectory(sub_directory)):
+            yield sub_directory
 
 
 def deleteFile(path, must_exist):
@@ -411,7 +484,7 @@ def hasFilenameExtension(path, extensions):
 def removeDirectory(path, ignore_errors):
     """Remove a directory recursively.
 
-    On Windows, it happens that operations fail, and succeed when reried,
+    On Windows, it happens that operations fail, and succeed when retried,
     so added a retry and small delay, then another retry. Should make it
     much more stable during tests.
 
@@ -437,6 +510,11 @@ def removeDirectory(path, ignore_errors):
                     shutil.rmtree(path, ignore_errors=ignore_errors)
                 else:
                     raise
+
+
+def resetDirectory(path, ignore_errors):
+    removeDirectory(path=path, ignore_errors=ignore_errors)
+    makePath(path)
 
 
 @contextmanager
@@ -837,6 +915,8 @@ def resolveShellPatternToFilenames(pattern):
 @contextmanager
 def withDirectoryChange(path, allow_none=False):
     """Change current directory temporarily in a context."""
+
+    # spellchecker: ignore chdir
 
     if path is not None or not allow_none:
         old_cwd = os.getcwd()

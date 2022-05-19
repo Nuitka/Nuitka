@@ -89,7 +89,8 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or kind in (
         "ImportModuleHard",
-        "ImportModuleNameHard",
+        "ImportModuleNameHardExists",
+        "ImportModuleNameHardMaybeExists",
         "ModuleAttributeFileRef",
         "ModuleLoaderRef",
     )
@@ -152,7 +153,8 @@ def checkSequence(filename, statements):
 
             if not isConstantExpression(assign_source):
                 search_mode.onErrorDetected(
-                    "Error, assignment from non-constant '%s'." % getKind(assign_source)
+                    "%s: Error, assignment from non-constant '%s'."
+                    % (getSourceRef(filename, statement), getKind(assign_source))
                 )
 
             continue
@@ -264,7 +266,10 @@ def main():
                 if changed:
                     os.unlink(filename)
             except SystemExit:
-                my_print("FAIL.")
+                my_print("Optimization result:")
+                my_print(result, style="test-debug")
+                my_print("FAIL.", style="red")
+
                 raise
 
             my_print("OK.")

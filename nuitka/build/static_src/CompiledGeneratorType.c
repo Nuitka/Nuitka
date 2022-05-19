@@ -92,18 +92,13 @@ NUITKA_MAY_BE_UNUSED static void PRINT_COROUTINE_STRING(char const *name, char c
 #endif
 
 static PyObject *Nuitka_Generator_tp_repr(struct Nuitka_GeneratorObject *generator) {
-#if PYTHON_VERSION < 0x300
-    return PyString_FromFormat("<compiled_generator object %s at %p>", Nuitka_String_AsString(generator->m_name),
-                               generator);
-#else
-    return PyUnicode_FromFormat("<compiled_generator object %s at %p>",
+    return Nuitka_String_FromFormat("<compiled_generator object %s at %p>",
 #if PYTHON_VERSION < 0x350
-                                Nuitka_String_AsString(generator->m_name),
+                                    Nuitka_String_AsString(generator->m_name),
 #else
-                                Nuitka_String_AsString(generator->m_qualname),
+                                    Nuitka_String_AsString(generator->m_qualname),
 #endif
-                                generator);
-#endif
+                                    generator);
 }
 
 static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generator, visitproc visit, void *arg) {

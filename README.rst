@@ -434,13 +434,13 @@ modules by specifically saying ``--nofollow-import-to``, but then an
 runtime.
 
 For data files to be included, use the option
-``--include-data-file=<source>=<target>`` where the source is a file
+``--include-data-files=<source>=<target>`` where the source is a file
 system path, but target has to be specified relative. For standalone you
 can also copy them manually, but this can do extra checks, and for
 onefile mode, there is no manual copying possible.
 
 To copy some or all file in a directory, use the option
-``--include-data-file=/etc/*.txt=etc/`` where you get to specify shell
+``--include-data-files=/etc/*.txt=etc/`` where you get to specify shell
 patterns for the files, and a subdirectory where to put them, indicated
 by the trailing slash.
 
@@ -487,17 +487,27 @@ cannot collide.
 
 Currently these expanded tokens are available:
 
-+-----------+--------------------------------------+-----------------------------------+
-| Token     | What this Expands to                 | Example                           |
-+===========+======================================+===================================+
-| %TEMP%    | User temporary file directory        | C:\Users\...\AppData\Locals\Temp  |
-+-----------+--------------------------------------+-----------------------------------+
-| %PID%     | Process ID                           | 2772                              |
-+-----------+--------------------------------------+-----------------------------------+
-| %TIME%    | Time in seconds since the epoch.     | 1299852985                        |
-+-----------+--------------------------------------+-----------------------------------+
-| %PROGRAM% | Full program filename of executable. | C:\SomeWhere\YourOnefile.exe      |
-+-----------+--------------------------------------+-----------------------------------+
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| Token       | What this Expands to                                                      | Example                          |
++=============+===========================================================================+==================================+
+| %TEMP%      | User temporary file directory                                             | C:\Users\...\AppData\Locals\Temp |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %PID%       | Process ID                                                                | 2772                             |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %TIME%      | Time in seconds since the epoch.                                          | 1299852985                       |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %PROGRAM%   | Full program run-time filename of executable.                             | C:\SomeWhere\YourOnefile.exe     |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %CACHE_DIR% | Cache directory for the user.                                             | C:\Users\SomeBody\AppData\Local  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %COMPANY%   | Value given as ``--windows-company-name``                                 | YourCompanyName                  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %PRODUCT%   | Value given as ``--windows-product-name``                                 | YourProductName                  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %VERSION%   | Combination of ``--windows-file-version`` & ``--windows-product-version`` | 3.0.0.0-1.0.0.0                  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %HOME%      | Home directory for the user.                                              | /home/somebody                   |
++-------------+---------------------------------------------------------------------------+----------------------------------+
 
 .. note::
 
@@ -531,12 +541,12 @@ Nuitka.
       ...,
       command_options={
          'nuitka': {
-            # boolean option, e.g. if you cared for C commands
+            # boolean option, e.g. if you cared for C compilation commands
             '--show-scons': True,
             # options without value, e.g. enforce using Clang
-            '--clang': ("setup.py", None),
+            '--clang': None,
             # options with single values, e.g. enable a plugin of Nuitka
-            '--enable-plugin': 'anti-bloat',
+            '--enable-plugin': "pyside2",
             # options with several values, e.g. avoiding including modules
             '--nofollow-import-to' : ["*.tests", "*.distutils"],
          }
@@ -552,12 +562,12 @@ Nuitka.
       ...,
       command_options={
          'nuitka': {
-            # boolean option, e.g. if you cared for C commands
+            # boolean option, e.g. if you cared for C compilation commands
             '--show-scons': ("setup.py", True),
             # options without value, e.g. enforce using Clang
             '--clang': ("setup.py", None),
             # options with single values, e.g. enable a plugin of Nuitka
-            '--enable-plugin': ("setup.py", 'anti-bloat'),
+            '--enable-plugin': ("setup.py", "pyside2"),
             # options with several values, e.g. avoiding including modules
             '--nofollow-import-to' : ("setup.py", ["*.tests", "*.distutils"]),
          }
@@ -596,8 +606,28 @@ value:
 .. code:: toml
 
    [build-system]
-   requires = ["setuptools>=42", "wheel", "nuitka"]
+   requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
    build-backend = "nuitka.distutils.Build"
+
+   [nuitka]
+   # These are not recommended, but they make it obvious to have effect.
+
+   # boolean option, e.g. if you cared for C compilation commands, leading
+   # dashes are omitted
+   show-scons = true
+
+   # options with single values, e.g. enable a plugin of Nuitka
+   enable-plugin = pyside2
+
+   # options with several values, e.g. avoiding including modules, accepts
+   # list argument.
+   nofollow-import-to = ["*.tests", "*.distutils"]
+
+.. note::
+
+   For the ``nuitka`` requirement above absolute paths like
+   ``C:\Users\...\Nuitka`` will also work on Linux, use an absolute path
+   with *two* leading slashes, e.g. ``//home/.../Nuitka``.
 
 ********
  Tweaks
@@ -809,14 +839,19 @@ Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
 
-For now, a major weapon in fighting dependency creep should be applied,
-namely the ``anti-bloat`` plugin, which offers interesting abilities,
-that can be put to use and block unneeded imports, giving an error for
-where they occur. Use it e.g. like this ``--enable-plugin=anti-bloat
---noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow``
-and check its help output. It can take for each module of your choice,
-e.g. forcing also that PyQt5 is considered uninstalled for standalone
-mode.
+A major weapon in fighting dependency creep should be applied, namely
+the ``anti-bloat`` plugin, which offers interesting abilities, that can
+be put to use and block unneeded imports, giving an error for where they
+occur. Use it e.g. like this ``--noinclude-pytest-mode=nofollow
+--noinclude-setuptools-mode=nofollow`` and e.g. also
+``--noinclude-custom-mode=setuptools:error`` to get the compiler to
+error out for a specific package. Make sure to check its help output. It
+can take for each module of your choice, e.g. forcing also that e.g.
+``PyQt5`` is considered uninstalled for standalone mode.
+
+It's also driven by a configuration file, ``anti-bloat.yml`` that you
+can contribute to, removing typical bloat from packages. Feel free to
+enhance it and make PRs towards Nuitka with it.
 
 Onefile: Finding files
 ======================
@@ -1058,6 +1093,15 @@ It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have
 the module attribute ``__compiled__`` to test if a specific module was
 compiled.
 
+Providing extra Options to Nuitka C compilation
+===============================================
+
+Nuitka will apply values from the environment variables ``CCFLAGS``,
+``LDFLAGS`` during the compilation on top of what it determines to be
+necessary. Beware of course, that is this is only useful if you know
+what you are doing, so should this pose an issues, raise them only with
+perfect information.
+
 *************
  Performance
 *************
@@ -1100,9 +1144,11 @@ run is most meaningful, and eliminates usage spikes.
  Where to go next
 ******************
 
-Remember, this project is not completed yet. Although the CPython test
-suite works near perfect, there is still more work needed, esp. to make
-it do more optimization. Try it out.
+Remember, this project needs constant work. Although the Python
+compatibility is insanely high, and test suite works near perfectly,
+there is still more work needed, esp. to make it do more optimization.
+Try it out, and when popular packages do not work, please make reports
+on GitHub.
 
 Follow me on Twitter
 ====================

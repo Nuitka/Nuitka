@@ -50,6 +50,10 @@ from nuitka.nodes.ConstantRefNodes import (
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
+from nuitka.nodes.InjectCNodes import (
+    StatementInjectCCode,
+    StatementInjectCDecl,
+)
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
 )
@@ -75,8 +79,9 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
 )
-from nuitka.Options import hasPythonFlagNoAnnotations
+from nuitka.Options import hasPythonFlagNoAnnotations, isExperimental
 from nuitka.PythonVersions import python_version
+from nuitka.Tracing import general
 
 from .ReformulationImportStatements import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -126,9 +131,27 @@ def buildExtSliceNode(provider, node, source_ref):
 def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_ref):
     # This is using many variable names on purpose, so as to give names to the
     # unpacked detail values, and has many branches due to the many cases
-    # dealt with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # dealt with and it is return driven.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
 
     if kind == "Name":
+        if detail in ("_inject_c_code", "_inject_c_decl") and isExperimental(
+            "c-code-injection"
+        ):
+            if not source.isExpressionConstantStrRef():
+                general.sysexit(
+                    "Error, value assigned to '%s' not be constant str" % detail
+                )
+
+            if detail == "_inject_c_code":
+                return StatementInjectCCode(
+                    c_code=source.getCompileTimeConstant(), source_ref=source_ref
+                )
+            else:
+                return StatementInjectCDecl(
+                    c_code=source.getCompileTimeConstant(), source_ref=source_ref
+                )
+
         return StatementAssignmentVariableName(
             provider=provider,
             variable_name=detail,

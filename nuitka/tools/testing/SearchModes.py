@@ -108,6 +108,9 @@ class SearchModeByPattern(SearchModeBase):
         self.start_at = start_at
 
     def consider(self, dirname, filename):
+        if self.start_at is None:
+            self.active = True
+
         if self.active:
             return True
 
@@ -171,7 +174,7 @@ class SearchModeResume(SearchModeBase):
             sys.exit("Error, became never active, restarting next time.")
 
 
-class SearchModeCoverage(SearchModeBase):
+class SearchModeCoverage(SearchModeByPattern):
     def getExtraFlags(self, dirname, filename):
         return ["coverage"]
 
@@ -197,18 +200,3 @@ class SearchModeOnly(SearchModeByPattern):
                 self.done = True
 
             return active
-
-
-class SearchModeAll(SearchModeBase):
-    def __init__(self):
-        SearchModeBase.__init__(self)
-        self.total_errors = 0
-
-    def updateTotalErrors(self):
-        self.total_errors += 1
-
-    def onErrorDetected(self, message):
-        self.updateTotalErrors()
-
-    def finish(self):
-        self.exit("Total " + str(self.total_errors) + " error(s) found.")

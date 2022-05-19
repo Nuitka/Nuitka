@@ -46,14 +46,10 @@
 #endif
 
 #if defined(_WIN32)
-#include <Shlobj.h>
-#include <imagehlp.h>
+// Note: Keep this separate line, must be included before other Windows headers.
 #include <windows.h>
 
-#ifndef CSIDL_LOCAL_APPDATA
-#define CSIDL_LOCAL_APPDATA 28
-#endif
-
+#include <imagehlp.h>
 #else
 #include <dirent.h>
 #include <signal.h>
@@ -67,9 +63,6 @@
 // Generated during build with optional defines.
 #include "onefile_definitions.h"
 #else
-#define ONEFILE_COMPANY "SomeVendor"
-#define ONEFILE_PRODUCT "SomeProduct"
-#define ONEFILE_VERSION "SomeVersion"
 #define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
 #endif
 
@@ -238,27 +231,34 @@ static FILE_HANDLE exe_file;
 
 #ifdef _NUITKA_ONEFILE_COMPRESSION
 
-static ZSTD_DCtx *dctx = NULL;
+static ZSTD_DCtx *dest_ctx = NULL;
 static ZSTD_inBuffer input = {NULL, 0, 0};
 static ZSTD_outBuffer output = {NULL, 0, 0};
 
 static void initZSTD(void) {
-    size_t const buffInSize = ZSTD_DStreamInSize();
-    input.src = malloc(buffInSize);
+    size_t const input_buffer_size = ZSTD_DStreamInSize();
+    input.src = malloc(input_buffer_size);
     if (input.src == NULL) {
         fatalErrorMemory();
     }
 
-    size_t const buffOutSize = ZSTD_DStreamOutSize();
-    output.dst = malloc(buffOutSize);
+    size_t const output_buffer_size = ZSTD_DStreamOutSize();
+    output.dst = malloc(output_buffer_size);
     if (output.dst == NULL) {
         fatalErrorMemory();
     }
 
-    dctx = ZSTD_createDCtx();
-    if (dctx == NULL) {
+    dest_ctx = ZSTD_createDCtx();
+    if (dest_ctx == NULL) {
         fatalErrorMemory();
     }
+}
+
+static void releaseZSTD(void) {
+    ZSTD_freeDCtx(dest_ctx);
+
+    free((void *)input.src);
+    free(output.dst);
 }
 
 #endif
@@ -334,7 +334,7 @@ static void readPayloadChunk(void *buffer, size_t size) {
             output.pos = 0;
             output.size = ZSTD_DStreamOutSize();
 
-            size_t const ret = ZSTD_decompressStream(dctx, &output, &input);
+            size_t const ret = ZSTD_decompressStream(dest_ctx, &output, &input);
             // printf("return output %d %d\n", output.pos, output.size);
             end_of_buffer = (output.pos == output.size);
 
@@ -512,12 +512,14 @@ static void cleanupChildProcess(void) {
 #endif
         // We only need to wait if there is a need to cleanup files.
 #if _NUITKA_ONEFILE_TEMP == 1
+        NUITKA_PRINT_TRACE("Waiting for child to exit.\n");
 #if defined(_WIN32)
         WaitForSingleObject(handle_process, INFINITE);
         CloseHandle(handle_process);
 #else
         waitpid(handle_process, NULL, 0);
 #endif
+        NUITKA_PRINT_TRACE("Child is exited.\n");
 #endif
     }
 
@@ -844,7 +846,6 @@ int main(int argc, char **argv) {
 
                 *w = FILENAME_SEP_CHAR;
 
-                // _putws(target_path);
                 createDirectory(target_path);
             }
 
@@ -891,6 +892,10 @@ int main(int argc, char **argv) {
     }
 
     closeFile(exe_file);
+
+#ifdef _NUITKA_ONEFILE_COMPRESSION
+    releaseZSTD();
+#endif
 
     // Pass our pid by value to the child. If we exit for some reason, re-parenting
     // might change it by the time the child looks at its parent.

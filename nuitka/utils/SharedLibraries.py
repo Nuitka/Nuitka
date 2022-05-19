@@ -85,7 +85,7 @@ def locateDLL(dll_name):
         )
 
     with withEnvironmentVarOverridden("LANG", "C"):
-        # TODO: Could and probably should cache "ldconfig -p" output
+        # TODO: Could and probably should cache "ldconfig -p" output to avoid forks
         output = executeToolChecked(
             logger=postprocessing_logger,
             command=("/sbin/ldconfig", "-p"),
@@ -297,16 +297,6 @@ def getSharedLibraryRPATH(filename):
         return _getSharedLibraryRPATHElf(filename)
 
 
-def _removeSharedLibraryRPATHElf(filename):
-    executeToolChecked(
-        logger=postprocessing_logger,
-        command=("chrpath", "-d", filename),
-        absence_message="""\
-Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
-libraries that need to be removed.""",
-    )
-
-
 def _filterPatchelfErrorOutput(stderr):
     stderr = b"\n".join(
         line
@@ -315,14 +305,10 @@ def _filterPatchelfErrorOutput(stderr):
         if b"warning: working around" not in line
     )
 
-    return stderr
+    return None, stderr
 
 
 def _setSharedLibraryRPATHElf(filename, rpath):
-    # TODO: Might write something that makes a shell script replacement
-    # in case no rpath is present, or use patchelf, for now our use
-    # case seems to use rpaths for executables.
-
     # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
     with withEnvironmentVarOverridden("LANG", "C"):
         executeToolChecked(
@@ -343,7 +329,7 @@ def _filterInstallNameToolErrorOutput(stderr):
         if b"invalidate the code signature" not in line
     )
 
-    return stderr
+    return None, stderr
 
 
 _installnametool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."
@@ -371,22 +357,6 @@ def _setSharedLibraryRPATHDarwin(filename, rpath):
             absence_message=_installnametool_usage,
             stderr_filter=_filterInstallNameToolErrorOutput,
         )
-
-
-def removeSharedLibraryRPATH(filename):
-    rpath = getSharedLibraryRPATH(filename)
-
-    if rpath is not None:
-        if Options.isShowInclusion():
-            inclusion_logger.info(
-                "Removing 'RPATH' value '%s' from '%s'." % (rpath, filename)
-            )
-
-        with withMadeWritableFileMode(filename):
-            if isMacOS():
-                return _removeSharedLibraryRPATHDarwin(filename, rpath)
-            else:
-                return _removeSharedLibraryRPATHElf(filename)
 
 
 def setSharedLibraryRPATH(filename, rpath):

@@ -15,10 +15,30 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" This package loads a file via pkgutil.get_data and outputs its contents in import.
+
+"""
+
+from __future__ import print_function
+
 import pkgutil
 
-__version__ = (
-    pkgutil.get_data(__package__ or __name__, "DATA_FILE.txt").decode("ascii").strip()
-)
+print("This is", __name__, "in", __package__, "speaking:")
 
-print(__version__)
+# Setting version from a file, is an example use case of this, but not limited
+# to that of course.
+__version__ = pkgutil.get_data(__package__, "DATA_FILE.txt").decode("ascii").strip()
+
+print("pkgutil.get_data()", __version__)
+
+try:
+    import pkg_resources
+except ImportError:
+    pass
+else:
+    data = pkg_resources.resource_string(__package__, "DATA_FILE2.txt")
+    print("pkg_resources.resource_string", data)
+
+    readable = pkg_resources.resource_stream(__package__, "DATA_FILE3.txt")
+    data = readable.read()
+    print("pkg_resources.resource_readable.read()", data)

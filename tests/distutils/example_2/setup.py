@@ -38,7 +38,7 @@ setup(
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     command_options={
         "nuitka": {
-            "--show-scons": True,
+            "--show-scons": ("setup.py", True),
             "--show-progress": None,
             "--file-reference-choice": "original",
         }

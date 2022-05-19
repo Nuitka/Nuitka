@@ -23,7 +23,8 @@ some handling of defaults.
 """
 
 # These are for use in option values.
-# spell-checker: ignore uiaccess,noannotations,nodocstrings,noasserts,nowarnings,norandomization,etherium
+# spell-checker: ignore uiaccess,noannotations,reexecution,etherium
+# spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
 
 import os
 import shlex
@@ -42,13 +43,14 @@ from nuitka.PythonFlavors import (
 )
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    isDebugPython,
+    python_version,
     python_version_str,
 )
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     isPathExecutable,
     openTextFile,
-    relpath,
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
@@ -75,6 +77,57 @@ is_nondebug = None
 is_fullcompat = None
 is_report_missing = None
 is_verbose = None
+
+
+def _checkSpec(value, arg_name):
+    if "%COMPANY%" in value and not getWindowsCompanyName():
+        Tracing.options_logger.sysexit(
+            "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
+
+def _checkOnefileTargetSpec():
+    options.is_onefile_tempdir = True
+
+    _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
+
+    if os.path.normpath(options.onefile_tempdir_spec) == ".":
+        Tracing.options_logger.sysexit(
+            """\
+Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
+you cannot unpack the onefile payload into the same directory as the binary,
+as that would overwrite it and cause locking issues as well."""
+        )
+
+    if options.onefile_tempdir_spec.count("%") % 2 != 0:
+        Tracing.options_logger.warning(
+            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
+not do what you want it to do: '%s'"""
+            % options.onefile_tempdir_spec
+        )
+
+    if options.onefile_tempdir_spec.count("%") == 0:
+        Tracing.options_logger.warning(
+            """Not using any variables for '--onefile-tempdir-spec' should only be
+done if your program absolutely needs to be in the same path always: '%s'"""
+            % options.onefile_tempdir_spec
+        )
+
+    if os.path.isabs(options.onefile_tempdir_spec):
+        Tracing.options_logger.warning(
+            """Using an absolute path should be avoided unless you are targeting a
+very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            % options.onefile_tempdir_spec
+        )
+    elif not options.onefile_tempdir_spec.startswith(
+        ("%TEMP%", "%HOME%", "%CACHE_DIR%")
+    ):
+        Tracing.options_logger.warning(
+            """Using an relative to the executable should be avoided unless you are targeting a
+very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
+            % options.onefile_tempdir_spec
+        )
 
 
 def parseArgs():
@@ -154,45 +207,11 @@ def parseArgs():
     if options.is_standalone:
         options.python_flags.insert(0, "no_site")
 
-    # Provide a tempdir spec implies onefile tempdir, even on Linux.
+    # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
-        options.is_onefile_tempdir = True
+        _checkOnefileTargetSpec()
 
-        if os.path.normpath(options.onefile_tempdir_spec) == ".":
-            Tracing.options_logger.sysexit(
-                """\
-Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
-you cannot unpack the onefile payload into the same directory as the binary,
-as that would overwrite it and cause locking issues as well."""
-            )
-
-        if options.onefile_tempdir_spec.count("%") % 2 != 0:
-            Tracing.options_logger.warning(
-                """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
-not do what you want it to do: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-
-        if options.onefile_tempdir_spec.count("%") == 0:
-            Tracing.options_logger.warning(
-                """Not using any variables for '--onefile-tempdir-spec' should only be
-done if your program absolutely needs to be in the same path always: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-
-        if os.path.isabs(options.onefile_tempdir_spec):
-            Tracing.options_logger.warning(
-                """Using an absolute path should be avoided unless you are targeting a
-very well known environment: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-        elif relpath(options.onefile_tempdir_spec):
-            Tracing.options_logger.warning(
-                """Using an relative path above the executable should be avoided unless you are targeting a
-very well known environment: '%s'"""
-                % options.onefile_tempdir_spec
-            )
-
+    # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
     # only for this machine, recursing to all modules, and even including the
     # standard library.
@@ -261,7 +280,15 @@ standalone where there is a sane default used inside the dist folder."""
 
     if isLinux():
         if len(getIconPaths()) > 1:
-            Tracing.options_logger.sysexit("Error, can only use one icon on Linux.")
+            Tracing.options_logger.sysexit(
+                "Error, can only use one icon file on Linux."
+            )
+
+    if isMacOS():
+        if len(getIconPaths()) > 1:
+            Tracing.options_logger.sysexit(
+                "Error, can only use one icon file on macOS."
+            )
 
     for icon_path in getIconPaths():
         if "#" in icon_path and isWin32Windows():
@@ -336,11 +363,6 @@ standalone where there is a sane default used inside the dist folder."""
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
 
-    if getShallIncludePackageData() and not isStandaloneMode():
-        Tracing.options_logger.sysexit(
-            "Error, package data files are only included in standalone or onefile mode."
-        )
-
     for module_pattern in getShallIncludePackageData():
         if (
             module_pattern.startswith("-")
@@ -373,14 +395,14 @@ standalone where there is a sane default used inside the dist folder."""
                 % module_pattern
             )
 
-    for data_file in options.data_files:
-        if "=" not in data_file:
+    for data_file_desc in options.data_files:
+        if "=" not in data_file_desc:
             Tracing.options_logger.sysexit(
                 "Error, malformed data file description, must specify relative target path separated with '='."
             )
 
-        if data_file.count("=") == 1:
-            src, dst = data_file.split("=", 1)
+        if data_file_desc.count("=") == 1:
+            src, dst = data_file_desc.split("=", 1)
 
             filenames = resolveShellPatternToFilenames(src)
 
@@ -390,7 +412,7 @@ standalone where there is a sane default used inside the dist folder."""
                     % src
                 )
         else:
-            src, dst, pattern = data_file.split("=", 2)
+            src, dst, pattern = data_file_desc.split("=", 2)
 
             filenames = resolveShellPatternToFilenames(os.path.join(src, pattern))
 
@@ -402,7 +424,7 @@ standalone where there is a sane default used inside the dist folder."""
         if os.path.isabs(dst):
             Tracing.options_logger.sysexit(
                 "Error, must specify relative target path for data file, not absolute path '%s'."
-                % data_file
+                % data_file_desc
             )
 
     for data_dir in options.data_dirs:
@@ -424,11 +446,6 @@ standalone where there is a sane default used inside the dist folder."""
                 "Error, must specify existing source data directory, not %r as in %r."
                 % (dst, data_dir)
             )
-
-    if (options.data_files or options.data_dirs) and not isStandaloneMode():
-        Tracing.options_logger.sysexit(
-            "Error, data files are only included in standalone or onefile mode."
-        )
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
@@ -510,6 +527,16 @@ def commentArgs():
                 % default_reference_mode
             )
 
+    default_mode_name_mode = "runtime" if shallMakeModule() else "original"
+
+    if getModuleNameMode() is None:
+        options.module_name_mode = default_mode_name_mode
+    elif getModuleNameMode() == default_mode_name_mode:
+        Tracing.options_logger.info(
+            "Using module name mode '%s' need not be specified."
+            % default_mode_name_mode
+        )
+
     # TODO: Not all of these are usable with MSYS2 really, split those off.
     if getOS() != "Windows":
         # Too many Windows specific options clearly
@@ -521,8 +548,6 @@ def commentArgs():
             or getWindowsProductName()
             or getWindowsProductVersion()
             or getWindowsFileVersion()
-            or getForcedStderrPath()  # not yet for other platforms
-            or getForcedStdoutPath()
             or getWindowsSplashScreen()
         ):
             Tracing.options_logger.warning(
@@ -659,6 +684,25 @@ but errors may happen."""
                 "The '--execute-with-pythonpath' option has no effect without '--run' option."
             )
 
+    # Check if the fallback is used, except for Python2 on Windows, where we cannot
+    # have it.
+    if hasattr(OrderedSet, "is_fallback") and not (
+        isWin32Windows() and python_version < 0x360
+    ):
+        Tracing.general.warning(
+            """\
+Using very slow fallback for ordered sets, please install 'ordered-set' or \
+'orderset' PyPI packages for best Python compile time performance."""
+        )
+
+    if shallUsePythonDebug() and not isDebugPython():
+        Tracing.general.sysexit(
+            """\
+Error, for using the debug Python version, you need to run it will that version
+and not with the non-debug version.
+"""
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""
@@ -704,6 +748,16 @@ def getFileReferenceMode():
     """
 
     return options.file_reference_mode
+
+
+def getModuleNameMode():
+    """*str*, one of "runtime", "original", coming from ``--module-name-choice``
+
+    Notes:
+        Defaults to runtime for modules and packages, otherwise original is kept.
+    """
+
+    return options.module_name_mode
 
 
 def shallMakeModule():
@@ -784,18 +838,18 @@ def getShallIncludePackageData():
 
 
 def getShallIncludeDataFiles():
-    """*list*, items of ``--include-data-file=``"""
-    for data_file in options.data_files:
-        if data_file.count("=") == 1:
-            src, dest = data_file.split("=", 1)
+    """*list*, items of ``--include-data-files=``"""
+    for data_file_desc in options.data_files:
+        if data_file_desc.count("=") == 1:
+            src, dest = data_file_desc.split("=", 1)
 
             for pattern in _splitShellPattern(src):
-                yield pattern, None, dest, data_file
+                yield pattern, None, dest, data_file_desc
         else:
-            src, dest, pattern = data_file.split("=", 2)
+            src, dest, pattern = data_file_desc.split("=", 2)
 
             for pattern in _splitShellPattern(pattern):
-                yield os.path.join(src, pattern), src, dest, data_file
+                yield os.path.join(src, pattern), src, dest, data_file_desc
 
 
 def getShallIncludeDataDirs():
@@ -804,6 +858,12 @@ def getShallIncludeDataDirs():
         src, dest = data_file.split("=", 1)
 
         yield src, dest
+
+
+def getShallNotIncludeDataFilePatterns():
+    """*list*, items of ``--noinclude-data-files=``"""
+
+    return options.data_files_inhibited
 
 
 def shallWarnImplicitRaises():
@@ -826,7 +886,7 @@ def _isDebug():
     return options is not None and (options.debug or options.debugger)
 
 
-def isPythonDebug():
+def shallUsePythonDebug():
     """:returns: bool derived from ``--python-debug`` or ``sys.flags.debug``
 
     Passed to Scons as ``python_debug`` so it can consider it when picking
@@ -838,17 +898,17 @@ def isPythonDebug():
     return options.python_debug or sys.flags.debug
 
 
-def isUnstripped():
-    """:returns: bool derived from ``--unstripped`` or ``--profile``
+def isUnstriped():
+    """:returns: bool derived from ``--unstriped`` or ``--profile``
 
     A binary is called stripped when debug information is not present, an
-    unstripped when it is present. For profiling and debugging it will be
+    unstriped when it is present. For profiling and debugging it will be
     necessary, but it doesn't enable debug checks like ``--debug`` does.
 
-    Passed to Scons as ``unstripped_mode`` to it can ask the linker to
+    Passed to Scons as ``unstriped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or options.profile
+    return options.unstriped or options.profile
 
 
 def isProfile():
@@ -857,8 +917,8 @@ def isProfile():
 
 
 def shallCreateGraph():
-    """:returns: bool derived from ``--graph``"""
-    return options.graph
+    """:returns: bool derived from ``--internal-graph``"""
+    return options.internal_graph
 
 
 def getOutputFilename():
@@ -922,7 +982,7 @@ def _shallUseStaticLibPython():
             isDebianBasedLinux()
             and isDebianPackagePython()
             and isDebianSuitableForStaticLinking()
-            and not isPythonDebug()
+            and not shallUsePythonDebug()
         ):
             return True, "Nuitka on Debian-Python needs package '%s' installed." % (
                 "python2-dev" if str is bytes else "python3-dev"
@@ -1198,14 +1258,10 @@ def getPythonPgoUnseenModulePolicy():
     return options.python_pgo_policy_unused_module
 
 
-def getOnefileTempDirSpec(use_default):
-    if use_default:
-        return (
-            options.onefile_tempdir_spec
-            or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
-        )
-    else:
-        return options.onefile_tempdir_spec
+def getOnefileTempDirSpec():
+    return (
+        options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
+    )
 
 
 def getIconPaths():
@@ -1280,7 +1336,7 @@ def _parseWindowsVersionNumber(value):
 
         r = tuple(int(d) for d in parts)
         assert min(r) >= 0
-        assert max(r) < 2 ** 16
+        assert max(r) < 2**16
         return r
     else:
         return None
@@ -1322,8 +1378,13 @@ def getMacOSTargetArch():
 
 
 def shallCreateAppBundle():
-    """*bool* shall create an application bundle"""
+    """*bool* shall create an application bundle, derived from ``--macos-create-app-bundle`` value"""
     return options.macos_create_bundle and isMacOS()
+
+
+def getMacOSSigningIdentity():
+    """*str* value to use as identity for codesign, derived from ``--macos-sign-identity`` value"""
+    return options.macos_sign_identity
 
 
 def getMacOSAppName():
@@ -1339,6 +1400,12 @@ def getMacOSSignedAppName():
 def getMacOSAppVersion():
     """*str* version of the app to use for bundle"""
     return options.macos_app_version
+
+
+def getMacOSAppProtectedResourcesAccesses():
+    """*list* key, value for protected resources of the app to use for bundle"""
+    for macos_protected_resource in options.macos_protected_resources:
+        yield macos_protected_resource.split(":", 1)
 
 
 def getAppImageCompression():
@@ -1474,9 +1541,7 @@ def shallNotStoreDependsExeCachedResults():
 def getPluginNameConsideringRenames(plugin_name):
     """Name of the plugin with renames considered."""
 
-    if plugin_name == "qt-plugins":
-        return "pyqt5"
-    elif plugin_name == "etherium":
+    if plugin_name == "etherium":
         return "ethereum"
     else:
         return plugin_name
@@ -1572,9 +1637,9 @@ def getForcedStderrPath():
     return options.force_stderr_spec
 
 
-def shallPersistModifications():
-    """*bool* write plugin source changes to disk"""
-    return options is not None and options.persist_source_changes
+def shallShowSourceModifications():
+    """*bool* display plugin source changes"""
+    return options is not None and options.show_source_changes
 
 
 def isLowMemory():

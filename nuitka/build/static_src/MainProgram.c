@@ -41,6 +41,7 @@
 #define SYSFLAG_VERBOSE 0
 #define SYSFLAG_BYTES_WARNING 0
 #define SYSFLAG_UTF8 0
+#define SYSFLAG_UNBUFFERED 0
 #endif
 
 #ifndef NUITKA_MAIN_MODULE_NAME
@@ -307,20 +308,13 @@ static void PRINT_REFCOUNTS(void) {
 }
 #endif
 
-// Small helper to open files with few arguments.
-static PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, PyObject *buffering) {
-#if PYTHON_VERSION < 0x300
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering);
-#else
-    return BUILTIN_OPEN(filename, Nuitka_String_FromString(mode), buffering, NULL, NULL, NULL, NULL, NULL);
-#endif
-}
-
 #if defined(_NUITKA_ONEFILE) && defined(_WIN32)
 
 static long onefile_ppid;
 
 DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
+    NUITKA_PRINT_TRACE("Onefile parent monitoring starts.");
+
     for (;;) {
         Sleep(1000);
 
@@ -343,7 +337,7 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
         }
     }
 
-    // puts("Onefile parent monitoring kicks in.");
+    NUITKA_PRINT_TRACE("Onefile parent monitoring causes KeyboardInterrupt.");
 
     PyErr_SetInterrupt();
 
@@ -611,6 +605,105 @@ static void undoEnvironmentVariable(char const *variable_name, char const *old_v
 }
 #endif
 
+#if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
+#ifdef _WIN32
+static PyObject *getExpandedTemplatePath(wchar_t const *template_path) {
+    wchar_t filename_buffer[1024];
+    bool res = expandTemplatePathW(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(wchar_t));
+
+    if (res == false) {
+        puts("Error, couldn't expand pattern:");
+        abort();
+    }
+
+    return NuitkaUnicode_FromWideChar(filename_buffer, -1);
+}
+#else
+static PyObject *getExpandedTemplatePath(char const *template) {
+    char filename_buffer[1024];
+    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer));
+
+    if (res == false) {
+        printf("Error, couldn't expand pattern: %s\n", template);
+        abort();
+    }
+
+    return Nuitka_String_FromString(filename_buffer);
+}
+#endif
+#endif
+
+static void setInputOutputHandles(void) {
+    /* At least on Windows, we support disabling the console via linker flag, but now
+       need to provide the NUL standard file handles manually in this case. */
+    {
+        PyObject *nul_filename = Nuitka_String_FromString("NUL:");
+
+        PyObject *sys_stdin = Nuitka_SysGetObject("stdin");
+        if (sys_stdin == NULL || sys_stdin == Py_None) {
+            // CPython core requires stdin to be buffered due to methods usage, and it won't matter
+            // here much.
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", true);
+
+            CHECK_OBJECT(stdin_file);
+            Nuitka_SysSetObject("stdin", stdin_file);
+        }
+
+        PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
+        if (sys_stdout == NULL || sys_stdout == Py_None) {
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false);
+
+            CHECK_OBJECT(stdout_file);
+            Nuitka_SysSetObject("stdout", stdout_file);
+        }
+
+        PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
+        if (sys_stderr == NULL || sys_stderr == Py_None) {
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false);
+
+            CHECK_OBJECT(stderr_file);
+
+            Nuitka_SysSetObject("stderr", stderr_file);
+        }
+
+        Py_DECREF(nul_filename);
+    }
+
+#if defined(NUITKA_FORCED_STDOUT_PATH)
+    {
+#ifdef _WIN32
+        PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDOUT_PATH);
+#else
+        PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
+#endif
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1);
+        if (unlikely(stdout_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        Nuitka_SysSetObject("stdout", stdout_file);
+    }
+#endif
+
+#if defined(NUITKA_FORCED_STDERR_PATH)
+    {
+#ifdef _WIN32
+        PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDERR_PATH);
+#else
+        PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
+#endif
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1);
+        if (unlikely(stderr_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        Nuitka_SysSetObject("stderr", stderr_file);
+    }
+#endif
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -627,11 +720,11 @@ int main(int argc, char **argv) {
     NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
 #if SYSFLAG_UNBUFFERED == 1
-#if PYTHON_VERSION < 0x300
     setbuf(stdin, (char *)NULL);
     setbuf(stdout, (char *)NULL);
     setbuf(stderr, (char *)NULL);
-#else
+
+#if PYTHON_VERSION >= 0x300
     char const *old_env_unbuffered = getenv("PYTHONUNBUFFERED");
     setenv("PYTHONUNBUFFERED", "1", 1);
 #endif
@@ -678,6 +771,9 @@ int main(int argc, char **argv) {
     Py_IgnoreEnvironmentFlag = 0;
     Py_VerboseFlag = SYSFLAG_VERBOSE;
     Py_BytesWarningFlag = SYSFLAG_BYTES_WARNING;
+#if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1
+    Py_UnbufferedStdioFlag = SYSFLAG_UNBUFFERED;
+#endif
 #if SYSFLAG_NO_RANDOMIZATION == 1
     Py_HashRandomizationFlag = 0;
 #if PYTHON_VERSION < 0x300
@@ -871,100 +967,7 @@ orig_argv = argv;
     }
 #endif
 
-    /* At least on Windows, we support disabling the console via linker flag, but now
-       need to provide the NUL standard file handles manually in this case. */
-    {
-        PyObject *nul_filename = Nuitka_String_FromString("NUL:");
-
-        PyObject *sys_stdin = Nuitka_SysGetObject("stdin");
-        if (sys_stdin == NULL || sys_stdin == Py_None) {
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", NULL);
-
-            CHECK_OBJECT(stdin_file);
-            Nuitka_SysSetObject("stdin", stdin_file);
-        }
-
-        PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
-        if (sys_stdout == NULL || sys_stdout == Py_None) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
-
-            CHECK_OBJECT(stdout_file);
-            Nuitka_SysSetObject("stdout", stdout_file);
-        }
-
-        PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
-        if (sys_stderr == NULL || sys_stderr == Py_None) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", NULL);
-
-            CHECK_OBJECT(stderr_file);
-
-            Nuitka_SysSetObject("stderr", stderr_file);
-        }
-
-        Py_DECREF(nul_filename);
-    }
-
-#if defined(NUITKA_FORCED_STDOUT_PATH)
-    {
-        wchar_t filename_buffer[1024];
-        wchar_t const *pattern = L"" NUITKA_FORCED_STDOUT_PATH;
-
-        bool res = expandTemplatePathW(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
-
-        if (res == false) {
-            puts("Error, couldn't expand pattern:");
-            _putws(pattern);
-            abort();
-        }
-
-        PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
-
-#if SYSFLAG_UNBUFFERED == 1
-        PyObject *buffering = const_int_0;
-#else
-        PyObject *buffering = const_int_pos_1;
-#endif
-
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", buffering);
-        if (unlikely(stdout_file == NULL)) {
-            PyErr_PrintEx(1);
-            Py_Exit(1);
-        }
-
-        Nuitka_SysSetObject("stdout", stdout_file);
-    }
-#endif
-
-#if defined(NUITKA_FORCED_STDERR_PATH)
-    {
-        wchar_t filename_buffer[1024];
-        wchar_t const *pattern = L"" NUITKA_FORCED_STDERR_PATH;
-
-        bool res = expandTemplatePathW(filename_buffer, pattern, sizeof(filename_buffer) / sizeof(wchar_t));
-
-        if (res == false) {
-            puts("Error, couldn't expand pattern:");
-            _putws(pattern);
-            abort();
-        }
-
-        PyObject *filename = NuitkaUnicode_FromWideChar(filename_buffer, -1);
-
-#if SYSFLAG_UNBUFFERED == 1
-        PyObject *buffering = const_int_0;
-#else
-        PyObject *buffering = const_int_pos_1;
-#endif
-
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", const_int_pos_1);
-        if (unlikely(stderr_file == NULL)) {
-            PyErr_PrintEx(1);
-            Py_Exit(1);
-        }
-
-        Nuitka_SysSetObject("stderr", stderr_file);
-    }
-#endif
+    setInputOutputHandles();
 
 #ifdef _NUITKA_STANDALONE
 

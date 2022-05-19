@@ -22,6 +22,7 @@ the source code. Second, the packages are scanned from the filesystem,
 and third, the byte code compilation is avoided for inline copies of
 scons with mismatching Python major versions.
 
+spellchecker: ignore chdir,pythonw,tqdm
 """
 import os
 import sys
@@ -73,7 +74,7 @@ def findNuitkaPackages():
         if "quality" in dirnames:
             dirnames.remove("quality")
 
-        # Handled separatedly.
+        # Handled separately.
         if "inline_copy" in dirnames:
             dirnames.remove("inline_copy")
 

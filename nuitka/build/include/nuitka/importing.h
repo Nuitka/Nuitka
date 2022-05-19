@@ -104,6 +104,15 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyObject *module_name) {
     return result;
 }
 
+// Remove a module to the modules dictionary from name C string
+NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModuleString(char const *module_name) {
+    PyObject *module_name_object = Nuitka_String_FromString(module_name);
+    bool result = Nuitka_DelModule(module_name_object);
+    Py_DECREF(module_name_object);
+
+    return result;
+}
+
 // Wrapper for PyModule_GetFilenameObject that has no error.
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyObject *module) {
 #if PYTHON_VERSION < 0x300

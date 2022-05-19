@@ -103,19 +103,10 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
 
 static PyObject *Nuitka_Cell_tp_repr(struct Nuitka_CellObject *cell) {
     if (cell->ob_ref == NULL) {
-#if PYTHON_VERSION < 0x300
-        return PyString_FromFormat(
-#else
-        return PyUnicode_FromFormat(
-#endif
-            "<compiled_cell at %p: empty>", cell);
+        return Nuitka_String_FromFormat("<compiled_cell at %p: empty>", cell);
     } else {
-#if PYTHON_VERSION < 0x300
-        return PyString_FromFormat(
-#else
-        return PyUnicode_FromFormat(
-#endif
-            "<compiled_cell at %p: %s object at %p>", cell, cell->ob_ref->ob_type->tp_name, cell->ob_ref);
+        return Nuitka_String_FromFormat("<compiled_cell at %p: %s object at %p>", cell, cell->ob_ref->ob_type->tp_name,
+                                        cell->ob_ref);
     }
 }
 
@@ -168,8 +159,8 @@ static PyGetSetDef Nuitka_Cell_getsetlist[] = {
 
 PyTypeObject Nuitka_Cell_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_cell",
-    sizeof(struct Nuitka_CellObject),
-    0,
+    sizeof(struct Nuitka_CellObject),   /* tp_basicsize */
+    0,                                  /* tp_itemsize */
     (destructor)Nuitka_Cell_tp_dealloc, /* tp_dealloc */
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */

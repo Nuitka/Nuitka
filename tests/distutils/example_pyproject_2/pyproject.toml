@@ -43,7 +43,7 @@ nuitka = "*"
 build = "*"
 
 [build-system]
-requires = ["setuptools>=42", "wheel", "nuitka"]
+requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
 build-backend = "nuitka.distutils.Build"
 
 [virtualenvs]

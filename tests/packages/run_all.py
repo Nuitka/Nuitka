@@ -24,7 +24,7 @@
 Package tests are typically aiming at checking specific module constellations
 in module mode and making sure the details are being right there. These are
 synthetic small packages, each of which try to demonstrate one or more points
-or special behaviour.
+or special behavior.
 
 """
 
@@ -84,6 +84,9 @@ def main():
 
             if filename_main is None:
                 for filename_main in os.listdir(filename):
+                    if filename_main == "__pycache__":
+                        continue
+
                     if not os.path.isdir(os.path.join(filename, filename_main)):
                         continue
 
@@ -101,6 +104,9 @@ Error, no package in test directory '%s' found, incomplete test case."""
                 )
 
             extra_flags.append("--output-dir=%s" % getTempDir())
+
+            if filename == "top_level_attributes":
+                extra_flags.append("--module-entry-point=main")
 
             compareWithCPython(
                 dirname=filename,

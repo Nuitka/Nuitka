@@ -280,7 +280,9 @@ def addToPATH(env, dirname, prefix):
 
 
 def writeSconsReport(env, source_dir):
-    with openTextFile(os.path.join(source_dir, "scons-report.txt"), "w") as report_file:
+    with openTextFile(
+        os.path.join(source_dir, "scons-report.txt"), "w", encoding="utf8"
+    ) as report_file:
         # We are friends to get at this debug info, pylint: disable=protected-access
         for key, value in sorted(env._dict.items()):
             if type(value) is list and all(isinstance(v, basestring) for v in value):

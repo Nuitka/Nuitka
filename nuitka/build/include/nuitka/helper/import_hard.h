@@ -23,39 +23,62 @@
 #endif
 
 /* C helper for hard import of module "__future__" import. */
-
 extern PyObject *IMPORT_HARD___FUTURE__(void);
-/* C helper for hard import of module "_frozen_importlib" import. */
 
+/* C helper for hard import of module "_frozen_importlib" import. */
 #if PYTHON_VERSION >= 0x300
 extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void);
 #endif
-/* C helper for hard import of module "_frozen_importlib_external" import. */
 
+/* C helper for hard import of module "_frozen_importlib_external" import. */
 #if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void);
 #endif
+
 /* C helper for hard import of module "functools" import. */
-
 extern PyObject *IMPORT_HARD_FUNCTOOLS(void);
+
 /* C helper for hard import of module "importlib" import. */
-
 extern PyObject *IMPORT_HARD_IMPORTLIB(void);
+
+/* C helper for hard import of module "importlib.metadata" import. */
+#if PYTHON_VERSION >= 0x390
+extern PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void);
+#endif
+
+/* C helper for hard import of module "importlib.resources" import. */
+#if PYTHON_VERSION >= 0x370
+extern PyObject *IMPORT_HARD_IMPORTLIB__RESOURCES(void);
+#endif
+
+/* C helper for hard import of module "importlib_metadata" import. */
+extern PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void);
+
+/* C helper for hard import of module "io" import. */
+extern PyObject *IMPORT_HARD_IO(void);
+
 /* C helper for hard import of module "os" import. */
-
 extern PyObject *IMPORT_HARD_OS(void);
+
+/* C helper for hard import of module "pkg_resources" import. */
+extern PyObject *IMPORT_HARD_PKG_RESOURCES(void);
+
 /* C helper for hard import of module "pkgutil" import. */
-
 extern PyObject *IMPORT_HARD_PKGUTIL(void);
+
 /* C helper for hard import of module "site" import. */
-
 extern PyObject *IMPORT_HARD_SITE(void);
+
 /* C helper for hard import of module "sys" import. */
-
 extern PyObject *IMPORT_HARD_SYS(void);
+
+/* C helper for hard import of module "sysconfig" import. */
+extern PyObject *IMPORT_HARD_SYSCONFIG(void);
+
 /* C helper for hard import of module "types" import. */
-
 extern PyObject *IMPORT_HARD_TYPES(void);
-/* C helper for hard import of module "typing" import. */
 
+/* C helper for hard import of module "typing" import. */
+#if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_HARD_TYPING(void);
+#endif

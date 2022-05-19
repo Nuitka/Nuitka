@@ -52,7 +52,6 @@ BuildRequires:  python3-setuptools
 %endif
 BuildRequires:  gcc-c++
 BuildRequires:  strace
-BuildRequires:  chrpath
 BuildRequires:  patchelf
 BuildRequires:  ccache
 BuildRequires:  gdb
@@ -77,7 +76,6 @@ Requires:       python3-MarkupSafe
 %endif
 Requires:       gcc-c++
 Requires:       strace
-Requires:       chrpath
 Requires:       patchelf
 Requires:       ccache
 

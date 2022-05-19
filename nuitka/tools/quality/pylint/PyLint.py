@@ -272,14 +272,14 @@ def isSpecificPythonOnly(filename):
     return False
 
 
-def executePyLint(filenames, show_todos, verbose, one_by_one):
+def executePyLint(filenames, show_todo, verbose, one_by_one):
     filenames = list(filenames)
 
     if verbose:
         my_print("Checking", filenames, "...")
 
     pylint_options = getOptions()
-    if not show_todos:
+    if not show_todo:
         pylint_options.append("--notes=")
 
     filenames = [

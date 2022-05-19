@@ -27,6 +27,14 @@ from nuitka.utils.Execution import withEnvironmentVarsOverridden
 
 
 def runDataComposer(source_dir):
+    from nuitka.plugins.Plugins import Plugins
+
+    Plugins.onDataComposerRun()
+    blob_filename = _runDataComposer(source_dir=source_dir)
+    Plugins.onDataComposerResult(blob_filename)
+
+
+def _runDataComposer(source_dir):
     data_composer_path = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", "tools", "data_composer")
     )
@@ -69,6 +77,8 @@ def deriveModuleConstantsBlobName(filename):
         return ""
     elif basename == "__bytecode":
         return ".bytecode"
+    elif basename == "__files":
+        return ".files"
     else:
         # Strip "module." prefix"
         basename = basename[7:]

@@ -94,7 +94,6 @@ def getConstantDefaultPopulation():
         "level",
         # Meta path based loader.
         "read",
-        "rb",
     ]
 
     # Pickling of instance methods.
@@ -173,5 +172,11 @@ def getConstantDefaultPopulation():
 
     if python_version >= 0x370:
         result.append("__class_getitem__")
+
+    if python_version >= 0x3A0:
+        result.append("__match_args__")
+
+        if Options.is_debug:
+            result.append("__args__")
 
     return result

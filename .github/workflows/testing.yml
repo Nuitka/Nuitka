@@ -1,5 +1,5 @@
 name: Nuitka tests
-
+# makes little sense, spell-checker: disable
 on:
   pull_request:
     branches:
@@ -38,9 +38,9 @@ jobs:
       - name: 🧳 Install Nuitka and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install chrpath gdb ccache libfuse2
-          python -m pip install -r requirements-devel.txt
-          python -m pip install .
+          sudo apt-get install patchelf gdb ccache libfuse2
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
@@ -73,7 +73,7 @@ jobs:
           python ./bin/check-nuitka-with-codespell
         if: matrix.python_version == '3.9'
 
-      - name: Autoformat check on Nuitka source code
+      - name: Auto-format check on Nuitka source code
         run: |
           python ./bin/autoformat-nuitka-source --check-only
         if: matrix.python_version == '3.9'
@@ -95,13 +95,10 @@ jobs:
           otool -L $(which python)
           otool -l $(which python)
 
-      - name: Install Nuitka dependencies
+      - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install -r requirements-devel.txt
-
-      - name: Install Nuitka
-        run:
-          pip install .
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
@@ -140,13 +137,10 @@ jobs:
           otool -l $(which python)
           ls -lR $(dirname $(dirname $(which python)))
 
-      - name: Install Nuitka dependencies
+      - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install -r requirements-devel.txt
-
-      - name: Install Nuitka
-        run:
-          pip install .
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
@@ -180,13 +174,10 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install Nuitka dependencies
+      - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install -r requirements-devel.txt
-
-      - name: Install Nuitka
-        run: |
-          pip install .
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |

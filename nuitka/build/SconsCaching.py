@@ -65,7 +65,7 @@ def _getCcacheGuessedPaths(python_prefix):
     if isWin32Windows():
         # Search the compiling Python, the Scons Python (likely the same, but not necessarily)
         # and then Anaconda, if an environment variable present from activated, or installed in
-        # CI like Github actions.
+        # CI like GitHub actions.
         for python_dir in _getPythonDirCandidates(python_prefix):
             yield os.path.join(python_dir, "bin", "ccache.exe")
             yield os.path.join(python_dir, "scripts", "ccache.exe")
@@ -100,7 +100,7 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
 
         if ccache_binary is None:
             if isWin32Windows():
-                url = "https://github.com/ccache/ccache/releases/download/v3.7.12/ccache-3.7.12-windows-32.zip"
+                url = "https://github.com/ccache/ccache/releases/download/v4.6/ccache-4.6-windows-32.zip"
                 ccache_binary = getCachedDownload(
                     url=url,
                     is_arch_specific=False,
@@ -182,6 +182,11 @@ def enableCcache(
         setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
         env["CCACHE_DIR"] = ccache_dir
 
+    # We know the include files we created are safe to use.
+    setEnvironmentVariable(
+        env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
+    )
+
     # First check if it's not already supposed to be a ccache, then do nothing.
     cc_path = getExecutablePath(env.the_compiler, env=env)
 
@@ -242,6 +247,26 @@ def enableClcache(env, source_dir):
     scons_details_logger.info(
         "Using inline copy of clcache with %r cl binary." % cl_binary
     )
+
+    import atexit
+
+    atexit.register(_writeClcacheStatistics)
+
+
+def _writeClcacheStatistics():
+    try:
+        # pylint: disable=I0021,import-error,no-name-in-module,redefined-outer-name
+        from clcache.caching import stats
+
+        if stats is not None:
+            stats.save()
+
+    except IOError:
+        raise
+    except Exception:  # Catch all the things, pylint: disable=broad-except
+        # This is run in "atexit" even without the module being loaded, or
+        # the stats being begun or usable.
+        pass
 
 
 def _getCcacheStatistics(ccache_logfile):

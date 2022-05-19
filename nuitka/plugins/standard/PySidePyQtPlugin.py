@@ -24,12 +24,8 @@ own dependencies.
 import os
 
 from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedDataFiles import (
-    makeIncludedDataFile,
-    makeIncludedGeneratedDataFile,
-)
 from nuitka.freezer.IncludedEntryPoints import makeExeEntryPoint
-from nuitka.Options import isStandaloneMode
+from nuitka.Options import isExperimental, isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.PythonVersions import python_version
@@ -267,7 +263,9 @@ import %(binding_name)s.QtCore
         )
 
         if info is None:
-            self.sysexit("Error, it seems '%s' is not installed." % self.binding_name)
+            self.sysexit(
+                "Error, it seems '%s' is not installed or broken." % self.binding_name
+            )
 
         return info
 
@@ -382,6 +380,15 @@ import %(binding_name)s.QtCore
                 qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]
 
                 if not self.hasQtPluginSelected(qt_plugin_name):
+                    continue
+
+                # TODO: The qpdf plugin is causing issues, and we would have to check
+                # here, already, if dependencies of the plugin will be available, and
+                # if not, then skip it, but that is for a future release, as it is
+                # blocking on macOS now.
+                if "qpdf" in os.path.basename(filename_relative) and not isExperimental(
+                    "qt-force-qpdf"
+                ):
                     continue
 
                 yield self.makeDllEntryPoint(
@@ -643,20 +650,21 @@ if not path.startswith(__nuitka_binary_dir):
             for filename in self._getQmlFileList(dlls=False):
                 filename_relative = os.path.relpath(filename, qml_plugin_dir)
 
-                yield makeIncludedDataFile(
+                yield self.makeIncludedDataFile(
                     source_path=filename,
                     dest_path=os.path.join(
                         qml_target_dir,
                         filename_relative,
                     ),
                     reason="Qt QML datafile",
+                    tags="qml",
                 )
         elif self.isQtWebEngineModule(full_name) and not self.webengine_done_data:
             self.webengine_done_data = True
 
             # TODO: This is probably wrong/not needed on macOS
             if not isMacOS():
-                yield makeIncludedGeneratedDataFile(
+                yield self.makeIncludedGeneratedDataFile(
                     data="""\
 [Paths]
 Prefix = .
@@ -668,7 +676,7 @@ Prefix = .
             resources_dir = self._getResourcesPath()
 
             for filename, filename_relative in listDir(resources_dir):
-                yield makeIncludedDataFile(
+                yield self.makeIncludedDataFile(
                     source_path=filename,
                     dest_path=os.path.join(
                         self._getResourcesTargetDir(), filename_relative
@@ -683,10 +691,11 @@ Prefix = .
                     filename_relative = os.path.relpath(filename, translations_path)
                     dest_path = self._getTranslationsTargetDir()
 
-                    yield makeIncludedDataFile(
+                    yield self.makeIncludedDataFile(
                         source_path=filename,
                         dest_path=os.path.join(dest_path, filename_relative),
                         reason="Qt translation",
+                        tags="translation",
                     )
 
     def getExtraDlls(self, module):
@@ -845,7 +854,7 @@ Prefix = .
                         if os.path.basename(sub_dll_filename).startswith(badword):
                             yield sub_dll_filename
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():
@@ -977,16 +986,14 @@ The standard PySide2 is not supported before CPython <3.6. For full support: htt
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
-        # Enforce recursion in to multiprocessing for accelerated mode, which
-        # would normally avoid this.
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         if module_name == self.binding_name and self._getNuitkaPatchLevel() < 1:
             return True, "Need to monkey patch PySide2 for abstract methods."
 
         return NuitkaPluginQtBindingsPluginBase.onModuleEncounter(
             self,
-            module_filename=module_filename,
             module_name=module_name,
+            module_filename=module_filename,
             module_kind=module_kind,
         )
 

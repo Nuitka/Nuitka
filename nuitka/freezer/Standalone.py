@@ -34,6 +34,7 @@ from nuitka.build.SconsUtils import readSconsReport
 from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.importing import ImportCache
 from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
@@ -64,21 +65,17 @@ from nuitka.utils.Execution import (
 )
 from nuitka.utils.FileOperations import (
     areSamePaths,
-    copyFileWithPermissions,
     getDirectoryRealPath,
     getFileContentByLine,
-    getFileList,
-    getSubDirectories,
+    getSubDirectoriesWithDlls,
     haveSameFileContents,
     isPathBelow,
-    listDir,
+    listDllFilesFromDirectory,
     makePath,
     putTextFileContents,
     relpath,
-    resolveShellPatternToFilenames,
     withFileLock,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
@@ -95,18 +92,13 @@ from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import detectDLLsWithDependencyWalker
-from .IncludedDataFiles import (
-    IncludedDataDirectory,
-    IncludedDataFile,
-    makeIncludedDataFile,
-)
 
 
 def loadCodeObjectData(precompiled_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
     # CPython already checked them (would have rejected it otherwise).
     with open(precompiled_filename, "rb") as f:
-        return f.read()[8:]
+        return f.read()[8 if str is bytes else 16 :]
 
 
 module_names = set()
@@ -833,6 +825,10 @@ def _resolveBinaryPathDLLsMacOS(
             resolved_path = path
 
         if not os.path.exists(resolved_path):
+            # TODO: Make this a plugin decision, to move this from here to PySide6 plugin:
+            if os.path.basename(binary_filename) == "libqpdf.dylib":
+                raise NuitkaForbiddenDLLEncounter(binary_filename, "pyside6")
+
             inclusion_logger.sysexit(
                 "Error, failed to resolve DLL path %s (for %s), please report the bug."
                 % (path, binary_filename)
@@ -900,7 +896,7 @@ def _getCacheFilename(
     if str is not bytes:
         hashed_value = hashed_value.encode("utf8")
 
-    cache_dir = os.path.join(getCacheDir(), "library_deps", dependency_tool)
+    cache_dir = os.path.join(getCacheDir(), "library_dependencies", dependency_tool)
 
     makePath(cache_dir)
 
@@ -920,9 +916,8 @@ def _getPackageSpecificDLLDirectories(package_name):
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
-            scan_dirs.update(
-                getSubDirectories(package_dir, ignore_dirs=("__pycache__",))
-            )
+
+            scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
 
         scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
 
@@ -930,8 +925,6 @@ def _getPackageSpecificDLLDirectories(package_name):
 
 
 def getScanDirectories(package_name, original_dir):
-    # Many cases, pylint: disable=too-many-branches
-
     cache_key = package_name, original_dir
 
     if cache_key in _scan_dir_cache:
@@ -944,7 +937,7 @@ def getScanDirectories(package_name, original_dir):
 
     if original_dir is not None:
         scan_dirs.append(original_dir)
-        scan_dirs.extend(getSubDirectories(original_dir))
+        scan_dirs.extend(getSubDirectoriesWithDlls(original_dir))
 
     if (
         Utils.isWin32Windows()
@@ -973,16 +966,10 @@ def getScanDirectories(package_name, original_dir):
 
     # Remove directories that hold no DLLs.
     for scan_dir in scan_dirs:
-        sys.stdout.flush()
-
-        # These are useless, but plenty.
-        if os.path.basename(scan_dir) == "__pycache__":
-            continue
-
         scan_dir = getDirectoryRealPath(scan_dir)
 
         # No DLLs, no use.
-        if not any(entry[1].lower().endswith(".dll") for entry in listDir(scan_dir)):
+        if not any(listDllFilesFromDirectory(scan_dir)):
             continue
 
         result.append(os.path.realpath(scan_dir))
@@ -1100,15 +1087,22 @@ def _detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache
     )
 
     def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
-        used_dlls = _detectBinaryDLLs(
-            is_main_executable=count == 0,
-            source_dir=source_dir,
-            original_filename=original_filename,
-            binary_filename=binary_filename,
-            package_name=package_name,
-            use_cache=use_cache,
-            update_cache=update_cache,
-        )
+        try:
+            used_dlls = _detectBinaryDLLs(
+                is_main_executable=count == 0,
+                source_dir=source_dir,
+                original_filename=original_filename,
+                binary_filename=binary_filename,
+                package_name=package_name,
+                use_cache=use_cache,
+                update_cache=update_cache,
+            )
+        except NuitkaForbiddenDLLEncounter:
+            inclusion_logger.info(
+                "Not including forbidden DLL '%s'." % original_filename
+            )
+
+            return None, None, None
 
         # Allow plugins to prevent inclusion, this may discard things from used_dlls.
         Plugins.removeDllDependencies(
@@ -1151,6 +1145,10 @@ working with Python, report a Nuitka bug."""
             )
 
         for binary_filename, package_name, used_dlls in waitWorkers(workers):
+            # Ignore forbidden DLLs.
+            if binary_filename is None:
+                continue
+
             for dll_filename in used_dlls:
                 # We want these to be absolute paths. Solve that in the parts
                 # where _detectBinaryDLLs is platform specific.
@@ -1216,7 +1214,7 @@ Error, problem with dependency scan of '%s' with '%s' please report the bug."""
 
 
 # These DLLs are run time DLLs from Microsoft, and packages will depend on different
-# ones, but it will be OK to use the latest one.
+# ones, but it will be OK to use the latest one, spell-checker: ignore msvcp vcruntime
 ms_runtime_dlls = (
     "msvcp140_1.dll",
     "msvcp140.dll",
@@ -1431,188 +1429,3 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
         )
 
     Plugins.onCopiedDLLs(dist_dir=dist_dir, used_dlls=used_dlls)
-
-
-def _handleDataFile(dist_dir, tracer, included_datafile):
-    """Handle a data file."""
-    if not isinstance(included_datafile, (IncludedDataFile, IncludedDataDirectory)):
-        tracer.sysexit("Error, cannot only include 'IncludedData*' objects in plugins.")
-
-    if included_datafile.kind == "empty_dirs":
-        tracer.info(
-            "Included empty directories '%s' due to %s."
-            % (
-                ",".join(included_datafile.dest_path),
-                included_datafile.reason,
-            )
-        )
-
-        for sub_dir in included_datafile.dest_path:
-            created_dir = os.path.join(dist_dir, sub_dir)
-
-            makePath(created_dir)
-            putTextFileContents(
-                filename=os.path.join(created_dir, ".keep_dir.txt"), contents=""
-            )
-
-    elif included_datafile.kind == "data_file":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-
-        tracer.info(
-            "Included data file '%s' due to %s."
-            % (
-                included_datafile.dest_path,
-                included_datafile.reason,
-            )
-        )
-
-        makePath(os.path.dirname(dest_path))
-        copyFileWithPermissions(
-            source_path=included_datafile.source_path, dest_path=dest_path
-        )
-    elif included_datafile.kind == "data_dir":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-        makePath(os.path.dirname(dest_path))
-
-        copied = []
-
-        for filename in getFileList(
-            included_datafile.source_path,
-            ignore_dirs=included_datafile.ignore_dirs,
-            ignore_filenames=included_datafile.ignore_filenames,
-            ignore_suffixes=included_datafile.ignore_suffixes,
-            only_suffixes=included_datafile.only_suffixes,
-            normalize=included_datafile.normalize,
-        ):
-            filename_relative = os.path.relpath(filename, included_datafile.source_path)
-
-            filename_dest = os.path.join(dest_path, filename_relative)
-            makePath(os.path.dirname(filename_dest))
-
-            copyFileWithPermissions(source_path=filename, dest_path=filename_dest)
-
-            copied.append(filename_relative)
-
-        tracer.info(
-            "Included data dir %r with %d files due to: %s."
-            % (
-                included_datafile.dest_path,
-                len(copied),
-                included_datafile.reason,
-            )
-        )
-    elif included_datafile.kind == "data_blob":
-        dest_path = os.path.join(dist_dir, included_datafile.dest_path)
-        makePath(os.path.dirname(dest_path))
-
-        putTextFileContents(filename=dest_path, contents=included_datafile.data)
-
-        tracer.info(
-            "Included data file '%s' due to %s."
-            % (
-                included_datafile.dest_path,
-                included_datafile.reason,
-            )
-        )
-    else:
-        assert False, included_datafile
-
-
-def copyDataFiles(dist_dir):
-    """Copy the data files needed for standalone distribution.
-
-    Args:
-        dist_dir: The distribution folder under creation
-    Notes:
-        This is for data files only, not DLLs or even extension modules,
-        those must be registered as entry points, and would not go through
-        necessary handling if provided like this.
-    """
-
-    # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
-
-    for pattern, src, dest, arg in Options.getShallIncludeDataFiles():
-        filenames = resolveShellPatternToFilenames(pattern)
-
-        if not filenames:
-            inclusion_logger.warning(
-                "No matching data file to be included for '%s'." % pattern
-            )
-
-        for filename in filenames:
-            file_reason = "specified data file '%s' on command line" % arg
-
-            if src is None:
-                rel_path = dest
-
-                if rel_path.endswith(("/", os.path.sep)):
-                    rel_path = os.path.join(rel_path, os.path.basename(filename))
-            else:
-                rel_path = os.path.join(dest, relpath(filename, src))
-
-            _handleDataFile(
-                dist_dir,
-                inclusion_logger,
-                makeIncludedDataFile(filename, rel_path, file_reason),
-            )
-
-    for src, dest in Options.getShallIncludeDataDirs():
-        filenames = getFileList(src)
-
-        if not filenames:
-            inclusion_logger.warning("No files in directory '%s.'" % src)
-
-        for filename in filenames:
-            relative_filename = relpath(filename, src)
-
-            file_reason = "specified data dir %r on command line" % src
-
-            rel_path = os.path.join(dest, relative_filename)
-
-            _handleDataFile(
-                dist_dir,
-                inclusion_logger,
-                makeIncludedDataFile(filename, rel_path, file_reason),
-            )
-
-    # Cyclic dependency
-    from nuitka import ModuleRegistry
-
-    for module in ModuleRegistry.getDoneModules():
-        for plugin, included_datafile in Plugins.considerDataFiles(module):
-            _handleDataFile(
-                dist_dir=dist_dir, tracer=plugin, included_datafile=included_datafile
-            )
-
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
-            package_name = module.getFullName()
-
-            match, reason = package_name.matchesToShellPatterns(
-                patterns=Options.getShallIncludePackageData()
-            )
-
-            if match:
-                package_directory = module.getCompileTimeDirectory()
-
-                pkg_filenames = getFileList(
-                    package_directory,
-                    ignore_dirs=("__pycache__",),
-                    ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
-                    + getSharedLibrarySuffixes(),
-                )
-
-                if pkg_filenames:
-                    file_reason = "package '%s' %s" % (package_name, reason)
-
-                    for pkg_filename in pkg_filenames:
-                        rel_path = os.path.join(
-                            package_name.asPath(),
-                            os.path.relpath(pkg_filename, package_directory),
-                        )
-
-                        _handleDataFile(
-                            dist_dir,
-                            inclusion_logger,
-                            makeIncludedDataFile(pkg_filename, rel_path, file_reason),
-                        )

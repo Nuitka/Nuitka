@@ -32,6 +32,13 @@ import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
+from nuitka.freezer.IncludedDataFiles import (
+    makeIncludedDataDirectory,
+    makeIncludedDataFile,
+    makeIncludedEmptyDirectories,
+    makeIncludedGeneratedDataFile,
+    makeIncludedPackageDataFiles,
+)
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
@@ -124,11 +131,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def addPluginCommandLineOptions(cls, group):
         # Call group.add_option() here.
         pass
-
-    @classmethod
-    def getTagDataFileTagOptions(cls):
-        # Return tag_name, description tuples
-        return ()
 
     @classmethod
     def getPluginDefaultOptionValues(cls):
@@ -318,18 +320,29 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         """Help decide whether to include a module.
 
         Args:
-            module_filename: filename
             module_name: full module name
+            module_filename: filename
             module_kind: one of "py", "extension" (shared library)
         Returns:
             True or False
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def onModuleRecursion(self, module_name, module_filename, module_kind):
+        """React to recursion to a module coming up.
+
+        Args:
+            module_name: full module name
+            module_filename: filename
+            module_kind: one of "py", "extension" (shared library)
+        Returns:
+            None
+        """
 
     def onModuleInitialSet(self):
         """Provide extra modules to the initial root module set.
@@ -500,6 +513,75 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    def makeIncludedDataFile(self, source_path, dest_path, reason, tags=""):
+        return makeIncludedDataFile(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedGeneratedDataFile(self, data, dest_path, reason, tags=""):
+        return makeIncludedGeneratedDataFile(
+            data=data, dest_path=dest_path, reason=reason, tracer=self, tags=tags
+        )
+
+    def makeIncludedDataDirectory(
+        self,
+        source_path,
+        dest_path,
+        reason,
+        tags="",
+        ignore_dirs=(),
+        ignore_filenames=(),
+        ignore_suffixes=(),
+        only_suffixes=(),
+        normalize=True,
+    ):
+        return makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+            ignore_dirs=ignore_dirs,
+            ignore_filenames=ignore_filenames,
+            ignore_suffixes=ignore_suffixes,
+            only_suffixes=only_suffixes,
+            normalize=normalize,
+        )
+
+    def makeIncludedEmptyDirectories(self, source_path, dest_paths, reason, tags):
+        return makeIncludedEmptyDirectories(
+            source_path=source_path,
+            dest_paths=dest_paths,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedPackageDataFiles(
+        self, package_name, package_directory, pattern, reason, tags
+    ):
+        return makeIncludedPackageDataFiles(
+            tracer=self,
+            package_name=ModuleName(package_name),
+            package_directory=package_directory,
+            pattern=pattern,
+            reason=reason,
+            tags=tags,
+        )
+
+    def updateDataFileTags(self, included_datafile):
+        """Add or remove data file tags."""
+
+    def onDataFileTags(self, included_datafile):
+        """Action on data file tags."""
+
+    def onBeforeCodeParsing(self):
+        """Prepare for code parsing, normally not needed."""
 
     def onStandaloneDistributionFinished(self, dist_dir):
         """Called after successfully creating a standalone distribution.
@@ -678,6 +760,15 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             plugins_logger.warning(
                 "Use '--enable-plugin=%s' for: %s" % (self.plugin_name, message)
             )
+
+    def onDataComposerRun(self):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return None
 
     def onDataComposerResult(self, blob_filename):
         """Internal use only.

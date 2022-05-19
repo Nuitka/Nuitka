@@ -439,8 +439,6 @@ extern PyObject **global_constants;
 #define const_str_plain_level global_constants[41]
 // 'read'
 #define const_str_plain_read global_constants[42]
-// 'rb'
-#define const_str_plain_rb global_constants[43]
 // '__newobj__'
 #define const_str_plain___newobj__ global_constants[44]
 // '.'
@@ -491,6 +489,10 @@ extern PyObject **global_constants;
 #define const_str_plain_types global_constants[66]
 // '__loader__'
 #define const_str_plain___loader__ global_constants[67]
+// '__match_args__'
+#define const_str_plain___match_args__ global_constants[67]
+// '__args__'
+#define const_str_plain___args__ global_constants[67]
 
 #define _NUITKA_CONSTANTS_SIZE 27
 #define _NUITKA_CONSTANTS_HASH 0x27272727
@@ -531,6 +533,17 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #else
 #define DECODE(x) assert(x)
 #define UNTRANSLATE(x) (x)
+#endif
+
+#if _NUITKA_EXPERIMENTAL_FILE_TRACING
+#include "nuitka_file_tracer.h"
+#else
+#if PYTHON_VERSION < 0x300
+#define TRACE_FILE_OPEN(x, y, z, r) (false)
+#else
+#define TRACE_FILE_OPEN(x, y, z, a, b, c, d, e, r) (false)
+#endif
+#define TRACE_FILE_READ(x, y) (false)
 #endif
 
 #if _NUITKA_EXPERIMENTAL_INIT_PROGRAM

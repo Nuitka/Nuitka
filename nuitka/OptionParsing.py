@@ -405,18 +405,18 @@ empty.""",
 )
 
 data_group.add_option(
-    "--include-data-file",
+    "--include-data-files",
     action="append",
     dest="data_files",
     metavar="DESC",
     default=[],
     help="""\
 Include data files by filenames in the distribution. There are many
-allowed forms. With '--include-data-file=/path/to/file/*.txt=folder_name/some.txt' it
+allowed forms. With '--include-data-files=/path/to/file/*.txt=folder_name/some.txt' it
 will copy a single file and complain if it's multiple. With
-'--include-data-file=/path/to/files/*.txt=folder_name/' it will put
+'--include-data-files=/path/to/files/*.txt=folder_name/' it will put
 all matching files into that folder. For recursive copy there is a
-form with 3 values that '--include-data-file=/path/to/scan=folder_name=**/*.txt'
+form with 3 values that '--include-data-files=/path/to/scan=folder_name=**/*.txt'
 that will preserve directory structure. Default empty.""",
 )
 
@@ -428,31 +428,25 @@ data_group.add_option(
     default=[],
     help="""\
 Include data files from complete directory in the distribution. This is
-recursive. Check '--include-data-file' with patterns if you want non-recursive
+recursive. Check '--include-data-files' with patterns if you want non-recursive
 inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
 for plain copy, of the whole directory. All files are copied, if you want to
-exclude files you need to remove them beforehand. Default empty.""",
+exclude files you need to remove them beforehand, or use --noinclude-data-files
+option to remove them. Default empty.""",
 )
 
-data_files_tags = [("inhibit", "do not include the file")]
-
-# TODO: Expose this when finished, pylint: disable=using-constant-test
-if False:
-    data_group.add_option(
-        "--data-file-tags",
-        action="append",
-        dest="data_tags",
-        metavar="DATA_TAGS",
-        default=[],
-        help="""\
-    For included data files, special handlings can be chosen. With the
-    commercial plugins, e.g. files can be included directly in the
-    binary. The list is completed by some plugins. With the current
-    list of plugins, these are available: %s.
-    The default is empty."""
-        % ",".join("'%s' (%s)" % d for d in data_files_tags),
-    )
-
+data_group.add_option(
+    "--noinclude-data-files",
+    action="append",
+    dest="data_files_inhibited",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Do not include data files matching the filename pattern given. This is against
+the target filename, not source paths. So ignore file pattern from package
+data for "package_name" should be matched as "package_name/*.txt". Default
+empty.""",
+)
 
 parser.add_option_group(data_group)
 
@@ -552,6 +546,22 @@ compatibility reasons, the "__file__" value will always have ".py" suffix
 independent of what it really is.""",
 )
 
+codegen_group.add_option(
+    "--module-name-choice",
+    action="store",
+    dest="module_name_mode",
+    metavar="MODE",
+    choices=("original", "runtime"),
+    default=None,
+    help="""\
+Select what value "__name__" and "__package__" are going to be. With "runtime"
+(default for module mode), the created module uses the parent package to
+deduce the value of "__package__", to be fully compatible. The value "original"
+(default for other modes) allows for more static optimization to happen, but
+is incompatible for modules that normally can be loaded into any package.""",
+)
+
+
 parser.add_option_group(codegen_group)
 
 output_group = OptionGroup(parser, "Output choices")
@@ -622,9 +632,9 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
-    "--unstripped",
+    "--unstriped",
     action="store_true",
-    dest="unstripped",
+    dest="unstriped",
     default=False,
     help="""\
 Keep debug info in the resulting object file for better debugger interaction.
@@ -643,7 +653,7 @@ Enable vmprof based profiling of time spent. Not working currently. Defaults to 
 debug_group.add_option(
     "--internal-graph",
     action="store_true",
-    dest="graph",
+    dest="internal_graph",
     default=False,
     help="""\
 Create graph of optimization process internals, do not use for whole programs, but only
@@ -1001,6 +1011,38 @@ Where to output --verbose, should be a filename. Default is standard output.""",
 
 parser.add_option_group(tracing_group)
 
+
+os_group = OptionGroup(parser, "General OS controls")
+
+os_group.add_option(
+    "--force-stdout-spec",
+    "--windows-force-stdout-spec",
+    action="store",
+    dest="force_stdout_spec",
+    metavar="FORCE_STDOUT_SPEC",
+    default=None,
+    help="""\
+Force standard output of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka commercial.
+Defaults to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
+)
+
+os_group.add_option(
+    "--force-stderr-spec",
+    "--windows-force-stderr-spec",
+    action="store",
+    dest="force_stderr_spec",
+    metavar="FORCE_STDERR_SPEC",
+    default=None,
+    help="""\
+Force standard error of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka commercial.
+Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
+)
+
+
+parser.add_option_group(os_group)
+
 windows_group = OptionGroup(parser, "Windows specific controls")
 
 windows_group.add_option(
@@ -1156,31 +1198,6 @@ windows_group.add_option(
 Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",
 )
 
-windows_group.add_option(
-    "--windows-force-stdout-spec",
-    action="store",
-    dest="force_stdout_spec",
-    metavar="WINDOWS_FORCE_STDOUT_SPEC",
-    default=None,
-    help="""\
-Force standard output of the program to go to this location. Useful for programs with
-disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
-to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
-)
-
-windows_group.add_option(
-    "--windows-force-stderr-spec",
-    action="store",
-    dest="force_stderr_spec",
-    metavar="WINDOWS_FORCE_STDERR_SPEC",
-    default=None,
-    help="""\
-Force standard error of the program to go to this location. Useful for programs with
-disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
-to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
-)
-
-
 parser.add_option_group(windows_group)
 
 macos_group = OptionGroup(parser, "macOS specific controls")
@@ -1221,12 +1238,12 @@ is the only way to unlock disabling of console.Defaults to off.""",
 )
 
 macos_group.add_option(
-    "--macos-onefile-icon",
+    "--macos-app-icon",
     action="append",
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon for binary to use. Can be given only one time. Defaults to Python icon if available.",
+    help="Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.",
 )
 
 
@@ -1237,9 +1254,9 @@ macos_group.add_option(
     metavar="MACOS_SIGNED_APP_NAME",
     default=None,
     help="""\
-Name of the application to use for macOS signing. Follow com.yourcompany.appname naming
-results for best results, as these have to be globally unique, and will grant protected
-API accesses.""",
+Name of the application to use for macOS signing. Follow "com.yourcompany.appname"
+naming results for best results, as these have to be globally unique, and will
+potentially grant protected API accesses.""",
 )
 
 macos_group.add_option(
@@ -1254,14 +1271,43 @@ filename of the binary.""",
 )
 
 macos_group.add_option(
+    "--macos-sign-identity",
+    action="store",
+    dest="macos_sign_identity",
+    metavar="MACOS_APP_VERSION",
+    default="-",
+    help="""\
+When signing on macOS, by default an ad-hoc identify will be used, but with this
+option your get to specify another identity to use. The signing of code is now
+mandatory on macOS and cannot be disabled. Default "-" if not given, which means
+ad-hoc.""",
+)
+
+macos_group.add_option(
     "--macos-app-version",
     action="store",
     dest="macos_app_version",
     metavar="MACOS_APP_VERSION",
     default=None,
     help="""\
-Product version to use in macOS bundle information. Defaults to 1.0 if
+Product version to use in macOS bundle information. Defaults to "1.0" if
 not given.""",
+)
+
+macos_group.add_option(
+    "--macos-app-protected-resource",
+    action="append",
+    dest="macos_protected_resources",
+    metavar="RESOURCE_DESC",
+    default=[],
+    help="""\
+Request access for macOS protected resources, e.g.
+"NSMicrophoneUsageDescription:Microphone access for recording audio."
+requests access to the microphone and provides an informative text for
+the user, why that is needed. Before the colon, is an OS identifier for
+an access right, then the informative text. Legal values can be found on
+https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources and
+the option can be specified multiple times. Default empty.""",
 )
 
 
@@ -1351,15 +1397,13 @@ plugin_group.add_option(
 )
 
 plugin_group.add_option(
-    "--persist-source-changes",
+    "--show-source-changes",
     action="store_true",
-    dest="persist_source_changes",
+    dest="show_source_changes",
     default=False,
     help="""\
-Write source changes to original Python files. Use with care. May need
-permissions, best for use in a virtualenv to debug if plugin code
-changes work with standard Python or to benefit from bloat removal
-even with pure Python. Default False.""",
+Show source changes to original Python file content before compilation. Mostly
+intended for developing plugins. Default False.""",
 )
 
 
@@ -1371,7 +1415,7 @@ def _considerPluginOptions(logger):
         addUserPluginCommandLineOptions,
     )
 
-    addStandardPluginCommandlineOptions(parser=parser, data_files_tags=data_files_tags)
+    addStandardPluginCommandlineOptions(parser=parser)
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
@@ -1385,7 +1429,6 @@ def _considerPluginOptions(logger):
             addPluginCommandLineOptions(
                 parser=parser,
                 plugin_names=plugin_names.split(","),
-                data_files_tags=data_files_tags,
             )
 
         if arg.startswith("--user-plugin="):
@@ -1396,9 +1439,7 @@ def _considerPluginOptions(logger):
                     % plugin_name.split("=", 1)[0]
                 )
 
-            addUserPluginCommandLineOptions(
-                parser=parser, filename=plugin_name, data_files_tags=data_files_tags
-            )
+            addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
 
 
 def _expandProjectArg(arg, filename_arg, for_eval):
@@ -1435,7 +1476,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
 
 
 def _getProjectOptions(logger, filename_arg, module_mode):
-    # Complex stuff, pylint: disable=too-many-branches,too-many-locals
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if os.path.isdir(filename_arg):
         if module_mode:
@@ -1457,7 +1498,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
 
     cond_level = -1
 
-    for count, line in enumerate(contents_by_line):
+    for line_number, line in enumerate(contents_by_line):
         match = re.match(b"^\\s*#(\\s+)nuitka-project(.*?):(.*)", line)
 
         if match:
@@ -1468,13 +1509,15 @@ def _getProjectOptions(logger, filename_arg, module_mode):
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
                 sysexit(
-                    count,
-                    "Error, 'nuitka-project-if' is expected to be followed by block start.",
+                    line_number,
+                    "Error, 'nuitka-project-if|else' is expected to be followed by block start.",
                 )
 
             expect_block = False
 
-            if level <= cond_level:
+            if level == cond_level and command == "-else":
+                execute_block = not execute_block
+            elif level <= cond_level:
                 execute_block = True
 
             if level > cond_level and not execute_block:
@@ -1487,7 +1530,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
             if command == "-if":
                 if not arg.endswith(":"):
                     sysexit(
-                        count,
+                        line_number,
                         "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
 
@@ -1508,6 +1551,21 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                     )
 
                 execute_block = r
+                expect_block = True
+                cond_level = level
+            elif command == "-else":
+                if arg:
+                    sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-else' cannot have argument.",
+                    )
+
+                if cond_level != level:
+                    sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-else' not currently allowed after nested nuitka-project-if.",
+                    )
+
                 expect_block = True
                 cond_level = level
             elif command == "":

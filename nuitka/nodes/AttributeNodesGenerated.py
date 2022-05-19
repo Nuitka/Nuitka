@@ -20,6 +20,8 @@
 WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
 """
 
+# pylint: disable=too-many-lines
+
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
@@ -30,7 +32,7 @@ attribute_typed_classes = set()
 
 
 class ExpressionAttributeLookupFixedCapitalize(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'capitalize' of an object.
+    """Looking up an attribute value 'capitalize' of an object. spell-checker: ignore capitalize
 
     Typically code like: source.capitalize
     """
@@ -50,6 +52,16 @@ class ExpressionAttributeLookupFixedCapitalize(ExpressionAttributeLookupFixedBas
                 result,
                 "new_expression",
                 "Attribute lookup 'capitalize' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesCapitalize(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'capitalize' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -108,8 +120,28 @@ class ExpressionAttributeLookupStrCapitalize(
 attribute_typed_classes.add(ExpressionAttributeLookupStrCapitalize)
 
 
+class ExpressionAttributeLookupBytesCapitalize(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCapitalize
+):
+    """Attribute Capitalize lookup on a bytes value.
+
+    Typically code like: some_bytes.capitalize
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_CAPITALIZE"
+    attribute_name = "capitalize"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationCapitalize is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesCapitalize)
+
+
 class ExpressionAttributeLookupFixedCasefold(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'casefold' of an object.
+    """Looking up an attribute value 'casefold' of an object. spell-checker: ignore casefold
 
     Typically code like: source.casefold
     """
@@ -167,7 +199,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrCasefold)
 
 
 class ExpressionAttributeLookupFixedCenter(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'center' of an object.
+    """Looking up an attribute value 'center' of an object. spell-checker: ignore center
 
     Typically code like: source.center
     """
@@ -187,6 +219,16 @@ class ExpressionAttributeLookupFixedCenter(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'center' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesCenter(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'center' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -224,8 +266,28 @@ class ExpressionAttributeLookupStrCenter(
 attribute_typed_classes.add(ExpressionAttributeLookupStrCenter)
 
 
+class ExpressionAttributeLookupBytesCenter(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCenter
+):
+    """Attribute Center lookup on a bytes value.
+
+    Typically code like: some_bytes.center
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_CENTER"
+    attribute_name = "center"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationCenter is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesCenter)
+
+
 class ExpressionAttributeLookupFixedClear(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'clear' of an object.
+    """Looking up an attribute value 'clear' of an object. spell-checker: ignore clear
 
     Typically code like: source.clear
     """
@@ -306,7 +368,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictClear)
 
 
 class ExpressionAttributeLookupFixedCopy(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'copy' of an object.
+    """Looking up an attribute value 'copy' of an object. spell-checker: ignore copy
 
     Typically code like: source.copy
     """
@@ -387,7 +449,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictCopy)
 
 
 class ExpressionAttributeLookupFixedCount(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'count' of an object.
+    """Looking up an attribute value 'count' of an object. spell-checker: ignore count
 
     Typically code like: source.count
     """
@@ -407,6 +469,16 @@ class ExpressionAttributeLookupFixedCount(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'count' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesCount(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'count' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -444,8 +516,28 @@ class ExpressionAttributeLookupStrCount(
 attribute_typed_classes.add(ExpressionAttributeLookupStrCount)
 
 
+class ExpressionAttributeLookupBytesCount(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCount
+):
+    """Attribute Count lookup on a bytes value.
+
+    Typically code like: some_bytes.count
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_COUNT"
+    attribute_name = "count"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationCount is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesCount)
+
+
 class ExpressionAttributeLookupFixedDecode(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'decode' of an object.
+    """Looking up an attribute value 'decode' of an object. spell-checker: ignore decode
 
     Typically code like: source.decode
     """
@@ -465,6 +557,16 @@ class ExpressionAttributeLookupFixedDecode(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'decode' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesDecode(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'decode' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -541,8 +643,67 @@ class ExpressionAttributeLookupStrDecode(
 attribute_typed_classes.add(ExpressionAttributeLookupStrDecode)
 
 
+from nuitka.specs.BuiltinBytesOperationSpecs import bytes_decode_spec
+
+
+class ExpressionAttributeLookupBytesDecode(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedDecode
+):
+    """Attribute Decode lookup on a bytes value.
+
+    Typically code like: some_bytes.decode
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_DECODE"
+    attribute_name = "decode"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionBytesOperationDecode(encoding, errors, source_ref):
+            if errors is not None:
+                from .BytesNodes import ExpressionBytesOperationDecode3
+
+                return ExpressionBytesOperationDecode3(
+                    bytes_arg=self.subnode_expression,
+                    encoding=encoding,
+                    errors=errors,
+                    source_ref=source_ref,
+                )
+            elif encoding is not None:
+                from .BytesNodes import ExpressionBytesOperationDecode2
+
+                return ExpressionBytesOperationDecode2(
+                    bytes_arg=self.subnode_expression,
+                    encoding=encoding,
+                    source_ref=source_ref,
+                )
+            else:
+                from .BytesNodes import ExpressionBytesOperationDecode1
+
+                return ExpressionBytesOperationDecode1(
+                    bytes_arg=self.subnode_expression, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionBytesOperationDecode,
+            builtin_spec=bytes_decode_spec,
+        )
+
+        return result, "new_expression", "Call to 'decode' of bytes recognized."
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesDecode)
+
+
 class ExpressionAttributeLookupFixedEncode(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'encode' of an object.
+    """Looking up an attribute value 'encode' of an object. spell-checker: ignore encode
 
     Typically code like: source.encode
     """
@@ -639,7 +800,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrEncode)
 
 
 class ExpressionAttributeLookupFixedEndswith(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'endswith' of an object.
+    """Looking up an attribute value 'endswith' of an object. spell-checker: ignore endswith
 
     Typically code like: source.endswith
     """
@@ -659,6 +820,16 @@ class ExpressionAttributeLookupFixedEndswith(ExpressionAttributeLookupFixedBase)
                 result,
                 "new_expression",
                 "Attribute lookup 'endswith' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesEndswith(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'endswith' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -739,8 +910,28 @@ class ExpressionAttributeLookupStrEndswith(
 attribute_typed_classes.add(ExpressionAttributeLookupStrEndswith)
 
 
+class ExpressionAttributeLookupBytesEndswith(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedEndswith
+):
+    """Attribute Endswith lookup on a bytes value.
+
+    Typically code like: some_bytes.endswith
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ENDSWITH"
+    attribute_name = "endswith"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationEndswith is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesEndswith)
+
+
 class ExpressionAttributeLookupFixedExpandtabs(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'expandtabs' of an object.
+    """Looking up an attribute value 'expandtabs' of an object. spell-checker: ignore expandtabs
 
     Typically code like: source.expandtabs
     """
@@ -760,6 +951,16 @@ class ExpressionAttributeLookupFixedExpandtabs(ExpressionAttributeLookupFixedBas
                 result,
                 "new_expression",
                 "Attribute lookup 'expandtabs' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesExpandtabs(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'expandtabs' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -797,8 +998,28 @@ class ExpressionAttributeLookupStrExpandtabs(
 attribute_typed_classes.add(ExpressionAttributeLookupStrExpandtabs)
 
 
+class ExpressionAttributeLookupBytesExpandtabs(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedExpandtabs
+):
+    """Attribute Expandtabs lookup on a bytes value.
+
+    Typically code like: some_bytes.expandtabs
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_EXPANDTABS"
+    attribute_name = "expandtabs"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationExpandtabs is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesExpandtabs)
+
+
 class ExpressionAttributeLookupFixedFind(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'find' of an object.
+    """Looking up an attribute value 'find' of an object. spell-checker: ignore find
 
     Typically code like: source.find
     """
@@ -818,6 +1039,16 @@ class ExpressionAttributeLookupFixedFind(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'find' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesFind(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'find' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -896,8 +1127,28 @@ class ExpressionAttributeLookupStrFind(
 attribute_typed_classes.add(ExpressionAttributeLookupStrFind)
 
 
+class ExpressionAttributeLookupBytesFind(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedFind
+):
+    """Attribute Find lookup on a bytes value.
+
+    Typically code like: some_bytes.find
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_FIND"
+    attribute_name = "find"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationFind is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesFind)
+
+
 class ExpressionAttributeLookupFixedFormat(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'format' of an object.
+    """Looking up an attribute value 'format' of an object. spell-checker: ignore format
 
     Typically code like: source.format
     """
@@ -955,7 +1206,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrFormat)
 
 
 class ExpressionAttributeLookupFixedFormatmap(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'format_map' of an object.
+    """Looking up an attribute value 'format_map' of an object. spell-checker: ignore format_map
 
     Typically code like: source.format_map
     """
@@ -1013,7 +1264,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrFormatmap)
 
 
 class ExpressionAttributeLookupFixedFromkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'fromkeys' of an object.
+    """Looking up an attribute value 'fromkeys' of an object. spell-checker: ignore fromkeys
 
     Typically code like: source.fromkeys
     """
@@ -1069,7 +1320,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictFromkeys)
 
 
 class ExpressionAttributeLookupFixedGet(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'get' of an object.
+    """Looking up an attribute value 'get' of an object. spell-checker: ignore get
 
     Typically code like: source.get
     """
@@ -1160,7 +1411,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictGet)
 
 
 class ExpressionAttributeLookupFixedHaskey(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'has_key' of an object.
+    """Looking up an attribute value 'has_key' of an object. spell-checker: ignore has_key
 
     Typically code like: source.has_key
     """
@@ -1240,8 +1491,66 @@ class ExpressionAttributeLookupDictHaskey(
 attribute_typed_classes.add(ExpressionAttributeLookupDictHaskey)
 
 
+class ExpressionAttributeLookupFixedHex(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'hex' of an object. spell-checker: ignore hex
+
+    Typically code like: source.hex
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_HEX"
+    attribute_name = "hex"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesHex(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'hex' on bytes shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="hex",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="hex"
+        )
+
+
+attribute_classes["hex"] = ExpressionAttributeLookupFixedHex
+
+
+class ExpressionAttributeLookupBytesHex(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedHex
+):
+    """Attribute Hex lookup on a bytes value.
+
+    Typically code like: some_bytes.hex
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_HEX"
+    attribute_name = "hex"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationHex is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesHex)
+
+
 class ExpressionAttributeLookupFixedIndex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'index' of an object.
+    """Looking up an attribute value 'index' of an object. spell-checker: ignore index
 
     Typically code like: source.index
     """
@@ -1261,6 +1570,16 @@ class ExpressionAttributeLookupFixedIndex(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'index' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIndex(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'index' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1339,8 +1658,28 @@ class ExpressionAttributeLookupStrIndex(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIndex)
 
 
+class ExpressionAttributeLookupBytesIndex(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIndex
+):
+    """Attribute Index lookup on a bytes value.
+
+    Typically code like: some_bytes.index
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_INDEX"
+    attribute_name = "index"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIndex is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIndex)
+
+
 class ExpressionAttributeLookupFixedIsalnum(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isalnum' of an object.
+    """Looking up an attribute value 'isalnum' of an object. spell-checker: ignore isalnum
 
     Typically code like: source.isalnum
     """
@@ -1360,6 +1699,16 @@ class ExpressionAttributeLookupFixedIsalnum(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'isalnum' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIsalnum(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'isalnum' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1418,8 +1767,28 @@ class ExpressionAttributeLookupStrIsalnum(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsalnum)
 
 
+class ExpressionAttributeLookupBytesIsalnum(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsalnum
+):
+    """Attribute Isalnum lookup on a bytes value.
+
+    Typically code like: some_bytes.isalnum
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISALNUM"
+    attribute_name = "isalnum"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIsalnum is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIsalnum)
+
+
 class ExpressionAttributeLookupFixedIsalpha(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isalpha' of an object.
+    """Looking up an attribute value 'isalpha' of an object. spell-checker: ignore isalpha
 
     Typically code like: source.isalpha
     """
@@ -1439,6 +1808,16 @@ class ExpressionAttributeLookupFixedIsalpha(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'isalpha' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIsalpha(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'isalpha' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1497,8 +1876,28 @@ class ExpressionAttributeLookupStrIsalpha(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsalpha)
 
 
+class ExpressionAttributeLookupBytesIsalpha(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsalpha
+):
+    """Attribute Isalpha lookup on a bytes value.
+
+    Typically code like: some_bytes.isalpha
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISALPHA"
+    attribute_name = "isalpha"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIsalpha is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIsalpha)
+
+
 class ExpressionAttributeLookupFixedIsascii(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isascii' of an object.
+    """Looking up an attribute value 'isascii' of an object. spell-checker: ignore isascii
 
     Typically code like: source.isascii
     """
@@ -1518,6 +1917,16 @@ class ExpressionAttributeLookupFixedIsascii(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'isascii' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIsascii(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'isascii' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1555,8 +1964,28 @@ class ExpressionAttributeLookupStrIsascii(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsascii)
 
 
+class ExpressionAttributeLookupBytesIsascii(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsascii
+):
+    """Attribute Isascii lookup on a bytes value.
+
+    Typically code like: some_bytes.isascii
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISASCII"
+    attribute_name = "isascii"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIsascii is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIsascii)
+
+
 class ExpressionAttributeLookupFixedIsdecimal(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isdecimal' of an object.
+    """Looking up an attribute value 'isdecimal' of an object. spell-checker: ignore isdecimal
 
     Typically code like: source.isdecimal
     """
@@ -1614,7 +2043,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsdecimal)
 
 
 class ExpressionAttributeLookupFixedIsdigit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isdigit' of an object.
+    """Looking up an attribute value 'isdigit' of an object. spell-checker: ignore isdigit
 
     Typically code like: source.isdigit
     """
@@ -1634,6 +2063,16 @@ class ExpressionAttributeLookupFixedIsdigit(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'isdigit' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIsdigit(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'isdigit' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1692,8 +2131,28 @@ class ExpressionAttributeLookupStrIsdigit(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsdigit)
 
 
+class ExpressionAttributeLookupBytesIsdigit(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsdigit
+):
+    """Attribute Isdigit lookup on a bytes value.
+
+    Typically code like: some_bytes.isdigit
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISDIGIT"
+    attribute_name = "isdigit"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIsdigit is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIsdigit)
+
+
 class ExpressionAttributeLookupFixedIsidentifier(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isidentifier' of an object.
+    """Looking up an attribute value 'isidentifier' of an object. spell-checker: ignore isidentifier
 
     Typically code like: source.isidentifier
     """
@@ -1751,7 +2210,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsidentifier)
 
 
 class ExpressionAttributeLookupFixedIslower(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'islower' of an object.
+    """Looking up an attribute value 'islower' of an object. spell-checker: ignore islower
 
     Typically code like: source.islower
     """
@@ -1771,6 +2230,16 @@ class ExpressionAttributeLookupFixedIslower(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'islower' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIslower(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'islower' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1829,8 +2298,28 @@ class ExpressionAttributeLookupStrIslower(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIslower)
 
 
+class ExpressionAttributeLookupBytesIslower(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIslower
+):
+    """Attribute Islower lookup on a bytes value.
+
+    Typically code like: some_bytes.islower
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISLOWER"
+    attribute_name = "islower"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIslower is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIslower)
+
+
 class ExpressionAttributeLookupFixedIsnumeric(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isnumeric' of an object.
+    """Looking up an attribute value 'isnumeric' of an object. spell-checker: ignore isnumeric
 
     Typically code like: source.isnumeric
     """
@@ -1888,7 +2377,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsnumeric)
 
 
 class ExpressionAttributeLookupFixedIsprintable(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isprintable' of an object.
+    """Looking up an attribute value 'isprintable' of an object. spell-checker: ignore isprintable
 
     Typically code like: source.isprintable
     """
@@ -1946,7 +2435,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsprintable)
 
 
 class ExpressionAttributeLookupFixedIsspace(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isspace' of an object.
+    """Looking up an attribute value 'isspace' of an object. spell-checker: ignore isspace
 
     Typically code like: source.isspace
     """
@@ -1966,6 +2455,16 @@ class ExpressionAttributeLookupFixedIsspace(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'isspace' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIsspace(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'isspace' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2024,8 +2523,28 @@ class ExpressionAttributeLookupStrIsspace(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsspace)
 
 
+class ExpressionAttributeLookupBytesIsspace(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsspace
+):
+    """Attribute Isspace lookup on a bytes value.
+
+    Typically code like: some_bytes.isspace
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISSPACE"
+    attribute_name = "isspace"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIsspace is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIsspace)
+
+
 class ExpressionAttributeLookupFixedIstitle(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'istitle' of an object.
+    """Looking up an attribute value 'istitle' of an object. spell-checker: ignore istitle
 
     Typically code like: source.istitle
     """
@@ -2045,6 +2564,16 @@ class ExpressionAttributeLookupFixedIstitle(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'istitle' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIstitle(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'istitle' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2103,8 +2632,28 @@ class ExpressionAttributeLookupStrIstitle(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIstitle)
 
 
+class ExpressionAttributeLookupBytesIstitle(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIstitle
+):
+    """Attribute Istitle lookup on a bytes value.
+
+    Typically code like: some_bytes.istitle
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISTITLE"
+    attribute_name = "istitle"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIstitle is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIstitle)
+
+
 class ExpressionAttributeLookupFixedIsupper(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isupper' of an object.
+    """Looking up an attribute value 'isupper' of an object. spell-checker: ignore isupper
 
     Typically code like: source.isupper
     """
@@ -2124,6 +2673,16 @@ class ExpressionAttributeLookupFixedIsupper(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'isupper' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesIsupper(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'isupper' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2182,8 +2741,28 @@ class ExpressionAttributeLookupStrIsupper(
 attribute_typed_classes.add(ExpressionAttributeLookupStrIsupper)
 
 
+class ExpressionAttributeLookupBytesIsupper(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIsupper
+):
+    """Attribute Isupper lookup on a bytes value.
+
+    Typically code like: some_bytes.isupper
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ISUPPER"
+    attribute_name = "isupper"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationIsupper is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesIsupper)
+
+
 class ExpressionAttributeLookupFixedItems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'items' of an object.
+    """Looking up an attribute value 'items' of an object. spell-checker: ignore items
 
     Typically code like: source.items
     """
@@ -2271,7 +2850,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictItems)
 
 
 class ExpressionAttributeLookupFixedIteritems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'iteritems' of an object.
+    """Looking up an attribute value 'iteritems' of an object. spell-checker: ignore iteritems
 
     Typically code like: source.iteritems
     """
@@ -2352,7 +2931,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictIteritems)
 
 
 class ExpressionAttributeLookupFixedIterkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'iterkeys' of an object.
+    """Looking up an attribute value 'iterkeys' of an object. spell-checker: ignore iterkeys
 
     Typically code like: source.iterkeys
     """
@@ -2433,7 +3012,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictIterkeys)
 
 
 class ExpressionAttributeLookupFixedItervalues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'itervalues' of an object.
+    """Looking up an attribute value 'itervalues' of an object. spell-checker: ignore itervalues
 
     Typically code like: source.itervalues
     """
@@ -2514,7 +3093,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictItervalues)
 
 
 class ExpressionAttributeLookupFixedJoin(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'join' of an object.
+    """Looking up an attribute value 'join' of an object. spell-checker: ignore join
 
     Typically code like: source.join
     """
@@ -2534,6 +3113,16 @@ class ExpressionAttributeLookupFixedJoin(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'join' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesJoin(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'join' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2594,8 +3183,28 @@ class ExpressionAttributeLookupStrJoin(
 attribute_typed_classes.add(ExpressionAttributeLookupStrJoin)
 
 
+class ExpressionAttributeLookupBytesJoin(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedJoin
+):
+    """Attribute Join lookup on a bytes value.
+
+    Typically code like: some_bytes.join
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_JOIN"
+    attribute_name = "join"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationJoin is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesJoin)
+
+
 class ExpressionAttributeLookupFixedKeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'keys' of an object.
+    """Looking up an attribute value 'keys' of an object. spell-checker: ignore keys
 
     Typically code like: source.keys
     """
@@ -2683,7 +3292,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictKeys)
 
 
 class ExpressionAttributeLookupFixedLjust(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'ljust' of an object.
+    """Looking up an attribute value 'ljust' of an object. spell-checker: ignore ljust
 
     Typically code like: source.ljust
     """
@@ -2703,6 +3312,16 @@ class ExpressionAttributeLookupFixedLjust(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'ljust' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesLjust(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'ljust' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2740,8 +3359,28 @@ class ExpressionAttributeLookupStrLjust(
 attribute_typed_classes.add(ExpressionAttributeLookupStrLjust)
 
 
+class ExpressionAttributeLookupBytesLjust(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedLjust
+):
+    """Attribute Ljust lookup on a bytes value.
+
+    Typically code like: some_bytes.ljust
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_LJUST"
+    attribute_name = "ljust"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationLjust is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesLjust)
+
+
 class ExpressionAttributeLookupFixedLower(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'lower' of an object.
+    """Looking up an attribute value 'lower' of an object. spell-checker: ignore lower
 
     Typically code like: source.lower
     """
@@ -2761,6 +3400,16 @@ class ExpressionAttributeLookupFixedLower(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'lower' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesLower(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'lower' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2819,8 +3468,28 @@ class ExpressionAttributeLookupStrLower(
 attribute_typed_classes.add(ExpressionAttributeLookupStrLower)
 
 
+class ExpressionAttributeLookupBytesLower(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedLower
+):
+    """Attribute Lower lookup on a bytes value.
+
+    Typically code like: some_bytes.lower
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_LOWER"
+    attribute_name = "lower"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationLower is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesLower)
+
+
 class ExpressionAttributeLookupFixedLstrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'lstrip' of an object.
+    """Looking up an attribute value 'lstrip' of an object. spell-checker: ignore lstrip
 
     Typically code like: source.lstrip
     """
@@ -2840,6 +3509,16 @@ class ExpressionAttributeLookupFixedLstrip(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'lstrip' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesLstrip(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'lstrip' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2905,8 +3584,28 @@ class ExpressionAttributeLookupStrLstrip(
 attribute_typed_classes.add(ExpressionAttributeLookupStrLstrip)
 
 
+class ExpressionAttributeLookupBytesLstrip(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedLstrip
+):
+    """Attribute Lstrip lookup on a bytes value.
+
+    Typically code like: some_bytes.lstrip
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_LSTRIP"
+    attribute_name = "lstrip"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationLstrip is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesLstrip)
+
+
 class ExpressionAttributeLookupFixedMaketrans(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'maketrans' of an object.
+    """Looking up an attribute value 'maketrans' of an object. spell-checker: ignore maketrans
 
     Typically code like: source.maketrans
     """
@@ -2926,6 +3625,16 @@ class ExpressionAttributeLookupFixedMaketrans(ExpressionAttributeLookupFixedBase
                 result,
                 "new_expression",
                 "Attribute lookup 'maketrans' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesMaketrans(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'maketrans' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -2963,8 +3672,28 @@ class ExpressionAttributeLookupStrMaketrans(
 attribute_typed_classes.add(ExpressionAttributeLookupStrMaketrans)
 
 
+class ExpressionAttributeLookupBytesMaketrans(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedMaketrans
+):
+    """Attribute Maketrans lookup on a bytes value.
+
+    Typically code like: some_bytes.maketrans
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_MAKETRANS"
+    attribute_name = "maketrans"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationMaketrans is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesMaketrans)
+
+
 class ExpressionAttributeLookupFixedPartition(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'partition' of an object.
+    """Looking up an attribute value 'partition' of an object. spell-checker: ignore partition
 
     Typically code like: source.partition
     """
@@ -2984,6 +3713,16 @@ class ExpressionAttributeLookupFixedPartition(ExpressionAttributeLookupFixedBase
                 result,
                 "new_expression",
                 "Attribute lookup 'partition' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesPartition(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'partition' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3042,8 +3781,28 @@ class ExpressionAttributeLookupStrPartition(
 attribute_typed_classes.add(ExpressionAttributeLookupStrPartition)
 
 
+class ExpressionAttributeLookupBytesPartition(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedPartition
+):
+    """Attribute Partition lookup on a bytes value.
+
+    Typically code like: some_bytes.partition
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_PARTITION"
+    attribute_name = "partition"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationPartition is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesPartition)
+
+
 class ExpressionAttributeLookupFixedPop(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'pop' of an object.
+    """Looking up an attribute value 'pop' of an object. spell-checker: ignore pop
 
     Typically code like: source.pop
     """
@@ -3134,7 +3893,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictPop)
 
 
 class ExpressionAttributeLookupFixedPopitem(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'popitem' of an object.
+    """Looking up an attribute value 'popitem' of an object. spell-checker: ignore popitem
 
     Typically code like: source.popitem
     """
@@ -3190,7 +3949,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictPopitem)
 
 
 class ExpressionAttributeLookupFixedReplace(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'replace' of an object.
+    """Looking up an attribute value 'replace' of an object. spell-checker: ignore replace
 
     Typically code like: source.replace
     """
@@ -3210,6 +3969,16 @@ class ExpressionAttributeLookupFixedReplace(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'replace' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesReplace(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'replace' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3282,8 +4051,28 @@ class ExpressionAttributeLookupStrReplace(
 attribute_typed_classes.add(ExpressionAttributeLookupStrReplace)
 
 
+class ExpressionAttributeLookupBytesReplace(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedReplace
+):
+    """Attribute Replace lookup on a bytes value.
+
+    Typically code like: some_bytes.replace
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_REPLACE"
+    attribute_name = "replace"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationReplace is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesReplace)
+
+
 class ExpressionAttributeLookupFixedRfind(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rfind' of an object.
+    """Looking up an attribute value 'rfind' of an object. spell-checker: ignore rfind
 
     Typically code like: source.rfind
     """
@@ -3303,6 +4092,16 @@ class ExpressionAttributeLookupFixedRfind(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'rfind' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesRfind(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'rfind' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3381,8 +4180,28 @@ class ExpressionAttributeLookupStrRfind(
 attribute_typed_classes.add(ExpressionAttributeLookupStrRfind)
 
 
+class ExpressionAttributeLookupBytesRfind(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRfind
+):
+    """Attribute Rfind lookup on a bytes value.
+
+    Typically code like: some_bytes.rfind
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RFIND"
+    attribute_name = "rfind"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationRfind is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesRfind)
+
+
 class ExpressionAttributeLookupFixedRindex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rindex' of an object.
+    """Looking up an attribute value 'rindex' of an object. spell-checker: ignore rindex
 
     Typically code like: source.rindex
     """
@@ -3402,6 +4221,16 @@ class ExpressionAttributeLookupFixedRindex(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'rindex' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesRindex(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'rindex' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3480,8 +4309,28 @@ class ExpressionAttributeLookupStrRindex(
 attribute_typed_classes.add(ExpressionAttributeLookupStrRindex)
 
 
+class ExpressionAttributeLookupBytesRindex(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRindex
+):
+    """Attribute Rindex lookup on a bytes value.
+
+    Typically code like: some_bytes.rindex
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RINDEX"
+    attribute_name = "rindex"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationRindex is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesRindex)
+
+
 class ExpressionAttributeLookupFixedRjust(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rjust' of an object.
+    """Looking up an attribute value 'rjust' of an object. spell-checker: ignore rjust
 
     Typically code like: source.rjust
     """
@@ -3501,6 +4350,16 @@ class ExpressionAttributeLookupFixedRjust(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'rjust' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesRjust(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'rjust' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3538,8 +4397,28 @@ class ExpressionAttributeLookupStrRjust(
 attribute_typed_classes.add(ExpressionAttributeLookupStrRjust)
 
 
+class ExpressionAttributeLookupBytesRjust(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRjust
+):
+    """Attribute Rjust lookup on a bytes value.
+
+    Typically code like: some_bytes.rjust
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RJUST"
+    attribute_name = "rjust"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationRjust is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesRjust)
+
+
 class ExpressionAttributeLookupFixedRpartition(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rpartition' of an object.
+    """Looking up an attribute value 'rpartition' of an object. spell-checker: ignore rpartition
 
     Typically code like: source.rpartition
     """
@@ -3559,6 +4438,16 @@ class ExpressionAttributeLookupFixedRpartition(ExpressionAttributeLookupFixedBas
                 result,
                 "new_expression",
                 "Attribute lookup 'rpartition' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesRpartition(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'rpartition' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3617,8 +4506,28 @@ class ExpressionAttributeLookupStrRpartition(
 attribute_typed_classes.add(ExpressionAttributeLookupStrRpartition)
 
 
+class ExpressionAttributeLookupBytesRpartition(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRpartition
+):
+    """Attribute Rpartition lookup on a bytes value.
+
+    Typically code like: some_bytes.rpartition
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RPARTITION"
+    attribute_name = "rpartition"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationRpartition is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesRpartition)
+
+
 class ExpressionAttributeLookupFixedRsplit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rsplit' of an object.
+    """Looking up an attribute value 'rsplit' of an object. spell-checker: ignore rsplit
 
     Typically code like: source.rsplit
     """
@@ -3638,6 +4547,16 @@ class ExpressionAttributeLookupFixedRsplit(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'rsplit' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesRsplit(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'rsplit' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3712,8 +4631,28 @@ class ExpressionAttributeLookupStrRsplit(
 attribute_typed_classes.add(ExpressionAttributeLookupStrRsplit)
 
 
+class ExpressionAttributeLookupBytesRsplit(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRsplit
+):
+    """Attribute Rsplit lookup on a bytes value.
+
+    Typically code like: some_bytes.rsplit
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RSPLIT"
+    attribute_name = "rsplit"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationRsplit is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesRsplit)
+
+
 class ExpressionAttributeLookupFixedRstrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rstrip' of an object.
+    """Looking up an attribute value 'rstrip' of an object. spell-checker: ignore rstrip
 
     Typically code like: source.rstrip
     """
@@ -3733,6 +4672,16 @@ class ExpressionAttributeLookupFixedRstrip(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'rstrip' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesRstrip(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'rstrip' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3798,8 +4747,28 @@ class ExpressionAttributeLookupStrRstrip(
 attribute_typed_classes.add(ExpressionAttributeLookupStrRstrip)
 
 
+class ExpressionAttributeLookupBytesRstrip(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRstrip
+):
+    """Attribute Rstrip lookup on a bytes value.
+
+    Typically code like: some_bytes.rstrip
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_RSTRIP"
+    attribute_name = "rstrip"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationRstrip is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesRstrip)
+
+
 class ExpressionAttributeLookupFixedSetdefault(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'setdefault' of an object.
+    """Looking up an attribute value 'setdefault' of an object. spell-checker: ignore setdefault
 
     Typically code like: source.setdefault
     """
@@ -3890,7 +4859,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictSetdefault)
 
 
 class ExpressionAttributeLookupFixedSplit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'split' of an object.
+    """Looking up an attribute value 'split' of an object. spell-checker: ignore split
 
     Typically code like: source.split
     """
@@ -3910,6 +4879,16 @@ class ExpressionAttributeLookupFixedSplit(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'split' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesSplit(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'split' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -3984,8 +4963,28 @@ class ExpressionAttributeLookupStrSplit(
 attribute_typed_classes.add(ExpressionAttributeLookupStrSplit)
 
 
+class ExpressionAttributeLookupBytesSplit(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSplit
+):
+    """Attribute Split lookup on a bytes value.
+
+    Typically code like: some_bytes.split
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_SPLIT"
+    attribute_name = "split"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationSplit is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesSplit)
+
+
 class ExpressionAttributeLookupFixedSplitlines(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'splitlines' of an object.
+    """Looking up an attribute value 'splitlines' of an object. spell-checker: ignore splitlines
 
     Typically code like: source.splitlines
     """
@@ -4005,6 +5004,16 @@ class ExpressionAttributeLookupFixedSplitlines(ExpressionAttributeLookupFixedBas
                 result,
                 "new_expression",
                 "Attribute lookup 'splitlines' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesSplitlines(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'splitlines' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4042,8 +5051,28 @@ class ExpressionAttributeLookupStrSplitlines(
 attribute_typed_classes.add(ExpressionAttributeLookupStrSplitlines)
 
 
+class ExpressionAttributeLookupBytesSplitlines(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSplitlines
+):
+    """Attribute Splitlines lookup on a bytes value.
+
+    Typically code like: some_bytes.splitlines
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_SPLITLINES"
+    attribute_name = "splitlines"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationSplitlines is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesSplitlines)
+
+
 class ExpressionAttributeLookupFixedStartswith(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'startswith' of an object.
+    """Looking up an attribute value 'startswith' of an object. spell-checker: ignore startswith
 
     Typically code like: source.startswith
     """
@@ -4063,6 +5092,16 @@ class ExpressionAttributeLookupFixedStartswith(ExpressionAttributeLookupFixedBas
                 result,
                 "new_expression",
                 "Attribute lookup 'startswith' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesStartswith(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'startswith' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4143,8 +5182,28 @@ class ExpressionAttributeLookupStrStartswith(
 attribute_typed_classes.add(ExpressionAttributeLookupStrStartswith)
 
 
+class ExpressionAttributeLookupBytesStartswith(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedStartswith
+):
+    """Attribute Startswith lookup on a bytes value.
+
+    Typically code like: some_bytes.startswith
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_STARTSWITH"
+    attribute_name = "startswith"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationStartswith is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesStartswith)
+
+
 class ExpressionAttributeLookupFixedStrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'strip' of an object.
+    """Looking up an attribute value 'strip' of an object. spell-checker: ignore strip
 
     Typically code like: source.strip
     """
@@ -4164,6 +5223,16 @@ class ExpressionAttributeLookupFixedStrip(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'strip' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesStrip(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'strip' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4229,8 +5298,28 @@ class ExpressionAttributeLookupStrStrip(
 attribute_typed_classes.add(ExpressionAttributeLookupStrStrip)
 
 
+class ExpressionAttributeLookupBytesStrip(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedStrip
+):
+    """Attribute Strip lookup on a bytes value.
+
+    Typically code like: some_bytes.strip
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_STRIP"
+    attribute_name = "strip"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationStrip is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesStrip)
+
+
 class ExpressionAttributeLookupFixedSwapcase(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'swapcase' of an object.
+    """Looking up an attribute value 'swapcase' of an object. spell-checker: ignore swapcase
 
     Typically code like: source.swapcase
     """
@@ -4250,6 +5339,16 @@ class ExpressionAttributeLookupFixedSwapcase(ExpressionAttributeLookupFixedBase)
                 result,
                 "new_expression",
                 "Attribute lookup 'swapcase' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesSwapcase(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'swapcase' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4308,8 +5407,28 @@ class ExpressionAttributeLookupStrSwapcase(
 attribute_typed_classes.add(ExpressionAttributeLookupStrSwapcase)
 
 
+class ExpressionAttributeLookupBytesSwapcase(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSwapcase
+):
+    """Attribute Swapcase lookup on a bytes value.
+
+    Typically code like: some_bytes.swapcase
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_SWAPCASE"
+    attribute_name = "swapcase"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationSwapcase is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesSwapcase)
+
+
 class ExpressionAttributeLookupFixedTitle(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'title' of an object.
+    """Looking up an attribute value 'title' of an object. spell-checker: ignore title
 
     Typically code like: source.title
     """
@@ -4329,6 +5448,16 @@ class ExpressionAttributeLookupFixedTitle(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'title' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesTitle(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'title' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4387,8 +5516,28 @@ class ExpressionAttributeLookupStrTitle(
 attribute_typed_classes.add(ExpressionAttributeLookupStrTitle)
 
 
+class ExpressionAttributeLookupBytesTitle(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedTitle
+):
+    """Attribute Title lookup on a bytes value.
+
+    Typically code like: some_bytes.title
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_TITLE"
+    attribute_name = "title"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationTitle is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesTitle)
+
+
 class ExpressionAttributeLookupFixedTranslate(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'translate' of an object.
+    """Looking up an attribute value 'translate' of an object. spell-checker: ignore translate
 
     Typically code like: source.translate
     """
@@ -4408,6 +5557,16 @@ class ExpressionAttributeLookupFixedTranslate(ExpressionAttributeLookupFixedBase
                 result,
                 "new_expression",
                 "Attribute lookup 'translate' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesTranslate(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'translate' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4445,8 +5604,28 @@ class ExpressionAttributeLookupStrTranslate(
 attribute_typed_classes.add(ExpressionAttributeLookupStrTranslate)
 
 
+class ExpressionAttributeLookupBytesTranslate(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedTranslate
+):
+    """Attribute Translate lookup on a bytes value.
+
+    Typically code like: some_bytes.translate
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_TRANSLATE"
+    attribute_name = "translate"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationTranslate is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesTranslate)
+
+
 class ExpressionAttributeLookupFixedUpdate(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'update' of an object.
+    """Looking up an attribute value 'update' of an object. spell-checker: ignore update
 
     Typically code like: source.update
     """
@@ -4539,7 +5718,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictUpdate)
 
 
 class ExpressionAttributeLookupFixedUpper(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'upper' of an object.
+    """Looking up an attribute value 'upper' of an object. spell-checker: ignore upper
 
     Typically code like: source.upper
     """
@@ -4559,6 +5738,16 @@ class ExpressionAttributeLookupFixedUpper(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'upper' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesUpper(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'upper' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -4617,8 +5806,28 @@ class ExpressionAttributeLookupStrUpper(
 attribute_typed_classes.add(ExpressionAttributeLookupStrUpper)
 
 
+class ExpressionAttributeLookupBytesUpper(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedUpper
+):
+    """Attribute Upper lookup on a bytes value.
+
+    Typically code like: some_bytes.upper
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_UPPER"
+    attribute_name = "upper"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationUpper is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesUpper)
+
+
 class ExpressionAttributeLookupFixedValues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'values' of an object.
+    """Looking up an attribute value 'values' of an object. spell-checker: ignore values
 
     Typically code like: source.values
     """
@@ -4706,7 +5915,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictValues)
 
 
 class ExpressionAttributeLookupFixedViewitems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewitems' of an object.
+    """Looking up an attribute value 'viewitems' of an object. spell-checker: ignore viewitems
 
     Typically code like: source.viewitems
     """
@@ -4787,7 +5996,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewitems)
 
 
 class ExpressionAttributeLookupFixedViewkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewkeys' of an object.
+    """Looking up an attribute value 'viewkeys' of an object. spell-checker: ignore viewkeys
 
     Typically code like: source.viewkeys
     """
@@ -4868,7 +6077,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewkeys)
 
 
 class ExpressionAttributeLookupFixedViewvalues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewvalues' of an object.
+    """Looking up an attribute value 'viewvalues' of an object. spell-checker: ignore viewvalues
 
     Typically code like: source.viewvalues
     """
@@ -4949,7 +6158,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewvalues)
 
 
 class ExpressionAttributeLookupFixedZfill(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'zfill' of an object.
+    """Looking up an attribute value 'zfill' of an object. spell-checker: ignore zfill
 
     Typically code like: source.zfill
     """
@@ -4969,6 +6178,16 @@ class ExpressionAttributeLookupFixedZfill(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'zfill' on str shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeBytesExact():
+            result = ExpressionAttributeLookupBytesZfill(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'zfill' on bytes shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -5004,3 +6223,23 @@ class ExpressionAttributeLookupStrZfill(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrZfill)
+
+
+class ExpressionAttributeLookupBytesZfill(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedZfill
+):
+    """Attribute Zfill lookup on a bytes value.
+
+    Typically code like: some_bytes.zfill
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_BYTES_ZFILL"
+    attribute_name = "zfill"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as bytes operation ExpressionBytesOperationZfill is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupBytesZfill)

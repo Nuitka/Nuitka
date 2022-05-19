@@ -20,12 +20,13 @@
 
 import os
 
-from nuitka.freezer.IncludedDataFiles import makeIncludedDataFile
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
 from nuitka.utils.FileOperations import getFileList, hasFilenameExtension
 from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
+
+# spellchecker: ignore pywebview,mshtml
 
 
 class NuitkaPluginPywebview(NuitkaPluginBase):
@@ -85,24 +86,12 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
                     package_name=module.getFullName(),
                 )
 
-            # TODO: Not sure where this pointing to "site-packages" comes from.
-            if isWin32Windows():
-                yield self.makeDllEntryPoint(
-                    source_path=os.path.abspath(
-                        os.path.join(
-                            module.getCompileTimeDirectory(), "..", "Python.Runtime.dll"
-                        )
-                    ),
-                    dest_path="Python.Runtime.dll",
-                    package_name=module.getFullName(),
-                )
-
     def considerDataFiles(self, module):
         if module.getFullName() == "webview":
             for filename, filename_relative in self._getWebviewFiles(
                 module, dlls=False
             ):
-                yield makeIncludedDataFile(
+                yield self.makeIncludedDataFile(
                     source_path=filename,
                     dest_path=os.path.normpath(
                         os.path.join(
@@ -113,8 +102,8 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
                     reason="Package 'webview' datafile",
                 )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
-        # Make sure
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
+        # Make sure webview platforms are included as needed.
         if module_name.isBelowNamespace("webview.platforms"):
             if isWin32Windows():
                 result = module_name in (

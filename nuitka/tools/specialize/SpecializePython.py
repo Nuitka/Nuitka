@@ -28,6 +28,7 @@ nuitka.Options.is_fullcompat = False
 import nuitka.codegen.ComparisonCodes
 import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
+import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 from nuitka.utils.Jinja2 import getTemplate
@@ -37,6 +38,7 @@ from .Common import (
     getMethodVariations,
     python2_dict_methods,
     python2_str_methods,
+    python3_bytes_methods,
     python3_dict_methods,
     python3_str_methods,
     withFileOpenedAndAutoformatted,
@@ -124,6 +126,13 @@ processTypeShapeAttribute(
     python3_str_methods,
 )
 
+processTypeShapeAttribute(
+    "tshape_bytes",
+    nuitka.specs.BuiltinBytesOperationSpecs,
+    (),
+    python3_bytes_methods,
+)
+
 
 def emitGenerationWarning(emit, template_name):
     emit(
@@ -131,6 +140,8 @@ def emitGenerationWarning(emit, template_name):
 
 WARNING, this code is GENERATED. Modify the template %s instead!
 """
+
+# pylint: disable=too-many-lines
 '''
         % template_name
     )

@@ -32,10 +32,7 @@ from nuitka.Options import (
 )
 from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PostProcessing import (
-    executePostProcessingResources,
-    version_resources,
-)
+from nuitka.PostProcessing import executePostProcessingResources
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import onefile_logger, postprocessing_logger
 from nuitka.utils.Download import getCachedDownload
@@ -250,7 +247,6 @@ def _runOnefileScons(quiet, onefile_compression):
         "result_exe": OutputDirectories.getResultFullpath(onefile=True),
         "source_dir": source_dir,
         "debug_mode": asBoolStr(Options.is_debug),
-        "unstripped_mode": asBoolStr(Options.isUnstripped()),
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "target_arch": getArchitecture(),
@@ -266,30 +262,12 @@ def _runOnefileScons(quiet, onefile_compression):
     if Options.isClang():
         options["clang_mode"] = "true"
 
-    SconsInterface.setCommonOptions(options)
-
-    onefile_env_values = {}
+    env_values = SconsInterface.setCommonOptions(options)
 
     if Options.isOnefileTempDirMode():
-        onefile_env_values["ONEFILE_TEMP_SPEC"] = Options.getOnefileTempDirSpec(
-            use_default=True
-        )
-    else:
-        # Merge version information if possible, to avoid collisions, or deep nesting
-        # in file system.
-        product_version = version_resources["ProductVersion"]
-        file_version = version_resources["FileVersion"]
+        env_values["ONEFILE_TEMP_SPEC"] = Options.getOnefileTempDirSpec()
 
-        if product_version != file_version:
-            effective_version = "%s-%s" % (product_version, file_version)
-        else:
-            effective_version = file_version
-
-        onefile_env_values["ONEFILE_COMPANY"] = version_resources["CompanyName"]
-        onefile_env_values["ONEFILE_PRODUCT"] = version_resources["ProductName"]
-        onefile_env_values["ONEFILE_VERSION"] = effective_version
-
-    with withEnvironmentVarsOverridden(onefile_env_values):
+    with withEnvironmentVarsOverridden(env_values):
         result = SconsInterface.runScons(
             options=options, quiet=quiet, scons_filename="Onefile.scons"
         )

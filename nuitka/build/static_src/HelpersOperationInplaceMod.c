@@ -1183,7 +1183,7 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(PyObject **operand1
     {
         double mod = fmod(a, b);
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 mod += b;
             }
         } else {
@@ -1427,7 +1427,7 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand
         {
             double mod = fmod(a, b);
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                 }
             } else {
@@ -1676,7 +1676,7 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand
         {
             double mod = fmod(a, b);
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                 }
             } else {

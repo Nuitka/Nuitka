@@ -54,6 +54,7 @@ from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     checkWindowsCompilerFound,
     reportCCompiler,
+    setProductVersionDefinitions,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -71,7 +72,6 @@ from .SconsUtils import (
     getArgumentList,
     getArgumentRequired,
     getExecutablePath,
-    getMsvcVersion,
     getMsvcVersionString,
     initScons,
     isGccName,
@@ -81,6 +81,9 @@ from .SconsUtils import (
     setupScons,
     writeSconsReport,
 )
+
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
+# spell-checker: ignore cxxflags,ldflags
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -132,11 +135,14 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
+# Non-elf binary, for linker settings.
+noelf_mode = getArgumentBool("noelf_mode", False)
+
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
-# Unstripped mode: Do not remove debug symbols.
-unstripped_mode = getArgumentBool("unstripped_mode", False)
+# Unstriped mode: Do not remove debug symbols.
+unstriped_mode = getArgumentBool("unstriped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
@@ -298,6 +304,9 @@ env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
+env.unstriped_mode = debug_mode or unstriped_mode
+env.noelf_mode = noelf_mode
+env.disable_console = disable_console
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
@@ -427,24 +436,6 @@ if debug_mode:
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
 
-
-# For MinGW and cross compilation, we need to tell the subsystem
-# to target as well as to automatically import everything used.
-if win_target:
-    if env.gcc_mode:
-        if not env.clang_mode:
-            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
-
-        if disable_console:
-            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
-
-    if disable_console:
-        env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
-
-# For shell API usage to lookup app folders we need this.
-if env.msvc_mode:
-    env.Append(LIBS=["Shell32"])
-
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
 nuitka_include = os.path.join(nuitka_src, "include")
@@ -466,27 +457,6 @@ env.Append(
         os.path.join(nuitka_src, "inline_copy", "zstd"),
     ],
 )
-
-if debug_mode or unstripped_mode:
-    # Use debug format, so we get good tracebacks from it.
-    if env.gcc_mode:
-        env.Append(CCFLAGS=["-g"])
-        env.Append(ASFLAGS=["-g"])
-
-        if not env.clang_mode:
-            env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
-    elif env.msvc_mode:
-        env.Append(CCFLAGS=["/Z7"])
-
-        # Higher MSVC versions need this for parallel compilation
-        if job_count > 1 and getMsvcVersion(env) >= 11:
-            env.Append(CCFLAGS=["/FS"])
-
-        env.Append(LINKFLAGS=["/DEBUG"])
-else:
-    if env.gcc_mode:
-        if not env.clang_mode:
-            env.Append(LINKFLAGS=["-s"])
 
 # Tell compiler to create a program.
 if env.msvc_mode:
@@ -620,28 +590,31 @@ if env.msvc_mode and not disable_ccache:
         source_dir=source_dir,
     )
 
-onefile_definitions = {}
 
-if "ONEFILE_COMPANY" in os.environ:
-    onefile_definitions["ONEFILE_COMPANY"] = os.environ["ONEFILE_COMPANY"]
-    onefile_definitions["ONEFILE_PRODUCT"] = os.environ["ONEFILE_PRODUCT"]
-    onefile_definitions["ONEFILE_VERSION"] = os.environ["ONEFILE_VERSION"]
+def createBuildDefinitionsFile():
+    onefile_definitions = {}
 
-if "ONEFILE_TEMP_SPEC" in os.environ:
-    onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ["ONEFILE_TEMP_SPEC"]
-    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
-else:
-    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
+    if "ONEFILE_TEMP_SPEC" in os.environ:
+        onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ[
+            "ONEFILE_TEMP_SPEC"
+        ]
+        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
+    else:
+        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
 
-if onefile_compression:
-    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
+    if onefile_compression:
+        onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
 
-if onefile_splash_screen:
-    onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
-    env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+    if onefile_splash_screen:
+        onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
+        env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
+
+    setProductVersionDefinitions(onefile_definitions)
+
+    createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
 
-createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
+createBuildDefinitionsFile()
 
 writeSconsReport(
     env=env,

@@ -616,6 +616,28 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
 
         env.Append(CPPDEFINES=["__NUITKA_NO_ASSERT__"])
 
+    _enableDebugSystemSettings(env, job_count=job_count)
+
+    if env.gcc_mode and not env.noelf_mode:
+        env.Append(LINKFLAGS=["-z", "noexecstack"])
+
+    # For MinGW64 we need to tell the subsystem to target as well as to
+    # automatically import everything used.
+    if env.mingw_mode:
+        if not env.clang_mode:
+            env.Append(LINKFLAGS=["-Wl,--enable-auto-import"])
+
+        if env.disable_console:
+            env.Append(LINKFLAGS=["-Wl,--subsystem,windows"])
+
+    if env.mingw_mode or env.msvc_mode:
+        if env.disable_console:
+            env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
+
+    # For shell API usage to lookup app folders we need this.
+    if env.msvc_mode:
+        env.Append(LIBS=["Shell32"])
+
 
 def _enablePgoSettings(env, pgo_mode):
     if pgo_mode == "no":
@@ -663,6 +685,31 @@ def _enablePgoSettings(env, pgo_mode):
         assert False, env.pgo_mode
 
     env.pgo_mode = pgo_mode
+
+
+def _enableDebugSystemSettings(env, job_count):
+    if env.unstriped_mode:
+        # Use debug format, so we get good tracebacks from it.
+        if env.gcc_mode:
+            env.Append(LINKFLAGS=["-g"])
+            env.Append(CCFLAGS=["-g"])
+
+            if not env.clang_mode:
+                env.Append(CCFLAGS=["-feliminate-unused-debug-types"])
+        elif env.msvc_mode:
+            env.Append(CCFLAGS=["/Z7"])
+
+            # Higher MSVC versions need this for parallel compilation
+            if job_count > 1 and getMsvcVersion(env) >= 11:
+                env.Append(CCFLAGS=["/FS"])
+
+            env.Append(LINKFLAGS=["/DEBUG"])
+    else:
+        if env.gcc_mode:
+            if isMacOS():
+                env.Append(LINKFLAGS=["-Wno-deprecated-declarations"])
+            elif not env.clang_mode:
+                env.Append(LINKFLAGS=["-s"])
 
 
 def switchFromGccToGpp(env):
@@ -738,3 +785,12 @@ def reportCCompiler(env, context):
     scons_logger.info(
         "%s C compiler: %s (%s)." % (context, env.the_compiler, cc_output)
     )
+
+
+def setProductVersionDefinitions(build_vars):
+    if "NUITKA_COMPANY_NAME" in os.environ:
+        build_vars["NUITKA_COMPANY_NAME"] = os.environ["NUITKA_COMPANY_NAME"]
+    if "NUITKA_PRODUCT_NAME" in os.environ:
+        build_vars["NUITKA_PRODUCT_NAME"] = os.environ["NUITKA_PRODUCT_NAME"]
+    if "NUITKA_VERSION_COMBINED" in os.environ:
+        build_vars["NUITKA_VERSION_COMBINED"] = os.environ["NUITKA_VERSION_COMBINED"]

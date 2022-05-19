@@ -22,7 +22,7 @@ import os
 from nuitka.Options import isOnefileMode, isOnefileTempDirMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import check_call, getExecutablePath, getNullOutput
+from nuitka.utils.Execution import executeToolChecked, getExecutablePath
 from nuitka.utils.FileOperations import copyFile, makePath
 from nuitka.utils.Hashing import Hash, getFileContentsHash
 from nuitka.utils.Utils import isLinux
@@ -65,6 +65,16 @@ The UPX binary to use or the directory it lives in, by default `upx` from PATH i
 Do not cache UPX compression result, by default DLLs are cached, exe files are not.""",
         )
 
+    @staticmethod
+    def _filterUpxError(stderr):
+        new_result = None
+
+        if b"NotCompressibleException" in stderr or b"CantPackException" in stderr:
+            stderr = b""
+            new_result = 0
+
+        return new_result, stderr
+
     def _compressFile(self, filename, use_cache):
         upx_options = ["-q", "--no-progress"]
 
@@ -102,10 +112,13 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
         else:
             self.info("Compressing '%s'." % filename)
 
-        check_call(
-            [self.upx_binary] + upx_options + [filename],
-            stdout=getNullOutput(),
-            shell=False,
+        command = [self.upx_binary] + upx_options + [filename]
+
+        executeToolChecked(
+            logger=self,
+            command=command,
+            absence_message=None,
+            stderr_filter=self._filterUpxError,
         )
 
         if use_cache:

@@ -38,6 +38,7 @@ from nuitka.__past__ import basestring, iter_modules, iterItems
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
+from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
@@ -61,7 +62,6 @@ from .PluginBase import (
 active_plugins = OrderedDict()
 plugin_name2plugin_classes = {}
 plugin_options = {}
-plugin_datatag2pluginclasses = {}
 plugin_values = {}
 user_plugins = OrderedSet()
 
@@ -292,7 +292,13 @@ class Plugins(object):
 
                 yield ModuleName(v)
 
+        seen = set()
+
         for full_name in iterateModuleNames(plugin.getImplicitImports(module)):
+            if full_name in seen:
+                continue
+            seen.add(full_name)
+
             try:
                 _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,
@@ -415,6 +421,12 @@ class Plugins(object):
                 plugin.onCopiedDLL(
                     os.path.join(dist_dir, os.path.basename(dll_filename))
                 )
+
+    @staticmethod
+    def onBeforeCodeParsing():
+        """Let plugins prepare for code parsing"""
+        for plugin in getActivePlugins():
+            plugin.onBeforeCodeParsing()
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
@@ -543,10 +555,39 @@ class Plugins(object):
             Data file description pairs, either (source, dest) or (func, dest)
             where the func will be called to create the content dynamically.
         """
+
+        def _iterateIncludedDataFiles(plugin, value):
+            if value is None:
+                pass
+            elif isinstance(value, IncludedDataFile):
+                yield value
+            elif inspect.isgenerator(value):
+                for val in value:
+                    for v in _iterateIncludedDataFiles(plugin, val):
+                        yield v
+            else:
+                plugin.sysexit("Plugin return non-datafile '%s'" % repr(value))
+
         for plugin in getActivePlugins():
             for value in plugin.considerDataFiles(module):
-                if value:
-                    yield plugin, value
+                for included_datafile in _iterateIncludedDataFiles(plugin, value):
+                    yield included_datafile
+
+    @staticmethod
+    def getDataFileTags(included_datafile):
+        tags = OrderedSet([included_datafile.kind])
+
+        tags.update(Options.getDataFileTags(tags))
+
+        for plugin in getActivePlugins():
+            plugin.updateDataFileTags(included_datafile)
+
+        return tags
+
+    @staticmethod
+    def onDataFileTags(included_datafile):
+        for plugin in getActivePlugins():
+            plugin.onDataFileTags(included_datafile)
 
     @classmethod
     def _createTriggerLoadedModule(cls, module, trigger_name, code, flags):
@@ -617,7 +658,9 @@ class Plugins(object):
                     descs = [descs]
 
                 for desc in descs:
-                    if len(desc) == 2:
+                    if desc is None:
+                        pass
+                    elif len(desc) == 2:
                         code, reason = desc
                         flags = ()
                     else:
@@ -773,12 +816,14 @@ class Plugins(object):
         return bytecode
 
     @staticmethod
-    def onModuleEncounter(module_filename, module_name, module_kind):
+    def onModuleEncounter(module_name, module_filename, module_kind):
         result = None
 
         for plugin in getActivePlugins():
             must_recurse = plugin.onModuleEncounter(
-                module_filename, module_name, module_kind
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
             )
 
             if must_recurse is None:
@@ -796,6 +841,15 @@ class Plugins(object):
             result = must_recurse
 
         return result
+
+    @staticmethod
+    def onModuleRecursion(module_name, module_filename, module_kind):
+        for plugin in getActivePlugins():
+            plugin.onModuleRecursion(
+                module_name=module_name,
+                module_filename=module_filename,
+                module_kind=module_kind,
+            )
 
     @staticmethod
     def onModuleInitialSet():
@@ -974,6 +1028,11 @@ class Plugins(object):
         return cls.extra_link_directories
 
     @classmethod
+    def onDataComposerRun(cls):
+        for plugin in getActivePlugins():
+            plugin.onDataComposerRun()
+
+    @classmethod
     def onDataComposerResult(cls, blob_filename):
         for plugin in getActivePlugins():
             plugin.onDataComposerResult(blob_filename)
@@ -1108,7 +1167,7 @@ def loadPlugins():
         loadStandardPluginClasses()
 
 
-def addStandardPluginCommandlineOptions(parser, data_files_tags):
+def addStandardPluginCommandlineOptions(parser):
     loadPlugins()
 
     for (_plugin_name, (plugin_class, _plugin_detector)) in sorted(
@@ -1118,7 +1177,6 @@ def addStandardPluginCommandlineOptions(parser, data_files_tags):
             _addPluginCommandLineOptions(
                 parser=parser,
                 plugin_class=plugin_class,
-                data_files_tags=data_files_tags,
             )
 
 
@@ -1193,7 +1251,7 @@ def lateActivatePlugin(plugin_name, option_values):
     _addActivePlugin(getPluginClass(plugin_name), args=True, force=True)
 
 
-def _addPluginCommandLineOptions(parser, plugin_class, data_files_tags):
+def _addPluginCommandLineOptions(parser, plugin_class):
     plugin_name = plugin_class.plugin_name
 
     if plugin_name not in plugin_options:
@@ -1219,22 +1277,8 @@ def _addPluginCommandLineOptions(parser, plugin_class, data_files_tags):
         else:
             plugin_options[plugin_name] = ()
 
-        plugin_data_files_tags = plugin_class.getTagDataFileTagOptions()
 
-        if plugin_data_files_tags:
-            for tag_name, tag_desc in plugin_data_files_tags:
-                if tag_name in (tag for tag, _desc in data_files_tags):
-                    plugins_logger.sysexit(
-                        "Plugin '%s' provides data files tag handling '%s' already provided."
-                        % (plugin_name, tag_name)
-                    )
-
-                data_files_tags.append((tag_name, tag_desc))
-
-                plugin_datatag2pluginclasses[tag_name] = plugin_class
-
-
-def addPluginCommandLineOptions(parser, plugin_names, data_files_tags):
+def addPluginCommandLineOptions(parser, plugin_names):
     """Add option group for the plugin to the parser.
 
     Notes:
@@ -1248,16 +1292,12 @@ def addPluginCommandLineOptions(parser, plugin_names, data_files_tags):
     """
     for plugin_name in plugin_names:
         plugin_class = getPluginClass(plugin_name)
-        _addPluginCommandLineOptions(
-            parser=parser, plugin_class=plugin_class, data_files_tags=data_files_tags
-        )
+        _addPluginCommandLineOptions(parser=parser, plugin_class=plugin_class)
 
 
-def addUserPluginCommandLineOptions(parser, filename, data_files_tags):
+def addUserPluginCommandLineOptions(parser, filename):
     plugin_class = loadUserPlugin(filename)
-    _addPluginCommandLineOptions(
-        parser=parser, plugin_class=plugin_class, data_files_tags=data_files_tags
-    )
+    _addPluginCommandLineOptions(parser=parser, plugin_class=plugin_class)
 
     user_plugins.add(plugin_class)
 

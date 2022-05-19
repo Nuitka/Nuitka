@@ -154,7 +154,8 @@ def importFromFolder(logger, module_name, path, must_exist, message):
     from .FileOperations import isPathBelow
 
     if module_name in sys.modules:
-        # May already be loaded, but the wrong one from a pth of clcache
+        # May already be loaded, but the wrong one from a ".pth" file of
+        # clcache that we then don't want to use.
         if module_name != "clcache" or isPathBelow(
             path=path, filename=sys.modules[module_name].__file__
         ):

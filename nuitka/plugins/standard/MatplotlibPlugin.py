@@ -18,14 +18,12 @@
 """ Matplotlib standard plugin module. """
 import os
 
-from nuitka.freezer.IncludedDataFiles import (
-    makeIncludedDataDirectory,
-    makeIncludedGeneratedDataFile,
-)
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin, hasActivePlugin
 from nuitka.utils.FileOperations import getFileContentByLine
+
+# spellchecker: ignore matplotlib, scipy, scikit, matplotlibrc, matplotlibdata, mpl_toolkits, tkagg
 
 
 class NuitkaPluginMatplotlib(NuitkaPluginBase):
@@ -63,9 +61,9 @@ class NuitkaPluginMatplotlib(NuitkaPluginBase):
 
         Notes:
             There might exist a local version outside 'matplotlib/mpl-data' which
-            we then must use instead. Determine its name by aksing matplotlib.
+            we then must use instead. Determine its name by asking matplotlib.
         """
-        return self.queryRuntimeInformationMultiple(
+        info = self.queryRuntimeInformationMultiple(
             info_name="matplotlib_info",
             setup_codes="""
 from matplotlib import matplotlib_fname, get_backend, __version__
@@ -87,6 +85,11 @@ from inspect import getsource
             ),
         )
 
+        if info is None:
+            self.sysexit("Error, it seems 'matplotlib' is not installed or broken.")
+
+        return info
+
     def considerDataFiles(self, module):
         if module.getFullName() != "matplotlib":
             return
@@ -99,12 +102,13 @@ from inspect import getsource
             )
 
         # Include the "mpl-data" files.
-        yield makeIncludedDataDirectory(
+        yield self.makeIncludedDataDirectory(
             source_path=matplotlib_info.data_path,
             dest_path=os.path.join("matplotlib", "mpl-data"),
             ignore_dirs=("sample_data",),
             ignore_filenames=("matplotlibrc",),
             reason="package data for 'matplotlib",
+            tags="mpl-data",
         )
 
         # Handle the config file with an update.
@@ -128,13 +132,13 @@ from inspect import getsource
             # Set the backend, so even if it was run time determined, we now enforce it.
             new_lines.append("backend: %s" % matplotlib_info.backend)
 
-        yield makeIncludedGeneratedDataFile(
+        yield self.makeIncludedGeneratedDataFile(
             data=new_lines,
             dest_path=os.path.join("matplotlib", "mpl-data", "matplotlibrc"),
-            reason="Updated matplotlib config file with backend to use.",
+            reason="updated matplotlib config file with backend to use",
         )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         if module_name.hasNamespace("mpl_toolkits"):
             return True, "Needed by matplotlib"
 
@@ -147,7 +151,7 @@ from inspect import getsource
                 "matplotlib.backends.backend_tkagg",
                 "matplotlib.backend.tkagg",
             ):
-                return True, "Needed for tkinter matplotplib backend"
+                return True, "Needed for tkinter matplotlib backend"
 
         if getActiveQtPlugin() is not None:
             # Note, their code tries everything behind that name, the qt5 is
@@ -158,10 +162,10 @@ from inspect import getsource
                 "matplotlib.backends.backend_qt5cairo.py",
                 "matplotlib.backend.backend_qt5.py",
             ):
-                return True, "Needed for Qt matplotplib backend"
+                return True, "Needed for Qt matplotlib backend"
 
         if module_name == "matplotlib.backends.backend_agg":
-            return True, "Needed as standard matplotplib backend"
+            return True, "Needed as standard matplotlib backend"
 
     def createPreModuleLoadCode(self, module):
         """Method called when a module is being imported.
@@ -177,7 +181,7 @@ from inspect import getsource
             Code to insert and descriptive text (tuple), or (None, None).
         """
 
-        # Matplotlib might be off, or the version may not need the environment variable.
+        # The version may not need the environment variable.
         if (
             module.getFullName() == "matplotlib"
             and self._getMatplotlibInfo().needs_matplotlibdata_env

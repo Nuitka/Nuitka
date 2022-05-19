@@ -226,6 +226,12 @@ NUITKA_DEFINE_BUILTIN(open);
 PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering) {
     NUITKA_ASSIGN_BUILTIN(open);
 
+    PyObject *result;
+
+    if (TRACE_FILE_OPEN(file_name, mode, buffering, &result)) {
+        return result;
+    }
+
     PyObject *args[] = {file_name, mode, buffering};
 
     char const *arg_names[] = {"name", "mode", "buffering"};
@@ -236,6 +242,12 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering)
 PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding, PyObject *errors,
                        PyObject *newline, PyObject *closefd, PyObject *opener) {
     NUITKA_ASSIGN_BUILTIN(open);
+
+    PyObject *result;
+
+    if (TRACE_FILE_OPEN(file_name, mode, buffering, encoding, errors, newline, closefd, opener, &result)) {
+        return result;
+    }
 
     PyObject *args[] = {file_name, mode, buffering, encoding, errors, newline, closefd, opener};
 
@@ -789,6 +801,10 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
  **/
 
 PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value) {
+    CHECK_OBJECT(object);
+    CHECK_OBJECT(attribute);
+    CHECK_OBJECT_X(default_value);
+
 #if PYTHON_VERSION < 0x300
     if (PyUnicode_Check(attribute)) {
         attribute = _PyUnicode_AsDefaultEncodedString(attribute, NULL);

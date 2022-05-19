@@ -1,4 +1,6 @@
 ---
+# Spelling has no role in module names, spell-checker: disable
+
 # TODO: Seems too much
 lxml:
   depends:
@@ -69,6 +71,7 @@ importlib.metadata:
 urllib.request:
   depends:
     - "http.client"
+    - "http.cookiejar"
 
 _asyncio:
   depends:
@@ -76,7 +79,15 @@ _asyncio:
 
 shelve:
   depends:
-    - "dbm"
+    - "dbm.dumb"
+
+wsgiref.simple_server:
+  depends:
+    - "http.server"
+
+zipfile:
+  depends:
+    - "py_compile"
 
 shiboken6:
   depends:
@@ -95,7 +106,71 @@ PySide2:
 PySide6:
   disable_console: recommend
 
+Tkinter:
+  standalone_macos_bundle_mode: onefile
+  disable_console: recommend
+
+tkinter:
+  standalone_macos_bundle_mode: onefile
+  disable_console: recommend
+
 dns.rdtypes:
   depends:
     - ".IN.A"
     - ".CH.A"
+
+tensorflow:
+  depends:
+    - ".python.keras"
+
+persistent.ring:
+  depends:
+    - "_cffi_backend"
+
+pydantic.typing:
+  depends:
+    - "typing_extensions"
+
+falcon.app:
+  depends:
+    - ".app_helpers"
+    - ".responders"
+    - ".routing"
+
+falcon.request:
+  depends:
+    - ".request_helpers"
+    - ".forwarded"
+    - ".media"
+
+falcon.media.handlers:
+  depends:
+    - "falcon.vendor.mimeparse"
+
+falcon.response:
+  depends:
+    - ".response_helpers"
+
+uvicorn.config:
+  depends:
+    - "websockets.legacy.server"
+
+sklearn.metrics._dist_metrics:
+  depends:
+    - "sklearn.utils._typedefs"
+
+sklearn.neighbors._dist_metrics:
+  depends:
+    - "sklearn.neighbors._typedefs"
+
+sklearn.neighbors._ball_tree:
+  depends:
+    - "sklearn.neighbors._partition_nodes"
+
+sklearn.linear_model._sgd_fast:
+  depends:
+    - "sklearn.utils._weight_vector"
+
+sklearn.tree._tree:
+  depends:
+    - "sklearn.neighbors._quad_tree"

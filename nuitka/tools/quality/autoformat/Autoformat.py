@@ -35,6 +35,7 @@ from nuitka.tools.quality.Git import (
     updateWorkingFile,
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
+from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import general, my_print
 from nuitka.utils.Execution import (
     NuitkaCalledProcessError,
@@ -121,8 +122,8 @@ def _checkRequiredVersion(tool, tool_call):
 
     try:
         version_output = check_output(tool_call)
-    except NuitkaCalledProcessError:
-        return False, "failed to execute"
+    except NuitkaCalledProcessError as e:
+        return False, "failed to execute: %s" % e.stderr
 
     if str is not bytes:
         version_output = version_output.decode("utf8")
@@ -214,7 +215,7 @@ def _updateCommentNode(comment_node):
 
 
 def _cleanupPyLintComments(filename):
-    new_code = old_code = getFileContents(filename)
+    new_code = old_code = getFileContents(filename, encoding="utf8")
 
     def replacer(part):
         def renamer(pylint_token):
@@ -348,7 +349,7 @@ def _cleanupImportSortOrder(filename):
 
     isort_call = _getPythonBinaryCall("isort")
 
-    contents = getFileContents(filename)
+    contents = getFileContents(filename, encoding="utf8")
 
     start_index = None
     if "\n# isort:start" in contents:
@@ -384,13 +385,10 @@ def _cleanupImportSortOrder(filename):
         putTextFileContents(filename, contents=contents)
 
 
-_extra_rst_keywords = b"asciinema", b"postlist", b"post", b"youtube", b"grid"
-
-
 def _cleanupRstFmt(filename):
     updated_contents = contents = getFileContents(filename, mode="rb")
 
-    for keyword in _extra_rst_keywords:
+    for keyword in extra_rst_keywords:
         updated_contents = updated_contents.replace(
             b".. %s::" % keyword, b".. raw:: %s" % keyword
         )
@@ -417,7 +415,7 @@ def _cleanupRstFmt(filename):
     # more people will know it.
     updated_contents = contents.replace(b".. code:: sh\n", b".. code:: bash\n")
 
-    for keyword in _extra_rst_keywords:
+    for keyword in extra_rst_keywords:
         updated_contents = updated_contents.replace(
             b".. raw:: %s" % keyword, b".. %s::" % keyword
         )
@@ -467,11 +465,13 @@ def _cleanupClangFormat(filename):
 
     clang_format_path = (
         getExecutablePath("clang-format-12")
+        or getExecutablePath("clang-format-12")
         or getExecutablePath("clang-format-11")
         or getExecutablePath("clang-format-10")
         or getExecutablePath("clang-format-9")
         or getExecutablePath("clang-format-8")
         or getExecutablePath("clang-format-7")
+        or getExecutablePath("clang-format")
     )
 
     # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
@@ -588,6 +588,7 @@ def autoformat(
             ".sh",
             ".in",
             ".md",
+            ".toml",
             ".asciidoc",
             ".nuspec",
             ".yml",
@@ -637,7 +638,10 @@ def autoformat(
 
                 black_call = _getPythonBinaryCall("black")
 
-                subprocess.call(black_call + ["-q", "--fast", tmp_filename])
+                subprocess.call(
+                    black_call
+                    + ["-q", "--fast", "--skip-string-normalization", tmp_filename]
+                )
                 cleanupWindowsNewlines(tmp_filename)
 
         elif is_c or is_cpp:

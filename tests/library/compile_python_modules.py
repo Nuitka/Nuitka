@@ -98,6 +98,7 @@ def action(stage_dir, _root, path):
         "--output-dir=%s" % stage_dir,
         "--remove-output",
         "--quiet",
+        "--nofollow-imports",
         "--enable-plugin=pylint-warnings",
     ]
 

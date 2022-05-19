@@ -42,6 +42,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
+from nuitka.utils.Utils import getOS, isMacOS
 
 from .SconsCaching import checkCachingSuccess
 from .SconsUtils import flushSconsReports
@@ -267,7 +268,7 @@ def runScons(options, quiet, scons_filename):
         )
 
         if Options.isShowScons():
-            Tracing.printLine("Scons command:", " ".join(scons_command))
+            Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
 
         Tracing.flushStandardOutputs()
 
@@ -339,7 +340,7 @@ def cleanSconsDirectory(source_dir):
 def setCommonOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
@@ -370,6 +371,12 @@ def setCommonOptions(options):
 
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()
+
+    if getOS() == "Windows" or isMacOS():
+        options["noelf_mode"] = asBoolStr(True)
+
+    if Options.isUnstriped():
+        options["unstriped_mode"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
@@ -408,3 +415,38 @@ def setCommonOptions(options):
             )
 
         options["macos_target_arch"] = macos_target_arch
+
+    env_values = {}
+
+    string_values = Options.getWindowsVersionInfoStrings()
+    if "CompanyName" in string_values:
+        env_values["NUITKA_COMPANY_NAME"] = string_values["CompanyName"]
+    if "ProductName" in string_values:
+        env_values["NUITKA_PRODUCT_NAME"] = string_values["ProductName"]
+
+    # Merge version information if possible, to avoid collisions, or deep nesting
+    # in file system.
+    product_version = Options.getWindowsProductVersion()
+    file_version = Options.getWindowsFileVersion()
+
+    if product_version is None:
+        product_version = file_version
+    if product_version is not None:
+        product_version = ".".join(str(d) for d in product_version)
+    if file_version is None:
+        file_version = product_version
+    if file_version is not None:
+        file_version = ".".join(str(d) for d in file_version)
+
+    if product_version != file_version:
+        effective_version = "%s-%s" % (
+            product_version,
+            file_version,
+        )
+    else:
+        effective_version = file_version
+
+    if effective_version:
+        env_values["NUITKA_VERSION_COMBINED"] = effective_version
+
+    return env_values

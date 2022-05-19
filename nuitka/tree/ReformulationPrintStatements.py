@@ -29,7 +29,7 @@ from nuitka.nodes.AssignNodes import (
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
-from nuitka.nodes.ImportNodes import ExpressionImportModuleNameHard
+from nuitka.nodes.ImportNodes import makeExpressionImportModuleNameHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
@@ -53,8 +53,11 @@ def buildPrintNode(provider, node, source_ref):
 
         target_default_statement = StatementAssignmentVariable(
             variable=tmp_target_variable,
-            source=ExpressionImportModuleNameHard(
-                module_name="sys", import_name="stdout", source_ref=source_ref
+            source=makeExpressionImportModuleNameHard(
+                module_name="sys",
+                import_name="stdout",
+                module_guaranteed=True,
+                source_ref=source_ref,
             ),
             source_ref=source_ref,
         )

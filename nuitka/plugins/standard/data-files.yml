@@ -158,6 +158,24 @@ pygsheets:
   dirs:
     - "data"
 
+accessible_output2:
+  dirs:
+    - "lib"
+
+babel:
+  dirs:
+    - "locale-data"
+  patterns:
+    - "global.dat"
+
+frozendict:
+  patterns:
+    - "VERSION"
+
+sound_lib:
+  dirs:
+    - "lib"
+
 # TODO: Need to implement control tags, so this is not done for cases where
 # anti-bloat removed this file.
 jaraco.text:

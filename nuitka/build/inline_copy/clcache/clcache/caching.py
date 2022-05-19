@@ -150,7 +150,7 @@ class CacheLockException(Exception):
 
 class CompilerFailedException(Exception):
     def __init__(self, exitCode, msgErr, msgOut=""):
-        Exception.__init__(msgErr)
+        Exception.__init__(self, msgErr)
         self.exitCode = exitCode
         self.msgOut = msgOut
         self.msgErr = msgErr
@@ -251,7 +251,7 @@ class ManifestRepository(object):
         self._manifestsRootDir = manifestsRootDir
 
     def section(self, manifestHash):
-        return ManifestSection(os.path.join(self._manifestsRootDir, manifestHash[:2]))
+        return ManifestSection(os.path.join(self._manifestsRootDir, manifestHash[:3]))
 
     def sections(self):
         return (
@@ -285,7 +285,7 @@ class ManifestRepository(object):
         # preprocessor options.  In direct mode we do not perform preprocessing
         # before cache lookup, so all parameters are important.  One of the few
         # exceptions to this rule is the /MP switch, which only defines how many
-        # compiler processes are running simultaneusly.  Arguments that specify
+        # compiler processes are running simultaneously.  Arguments that specify
         # the compiler where to find the source files are parsed to replace
         # occurrences of CLCACHE_BASEDIR by a placeholder.
         arguments, inputFiles = CommandLineAnalyzer.parseArgumentsAndInputFiles(
@@ -333,9 +333,8 @@ cache_lock = RLock()
 class CacheLock2(object):
     """Implement a lock inside the process only. """
 
-    def __init__(self, mutexName, timeoutMs):
+    def __init__(self):
         self._rlock = None
-        self._timeoutMs = timeoutMs
 
     def __enter__(self):
         cache_lock.acquire()
@@ -345,9 +344,7 @@ class CacheLock2(object):
 
     @staticmethod
     def forPath(path):
-        timeoutMs = int(os.environ.get("CLCACHE_OBJECT_CACHE_TIMEOUT_MS", 10 * 1000))
-        lockName = path.replace(":", "-").replace("\\", "-")
-        return CacheLock2(lockName, timeoutMs)
+        return CacheLock2()
 
 class CacheLock(object):
     """Implements a lock for the object cache which
@@ -363,10 +360,11 @@ class CacheLock(object):
         self._timeoutMs = timeoutMs
 
     def createMutex(self):
-        self._mutex = windll.kernel32.CreateMutexW(
-            None, wintypes.BOOL(False), self._mutexName
-        )
-        assert self._mutex
+        with CacheLock2():
+            self._mutex = windll.kernel32.CreateMutexW(
+                None, wintypes.BOOL(False), self._mutexName
+            )
+            assert self._mutex
 
     def __enter__(self):
         self.acquire()
@@ -477,7 +475,7 @@ class CompilerArtifactsRepository(object):
 
     def section(self, key):
         return CompilerArtifactsSection(
-            os.path.join(self._compilerArtifactsRootDir, key[:2])
+            os.path.join(self._compilerArtifactsRootDir, key[:3])
         )
 
     def sections(self):
@@ -627,7 +625,7 @@ class CacheFileStrategy(object):
     def lock(self):
         with allSectionsLocked(self.manifestRepository), allSectionsLocked(
             self.compilerArtifactsRepository
-        ), self.statistics.lock:
+        ):
             yield
 
     def lockFor(self, key):
@@ -808,6 +806,7 @@ class Configuration(object):
     def setMaximumCacheSize(self, size):
         self._cfg["MaximumCacheSize"] = size
 
+stats = None
 
 class Statistics(object):
     CALLS_WITH_INVALID_ARGUMENT = "CallsWithInvalidArgument"
@@ -846,13 +845,14 @@ class Statistics(object):
 
     def __init__(self, statsFile):
         self._statsFile = statsFile
-        self._stats = None
 
-        # TODO: Provide this via an indicator environment variable.
-        self.lock = CacheLock2.forPath(self._statsFile)
+        global stats
+        if stats is None:
+            stats = PersistentJSONDict(self._statsFile)
+
+        self._stats = stats
 
     def __enter__(self):
-        self._stats = PersistentJSONDict(self._statsFile)
         for k in Statistics.RESETTABLE_KEYS | Statistics.NON_RESETTABLE_KEYS:
             if k not in self._stats:
                 self._stats[k] = 0
@@ -860,7 +860,9 @@ class Statistics(object):
 
     def __exit__(self, typ, value, traceback):
         # Does not write to disc when unchanged
-        self._stats.save()
+        # Nuitka: Only write at the end.
+        # self._stats.save()
+        pass
 
     def __eq__(self, other):
         return type(self) is type(other) and self.__dict__ == other.__dict__
@@ -1566,7 +1568,7 @@ clcache statistics:
     called w/ multiple sources : {}
     called w/ PCH              : {}""".strip()
 
-    with cache.statistics.lock, cache.statistics as stats, cache.configuration as cfg:
+    with cache.statistics as stats, cache.configuration as cfg:
         print(
             template.format(
                 str(cache),
@@ -1590,7 +1592,7 @@ clcache statistics:
 
 
 def resetStatistics(cache):
-    with cache.statistics.lock, cache.statistics as stats:
+    with cache.statistics as stats:
         stats.resetCounters()
 
 
@@ -1669,7 +1671,7 @@ def processCacheHit(cache, objectFile, cachekey):
     )
 
     with cache.lockFor(cachekey):
-        with cache.statistics.lock, cache.statistics as stats:
+        with cache.statistics as stats:
             stats.registerCacheHit()
 
         if os.path.exists(objectFile):
@@ -1726,7 +1728,7 @@ def runClCache(compiler, compiler_args, env):
 
 
 def updateCacheStatistics(cache, method):
-    with cache.statistics.lock, cache.statistics as stats:
+    with cache.statistics as stats:
         method(stats)
 
 
@@ -1982,7 +1984,7 @@ def ensureArtifactsExist(
     correctCompiliation = returnCode == 0 and os.path.exists(objectFile)
     with cache.lockFor(cachekey):
         if not cache.hasEntry(cachekey):
-            with cache.statistics.lock, cache.statistics as stats:
+            with cache.statistics as stats:
                 reason(stats)
                 if correctCompiliation:
                     artifacts = CompilerArtifacts(

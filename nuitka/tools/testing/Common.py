@@ -35,6 +35,7 @@ from nuitka.__past__ import subprocess
 from nuitka.PythonVersions import (
     getPartiallySupportedPythonVersions,
     getSupportedPythonVersions,
+    isDebugPython,
 )
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -56,7 +57,6 @@ from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import getOS
 
 from .SearchModes import (
-    SearchModeAll,
     SearchModeByPattern,
     SearchModeCoverage,
     SearchModeImmediate,
@@ -103,6 +103,48 @@ _python_executable = None
 _python_vendor = None
 
 
+def _parsePythonVersionOutput(python_binary):
+    version_output = check_output(
+        (
+            python_binary,
+            "-c",
+            """\
+import sys, os;\
+print(".".join(str(s) for s in list(sys.version_info)[:3]));\
+print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
+print(sys.executable);\
+print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown")\
+""",
+        ),
+        stderr=subprocess.STDOUT,
+    )
+
+    python_version_str = version_output.split(b"\n")[0].strip()
+    python_arch = version_output.split(b"\n")[1].strip()
+    python_executable = version_output.split(b"\n")[2].strip()
+    python_vendor = version_output.split(b"\n")[3].strip()
+
+    if str is not bytes:
+        python_version_str = python_version_str.decode("utf8")
+        python_arch = python_arch.decode("utf8")
+        python_executable = python_executable.decode("utf8")
+        python_vendor = python_vendor.decode("utf8")
+
+    assert type(python_version_str) is str, repr(python_version_str)
+    assert type(python_arch) is str, repr(python_arch)
+    assert type(python_executable) is str, repr(_python_executable)
+
+    python_version = tuple(int(d) for d in python_version_str.split("."))
+
+    return (
+        python_version,
+        python_version_str,
+        python_arch,
+        python_executable,
+        python_vendor,
+    )
+
+
 def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if go_main:
         goMainDir()
@@ -128,37 +170,15 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if needs_io_encoding and "PYTHONIOENCODING" not in os.environ:
         os.environ["PYTHONIOENCODING"] = "utf-8"
 
-    version_output = check_output(
-        (
-            os.environ["PYTHON"],
-            "-c",
-            """\
-import sys, os;\
-print(".".join(str(s) for s in list(sys.version_info)[:3]));\
-print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
-print(sys.executable);\
-print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else "Unknown")\
-""",
-        ),
-        stderr=subprocess.STDOUT,
-    )
-
     global _python_version_str, _python_version, _python_arch, _python_executable, _python_vendor  # singleton, pylint: disable=global-statement
 
-    _python_version_str = version_output.split(b"\n")[0].strip()
-    _python_arch = version_output.split(b"\n")[1].strip()
-    _python_executable = version_output.split(b"\n")[2].strip()
-    _python_vendor = version_output.split(b"\n")[3].strip()
-
-    if str is not bytes:
-        _python_version_str = _python_version_str.decode("utf8")
-        _python_arch = _python_arch.decode("utf8")
-        _python_executable = _python_executable.decode("utf8")
-        _python_vendor = _python_vendor.decode("utf8")
-
-    assert type(_python_version_str) is str, repr(_python_version_str)
-    assert type(_python_arch) is str, repr(_python_arch)
-    assert type(_python_executable) is str, repr(_python_executable)
+    (
+        _python_version,
+        _python_version_str,
+        _python_arch,
+        _python_executable,
+        _python_vendor,
+    ) = _parsePythonVersionOutput(python_binary=os.environ["PYTHON"])
 
     if not silent:
         my_print("Using concrete python", _python_version_str, "on", _python_arch)
@@ -167,8 +187,6 @@ print("Anaconda" if os.path.exists(os.path.join(sys.prefix, 'conda-meta')) else 
         os.environ["COVERAGE_FILE"] = os.path.join(
             os.path.dirname(__file__), "..", "..", "..", ".coverage"
         )
-
-    _python_version = tuple(int(d) for d in _python_version_str.split("."))
 
     return _python_version
 
@@ -271,11 +289,11 @@ def decideFilenameVersionSkip(filename):
     This codifies certain rules that files can have as suffixes or prefixes
     to make them be part of the set of tests executed for a version or not.
 
-    Generally, an ening of "<major><minor>.py" indicates that it must be that
+    Generally, an ending of "<major><minor>.py" indicates that it must be that
     Python version or higher. There is no need for ending in "26.py" as this
     is the minimum version anyway.
 
-    The "_2.py" indicates a maxmimum version of 2.7, i.e. not Python 3.x, for
+    The "_2.py" indicates a maximum version of 2.7, i.e. not Python 3.x, for
     language syntax no more supported.
     """
 
@@ -469,28 +487,37 @@ def checkSucceedsWithCPython(filename):
     return result == 0
 
 
-def hasDebugPython():
+def getDebugPython():
+    # For all Python, if it's the one also executing the runner, which is
+    # very probably the case, we check that. We don't check the provided
+    # binary here, this could be done as well.
+    if sys.executable == os.environ["PYTHON"] and isDebugPython():
+        return sys.executable
+
     # On Debian systems, these work.
     debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")
     if os.path.exists(debug_python):
-        return True
+        return debug_python
 
-    # On Windows systems, these work.
-    debug_python = os.environ["PYTHON"]
-    if debug_python.lower().endswith(".exe"):
-        debug_python = debug_python[:-4]
-    debug_python = debug_python + "_d.exe"
-    if os.path.exists(debug_python):
-        return True
+    # On Fedora systems, these work, but on for Python3
+    debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-debug")
+    if os.path.exists(debug_python) and _parsePythonVersionOutput(debug_python)[0] >= (
+        3,
+    ):
+        return debug_python
 
-    # For other Python, if it's the one also executing the runner, which is
-    # very probably the case, we check that. We don't check the provided
-    # binary here, this could be done as well.
-    if sys.executable == os.environ["PYTHON"] and hasattr(sys, "gettotalrefcount"):
-        return True
+    # On Windows systems, these work. TODO: Python asserts in Nuitka with
+    # these, not sure why, pylint: disable=using-constant-test
+    if False:
+        debug_python = os.environ["PYTHON"]
+        if debug_python.lower().endswith(".exe"):
+            debug_python = debug_python[:-4]
+        debug_python = debug_python + "_d.exe"
+        if os.path.exists(debug_python):
+            return debug_python
 
     # Otherwise no.
-    return False
+    return None
 
 
 def displayRuntimeTraces(logger, path):
@@ -601,7 +628,7 @@ def reenablePrinting():
         orig_print = None
 
 
-_debug_python = hasattr(sys, "gettotalrefcount")
+_debug_python = isDebugPython()
 
 
 def getTotalReferenceCount():
@@ -775,16 +802,17 @@ Defaults to off.""",
     mode = positional_args[0] if positional_args else "search"
 
     # Avoid having to use options style.
-    if mode in ("search", "only"):
+    if mode in ("search", "only", "coverage"):
         if len(positional_args) >= 2 and not options.pattern:
             options.pattern = positional_args[1]
 
     if mode == "search":
         if options.all:
-            return SearchModeAll()
+            return SearchModeByPattern(start_at=None)
         elif options.pattern:
-            pattern = options.pattern.replace("/", os.path.sep)
-            return SearchModeByPattern(pattern)
+            return SearchModeByPattern(
+                start_at=options.pattern.replace("/", os.path.sep)
+            )
         else:
             return SearchModeImmediate()
     elif mode == "resume":
@@ -796,7 +824,11 @@ Defaults to off.""",
         else:
             assert False
     elif mode == "coverage":
-        return SearchModeCoverage()
+        return SearchModeCoverage(
+            start_at=options.pattern.replace("/", os.path.sep)
+            if options.pattern
+            else None
+        )
     else:
         test_logger.sysexit("Error, using unknown search mode %r" % mode)
 
@@ -1187,7 +1219,10 @@ def scanDirectoryForTestCases(dirname, template_context=None):
             assert template_context is not None
 
             template = getTemplate(
-                package_name=None, template_name=filename, template_subdir=dirname
+                package_name=None,
+                template_name=filename,
+                template_subdir=dirname,
+                extensions=("jinja2.ext.do",),
             )
 
             code = template.render(name=template.name, **template_context)
@@ -1207,6 +1242,9 @@ def scanDirectoryForTestCaseFolders(dirname):
     filenames = os.listdir(dirname)
 
     for filename in sorted(filenames):
+        if not decideFilenameVersionSkip(filename + ".py"):
+            continue
+
         filename = os.path.join(dirname, filename)
         filename = os.path.relpath(filename)
 
@@ -1382,7 +1420,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             if r"windows\winsxs" in loaded_filename:
                 continue
 
-            # Github actions have these in PATH overriding SYSTEMROOT
+            # GitHub actions have these in PATH overriding SYSTEMROOT
             if r"windows performance toolkit" in loaded_filename:
                 continue
             if r"powershell" in loaded_filename:

@@ -30,13 +30,17 @@ import sys
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue
 from nuitka.constants.Serialization import ConstantAccessor
+from nuitka.freezer.IncludedDataFiles import (
+    addIncludedDataFilesFromFileOptions,
+    addIncludedDataFilesFromPackageOptions,
+    copyDataFiles,
+)
 from nuitka.freezer.IncludedEntryPoints import (
     addExtensionModuleEntryPoint,
     addIncludedEntryPoints,
     getStandaloneEntryPoints,
     setMainEntryPoint,
 )
-from nuitka.freezer.Standalone import copyDataFiles
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import (
     getPythonPgoInput,
@@ -72,6 +76,7 @@ from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
+    withEnvironmentVarsOverridden,
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
@@ -82,12 +87,13 @@ from nuitka.utils.FileOperations import (
     makePath,
     putTextFileContents,
     removeDirectory,
+    resetDirectory,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
+from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
@@ -130,10 +136,10 @@ def _createNodeTree(filename):
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
         standalone_dir = OutputDirectories.getStandaloneDirectoryPath(bundle=False)
-        removeDirectory(path=standalone_dir, ignore_errors=True)
+        resetDirectory(path=standalone_dir, ignore_errors=True)
 
         if Options.shallCreateAppBundle():
-            removeDirectory(
+            resetDirectory(
                 path=changeFilenameExtension(standalone_dir, ".app"), ignore_errors=True
             )
 
@@ -530,8 +536,7 @@ def runSconsBackend(quiet):
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
         "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
-        "python_debug": asBoolStr(Options.isPythonDebug()),
-        "unstripped_mode": asBoolStr(Options.isUnstripped()),
+        "python_debug": asBoolStr(Options.shallUsePythonDebug()),
         "module_mode": asBoolStr(Options.shallMakeModule()),
         "full_compat": asBoolStr(Options.is_fullcompat),
         "experimental": ",".join(Options.getExperimentalIndications()),
@@ -602,9 +607,6 @@ def runSconsBackend(quiet):
             len(ModuleRegistry.getUncompiledTechnicalModules())
         )
 
-    if getOS() == "Windows":
-        options["noelf_mode"] = asBoolStr(True)
-
     if Options.isProfile():
         options["profile_mode"] = asBoolStr(True)
 
@@ -650,14 +652,15 @@ def runSconsBackend(quiet):
     if Options.shallMakeModule():
         options["module_suffix"] = getSharedLibrarySuffix(preferred=True)
 
-    SconsInterface.setCommonOptions(options)
+    env_values = SconsInterface.setCommonOptions(options)
 
     if Options.shallCreatePgoInput():
         options["pgo_mode"] = "python"
 
-        result = SconsInterface.runScons(
-            options=options, quiet=quiet, scons_filename="Backend.scons"
-        )
+        with withEnvironmentVarsOverridden(env_values):
+            result = SconsInterface.runScons(
+                options=options, quiet=quiet, scons_filename="Backend.scons"
+            )
         if not result:
             return result, options
 
@@ -674,9 +677,11 @@ def runSconsBackend(quiet):
         # there, which currently are not yet there, so it won't run.
         if Options.isPgoMode():
             options["pgo_mode"] = "generate"
-            result = SconsInterface.runScons(
-                options=options, quiet=quiet, scons_filename="Backend.scons"
-            )
+
+            with withEnvironmentVarsOverridden(env_values):
+                result = SconsInterface.runScons(
+                    options=options, quiet=quiet, scons_filename="Backend.scons"
+                )
 
             if not result:
                 return result, options
@@ -686,12 +691,13 @@ def runSconsBackend(quiet):
             _runCPgoBinary()
             options["pgo_mode"] = "use"
 
-    result = (
-        SconsInterface.runScons(
-            options=options, quiet=quiet, scons_filename="Backend.scons"
-        ),
-        options,
-    )
+    with withEnvironmentVarsOverridden(env_values):
+        result = (
+            SconsInterface.runScons(
+                options=options, quiet=quiet, scons_filename="Backend.scons"
+            ),
+            options,
+        )
 
     if options.get("pgo_mode") == "use" and _wasMsvcMode():
         _deleteMsvcPGOFiles(pgo_mode="use")
@@ -794,6 +800,7 @@ def compileTree():
                     memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
                 )
             )
+
         # Now build the target language code for the whole tree.
         makeSourceDirectory()
 
@@ -833,8 +840,7 @@ def compileTree():
 
     general.info("Running data composer tool for optimal constant value handling.")
 
-    blob_filename = runDataComposer(source_dir)
-    Plugins.onDataComposerResult(blob_filename)
+    runDataComposer(source_dir)
 
     for filename, source_code in Plugins.getExtraCodeFiles().items():
         target_dir = os.path.join(source_dir, "plugins")
@@ -908,17 +914,24 @@ def main():
 
     filename = Options.getPositionalArgs()[0]
 
+    if not os.path.exists(filename):
+        general.sysexit("Error, file '%s' is not found." % filename)
+
     # Inform the importing layer about the main script directory, so it can use
     # it when attempting to follow imports.
     Importing.setMainScriptDirectory(
         main_dir=os.path.dirname(os.path.abspath(filename))
     )
 
+    addIncludedDataFilesFromFileOptions()
+
     # Turn that source code into a node tree structure.
     try:
         main_module = _createNodeTree(filename=filename)
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
+
+    addIncludedDataFilesFromPackageOptions()
 
     if Options.shallDumpBuiltTreeXML():
         # XML output only.
@@ -950,6 +963,8 @@ def main():
 
         executePostProcessing()
 
+        copyDataFiles()
+
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
@@ -965,8 +980,6 @@ def main():
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
             )
-
-            copyDataFiles(dist_dir=dist_dir)
 
             Plugins.onStandaloneDistributionFinished(dist_dir)
 

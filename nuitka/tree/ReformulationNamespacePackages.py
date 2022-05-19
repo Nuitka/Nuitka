@@ -35,9 +35,9 @@ from nuitka.nodes.ContainerMakingNodes import (
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
-    ExpressionImportModuleNameHard,
     ExpressionImportName,
     makeExpressionImportModuleFixed,
+    makeExpressionImportModuleNameHard,
 )
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -55,8 +55,11 @@ from .VariableClosure import completeVariableClosures
 def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
     return ExpressionCallNoKeywords(
         called=makeExpressionAttributeLookup(
-            expression=ExpressionImportModuleNameHard(
-                module_name=module_name, import_name=import_name, source_ref=source_ref
+            expression=makeExpressionImportModuleNameHard(
+                module_name=module_name,
+                import_name=import_name,
+                module_guaranteed=True,
+                source_ref=source_ref,
             ),
             attribute_name=attribute_name,
             source_ref=source_ref,
@@ -87,8 +90,11 @@ def getNameSpacePathExpression(package, source_ref):
         elements = [
             ExpressionCallNoKeywords(
                 called=makeExpressionAttributeLookup(
-                    expression=ExpressionImportModuleNameHard(
-                        module_name="os", import_name="path", source_ref=source_ref
+                    expression=makeExpressionImportModuleNameHard(
+                        module_name="os",
+                        import_name="path",
+                        module_guaranteed=True,
+                        source_ref=source_ref,
                     ),
                     attribute_name="dirname",
                     source_ref=source_ref,
@@ -207,8 +213,11 @@ def createNamespacePackage(module_name, is_top, source_ref):
 
 def createImporterCacheAssignment(package, source_ref):
     return StatementDictOperationSet(
-        dict_arg=ExpressionImportModuleNameHard(
-            module_name="sys", import_name="path_importer_cache", source_ref=source_ref
+        dict_arg=makeExpressionImportModuleNameHard(
+            module_name="sys",
+            import_name="path_importer_cache",
+            module_guaranteed=True,
+            source_ref=source_ref,
         ),
         key=ExpressionSubscriptLookup(
             expression=ExpressionVariableNameRef(

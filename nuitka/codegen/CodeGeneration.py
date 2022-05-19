@@ -30,6 +30,7 @@ from nuitka.nodes.AttributeNodesGenerated import (
     attribute_classes,
     attribute_typed_classes,
 )
+from nuitka.nodes.BytesNodes import getBytesOperationClasses
 from nuitka.nodes.StrNodes import getStrOperationClasses
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.CStrings import encodePythonStringToC
@@ -190,6 +191,7 @@ from .ImportCodes import (
     generateImportNameCode,
     generateImportStarCode,
 )
+from .InjectCCodes import generateInjectCCode
 from .IntegerCodes import (
     generateBuiltinInt1Code,
     generateBuiltinInt2Code,
@@ -229,6 +231,7 @@ from .LoopCodes import (
     generateLoopCode,
     generateLoopContinueCode,
 )
+from .MatchCodes import generateMatchArgsCode
 from .ModuleCodes import (
     generateModuleAttributeCode,
     generateModuleAttributeFileCode,
@@ -239,6 +242,13 @@ from .OperationCodes import (
     generateOperationBinaryCode,
     generateOperationNotCode,
     generateOperationUnaryCode,
+)
+from .PackageResourceCodes import (
+    generateImportlibResourcesReadBinaryCallCode,
+    generateImportlibResourcesReadTextCallCode,
+    generatePkglibGetDataCallCode,
+    generatePkgResourcesResourceStreamCallCode,
+    generatePkgResourcesResourceStringCallCode,
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
 from .RaisingCodes import (
@@ -278,6 +288,7 @@ from .StringCodes import (
     generateBuiltinOrdCode,
     generateBuiltinStrCode,
     generateBuiltinUnicodeCode,
+    generateBytesOperationCode,
     generateStringContenationCode,
     generateStrOperationCode,
 )
@@ -692,7 +703,8 @@ addExpressionDispatchDict(
         "EXPRESSION_FUNCTION_ERROR_STR": generateFunctionErrorStrCode,
         "EXPRESSION_IMPORT_MODULE_FIXED": generateImportModuleFixedCode,
         "EXPRESSION_IMPORT_MODULE_HARD": generateImportModuleHardCode,
-        "EXPRESSION_IMPORT_MODULE_NAME_HARD": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL": generateImportlibImportCallCode,
         "EXPRESSION_IMPORT_NAME": generateImportNameCode,
@@ -777,6 +789,17 @@ addExpressionDispatchDict(
         "EXPRESSION_LOCALS_VARIABLE_REF": generateLocalsDictVariableRefCode,
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
         "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
+        "EXPRESSION_PKGLIB_GET_DATA_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKGLIB_GET_DATA_CALL": generatePkglibGetDataCallCode,
+        "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": generatePkgResourcesResourceStringCallCode,
+        "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": generatePkgResourcesResourceStreamCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
+        "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
+        "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
     }
 )
 
@@ -790,8 +813,14 @@ addExpressionDispatchDict(
     dict((cls.kind, generateAttributeLookupCode) for cls in attribute_typed_classes)
 )
 
+# Add code generation for the EXPRESSION_STR_OPERATION_* nodes.
 addExpressionDispatchDict(
     dict((cls.kind, generateStrOperationCode) for cls in getStrOperationClasses())
+)
+
+# Add code generation for the EXPRESSION_BYTES_OPERATION_* nodes.
+addExpressionDispatchDict(
+    dict((cls.kind, generateBytesOperationCode) for cls in getBytesOperationClasses())
 )
 
 
@@ -843,5 +872,6 @@ setStatementDispatchDict(
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION": generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION": generateExceptionPublishCode,
+        "STATEMENT_INJECT_C_CODE": generateInjectCCode,
     }
 )

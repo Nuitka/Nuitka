@@ -388,6 +388,10 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionOutlineFunctionBase():
         return False
 
+    @staticmethod
+    def isExpressionImportModuleNameHard():
+        return False
+
     def visit(self, context, visitor):
         visitor(self)
 

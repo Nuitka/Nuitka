@@ -21,6 +21,7 @@
 
 from abc import abstractmethod
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -43,7 +44,7 @@ def getStrOperationClasses():
     return (
         cls
         for kind, cls in NodeCheckMetaClass.kinds.items()
-        if kind.startswith("EXPRESSION_STR_OPERATION")
+        if kind.startswith("EXPRESSION_STR_OPERATION_")
     )
 
 
@@ -890,8 +891,10 @@ class ExpressionStrOperationSplit3Base(
 
     def __init__(self, str_arg, sep, maxsplit, source_ref):
         assert str_arg is not None
-        assert sep is not None
         assert maxsplit is not None
+
+        if sep is None:
+            sep = makeConstantRefNode(constant=None, source_ref=source_ref)
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -1401,8 +1404,10 @@ class ExpressionStrOperationEncode3(
 
     def __init__(self, str_arg, encoding, errors, source_ref):
         assert str_arg is not None
-        assert encoding is not None
         assert errors is not None
+
+        if encoding is None:
+            encoding = makeConstantRefNode(constant="utf-8", source_ref=source_ref)
 
         ExpressionChildrenHavingBase.__init__(
             self,

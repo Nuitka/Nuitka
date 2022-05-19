@@ -335,6 +335,9 @@ Removed assignment of %s from itself which is known to be defined."""
             variable=variable, version=self.variable_version, assign_node=self
         )
 
+        # TODO: Determine from future use of assigned variable, if this is needed at all.
+        trace_collection.removeKnowledge(source)
+
         provider = trace_collection.getOwner()
 
         if variable.hasAccessesOutsideOf(provider) is False:

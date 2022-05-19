@@ -21,12 +21,19 @@
 
 """
 
+import sys
 
 from nuitka.tools.Basics import goHome
-from nuitka.tools.release.Documentation import checkReleaseDocumentation
+from nuitka.tools.release.Documentation import (
+    checkReleaseDocumentation,
+    checkRstLint,
+)
 
 
 def main():
-    goHome()
-
-    checkReleaseDocumentation()
+    if len(sys.argv) < 2:
+        goHome()
+        checkReleaseDocumentation()
+    else:
+        for document in sys.argv[1:]:
+            checkRstLint(document)

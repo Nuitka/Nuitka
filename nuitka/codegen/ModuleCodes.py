@@ -36,7 +36,7 @@ from .templates.CodeTemplatesModules import (
     template_module_body_template,
     template_module_exception_exit,
     template_module_external_entry_point,
-    template_module_noexception_exit,
+    template_module_no_exception_exit,
 )
 from .VariableCodes import getVariableReferenceCode
 
@@ -101,7 +101,7 @@ def getModuleCode(
             "is_top": 1 if module.isTopModule() else 0,
         }
     else:
-        module_exit = template_module_noexception_exit
+        module_exit = template_module_no_exception_exit
 
     local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
 

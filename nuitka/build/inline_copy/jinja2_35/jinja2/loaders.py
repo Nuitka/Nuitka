@@ -204,6 +204,7 @@ class FileSystemLoader(BaseLoader):
 
 # Nuitka: Load this immediately to avoid having to have pkg_resources
 # inline copy present after initial import.
+import pkg_resources
 from pkg_resources import DefaultProvider, ResourceManager, get_provider
 
 class PackageLoader(BaseLoader):

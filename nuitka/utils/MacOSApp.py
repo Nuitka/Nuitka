@@ -101,6 +101,12 @@ def createPlistInfoFile(logger, onefile):
     else:
         infos["LSBackgroundOnly"] = True
 
+    for resource_name, resource_desc in Options.getMacOSAppProtectedResourcesAccesses():
+        if resource_name in infos:
+            logger.sysexit("Duplicate value for '%s' is not allowed." % resource_name)
+
+        infos[resource_name] = resource_desc
+
     filename = os.path.join(bundle_dir, "Info.plist")
 
     if str is bytes:

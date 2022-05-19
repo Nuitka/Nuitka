@@ -17,12 +17,14 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-
-
 # This test does check operations in optimizable and not optimizable forms
 # to check for proper errors, exceptions, etc.
 
+# nuitka-project: --nofollow-import-to=nuitka
+
 from __future__ import print_function
+
+from nuitka.tools.testing.Common import checkReferenceCount
 
 # Function to hide type because it is not seen through
 def forgetType(value):
@@ -49,6 +51,10 @@ def forgetType(value):
 {% set method_arg_variants = ["", "1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
 {% endif %}
 
+{% if method_arguments[str_method_name] %}
+{% do method_arg_variants.append("%s=1" % method_arguments[str_method_name][-1]) %}
+{% endif %}
+
 {% for method_args in method_arg_variants %}
 
 {% set left_1 = "'some_value'" %}
@@ -56,15 +62,17 @@ def forgetType(value):
 
 {% set operation_id = "check%s%s" % (str_method_name.title(), (""if loop.index == 0 else loop.index)) %}
 
-def {{operation_id}}(cond):
+def {{operation_id}}(cond=None):
     # First value type, which we expect to be compile time computed.
     try:
         # We expect this to be compile time error checked still.
         x = "static_value".{{str_method_name}}({{method_args}})
     except Exception as e: # pylint: disable=broad-except
-        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time occurred:", repr(e))
+        if cond is not None:
+            print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time occurred:", repr(e))
     else:
-        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time result:", type(x), x)
+        if cond is not None:
+            print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time result:", type(x), x)
 
     # Now the branch may make things less clear for mixed types and
     # also require the operation to be checked at run time.
@@ -74,12 +82,16 @@ def {{operation_id}}(cond):
         # We expect this to be compile time error checked still.
         x = left.{{str_method_name}}({{method_args}})
     except Exception as e: # pylint: disable=broad-except
-        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime occurred:", repr(e))
+        if cond is not None:
+            print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime occurred:", repr(e))
     else:
-        print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime result:", type(x), x)
+        if cond is not None:
+            print("str.{{str_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime result:", type(x), x)
 
 {{operation_id}}(1)
 {{operation_id}}(0)
+
+checkReferenceCount({{operation_id}})
 
 {% endfor %}
 {% endfor %}

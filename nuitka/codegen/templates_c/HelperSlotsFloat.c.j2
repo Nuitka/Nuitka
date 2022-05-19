@@ -76,7 +76,7 @@
     {
         double mod = fmod(a, b);
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 mod += b;
             }
         } else {
@@ -96,7 +96,7 @@
         double div = (a - mod) / b;
 
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 mod += b;
                 div -= 1.0;
             }

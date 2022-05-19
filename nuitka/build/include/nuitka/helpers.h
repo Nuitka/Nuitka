@@ -256,6 +256,12 @@ extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buf
                               PyObject *errors, PyObject *newline, PyObject *closefd, PyObject *opener);
 #endif
 
+// Small helper to open files with few arguments in C.
+extern PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering);
+
+// Small helper to read file contents with few arguments in C.
+extern PyObject *GET_FILE_BYTES(PyObject *filename);
+
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR(PyObject *value);
 
@@ -399,6 +405,10 @@ extern python_initproc default_tp_init_wrapper;
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+extern PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed);
 #endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyObject *module) {

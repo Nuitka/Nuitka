@@ -68,7 +68,7 @@ def someFunctionWritingLocalsContainingExec():
 
     return r, y
 
-    # Note: This exec is dead code, and still changes the behaviour of
+    # Note: This exec is dead code, and still changes the behavior of
     # CPython, because it detects exec during parse already.
     # pylint: disable=exec-used,unreachable
     exec("")
@@ -151,10 +151,10 @@ print(
 )
 print("Border cases", range(0), range(-1), range(-1, 1))
 
-print("Corner case large negative value", range(-(2 ** 100)))
+print("Corner case large negative value", range(-(2**100)))
 print(
     "Corner case with large start/end values in small range",
-    range(2 ** 100, 2 ** 100 + 2),
+    range(2**100, 2**100 + 2),
 )
 
 try:
@@ -617,7 +617,7 @@ else:
     print("Oops, must not happen.")
 
 print("Tests for abs():")
-print(abs(-(1000000 ** 10)))
+print(abs(-(1000000**10)))
 print(abs(len([1, 2, 3])))
 print(abs(-100))
 print(abs(float("nan")))

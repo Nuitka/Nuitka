@@ -77,7 +77,7 @@ static void createModuleConstants(void) {
         constants_created = true;
 
 #ifndef __NUITKA_NO_ASSERT__
-        for(int i = 0; i < %(constants_count)d; i++) {
+        for (int i = 0; i < %(constants_count)d; i++) {
             mod_consts_hash[i] = DEEP_HASH(mod_consts[i]);
         }
 #endif
@@ -97,7 +97,7 @@ void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-    for(int i = 0; i < %(constants_count)d; i++) {
+    for (int i = 0; i < %(constants_count)d; i++) {
         assert(mod_consts_hash[i] == DEEP_HASH(mod_consts[i]));
         CHECK_OBJECT_DEEP(mod_consts[i]);
     }
@@ -516,6 +516,31 @@ template_module_external_entry_point = r"""
 #endif
 
 #if PYTHON_VERSION >= 0x300
+static setattrofunc orig_PyModule_Type_tp_setattro;
+static PyObject *orig_dunder_file_value;
+
+/* This is used one time only. */
+static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {
+    PyModule_Type.tp_setattro = orig_PyModule_Type_tp_setattro;
+
+    UPDATE_STRING_DICT0(
+        moduledict_%(module_identifier)s,
+        (Nuitka_StringObject *)const_str_plain___file__,
+        orig_dunder_file_value
+    );
+
+    // Prevent "__spec__" update as well.
+#if PYTHON_VERSION >= 0x340
+    if (PyUnicode_Check(name) && PyUnicode_Compare(name, const_str_plain___spec__) == 0) {
+        return 0;
+    }
+#endif
+
+    return orig_PyModule_Type_tp_setattro(module, name, value);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x300
 static struct PyModuleDef mdef_%(module_identifier)s = {
     PyModuleDef_HEAD_INIT,
     NULL,                /* m_name, filled later */
@@ -527,7 +552,6 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
     NULL,                /* m_clear */
     NULL,                /* m_free */
 };
-
 #endif
 
 /* The exported interface to CPython. On import of the module, this function
@@ -565,8 +589,22 @@ MOD_INIT_DECL(%(module_identifier)s) {
 
 #if PYTHON_VERSION < 0x300
     modulecode_%(module_identifier)s(module, NULL);
+
+    // TODO: Our "__file__" value will not be respected by CPython and one
+    // way we could avoid it, is by having a capsule type, that when it gets
+    // released, we are called.
 #else
     PyObject *result = modulecode_%(module_identifier)s(module, NULL);
+
+    if (result != NULL) {
+        // Make sure we undo the change of the "__file__" attribute during importing. We do not
+        // know how to achieve it for Python2 though. TODO: Find something for Python2 too.
+        orig_PyModule_Type_tp_setattro = PyModule_Type.tp_setattro;
+        PyModule_Type.tp_setattro = Nuitka_TopLevelModule_tp_setattro;
+
+        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1((PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
+    }
+
     return result;
 #endif
 }
@@ -590,7 +628,7 @@ template_module_exception_exit = """\
     return NULL;
 }"""
 
-template_module_noexception_exit = """\
+template_module_no_exception_exit = """\
 }"""
 
 template_helper_impl_decl = """\

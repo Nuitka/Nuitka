@@ -60,7 +60,7 @@ and first of all..
 
 * Search for existing issues
 
-  Consider [Github issues tagged as "question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
+  Consider [GitHub issues tagged as "question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
 
 * If not asked yet, ask it there.
 

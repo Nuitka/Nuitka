@@ -41,7 +41,7 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideNeeds2to3,
-    hasDebugPython,
+    getDebugPython,
     scanDirectoryForTestCases,
     setup,
 )
@@ -75,9 +75,8 @@ def main():
 
         # This test should be run with the debug Python, and makes outputs to
         # standard error that might be ignored.
-        if filename.startswith("Referencing"):
-            if hasDebugPython():
-                extra_flags.append("python_debug")
+        if filename.startswith("Referencing") and getDebugPython() is not None:
+            extra_flags.append("--python-debug")
 
         # This tests warns about __import__() used.
         if filename == "OrderChecks.py":

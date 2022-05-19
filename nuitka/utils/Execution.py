@@ -46,11 +46,18 @@ def _getExecutablePath(filename, search_path):
 
     for path_element in path_elements:
         path_element = path_element.strip('"')
+        path_element = os.path.expanduser(path_element)
 
-        full = os.path.join(os.path.expanduser(path_element), filename)
+        if os.path.isfile(path_element):
+            if os.path.normcase(os.path.basename(path_element)) == os.path.normcase(
+                filename
+            ):
+                return path_element
+        else:
+            full = os.path.join(path_element, filename)
 
-        if os.path.exists(full):
-            return full
+            if os.path.exists(full):
+                return full
 
 
 def getExecutablePath(filename, extra_dir=None):
@@ -330,7 +337,10 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
     result = process.poll()
 
     if stderr_filter is not None:
-        stderr = stderr_filter(stderr)
+        new_result, stderr = stderr_filter(stderr)
+
+        if new_result is not None:
+            result = new_result
 
     if result != 0:
         logger.sysexit("Error, call to %r failed: %s -> %s." % (tool, command, stderr))

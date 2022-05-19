@@ -1,5 +1,6 @@
 ---
 # yamllint disable rule:line-length
+# too many spelling things, spell-checker: disable
 psutil:
   description: "resolve platform specific imports at compile time"
   context:
@@ -22,6 +23,11 @@ cffi.ffiplatform:
   replacements:
     "import setuptools": "'pass'"
 
+cffi.api:
+  description: "disable distutils extension build"
+  change_function:
+    "distutils_extension": "'(lambda: None)'"
+
 skimage:
   description: "remove pytest testing framework"
   replacements:
@@ -36,8 +42,22 @@ sklearn.random_projection:
 
 sklearn.utils._testing:
   description: "remove pytest testing framework"
-  replacements:
-    "import pytest": "'raise ImportError'"
+  replacements_plain:
+    "import pytest": "raise ImportError"
+    "import unittest": ""
+    "from unittest import TestCase": ""
+    '_dummy = TestCase("__init__")': ""
+    "assert_raises = _dummy.assertRaises": "def assert_raises(*args, **kwargs): pass"
+    "assert_dict_equal = _dummy.assert_dict_equal": "def assert_dict_equal(*args, **kwargs): pass"
+    "assert_raises_regex = _dummy.assert_raises_regex": "def assert_dict_equal(*args, **kwargs): pass"
+    "unittest.case.SkipTest": "None"
+
+skimage._shared.tester:
+  description: "remove skimage testing framework"
+  module_code: |
+    class PytestTester:
+      def __init__(self, name):
+        pass
 
 matplotlib:
   description: "remove setuptools and pytest testing framework reference"
@@ -126,6 +146,12 @@ numpy.core.overrides:
     "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
     "public_api.__code__ = ": ""
 
+numpy.lib.utils:
+  description: "remove pydoc usage"
+  replacements_plain:
+    "import pydoc": ""
+    ".pydoc.allmethods(object)": "()"
+
 scipy.stats.morestats:
   description: "remove numpy testing framework"
   replacements:
@@ -156,6 +182,13 @@ scipy.integrate._quadrature:
   change_function:
     "_copy_func": "'(lambda f: f)'"
 
+tensorflow:
+  description: "remove useless distutils usage"
+  replacements:
+    "import distutils as _distutils": "'_distutils = None'"
+    "import site as _site": "'_site = None'"
+    "if _running_from_pip_package()": "'if False'"
+    "_site.ENABLE_USER_SITE": "'False'"
 
 tensorflow.python.ops.distributions.distribution:
   description: "remove useless function copying"
@@ -163,6 +196,24 @@ tensorflow.python.ops.distributions.distribution:
     "_copy_fn": "'(lambda fn: fn)'"
   replacements:
     "class_attr_value.__doc__ = _update_docstring": "'class_attr_value___doc__ = _update_docstring'"
+
+tensorflow.python.framework.meta_graph:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils import version as distutils_version": ""
+    "distutils_version.LooseVersion": "'str'"
+
+tensorflow.python.compiler.tensorrt.utils:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils import version as distutils_version": ""
+    "distutils_version.LooseVersion": "'str'"
+
+tensorflow.lite.python.convert:
+  description: "remove useless distutils usage"
+  replacements:
+    "import distutils.spawn": ""
+    "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
 
 gevent._util:
   description: "remove gevent release framework"
@@ -409,15 +460,34 @@ pickle:
   change_function:
     "_test": "'(lambda: None)'"
 
+tkinter:
+  description: "enhanced tk-inter in case of missing tcl"
+  context:
+    - "import textwrap"
+  replacements:
+    ? "self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)"
+    : |
+      textwrap.indent("""
+      try:
+        self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+      except _tkinter.TclError as e:
+        if "usable init.tcl" not in str(e):
+          raise\n\
+        sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
+      """, "        ")
+  control_tags:
+    - "deployment"
+
 Bastion:
   description: "remove module ability to run as a binary"
   change_function:
     "_test": "'(lambda: None)'"
 
 h5py:
-  description: "remove h5py testing framework"
+  description: "remove h5py testing framework and interactive IPython completer"
   change_function:
     "run_tests": "'(lambda args=None: None)'"
+    "enable_ipython_completer": "'(lambda: None)'"
 
 pandas:
   description: "remove pandas testing framework"
@@ -429,6 +499,11 @@ pandas._testing:
   description: "remove pytest testing framework"
   change_function:
     "external_error_raised": "'(lambda: None)'"
+    # TODO: See below
+    "round_trip_pathlib": "'(lambda: None)'"
+    "round_trip_localpath": "'(lambda: None)'"
+    "ensure_clean": "'(lambda: None)'"
+    "network": "'(lambda: None)'"
 
 pandas._testing._io:
   description: "remove pytest testing framework"
@@ -439,6 +514,88 @@ pandas._testing._io:
     "network": "'(lambda: None)'"
     "round_trip_pathlib": "'(lambda: None)'"
     "round_trip_localpath": "'(lambda: None)'"
+
+pandas.compat._optional:
+  description: "remove useless distutils usage"
+  replacements:
+    "distutils.version.LooseVersion(version) < minimum_version": "'False'"
+    "import distutils.version": "''"
+
+pandas.core.computation.ops:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
+
+pandas.io.excel._base:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    "LooseVersion(xlrd.__version__)": "'xlrd.__version__'"
+
+pandas.core.util.numba_:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': "'True'"
+
+pandas.plotting._matplotlib.compat:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    "op(LooseVersion(mpl.__version__), LooseVersion(version))": "'op(mpl.__version__, version)'"
+
+pandas.core.arrays._arrow_utils:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': '''pyarrow.__version__ >= "0.15"'''
+
+pandas.core.arrays.string_arrow:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(pa.__version__) < "1.0.0"': '''pa.__version__ < "1.0.0"'''
+
+pandas.io.parquet:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(self.api.__version__) >= "0.16"': '''self.api.__version__ >= "0.16"'''
+
+pandas.compat.numpy.function:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    'LooseVersion(__version__) >= LooseVersion("1.17.0")': '''__version__ >= "1.17.0"'''
+
+pandas.compat.numpy:
+  description: "remove useless distutils usage"
+  replacements:
+    # TODO: Smells not only like regexp, must be one.
+    "from distutils.version import LooseVersion": "''"
+    "LooseVersion(_np_version)": "'_np_version'"
+    'LooseVersion("1.17")': '''"1.17"'''
+    'LooseVersion("1.18")': '''"1.18"'''
+    'LooseVersion("1.19")': '''"1.19"'''
+    'LooseVersion("1.20")': '''"1.20"'''
+
+pandas.io.formats.printing:
+  description: "remove IPython reference"
+  change_function:
+    "enable_data_resource_formatter": "'(lambda enable: None)'"
+
+pandas.io.orc:
+  description: "remove useless distutils usage"
+  replacements:
+    "import distutils": "''"
+    'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': '''pyarrow.__version__ < "0.13.0"'''
+
+sphinx.util.docutils:
+  description: "remove useless distutils usage"
+  replacements:
+    "from distutils.version import LooseVersion": "''"
+    "__version_info__ = tuple(LooseVersion(docutils.__version__).version)": '''tuple(int(d) for d in docutils.__version__.split("."))'''
 
 distributed.scheduler:
   # TODO: We should replace this with a nuitkarize in Cython maybe.
@@ -455,6 +612,7 @@ pywt._pytesttester:
         pass
 
 feedparser.html:
+  description: "use SGML code more naturally"
   context:
     - "import inspect"
     - "import textwrap"
@@ -471,3 +629,77 @@ certifi.core:
   description: "avoid using importlib.resources without need"
   replacements:
     "from importlib.resources import path as get_path, read_text": "'raise ImportError'"
+
+tensorboard:
+  description: "remove IPython reference"
+  change_function:
+    "notebook": "'(lambda: None)'"
+    "load_ipython_extension": "'(lambda ipython: None)'"
+  control_tags:
+    - "allow_ipython"
+
+persistent._compat:
+  description: "use own compilation for compatibility"
+  replacements:
+    "os.environ.get('PURE_PYTHON')": '''"1"'''
+
+pkg_resources:
+  description: "avoid using plistlib dependency on non-macOS"
+  replacements:
+    "import plistlib": '''if sys.platform == "darwin": import plistlib'''
+
+zope.interface._compat:
+  description: "remove unittest reference"
+  change_function:
+    "_skip_under_py2": "'(lambda test_method: None)'"
+    "_skip_under_py3k": "'(lambda test_method: None)'"
+  control_tags:
+    - "allow_unittest"
+
+eliot._traceback:
+  description: "avoid useless duplication of traceback module"
+  replacements:
+    'load_module(str("_traceback_no_io"), traceback)': '''__import__("traceback")'''
+
+pytz:
+  description: "remove doctest usage"
+  change_function:
+    "_test": "'(lambda: None)'"
+
+tornado.util:
+  description: "remove doctest usage"
+  change_function:
+    "doctests": "'(lambda: None)'"
+
+tornado.iostream:
+  description: "remove doctest usage"
+  change_function:
+    "doctests": "'(lambda: None)'"
+
+tornado.httputil:
+  description: "remove doctest usage"
+  change_function:
+    "doctests": "'(lambda: None)'"
+
+cv2:
+  description: "workaround for colliding native module import"
+  context:
+    - "import textwrap"
+    - "import pkgutil"
+    - "from nuitka.utils.Importing import getSharedLibrarySuffix"
+  replacements:
+    "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+    'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
+  replacements_plain:
+    "load_first_config([\n": "if False: (["
+  control_tags:
+    - "standalone_mode_only"
+
+orderedmultidict:
+  description: "remove manual version file import"
+  context:
+    - "import orderedmultidict.__version__"
+  replacements_plain:
+    "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
+  replacements:
+    "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"

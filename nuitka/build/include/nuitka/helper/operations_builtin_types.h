@@ -126,3 +126,8 @@ extern PyObject *UNICODE_STRIP2(PyObject *unicode, PyObject *chars);
 extern PyObject *UNICODE_SWAPCASE(PyObject *unicode);
 extern PyObject *UNICODE_TITLE(PyObject *unicode);
 extern PyObject *UNICODE_UPPER(PyObject *unicode);
+#if PYTHON_VERSION >= 0x300
+extern PyObject *BYTES_DECODE1(PyObject *bytes);
+extern PyObject *BYTES_DECODE2(PyObject *bytes, PyObject *encoding);
+extern PyObject *BYTES_DECODE3(PyObject *bytes, PyObject *encoding, PyObject *errors);
+#endif

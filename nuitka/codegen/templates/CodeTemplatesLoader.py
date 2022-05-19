@@ -21,19 +21,38 @@
 
 
 template_metapath_loader_compiled_module_entry = """\
-{%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s},"""
+{%(module_name)s, modulecode_%(module_identifier)s, 0, 0, %(flags)s
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+, %(file_path)s
+#endif
+},"""
 
 template_metapath_loader_extension_module_entry = """\
-{%(module_name)s, NULL, 0, 0, %(flags)s},"""
+{%(module_name)s, NULL, 0, 0, %(flags)s
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+, %(file_path)s
+#endif
+},"""
 
 template_metapath_loader_bytecode_module_entry = """\
-{%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s},"""
+{%(module_name)s, NULL, %(bytecode)s, %(size)d, %(flags)s
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+, %(file_path)s
+#endif
+},"""
 
 
 template_metapath_loader_body = r"""
 /* Code to register embedded modules for meta path based loading if any. */
 
 #include <Python.h>
+
+/* Use a hex version of our own to compare for versions. We do not care about pre-releases */
+#if PY_MICRO_VERSION < 16
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + PY_MICRO_VERSION)
+#else
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)
+#endif
 
 #include "nuitka/constants_blob.h"
 
@@ -61,8 +80,7 @@ static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] = {
     {NULL, NULL, 0, 0, 0}
 };
 
-static void _loadBytesCodesBlob()
-{
+static void _loadBytesCodesBlob(void) {
     static bool init_done = false;
 
     if (init_done == false) {
@@ -81,8 +99,6 @@ void setupMetaPathBasedLoader(void) {
 
         init_done = true;
     }
-
-
 }
 
 // This provides the frozen (compiled bytecode) files that are included if

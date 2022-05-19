@@ -30,6 +30,8 @@
 #include "structmember.h"
 #include <stddef.h>
 
+// spell-checker: ignore qualname,klass,kwdefaults,getset,weakrefs,vectorcall,nargsf,m_varnames
+
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object, PyObject *klass) {
     assert(Nuitka_Function_Check(function));
@@ -46,18 +48,13 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object,
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
 static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function) {
+    return Nuitka_String_FromFormat("<compiled_function %s at %p>",
 #if PYTHON_VERSION < 0x300
-    return PyString_FromFormat(
+                                    Nuitka_String_AsString(function->m_name),
 #else
-    return PyUnicode_FromFormat(
+                                    Nuitka_String_AsString(function->m_qualname),
 #endif
-        "<compiled_function %s at %p>",
-#if PYTHON_VERSION < 0x300
-        Nuitka_String_AsString(function->m_name),
-#else
-        Nuitka_String_AsString(function->m_qualname),
-#endif
-        function);
+                                    function);
 }
 
 static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, visitproc visit, void *arg) {
@@ -446,7 +443,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     Py_DECREF(function->m_qualname);
 #endif
 
-    // These may actually re-surrect the object, not?
+    // These may actually resurrect the object, not?
     Py_XDECREF(function->m_dict);
     Py_DECREF(function->m_defaults);
 
@@ -469,11 +466,11 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     releaseToFreeList(free_list_functions, function, MAX_FUNCTION_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
-    PyThreadState *tstate = PyThreadState_GET();
+    PyThreadState *thread_state = PyThreadState_GET();
 
-    assert(tstate->curexc_type == save_exception_type);
-    assert(tstate->curexc_value == save_exception_value);
-    assert((PyTracebackObject *)tstate->curexc_traceback == save_exception_tb);
+    assert(thread_state->curexc_type == save_exception_type);
+    assert(thread_state->curexc_value == save_exception_value);
+    assert((PyTracebackObject *)thread_state->curexc_traceback == save_exception_tb);
 #endif
 }
 
@@ -763,7 +760,7 @@ void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *func
 
 #if PYTHON_VERSION >= 0x380
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
-                                               size_t nargsf, PyObject *kwnames);
+                                               size_t nargsf, PyObject *kw_names);
 #endif
 
 // Make a function with closure.
@@ -1076,8 +1073,8 @@ static void formatErrorTooManyArguments(struct Nuitka_FunctionObject const *func
     char const *plural = top_level_parameter_count == 1 ? "" : "s";
 
 #if PYTHON_VERSION < 0x270
-    PyErr_Format(PyExc_TypeError, "%s() takes %s %zd %sargument%s (%zd given)", function_name, violation,
-                 top_level_parameter_count, kw_size > 0 ? "non-keyword " : "", plural, given);
+    PyErr_Format(PyExc_TypeError, "%s() takes %s %zd%s argument%s (%zd given)", function_name, violation,
+                 top_level_parameter_count, kw_size > 0 ? " non-keyword" : "", plural, given);
 #elif PYTHON_VERSION < 0x300
     PyErr_Format(PyExc_TypeError, "%s() takes %s %zd argument%s (%zd given)", function_name, violation,
                  top_level_parameter_count, plural, given);
@@ -1192,7 +1189,7 @@ static inline bool checkKeywordType(PyObject *arg_name) {
 #if PYTHON_VERSION < 0x300
     return (PyString_Check(arg_name) || PyUnicode_Check(arg_name));
 #else
-    return PyUnicode_Check(arg_name);
+    return PyUnicode_Check(arg_name) != 0;
 #endif
 }
 
@@ -1212,10 +1209,10 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
     assert(function->m_args_star_dict_index == -1);
 
     Py_ssize_t kw_found = 0;
-    Py_ssize_t ppos = 0;
+    Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(kw, &ppos, &key, &value)) {
+    while (PyDict_Next(kw, &pos, &key, &value)) {
         if (unlikely(!checkKeywordType(key))) {
             formatErrorKeywordsMustBeString(function);
             return -1;
@@ -1328,9 +1325,9 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
 
     Py_ssize_t kw_found = 0;
 
-    Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
+    Py_ssize_t kw_names_size = PyTuple_GET_SIZE(kw_names);
 
-    for (Py_ssize_t kw_index = 0; kw_index < nkwargs; kw_index++) {
+    for (Py_ssize_t kw_index = 0; kw_index < kw_names_size; kw_index++) {
         PyObject *key = PyTuple_GET_ITEM(kw_names, kw_index);
         PyObject *value = kw_values[kw_index];
 
@@ -1450,28 +1447,28 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
             }
         }
 #else
+        /* Python 3 */
         if (_PyDict_HasSplitTable((PyDictObject *)kw)) {
             PyDictObject *mp = (PyDictObject *)kw;
-
-            PyObject **newvalues = PyMem_NEW(PyObject *, mp->ma_keys->dk_size);
-            assert(newvalues != NULL);
-
-            PyDictObject *split_copy = PyObject_GC_New(PyDictObject, &PyDict_Type);
-            assert(split_copy != NULL);
-
-            split_copy->ma_values = newvalues;
-            split_copy->ma_keys = mp->ma_keys;
-            split_copy->ma_used = mp->ma_used;
-
-            mp->ma_keys->dk_refcnt += 1;
-
-            Nuitka_GC_Track(split_copy);
 
 #if PYTHON_VERSION < 0x360
             Py_ssize_t size = mp->ma_keys->dk_size;
 #else
             Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
 #endif
+
+            PyObject **new_values = PyMem_NEW(PyObject *, size);
+            assert(new_values != NULL);
+
+            PyDictObject *split_copy = PyObject_GC_New(PyDictObject, &PyDict_Type);
+            assert(split_copy != NULL);
+
+            split_copy->ma_values = new_values;
+            split_copy->ma_keys = mp->ma_keys;
+            split_copy->ma_used = mp->ma_used;
+
+            mp->ma_keys->dk_refcnt += 1;
+
             for (Py_ssize_t i = 0; i < size; i++) {
 #if PYTHON_VERSION < 0x360
                 PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[i];
@@ -1486,6 +1483,8 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
                 split_copy->ma_values[i] = mp->ma_values[i];
                 Py_XINCREF(split_copy->ma_values[i]);
             }
+
+            Nuitka_GC_Track(split_copy);
 
             python_pars[star_dict_index] = (PyObject *)split_copy;
         } else {
@@ -1598,11 +1597,11 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(struct Nuitka_FunctionObjec
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
     assert(star_dict_index != -1);
 
-    Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
+    Py_ssize_t kw_names_size = PyTuple_GET_SIZE(kw_names);
 
-    python_pars[star_dict_index] = _PyDict_NewPresized(nkwargs);
+    python_pars[star_dict_index] = _PyDict_NewPresized(kw_names_size);
 
-    for (Py_ssize_t i = 0; i < nkwargs; i++) {
+    for (Py_ssize_t i = 0; i < kw_names_size; i++) {
         PyObject *key = PyTuple_GET_ITEM(kw_names, i);
         PyObject *value = kw_values[i];
 
@@ -2398,8 +2397,8 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
 
     Py_ssize_t kw_found = 0;
 
-    for (Py_ssize_t ppos = 0; ppos < kw_size; ppos++) {
-        PyObject *key = kw_names[ppos];
+    for (Py_ssize_t pos = 0; pos < kw_size; pos++) {
+        PyObject *key = kw_names[pos];
 
         if (unlikely(!checkKeywordType(key))) {
             formatErrorKeywordsMustBeString(function);
@@ -2417,7 +2416,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
         for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
             if (function->m_varnames[i] == key) {
                 assert(python_pars[i] == NULL);
-                python_pars[i] = kw_values[ppos];
+                python_pars[i] = kw_values[pos];
                 Py_INCREF(python_pars[i]);
 
                 if (i >= keyword_after_index) {
@@ -2435,7 +2434,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
                 if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
-                    python_pars[i] = kw_values[ppos];
+                    python_pars[i] = kw_values[pos];
                     Py_INCREF(python_pars[i]);
 
                     if (i >= keyword_after_index) {
@@ -2706,15 +2705,15 @@ static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function,
 
 #if PYTHON_VERSION >= 0x380
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
-                                               size_t nargsf, PyObject *kwnames) {
-    assert(kwnames == NULL || PyTuple_CheckExact(kwnames));
-    Py_ssize_t nkwargs = (kwnames == NULL) ? 0 : PyTuple_GET_SIZE(kwnames);
+                                               size_t nargsf, PyObject *kw_names) {
+    assert(kw_names == NULL || PyTuple_CheckExact(kw_names));
+    Py_ssize_t nkwargs = (kw_names == NULL) ? 0 : PyTuple_GET_SIZE(kw_names);
 
     Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
     assert(nargs >= 0);
     assert((nargs == 0 && nkwargs == 0) || stack != NULL);
 
-    return Nuitka_CallFunctionVectorcall(function, stack, nargs, kwnames ? &PyTuple_GET_ITEM(kwnames, 0) : NULL,
+    return Nuitka_CallFunctionVectorcall(function, stack, nargs, kw_names ? &PyTuple_GET_ITEM(kw_names, 0) : NULL,
                                          nkwargs);
 }
 #endif

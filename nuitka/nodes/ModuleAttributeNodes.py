@@ -104,7 +104,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
 
-        if not Options.shallMakeModule():
+        if Options.getModuleNameMode() != "runtime":
             result = makeConstantRefNode(
                 constant=self.variable.getModule().getRuntimeNameValue(),
                 source_ref=self.source_ref,
@@ -128,7 +128,7 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
 
-        if not Options.shallMakeModule():
+        if Options.getModuleNameMode() != "runtime":
             provider = self.variable.getModule()
             value = provider.getRuntimePackageValue()
 

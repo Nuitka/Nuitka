@@ -166,17 +166,17 @@ def getRunningPythonDLLPath():
 def getTargetPythonDLLPath():
     dll_path = getRunningPythonDLLPath()
 
-    from nuitka.Options import isPythonDebug
+    from nuitka.Options import shallUsePythonDebug
 
     if dll_path.endswith("_d.dll"):
-        if not isPythonDebug():
+        if not shallUsePythonDebug():
             dll_path = dll_path[:-6] + ".dll"
 
         if not os.path.exists(dll_path):
             sys.exit("Error, cannot switch to non-debug Python, not installed.")
 
     else:
-        if isPythonDebug():
+        if shallUsePythonDebug():
             dll_path = dll_path[:-4] + "_d.dll"
 
         if not os.path.exists(dll_path):
@@ -186,7 +186,7 @@ def getTargetPythonDLLPath():
 
 
 def isStaticallyLinkedPython():
-    # On Windows, there is no way to detect this from syconfig.
+    # On Windows, there is no way to detect this from sysconfig.
     if os.name == "nt":
         import ctypes
 
@@ -209,9 +209,9 @@ def getPythonABI():
         abiflags = sys.abiflags
 
         # Cyclic dependency here.
-        from nuitka.Options import isPythonDebug
+        from nuitka.Options import shallUsePythonDebug
 
-        if isPythonDebug() or hasattr(sys, "getobjects"):
+        if shallUsePythonDebug() or hasattr(sys, "getobjects"):
             if not abiflags.startswith("d"):
                 abiflags = "d" + abiflags
     else:
@@ -315,3 +315,8 @@ def getImportlibSubPackages():
             result.append(module_info[1])
 
     return result
+
+
+def isDebugPython():
+    """Is this a debug build of Python."""
+    return hasattr(sys, "gettotalrefcount")

@@ -259,10 +259,10 @@ static PyObject *our_float_richcompare(PyFloatObject *a, PyFloatObject *b, int o
 static Py_hash_t our_dict_hash(PyObject *dict) {
     Py_hash_t result = 0;
 
-    Py_ssize_t ppos = 0;
+    Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(dict, &ppos, &key, &value)) {
+    while (PyDict_Next(dict, &pos, &key, &value)) {
         result *= 1000003;
         result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
         result *= 1000003;
@@ -280,15 +280,15 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
     } else {
         result = Py_True;
 
-        Py_ssize_t ppos1 = 0, ppos2 = 0;
+        Py_ssize_t pos1 = 0, pos2 = 0;
         PyObject *key1, *value1;
         PyObject *key2, *value2;
 
         // Same sized dictionary, simply check if key and values are identical.
         // Other reductions should make it identical, or else this won't have the
         // effect intended.
-        while (PyDict_Next(a, &ppos1, &key1, &value1)) {
-            int res = PyDict_Next(b, &ppos2, &key2, &value2);
+        while (PyDict_Next(a, &pos1, &key1, &value1)) {
+            int res = PyDict_Next(b, &pos2, &key2, &value2);
             assert(res != 0);
 
             if (key1 != key2 || value1 != value2) {
@@ -511,7 +511,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         char c = *((char const *)data++);
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
         unsigned char const *data_old = data;
-        PRINT_FORMAT("Type %c for %d of %d:\n", c, _i, count);
+        printf("Type %c for %d of %d:\n", c, _i, count);
 #endif
         switch (c) {
 
@@ -1146,6 +1146,9 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
 static void unpackBlobConstants(PyObject **output, unsigned char const *data) {
     int count = (int)unpackValueUint16(&data);
 
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+    printf("unpackBlobConstants count %d\n", count);
+#endif
     _unpackBlobConstants(output, data, count);
 }
 
@@ -1154,7 +1157,7 @@ void loadConstantsBlob(PyObject **output, char const *name) {
 
     if (init_done == false) {
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-        PRINT_FORMAT("loadConstantsBlob '%s' one time init\n", name);
+        printf("loadConstantsBlob '%s' one time init\n", name);
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
@@ -1183,14 +1186,14 @@ void loadConstantsBlob(PyObject **output, char const *name) {
         }
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-        PRINT_FORMAT("Checked CRC32 to match hash %u size %u\n", hash, size);
+        printf("Checked CRC32 to match hash %u size %u\n", hash, size);
 #endif
 
         init_done = true;
     }
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-    PRINT_FORMAT("Loading blob named '%s' with %d values\n", name, count);
+    printf("Loading blob named '%s'\n", name);
 #endif
     // Python 3.9 or higher cannot create dictionary before calling init so avoid it.
     if (strcmp(name, ".bytecode") != 0) {
@@ -1204,14 +1207,14 @@ void loadConstantsBlob(PyObject **output, char const *name) {
         w += strlen((char const *)w) + 1;
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-        PRINT_FORMAT("offset of blob size %d\n", w - constant_bin);
+        printf("offset of blob size %d\n", w - constant_bin);
 #endif
 
         uint32_t size = unpackValueUint32(&w);
 
         if (match == 0) {
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
-            PRINT_FORMAT("Loading blob named '%s' with %d values and size %d\n", name, count, size);
+            printf("Loading blob named '%s' with size %d\n", name, size);
 #endif
             break;
         }

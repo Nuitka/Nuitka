@@ -2033,7 +2033,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
     {
         double mod = fmod(a, b);
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 mod += b;
             }
         } else {
@@ -2238,7 +2238,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
         {
             double mod = fmod(a, b);
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                 }
             } else {
@@ -2460,7 +2460,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
         {
             double mod = fmod(a, b);
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                 }
             } else {
@@ -2526,7 +2526,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_FLOAT(PyObject *operand1, P
     {
         double mod = fmod(a, b);
         if (mod) {
-            if ((a < 0) != (mod < 0)) {
+            if ((b < 0) != (mod < 0)) {
                 mod += b;
             }
         } else {
@@ -2739,7 +2739,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_FLOAT(PyObject *operand1, 
         {
             double mod = fmod(a, b);
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                 }
             } else {
@@ -2969,7 +2969,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(PyObject *operand1, 
         {
             double mod = fmod(a, b);
             if (mod) {
-                if ((a < 0) != (mod < 0)) {
+                if ((b < 0) != (mod < 0)) {
                     mod += b;
                 }
             } else {

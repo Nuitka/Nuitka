@@ -1027,9 +1027,9 @@ processes:
 
    Windows subsystem mode: Disable console for windows builds.
 
--  ``unstripped_mode``
+-  ``unstriped_mode``
 
-   Unstripped mode: Do not remove debug symbols.
+   Unstriped mode: Do not remove debug symbols.
 
 -  ``clang_mode``
 
@@ -1216,9 +1216,9 @@ The solution is this:
 Frame Stack
 ===========
 
-In Python, every function, class, and module has a frame. It creates
-created when the scope is entered, and there is a stack of these at run
-time, which becomes visible in tracebacks in case of exceptions.
+In Python, every function, class, and module has a frame. It is created
+when the scope is entered, and there is a stack of these at run time,
+which becomes visible in tracebacks in case of exceptions.
 
 The choice of Nuitka is to make this an explicit element of the node
 tree, that are as such subject to optimization. In cases, where they are
@@ -2967,7 +2967,7 @@ two forms of complications that can happen. One is default values,
 because they need to assigned or not, and the other is keyword
 arguments, because they allow to reorder arguments.
 
-Lets consider an example with default values first.
+Let's consider an example with default values first.
 
 .. code:: python
 
@@ -4590,9 +4590,9 @@ dropping non interesting, or rewriting exceptions.
 Caching of Python level compilation
 ===================================
 
-While the C compilation result is already cached with ccache and friends
-now, we need to also cover our bases and save the resulting node tree of
-potential expensive optimization on the module level.
+While the C compilation result is already cached with `ccache` and
+friends now, we need to also cover our bases and save the resulting node
+tree of potential expensive optimization on the module level.
 
 *************************
  Updates for this Manual

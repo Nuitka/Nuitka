@@ -144,6 +144,12 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
         if line.startswith("Nuitka:WARNING: Cannot detect Linux distribution"):
             continue
+        if line.startswith(
+            "Nuitka-Options:WARNING: You did not specify to follow or include"
+        ):
+            continue
+        if line.startswith("Nuitka:WARNING: Using very slow fallback for ordered sets"):
+            continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)
         line = thread_re.sub(r"Thread 0xXXXXXXXX", line)

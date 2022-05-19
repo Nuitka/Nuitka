@@ -26,6 +26,7 @@ import ast
 
 from nuitka.containers.odict import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
+from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import parsePackageYaml
@@ -45,15 +46,20 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         self,
         noinclude_setuptools_mode,
         noinclude_pytest_mode,
+        noinclude_unittest_mode,
         noinclude_ipython_mode,
         noinclude_default_mode,
         custom_choices,
     ):
+        # Many details, due to many repetitive arguments, pylint: disable=too-many-branches
+
         # Default manually to default argument value:
         if noinclude_setuptools_mode is None:
             noinclude_setuptools_mode = noinclude_default_mode
         if noinclude_pytest_mode is None:
             noinclude_pytest_mode = noinclude_default_mode
+        if noinclude_unittest_mode is None:
+            noinclude_unittest_mode = noinclude_default_mode
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
 
@@ -74,10 +80,21 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         else:
             self.control_tags.add("allow_pytest")
 
+        if noinclude_unittest_mode != "allow":
+            self.handled_modules["unittest"] = noinclude_unittest_mode
+        else:
+            self.control_tags.add("allow_unittest")
+
         if noinclude_ipython_mode != "allow":
             self.handled_modules["IPython"] = noinclude_ipython_mode
         else:
             self.control_tags.add("allow_ipython")
+
+        if not isStandaloneMode():
+            self.control_tags.add("standalone_mode_only")
+
+        if not shallMakeModule():
+            self.control_tags.add("module_mode_only")
 
         for custom_choice in custom_choices:
             if ":" not in custom_choice:
@@ -117,6 +134,17 @@ dependencies, and should definitely be avoided.""",
             default=None,
             help="""\
 What to do if a pytest import is encountered. This package can be big with
+dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-unittest-mode",
+            action="store",
+            dest="noinclude_unittest_mode",
+            choices=("error", "warning", "nofollow", "allow"),
+            default=None,
+            help="""\
+What to do if a unittest import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
         )
 
@@ -217,6 +245,13 @@ which can and should be a top level package and then one choice, "error",
             if old != source_code:
                 change_count += 1
 
+        for replace_src, replace_dst in config.get("replacements_plain", {}).items():
+            old = source_code
+            source_code = source_code.replace(replace_src, replace_dst)
+
+            if old != source_code:
+                change_count += 1
+
         append_code = config.get("append_result", "")
         if type(append_code) in (tuple, list):
             append_code = "\n".join(append_code)
@@ -271,8 +306,8 @@ which can and should be a top level package and then one choice, "error",
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for change_function_name, replace_code in config.get(
-            "change_function", {}
+        for change_function_name, replace_code in (
+            config.get("change_function") or {}
         ).items():
             if function_name != change_function_name:
                 continue
@@ -306,18 +341,21 @@ which can and should be a top level package and then one choice, "error",
                 % (module_name.asString(), function_name)
             )
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleRecursion(self, module_name, module_filename, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
             if module_name.hasNamespace(handled_module_name):
                 # Make sure the compilation aborts.
                 if mode == "error":
                     raise NuitkaForbiddenImportEncounter(module_name)
-
-                # Either issue a warning, or pretend the module doesn't exist for standalone or
-                # at least will not be included.
                 if mode == "warning":
                     self.warning("Unwanted import of '%s' encountered." % module_name)
-                elif mode == "nofollow":
+
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
+        for handled_module_name, mode in self.handled_modules.items():
+            if module_name.hasNamespace(handled_module_name):
+                # Either issue a warning, or pretend the module doesn't exist for standalone or
+                # at least will not be included.
+                if mode == "nofollow":
                     self.info(
                         "Forcing import of '%s' to not be followed." % module_name
                     )
