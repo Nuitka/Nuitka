@@ -10,6 +10,9 @@ Nuitka blog.
  Nuitka Release 0.8 (Draft)
 ****************************
 
+This release has a massive amount of bug fixes, builds on existing
+features, and adds new ones.
+
 Bug Fixes
 =========
 
@@ -20,8 +23,9 @@ Bug Fixes
 -  Compatibility: Added workaround for ``scipy.stats`` function copying.
    Fixed in 0.7.1 already.
 
--  Windows: Fix, detect ARM64 of MSVC properly, such that we can give a
-   proper mismatch for the Python architecture. Fixed in 0.7.1 already.
+-  Windows: Fix, detect ARM64 arch of MSVC properly, such that we can
+   give a proper mismatch for the Python architecture. Fixed in 0.7.1
+   already.
 
 -  Standalone: Fix, using ``importlib.metadata`` module failed to
    include ``email`` from standard library parts no longer included by
@@ -97,7 +101,7 @@ Bug Fixes
    incompatible file name, and not our loader, preventing package
    resources to be found.
 
--  Standalone: Added support for "Crpytodome.Cipher.PKCS1_v1_5"
+-  Standalone: Added support for ``Crpytodome.Cipher.PKCS1_v1_5``.
 
 -  Fix, ``pkgutil.iter_modules`` without arguments was not working
    properly with our meta path based loader.
@@ -146,6 +150,25 @@ Bug Fixes
 
 -  Standalone: Added support for ``tkinterdnd2`` package.
 
+-  Python3.7+: Fix, the error message wasn't fully compatible for
+   unsubscriptable type exception messages.
+
+-  Standalone: Fix, ``idlelib`` from stdlib was always ignored.
+
+-  Python3.4+: Fix, the ``__spec__.origin`` as produced by ``find_spec``
+   of our meta path based loader, didn't have the correct ``origin``
+   attribute value.
+
+-  Standalone: Disable QtPDF plugin of PySide 6.3.0, because it's
+   failing dependency checks. On macOS this was blocking, we will change
+   it to detection if that is necessary in a future release.
+
+-  Standalone: Added support for ``orderedmultidict``.
+
+-  Standalone: Added support for ``clr`` module.
+
+-  Standalone: Added support for newer ``cv2`` package.
+
 New Features
 ============
 
@@ -160,7 +183,7 @@ New Features
 -  Added support for ``get_resource_reader`` to our meta path based
    loader. This allows to avoid useless temporary files in case
    ``importlib.resources.path`` is used, due to a bad interaction with
-   the fallback implementation.
+   the fallback implementation used without it.
 
 -  Added support for ``--force-stdout-spec```and ``--force-stderr-spec``
    on all platforms, this was previously limited to Windows.
@@ -361,7 +384,34 @@ Tests
 -  Enhanced output in case of ``optimization`` test failures, dumping
    what value is there that has not become compile-time not constant.
 
-This release is not done yet.
+Summary
+=======
+
+This release has seen a lot of consolidation. The plugins layer for data
+files is now all powerful, allowing much nicer handling of them by the
+plugins, they are better reported in normal output, and they are also
+part of the report filet that Nuitka can create. You may now inhibit
+their inclusion from the command line, if you decide otherwise.
+
+The ``pyproject.toml`` now supporting Nuitka arguments is closing an
+important gap.
+
+Generally many features got more polished, e.g. non-automatic inclusion
+of stdlib modules has most problems fixed up.
+
+An important area of improvement, are the hard imports. These will be
+used to replace the source based resolution of package requirements with
+ones that are proper nodes in the tree. Getting these hard imports to
+still retain full compatibility with existing imports, that are more or
+less ``__import__`` uses only, was revealing quite a bit of technical
+debt, that has been addressed with this release.
+
+For onefile, the cached mode is being prepared with the variables added,
+but will only be in a later release.
+
+Also a bunch of new or upgraded packages are working now, and the push
+for ``anti-bloat`` work has increased, making many compilations even
+more lean, but scalability is still an issue.
 
 ********************
  Nuitka Release 0.7
