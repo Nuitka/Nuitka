@@ -496,6 +496,9 @@ class ExpressionAttributeLookupFixedCount(ExpressionAttributeLookupFixedBase):
 attribute_classes["count"] = ExpressionAttributeLookupFixedCount
 
 
+from nuitka.specs.BuiltinStrOperationSpecs import str_count_spec
+
+
 class ExpressionAttributeLookupStrCount(
     SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCount
 ):
@@ -510,7 +513,45 @@ class ExpressionAttributeLookupStrCount(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationCount is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationCount(sub, start, end, source_ref):
+            if end is not None:
+                from .StrNodes import ExpressionStrOperationCount4
+
+                return ExpressionStrOperationCount4(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    end=end,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                from .StrNodes import ExpressionStrOperationCount3
+
+                return ExpressionStrOperationCount3(
+                    str_arg=self.subnode_expression,
+                    sub=sub,
+                    start=start,
+                    source_ref=source_ref,
+                )
+            else:
+                from .StrNodes import ExpressionStrOperationCount2
+
+                return ExpressionStrOperationCount2(
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationCount,
+            builtin_spec=str_count_spec,
+        )
+
+        return result, "new_expression", "Call to 'count' of str recognized."
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrCount)

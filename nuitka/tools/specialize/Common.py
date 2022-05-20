@@ -71,9 +71,9 @@ python3_dict_methods = (
 python2_str_methods = (
     "capitalize",  # has full str coverage
     "center",
-    "count",
-    "decode",
-    "encode",
+    "count",  # has full str coverage
+    "decode",  # has full str coverage
+    "encode",  # has full str coverage
     "endswith",  # has full str coverage
     "expandtabs",
     "find",  # has full str coverage

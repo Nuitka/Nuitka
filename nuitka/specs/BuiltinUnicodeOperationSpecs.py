@@ -107,6 +107,10 @@ unicode_replace_spec = UnicodeMethodSpecNoKeywords(
     "replace", arg_names=("old", "new", "count"), default_count=1
 )
 
+unicode_count_spec = UnicodeMethodSpecNoKeywords(
+    "count", arg_names=("sub", "start", "end"), default_count=2
+)
+
 
 unicode_capitalize_spec = UnicodeMethodSpecNoKeywords("capitalize", arg_names=())
 unicode_upper_spec = UnicodeMethodSpecNoKeywords("upper", arg_names=())

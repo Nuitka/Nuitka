@@ -127,6 +127,10 @@ str_replace_spec = StrMethodSpecNoKeywords(
     "replace", arg_names=("old", "new", "count"), default_count=1
 )
 
+str_count_spec = StrMethodSpecNoKeywords(
+    "count", arg_names=("sub", "start", "end"), default_count=2
+)
+
 str_capitalize_spec = StrMethodSpecNoKeywords("capitalize", arg_names=())
 str_upper_spec = StrMethodSpecNoKeywords("upper", arg_names=())
 str_lower_spec = StrMethodSpecNoKeywords("lower", arg_names=())
@@ -148,3 +152,13 @@ str_encode_spec = StrMethodSpec(
 str_decode_spec = StrMethodSpec(
     "decode", arg_names=("encoding", "errors"), default_count=2
 )
+
+# 'center' missing.
+# 'count' missing.
+# 'expandtabs' missing.
+# 'format' missing.
+# 'ljust' missing.
+# 'rjust' missing.
+# 'splitlines' missing.
+# 'translate' missing.
+# 'zfill' missing.

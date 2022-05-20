@@ -238,6 +238,9 @@ def generateStrOperationCode(to_name, expression, emit, context):
     else:
         api_name = "UNICODE_" + api_name
 
+    # This operation has no default available for compile time.
+    none_null = expression.isExpressionStrOperationDecode3()
+
     generateCAPIObjectCode(
         to_name=to_name,
         capi=api_name,
@@ -247,6 +250,7 @@ def generateStrOperationCode(to_name, expression, emit, context):
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
+        none_null=none_null,
     )
 
 
