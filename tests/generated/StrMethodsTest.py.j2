@@ -24,7 +24,22 @@
 
 from __future__ import print_function
 
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
+
+import os
+import sys
+
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
 from nuitka.tools.testing.Common import checkReferenceCount
+
+# isort:start
 
 # Function to hide type because it is not seen through
 def forgetType(value):
