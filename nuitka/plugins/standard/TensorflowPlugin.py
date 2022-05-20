@@ -1,4 +1,4 @@
-#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2022, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
