@@ -10,6 +10,18 @@ Nuitka blog.
  Nuitka Release 0.9 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Fix, hard module name lookups leaked a reference to that object.
+
+Optimization
+============
+
+-  Faster dictionary iteration with our own replacement for
+   ``PyDict_Next`` that avoids the DLL call overhead (in case of
+   non-static libpython) and does less unnecessary checks.
+
 This release is not done yet.
 
 ********************
