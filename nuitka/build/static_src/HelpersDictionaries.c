@@ -25,6 +25,9 @@
 #include "nuitka/prelude.h"
 #endif
 
+// spell-checker: ignore ob_shash dictiterobject dictiteritems_type dictiterkeys_type
+// spell-checker: ignore dictitervalues_type dictviewobject dictvaluesview_type dictkeysview_type
+
 PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_Check(dict));
@@ -618,7 +621,7 @@ retry:
     }
 
     if (unlikely(size != mp->ma_used)) {
-        // Garbage collection can compatify dictionaries.
+        // Garbage collection can compactify dictionaries.
         Py_DECREF(result);
         goto retry;
     }
@@ -664,7 +667,7 @@ retry:
     CHECK_OBJECT(result);
 
     if (unlikely(size != mp->ma_used)) {
-        // Garbage collection can compatify dictionaries.
+        // Garbage collection can compactify dictionaries.
         Py_DECREF(result);
         goto retry;
     }
@@ -709,7 +712,7 @@ retry:
     CHECK_OBJECT(result);
 
     if (unlikely(size != mp->ma_used)) {
-        // Garbage collection can compatify dictionaries.
+        // Garbage collection can compactify dictionaries.
         Py_DECREF(result);
         goto retry;
     }
@@ -967,11 +970,7 @@ PyObject *DICT_COPY(PyObject *value) {
         Py_ssize_t size = mp->ma_keys->dk_nentries;
 #endif
         for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 0x360
-            PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
-#else
             PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
-#endif
 
             if (entry->me_value != NULL) {
                 PyDict_SetItem(result, entry->me_key, entry->me_value);
@@ -990,4 +989,80 @@ void DICT_CLEAR(PyObject *dict) {
     // TODO: Could inline this for enhanced optimization, but it does
     // some pretty sophisticated memory handling.
     PyDict_Clear(dict);
+}
+
+bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+#if PYTHON_VERSION < 0x300
+    Py_ssize_t i = *pos;
+
+    PyDictEntry *ep = ((PyDictObject *)dict)->ma_table;
+    Py_ssize_t mask = ((PyDictObject *)dict)->ma_mask;
+
+    while (i <= mask && ep[i].me_value == NULL) {
+        i++;
+    }
+
+    *pos = i + 1;
+
+    if (i > mask) {
+        return false;
+    }
+
+    *key_ptr = ep[i].me_key;
+    *value_ptr = ep[i].me_value;
+
+    return true;
+
+#else
+
+    PyDictObject *mp = (PyDictObject *)dict;
+    PyDictKeyEntry *entry;
+    PyObject *value;
+
+    Py_ssize_t i = *pos;
+    assert(i >= 0);
+
+    if (mp->ma_values) {
+        if (i >= mp->ma_used) {
+            return false;
+        }
+
+        entry = &DK_ENTRIES(mp->ma_keys)[i];
+        value = mp->ma_values[i];
+
+        assert(value != NULL);
+    } else {
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t n = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t n = mp->ma_keys->dk_nentries;
+#endif
+        if (i >= n) {
+            return false;
+        }
+
+        entry = &DK_ENTRIES(mp->ma_keys)[i];
+
+        while (i < n && entry->me_value == NULL) {
+            entry += 1;
+            i += 1;
+        }
+
+        if (i >= n) {
+            return false;
+        }
+
+        value = entry->me_value;
+    }
+
+    *pos = i + 1;
+
+    *key_ptr = entry->me_key;
+    *value_ptr = value;
+
+    return true;
+#endif
 }

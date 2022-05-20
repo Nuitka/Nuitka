@@ -131,6 +131,10 @@ struct _dictkeysobject {
 
 #define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
 
+#else
+
+#define DK_ENTRIES(dk) (dk->dk_entries)
+
 #endif
 
 typedef PyObject **Nuitka_DictEntryHandle;
@@ -394,5 +398,8 @@ extern PyObject *DICT_COPY(PyObject *dict);
 
 // Python dictionary clear, empty a dictionary.
 extern void DICT_CLEAR(PyObject *dict);
+
+// Replacement for PyDict_Next that is faster (to call).
+extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
 #endif

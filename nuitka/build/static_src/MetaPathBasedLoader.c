@@ -1896,7 +1896,7 @@ void setEarlyFrozenModulesFileAttribute(void) {
     Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(sys_modules, &pos, &key, &value)) {
+    while (Nuitka_DictNext(sys_modules, &pos, &key, &value)) {
         if (key != NULL && value != NULL && PyModule_Check(value)) {
             if (HAS_ATTR_BOOL(value, const_str_plain___file__)) {
                 bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);

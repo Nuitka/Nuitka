@@ -417,7 +417,7 @@ Py_hash_t DEEP_HASH(PyObject *value) {
         Py_ssize_t pos = 0;
         PyObject *key, *dict_value;
 
-        while (PyDict_Next(value, &pos, &key, &dict_value)) {
+        while (Nuitka_DictNext(value, &pos, &key, &dict_value)) {
             if (key != NULL && value != NULL) {
                 result ^= DEEP_HASH(key);
                 result ^= DEEP_HASH(dict_value);
@@ -632,7 +632,7 @@ void CHECK_OBJECT_DEEP(PyObject *value) {
         Py_ssize_t pos = 0;
         PyObject *dict_key, *dict_value;
 
-        while (PyDict_Next(value, &pos, &dict_key, &dict_value)) {
+        while (Nuitka_DictNext(value, &pos, &dict_key, &dict_value)) {
             CHECK_OBJECT_DEEP(dict_key);
             CHECK_OBJECT_DEEP(dict_value);
         }
