@@ -30,7 +30,7 @@ _macos_codesign_usage = (
 )
 
 
-def _filterSigntoolErrorOutput(stderr):
+def _filterCodesignErrorOutput(stderr):
     stderr = b"\n".join(
         line
         for line in stderr.splitlines()
@@ -71,6 +71,8 @@ def addMacOSCodeSignature(filenames):
         "--force",
         "--deep",
         "--preserve-metadata=entitlements",
+        # TODO: This appears to be useful, but apparently doesn't work for all flavors of Python.
+        # "--options=runtime",
     ]
 
     assert type(filenames) is not str
@@ -81,5 +83,5 @@ def addMacOSCodeSignature(filenames):
             logger=postprocessing_logger,
             command=command,
             absence_message=_macos_codesign_usage,
-            stderr_filter=_filterSigntoolErrorOutput,
+            stderr_filter=_filterCodesignErrorOutput,
         )
