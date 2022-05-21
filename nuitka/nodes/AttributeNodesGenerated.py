@@ -25,7 +25,9 @@ WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 in
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
+from .ConstantRefNodes import makeConstantRefNode
 from .NodeBases import SideEffectsFromChildrenMixin
+from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 attribute_classes = {}
 attribute_typed_classes = set()
@@ -5719,14 +5721,14 @@ class ExpressionAttributeLookupDictUpdate(
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        def wrapExpressionDictOperationUpdate(list_args, kw_args, source_ref):
-            if kw_args is not None:
+        def wrapExpressionDictOperationUpdate(iterable, pairs, source_ref):
+            if pairs:
                 from .DictionaryNodes import ExpressionDictOperationUpdate3
 
                 return ExpressionDictOperationUpdate3(
                     dict_arg=self.subnode_expression,
-                    iterable=list_args,
-                    pairs=kw_args,
+                    iterable=iterable,
+                    pairs=pairs,
                     source_ref=source_ref,
                 )
             else:
@@ -5734,7 +5736,7 @@ class ExpressionAttributeLookupDictUpdate(
 
                 return ExpressionDictOperationUpdate2(
                     dict_arg=self.subnode_expression,
-                    iterable=list_args,
+                    iterable=iterable,
                     source_ref=source_ref,
                 )
 
@@ -5746,6 +5748,10 @@ class ExpressionAttributeLookupDictUpdate(
             node=call_node,
             builtin_class=wrapExpressionDictOperationUpdate,
             builtin_spec=dict_update_spec,
+            empty_special_class=lambda source_ref: wrapExpressionWithNodeSideEffects(
+                new_node=makeConstantRefNode(constant=None, source_ref=source_ref),
+                old_node=self.subnode_expression,
+            ),
         )
 
         return trace_collection.computedExpressionResult(

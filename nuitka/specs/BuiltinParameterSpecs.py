@@ -309,15 +309,15 @@ builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), default_co
 
 
 class BuiltinParameterSpecSinglePosArgStarDictArgs(BuiltinParameterSpec):
-    def __init__(self, name):
+    def __init__(self, name, list_star_arg="list_args", dict_star_arg="kw_args"):
         BuiltinParameterSpec.__init__(
             self,
             name=name,
             arg_names=(),
             default_count=0,
-            list_star_arg="list_args",
+            list_star_arg=list_star_arg,
             is_list_star_arg_single=True,
-            dict_star_arg="kw_args",
+            dict_star_arg=dict_star_arg,
         )
 
 

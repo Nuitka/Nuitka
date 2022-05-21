@@ -1646,3 +1646,54 @@ class ExpressionStrOperationCount4(ExpressionStrOperationCountBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionStrOperationFormat2(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents s.format() with only positional args."""
+
+    kind = "EXPRESSION_STR_OPERATION_FORMAT2"
+
+    named_children = ("str_arg", "args")
+
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.format
+
+    def __init__(self, str_arg, args, source_ref):
+        assert str_arg is not None
+        assert args is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"dict_arg": str_arg, "args": args},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        args = self.subnode_args
+
+        if str_arg.isCompileTimeConstant() and args.isCompileTimeConstant():
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(), *args.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.format' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    # TODO: Format strings are not yet looked at
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True

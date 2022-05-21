@@ -2236,6 +2236,7 @@ generate_builtin_type_operations = [
             "encode",
             "decode",
             "count",
+            # "format",
         ),
     ),
     # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
@@ -2345,6 +2346,7 @@ def makeHelperBuiltinTypeMethods():
                     (
                         present,
                         arg_names,
+                        _arg_tests,
                         arg_name_mapping,
                         arg_counts,
                     ) = getMethodVariations(
@@ -2380,6 +2382,14 @@ def makeHelperBuiltinTypeMethods():
                             replaceArgNameForC(arg_name)
                             for arg_name in arg_names[:arg_count]
                         ]
+
+                        if method_name == "format" and type_desc in (
+                            str_desc,
+                            unicode_desc,
+                        ):
+                            # Done manually.
+                            if arg_count == 2:
+                                continue
 
                         code = template.render(
                             object_desc=object_desc,

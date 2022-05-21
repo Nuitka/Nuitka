@@ -403,20 +403,63 @@ def generateDictOperationPop3Code(to_name, expression, emit, context):
     )
 
 
+def _generateDictOperationUpdateCommonCode(
+    dict_name, iterable_name, release_dict, expression, emit, context
+):
+    res_name = context.getIntResName()
+
+    emit("assert(PyDict_Check(%s));" % dict_name)
+
+    emit(
+        renderTemplateFromString(
+            r"""
+{% if has_keys_attribute == None %}
+if (HAS_ATTR_BOOL(%(iterable_name)s, const_str_plain_keys)){
+    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
+} else {
+    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
+}
+{% elif has_keys_attribute == True %}
+    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
+{% else %}
+    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
+{% endif %}
+""",
+            has_keys_attribute=expression.subnode_iterable.isKnownToHaveAttribute(
+                "keys"
+            ),
+        )
+        % {
+            "res_name": res_name,
+            "dict_name": dict_name,
+            "iterable_name": iterable_name,
+        }
+    )
+
+    if release_dict:
+        release_names = (dict_name, iterable_name)
+    else:
+        release_names = (iterable_name,)
+
+    getErrorExitBoolCode(
+        condition="%s != 0" % res_name,
+        release_names=release_names,
+        needs_check=expression.mayRaiseException(BaseException),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateDictOperationUpdate2Code(to_name, expression, emit, context):
     dict_name, iterable_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
 
-    res_name = context.getIntResName()
-
-    emit("assert(PyDict_Check(%s));" % dict_name)
-    emit("%s = PyDict_Update(%s, %s);" % (res_name, dict_name, iterable_name))
-
-    getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
-        release_names=(dict_name, iterable_name),
-        needs_check=expression.mayRaiseException(BaseException),
+    _generateDictOperationUpdateCommonCode(
+        dict_name=dict_name,
+        iterable_name=iterable_name,
+        release_dict=True,
+        expression=expression,
         emit=emit,
         context=context,
     )
@@ -434,35 +477,11 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
     emit("assert(PyDict_Check(%s));" % dict_name)
 
     if expression.subnode_iterable is not None:
-        emit(
-            renderTemplateFromString(
-                r"""
-{% if has_keys_attribute == None %}
-if (HAS_ATTR_BOOL(%(iterable_name)s, const_str_plain_keys)){
-    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
-} else {
-    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
-}
-{% elif has_keys_attribute == True %}
-    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
-{% else %}
-    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
-{% endif %}
-""",
-                has_keys_attribute=expression.subnode_iterable.isKnownToHaveAttribute(
-                    "keys"
-                ),
-            )
-            % {
-                "res_name": res_name,
-                "dict_name": dict_name,
-                "iterable_name": iterable_name,
-            }
-        )
-
-        getErrorExitBoolCode(
-            condition="%s != 0" % res_name,
-            needs_check=expression.mayRaiseException(BaseException),
+        _generateDictOperationUpdateCommonCode(
+            dict_name=dict_name,
+            iterable_name=iterable_name,
+            release_dict=False,
+            expression=expression,
             emit=emit,
             context=context,
         )
@@ -484,7 +503,7 @@ if (HAS_ATTR_BOOL(%(iterable_name)s, const_str_plain_keys)){
         )
 
     getReleaseCodes(
-        release_names=(dict_name, iterable_name) + sum(pair_names, ()),
+        release_names=sum(pair_names, (dict_name,)),
         emit=emit,
         context=context,
     )

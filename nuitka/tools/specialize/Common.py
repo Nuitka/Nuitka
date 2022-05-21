@@ -270,9 +270,10 @@ def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
                 spec.getStarListArgumentName(),
                 spec.getStarDictArgumentName(),
             )
+
             arg_name_mapping = {
-                "list_args": "iterable",
-                "kw_args": "pairs",
+                "list_args": spec.getStarListArgumentName(),
+                "kw_args": spec.getStarDictArgumentName(),
             }
         else:
             required = spec.getArgumentCount() - spec.getDefaultCount()
@@ -281,10 +282,21 @@ def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
 
             arg_names = spec.getArgumentNames()
             arg_name_mapping = {}
-    else:
-        arg_names = arg_name_mapping = arg_counts = None
 
-    return present, arg_names, arg_name_mapping, arg_counts
+        arg_tests = [
+            (
+                ""
+                if arg_name
+                in (spec.getStarListArgumentName(), spec.getStarDictArgumentName())
+                else "is not None"
+            )
+            for arg_name in arg_names
+        ]
+
+    else:
+        arg_names = arg_name_mapping = arg_counts = arg_tests = None
+
+    return present, arg_names, arg_tests, arg_name_mapping, arg_counts
 
 
 def formatArgs(args, starting=True, finishing=True):

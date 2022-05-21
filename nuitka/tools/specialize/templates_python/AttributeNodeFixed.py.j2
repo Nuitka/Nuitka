@@ -21,8 +21,10 @@
 {% set dict_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_dict")) %}
 {% set dict_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_dict")) %}
 {% set dict_operation_args = attribute_shape_args.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_dict")) %}
 {% set dict_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_dict")) %}
 {% set dict_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_dict"), "None") %}
 {% else %}
 {% set dict_shape = 0 %}
 {% endif %}
@@ -32,6 +34,7 @@
 {% set str_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_str")) %}
 {% set str_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_str")) %}
 {% set str_operation_args = attribute_shape_args.get((attribute_name, "tshape_str")) %}
+{% set str_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_str")) %}
 {% set str_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_str")) %}
 {% set str_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_str")) %}
 {% else %}
@@ -43,6 +46,7 @@
 {% set bytes_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_bytes")) %}
 {% set bytes_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_bytes")) %}
 {% set bytes_operation_args = attribute_shape_args.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_bytes")) %}
 {% set bytes_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_bytes")) %}
 {% set bytes_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_bytes")) %}
 {% else %}
@@ -153,7 +157,7 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
 {% else %}
 {% if dict_operation_variation %}
 {% for count in reversed(dict_operation_variation[1:]) %}
-            {{"if" if count == dict_operation_variation[-1] else "elif"}} {{dict_operation_args[count-1]}} is not None:
+            {{"if" if count == dict_operation_variation[-1] else "elif"}} {{dict_operation_args[count-1]}} {{dict_operation_arg_tests[count-1]}}:
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionDictOperation{{attribute_name_class}}{{count+1}}(
@@ -184,6 +188,9 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
             node=call_node,
             builtin_class=wrapExpressionDictOperation{{attribute_name_class}},
             builtin_spec=dict_{{attribute_name}}_spec,
+{% if dict_operation_empty != "None" %}
+            empty_special_class={{dict_operation_empty}}
+{% endif %}
         )
 
         return trace_collection.computedExpressionResult(
@@ -236,7 +243,7 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 {% else %}
 {% if str_operation_variation %}
 {% for count in reversed(str_operation_variation[1:]) %}
-            {{"if" if count == str_operation_variation[-1] else "elif"}} {{str_operation_args[count-1]}} is not None:
+            {{"if" if count == str_operation_variation[-1] else "elif"}} {{str_operation_args[count-1]}} {{str_operation_arg_tests[count-1]}}:
                 from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionStrOperation{{attribute_name_class}}{{count+1}}(
@@ -315,7 +322,7 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
 {% else %}
 {% if bytes_operation_variation %}
 {% for count in reversed(bytes_operation_variation[1:]) %}
-            {{"if" if count == bytes_operation_variation[-1] else "elif"}} {{bytes_operation_args[count-1]}} is not None:
+            {{"if" if count == bytes_operation_variation[-1] else "elif"}} {{bytes_operation_args[count-1]}} {{bytes_operation_arg_tests[count-1]}}:
                 from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionBytesOperation{{attribute_name_class}}{{count+1}}(

@@ -1268,6 +1268,10 @@ class ExpressionDictOperationUpdate2(
         assert dict_arg is not None
         assert iterable is not None
 
+        # TODO: Change generation of attribute nodes to pass it like this already.
+        if type(iterable) is tuple:
+            (iterable,) = iterable
+
         ExpressionChildrenHavingBase.__init__(
             self,
             values={"dict_arg": dict_arg, "iterable": iterable},
@@ -1278,7 +1282,7 @@ class ExpressionDictOperationUpdate2(
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
-        trace_collection.removeKnowledge(self.iterable)
+        trace_collection.removeKnowledge(self.subnode_iterable)
 
         # TODO: Until we can know KeyError won't happen, but then we should change into
         # something else.
@@ -1333,7 +1337,7 @@ class ExpressionDictOperationUpdate3(
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
-        # TODO: When iterable is None, this should be specialized further.
+        # TODO: When iterable is empty, this should be specialized further.
         if self.subnode_iterable is not None:
             trace_collection.removeKnowledge(self.subnode_iterable)
 
