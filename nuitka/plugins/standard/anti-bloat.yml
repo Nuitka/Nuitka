@@ -703,3 +703,33 @@ orderedmultidict:
     "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
   replacements:
     "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
+
+tqdm.autonotebook:
+  description: "remove IPython reference"
+  module_code: |
+    from .std import tqdm, trange
+  control_tags:
+    - "allow_ipython"
+
+tqdm:
+  description: "remove IPython reference"
+  change_function:
+    "tqdm_notebook": "'(lambda *args, **kwargs: None)'"
+    "tnrange": "'(lambda *args, **kwargs: None)'"
+  control_tags:
+    - "allow_ipython"
+
+pandas.util:
+  description: "remove pandas testing framework"
+  replacements_plain:
+    'if name == "testing":': "if False:"
+
+torch.fx._symbolic_trace:
+  description: "workaround incompatible check"
+  replacements_plain:
+    "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
+
+scipy._lib._docscrape:
+  description: "remove sphinx reference"
+  replacements_plain:
+    "if 'sphinx' in sys.modules:": "if False:"
