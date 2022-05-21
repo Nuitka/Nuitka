@@ -15,12 +15,24 @@ Bug Fixes
 
 -  Fix, hard module name lookups leaked a reference to that object.
 
+-  macOS: Signing now uses hardened runtime as require for notarization.
+
+-  Python2: Fix, ``str.decode`` with ``errors`` as the only argument
+   wasn't working.
+
 Optimization
 ============
 
 -  Faster dictionary iteration with our own replacement for
    ``PyDict_Next`` that avoids the DLL call overhead (in case of
    non-static libpython) and does less unnecessary checks.
+
+-  Added optimization for ``str.count`` methods as well, this should
+   help in some cases with compile time optimization.
+
+-  The node for ``dict.update`` with only an iterable argument, but no
+   keyword arguments, was in fact unused due to wrongly generated code.
+   Also the form with no arguments wasn't yet handled properly.
 
 This release is not done yet.
 
@@ -408,7 +420,7 @@ Summary
 This release has seen a lot of consolidation. The plugins layer for data
 files is now all powerful, allowing much nicer handling of them by the
 plugins, they are better reported in normal output, and they are also
-part of the report filet that Nuitka can create. You may now inhibit
+part of the report file that Nuitka can create. You may now also inhibit
 their inclusion from the command line, if you decide otherwise.
 
 The ``pyproject.toml`` now supporting Nuitka arguments is closing an
