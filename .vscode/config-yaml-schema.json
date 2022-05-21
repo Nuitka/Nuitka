@@ -1,0 +1,157 @@
+,
+    "yaml.schemas": {
+        ".vscode/config-yaml-schema.json": "config.yml"
+    }{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "module-name": {
+                "type": "string"
+            },
+            "data-files": {
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "dest_path": {
+                            "type": "string"
+                        },
+                        "dirs": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "patterns": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "control_tags": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "empty_dirs": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "empty_dir_structures": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "dlls": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "type": "string",
+                        "include_from_code": {
+                            "type": "string"
+                        },
+                        "setup_code": {
+                            "type": "string"
+                        },
+                        "dll_filename_code": {
+                            "type": "string"
+                        },
+                        "dest_path": {
+                            "type": "string"
+                        },
+                        "include_from_filenames": {
+                            "type": ""
+                        },
+                        "dir": {
+                            "type": "string"
+                        },
+                        "patterns": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "anti-bloat": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "module_code": {
+                            "type": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "context": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "control_tags": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "replacements": {
+                            "type": "object"
+                        },
+                        "replacements_plain": {
+                            "type": "object"
+                        },
+                        "change_function": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "implicit-imports": {
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "depends": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "standalone_macos_bundle_mode": {
+                            "type": "string",
+                            "oneOf": [
+                                {
+                                    "const": "true"
+                                },
+                                {
+                                    "const": "onefile"
+                                }
+                            ]
+                        },
+                        "disable_console": {
+                            "type": "string",
+                            "oneOf": [
+                                {
+                                    "const": "macos"
+                                },
+                                {
+                                    "const": "recommend"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
