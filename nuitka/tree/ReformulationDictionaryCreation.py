@@ -52,7 +52,8 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef,
 )
 from nuitka.nodes.KeyValuePairNodes import (
-    ExpressionKeyValuePair,
+    makeExpressionKeyValuePair,
+    makeExpressionKeyValuePairConstantKey,
     makeExpressionPairs,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
@@ -257,12 +258,9 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             result.append(
                 makeExpressionMakeDict(
                     pairs=(
-                        ExpressionKeyValuePair(
-                            key=makeConstantRefNode(
-                                constant=key, source_ref=source_ref
-                            ),
+                        makeExpressionKeyValuePairConstantKey(
+                            key=key,
                             value=buildNode(provider, value, source_ref),
-                            source_ref=source_ref,
                         ),
                     ),
                     source_ref=source_ref,
@@ -272,10 +270,9 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             result.append(
                 makeExpressionMakeDict(
                     pairs=(
-                        ExpressionKeyValuePair(
+                        makeExpressionKeyValuePair(
                             key=buildNode(provider, key, source_ref),
                             value=buildNode(provider, value, source_ref),
-                            source_ref=source_ref,
                         ),
                     ),
                     source_ref=source_ref,

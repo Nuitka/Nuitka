@@ -23,7 +23,10 @@ from nuitka.PythonVersions import python_version
 
 from .BuiltinHashNodes import ExpressionBuiltinHash
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
 from .NodeBases import SideEffectsFromChildrenMixin
 
 
@@ -96,6 +99,35 @@ class ExpressionKeyValuePair(
         )
 
 
+class ExpressionKeyValuePairConstantKey(
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+):
+    kind = "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY"
+
+    named_child = "value"
+
+    def __init__(self, key, value, source_ref):
+        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+
+        self.key = key
+
+    def computeExpression(self, trace_collection):
+        # Nothing to do, we are hashable and everything.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
+
+    def extractSideEffects(self):
+        return self.subnode_value.extractSideEffects()
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_value.onContentEscapes(trace_collection)
+
+    def isCompileTimeConstant(self):
+        return self.subnode_value.isCompileTimeConstant()
+
+
 def makeExpressionPairs(keys, values):
     assert len(keys) == len(values)
 
@@ -107,14 +139,31 @@ def makeExpressionPairs(keys, values):
     )
 
 
+def makeExpressionKeyValuePair(key, value):
+    # TODO: Detect constant key value
+    return ExpressionKeyValuePair(
+        key=key,
+        value=value,
+        source_ref=value.getSourceReference(),
+    )
+
+
+def makeExpressionKeyValuePairConstantKey(key, value):
+    # TODO: Make use of ExpressionKeyValuePairConstantKey
+    return ExpressionKeyValuePair(
+        key=makeConstantRefNode(
+            constant=key, source_ref=value.getSourceReference(), user_provided=True
+        ),
+        value=value,
+        source_ref=value.getSourceReference(),
+    )
+
+
 def makeKeyValuePairExpressionsFromKwArgs(pairs):
     return tuple(
-        ExpressionKeyValuePair(
-            key=makeConstantRefNode(
-                constant=key, source_ref=value.getSourceReference(), user_provided=True
-            ),
+        makeExpressionKeyValuePairConstantKey(
+            key=key,
             value=value,
-            source_ref=value.getSourceReference(),
         )
         for key, value in pairs
     )
