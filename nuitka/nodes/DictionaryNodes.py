@@ -24,10 +24,8 @@ that is the child of the dictionary creation.
 
 
 from nuitka import Constants
-from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import makeExpressionAttributeLookup
-from .BuiltinHashNodes import ExpressionBuiltinHash
 from .ConstantRefNodes import (
     ExpressionConstantDictEmptyRef,
     makeConstantRefNode,
@@ -56,79 +54,6 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_iterator
-
-
-def makeExpressionPairs(keys, values):
-    assert len(keys) == len(values)
-
-    return [
-        ExpressionKeyValuePair(
-            key=key, value=value, source_ref=key.getSourceReference()
-        )
-        for key, value in zip(keys, values)
-    ]
-
-
-class ExpressionKeyValuePair(
-    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
-):
-    kind = "EXPRESSION_KEY_VALUE_PAIR"
-
-    # They changed the order of evaluation with 3.5 to what you normally would expect.
-    if python_version < 0x350:
-        named_children = ("value", "key")
-    else:
-        named_children = ("key", "value")
-
-    def __init__(self, key, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"key": key, "value": value}, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        key = self.subnode_key
-
-        hashable = key.isKnownToBeHashable()
-
-        # If not known to be hashable, that can raise an exception.
-        if not hashable:
-            trace_collection.onExceptionRaiseExit(TypeError)
-
-        if hashable is False:
-            # TODO: If it's not hashable, we should turn it into a raise, it's
-            # just difficult to predict the exception value precisely, as it
-            # could be e.g. (2, []), and should then complain about the list.
-            pass
-
-        return self, None, None
-
-    def mayRaiseException(self, exception_type):
-        key = self.subnode_key
-
-        return (
-            key.mayRaiseException(exception_type)
-            or key.isKnownToBeHashable() is not True
-            or self.subnode_value.mayRaiseException(exception_type)
-        )
-
-    def extractSideEffects(self):
-        if self.subnode_key.isKnownToBeHashable() is True:
-            key_part = self.subnode_key.extractSideEffects()
-        else:
-            key_part = (
-                ExpressionBuiltinHash(
-                    value=self.subnode_key, source_ref=self.subnode_key.source_ref
-                ),
-            )
-
-        if python_version < 0x350:
-            return self.subnode_value.extractSideEffects() + key_part
-        else:
-            return key_part + self.subnode_value.extractSideEffects()
-
-    def onContentEscapes(self, trace_collection):
-        self.subnode_key.onContentEscapes(trace_collection)
-        self.subnode_value.onContentEscapes(trace_collection)
 
 
 def makeExpressionMakeDict(pairs, source_ref):
@@ -1321,14 +1246,7 @@ class ExpressionDictOperationUpdate3(
             values={
                 "dict_arg": dict_arg,
                 "iterable": iterable,
-                "pairs": tuple(
-                    ExpressionKeyValuePair(
-                        makeConstantRefNode(key, source_ref),
-                        value,
-                        value.getSourceReference(),
-                    )
-                    for key, value in pairs
-                ),
+                "pairs": pairs,
             },
             source_ref=source_ref,
         )

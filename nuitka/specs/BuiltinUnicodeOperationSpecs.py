@@ -52,14 +52,16 @@ class UnicodeMethodSpec(BuiltinParameterSpec):
         name,
         arg_names=(),
         default_count=0,
+        list_star_arg=None,
+        dict_star_arg=None,
     ):
         BuiltinParameterSpec.__init__(
             self,
             name="unicode." + name,
             arg_names=arg_names,
             default_count=default_count,
-            list_star_arg=None,
-            dict_star_arg=None,
+            list_star_arg=list_star_arg,
+            dict_star_arg=dict_star_arg,
             pos_only_args=(),
             kw_only_args=(),
         )
@@ -111,6 +113,9 @@ unicode_count_spec = UnicodeMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2
 )
 
+# unicode_format_spec = UnicodeMethodSpec(
+#     "format", list_star_arg="args", dict_star_arg="pairs"
+# )
 
 unicode_capitalize_spec = UnicodeMethodSpecNoKeywords("capitalize", arg_names=())
 unicode_upper_spec = UnicodeMethodSpecNoKeywords("upper", arg_names=())

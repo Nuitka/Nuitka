@@ -29,10 +29,7 @@ from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from nuitka.nodes.DictionaryNodes import (
-    ExpressionKeyValuePair,
-    makeExpressionMakeDict,
-)
+from nuitka.nodes.DictionaryNodes import makeExpressionMakeDict
 from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
@@ -40,6 +37,9 @@ from nuitka.nodes.FrameNodes import (
     StatementsFrameFunction,
     StatementsFrameGenerator,
     StatementsFrameModule,
+)
+from nuitka.nodes.KeyValuePairNodes import (
+    makeKeyValuePairExpressionsFromKwArgs,
 )
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
@@ -575,18 +575,7 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
         )
     else:
         result = makeExpressionMakeDict(
-            pairs=[
-                ExpressionKeyValuePair(
-                    key=makeConstantRefNode(
-                        constant=key,
-                        source_ref=value.getSourceReference(),
-                        user_provided=True,
-                    ),
-                    value=value,
-                    source_ref=value.getSourceReference(),
-                )
-                for key, value in zip(keys, values)
-            ],
+            pairs=makeKeyValuePairExpressionsFromKwArgs(zip(keys, values)),
             source_ref=source_ref,
         )
 

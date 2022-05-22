@@ -119,6 +119,9 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
+from nuitka.nodes.KeyValuePairNodes import (
+    makeKeyValuePairExpressionsFromKwArgs,
+)
 from nuitka.nodes.NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeExpressionBuiltinLocals,
@@ -316,7 +319,7 @@ def dict_extractor(node):
 
         return ExpressionBuiltinDict(
             pos_arg=pos_arg,
-            pairs=dict_star_arg,
+            pairs=makeKeyValuePairExpressionsFromKwArgs(dict_star_arg),
             source_ref=source_ref,
         )
 

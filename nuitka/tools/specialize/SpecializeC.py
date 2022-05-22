@@ -40,7 +40,7 @@ from nuitka.__past__ import getMetaClassBase, long
 from nuitka.codegen.CallCodes import (
     getQuickCallCode,
     getQuickMethodCallCode,
-    getQuickMethodDescrCallCode,
+    getQuickMethodDescriptorCallCode,
     getQuickMixedCallCode,
     getTemplateCodeDeclaredFunction,
     max_quick_call,
@@ -62,8 +62,8 @@ from .Common import (
     python3_bytes_methods,
     python3_dict_methods,
     python3_str_methods,
-    withFileOpenedAndAutoformatted,
-    writeline,
+    withFileOpenedAndAutoFormatted,
+    writeLine,
 )
 
 
@@ -1841,14 +1841,14 @@ def makeHelpersComparisonOperation(operand, op_code):
     filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -1888,14 +1888,14 @@ def makeHelpersBinaryOperation(operand, op_code):
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -1937,14 +1937,14 @@ def makeHelpersInplaceOperation(operand, op_code):
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -1977,14 +1977,14 @@ def makeHelpersImportHard():
 
     template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -2048,15 +2048,15 @@ def makeHelperCalls():
     filename_c = "nuitka/build/static_src/HelpersCalling2.c"
     filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
                 assert args[0] != "extern "
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -2111,7 +2111,7 @@ def makeHelperCalls():
                         emit_h(getTemplateCodeDeclaredFunction(code))
 
             for args_count in range(1, 5):
-                code = getQuickMethodDescrCallCode(args_count=args_count)
+                code = getQuickMethodDescriptorCallCode(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
@@ -2199,9 +2199,10 @@ generate_builtin_type_operations = [
         nuitka.specs.BuiltinDictOperationSpecs,
         ("pop", "setdefault"),
     ),
-    # TODO: These are very complex things using stringlib in Python, that we do not have easy access to,
-    # but we might one day for Nuitka-Python expose it for the static linking of it and then we
-    # could in fact call these directly.
+    # TODO: These are very complex things using "string lib" code in CPython,
+    # that we do not have easy access to, but we might one day for Nuitka-Python
+    # expose it for the static linking of it and then we could in fact call
+    # these directly.
     (
         "tshape_str",
         str_desc,
@@ -2236,7 +2237,6 @@ generate_builtin_type_operations = [
             "encode",
             "decode",
             "count",
-            # "format",
         ),
     ),
     # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
@@ -2287,14 +2287,14 @@ def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
     filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -2382,14 +2382,6 @@ def makeHelperBuiltinTypeMethods():
                             replaceArgNameForC(arg_name)
                             for arg_name in arg_names[:arg_count]
                         ]
-
-                        if method_name == "format" and type_desc in (
-                            str_desc,
-                            unicode_desc,
-                        ):
-                            # Done manually.
-                            if arg_count == 2:
-                                continue
 
                         code = template.render(
                             object_desc=object_desc,

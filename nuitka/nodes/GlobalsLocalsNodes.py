@@ -24,13 +24,13 @@ anymore, if we start to not know where their value goes.
 The "dir()" call without arguments is reformulated to locals or globals calls.
 """
 
-from .ConstantRefNodes import makeConstantRefNode
-from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
+from .DictionaryNodes import makeExpressionMakeDict
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionBuiltinSingleArgBase,
     ExpressionNoSideEffectsMixin,
 )
+from .KeyValuePairNodes import makeKeyValuePairExpressionsFromKwArgs
 from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
 
@@ -102,17 +102,19 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
     def computeExpressionRaw(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             result = makeExpressionMakeDict(
-                pairs=(
-                    ExpressionKeyValuePair(
-                        key=makeConstantRefNode(
-                            constant=variable_name, source_ref=self.source_ref
-                        ),
-                        value=ExpressionTempVariableRef(
-                            variable=variable, source_ref=self.source_ref
-                        ),
-                        source_ref=self.source_ref,
+                pairs=makeKeyValuePairExpressionsFromKwArgs(
+                    pairs=(
+                        (
+                            variable_name,
+                            ExpressionTempVariableRef(
+                                variable=variable, source_ref=self.source_ref
+                            ),
+                        )
+                        for (
+                            variable_name,
+                            variable,
+                        ) in self.locals_scope.getPropagationVariables().items()
                     )
-                    for variable_name, variable in self.locals_scope.getPropagationVariables().items()
                 ),
                 source_ref=self.source_ref,
             )
@@ -153,22 +155,14 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
             if variable_trace.getNameUsageCount() > 1:
                 return self, None, None
 
-        pairs = []
-        for variable, variable_trace in self.variable_traces:
-            if variable_trace.mustHaveValue():
-                pairs.append(
-                    ExpressionKeyValuePair(
-                        key=makeConstantRefNode(
-                            constant=variable.getName(),
-                            user_provided=True,
-                            source_ref=self.source_ref,
-                        ),
-                        value=ExpressionVariableRef(
-                            variable=variable, source_ref=self.source_ref
-                        ),
-                        source_ref=self.source_ref,
-                    )
-                )
+        pairs = makeKeyValuePairExpressionsFromKwArgs(
+            (
+                variable.getName(),
+                ExpressionVariableRef(variable=variable, source_ref=self.source_ref),
+            )
+            for variable, variable_trace in self.variable_traces
+            if variable_trace.mustHaveValue()
+        )
 
         # Locals is sorted of course.
         def _sorted(pairs):

@@ -29,6 +29,6 @@ import sys
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
 # isort:start
-from nuitka.tools.quality.autoformat.__main__ import main
+from nuitka.tools.quality.auto_format.__main__ import main
 
 main()

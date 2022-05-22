@@ -1065,7 +1065,7 @@ def getQuickMixedCallCode(args_count, has_tuple_arg, has_dict_values):
     )
 
 
-def getQuickMethodDescrCallCode(args_count):
+def getQuickMethodDescriptorCallCode(args_count):
     template = getTemplateC(
         "nuitka.codegen", "CodeTemplateCallsPositionalMethodDescr.c.j2"
     )

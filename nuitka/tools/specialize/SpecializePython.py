@@ -41,8 +41,8 @@ from .Common import (
     python3_bytes_methods,
     python3_dict_methods,
     python3_str_methods,
-    withFileOpenedAndAutoformatted,
-    writeline,
+    withFileOpenedAndAutoFormatted,
+    writeLine,
 )
 
 # This defines which attribute nodes are to specialize and how
@@ -164,6 +164,14 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 )
 """
 
+attribute_shape_empty[
+    "format", "tshape_str"
+] = """lambda source_ref: self.subnode_expression"""
+
+attribute_shape_empty[
+    "format", "tshape_unicode"
+] = """lambda source_ref: self.subnode_expression"""
+
 
 def emitGenerationWarning(emit, template_name):
     emit(
@@ -185,10 +193,16 @@ def formatCallArgs(operation_node_arg_mapping, args, starting=True):
         else:
             return operation_node_arg_mapping.get(arg, arg)
 
+    def mapValue(arg):
+        if arg == "pairs":
+            return "makeKeyValuePairExpressionsFromKwArgs(pairs)"
+        else:
+            return arg
+
     if args is None:
         result = ""
     else:
-        result = ",".join("%s=%s" % (mapName(arg), arg) for arg in args)
+        result = ",".join("%s=%s" % (mapName(arg), mapValue(arg)) for arg in args)
 
     if not starting and result:
         result = "," + result
@@ -207,10 +221,10 @@ def makeAttributeNodes():
         template_name="AttributeNodeFixed.py.j2",
     )
 
-    with withFileOpenedAndAutoformatted(filename_python) as output_python:
+    with withFileOpenedAndAutoFormatted(filename_python) as output_python:
 
         def emit(*args):
-            writeline(output_python, *args)
+            writeLine(output_python, *args)
 
         emitGenerationWarning(emit, template.name)
 
@@ -220,6 +234,10 @@ def makeAttributeNodes():
         emit("from nuitka.nodes.ConstantRefNodes import makeConstantRefNode")
         emit(
             "from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects"
+        )
+
+        emit(
+            "from nuitka.nodes.KeyValuePairNodes import makeKeyValuePairExpressionsFromKwArgs"
         )
 
         # TODO: Maybe generate its effect instead of using a base class.

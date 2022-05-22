@@ -31,7 +31,6 @@ PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix
 {% endif %}
 {% endfor %}
 
-
 {% if len(arg_names) > 0 %}
     PyObject *args[{{len(arg_names)+1}}] = { {{builtin_arg_name}}, {{",".join(arg_names)}} };
     PyObject *result = CALL_METHODDESCR_WITH_ARGS{{len(arg_names)+1}}({{builtin_type.type_name}}_builtin_{{method_name}}, args);

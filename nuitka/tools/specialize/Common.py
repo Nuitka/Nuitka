@@ -17,12 +17,12 @@
 #
 """ Common helper functions for specializing code."""
 
-from nuitka.tools.quality.autoformat.Autoformat import (  # For import from here, pylint: disable=unused-import
-    withFileOpenedAndAutoformatted,
+from nuitka.tools.quality.auto_format.AutoFormat import (  # For import from here, pylint: disable=unused-import
+    withFileOpenedAndAutoFormatted,
 )
 
 
-def writeline(output, *args):
+def writeLine(output, *args):
     if not args:
         output.write("\n")
     elif len(args) == 1:
@@ -273,14 +273,13 @@ def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
 
             arg_name_mapping = {
                 "list_args": spec.getStarListArgumentName(),
-                "kw_args": spec.getStarDictArgumentName(),
             }
         else:
             required = spec.getArgumentCount() - spec.getDefaultCount()
 
             arg_counts = tuple(range(required, spec.getArgumentCount() + 1))
 
-            arg_names = spec.getArgumentNames()
+            arg_names = spec.getParameterNames()
             arg_name_mapping = {}
 
         arg_tests = [

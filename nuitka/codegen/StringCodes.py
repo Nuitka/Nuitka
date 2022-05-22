@@ -269,3 +269,9 @@ def generateBytesOperationCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateStrFormatMethodCode(to_name, expression, emit, context):
+    # TODO: Make call code reusable for pairs and args expressions
+    # without them being tuple+dictionary. pylint: disable=unused-argument
+    assert False

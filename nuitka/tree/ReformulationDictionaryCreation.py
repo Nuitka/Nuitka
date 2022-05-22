@@ -38,11 +38,9 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionKeyValuePair,
     StatementDictOperationUpdate,
     makeExpressionMakeDict,
     makeExpressionMakeDictOrConstant,
-    makeExpressionPairs,
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
@@ -52,6 +50,10 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef,
+)
+from nuitka.nodes.KeyValuePairNodes import (
+    ExpressionKeyValuePair,
+    makeExpressionPairs,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode

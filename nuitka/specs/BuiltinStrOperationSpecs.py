@@ -73,14 +73,16 @@ class StrMethodSpec(BuiltinParameterSpec):
         name,
         arg_names=(),
         default_count=0,
+        list_star_arg=None,
+        dict_star_arg=None,
     ):
         BuiltinParameterSpec.__init__(
             self,
             name="str." + name,
             arg_names=arg_names,
             default_count=default_count,
-            list_star_arg=None,
-            dict_star_arg=None,
+            list_star_arg=list_star_arg,
+            dict_star_arg=dict_star_arg,
             pos_only_args=(),
             kw_only_args=(),
         )
@@ -130,6 +132,10 @@ str_replace_spec = StrMethodSpecNoKeywords(
 str_count_spec = StrMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2
 )
+
+# str_format_spec = StrMethodSpec(
+#     "format", list_star_arg="args", dict_star_arg="pairs"
+# )
 
 str_capitalize_spec = StrMethodSpecNoKeywords("capitalize", arg_names=())
 str_upper_spec = StrMethodSpecNoKeywords("upper", arg_names=())

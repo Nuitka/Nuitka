@@ -64,7 +64,10 @@ def generateCAPIObjectCodeCommon(
             arg_name = context.allocateTempName(arg_name)
 
             generateExpressionCode(
-                to_name=arg_name, expression=arg_expression, emit=emit, context=context
+                to_name=arg_name,
+                expression=arg_expression,
+                emit=emit,
+                context=context,
             )
 
             arg_names.append(arg_name)

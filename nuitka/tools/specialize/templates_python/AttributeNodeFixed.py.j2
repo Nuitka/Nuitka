@@ -37,6 +37,7 @@
 {% set str_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_str")) %}
 {% set str_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_str")) %}
 {% set str_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_str")) %}
+{% set str_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_str"), "None") %}
 {% else %}
 {% set str_shape = 0 %}
 {% endif %}
@@ -274,6 +275,9 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
             node=call_node,
             builtin_class=wrapExpressionStrOperation{{attribute_name_class}},
             builtin_spec=str_{{attribute_name}}_spec,
+{% if str_operation_empty != "None" %}
+            empty_special_class={{str_operation_empty}}
+{% endif %}
         )
 
         return result, "new_expression", "Call to '{{attribute_name}}' of str recognized."

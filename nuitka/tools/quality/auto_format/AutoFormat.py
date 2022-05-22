@@ -70,7 +70,7 @@ def cleanupWindowsNewlines(filename):
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
     # Smuggle consistency replacement in here.
-    if "Autoformat.py" not in filename:
+    if "AutoFormat.py" not in filename:
         updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
 
@@ -544,7 +544,7 @@ def _transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(
+def autoFormatFile(
     filename, git_stage, check_only=False, effective_filename=None, trace=True
 ):
     """Format source code with external tools
@@ -687,20 +687,20 @@ def autoformat(
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoformatted(filename):
+def withFileOpenedAndAutoFormatted(filename):
     my_print("Creating %r ..." % filename)
 
     tmp_filename = filename + ".tmp"
     with openTextFile(tmp_filename, "w") as output:
         yield output
 
-    autoformat(
+    autoFormatFile(
         filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
     )
 
     # No idea why, but this helps.
     if os.name == "nt":
-        autoformat(
+        autoFormatFile(
             filename=tmp_filename,
             git_stage=None,
             effective_filename=filename,

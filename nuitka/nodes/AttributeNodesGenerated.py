@@ -26,6 +26,7 @@ from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
 from .ConstantRefNodes import makeConstantRefNode
+from .KeyValuePairNodes import makeKeyValuePairExpressionsFromKwArgs
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
@@ -5728,7 +5729,7 @@ class ExpressionAttributeLookupDictUpdate(
                 return ExpressionDictOperationUpdate3(
                     dict_arg=self.subnode_expression,
                     iterable=iterable,
-                    pairs=pairs,
+                    pairs=makeKeyValuePairExpressionsFromKwArgs(pairs),
                     source_ref=source_ref,
                 )
             else:

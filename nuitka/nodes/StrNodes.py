@@ -1648,14 +1648,14 @@ class ExpressionStrOperationCount4(ExpressionStrOperationCountBase):
         return self, None, None
 
 
-class ExpressionStrOperationFormat2(
+class ExpressionStrOperationFormat(
     ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
 ):
     """This operation represents s.format() with only positional args."""
 
-    kind = "EXPRESSION_STR_OPERATION_FORMAT2"
+    kind = "EXPRESSION_STR_OPERATION_FORMAT"
 
-    named_children = ("str_arg", "args")
+    named_children = ("str_arg", "args", "pairs")
 
     @staticmethod
     def getSimulator():
@@ -1663,27 +1663,44 @@ class ExpressionStrOperationFormat2(
 
         return str.format
 
-    def __init__(self, str_arg, args, source_ref):
+    def __init__(self, str_arg, args, pairs, source_ref):
         assert str_arg is not None
-        assert args is not None
+        assert args or pairs
 
         ExpressionChildrenHavingBase.__init__(
             self,
-            values={"dict_arg": str_arg, "args": args},
+            values={
+                "str_arg": str_arg,
+                "args": tuple(args),
+                "pairs": pairs,
+            },
             source_ref=source_ref,
         )
 
     def computeExpression(self, trace_collection):
         str_arg = self.subnode_str_arg
         args = self.subnode_args
+        pairs = self.subnode_pairs
 
-        if str_arg.isCompileTimeConstant() and args.isCompileTimeConstant():
+        if (
+            str_arg.isCompileTimeConstant()
+            and all(arg.isCompileTimeConstant() for arg in args)
+            and all(pair.isCompileTimeConstant() for pair in pairs)
+        ):
             simulator = self.getSimulator()
 
             return trace_collection.getCompileTimeComputationResult(
                 node=self,
                 computation=lambda: simulator(
-                    str_arg.getCompileTimeConstant(), *args.getCompileTimeConstant()
+                    str_arg.getCompileTimeConstant(),
+                    *(arg.getCompileTimeConstant() for arg in args),
+                    **dict(
+                        (
+                            pair.subnode_key.getCompileTimeConstant(),
+                            pair.subnode_value.getCompileTimeConstant(),
+                        )
+                        for pair in pairs
+                    )
                 ),
                 description="Built-in 'str.format' with constant values.",
                 user_provided=str_arg.user_provided,
