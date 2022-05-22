@@ -21,15 +21,15 @@
 extern PyObject *STRING_FROM_CHAR(unsigned char c);
 
 static void formatNotSubscriptableError(PyObject *source) {
-    PyErr_Format(PyExc_TypeError,
+    SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
 #if PYTHON_VERSION < 0x270
-                 "'%s' object is unsubscriptable",
+        "'%s' object is unsubscriptable",
 #elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
-                 "'%s' object is not subscriptable",
+        "'%s' object is not subscriptable",
 #else
-                 "'%s' object has no attribute '__getitem__'",
+        "'%s' object has no attribute '__getitem__'",
 #endif
-                 Py_TYPE(source)->tp_name);
+        source);
 }
 
 #if PYTHON_VERSION < 0x370
