@@ -174,3 +174,10 @@ sklearn.linear_model._sgd_fast:
 sklearn.tree._tree:
   depends:
     - "sklearn.neighbors._quad_tree"
+
+torch.onnx.symbolic_registry:
+  depends:
+    - "torch.onnx.symbolic_opset7"
+    - "torch.onnx.symbolic_opset12"
+    - "torch.onnx.symbolic_opset14"
+    - "torch.onnx.symbolic_opset15"

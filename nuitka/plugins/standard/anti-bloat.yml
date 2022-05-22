@@ -729,6 +729,11 @@ torch.fx._symbolic_trace:
   replacements_plain:
     "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
 
+torch._jit_internal:
+  description: "disable jit warnings"
+  replacements_plain:
+    "warnings.warn(": "if False: warnings.warn("
+
 scipy._lib._docscrape:
   description: "remove sphinx reference"
   replacements_plain:
