@@ -374,15 +374,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -400,14 +401,20 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
                             result = Nuitka_CallMethodFunctionNoArgs((struct Nuitka_FunctionObject const *)init_method, obj);
                         } else {
                             result = CALL_FUNCTION_NO_ARGS(init_method);
-                            Py_DECREF(init_method);
+
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 {% elif args_count == 1 %}
                         if (is_compiled_function) {
                             result = Nuitka_CallMethodFunctionPosArgs((struct Nuitka_FunctionObject const *)init_method, obj, args, 1);
                         } else {
                             result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
-                            Py_DECREF(init_method);
+
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 {% else %}
                         if (is_compiled_function) {
@@ -418,17 +425,23 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% else %}
                             result = CALL_FUNCTION_WITH_ARGS{{args_count}}(init_method, args);
 {% endif %}
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 {% endif %}
 
+
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }

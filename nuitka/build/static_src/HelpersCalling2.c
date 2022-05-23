@@ -214,15 +214,16 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -240,16 +241,22 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
                                 Nuitka_CallMethodFunctionNoArgs((struct Nuitka_FunctionObject const *)init_method, obj);
                         } else {
                             result = CALL_FUNCTION_NO_ARGS(init_method);
-                            Py_DECREF(init_method);
+
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -569,15 +576,16 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -595,16 +603,22 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
                                                                       obj, args, 1);
                         } else {
                             result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
-                            Py_DECREF(init_method);
+
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -925,15 +939,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -951,16 +966,22 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 1);
                         } else {
                             result = CALL_FUNCTION_WITH_SINGLE_ARG(init_method, args[0]);
-                            Py_DECREF(init_method);
+
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -1266,15 +1287,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -1292,16 +1314,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 2);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS2(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -1606,15 +1633,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -1632,16 +1660,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 2);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS2(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -1947,15 +1980,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -1973,16 +2007,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 3);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS3(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -2287,15 +2326,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -2313,16 +2353,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 3);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS3(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -2628,15 +2673,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -2654,16 +2700,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 4);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS4(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -2968,15 +3019,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -2994,16 +3046,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 4);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS4(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -3309,15 +3366,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -3335,16 +3393,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 5);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS5(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -3649,15 +3712,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -3675,16 +3739,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 5);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS5(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -3990,15 +4059,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -4016,16 +4086,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 6);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS6(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -4330,15 +4405,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -4356,16 +4432,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 6);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS6(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -4671,15 +4752,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -4697,16 +4779,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 7);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS7(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -5011,15 +5098,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -5037,16 +5125,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 7);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS7(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -5352,15 +5445,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -5378,16 +5472,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 8);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS8(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -5692,15 +5791,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -5718,16 +5818,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 8);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS8(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -6033,15 +6138,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -6059,16 +6165,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 9);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS9(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -6373,15 +6484,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -6399,16 +6511,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 9);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS9(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -6714,15 +6831,16 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -6740,16 +6858,21 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
                                                                       obj, args, 10);
                         } else {
                             result = CALL_FUNCTION_WITH_ARGS10(init_method, args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }
@@ -7054,15 +7177,16 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
                         assert(init_method != NULL);
 
                         bool is_compiled_function = false;
+                        bool init_method_needs_release = false;
 
                         if (likely(init_method != NULL)) {
                             descrgetfunc func = Py_TYPE(init_method)->tp_descr_get;
-                            if (func == NULL) {
-                                Py_INCREF(init_method);
-                            } else if (func == Nuitka_Function_Type.tp_descr_get) {
+
+                            if (func == Nuitka_Function_Type.tp_descr_get) {
                                 is_compiled_function = true;
-                            } else {
+                            } else if (func != NULL) {
                                 init_method = func(init_method, obj, (PyObject *)(type));
+                                init_method_needs_release = true;
                             }
                         }
 
@@ -7080,16 +7204,21 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
                                                                       obj, args, 10);
                         } else {
                             result = CALL_FUNCTION_WITH_POSARGS10(init_method, pos_args);
-                            Py_DECREF(init_method);
+                            if (init_method_needs_release) {
+                                Py_DECREF(init_method);
+                            }
                         }
 
                         if (unlikely(result == NULL)) {
+                            Py_DECREF(obj);
                             return NULL;
                         }
 
                         Py_DECREF(result);
 
                         if (unlikely(result != Py_None)) {
+                            Py_DECREF(obj);
+
                             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__init__() should return None, not '%s'", result);
                             return NULL;
                         }

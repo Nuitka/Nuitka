@@ -41,6 +41,17 @@ clr:
     - include_from_filenames:
       dir: "."
       patterns:
-        "Python.Runtime"
+        - "Python.Runtime"
+      dest_path:
+        "."
+
+torchvision:
+  dlls:
+    - include_from_filenames:
+      dir: "."
+      patterns:
+        - "image"
+        - "libjpeg"
+        - "libpng*"
       dest_path:
         "."

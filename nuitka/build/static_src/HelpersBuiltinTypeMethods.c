@@ -589,11 +589,19 @@ PyObject *STR_DECODE3(PyObject *str, PyObject *encoding, PyObject *errors) {
     CHECK_OBJECT(str);
     assert(PyString_CheckExact(str));
 
-    CHECK_OBJECT(encoding);
+    if (encoding == NULL) {
+        encoding = PyString_FromString(PyUnicode_GetDefaultEncoding());
+    } else {
+        Py_INCREF(encoding);
+    }
     CHECK_OBJECT(errors);
 
     PyObject *args[3] = {str, encoding, errors};
-    return CALL_METHODDESCR_WITH_ARGS3(str_builtin_decode, args);
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS3(str_builtin_decode, args);
+
+    Py_DECREF(encoding);
+
+    return result;
 }
 PyObject *STR_ENCODE1(PyObject *str) {
     CHECK_OBJECT(str);
