@@ -1491,7 +1491,6 @@ class ExpressionStrOperationDecode3(
 
     def __init__(self, str_arg, encoding, errors, source_ref):
         assert str_arg is not None
-        assert encoding is not None
         assert errors is not None
 
         ExpressionChildrenHavingBase.__init__(

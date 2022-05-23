@@ -131,6 +131,11 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         # Cannot compute any further, this is already the best.
         return self, None, None
 
+    # Note: For computedExpressionResult to work, TODO: needed more generally?
+    def computeExpression(self, trace_collection):
+        # Cannot compute any further, this is already the best.
+        return self, None, None
+
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         trace_collection.onExceptionRaiseExit(TypeError)
 

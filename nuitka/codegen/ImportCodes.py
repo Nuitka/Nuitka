@@ -250,6 +250,8 @@ def getImportModuleNameHardCode(
                 needs_check=needs_check,
             )
         )
+
+        context.addCleanupTempName(to_name)
     else:
         assert False, module_name
 
