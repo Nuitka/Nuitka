@@ -1,3 +1,11 @@
+nuitka (0.8.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+  * Python 3.10 is now compatible again. (Closes: #1006051)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 23 May 2022 08:31:51 +0200
+
 nuitka (0.8+ds-1) unstable; urgency=medium
 
   * New upstream release.
