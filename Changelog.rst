@@ -14,11 +14,32 @@ Bug Fixes
 =========
 
 -  Fix, hard module name lookups leaked a reference to that object.
-
--  macOS: Signing now uses hardened runtime as require for notarization.
+   Fixed in 0.8.1 already.
 
 -  Python2: Fix, ``str.decode`` with ``errors`` as the only argument
-   wasn't working.
+   wasn't working. Fixed in 0.8.1 already.
+
+-  Fix, could corrupt created uncompiled class objects ``__init__``
+   functions in case of descriptors being used.
+
+-  Standalone: Added support for newer ``torch``. Fixed in 0.8.1
+   already.
+
+-  Standalone: Added support for newer ``torchvision``. Fixed in 0.8.1
+   already.
+
+-  Fix, could compile time crash during initial parsing phase on
+   constant dictionary literals with non-hashable keys.
+
+   .. code:: python
+
+      { {}:1, }
+
+New Features
+============
+
+-  macOS: Signing now optionally uses hardened runtime as require for
+   notarization (not complete yet.)
 
 Optimization
 ============
@@ -3420,7 +3441,7 @@ Bug Fixes
 -  Pipenv: Workaround parsing issue with our ``setup.py`` to allow
    installation from GitHub. Fixed in 0.6.10.1 already.
 
--  Merging of branches in optimization could give indeterministic
+-  Merging of branches in optimization could give nondeterministic
    results leading to more iterations than necessary. Fixed in 0.6.10.1
    already.
 
@@ -6916,8 +6937,8 @@ Tests
    ``depends.exe`` that wasn't populated on new installs.
 
 -  Refinements for CPython test suites to become more stable in results.
-   Some tests occasionally fail to clean up, or might do indeterministic
-   outputs, or are not relevant at all.
+   Some tests occasionally fail to clean up, or might do
+   nondeterministic outputs, or are not relevant at all.
 
 -  The tests don't use the runners, but more often do ``-m nuitka`` to
    become executable without having to find the proper runner. This
@@ -7242,7 +7263,7 @@ Optimization
    to exception raises and warned about if the according option is
    enabled.
 
--  Unhashable keys in dictionaries are now statically optimized to
+-  Non-hashable keys in dictionaries are now statically optimized to
    exception raises and warned about if the according option is enabled.
 
 -  Enable forward propagation for classes too, resulting in some classes
