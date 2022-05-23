@@ -50,8 +50,8 @@ torchvision:
     - include_from_filenames:
       dir: "."
       patterns:
-        - "image"
+        - "zlib"
         - "libjpeg"
         - "libpng*"
       dest_path:
-        "."
+        "torchvision"
