@@ -67,14 +67,13 @@ def makeExpressionMakeDict(pairs, source_ref):
 
 
 def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
-    # Create dictionary node. Tries to avoid it for constant values that are not
+    # Create dictionary node or constant value if possible.
     # mutable.
 
     for pair in pairs:
-        # TODO: Compile time constant ought to be the criterion.
         if (
-            not pair.subnode_value.isExpressionConstantRef()
-            or not pair.subnode_key.isExpressionConstantRef()
+            not pair.isCompileTimeConstant()
+            or pair.isKeyKnownToBeHashable() is not True
         ):
             result = makeExpressionMakeDict(pairs, source_ref)
             break

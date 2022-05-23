@@ -72,6 +72,9 @@ class ExpressionKeyValuePair(
             or self.subnode_value.mayRaiseException(exception_type)
         )
 
+    def isKeyKnownToBeHashable(self):
+        return self.subnode_key.isKnownToBeHashable()
+
     def extractSideEffects(self):
         if self.subnode_key.isKnownToBeHashable() is True:
             key_part = self.subnode_key.extractSideEffects()
@@ -106,10 +109,17 @@ class ExpressionKeyValuePairConstantKey(
 
     named_child = "value"
 
+    __slots__ = ("key",)
+
     def __init__(self, key, value, source_ref):
         ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
 
+        # TODO: Make sure key is a hashable value too.
         self.key = key
+
+    @staticmethod
+    def isKeyKnownToBeHashable():
+        return True
 
     def computeExpression(self, trace_collection):
         # Nothing to do, we are hashable and everything.
