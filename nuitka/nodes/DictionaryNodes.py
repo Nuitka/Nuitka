@@ -68,7 +68,6 @@ def makeExpressionMakeDict(pairs, source_ref):
 
 def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
     # Create dictionary node or constant value if possible.
-    # mutable.
 
     for pair in pairs:
         if (
