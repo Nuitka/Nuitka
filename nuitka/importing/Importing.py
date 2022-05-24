@@ -524,7 +524,7 @@ def getPackageSearchPath(package_name):
     assert main_path is not None
 
     if package_name is None:
-        return [os.getcwd(), main_path] + [
+        result = [os.getcwd(), main_path] + [
             _unpackPathElement(path_element) for path_element in sys.path
         ]
     elif "." in package_name:
@@ -563,7 +563,8 @@ def getPackageSearchPath(package_name):
                 if isPackageDir(package_dir) or force_package:
                     result.append(package_dir)
 
-        return result
+    result = [element for element in result if os.path.exists(element)]
+    return OrderedSet(result)
 
 
 def _findModuleInPath(module_name):

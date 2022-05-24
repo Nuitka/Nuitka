@@ -112,7 +112,7 @@ def getModuleImportableFilesHash(full_name):
     paths = getPackageSearchPath(None)
 
     if package_name is not None:
-        paths += getPackageSearchPath(package_name)
+        paths.update(getPackageSearchPath(package_name))
 
     all_suffixes = getAllModuleSuffixes()
 
