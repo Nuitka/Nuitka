@@ -28,14 +28,14 @@ static PyObject *module_inspect;
 static PyObject *module_types;
 #endif
 
-static char *kwlist[] = {(char *)"object", NULL};
+static char *kw_list_object[] = {(char *)"object", NULL};
 
 static PyObject *old_getgeneratorstate = NULL;
 
 static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *object;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getgeneratorstate", kwlist, &object, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getgeneratorstate", kw_list_object, &object, NULL)) {
         return NULL;
     }
 
@@ -62,7 +62,7 @@ static PyObject *old_getcoroutinestate = NULL;
 static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *object;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getcoroutinestate", kwlist, &object, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:getcoroutinestate", kw_list_object, &object, NULL)) {
         return NULL;
     }
 
@@ -209,15 +209,15 @@ class GeneratorWrapperEnhanced(_old_GeneratorWrapper):\n\
 types._GeneratorWrapper = GeneratorWrapperEnhanced\
 ";
 
-    PyObject *wrapper_enhencement_codeobject = Py_CompileString(wrapper_enhancement_code, "<exec>", Py_file_input);
-    CHECK_OBJECT(wrapper_enhencement_codeobject);
+    PyObject *wrapper_enhancement_code_object = Py_CompileString(wrapper_enhancement_code, "<exec>", Py_file_input);
+    CHECK_OBJECT(wrapper_enhancement_code_object);
 
     {
-        PyObject *module = PyImport_ExecCodeModule("nuitka_types_patch", wrapper_enhencement_codeobject);
+        PyObject *module = PyImport_ExecCodeModule("nuitka_types_patch", wrapper_enhancement_code_object);
         CHECK_OBJECT(module);
 
-        int res = PyDict_DelItemString(PyImport_GetModuleDict(), "nuitka_types_patch");
-        assert(res == 0);
+        bool bool_res = Nuitka_DelModuleString("nuitka_types_patch");
+        assert(bool_res != false);
 
         Py_DECREF(module);
     }

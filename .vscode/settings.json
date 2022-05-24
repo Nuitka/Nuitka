@@ -5,7 +5,7 @@
     "files.exclude": {
         "**/*.onefile-build": true,
         "**/*.build": true,
-        "**/*.dist" : true,
+        "**/*.dist": true,
         "**/*.exe": true,
         "**/*.exe.away": true,
         "**/*.bin": true,
@@ -15,7 +15,7 @@
         "**/*.tmp": true,
         "tests/reflected/nuitka": true,
         "tests/distutils/venv_*": true,
-        "build" : true,
+        "build": true,
     },
     "files.associations": {
         "*.tac": "python",
@@ -38,7 +38,8 @@
         "onefilesplashscreen.cpp": "cpp",
         "compare": "c"
     },
-    "python.linting.pylintArgs": ["--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
+    "python.linting.pylintArgs": [
+        "--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
         "--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$",
         "--module-rgx=.*",
         "--function-rgx=.*",
@@ -68,7 +69,10 @@
         "tests/syntax/**"
     ],
     "python.analysis.autoSearchPaths": false,
-    "python.analysis.extraPaths": ["nuitka/build/inline_copy/lib/scons-3.1.2", "nuitka/build/inline_copy/clcache"],
+    "python.analysis.extraPaths": [
+        "nuitka/build/inline_copy/lib/scons-3.1.2",
+        "nuitka/build/inline_copy/clcache"
+    ],
     "python.formatting.provider": "black",
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none"
@@ -89,6 +93,9 @@
         "co_argcount",
         "co_firstlineno",
         "co_kwonlyargcount",
+        "tp_descr_get",
+        "tp_descr_set",
+        "tp_alloc",
         "CO_NEWLOCALS",
         "CO_NOFREE",
         "co_posonlyargcount",
@@ -129,6 +136,11 @@
         "iterkeys",
         "itervalues",
         "Kivy",
+        "pkglib",
+        "CORO_RUNNING",
+        "CORO_CLOSED",
+        "CORO_CREATED",
+        "CORO_SUSPENDED",
         "kwargs",
         "kwds",
         "libc",
@@ -139,6 +151,8 @@
         "mdef",
         "metaclass",
         "METH_NOARGS",
+        "tp_dealloc",
+        "tp_getset",
         "METH_VARARGS",
         "MSVC",
         "msys",

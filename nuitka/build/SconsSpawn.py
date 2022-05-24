@@ -140,8 +140,8 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             else:
                 return arg
 
-        newargs = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
-        cmdline = cmd + " " + newargs
+        new_args = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
+        cmdline = cmd + " " + new_args
 
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
@@ -228,7 +228,7 @@ def isIgnoredError(line):
     if b"at Python/import.c" in line:
         return True
 
-    # Bullseys when compiling in directory with spaces:
+    # Debian Bullseye when compiling in directory with spaces:
     if b"overriding recipe for target" in line:
         return True
     if b"ignoring old recipe for target" in line:

@@ -350,7 +350,7 @@ def _reportCandidates(package_name, module_name, candidate, candidates):
 
     if (
         candidate.priority == 1
-        and Options.shallPreferSourcecodeOverExtensionModules() is None
+        and Options.shallPreferSourceCodeOverExtensionModules() is None
     ):
         for c in candidates:
             # Don't compare to itself and don't consider unused bytecode a problem.
@@ -387,7 +387,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
     # Higher values are lower priority.
     priority_map = {
         imp.PY_COMPILED: 3,
-        imp.PY_SOURCE: 0 if Options.shallPreferSourcecodeOverExtensionModules() else 2,
+        imp.PY_SOURCE: 0 if Options.shallPreferSourceCodeOverExtensionModules() else 2,
         imp.C_EXTENSION: 1,
     }
 

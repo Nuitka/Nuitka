@@ -64,6 +64,8 @@ from .SearchModes import (
     SearchModeResume,
 )
 
+# spellchecker: ignore popenargs,pathsep
+
 test_logger = OurLogger("", base_style="blue")
 
 
@@ -73,9 +75,9 @@ def check_result(*popenargs, **kwargs):
 
     process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
     _unused_output, _unused_err = process.communicate()
-    retcode = process.poll()
+    ret_value = process.poll()
 
-    if retcode:
+    if ret_value:
         return False
     else:
         return True
@@ -863,7 +865,7 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr, explain=
             my_print(name + ": SKIPPED (%s)" % tests_skipped[number])
             continue
 
-        # Avoid unraisable output.
+        # Avoid non-raisable output.
         try:
             if number in tests_stderr:
                 sys.stderr = getNullOutput()

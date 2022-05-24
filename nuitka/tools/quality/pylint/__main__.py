@@ -60,7 +60,7 @@ def main():
         dest="diff",
         default=False,
         help="""\
-Analyse the changed files in git. Default is %default.""",
+Analyze the changed files in git checkout. Default is %default.""",
     )
 
     parser.add_option(
@@ -69,7 +69,7 @@ Analyse the changed files in git. Default is %default.""",
         dest="unpushed",
         default=False,
         help="""\
-Analyse the changed files in git. Default is %default.""",
+Analyze the changed files in git not yet pushed. Default is %default.""",
     )
 
     parser.add_option(
