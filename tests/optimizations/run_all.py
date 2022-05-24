@@ -53,8 +53,10 @@ from nuitka.tools.testing.Common import (
     convertUsing2to3,
     createSearchMode,
     decideFilenameVersionSkip,
+    getPythonSysPath,
     my_print,
     setup,
+    withPythonPathChange,
 )
 from nuitka.TreeXML import toString
 
@@ -213,21 +215,6 @@ def main():
                 if "PYTHONHASHSEED" not in os.environ:
                     os.environ["PYTHONHASHSEED"] = "0"
 
-                # Coverage modules hates Nuitka to re-execute, and so we must avoid
-                # that.
-                python_path = check_output(
-                    [
-                        os.environ["PYTHON"],
-                        "-c",
-                        "import sys, os; print(os.pathsep.join(sys.path))",
-                    ]
-                )
-
-                if sys.version_info >= (3,):
-                    python_path = python_path.decode("utf8")
-
-                os.environ["PYTHONPATH"] = python_path.strip()
-
                 command.insert(2, "--must-not-re-execute")
 
                 command = (
@@ -236,7 +223,14 @@ def main():
                     + command[1:]
                 )
 
-            result = check_output(command)
+                # Coverage modules hates Nuitka to re-execute, and so we must avoid
+                # that.
+                python_path = getPythonSysPath()
+            else:
+                python_path = None
+
+            with withPythonPathChange(python_path):
+                result = check_output(command)
 
             # Parse the result into XML and check it.
             try:

@@ -1801,3 +1801,26 @@ def getInstalledPythonVersion(python_version, must_exist):
         )
 
     return result
+
+
+_sys_path_path = None
+
+
+def getPythonSysPath():
+    global _sys_path_path  # singleton, pylint: disable=global-statement
+
+    if _sys_path_path is None:
+        _sys_path_path = check_output(
+            [
+                os.environ["PYTHON"],
+                "-c",
+                "import sys, os; print(os.pathsep.join(sys.path))",
+            ]
+        )
+
+        if str is not bytes:
+            _sys_path_path = _sys_path_path.decode("utf8")
+
+        _sys_path_path = _sys_path_path.strip()
+
+    return _sys_path_path
