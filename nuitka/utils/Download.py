@@ -141,10 +141,10 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
     # Large URLs, pylint: disable=line-too-long
 
     if target_arch == "x86_64":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-14.0.0-9.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-11.2.0-llvm-14.0.0-mingw-w64msvcrt-9.0.0-r7.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.1.0-10.0.0-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-12.1.0-mingw-w64msvcrt-10.0.0-r1.zip"
         binary = r"mingw64\bin\gcc.exe"
     else:
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-14.0.0-9.0.0-msvcrt-r7/winlibs-i686-posix-dwarf-gcc-11.2.0-llvm-14.0.0-mingw-w64msvcrt-9.0.0-r7.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.1.0-10.0.0-msvcrt-r1/winlibs-i686-posix-dwarf-gcc-12.1.0-mingw-w64msvcrt-10.0.0-r1.zip"
         binary = r"mingw32\bin\gcc.exe"
 
     gcc_binary = getCachedDownload(
