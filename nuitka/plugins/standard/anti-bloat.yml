@@ -205,9 +205,10 @@ tensorflow.python.framework.meta_graph:
 
 tensorflow.python.compiler.tensorrt.utils:
   description: "remove useless distutils usage"
-  replacements:
+  replacements_plain:
+    "from distutils import version\n": "\n"
     "from distutils import version as distutils_version": ""
-    "distutils_version.LooseVersion": "'str'"
+    "distutils_version.LooseVersion": "str"
 
 tensorflow.lite.python.convert:
   description: "remove useless distutils usage"
