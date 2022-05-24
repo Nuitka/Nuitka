@@ -392,7 +392,7 @@ def listDllFilesFromDirectory(path, prefix=""):
     # Accept None value as well.
     prefix = prefix or ""
 
-    pattern_list = [prefix + "*." + suffix for suffix in ("dll", "so.*", "dylib")]
+    pattern_list = [prefix + "*." + suffix for suffix in ("dll", "so.*", "so", "dylib")]
 
     for fullpath, filename in listDir(path):
         for pattern in pattern_list:
