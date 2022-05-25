@@ -178,9 +178,7 @@ _powershell_path = None
 
 
 def _getRealPathWindows(path):
-    # Slow, because we are using an external process, we use it's only for standalone and Python2,
-    # which is slow already.
-
+    # Slow on Python2, because we are using an external process.
     # Singleton, pylint: disable=global-statement
     global _powershell_path
     if _powershell_path is None:
@@ -236,7 +234,7 @@ def getDirectoryRealPath(path):
     path = os.path.realpath(path)
 
     # Attempt to resolve Windows symlinks on Python2
-    if os.name == "nt" and not os.path.isdir(path):
+    if os.name == "nt" and not os.path.isdir(path) and os.path.exists(path):
         path = _getRealPathWindows(path)
 
     return path
