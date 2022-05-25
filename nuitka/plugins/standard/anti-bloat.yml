@@ -216,6 +216,11 @@ tensorflow.lite.python.convert:
     "import distutils.spawn": ""
     "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
 
+tensorflow.python.autograph.core.ag_ctx:
+  description: "remove useless no-source warning"
+  replacements_plain:
+    "ag_logging.warning(": "if False: ag_logging.warning("
+
 gevent._util:
   description: "remove gevent release framework"
   change_function:
