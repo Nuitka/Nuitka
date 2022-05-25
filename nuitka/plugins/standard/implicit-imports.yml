@@ -123,6 +123,11 @@ tensorflow:
   depends:
     - ".python.keras"
 
+tensorflow.python.compiler.tensorrt.trt_convert:
+  depends:
+    - "tensorflow.compiler.tf2tensorrt.ops.gen_trt_ops"
+    - "tensorflow.compiler.tf2tensorrt._pywrap_py_utils"
+
 persistent.ring:
   depends:
     - "_cffi_backend"
