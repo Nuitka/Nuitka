@@ -1696,8 +1696,8 @@ class ExpressionStrOperationFormat(
                     *(arg.getCompileTimeConstant() for arg in args),
                     **dict(
                         (
-                            pair.subnode_key.getCompileTimeConstant(),
-                            pair.subnode_value.getCompileTimeConstant(),
+                            pair.getKeyCompileTimeConstant(),
+                            pair.getValueCompileTimeConstant(),
                         )
                         for pair in pairs
                     )

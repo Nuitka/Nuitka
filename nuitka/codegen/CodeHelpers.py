@@ -132,23 +132,14 @@ def generateChildExpressionsCode(expression, emit, context):
             child_names = []
 
             for child_val in child_value:
-                if child_val.isExpressionKeyValuePair():
-                    child_names.append(
-                        tuple(
-                            generateChildExpressionsCode(
-                                expression=child_val, emit=emit, context=context
-                            )
-                        )
-                    )
-                else:
-                    generateExpressionCode(
-                        to_name=value_name,
-                        expression=child_val,
-                        emit=emit,
-                        context=context,
-                    )
+                generateExpressionCode(
+                    to_name=value_name,
+                    expression=child_val,
+                    emit=emit,
+                    context=context,
+                )
 
-                    child_names.append(value_name)
+                child_names.append(value_name)
 
             value_names.append(tuple(child_names))
         elif child_value is not None:

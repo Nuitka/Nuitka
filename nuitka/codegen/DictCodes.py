@@ -26,12 +26,13 @@ from nuitka.utils.Jinja2 import renderTemplateFromString
 from .CodeHelpers import (
     assignConstantNoneResult,
     decideConversionCheckNeeded,
+    generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import (
     generateCAPIObjectCode,
     generateCAPIObjectCode0,
@@ -122,15 +123,12 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
     dict_key_name = context.allocateTempName("dict_key")
     dict_value_name = context.allocateTempName("dict_value")
 
-    is_hashable_key = [pair.subnode_key.isKnownToBeHashable() for pair in pairs]
+    is_hashable_key = [pair.isKeyKnownToBeHashable() for pair in pairs]
 
     # Does this dictionary build need an exception handling at all.
     if all(is_hashable_key):
         for pair in pairs[1:]:
-            if pair.subnode_key.mayRaiseException(BaseException):
-                needs_exception_exit = True
-                break
-            if pair.subnode_value.mayRaiseException(BaseException):
+            if pair.mayRaiseException(BaseException):
                 needs_exception_exit = True
                 break
         else:
@@ -141,15 +139,18 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
     def generateValueCode(dict_value_name, pair):
         generateExpressionCode(
             to_name=dict_value_name,
-            expression=pair.subnode_value,
+            expression=pair.getValueNode(),
             emit=emit,
             context=context,
         )
 
+    # TODO: There must be a way to avoid using a node like getKeyNode does, to
+    # create the pair creation code, maybe this kind of virtual constants can
+    # be asked, but then this code should be shared.
     def generateKeyCode(dict_key_name, pair):
         generateExpressionCode(
             to_name=dict_key_name,
-            expression=pair.subnode_key,
+            expression=pair.getKeyNode(),
             emit=emit,
             context=context,
         )
@@ -176,7 +177,7 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
 
     key_needs_release, value_needs_release = generatePairCode(pairs[0])
 
-    # Create dictionary presized.
+    # Create dictionary pre-sized.
     emit("%s = _PyDict_NewPresized( %d );" % (to_name, pairs_count))
 
     with withCleanupFinally(
@@ -468,15 +469,17 @@ def generateDictOperationUpdate2Code(to_name, expression, emit, context):
 
 
 def generateDictOperationUpdate3Code(to_name, expression, emit, context):
-    dict_name, iterable_name, pair_names = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+    dict_name = generateChildExpressionCode(
+        expression=expression.subnode_dict_arg, emit=emit, context=context
     )
-
-    res_name = context.getIntResName()
 
     emit("assert(PyDict_Check(%s));" % dict_name)
 
     if expression.subnode_iterable is not None:
+        iterable_name = generateChildExpressionCode(
+            expression=expression.subnode_iterable, emit=emit, context=context
+        )
+
         _generateDictOperationUpdateCommonCode(
             dict_name=dict_name,
             iterable_name=iterable_name,
@@ -486,24 +489,42 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
             context=context,
         )
 
-    for count, (pair_key_name, pair_key_value) in enumerate(pair_names):
-        if python_version < 0x350:
-            pair_key_name, pair_key_value = pair_key_value, pair_key_name
+    # Unique values per build here, but nested.
+    dict_key_name = context.allocateTempName("dictupdate_key")
+    dict_value_name = context.allocateTempName("dictupdate_value")
+
+    res_name = context.getIntResName()
+
+    for count, pair in enumerate(expression.subnode_pairs):
+        generateExpressionCode(
+            to_name=dict_key_name,
+            expression=pair.getKeyNode(),
+            emit=emit,
+            context=context,
+        )
+
+        generateExpressionCode(
+            to_name=dict_value_name,
+            expression=pair.getValueNode(),
+            emit=emit,
+            context=context,
+        )
 
         emit(
             "%s = PyDict_SetItem(%s, %s, %s);"
-            % (res_name, dict_name, pair_key_name, pair_key_value)
+            % (res_name, dict_name, dict_key_name, dict_value_name)
         )
 
         getErrorExitBoolCode(
             condition="%s != 0" % res_name,
             needs_check=not expression.subnode_pairs[count].isKnownToBeHashable(),
+            release_names=(dict_key_name, dict_value_name),
             emit=emit,
             context=context,
         )
 
-    getReleaseCodes(
-        release_names=sum(pair_names, (dict_name,)),
+    getReleaseCode(
+        release_name=dict_name,
         emit=emit,
         context=context,
     )

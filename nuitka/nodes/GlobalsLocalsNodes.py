@@ -174,9 +174,7 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
             return tuple(
                 sorted(
                     pairs,
-                    key=lambda pair: names.index(
-                        pair.subnode_key.getCompileTimeConstant()
-                    ),
+                    key=lambda pair: names.index(pair.getKeyCompileTimeConstant()),
                 )
             )
 

@@ -106,10 +106,8 @@ class BuiltinParameterSpec(ParameterSpec):
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
-                    arg_name = given_dict_star_arg.subnode_key.getCompileTimeConstant()
-                    arg_value = (
-                        given_dict_star_arg.subnode_value.getCompileTimeConstant()
-                    )
+                    arg_name = given_dict_star_arg.getKeyCompileTimeConstant()
+                    arg_value = given_dict_star_arg.getValueCompileTimeConstant()
 
                     arg_dict[arg_name] = arg_value
 

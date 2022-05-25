@@ -267,13 +267,15 @@ def _generateCallCodeKwSplit(
     dict_value_names = []
 
     for count, pair in enumerate(call_kw.subnode_pairs):
-        kw_names.append(pair.subnode_key.getCompileTimeConstant())
+        kw_names.append(pair.getKeyCompileTimeConstant())
 
         dict_value_name = context.allocateTempName("kw_call_value_%d" % count)
 
+        # TODO: Need to make it easier to generator constant values here without
+        # going through nodes.
         generateExpressionCode(
             to_name=dict_value_name,
-            expression=pair.subnode_value,
+            expression=pair.getValueNode(),
             emit=emit,
             context=context,
             allow_none=False,
@@ -829,13 +831,13 @@ def _getCallCodePosConstKeywordVariableArgs(
     dict_value_names = []
 
     for count, pair in enumerate(call_kw.subnode_pairs):
-        kw_names.append(pair.subnode_key.getCompileTimeConstant())
+        kw_names.append(pair.getKeyCompileTimeConstant())
 
         dict_value_name = context.allocateTempName("kw_call_value_%d" % count)
 
         generateExpressionCode(
             to_name=dict_value_name,
-            expression=pair.subnode_value,
+            expression=pair.getValueNode(),
             emit=emit,
             context=context,
             allow_none=False,
@@ -918,13 +920,13 @@ def _getCallCodePosVariableKeywordVariableArgs(
     dict_value_names = []
 
     for count, pair in enumerate(call_kw.subnode_pairs):
-        kw_names.append(pair.subnode_key.getCompileTimeConstant())
+        kw_names.append(pair.getKeyCompileTimeConstant())
 
         dict_value_name = context.allocateTempName("kw_call_dict_value_%d" % count)
 
         generateExpressionCode(
             to_name=dict_value_name,
-            expression=pair.subnode_value,
+            expression=pair.getValueNode(),
             emit=emit,
             context=context,
             allow_none=False,

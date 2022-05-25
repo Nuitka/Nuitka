@@ -82,8 +82,8 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
         # before being marshaled.
         result = makeConstantRefNode(
             constant=Constants.createConstantDict(
-                keys=[pair.subnode_key.getCompileTimeConstant() for pair in pairs],
-                values=[pair.subnode_value.getCompileTimeConstant() for pair in pairs],
+                keys=[pair.getKeyCompileTimeConstant() for pair in pairs],
+                values=[pair.getValueCompileTimeConstant() for pair in pairs],
             ),
             user_provided=user_provided,
             source_ref=source_ref,
@@ -91,7 +91,7 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
 
     if pairs:
         result.setCompatibleSourceReference(
-            source_ref=pairs[-1].subnode_value.getCompatibleSourceReference()
+            source_ref=pairs[-1].getCompatibleSourceReference()
         )
 
     return result
@@ -119,9 +119,10 @@ class ExpressionMakeDict(
         is_constant = True
 
         for pair in pairs:
-            key = pair.subnode_key
+            if pair.isKeyKnownToBeHashable() is False:
+                # The ones with constant keys are hashable.
+                key = pair.subnode_key
 
-            if key.isKnownToBeHashable() is False:
                 side_effects = []
 
                 for pair2 in pairs:
@@ -141,7 +142,9 @@ class ExpressionMakeDict(
                     source_ref=key.source_ref,
                 )
                 result = wrapExpressionWithSideEffects(
-                    side_effects=side_effects, old_node=key, new_node=result
+                    side_effects=side_effects,
+                    old_node=key,
+                    new_node=result,
                 )
 
                 return (
@@ -151,20 +154,15 @@ class ExpressionMakeDict(
                 )
 
             if is_constant:
-                if not key.isExpressionConstantRef():
+                if not pair.isCompileTimeConstant():
                     is_constant = False
-                else:
-                    value = pair.subnode_value
-
-                    if not value.isExpressionConstantRef():
-                        is_constant = False
 
         if not is_constant:
             return self, None, None
 
         constant_value = Constants.createConstantDict(
-            keys=[pair.subnode_key.getCompileTimeConstant() for pair in pairs],
-            values=[pair.subnode_value.getCompileTimeConstant() for pair in pairs],
+            keys=[pair.getKeyCompileTimeConstant() for pair in pairs],
+            values=[pair.getValueCompileTimeConstant() for pair in pairs],
         )
 
         new_node = makeConstantReplacementNode(
@@ -209,20 +207,18 @@ Created dictionary found to be constant.""",
         return True
 
     def getIterationValue(self, count):
-        return self.subnode_pairs[count].subnode_key
+        return self.subnode_pairs[count].getKeyNode()
 
     @staticmethod
     def getTruthValue():
         return True
 
     def isMappingWithConstantStringKeys(self):
-        return all(
-            pair.subnode_key.isExpressionConstantStrRef() for pair in self.subnode_pairs
-        )
+        return all(pair.isKeyExpressionConstantStrRef() for pair in self.subnode_pairs)
 
     def getMappingStringKeyPairs(self):
         return [
-            (pair.subnode_key.getCompileTimeConstant(), pair.subnode_value)
+            (pair.getKeyCompileTimeConstant(), pair.getValueNode())
             for pair in self.subnode_pairs
         ]
 
