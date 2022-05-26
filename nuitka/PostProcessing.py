@@ -395,7 +395,7 @@ set PYTHONHOME=%(dll_directory)s
 
     # Create a ".pyi" file for created modules
     if Options.shallMakeModule() and Options.shallCreatePyiFile():
-        pyi_filename = OutputDirectories.getResultBasepath() + ".pyi"
+        pyi_filename = OutputDirectories.getResultBasePath() + ".pyi"
 
         putTextFileContents(
             filename=pyi_filename,
