@@ -35,7 +35,9 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
     def __init__(self):
-        self.config = parsePackageYaml(__package__, "data-files.yml")
+        self.config = parsePackageYaml(
+            __package__, "standard.nuitka-package.config.yml"
+        )
 
     @classmethod
     def isRelevant(cls):
@@ -45,103 +47,103 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     def isAlwaysEnabled():
         return True
 
-    def considerDataFiles(self, module):
+    def _considerDataFiles(self, module, data_file_config):
         # Many cases to deal with, pylint: disable=too-many-branches
 
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
 
-        config = self.config.get(module_name)
+        target_dir = data_file_config.get("dest_path")
 
-        if config:
-            target_dir = config.get("dest_path")
+        # Default to near module or inside package folder.
+        if target_dir is None:
+            if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
+                target_dir = module_name.asPath()
+            else:
+                package_name = module_name.getPackageName()
 
-            # Default to near module or inside package folder.
-            if target_dir is None:
-                if (
-                    module.isCompiledPythonPackage()
-                    or module.isUncompiledPythonPackage()
-                ):
-                    target_dir = module_name.asPath()
+                if package_name is not None:
+                    target_dir = module_name.getPackageName().asPath()
                 else:
-                    package_name = module_name.getPackageName()
+                    target_dir = "."
 
-                    if package_name is not None:
-                        target_dir = module_name.getPackageName().asPath()
-                    else:
-                        target_dir = "."
-
-            patterns = config.get("patterns")
-            if patterns is not None:
-                if type(patterns) is not list or not patterns:
-                    self.sysexit(
-                        "Error, requiring list below 'pattern' entry for '%s' entry."
-                        % module_name
-                    )
-
-                # TODO: Pattern should be data file kind potentially.
-                for pattern in patterns:
-                    pattern = os.path.join(module_folder, pattern)
-
-                    for filename in resolveShellPatternToFilenames(pattern):
-                        yield self.makeIncludedDataFile(
-                            source_path=filename,
-                            dest_path=os.path.normpath(
-                                os.path.join(target_dir, os.path.basename(filename))
-                            ),
-                            reason="package data for %r" % module_name.asString(),
-                            tags="config",
-                        )
-
-            empty_dirs = config.get("empty_dirs")
-            if empty_dirs is not None:
-                if type(empty_dirs) is not list or not empty_dirs:
-                    self.sysexit(
-                        "Error, requiring list below 'empty_dirs' entry for '%s' entry."
-                        % module_name
-                    )
-
-                yield self.makeIncludedEmptyDirectories(
-                    source_path=target_dir,
-                    dest_paths=tuple(
-                        os.path.join(target_dir, empty_dir) for empty_dir in empty_dirs
-                    ),
-                    reason="empty dir needed for %r" % module_name.asString(),
-                    tags="config",
+        patterns = data_file_config.get("patterns")
+        if patterns is not None:
+            if type(patterns) is not list or not patterns:
+                self.sysexit(
+                    "Error, requiring list below 'pattern' entry for '%s' entry."
+                    % module_name
                 )
 
-            empty_dir_structures = config.get("empty_dir_structures")
-            if empty_dir_structures is not None:
-                if type(empty_dir_structures) is not list or not empty_dir_structures:
-                    self.sysexit(
-                        "Error, requiring list below 'empty_dirs_structure' entry for '%s' entry."
-                        % module_name
+            # TODO: Pattern should be data file kind potentially.
+            for pattern in patterns:
+                pattern = os.path.join(module_folder, pattern)
+
+                for filename in resolveShellPatternToFilenames(pattern):
+                    yield self.makeIncludedDataFile(
+                        source_path=filename,
+                        dest_path=os.path.normpath(
+                            os.path.join(target_dir, os.path.basename(filename))
+                        ),
+                        reason="package data for %r" % module_name.asString(),
+                        tags="config",
                     )
 
-                # TODO: This ignored dest_path, which is unused, but not consistent.
-                yield self._getSubDirectoryFolders(
-                    module, sub_dirs=empty_dir_structures
+        empty_dirs = data_file_config.get("empty_dirs")
+        if empty_dirs is not None:
+            if type(empty_dirs) is not list or not empty_dirs:
+                self.sysexit(
+                    "Error, requiring list below 'empty_dirs' entry for '%s' entry."
+                    % module_name
                 )
 
-            dirs = config.get("dirs")
-            if dirs is not None:
-                if type(dirs) is not list or not dirs:
-                    self.sysexit(
-                        "Error, requiring list below 'empty_dirs_structure' entry for '%s' entry."
-                        % module_name
+            yield self.makeIncludedEmptyDirectories(
+                source_path=target_dir,
+                dest_paths=tuple(
+                    os.path.join(target_dir, empty_dir) for empty_dir in empty_dirs
+                ),
+                reason="empty dir needed for %r" % module_name.asString(),
+                tags="config",
+            )
+
+        empty_dir_structures = data_file_config.get("empty_dir_structures")
+        if empty_dir_structures is not None:
+            if type(empty_dir_structures) is not list or not empty_dir_structures:
+                self.sysexit(
+                    "Error, requiring list below 'empty_dirs_structure' entry for '%s' entry."
+                    % module_name
+                )
+
+            # TODO: This ignored dest_path, which is unused, but not consistent.
+            yield self._getSubDirectoryFolders(module, sub_dirs=empty_dir_structures)
+
+        dirs = data_file_config.get("dirs")
+        if dirs is not None:
+            if type(dirs) is not list or not dirs:
+                self.sysexit(
+                    "Error, requiring list below 'empty_dirs_structure' entry for '%s' entry."
+                    % module_name
+                )
+
+            for data_dir in dirs:
+                source_path = os.path.join(module_folder, data_dir)
+
+                if os.path.isdir(source_path):
+                    yield self.makeIncludedDataDirectory(
+                        source_path=source_path,
+                        dest_path=os.path.join(target_dir, data_dir),
+                        reason="package data directory %r for %r"
+                        % (data_dir, module_name.asString()),
+                        tags="config",
                     )
 
-                for data_dir in dirs:
-                    source_path = os.path.join(module_folder, data_dir)
-
-                    if os.path.isdir(source_path):
-                        yield self.makeIncludedDataDirectory(
-                            source_path=source_path,
-                            dest_path=os.path.join(target_dir, data_dir),
-                            reason="package data directory %r for %r"
-                            % (data_dir, module_name.asString()),
-                            tags="config",
-                        )
+    def considerDataFiles(self, module):
+        config = self.config.get(module.getFullName(), section="data-files")
+        if config:
+            for included_data_file in self._considerDataFiles(
+                module=module, data_file_config=config
+            ):
+                yield included_data_file
 
     def _getSubDirectoryFolders(self, module, sub_dirs):
         """Get dirnames in given subdirectories of the module.

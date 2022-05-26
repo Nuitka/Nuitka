@@ -27,16 +27,43 @@ with these config files.
 
 import pkgutil
 
+from nuitka.containers.odict import OrderedDict
+from nuitka.Tracing import general
+
 from .Importing import importFromInlineCopy
 
 
 class Yaml(object):
+    __slots__ = ("data", "filename")
+
     def __init__(self, filename, data):
         self.filename = filename
-        self.data = data
 
-    def get(self, name):
-        return self.data.get(name)
+        assert type(data) is list
+
+        self.data = OrderedDict()
+
+        for item in data:
+            module_name = item.pop("module-name")
+
+            if "/" in module_name:
+                general.sysexit(
+                    "Error, invalid module name in '%s' looks like a file path '%s'."
+                    % (filename, module_name)
+                )
+
+            if module_name in self.data:
+                general.sysexit("Duplicate module-name '%s' encountered." % module_name)
+
+            self.data[module_name] = item
+
+    def get(self, name, section):
+        result = self.data.get(name)
+
+        if result is not None:
+            result = result.get(section)
+
+        return result
 
     def keys(self):
         return self.data.keys()

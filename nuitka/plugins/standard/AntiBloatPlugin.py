@@ -63,7 +63,9 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
 
-        self.config = parsePackageYaml(__package__, "anti-bloat.yml")
+        self.config = parsePackageYaml(
+            __package__, "standard.nuitka-package.config.yml"
+        )
 
         self.handled_modules = OrderedDict()
 
@@ -181,33 +183,30 @@ which can and should be a top level package and then one choice, "error",
 "warning", "nofollow", e.g. PyQt5:error.""",
         )
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def _onModuleSourceCode(self, module_name, anti_bloat_config, source_code):
         # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-        config = self.config.get(module_name)
-
-        if not config:
-            return source_code
-
         # Allow disabling config for a module with matching control tags.
-        for control_tag in config.get("control_tags", ()):
+        for control_tag in anti_bloat_config.get("control_tags", ()):
             if control_tag in self.control_tags:
                 return source_code
 
-        description = config.get("description", "description not given")
+        description = anti_bloat_config.get("description", "description not given")
 
         # To allow detection if it did anything.
         change_count = 0
 
         context = {}
-        context_code = config.get("context", "")
+        context_code = anti_bloat_config.get("context", "")
         if type(context_code) in (tuple, list):
             context_code = "\n".join(context_code)
 
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for replace_src, replace_code in config.get("replacements", {}).items():
+        for replace_src, replace_code in anti_bloat_config.get(
+            "replacements", {}
+        ).items():
             # Avoid the eval, if the replace doesn't hit.
             if replace_src not in source_code:
                 continue
@@ -245,14 +244,16 @@ which can and should be a top level package and then one choice, "error",
             if old != source_code:
                 change_count += 1
 
-        for replace_src, replace_dst in config.get("replacements_plain", {}).items():
+        for replace_src, replace_dst in anti_bloat_config.get(
+            "replacements_plain", {}
+        ).items():
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
 
             if old != source_code:
                 change_count += 1
 
-        append_code = config.get("append_result", "")
+        append_code = anti_bloat_config.get("append_result", "")
         if type(append_code) in (tuple, list):
             append_code = "\n".join(append_code)
 
@@ -278,7 +279,7 @@ which can and should be a top level package and then one choice, "error",
                 % (module_name.asString(), change_count, description)
             )
 
-        module_code = config.get("module_code", None)
+        module_code = anti_bloat_config.get("module_code", None)
 
         if module_code is not None:
             assert not change_count
@@ -292,14 +293,23 @@ which can and should be a top level package and then one choice, "error",
 
         return source_code
 
-    def onFunctionBodyParsing(self, module_name, function_name, body):
-        config = self.config.get(module_name)
+    def onModuleSourceCode(self, module_name, source_code):
+        config = self.config.get(module_name, section="anti-bloat")
+        if config:
+            for anti_bloat_config in config:
+                source_code = self._onModuleSourceCode(
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    source_code=source_code,
+                )
 
-        if not config:
-            return
+        return source_code
 
+    def _onFunctionBodyParsing(
+        self, module_name, anti_bloat_config, function_name, body
+    ):
         context = {}
-        context_code = config.get("context", "")
+        context_code = anti_bloat_config.get("context", "")
         if type(context_code) in (tuple, list):
             context_code = "\n".join(context_code)
 
@@ -307,7 +317,7 @@ which can and should be a top level package and then one choice, "error",
         context_ready = not bool(context_code)
 
         for change_function_name, replace_code in (
-            config.get("change_function") or {}
+            anti_bloat_config.get("change_function") or {}
         ).items():
             if function_name != change_function_name:
                 continue
@@ -339,6 +349,20 @@ which can and should be a top level package and then one choice, "error",
             self.info(
                 "Updated module '%s' function '%s'."
                 % (module_name.asString(), function_name)
+            )
+
+    def onFunctionBodyParsing(self, module_name, function_name, body):
+        config = self.config.get(module_name, section="anti-bloat")
+
+        if not config:
+            return
+
+        for anti_bloat_config in config:
+            self._onFunctionBodyParsing(
+                module_name=module_name,
+                anti_bloat_config=anti_bloat_config,
+                function_name=function_name,
+                body=body,
             )
 
     def onModuleRecursion(self, module_name, module_filename, module_kind):

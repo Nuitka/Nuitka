@@ -43,14 +43,9 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
     def __init__(self):
-        self.config = parsePackageYaml(__package__, "implicit-imports.yml")
-
-        for key in self.config.keys():
-            if "/" in key:
-                self.sysexit(
-                    "Error, invalid key in 'implicit-imports.yml' looks like a file path, not module name '%s'."
-                    % key
-                )
+        self.config = parsePackageYaml(
+            __package__, "standard.nuitka-package.config.yml"
+        )
 
     @staticmethod
     def isAlwaysEnabled():
@@ -104,7 +99,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         """Provides names of modules to imported implicitly."""
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
-        config = self.config.get(full_name)
+        config = self.config.get(full_name, section="implicit-imports")
 
         # Checking for config, but also allowing fall through.
         if config:

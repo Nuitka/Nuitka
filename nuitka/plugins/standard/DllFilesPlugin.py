@@ -37,7 +37,9 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
     plugin_name = "dll-files"
 
     def __init__(self):
-        self.config = parsePackageYaml(__package__, "dll-files.yml")
+        self.config = parsePackageYaml(
+            __package__, "standard.nuitka-package.config.yml"
+        )
 
     @staticmethod
     def isAlwaysEnabled():
@@ -108,38 +110,27 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 "Unsupported config for module '%s' encountered." % full_name.asString()
             )
 
-    def _handleDllConfigs(self, config, full_name):
-        dll_configs = config.get("dlls")
+    def getExtraDlls(self, module):
+        # TODO: Need to move all code here into configuration file usage.
+        # until then, pylint: disable=too-many-locals
 
-        if dll_configs:
-            if type(dll_configs) is not list or not dll_configs:
-                self.sysexit(
-                    "Error, requiring list below 'dlls' entry for '%s' entry."
-                    % full_name
-                )
+        full_name = module.getFullName()
 
+        # Checking for config, but also allowing fall through for cases that have to
+        # have some code still here.
+        config = self.config.get(full_name, section="dlls")
+        if config:
             found = 0
 
-            for count, dll_config in enumerate(dll_configs, start=1):
+            for count, dll_config in enumerate(config, start=1):
                 for dll_entry_point in self._handleDllConfig(
                     dll_config=dll_config, full_name=full_name, count=count
                 ):
                     yield dll_entry_point
                     found += 1
 
-            self.reportFileCount(full_name, found)
-
-    def getExtraDlls(self, module):
-        full_name = module.getFullName()
-
-        # Checking for config, but also allowing fall through for cases that have to
-        # have some code still here.
-        config = self.config.get(full_name)
-        if config:
-            for dll_entry_point in self._handleDllConfigs(
-                config=config, full_name=full_name
-            ):
-                yield dll_entry_point
+            if found > 0:
+                self.reportFileCount(full_name, found)
 
         # TODO: This is legacy code, ideally moved to yaml config over time.
         if full_name == "uuid" and isLinux():
