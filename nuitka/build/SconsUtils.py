@@ -321,7 +321,9 @@ def readSconsReport(source_dir):
     if source_dir not in _scons_reports:
         scons_report = {}
 
-        for line in getFileContentByLine(os.path.join(source_dir, "scons-report.txt")):
+        for line in getFileContentByLine(
+            os.path.join(source_dir, "scons-report.txt"), encoding="utf8"
+        ):
             if "=" not in line:
                 continue
 

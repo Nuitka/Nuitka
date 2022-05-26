@@ -205,15 +205,21 @@ tensorflow.python.framework.meta_graph:
 
 tensorflow.python.compiler.tensorrt.utils:
   description: "remove useless distutils usage"
-  replacements:
+  replacements_plain:
+    "from distutils import version\n": "\n"
     "from distutils import version as distutils_version": ""
-    "distutils_version.LooseVersion": "'str'"
+    "distutils_version.LooseVersion": "str"
 
 tensorflow.lite.python.convert:
   description: "remove useless distutils usage"
   replacements:
     "import distutils.spawn": ""
     "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
+
+tensorflow.python.autograph.core.ag_ctx:
+  description: "remove useless no-source warning"
+  replacements_plain:
+    "ag_logging.warning(": "if False: ag_logging.warning("
 
 gevent._util:
   description: "remove gevent release framework"

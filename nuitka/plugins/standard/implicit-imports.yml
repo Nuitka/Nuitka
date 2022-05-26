@@ -123,6 +123,11 @@ tensorflow:
   depends:
     - ".python.keras"
 
+tensorflow.python.compiler.tensorrt.trt_convert:
+  depends:
+    - "tensorflow.compiler.tf2tensorrt.ops.gen_trt_ops"
+    - "tensorflow.compiler.tf2tensorrt._pywrap_py_utils"
+
 persistent.ring:
   depends:
     - "_cffi_backend"
@@ -181,3 +186,7 @@ torch.onnx.symbolic_registry:
     - "torch.onnx.symbolic_opset12"
     - "torch.onnx.symbolic_opset14"
     - "torch.onnx.symbolic_opset15"
+
+torchvision.io.image:
+  depends:
+    - "torchvision.image"
