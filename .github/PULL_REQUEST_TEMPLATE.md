@@ -12,6 +12,7 @@ Before submitting a PR, please review the guidelines:
 # PR Checklist
 
 - [ ] Correct base branch selected? Should be `develop` branch.
+- [ ] Enabled commit hook.
 - [ ] All tests still pass. Check the Developer Manual about `Running the Tests`.
       There are GitHub Actions tests that cover the most important
       things however, and you are welcome to rely on those, but they might not
