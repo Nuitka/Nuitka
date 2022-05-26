@@ -31,8 +31,6 @@ import inspect
 import os
 from optparse import OptionConflictError, OptionGroup
 
-import nuitka.plugins.commercial
-import nuitka.plugins.standard
 from nuitka import Options, OutputDirectories
 from nuitka.__past__ import basestring, iter_modules, iterItems
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
@@ -251,14 +249,21 @@ def loadStandardPluginClasses():
     """Load plugin files located in 'standard' folder.
 
     Notes:
-        Scan through the 'standard' and 'commercial' sub-folder of the folder
-        where this module resides. Import each valid Python module (but not
-        packages) and process it as a plugin.
+        Scan through the 'standard' and 'commercial' plugins. Import each valid
+        Python module (but not packages) and process it as a plugin.
     Returns:
         None
     """
+    import nuitka.plugins.standard
+
     _loadPluginClassesFromPackage(nuitka.plugins.standard)
-    _loadPluginClassesFromPackage(nuitka.plugins.commercial)
+
+    try:
+        import nuitka.plugins.commercial
+    except ImportError:
+        pass
+    else:
+        _loadPluginClassesFromPackage(nuitka.plugins.commercial)
 
 
 class Plugins(object):
