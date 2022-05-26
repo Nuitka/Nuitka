@@ -994,7 +994,10 @@ def _shallUseStaticLibPython():
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
         if isAnacondaPython() and not isMacOS() and not isWin32Windows():
-            return True, "Nuitka on Anaconda needs package 'libpython' installed."
+            return (
+                True,
+                "Nuitka on Anaconda needs package 'libpython-static' installed.",
+            )
 
         if isPyenvPython():
             return True, "Nuitka on pyenv should not use '--enable-shared'."
