@@ -243,5 +243,8 @@
     ],
     "esbonio.server.enabled": true,
     "esbonio.sphinx.confDir": "",
-    "cSpell.spellCheckOnlyWorkspaceFiles": true
+    "cSpell.spellCheckOnlyWorkspaceFiles": true,
+    "yaml.schemas": {
+        ".vscode/nuitka-package-config-schema.json": "standard.nuitka-package.config.yml"
+    }
 }
