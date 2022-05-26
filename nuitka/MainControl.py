@@ -908,8 +908,12 @@ def main():
 
     if not Options.shallDumpBuiltTreeXML():
         general.info(
-            "Starting Python compilation with Nuitka %r on Python %r commercial %r."
-            % (getNuitkaVersion(), python_version_str, getCommercialVersion())
+            "Starting Python compilation with Nuitka %r on Python %r commercial grade %r."
+            % (
+                getNuitkaVersion(),
+                python_version_str,
+                getCommercialVersion() or "not installed",
+            )
         )
 
     filename = Options.getPositionalArgs()[0]
