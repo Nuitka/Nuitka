@@ -355,7 +355,7 @@ Removed assignment of %s from itself which is known to be defined."""
                         # Unused constants can be eliminated in any case.
                         if not last_trace.getUsageCount():
                             if not last_trace.getPrevious().isUnassignedTrace():
-                                result = StatementDelVariable(
+                                result = makeStatementDelVariable(
                                     variable=self.variable,
                                     version=self.variable_version,
                                     tolerant=True,
@@ -378,7 +378,7 @@ Removed assignment of %s from itself which is known to be defined."""
                             )
 
                             if not last_trace.getPrevious().isUnassignedTrace():
-                                result = StatementDelVariable(
+                                result = makeStatementDelVariable(
                                     variable=self.variable,
                                     version=self.variable_version,
                                     tolerant=True,
@@ -452,7 +452,7 @@ class StatementDelVariable(StatementBase):
         "tolerant",
     )
 
-    def __init__(self, tolerant, source_ref, variable, version=None):
+    def __init__(self, tolerant, variable, version, source_ref):
         if type(tolerant) is str:
             tolerant = tolerant == "True"
         assert tolerant is True or tolerant is False, repr(tolerant)
@@ -654,6 +654,12 @@ class StatementDelVariable(StatementBase):
                     return False
 
             return True
+
+
+def makeStatementDelVariable(variable, tolerant, source_ref, version=None):
+    return StatementDelVariable(
+        variable=variable, version=version, tolerant=tolerant, source_ref=source_ref
+    )
 
 
 class StatementReleaseVariable(StatementBase):

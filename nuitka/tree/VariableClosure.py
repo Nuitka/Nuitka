@@ -26,8 +26,8 @@ complete.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable,
     StatementReleaseVariable,
+    makeStatementDelVariable,
 )
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
@@ -253,7 +253,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable_name=variable_name
                 )
 
-                new_node = StatementDelVariable(
+                new_node = makeStatementDelVariable(
                     variable=variable,
                     tolerant=node.tolerant,
                     source_ref=node.source_ref,

@@ -25,9 +25,9 @@ source code comments with Developer Manual sections.
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementAssignmentVariableName,
-    StatementDelVariable,
     StatementDelVariableName,
     StatementReleaseVariable,
+    makeStatementDelVariable,
 )
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
@@ -382,7 +382,7 @@ not enough values to unpack (expected at least %d, got %%d)"""
             # Need to release temporary variables right after successful
             # usage.
             statements.append(
-                StatementDelVariable(
+                makeStatementDelVariable(
                     variable=element_var, tolerant=True, source_ref=source_ref
                 )
             )

@@ -28,8 +28,8 @@ from nuitka.tree.TreeHelpers import makeStatementsSequence
 
 from .AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable,
     StatementReleaseVariable,
+    makeStatementDelVariable,
 )
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
@@ -479,7 +479,7 @@ class StatementLocalsDictOperationDel(StatementBase):
                 trace_collection=trace_collection, variable_name=variable_name
             )
 
-            result = StatementDelVariable(
+            result = makeStatementDelVariable(
                 variable=variable, tolerant=False, source_ref=self.source_ref
             )
             result.parent = self.parent

@@ -25,7 +25,7 @@ from nuitka.__past__ import xrange
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementDelVariable,
+    makeStatementDelVariable,
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinGetattr,
@@ -840,7 +840,7 @@ def eval_extractor(node):
             "statements",
             final.subnode_statements
             + (
-                StatementDelVariable(
+                makeStatementDelVariable(
                     variable=source_variable, tolerant=True, source_ref=source_ref
                 ),
             ),
