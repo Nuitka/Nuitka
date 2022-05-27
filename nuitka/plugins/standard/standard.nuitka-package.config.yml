@@ -711,6 +711,13 @@
       change_function:
         "test": "'(lambda: None)'"
 
+- module-name: "pdb"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+        "help": "'(lambda: None)'"
+
 - module-name: "mailcap"
   anti-bloat:
     - description: "remove module ability to run as a binary"
