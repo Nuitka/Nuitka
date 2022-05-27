@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -183,15 +183,13 @@ def main():
             "expect_success",
             # Keep no temporary files.
             "remove_output",
-            # Include imported files, mostly nothing though.
-            "--follow-imports",
+            # Do not follow imports.
+            "--nofollow-imports",
             # Use the original __file__ value, at least one case warns about things
             # with filename included.
             "--file-reference-choice=original",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
-            # We annotate some tests, use that to lower warnings.
-            "plugin_enable:pylint-warnings",
         ]
 
         # This test should be run with the debug Python, and makes outputs to

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -1306,6 +1306,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
         "site",  # Not performance relevant and problems with .pth files
         "packaging",  # Not performance relevant.
         "appdirs",  # Not performance relevant.
+        "dropbox.team_log",  # Too large generated code
     )
 
     def decideCompilation(self, module_name):

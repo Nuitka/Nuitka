@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -1212,7 +1212,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
     Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(kw, &pos, &key, &value)) {
+    while (Nuitka_DictNext(kw, &pos, &key, &value)) {
         if (unlikely(!checkKeywordType(key))) {
             formatErrorKeywordsMustBeString(function);
             return -1;

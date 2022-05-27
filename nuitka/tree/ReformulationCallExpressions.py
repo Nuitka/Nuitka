@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,15 +29,13 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
 )
-from nuitka.nodes.DictionaryNodes import (
-    makeExpressionMakeDictOrConstant,
-    makeExpressionPairs,
-)
+from nuitka.nodes.DictionaryNodes import makeExpressionMakeDictOrConstant
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef,
 )
+from nuitka.nodes.KeyValuePairNodes import makeExpressionPairs
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef

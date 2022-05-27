@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -321,7 +321,9 @@ def readSconsReport(source_dir):
     if source_dir not in _scons_reports:
         scons_report = {}
 
-        for line in getFileContentByLine(os.path.join(source_dir, "scons-report.txt")):
+        for line in getFileContentByLine(
+            os.path.join(source_dir, "scons-report.txt"), encoding="utf8"
+        ):
             if "=" not in line:
                 continue
 

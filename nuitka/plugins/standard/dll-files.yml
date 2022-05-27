@@ -36,11 +36,30 @@ sklearn._distributor_init:
         - ""
       dest_path: "sklearn/.libs"
 
+tensorflow:
+  dlls:
+    - include_from_filenames:
+      dir: "core/platform"
+      patterns:
+        - "_cpu_feature_guard"
+      dest_path: "tensorflow/core/platform"
+
 clr:
   dlls:
     - include_from_filenames:
       dir: "."
       patterns:
-        "Python.Runtime"
+        - "Python.Runtime"
       dest_path:
         "."
+
+torchvision:
+  dlls:
+    - include_from_filenames:
+      dir: "."
+      patterns:
+        - "zlib"
+        - "libjpeg"
+        - "libpng*"
+      dest_path:
+        "torchvision"

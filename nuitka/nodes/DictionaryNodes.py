@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,10 +24,8 @@ that is the child of the dictionary creation.
 
 
 from nuitka import Constants
-from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import makeExpressionAttributeLookup
-from .BuiltinHashNodes import ExpressionBuiltinHash
 from .ConstantRefNodes import (
     ExpressionConstantDictEmptyRef,
     makeConstantRefNode,
@@ -58,79 +56,6 @@ from .NodeMakingHelpers import (
 from .shapes.StandardShapes import tshape_iterator
 
 
-def makeExpressionPairs(keys, values):
-    assert len(keys) == len(values)
-
-    return [
-        ExpressionKeyValuePair(
-            key=key, value=value, source_ref=key.getSourceReference()
-        )
-        for key, value in zip(keys, values)
-    ]
-
-
-class ExpressionKeyValuePair(
-    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
-):
-    kind = "EXPRESSION_KEY_VALUE_PAIR"
-
-    # They changed the order of evaluation with 3.5 to what you normally would expect.
-    if python_version < 0x350:
-        named_children = ("value", "key")
-    else:
-        named_children = ("key", "value")
-
-    def __init__(self, key, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"key": key, "value": value}, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        key = self.subnode_key
-
-        hashable = key.isKnownToBeHashable()
-
-        # If not known to be hashable, that can raise an exception.
-        if not hashable:
-            trace_collection.onExceptionRaiseExit(TypeError)
-
-        if hashable is False:
-            # TODO: If it's not hashable, we should turn it into a raise, it's
-            # just difficult to predict the exception value precisely, as it
-            # could be e.g. (2, []), and should then complain about the list.
-            pass
-
-        return self, None, None
-
-    def mayRaiseException(self, exception_type):
-        key = self.subnode_key
-
-        return (
-            key.mayRaiseException(exception_type)
-            or key.isKnownToBeHashable() is not True
-            or self.subnode_value.mayRaiseException(exception_type)
-        )
-
-    def extractSideEffects(self):
-        if self.subnode_key.isKnownToBeHashable() is True:
-            key_part = self.subnode_key.extractSideEffects()
-        else:
-            key_part = (
-                ExpressionBuiltinHash(
-                    value=self.subnode_key, source_ref=self.subnode_key.source_ref
-                ),
-            )
-
-        if python_version < 0x350:
-            return self.subnode_value.extractSideEffects() + key_part
-        else:
-            return key_part + self.subnode_value.extractSideEffects()
-
-    def onContentEscapes(self, trace_collection):
-        self.subnode_key.onContentEscapes(trace_collection)
-        self.subnode_value.onContentEscapes(trace_collection)
-
-
 def makeExpressionMakeDict(pairs, source_ref):
     if pairs:
         return ExpressionMakeDict(pairs, source_ref)
@@ -142,14 +67,12 @@ def makeExpressionMakeDict(pairs, source_ref):
 
 
 def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
-    # Create dictionary node. Tries to avoid it for constant values that are not
-    # mutable.
+    # Create dictionary node or constant value if possible.
 
     for pair in pairs:
-        # TODO: Compile time constant ought to be the criterion.
         if (
-            not pair.subnode_value.isExpressionConstantRef()
-            or not pair.subnode_key.isExpressionConstantRef()
+            not pair.isCompileTimeConstant()
+            or pair.isKeyKnownToBeHashable() is not True
         ):
             result = makeExpressionMakeDict(pairs, source_ref)
             break
@@ -159,8 +82,8 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
         # before being marshaled.
         result = makeConstantRefNode(
             constant=Constants.createConstantDict(
-                keys=[pair.subnode_key.getCompileTimeConstant() for pair in pairs],
-                values=[pair.subnode_value.getCompileTimeConstant() for pair in pairs],
+                keys=[pair.getKeyCompileTimeConstant() for pair in pairs],
+                values=[pair.getValueCompileTimeConstant() for pair in pairs],
             ),
             user_provided=user_provided,
             source_ref=source_ref,
@@ -168,7 +91,7 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
 
     if pairs:
         result.setCompatibleSourceReference(
-            source_ref=pairs[-1].subnode_value.getCompatibleSourceReference()
+            source_ref=pairs[-1].getCompatibleSourceReference()
         )
 
     return result
@@ -196,9 +119,10 @@ class ExpressionMakeDict(
         is_constant = True
 
         for pair in pairs:
-            key = pair.subnode_key
+            if pair.isKeyKnownToBeHashable() is False:
+                # The ones with constant keys are hashable.
+                key = pair.subnode_key
 
-            if key.isKnownToBeHashable() is False:
                 side_effects = []
 
                 for pair2 in pairs:
@@ -218,7 +142,9 @@ class ExpressionMakeDict(
                     source_ref=key.source_ref,
                 )
                 result = wrapExpressionWithSideEffects(
-                    side_effects=side_effects, old_node=key, new_node=result
+                    side_effects=side_effects,
+                    old_node=key,
+                    new_node=result,
                 )
 
                 return (
@@ -228,20 +154,15 @@ class ExpressionMakeDict(
                 )
 
             if is_constant:
-                if not key.isExpressionConstantRef():
+                if not pair.isCompileTimeConstant():
                     is_constant = False
-                else:
-                    value = pair.subnode_value
-
-                    if not value.isExpressionConstantRef():
-                        is_constant = False
 
         if not is_constant:
             return self, None, None
 
         constant_value = Constants.createConstantDict(
-            keys=[pair.subnode_key.getCompileTimeConstant() for pair in pairs],
-            values=[pair.subnode_value.getCompileTimeConstant() for pair in pairs],
+            keys=[pair.getKeyCompileTimeConstant() for pair in pairs],
+            values=[pair.getValueCompileTimeConstant() for pair in pairs],
         )
 
         new_node = makeConstantReplacementNode(
@@ -286,20 +207,18 @@ Created dictionary found to be constant.""",
         return True
 
     def getIterationValue(self, count):
-        return self.subnode_pairs[count].subnode_key
+        return self.subnode_pairs[count].getKeyNode()
 
     @staticmethod
     def getTruthValue():
         return True
 
     def isMappingWithConstantStringKeys(self):
-        return all(
-            pair.subnode_key.isExpressionConstantStrRef() for pair in self.subnode_pairs
-        )
+        return all(pair.isKeyExpressionConstantStrRef() for pair in self.subnode_pairs)
 
     def getMappingStringKeyPairs(self):
         return [
-            (pair.subnode_key.getCompileTimeConstant(), pair.subnode_value)
+            (pair.getKeyCompileTimeConstant(), pair.getValueNode())
             for pair in self.subnode_pairs
         ]
 
@@ -1268,6 +1187,10 @@ class ExpressionDictOperationUpdate2(
         assert dict_arg is not None
         assert iterable is not None
 
+        # TODO: Change generation of attribute nodes to pass it like this already.
+        if type(iterable) is tuple:
+            (iterable,) = iterable
+
         ExpressionChildrenHavingBase.__init__(
             self,
             values={"dict_arg": dict_arg, "iterable": iterable},
@@ -1278,7 +1201,7 @@ class ExpressionDictOperationUpdate2(
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
-        trace_collection.removeKnowledge(self.iterable)
+        trace_collection.removeKnowledge(self.subnode_iterable)
 
         # TODO: Until we can know KeyError won't happen, but then we should change into
         # something else.
@@ -1317,14 +1240,7 @@ class ExpressionDictOperationUpdate3(
             values={
                 "dict_arg": dict_arg,
                 "iterable": iterable,
-                "pairs": tuple(
-                    ExpressionKeyValuePair(
-                        makeConstantRefNode(key, source_ref),
-                        value,
-                        value.getSourceReference(),
-                    )
-                    for key, value in pairs
-                ),
+                "pairs": pairs,
             },
             source_ref=source_ref,
         )
@@ -1333,7 +1249,7 @@ class ExpressionDictOperationUpdate3(
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
-        # TODO: When iterable is None, this should be specialized further.
+        # TODO: When iterable is empty, this should be specialized further.
         if self.subnode_iterable is not None:
             trace_collection.removeKnowledge(self.subnode_iterable)
 

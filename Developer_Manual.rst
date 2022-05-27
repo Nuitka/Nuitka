@@ -435,11 +435,16 @@ block.
       git fetch upstream
       git rebase upstream/develop
 
-   Fix the merge conflicts if any, stash them and continue:
+   Fix the merge conflicts if any and continue or skip commit if it is
+   not your. Sometimes for important bug fixes, develop history gets
+   rewritten. In that case, old and new commits will conflict during
+   your rebase, and skipping is the best way to go.
 
    .. code:: bash
 
       git rebase --continue
+      # not your commit:
+      git rebase --skip
 
    If anything goes wrong while rebasing:
 

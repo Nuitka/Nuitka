@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -1491,7 +1491,6 @@ class ExpressionStrOperationDecode3(
 
     def __init__(self, str_arg, encoding, errors, source_ref):
         assert str_arg is not None
-        assert encoding is not None
         assert errors is not None
 
         ExpressionChildrenHavingBase.__init__(
@@ -1506,3 +1505,212 @@ class ExpressionStrOperationDecode3(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionStrOperationCountBase(
+    ExpressionBoolShapeExactMixin, ExpressionChildrenHavingBase
+):
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.count
+
+
+class ExpressionStrOperationCount2(ExpressionStrOperationCountBase):
+    kind = "EXPRESSION_STR_OPERATION_COUNT2"
+
+    named_children = ("str_arg", "sub")
+
+    def __init__(self, str_arg, sub, source_ref):
+        assert str_arg is not None
+        assert sub is not None
+
+        ExpressionStrOperationCountBase.__init__(
+            self,
+            values={"str_arg": str_arg, "sub": sub},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        sub = self.subnode_sub
+
+        if str_arg.isCompileTimeConstant() and sub.isCompileTimeConstant():
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(), sub.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.count' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sub is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationCount3(ExpressionStrOperationCountBase):
+    kind = "EXPRESSION_STR_OPERATION_COUNT3"
+
+    named_children = ("str_arg", "sub", "start")
+
+    def __init__(self, str_arg, sub, start, source_ref):
+        assert str_arg is not None
+        assert sub is not None
+        assert start is not None
+
+        ExpressionStrOperationCountBase.__init__(
+            self,
+            values={"str_arg": str_arg, "sub": sub, "start": start},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        sub = self.subnode_sub
+        start = self.subnode_start
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and sub.isCompileTimeConstant()
+            and start.isCompileTimeConstant()
+        ):
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    sub.getCompileTimeConstant(),
+                    start.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.count' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the arguments have wrong shapes
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationCount4(ExpressionStrOperationCountBase):
+    kind = "EXPRESSION_STR_OPERATION_COUNT4"
+
+    named_children = ("str_arg", "sub", "start", "end")
+
+    def __init__(self, str_arg, sub, start, end, source_ref):
+        assert str_arg is not None
+        assert sub is not None
+        assert start is not None
+        assert end is not None
+
+        ExpressionStrOperationCountBase.__init__(
+            self,
+            values={"str_arg": str_arg, "sub": sub, "start": start, "end": end},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        sub = self.subnode_sub
+        start = self.subnode_start
+        end = self.subnode_end
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and sub.isCompileTimeConstant()
+            and start.isCompileTimeConstant()
+            and end.isCompileTimeConstant()
+        ):
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    sub.getCompileTimeConstant(),
+                    start.getCompileTimeConstant(),
+                    end.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.count' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the arguments have wrong shapes
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationFormat(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents s.format() with only positional args."""
+
+    kind = "EXPRESSION_STR_OPERATION_FORMAT"
+
+    named_children = ("str_arg", "args", "pairs")
+
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.format
+
+    def __init__(self, str_arg, args, pairs, source_ref):
+        assert str_arg is not None
+        assert args or pairs
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={
+                "str_arg": str_arg,
+                "args": tuple(args),
+                "pairs": pairs,
+            },
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        args = self.subnode_args
+        pairs = self.subnode_pairs
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and all(arg.isCompileTimeConstant() for arg in args)
+            and all(pair.isCompileTimeConstant() for pair in pairs)
+        ):
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    *(arg.getCompileTimeConstant() for arg in args),
+                    **dict(
+                        (
+                            pair.getKeyCompileTimeConstant(),
+                            pair.getValueCompileTimeConstant(),
+                        )
+                        for pair in pairs
+                    )
+                ),
+                description="Built-in 'str.format' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    # TODO: Format strings are not yet looked at
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True

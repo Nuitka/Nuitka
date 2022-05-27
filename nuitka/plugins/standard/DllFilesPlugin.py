@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -89,18 +89,19 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
             dest_path = dll_config.get("dest_path")
 
-            for pattern in dll_config.get("patterns"):
-                for dll_filename, filename in listDllFilesFromDirectory(
-                    dll_dir, prefix=pattern
-                ):
-                    yield self.makeDllEntryPoint(
-                        source_path=dll_filename,
-                        dest_path=os.path.join(
-                            dest_path,
-                            filename,
-                        ),
-                        package_name=full_name,
-                    )
+            if os.path.exists(dll_dir):
+                for pattern in dll_config.get("patterns"):
+                    for dll_filename, filename in listDllFilesFromDirectory(
+                        dll_dir, prefix=pattern
+                    ):
+                        yield self.makeDllEntryPoint(
+                            source_path=dll_filename,
+                            dest_path=os.path.join(
+                                dest_path,
+                                filename,
+                            ),
+                            package_name=full_name,
+                        )
 
         if not config_found:
             self.sysexit(

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -106,10 +106,8 @@ class BuiltinParameterSpec(ParameterSpec):
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
-                    arg_name = given_dict_star_arg.subnode_key.getCompileTimeConstant()
-                    arg_value = (
-                        given_dict_star_arg.subnode_value.getCompileTimeConstant()
-                    )
+                    arg_name = given_dict_star_arg.getKeyCompileTimeConstant()
+                    arg_value = given_dict_star_arg.getValueCompileTimeConstant()
 
                     arg_dict[arg_name] = arg_value
 
@@ -309,15 +307,15 @@ builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), default_co
 
 
 class BuiltinParameterSpecSinglePosArgStarDictArgs(BuiltinParameterSpec):
-    def __init__(self, name):
+    def __init__(self, name, list_star_arg="list_args", dict_star_arg="kw_args"):
         BuiltinParameterSpec.__init__(
             self,
             name=name,
             arg_names=(),
             default_count=0,
-            list_star_arg="list_args",
+            list_star_arg=list_star_arg,
             is_list_star_arg_single=True,
-            dict_star_arg="kw_args",
+            dict_star_arg=dict_star_arg,
         )
 
 

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,12 +17,12 @@
 #
 """ Common helper functions for specializing code."""
 
-from nuitka.tools.quality.autoformat.Autoformat import (  # For import from here, pylint: disable=unused-import
-    withFileOpenedAndAutoformatted,
+from nuitka.tools.quality.auto_format.AutoFormat import (  # For import from here, pylint: disable=unused-import
+    withFileOpenedAndAutoFormatted,
 )
 
 
-def writeline(output, *args):
+def writeLine(output, *args):
     if not args:
         output.write("\n")
     elif len(args) == 1:
@@ -71,9 +71,9 @@ python3_dict_methods = (
 python2_str_methods = (
     "capitalize",  # has full str coverage
     "center",
-    "count",
-    "decode",
-    "encode",
+    "count",  # has full str coverage
+    "decode",  # has full str coverage
+    "encode",  # has full str coverage
     "endswith",  # has full str coverage
     "expandtabs",
     "find",  # has full str coverage
@@ -270,21 +270,32 @@ def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
                 spec.getStarListArgumentName(),
                 spec.getStarDictArgumentName(),
             )
+
             arg_name_mapping = {
-                "list_args": "iterable",
-                "kw_args": "pairs",
+                "list_args": spec.getStarListArgumentName(),
             }
         else:
             required = spec.getArgumentCount() - spec.getDefaultCount()
 
             arg_counts = tuple(range(required, spec.getArgumentCount() + 1))
 
-            arg_names = spec.getArgumentNames()
+            arg_names = spec.getParameterNames()
             arg_name_mapping = {}
-    else:
-        arg_names = arg_name_mapping = arg_counts = None
 
-    return present, arg_names, arg_name_mapping, arg_counts
+        arg_tests = [
+            (
+                ""
+                if arg_name
+                in (spec.getStarListArgumentName(), spec.getStarDictArgumentName())
+                else "is not None"
+            )
+            for arg_name in arg_names
+        ]
+
+    else:
+        arg_names = arg_name_mapping = arg_counts = arg_tests = None
+
+    return present, arg_names, arg_tests, arg_name_mapping, arg_counts
 
 
 def formatArgs(args, starting=True, finishing=True):

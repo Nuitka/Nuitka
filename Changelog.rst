@@ -10,6 +10,51 @@ Nuitka blog.
  Nuitka Release 0.9 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Fix, hard module name lookups leaked a reference to that object.
+   Fixed in 0.8.1 already.
+
+-  Python2: Fix, ``str.decode`` with ``errors`` as the only argument
+   wasn't working. Fixed in 0.8.1 already.
+
+-  Fix, could corrupt created uncompiled class objects ``__init__``
+   functions in case of descriptors being used.
+
+-  Standalone: Added support for newer ``torch``. Fixed in 0.8.1
+   already.
+
+-  Standalone: Added support for newer ``torchvision``. Fixed in 0.8.1
+   already.
+
+-  Fix, could compile time crash during initial parsing phase on
+   constant dictionary literals with non-hashable keys.
+
+   .. code:: python
+
+      { {}:1, }
+
+New Features
+============
+
+-  macOS: Signing now optionally uses hardened runtime as require for
+   notarization (not complete yet.)
+
+Optimization
+============
+
+-  Faster dictionary iteration with our own replacement for
+   ``PyDict_Next`` that avoids the DLL call overhead (in case of
+   non-static libpython) and does less unnecessary checks.
+
+-  Added optimization for ``str.count`` methods as well, this should
+   help in some cases with compile time optimization.
+
+-  The node for ``dict.update`` with only an iterable argument, but no
+   keyword arguments, was in fact unused due to wrongly generated code.
+   Also the form with no arguments wasn't yet handled properly.
+
 This release is not done yet.
 
 ********************
@@ -396,7 +441,7 @@ Summary
 This release has seen a lot of consolidation. The plugins layer for data
 files is now all powerful, allowing much nicer handling of them by the
 plugins, they are better reported in normal output, and they are also
-part of the report filet that Nuitka can create. You may now inhibit
+part of the report file that Nuitka can create. You may now also inhibit
 their inclusion from the command line, if you decide otherwise.
 
 The ``pyproject.toml`` now supporting Nuitka arguments is closing an
@@ -549,7 +594,7 @@ New Features
 -  Compiled types of Nuitka now inherit from uncompiled types. This
    should allow easier and more complete compatibility, making even code
    in extension modules that uses ``PyObject_IsInstance`` work, e.g.
-   ``pydanctic``.
+   ``pydantic``.
 
 -  macOS: Added signing of application bundles and standalone binaries
    for deployment to newer macOS platforms and esp. M1 where these are
@@ -1515,7 +1560,7 @@ New Features
    uncompiled types. This should allow easier and more complete
    compatibility, making even code in extension modules that uses
    ``PyObject_IsInstance`` work, providing support for packages like
-   ``pydanctic``.
+   ``pydantic``.
 
 -  Plugins: The Qt binding plugins now resolve ``pyqtgraph`` selection
    of binding by hard coding ``QT_LIB``. This will allow to resolve its
@@ -3396,7 +3441,7 @@ Bug Fixes
 -  Pipenv: Workaround parsing issue with our ``setup.py`` to allow
    installation from GitHub. Fixed in 0.6.10.1 already.
 
--  Merging of branches in optimization could give indeterministic
+-  Merging of branches in optimization could give nondeterministic
    results leading to more iterations than necessary. Fixed in 0.6.10.1
    already.
 
@@ -4295,7 +4340,7 @@ Bug Fixes
    initialisation and switch to built-in bytecode loader that is more
    compatible afterwards, increasing compatibility.
 
--  Standalone: Fix for pydanctic support.
+-  Standalone: Fix for ``pydantic`` support.
 
 -  Standalone: Added missing hidden dependency of uvicorn.
 
@@ -6892,8 +6937,8 @@ Tests
    ``depends.exe`` that wasn't populated on new installs.
 
 -  Refinements for CPython test suites to become more stable in results.
-   Some tests occasionally fail to clean up, or might do indeterministic
-   outputs, or are not relevant at all.
+   Some tests occasionally fail to clean up, or might do
+   nondeterministic outputs, or are not relevant at all.
 
 -  The tests don't use the runners, but more often do ``-m nuitka`` to
    become executable without having to find the proper runner. This
@@ -7218,7 +7263,7 @@ Optimization
    to exception raises and warned about if the according option is
    enabled.
 
--  Unhashable keys in dictionaries are now statically optimized to
+-  Non-hashable keys in dictionaries are now statically optimized to
    exception raises and warned about if the according option is enabled.
 
 -  Enable forward propagation for classes too, resulting in some classes

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -692,7 +692,7 @@ but errors may happen."""
         Tracing.general.warning(
             """\
 Using very slow fallback for ordered sets, please install 'ordered-set' or \
-'orderset' PyPI packages for best Python compile time performance."""
+'orderedset' PyPI packages for best Python compile time performance."""
         )
 
     if shallUsePythonDebug() and not isDebugPython():
@@ -994,7 +994,10 @@ def _shallUseStaticLibPython():
         # For Anaconda default to trying static lib python library, which
         # normally is just not available or if it is even unusable.
         if isAnacondaPython() and not isMacOS() and not isWin32Windows():
-            return True, "Nuitka on Anaconda needs package 'libpython' installed."
+            return (
+                True,
+                "Nuitka on Anaconda needs package 'libpython-static' installed.",
+            )
 
         if isPyenvPython():
             return True, "Nuitka on pyenv should not use '--enable-shared'."
@@ -1617,7 +1620,7 @@ def shallCompileWithoutBuildDirectory():
     return not shallRunInDebugger()
 
 
-def shallPreferSourcecodeOverExtensionModules():
+def shallPreferSourceCodeOverExtensionModules():
     """*bool* prefer source code over extension modules if both are there"""
     return options is not None and options.prefer_source_code
 

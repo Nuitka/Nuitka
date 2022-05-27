@@ -1,4 +1,4 @@
-#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2022, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -139,7 +139,7 @@ The Tcl library dir. See comments for Tk library dir.""",
 
         yield self.makeIncludedPackageDataFiles(
             package_name="tkinterdnd2",
-            package_directory=module.getCompileTimeDirectory,
+            package_directory=module.getCompileTimeDirectory(),
             pattern=os.path.join("tkinterdnd2", "tkdnd", platform_rep, "**"),
             reason="Tcl needed for 'tkinterdnd2' usage",
             tags="tcl",

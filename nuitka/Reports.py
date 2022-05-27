@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,7 @@
 
 from nuitka import TreeXML
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
+from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.ModuleRegistry import getDoneModules, getModuleInclusionInfos
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
@@ -63,6 +64,15 @@ def writeCompilationReport(report_filename):
                     tags=",".join(included_datafile.tags),
                 )
             )
+
+    search_path = getPackageSearchPath(None)
+
+    root.append(
+        TreeXML.Element(
+            "search_path",
+            dirs=":".join(search_path),
+        )
+    )
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,14 +36,19 @@ from .Reports import onMissingHelper
 
 expression_dispatch_dict = {}
 
+_ignore_list_overrides = set(("EXPRESSION_STR_OPERATION_FORMAT",))
 
-def addExpressionDispatchDict(dispatch_dict, update=False):
-    if not update:
-        for key in dispatch_dict:
-            assert key not in expression_dispatch_dict, key
 
-    # We use this to break the cyclic dependency.
-    expression_dispatch_dict.update(dispatch_dict)
+def addExpressionDispatchDict(dispatch_dict):
+    for key, value in dispatch_dict.items():
+
+        if key in expression_dispatch_dict:
+            if key not in _ignore_list_overrides:
+                assert False, key
+
+            continue
+
+        expression_dispatch_dict[key] = value
 
 
 def generateExpressionCode(to_name, expression, emit, context, allow_none=False):
@@ -127,23 +132,14 @@ def generateChildExpressionsCode(expression, emit, context):
             child_names = []
 
             for child_val in child_value:
-                if child_val.isExpressionKeyValuePair():
-                    child_names.append(
-                        tuple(
-                            generateChildExpressionsCode(
-                                expression=child_val, emit=emit, context=context
-                            )
-                        )
-                    )
-                else:
-                    generateExpressionCode(
-                        to_name=value_name,
-                        expression=child_val,
-                        emit=emit,
-                        context=context,
-                    )
+                generateExpressionCode(
+                    to_name=value_name,
+                    expression=child_val,
+                    emit=emit,
+                    context=context,
+                )
 
-                    child_names.append(value_name)
+                child_names.append(value_name)
 
             value_names.append(tuple(child_names))
         elif child_value is not None:

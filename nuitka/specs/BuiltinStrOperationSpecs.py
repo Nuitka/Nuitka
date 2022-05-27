@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -73,14 +73,16 @@ class StrMethodSpec(BuiltinParameterSpec):
         name,
         arg_names=(),
         default_count=0,
+        list_star_arg=None,
+        dict_star_arg=None,
     ):
         BuiltinParameterSpec.__init__(
             self,
             name="str." + name,
             arg_names=arg_names,
             default_count=default_count,
-            list_star_arg=None,
-            dict_star_arg=None,
+            list_star_arg=list_star_arg,
+            dict_star_arg=dict_star_arg,
             pos_only_args=(),
             kw_only_args=(),
         )
@@ -127,6 +129,14 @@ str_replace_spec = StrMethodSpecNoKeywords(
     "replace", arg_names=("old", "new", "count"), default_count=1
 )
 
+str_count_spec = StrMethodSpecNoKeywords(
+    "count", arg_names=("sub", "start", "end"), default_count=2
+)
+
+# str_format_spec = StrMethodSpec(
+#     "format", list_star_arg="args", dict_star_arg="pairs"
+# )
+
 str_capitalize_spec = StrMethodSpecNoKeywords("capitalize", arg_names=())
 str_upper_spec = StrMethodSpecNoKeywords("upper", arg_names=())
 str_lower_spec = StrMethodSpecNoKeywords("lower", arg_names=())
@@ -148,3 +158,13 @@ str_encode_spec = StrMethodSpec(
 str_decode_spec = StrMethodSpec(
     "decode", arg_names=("encoding", "errors"), default_count=2
 )
+
+# 'center' missing.
+# 'count' missing.
+# 'expandtabs' missing.
+# 'format' missing.
+# 'ljust' missing.
+# 'rjust' missing.
+# 'splitlines' missing.
+# 'translate' missing.
+# 'zfill' missing.

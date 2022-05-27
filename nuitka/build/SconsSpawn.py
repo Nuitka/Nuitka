@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -110,7 +110,7 @@ def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
             data = b""
 
     if env.pgo_mode == "use" and exit_code == 0:
-        # Very spammy, partially in native language for PGO link.
+        # Very noisy, partially in native language for PGO link.
         data = b""
 
     return data
@@ -140,8 +140,8 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             else:
                 return arg
 
-        newargs = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
-        cmdline = cmd + " " + newargs
+        new_args = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
+        cmdline = cmd + " " + new_args
 
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
@@ -161,12 +161,12 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
 
-            source_basenames = [
+            source_base_names = [
                 os.path.basename(source_file) for source_file in source_files
             ]
 
             def check(line):
-                return line in (b"", b"Generating Code...") or line in source_basenames
+                return line in (b"", b"Generating Code...") or line in source_base_names
 
             data = (
                 b"\r\n".join(line for line in data.split(b"\r\n") if not check(line))
@@ -183,10 +183,18 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             my_print(data, style="yellow", end="")
 
         if err:
+            err = (
+                b"\r\n".join(
+                    line for line in err.split(b"\r\n") if not isIgnoredError(line)
+                )
+                + b"\r\n"
+            )
+
             if str is not bytes:
                 err = decodeData(err)
 
-            my_print(err, style="yellow", end="")
+            if err:
+                my_print(err, style="yellow", end="")
 
         return rv
 
@@ -208,7 +216,9 @@ def _unescape(arg):
 
 
 def isIgnoredError(line):
-    # Many cases, pylint: disable=too-many-return-statements
+    # Many cases and return driven, pylint: disable=too-many-branches,too-many-return-statements
+
+    # spell-checker: ignore tmpnam,tempnam,structseq,bytearrayobject
 
     # Debian Python2 static libpython lto warnings:
     if b"function `posix_tmpnam':" in line:
@@ -228,7 +238,7 @@ def isIgnoredError(line):
     if b"at Python/import.c" in line:
         return True
 
-    # Bullseys when compiling in directory with spaces:
+    # Debian Bullseye when compiling in directory with spaces:
     if b"overriding recipe for target" in line:
         return True
     if b"ignoring old recipe for target" in line:
@@ -247,6 +257,10 @@ length parameter; this could be due to transposed parameters"""
 
     # The gcc LTO with debug information is deeply buggy with many messages:
     if b"Dwarf Error:" in line:
+        return True
+
+    # gcc from MinGW64 12.1 gives these, that seem non-consequential.
+    if line.startswith(b"mingw32-make:") and line.endswith(b"Error 1 (ignored)"):
         return True
 
     return False

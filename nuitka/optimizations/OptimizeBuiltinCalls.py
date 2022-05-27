@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -119,6 +119,9 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
+from nuitka.nodes.KeyValuePairNodes import (
+    makeKeyValuePairExpressionsFromKwArgs,
+)
 from nuitka.nodes.NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeExpressionBuiltinLocals,
@@ -316,7 +319,7 @@ def dict_extractor(node):
 
         return ExpressionBuiltinDict(
             pos_arg=pos_arg,
-            pairs=dict_star_arg,
+            pairs=makeKeyValuePairExpressionsFromKwArgs(dict_star_arg),
             source_ref=source_ref,
         )
 

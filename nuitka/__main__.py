@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,10 +56,10 @@ def main():
 
     # We will run with the Python configuration as specified by the user, if it does
     # not match, we restart ourselves with matching configuration.
-    needs_reexec = False
+    needs_re_execution = False
 
     if sys.flags.no_site == 0:
-        needs_reexec = True
+        needs_re_execution = True
 
     # The hash randomization totally changes the created source code created,
     # changing it every single time Nuitka is run. This kills any attempt at
@@ -67,10 +67,10 @@ def main():
     # actually may still use it, during compilation we don't want to. So lets
     # disable it.
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
-        needs_reexec = True
+        needs_re_execution = True
 
     # In case we need to re-execute.
-    if needs_reexec:
+    if needs_re_execution:
         from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
         # Does not return

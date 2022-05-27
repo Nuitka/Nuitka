@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -128,6 +128,11 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
         return True
 
     def computeExpressionRaw(self, trace_collection):
+        # Cannot compute any further, this is already the best.
+        return self, None, None
+
+    # Note: For computedExpressionResult to work, TODO: needed more generally?
+    def computeExpression(self, trace_collection):
         # Cannot compute any further, this is already the best.
         return self, None, None
 

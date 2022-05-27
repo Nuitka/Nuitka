@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -289,6 +289,7 @@ from .StringCodes import (
     generateBuiltinStrCode,
     generateBuiltinUnicodeCode,
     generateBytesOperationCode,
+    generateStrFormatMethodCode,
     generateStringContenationCode,
     generateStrOperationCode,
 )
@@ -800,6 +801,7 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
+        "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
     }
 )
 

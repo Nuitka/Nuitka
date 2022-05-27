@@ -1,8 +1,22 @@
-nuitka (0.9~rc1+ds-1) unstable; urgency=medium
+nuitka (0.9~rc3+ds-1) unstable; urgency=medium
 
   * New upstream pre-release.
 
- -- Kay Hayen <kay.hayen@gmail.com>  Thu, 19 May 2022 14:25:31 +0200
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 26 May 2022 15:51:12 +0200
+
+nuitka (0.8.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 26 May 2022 08:23:28 +0200
+
+nuitka (0.8.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+  * Python 3.10 is now compatible again. (Closes: #1006051)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 23 May 2022 08:31:51 +0200
 
 nuitka (0.8+ds-1) unstable; urgency=medium
 

@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -44,13 +44,13 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
     if ((strcmp(mode, "w") == 0) && buffering == false) {
         // TODO: Hard import code could be used for this.
         static PyObject *_io_module = NULL;
-        static PyObject *_io_module_textiowrapper = NULL;
+        static PyObject *_io_module_text_io_wrapper = NULL;
         if (_io_module == NULL) {
             _io_module = PyImport_ImportModule("_io");
             CHECK_OBJECT(_io_module);
 
-            _io_module_textiowrapper = PyObject_GetAttrString(_io_module, "TextIOWrapper");
-            CHECK_OBJECT(_io_module_textiowrapper);
+            _io_module_text_io_wrapper = PyObject_GetAttrString(_io_module, "TextIOWrapper");
+            CHECK_OBJECT(_io_module_text_io_wrapper);
         }
 
         PyObject *mode_obj2 = PyUnicode_FromString("wb");
@@ -65,7 +65,7 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
 
         PyObject *args[] = {binary_stream, Py_None, Py_None, Py_None, Py_False, Py_True};
 
-        result = CALL_FUNCTION_WITH_ARGS6(_io_module_textiowrapper, args);
+        result = CALL_FUNCTION_WITH_ARGS6(_io_module_text_io_wrapper, args);
     } else {
         result = BUILTIN_OPEN(filename, mode_obj, buffering_obj, NULL, NULL, NULL, NULL, NULL);
     }

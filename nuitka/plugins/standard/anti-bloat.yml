@@ -205,15 +205,21 @@ tensorflow.python.framework.meta_graph:
 
 tensorflow.python.compiler.tensorrt.utils:
   description: "remove useless distutils usage"
-  replacements:
+  replacements_plain:
+    "from distutils import version\n": "\n"
     "from distutils import version as distutils_version": ""
-    "distutils_version.LooseVersion": "'str'"
+    "distutils_version.LooseVersion": "str"
 
 tensorflow.lite.python.convert:
   description: "remove useless distutils usage"
   replacements:
     "import distutils.spawn": ""
     "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
+
+tensorflow.python.autograph.core.ag_ctx:
+  description: "remove useless no-source warning"
+  replacements_plain:
+    "ag_logging.warning(": "if False: ag_logging.warning("
 
 gevent._util:
   description: "remove gevent release framework"
@@ -703,3 +709,38 @@ orderedmultidict:
     "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
   replacements:
     "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
+
+tqdm.autonotebook:
+  description: "remove IPython reference"
+  module_code: |
+    from .std import tqdm, trange
+  control_tags:
+    - "allow_ipython"
+
+tqdm:
+  description: "remove IPython reference"
+  change_function:
+    "tqdm_notebook": "'(lambda *args, **kwargs: None)'"
+    "tnrange": "'(lambda *args, **kwargs: None)'"
+  control_tags:
+    - "allow_ipython"
+
+pandas.util:
+  description: "remove pandas testing framework"
+  replacements_plain:
+    'if name == "testing":': "if False:"
+
+torch.fx._symbolic_trace:
+  description: "workaround incompatible check"
+  replacements_plain:
+    "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
+
+torch._jit_internal:
+  description: "disable jit warnings"
+  replacements_plain:
+    "warnings.warn(": "if False: warnings.warn("
+
+scipy._lib._docscrape:
+  description: "remove sphinx reference"
+  replacements_plain:
+    "if 'sphinx' in sys.modules:": "if False:"
