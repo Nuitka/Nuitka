@@ -115,6 +115,12 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
             self.handled_modules[ModuleName(module_name)] = mode
 
+    def getCacheContributionValues(self, module_name):
+        config = self.config.get(module_name, section="anti-bloat")
+
+        if config:
+            yield str(config)
+
     @classmethod
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
@@ -334,7 +340,7 @@ which can and should be a top level package and then one choice, "error",
                     % (replace_code, context_code, e)
                 )
 
-            # Single node is required, extrace the generated module body with
+            # Single node is required, extract the generated module body with
             # single expression only statement value or a function body.
             replacement = ast.parse(replacement).body[0]
 
@@ -354,16 +360,14 @@ which can and should be a top level package and then one choice, "error",
     def onFunctionBodyParsing(self, module_name, function_name, body):
         config = self.config.get(module_name, section="anti-bloat")
 
-        if not config:
-            return
-
-        for anti_bloat_config in config:
-            self._onFunctionBodyParsing(
-                module_name=module_name,
-                anti_bloat_config=anti_bloat_config,
-                function_name=function_name,
-                body=body,
-            )
+        if config:
+            for anti_bloat_config in config:
+                self._onFunctionBodyParsing(
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    function_name=function_name,
+                    body=body,
+                )
 
     def onModuleRecursion(self, module_name, module_filename, module_kind):
         for handled_module_name, mode in self.handled_modules.items():

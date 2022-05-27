@@ -859,9 +859,20 @@ except ImportError:
             values=(("key", value),),
         ).key
 
-    @staticmethod
-    def onFunctionBodyParsing(module_name, function_name, body):
-        pass
+    def onFunctionBodyParsing(self, module_name, function_name, body):
+        """Provide a different function body for the function of that module."""
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def getCacheContributionValues(self, module_name):
+        """Provide values that represent the include of a plugin on the compilation.
+
+        This must be used to invalidate cache results, e.g. when using the
+        onFunctionBodyParsing function, and other things, that do not directly
+        affect the source code.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
 
     @classmethod
     def warning(cls, message):

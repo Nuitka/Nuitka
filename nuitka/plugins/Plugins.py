@@ -435,13 +435,13 @@ class Plugins(object):
 
     @staticmethod
     def onStandaloneDistributionFinished(dist_dir):
-        """Let plugins postprocess the distribution folder in standalone mode"""
+        """Let plugins post-process the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
 
     @staticmethod
     def onOnefileFinished(filename):
-        """Let plugins postprocess the onefile executable in onefile mode"""
+        """Let plugins post-process the onefile executable in onefile mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(filename)
 
@@ -1074,6 +1074,12 @@ class Plugins(object):
                 body=body,
             )
 
+    @classmethod
+    def getCacheContributionValues(cls, module_name):
+        for plugin in getActivePlugins():
+            for value in plugin.getCacheContributionValues(module_name):
+                yield value
+
 
 def listPlugins():
     """Print available standard plugins."""
@@ -1287,7 +1293,7 @@ def addPluginCommandLineOptions(parser, plugin_names):
     """Add option group for the plugin to the parser.
 
     Notes:
-        This is exclusively for use in the commandline parsing. Not all
+        This is exclusively for use in the command line parsing. Not all
         plugins have to have options. But this will add them to the
         parser in a first pass, so they can be recognized in a second
         pass with them included.
