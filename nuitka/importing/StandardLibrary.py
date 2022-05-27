@@ -279,6 +279,7 @@ _stdlib_no_auto_inclusion_list = (
     "compileall",
     "venv",
     "py_compile",
+    "msilib",
     # tkinter under all its names
     "Tkinter",
     "tkinter",
