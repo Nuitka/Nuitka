@@ -19,7 +19,7 @@
 
 from nuitka.Options import shallMakeModule
 
-from .CallCodes import getCallCodePosArgsQuick
+from .CallCodes import getCallCodeNoArgs, getCallCodePosArgsQuick
 from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
@@ -181,6 +181,33 @@ def generatePkgResourcesResourceStreamCallCode(to_name, expression, emit, contex
             called_name=resource_stream_function,
             expression=expression,
             arg_names=(package_name, resource_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateOsUnameCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "os_uname_value", expression, emit, context
+    ) as result_name:
+        resource_stream_function = context.allocateTempName(
+            "os_uname_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=resource_stream_function,
+            module_name="os",
+            import_name="uname",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodeNoArgs(
+            to_name=result_name,
+            called_name=resource_stream_function,
+            expression=expression,
             needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,

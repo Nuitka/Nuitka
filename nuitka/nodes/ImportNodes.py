@@ -54,6 +54,7 @@ from nuitka.specs.BuiltinParameterSpecs import (
 )
 from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import isWin32Windows
 
 from .ConstantRefNodes import (
     ExpressionConstantSysVersionInfoRef,
@@ -75,6 +76,7 @@ from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .PackageResourceNodes import (
     ExpressionImportlibResourcesReadBinaryRef,
     ExpressionImportlibResourcesReadTextRef,
+    ExpressionOsUnameRef,
     ExpressionPkglibGetDataRef,
     ExpressionPkgResourcesResourceStreamRef,
     ExpressionPkgResourcesResourceStringRef,
@@ -185,6 +187,13 @@ module_typing_trust = {
 }
 
 module_os_trust = {"name": trust_constant}
+
+if isWin32Windows():
+    module_os_trust["uname"] = trust_not_exist
+else:
+    module_os_trust["uname"] = trust_node
+
+    trust_node_factory[("os", "uname")] = ExpressionOsUnameRef
 
 hard_modules_trust = {
     "os": module_os_trust,

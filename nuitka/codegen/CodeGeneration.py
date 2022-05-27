@@ -246,6 +246,7 @@ from .OperationCodes import (
 from .PackageResourceCodes import (
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
+    generateOsUnameCallCode,
     generatePkglibGetDataCallCode,
     generatePkgResourcesResourceStreamCallCode,
     generatePkgResourcesResourceStringCallCode,
@@ -795,11 +796,13 @@ addExpressionDispatchDict(
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_UNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKGLIB_GET_DATA_CALL": generatePkglibGetDataCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": generatePkgResourcesResourceStringCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": generatePkgResourcesResourceStreamCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
+        "EXPRESSION_OS_UNAME_CALL": generateOsUnameCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
     }

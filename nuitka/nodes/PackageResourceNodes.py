@@ -25,7 +25,11 @@ from nuitka.specs.BuiltinParameterSpecs import (
 )
 
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionBase,
+    ExpressionChildrenHavingBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .ExpressionShapeMixins import (
     ExpressionBytesShapeExactMixin,
     ExpressionStrShapeExactMixin,
@@ -338,6 +342,63 @@ class ExpressionImportlibResourcesReadTextCall(
         )
 
     def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+os_uname_spec = BuiltinParameterSpec(
+    "os.uname",
+    (),
+    default_count=0,
+)
+
+
+# TODO: These types of nodes need a better organisation and potentially be generated.
+class ExpressionOsUnameRef(ExpressionImportModuleNameHardExists):
+    """Function reference os.uname"""
+
+    kind = "EXPRESSION_OS_UNAME_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExists.__init__(
+            self,
+            module_name="os",
+            import_name="uname",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsUnameCall,
+            builtin_spec=os_uname_spec,
+        )
+
+        return result, "new_expression", "Call to 'os.uname' recognized."
+
+
+class ExpressionOsUnameCall(
+    # TODO: We don*t have this
+    # ExpressionTupleShapeDerivedMixin,
+    ExpressionNoSideEffectsMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_OS_UNAME_CALL"
+
+    @staticmethod
+    def finalize():
+        pass
+
+    def computeExpressionRaw(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
