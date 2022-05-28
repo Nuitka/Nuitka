@@ -240,7 +240,11 @@
         "vmprof",
         "winlibs",
         "zstandard",
-        "zstd"
+        "zstd",
+        "_Py_DecodeUTF8_surrogateescape",
+        "curexc_traceback",
+        "_wtoi",
+        "__warningregistry__",
     ],
     "esbonio.server.enabled": true,
     "esbonio.sphinx.confDir": "",
