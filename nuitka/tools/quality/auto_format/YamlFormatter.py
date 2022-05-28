@@ -277,7 +277,3 @@ def _format_yaml(path):
         f.writelines(
             line + "\n" for line in restore_comments(dumped.splitlines(), comments)
         )
-
-
-if __name__ == "__main__":
-    _format_yaml("config copy.yml")
