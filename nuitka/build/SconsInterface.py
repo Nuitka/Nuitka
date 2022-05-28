@@ -366,7 +366,7 @@ def setCommonOptions(options):
     if Options.shallDisableCCacheUsage():
         options["disable_ccache"] = asBoolStr(True)
 
-    if Options.shallDisableConsoleWindow():
+    if Options.shallDisableConsoleWindow() and Options.mayDisableConsoleWindow():
         options["disable_console"] = asBoolStr(True)
 
     if Options.getLtoMode() != "auto":
