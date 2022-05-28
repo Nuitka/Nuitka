@@ -55,7 +55,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Utils import getOS
 
-from .YamlFormatter import _format_yaml
+from .YamlFormatter import formatYaml
 
 
 def cleanupWindowsNewlines(filename):
@@ -661,7 +661,7 @@ def autoFormatFile(
                 _cleanupRstFmt(tmp_filename)
 
             if is_yaml:
-                _format_yaml(tmp_filename)
+                formatYaml(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 

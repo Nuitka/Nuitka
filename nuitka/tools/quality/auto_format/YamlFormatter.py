@@ -1,49 +1,42 @@
+import json
+import os
 from collections import OrderedDict
 from copy import copy
 
 import yaml
 
-MASTER_KEYS = ["module-name", "data-files", "dlls", "anti-bloat", "implicit-imports"]
+with open(os.path.join(".vscode", "nuitka-package-config-schema.json")) as schema_file:
+    schema = json.load(schema_file)
 
-DATA_FILES_KEYS = [
-    "dirs",
-    "patterns",
-    "control_tags",
-    "empty_dirs",
-    "empty_dir_structures",
-]
-
-DLLS_KEYS = [
-    "include_from_code",
-    "setup_code",
-    "dll_filename_code",
-    "dest_path",
-    "include_from_filenames",
-    "dir",
-    "patterns",
-]
-
-ANTI_BLOAT_KEYS = [
-    "module_code",
-    "description",
-    "context",
-    "control_tags",
-    "replacements",
-    "replacements_plain",
-    "change_function",
-]
-
-IMPLICIT_IMPORTS_KEYS = ["depends", "standalone_macos_bundle_mode", "disable_console"]
+MASTER_KEYS = list(schema["items"]["properties"].keys())
+DATA_FILES_KEYS = list(
+    schema["items"]["properties"]["data-files"]["items"]["properties"].keys()
+)
+DLLS_KEYS = list(schema["items"]["properties"]["dlls"]["items"]["properties"].keys())
+ANTI_BLOAT_KEYS = list(
+    schema["items"]["properties"]["anti-bloat"]["items"]["properties"].keys()
+)
+IMPLICIT_IMPORTS_KEYS = list(
+    schema["items"]["properties"]["implicit-imports"]["items"]["properties"].keys()
+)
+del schema
 
 
-class MyDumper(yaml.SafeDumper):
+class _MyDumper(yaml.SafeDumper):
     def write_line_break(self, data=None):
         super().write_line_break(data)
         if len(self.indents) == 1:
             super().write_line_break()
 
+    def represent_dict(self, data):
+        super().represent_dict(data)
+        return self.represent_mapping(
+            "tag:yaml.org,2002:map",
+            data,
+        )
 
-def str_presenter(dumper, data):
+
+def _strPresenter(dumper, data):
     if data.count("\n") > 0:
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 
@@ -62,7 +55,7 @@ def str_presenter(dumper, data):
     )
 
 
-def get_on_top_comments(lines: list):
+def _getOnTopComments(lines: list):
     comments = {}
     new_lines = copy(lines)
     deleted_counter = 0
@@ -96,7 +89,7 @@ def get_on_top_comments(lines: list):
     return new_lines, comments
 
 
-def get_between_comments(lines: list, comments: dict):
+def _getBetweenComments(lines: list, comments: dict):
     new_lines = copy(lines)
     for i, line in enumerate(lines):
         if line.strip().startswith("#"):
@@ -130,7 +123,7 @@ def get_between_comments(lines: list, comments: dict):
     return lines, comments
 
 
-def get_end_of_line_comment(lines: list, comments: dict):
+def _getEndOfLineComment(lines: list, comments: dict):
     # sourcery skip: use-fstring-for-concatenation
     for i, line in enumerate(lines):
         splitted_line = line.split("#")
@@ -157,14 +150,14 @@ def get_end_of_line_comment(lines: list, comments: dict):
     return comments
 
 
-def get_comments(lines: list):
-    lines, comments = get_on_top_comments(lines)
-    lines, comments = get_between_comments(lines, comments)
-    comments = get_end_of_line_comment(lines, comments)
+def _getComments(lines: list):
+    lines, comments = _getOnTopComments(lines)
+    lines, comments = _getBetweenComments(lines, comments)
+    comments = _getEndOfLineComment(lines, comments)
     return comments
 
 
-def restore_comments(lines: list, comments: dict):
+def _restoreComments(lines: list, comments: dict):
     # sourcery skip: use-fstring-for-concatenation
     new_lines = copy(lines)
     new_lines_counter = 0
@@ -204,15 +197,15 @@ def restore_comments(lines: list, comments: dict):
     return new_lines
 
 
-def _format_yaml(path):
-    yaml.add_representer(str, str_presenter)
-    yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
-    with open(path) as f:
+def formatYaml(path):
+    yaml.add_representer(str, _strPresenter)
+    yaml.representer.SafeRepresenter.add_representer(str, _strPresenter)
+    with open(path, encoding="utf-8") as f:
         data = yaml.load(f, Loader=yaml.SafeLoader)
         f.seek(0)
         lines = f.read().splitlines()
         header = lines[:3]
-        comments = get_comments(lines[3:])
+        comments = _getComments(lines[3:])
 
     new_data = []
     for entry in data:
@@ -271,9 +264,9 @@ def _format_yaml(path):
 
     new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
 
-    with open(path, "w") as f:
-        dumped = yaml.dump(new_data, Dumper=MyDumper, width=10000000, sort_keys=False)
+    with open(path, "w", encoding="utf-8") as f:
+        dumped = yaml.dump(new_data, Dumper=_MyDumper, width=10000000, sort_keys=False)
         f.writelines(line + "\n" for line in header)
         f.writelines(
-            line + "\n" for line in restore_comments(dumped.splitlines(), comments)
+            line + "\n" for line in _restoreComments(dumped.splitlines(), comments)
         )
