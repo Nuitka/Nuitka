@@ -162,9 +162,14 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                     and mayDisableConsoleWindow()
                     and shallDisableConsoleWindow() is None
                 ):
+                    if isMacOS():
+                        downside_message = "Otherwise high resolution will not be available and a terminal window will open."
+                    else:
+                        downside_message = "Otherwise a terminal window will open."
+
                     self.info(
-                        "Note, when using '%s', consider using '--disable-console' option."
-                        % full_name
+                        "Note, when using '%s', consider using '--disable-console' option. %s"
+                        % (full_name, downside_message)
                     )
 
             if (
