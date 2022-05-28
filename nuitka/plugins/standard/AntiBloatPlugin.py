@@ -50,8 +50,11 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         noinclude_ipython_mode,
         noinclude_default_mode,
         custom_choices,
+        show_changes,
     ):
         # Many details, due to many repetitive arguments, pylint: disable=too-many-branches
+
+        self.show_changes = show_changes
 
         # Default manually to default argument value:
         if noinclude_setuptools_mode is None:
@@ -123,6 +126,15 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--show-anti-bloat-changes",
+            action="store_true",
+            dest="show_changes",
+            default=False,
+            help="""\
+Annotate what changes are by the plugin done.""",
+        )
+
         group.add_option(
             "--noinclude-setuptools-mode",
             action="store",
@@ -279,7 +291,7 @@ which can and should be a top level package and then one choice, "error",
             source_code += "\n" + append_result
             change_count += 1
 
-        if change_count > 0:
+        if change_count > 0 and self.show_changes:
             self.info(
                 "Handling module '%s' with %d change(s) for: %s."
                 % (module_name.asString(), change_count, description)
@@ -290,10 +302,11 @@ which can and should be a top level package and then one choice, "error",
         if module_code is not None:
             assert not change_count
 
-            self.info(
-                "Handling module '%s' with full replacement : %s."
-                % (module_name.asString(), description)
-            )
+            if self.show_changes:
+                self.info(
+                    "Handling module '%s' with full replacement : %s."
+                    % (module_name.asString(), description)
+                )
 
             source_code = module_code
 
@@ -357,10 +370,11 @@ which can and should be a top level package and then one choice, "error",
             else:
                 body[:] = replacement.body
 
-            self.info(
-                "Updated module '%s' function '%s'."
-                % (module_name.asString(), function_name)
-            )
+            if self.show_changes:
+                self.info(
+                    "Updated module '%s' function '%s'."
+                    % (module_name.asString(), function_name)
+                )
 
     def onFunctionBodyParsing(self, module_name, function_name, body):
         config = self.config.get(module_name, section="anti-bloat")
@@ -389,9 +403,10 @@ which can and should be a top level package and then one choice, "error",
                 # Either issue a warning, or pretend the module doesn't exist for standalone or
                 # at least will not be included.
                 if mode == "nofollow":
-                    self.info(
-                        "Forcing import of '%s' to not be followed." % module_name
-                    )
+                    if self.show_changes:
+                        self.info(
+                            "Forcing import of '%s' to not be followed." % module_name
+                        )
                     return (
                         False,
                         "user requested to not follow '%s' import" % module_name,
