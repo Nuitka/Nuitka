@@ -35,7 +35,6 @@ from nuitka.tools.quality.Git import (
     updateWorkingFile,
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
-from nuitka.tools.quality.autoformat.YamlFormatter import format_yaml
 from nuitka.tools.release.Documentation import extra_rst_keywords
 from nuitka.Tracing import general, my_print
 from nuitka.utils.Execution import (
@@ -55,6 +54,8 @@ from nuitka.utils.FileOperations import (
     withPreserveFileMode,
 )
 from nuitka.utils.Utils import getOS
+
+from .YamlFormatter import _format_yaml
 
 
 def cleanupWindowsNewlines(filename):
@@ -611,7 +612,7 @@ def autoFormatFile(
     )
 
     is_rst = effective_filename.endswith(".rst")
-    is_yaml = effective_filename.edswith(".yml")
+    is_yaml = effective_filename.endswith(".yml")
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
@@ -660,7 +661,7 @@ def autoFormatFile(
                 _cleanupRstFmt(tmp_filename)
 
             if is_yaml:
-                format_yaml(tmp_filename)
+                _format_yaml(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 
