@@ -28,13 +28,6 @@ class _MyDumper(yaml.SafeDumper):
         if len(self.indents) == 1:
             super().write_line_break()
 
-    def represent_dict(self, data):
-        super().represent_dict(data)
-        return self.represent_mapping(
-            "tag:yaml.org,2002:map",
-            data,
-        )
-
 
 def _strPresenter(dumper, data):
     if data.count("\n") > 0:
