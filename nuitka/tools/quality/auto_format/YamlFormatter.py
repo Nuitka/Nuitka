@@ -166,7 +166,6 @@ def get_comments(lines: list):
 
 def restore_comments(lines: list, comments: dict):
     # sourcery skip: use-fstring-for-concatenation
-    print(comments)
     new_lines = copy(lines)
     new_lines_counter = 0
     for i, line in enumerate(lines):
@@ -175,7 +174,6 @@ def restore_comments(lines: list, comments: dict):
             if module_name in comments:
                 for entry in comments[module_name]:
                     if entry["type"] == "on-top":
-                        print(entry["comment"])
                         new_lines.insert(i + new_lines_counter, entry["comment"])
 
                         new_lines_counter += 1
