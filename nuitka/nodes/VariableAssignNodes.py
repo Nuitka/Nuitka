@@ -153,7 +153,7 @@ class StatementAssignmentVariable(StatementChildHavingBase):
     def isInplaceSuspect(self):
         return self.inplace_suspect
 
-    def unmarkAsInplaceSuspect(self):
+    def removeMarkAsInplaceSuspect(self):
         self.inplace_suspect = False
 
     def mayRaiseException(self, exception_type):

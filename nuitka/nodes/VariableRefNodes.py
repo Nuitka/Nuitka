@@ -337,7 +337,7 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
             statement = self.parent.parent
 
             if statement.isStatementAssignmentVariable():
-                statement.unmarkAsInplaceSuspect()
+                statement.removeMarkAsInplaceSuspect()
 
         # Need to compute the replacement still.
         return replacement.computeExpressionRaw(trace_collection)
@@ -616,7 +616,7 @@ def makeExpressionVariableRef(variable, locals_scope, source_ref):
         return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
-# Note: Temporary variable references are to be guarantueed to not raise
+# Note: Temporary variable references are to be guaranteed to not raise
 # therefore no side effects.
 class ExpressionTempVariableRef(
     ExpressionNoSideEffectsMixin, ExpressionVariableRefBase
