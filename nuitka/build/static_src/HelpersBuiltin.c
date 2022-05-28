@@ -30,7 +30,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-static PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args) {
+PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args) {
     int i = 0;
 
     while (i < max_args) {
