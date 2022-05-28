@@ -330,12 +330,23 @@
     - description: "disable distutils hacks"
       replacements:
         "import setuptools": "'pass'"
+    - description: "disable distutils hacks"
+      change_function:
+        "get_extension": "un-callable"
+        "_build": "un-callable"
+      control_tags:
+        - "allow_cffi_recompiler"
 
 - module-name: "cffi.api"
   anti-bloat:
-    - description: "disable distutils extension build"
+    - description: "disable source recompile"
       change_function:
-        "distutils_extension": "'(lambda: None)'"
+        "emit_python_code": "un-callable"
+        "emit_c_code": "un-callable"
+        "compile": "un-callable"
+        "distutils_extension": "un-callable"
+      control_tags:
+        - "allow_cffi_recompiler"
 
 - module-name: "sklearn.random_projection"
   anti-bloat:
@@ -388,6 +399,14 @@
       change_function:
         "install_repl_displayhook": "'(lambda: None)'"
         "uninstall_repl_displayhook": "'(lambda: None)'"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "matplotlib.figure"
+  anti-bloat:
+    - description: "remove IPython reference"
+      change_function:
+        "_repr_html_": "un-callable"
       control_tags:
         - "allow_ipython"
 
@@ -1362,3 +1381,15 @@
   implicit-imports:
     depends:
       - "torchvision.image"
+
+- module-name: "pyparsing"
+  anti-bloat:
+    - description: "remove pdb usage"
+      change_function:
+        "setBreak": "'(lambda self: None)'"
+
+- module-name: "pkg_resources._vendor.pyparsing"
+  anti-bloat:
+    - description: "remove pdb usage"
+      change_function:
+        "setBreak": "'(lambda self: None)'"

@@ -322,12 +322,15 @@ which can and should be a top level package and then one choice, "error",
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for change_function_name, replace_code in (
-            anti_bloat_config.get("change_function") or {}
-        ).items():
-            if function_name != change_function_name:
-                continue
+        replace_code = anti_bloat_config.get("change_function", {}).get(function_name)
 
+        if replace_code == "un-callable":
+            replace_code = """'raise RuntimeError("Must not call %s.%s")'""" % (
+                module_name,
+                function_name,
+            )
+
+        if replace_code is not None:
             if not context_ready:
                 exec(context_code, context)
                 context_ready = True
@@ -349,6 +352,8 @@ which can and should be a top level package and then one choice, "error",
                     body[:] = [ast.Return(replacement.value.body)]
                 else:
                     body[:] = [ast.Return(replacement.value)]
+            elif type(replacement) is ast.Raise:
+                body[:] = [replacement]
             else:
                 body[:] = replacement.body
 
