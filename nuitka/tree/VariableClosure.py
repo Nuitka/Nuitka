@@ -24,11 +24,6 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-    makeStatementDelVariable,
-)
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
     ExpressionLocalsVariableRef,
@@ -41,6 +36,11 @@ from nuitka.nodes.NodeMakingHelpers import (
     mergeStatements,
 )
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import (
+    StatementReleaseVariable,
+    makeStatementDelVariable,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     makeExpressionVariableRef,

@@ -22,7 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
@@ -41,6 +40,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence,
 )
 from nuitka.nodes.TryNodes import StatementTry
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 

@@ -96,8 +96,8 @@ def generateDelVariableCode(statement, emit, context):
             variable=statement.getVariable(),
             variable_trace=statement.variable_trace,
             previous_trace=statement.previous_trace,
-            tolerant=statement.isTolerant(),
-            needs_check=statement.isTolerant()
+            tolerant=statement.is_tolerant,
+            needs_check=statement.is_tolerant
             or statement.mayRaiseException(BaseException),
             emit=emit,
             context=context,

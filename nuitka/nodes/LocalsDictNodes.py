@@ -26,15 +26,15 @@ from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
-from .AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-    makeStatementDelVariable,
-)
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .VariableAssignNodes import StatementAssignmentVariable
+from .VariableDelNodes import (
+    StatementReleaseVariable,
+    makeStatementDelVariable,
+)
 from .VariableRefNodes import ExpressionTempVariableRef
 
 

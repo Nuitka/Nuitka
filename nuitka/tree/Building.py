@@ -69,7 +69,6 @@ from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
     makeExpressionAttributeLookup,
@@ -121,7 +120,10 @@ from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
-from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode

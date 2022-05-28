@@ -19,10 +19,6 @@
 
 One for each type of call. """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
     makeExpressionAttributeLookup,
@@ -72,6 +68,8 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinType1,
 )
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,

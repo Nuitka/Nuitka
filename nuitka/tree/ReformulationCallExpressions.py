@@ -22,7 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
@@ -38,6 +37,7 @@ from nuitka.nodes.FunctionNodes import (
 from nuitka.nodes.KeyValuePairNodes import makeExpressionPairs
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 

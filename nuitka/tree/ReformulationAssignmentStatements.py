@@ -22,13 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementDelVariableName,
-    StatementReleaseVariable,
-    makeStatementDelVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
     StatementDelAttribute,
@@ -74,11 +67,18 @@ from nuitka.nodes.SubscriptNodes import (
     StatementAssignmentSubscript,
     StatementDelSubscript,
 )
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTempVariableRef,
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import (
+    StatementReleaseVariable,
+    makeStatementDelVariable,
+)
+from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+    StatementDelVariableName,
 )
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.Options import hasPythonFlagNoAnnotations, isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general

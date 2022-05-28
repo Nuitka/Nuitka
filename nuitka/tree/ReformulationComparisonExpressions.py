@@ -22,15 +22,13 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement

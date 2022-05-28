@@ -28,10 +28,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
@@ -60,6 +56,8 @@ from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,

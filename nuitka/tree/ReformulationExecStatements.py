@@ -22,10 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
@@ -40,6 +36,8 @@ from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement

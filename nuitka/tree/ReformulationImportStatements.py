@@ -22,11 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
@@ -38,6 +33,9 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 

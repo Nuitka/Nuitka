@@ -24,11 +24,6 @@ source code comments with Developer Manual sections.
 
 import ast
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
     makeExpressionAttributeLookup,
@@ -48,6 +43,9 @@ from nuitka.nodes.TypeMatchNodes import (
     ExpressionMatchTypeCheckSequence,
 )
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .ReformulationBooleanExpressions import makeAndNode, makeOrNode

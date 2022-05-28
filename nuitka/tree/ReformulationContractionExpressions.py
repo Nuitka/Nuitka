@@ -23,10 +23,6 @@ source code comments with Developer Manual sections.
 """
 
 from nuitka.__past__ import intern
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
     ExpressionMakeAsyncgenObject,
@@ -69,6 +65,8 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
