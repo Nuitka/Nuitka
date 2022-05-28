@@ -83,7 +83,6 @@ def _getOnTopComments(lines: list):
 
 
 def _getBetweenComments(lines: list, comments: dict):
-    new_lines = copy(lines)
     for i, line in enumerate(lines):
         if line.strip().startswith("#"):
             comment = line
