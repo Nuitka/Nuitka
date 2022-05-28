@@ -160,7 +160,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 if (
                     disable_console == "recommend"
                     and mayDisableConsoleWindow()
-                    and not shallDisableConsoleWindow()
+                    and shallDisableConsoleWindow() is None
                 ):
                     self.info(
                         "Note, when using '%s', consider using '--disable-console' option."
