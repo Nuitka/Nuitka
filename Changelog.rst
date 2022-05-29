@@ -35,6 +35,13 @@ Bug Fixes
 
       { {}:1, }
 
+-  Fix, hard imported sub-modules of hard imports were falsely resolved
+   to their parent. Fixed in 0.8.3 already.
+
+   .. code:: python
+
+      importlib.resources.read_bytes() # gave importlib has no attribute...
+
 New Features
 ============
 
