@@ -1011,8 +1011,30 @@ Where to output --verbose, should be a filename. Default is standard output.""",
 
 parser.add_option_group(tracing_group)
 
-
 os_group = OptionGroup(parser, "General OS controls")
+
+os_group.add_option(
+    "--disable-console",
+    "--macos-disable-console",
+    "--windows-disable-console",
+    action="store_true",
+    dest="disable_console",
+    default=None,
+    help="""\
+When compiling for Windows or macOS, disable the console window and create a GUI
+application. Defaults to off.""",
+)
+
+os_group.add_option(
+    "--enable-console",
+    action="store_false",
+    dest="disable_console",
+    default=None,
+    help="""\
+When compiling for Windows or macOS, enable the console window and create a console
+application. This disables hints from certain modules, e.g. "PySide" that suggest
+to disable it. Defaults to true.""",
+)
 
 os_group.add_option(
     "--force-stdout-spec",
@@ -1051,15 +1073,6 @@ windows_group.add_option(
     dest="dependency_tool",
     default=None,
     help=SUPPRESS_HELP,
-)
-
-windows_group.add_option(
-    "--windows-disable-console",
-    action="store_true",
-    dest="disable_console",
-    default=False,
-    help="""\
-When compiling for Windows, disable the console window. Defaults to off.""",
 )
 
 windows_group.add_option(
@@ -1213,17 +1226,6 @@ macos_group.add_option(
 What architectures is this to supposed to run on. Default and limit
 is what the running Python allows for. Default is "native" which is
 the architecture the Python is run with.""",
-)
-
-macos_group.add_option(
-    "--macos-disable-console",
-    "--disable-console",
-    action="store_true",
-    dest="disable_console",
-    default=False,
-    help="""\
-When compiling for macOS, disable the console window and create a GUI
-application. Defaults to off.""",
 )
 
 macos_group.add_option(

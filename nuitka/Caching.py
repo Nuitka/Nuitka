@@ -24,6 +24,7 @@ such that it allows to restore it directly.
 import os
 
 from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
+from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, makePath
 from nuitka.utils.Hashing import Hash, getStringHash
@@ -125,5 +126,7 @@ def getModuleImportableFilesHash(full_name):
         for fullname, filename in listDir(path):
             if isPackageDir(fullname) or filename.endswith(all_suffixes):
                 result_hash.updateFromValues(filename, b"\0")
+
+    result_hash.updateFromValues(*Plugins.getCacheContributionValues(full_name))
 
     return result_hash.asHexDigest()

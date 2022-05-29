@@ -43,14 +43,9 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
     def __init__(self):
-        self.config = parsePackageYaml(__package__, "implicit-imports.yml")
-
-        for key in self.config.keys():
-            if "/" in key:
-                self.sysexit(
-                    "Error, invalid key in 'implicit-imports.yml' looks like a file path, not module name '%s'."
-                    % key
-                )
+        self.config = parsePackageYaml(
+            __package__, "standard.nuitka-package.config.yml"
+        )
 
     @staticmethod
     def isAlwaysEnabled():
@@ -104,7 +99,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         """Provides names of modules to imported implicitly."""
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
-        config = self.config.get(full_name)
+        config = self.config.get(full_name, section="implicit-imports")
 
         # Checking for config, but also allowing fall through.
         if config:
@@ -165,11 +160,16 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 if (
                     disable_console == "recommend"
                     and mayDisableConsoleWindow()
-                    and not shallDisableConsoleWindow()
+                    and shallDisableConsoleWindow() is None
                 ):
+                    if isMacOS():
+                        downside_message = "Otherwise high resolution will not be available and a terminal window will open."
+                    else:
+                        downside_message = "Otherwise a terminal window will open."
+
                     self.info(
-                        "Note, when using '%s', consider using '--disable-console' option."
-                        % full_name
+                        "Note, when using '%s', consider using '--disable-console' option. %s"
+                        % (full_name, downside_message)
                     )
 
             if (

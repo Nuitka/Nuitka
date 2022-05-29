@@ -21,11 +21,9 @@ Done by assigning the argument values to variables, and producing an outline
 from the in-lined function.
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,

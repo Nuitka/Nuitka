@@ -23,10 +23,6 @@ source code comments with Developer Manual sections.
 """
 
 from nuitka import Options
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookupSpecial,
     makeExpressionAttributeLookup,
@@ -52,6 +48,8 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version

@@ -1911,7 +1911,7 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 #if PYTHON_VERSION >= 0x270
 iternextfunc default_iternext;
 
-void _initSlotIternext(void) {
+void _initSlotIterNext(void) {
     PyObject *pos_args = PyTuple_New(1);
     PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyBaseObject_Type);
     Py_INCREF(&PyBaseObject_Type);

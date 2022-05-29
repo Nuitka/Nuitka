@@ -616,11 +616,9 @@ a) If a suitable Visual Studio version is installed, it will be located
 
 b) Using --mingw64 lets Nuitka download MinGW64 for you.
 
-Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
-Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc
-will not work. MSYS2 based gcc will only work if you know what you are doing.
-
-Note: The clang-cl will only work if Visual Studio already works for you.
+Note: MinGW64 is the name, it does *not* mean 64 bits, just a gcc with
+better Windows compatibility, it is available for 32 and 64 bits. Cygwin
+based gcc do not work.
 """
         )
     else:

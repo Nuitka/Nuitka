@@ -30,7 +30,7 @@ from nuitka.Options import (
     getAppImageCompression,
     getIconPaths,
 )
-from nuitka.OutputDirectories import getResultBasepath, getResultFullpath
+from nuitka.OutputDirectories import getResultBasePath, getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessingResources
 from nuitka.PythonVersions import python_version
@@ -137,17 +137,17 @@ exec -a $ARGV0 $APPDIR/%s \"$@\""""
 
     addFileExecutablePermission(apprun_filename)
 
-    binary_basename = os.path.basename(getResultBasepath())
+    binary_basename = os.path.basename(getResultBasePath())
 
     icon_paths = getIconPaths()
 
     assert icon_paths
     extension = os.path.splitext(icon_paths[0])[1].lower()
 
-    copyFile(icon_paths[0], getResultBasepath() + extension)
+    copyFile(icon_paths[0], getResultBasePath() + extension)
 
     putTextFileContents(
-        getResultBasepath() + ".desktop",
+        getResultBasePath() + ".desktop",
         contents="""\
 [Desktop Entry]
 Name=%(binary_basename)s
@@ -243,7 +243,7 @@ def _runOnefileScons(quiet, onefile_compression):
     asBoolStr = SconsInterface.asBoolStr
 
     options = {
-        "result_name": OutputDirectories.getResultBasepath(onefile=True),
+        "result_name": OutputDirectories.getResultBasePath(onefile=True),
         "result_exe": OutputDirectories.getResultFullpath(onefile=True),
         "source_dir": source_dir,
         "debug_mode": asBoolStr(Options.is_debug),

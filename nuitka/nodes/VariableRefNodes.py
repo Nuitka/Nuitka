@@ -47,60 +47,6 @@ from .NodeMakingHelpers import (
 from .shapes.StandardShapes import tshape_unknown
 
 
-class ExpressionVariableNameRef(ExpressionBase):
-    """These are used before the actual variable object is known from VariableClosure."""
-
-    kind = "EXPRESSION_VARIABLE_NAME_REF"
-
-    __slots__ = "variable_name", "provider"
-
-    def __init__(self, provider, variable_name, source_ref):
-        assert not provider.isExpressionOutlineBody(), source_ref
-
-        ExpressionBase.__init__(self, source_ref=source_ref)
-
-        self.variable_name = variable_name
-
-        self.provider = provider
-
-    def finalize(self):
-        del self.parent
-        del self.provider
-
-    @staticmethod
-    def isExpressionVariableNameRef():
-        return True
-
-    def getDetails(self):
-        return {"variable_name": self.variable_name, "provider": self.provider}
-
-    def getVariableName(self):
-        return self.variable_name
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
-
-    @staticmethod
-    def needsFallback():
-        return True
-
-
-class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
-    """These are used before the actual variable object is known from VariableClosure.
-
-    The special thing about this as opposed to ExpressionVariableNameRef is that
-    these must remain local names and cannot fallback to outside scopes. This is
-    used for "__annotations__".
-
-    """
-
-    kind = "EXPRESSION_VARIABLE_LOCAL_NAME_REF"
-
-    @staticmethod
-    def needsFallback():
-        return False
-
-
 class ExpressionVariableRefBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
@@ -391,7 +337,7 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
             statement = self.parent.parent
 
             if statement.isStatementAssignmentVariable():
-                statement.unmarkAsInplaceSuspect()
+                statement.removeMarkAsInplaceSuspect()
 
         # Need to compute the replacement still.
         return replacement.computeExpressionRaw(trace_collection)
@@ -670,7 +616,7 @@ def makeExpressionVariableRef(variable, locals_scope, source_ref):
         return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
-# Note: Temporary variable references are to be guarantueed to not raise
+# Note: Temporary variable references are to be guaranteed to not raise
 # therefore no side effects.
 class ExpressionTempVariableRef(
     ExpressionNoSideEffectsMixin, ExpressionVariableRefBase

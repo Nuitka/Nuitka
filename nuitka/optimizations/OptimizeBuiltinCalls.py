@@ -23,10 +23,6 @@ types, and then specialize for the ones, where it makes sense.
 
 from nuitka.__past__ import xrange
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
@@ -143,6 +139,10 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinSuper0,
     ExpressionBuiltinSuper2,
     ExpressionBuiltinType1,
+)
+from nuitka.nodes.VariableAssignNodes import (
+    StatementAssignmentVariable,
+    makeStatementDelVariable,
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
@@ -840,7 +840,7 @@ def eval_extractor(node):
             "statements",
             final.subnode_statements
             + (
-                StatementDelVariable(
+                makeStatementDelVariable(
                     variable=source_variable, tolerant=True, source_ref=source_ref
                 ),
             ),

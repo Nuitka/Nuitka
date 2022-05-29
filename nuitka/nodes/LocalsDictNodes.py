@@ -26,15 +26,15 @@ from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
-from .AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable,
-    StatementReleaseVariable,
-)
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .VariableAssignNodes import StatementAssignmentVariable
+from .VariableDelNodes import (
+    StatementReleaseVariable,
+    makeStatementDelVariable,
+)
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -479,7 +479,7 @@ class StatementLocalsDictOperationDel(StatementBase):
                 trace_collection=trace_collection, variable_name=variable_name
             )
 
-            result = StatementDelVariable(
+            result = makeStatementDelVariable(
                 variable=variable, tolerant=False, source_ref=self.source_ref
             )
             result.parent = self.parent

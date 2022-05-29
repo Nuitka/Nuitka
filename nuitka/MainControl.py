@@ -458,11 +458,11 @@ def _wasMsvcMode():
 def _deleteMsvcPGOFiles(pgo_mode):
     assert _wasMsvcMode()
 
-    msvc_pgc_filename = OutputDirectories.getResultBasepath(onefile=False) + "!1.pgc"
+    msvc_pgc_filename = OutputDirectories.getResultBasePath(onefile=False) + "!1.pgc"
     deleteFile(msvc_pgc_filename, must_exist=False)
 
     if pgo_mode == "use":
-        msvc_pgd_filename = OutputDirectories.getResultBasepath(onefile=False) + ".pgd"
+        msvc_pgd_filename = OutputDirectories.getResultBasePath(onefile=False) + ".pgd"
         deleteFile(msvc_pgd_filename, must_exist=False)
 
     return msvc_pgc_filename
@@ -532,7 +532,7 @@ def runSconsBackend(quiet):
     asBoolStr = SconsInterface.asBoolStr
 
     options = {
-        "result_name": OutputDirectories.getResultBasepath(onefile=False),
+        "result_name": OutputDirectories.getResultBasePath(onefile=False),
         "source_dir": OutputDirectories.getSourceDirectoryPath(),
         "nuitka_python": asBoolStr(isNuitkaPython()),
         "debug_mode": asBoolStr(Options.is_debug),
@@ -908,8 +908,12 @@ def main():
 
     if not Options.shallDumpBuiltTreeXML():
         general.info(
-            "Starting Python compilation with Nuitka %r on Python %r commercial %r."
-            % (getNuitkaVersion(), python_version_str, getCommercialVersion())
+            "Starting Python compilation with Nuitka %r on Python %r commercial grade %r."
+            % (
+                getNuitkaVersion(),
+                python_version_str,
+                getCommercialVersion() or "not installed",
+            )
         )
 
     filename = Options.getPositionalArgs()[0]
@@ -1018,6 +1022,16 @@ def main():
             )
 
         Plugins.onFinalResult(final_filename)
+
+        if Options.shallMakeModule():
+            base_path = OutputDirectories.getResultBasePath(onefile=False)
+
+            if os.path.isdir(base_path):
+                general.warning(
+                    """The compilation result is hidden by package
+                    directory '%s'. Importing will not use compiled code."""
+                    % base_path
+                )
 
         general.info("Successfully created %r." % final_filename)
 

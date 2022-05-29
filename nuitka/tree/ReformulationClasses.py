@@ -22,11 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
@@ -54,10 +49,13 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTempVariableRef,
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
+from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
 )
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3

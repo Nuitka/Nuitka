@@ -27,16 +27,43 @@ with these config files.
 
 import pkgutil
 
+from nuitka.containers.odict import OrderedDict
+from nuitka.Tracing import general
+
 from .Importing import importFromInlineCopy
 
 
 class Yaml(object):
+    __slots__ = ("data", "filename")
+
     def __init__(self, filename, data):
         self.filename = filename
-        self.data = data
 
-    def get(self, name):
-        return self.data.get(name)
+        assert type(data) is list
+
+        self.data = OrderedDict()
+
+        for item in data:
+            module_name = item.pop("module-name")
+
+            if "/" in module_name:
+                general.sysexit(
+                    "Error, invalid module name in '%s' looks like a file path '%s'."
+                    % (filename, module_name)
+                )
+
+            if module_name in self.data:
+                general.sysexit("Duplicate module-name '%s' encountered." % module_name)
+
+            self.data[module_name] = item
+
+    def get(self, name, section):
+        result = self.data.get(name)
+
+        if result is not None:
+            result = result.get(section)
+
+        return result
 
     def keys(self):
         return self.data.keys()
@@ -48,15 +75,32 @@ def parseYaml(data):
     except ImportError:
         yaml = importFromInlineCopy("yaml", must_exist=True)
 
-    try:
-        yaml_load_function = yaml.safe_load
-    except AttributeError:
-        yaml_load_function = yaml.load
+    # Make sure dictionaries are ordered even before 3.6 in the result. We use
+    # them for hashing in caching keys.
+    class OrderedLoader(yaml.SafeLoader):
+        pass
 
-    return yaml_load_function(data)
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+
+        return OrderedDict(loader.construct_pairs(node))
+
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+    )
+
+    return yaml.load(data, OrderedLoader)
+
+
+_yaml_cache = {}
 
 
 def parsePackageYaml(package_name, filename):
-    return Yaml(
-        filename=filename, data=parseYaml(pkgutil.get_data(package_name, filename))
-    )
+    key = package_name, filename
+
+    if key not in _yaml_cache:
+        _yaml_cache[key] = Yaml(
+            filename=filename, data=parseYaml(pkgutil.get_data(package_name, filename))
+        )
+
+    return _yaml_cache[key]

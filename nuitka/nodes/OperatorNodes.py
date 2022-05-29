@@ -87,7 +87,7 @@ class ExpressionOperationBinaryBase(
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
 
-    def unmarkAsInplaceSuspect(self):
+    def removeMarkAsInplaceSuspect(self):
         self.inplace_suspect = False
 
     def isInplaceSuspect(self):

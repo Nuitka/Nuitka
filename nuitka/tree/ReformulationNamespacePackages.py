@@ -23,7 +23,6 @@ Namespace packages of Python3.3 or higher
 import os
 
 from nuitka import Options
-from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -45,7 +44,10 @@ from nuitka.nodes.ModuleAttributeNodes import (
 )
 from nuitka.nodes.ModuleNodes import CompiledPythonPackage
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import makeStatementsSequenceFromStatement

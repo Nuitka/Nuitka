@@ -205,6 +205,9 @@ disable statements.
 Identifiers
 ===========
 
+Classes
+-------
+
 Classes are camel case with leading upper case. Functions and methods
 are with leading verb in lower case, but also camel case. Variables and
 arguments are lower case with ``_`` as a separator.
@@ -218,6 +221,9 @@ arguments are lower case with ``_`` as a separator.
 Base classes that are abstract have their name end with ``Base``, so
 that a meta class can use that convention, and readers immediately know,
 that it will not be instantiated like that.
+
+Functions
+---------
 
 Function calls use keyword argument preferably. These are slower in
 CPython, but more readable:
@@ -240,7 +246,7 @@ still better to add them. But in this instance, the variable name
 already indicates that it is.
 
 Module/Package Names
-====================
+--------------------
 
 Normal modules are named in camel case with leading upper case, because
 of their role as singleton classes. The difference between a module and
@@ -262,8 +268,10 @@ There is no code in packages themselves. For programs, we use
 Names of modules should be plurals if they contain classes. Example is
 that a ``Nodes`` module that contains a ``Node`` class.
 
+Context Managers
+----------------
+
 Names for context manages start with ``with``
-=============================================
 
 In order to easily recognize that something is to be used as a context
 manager, we follow a pattern of naming them ``withSomething``, to make

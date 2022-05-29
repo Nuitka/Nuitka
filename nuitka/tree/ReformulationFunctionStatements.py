@@ -22,11 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
     ExpressionMakeAsyncgenObject,
@@ -55,9 +50,14 @@ from nuitka.nodes.GeneratorNodes import (
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableNameRef,
     ExpressionVariableRef,
 )
 from nuitka.Options import hasPythonFlagNoAnnotations

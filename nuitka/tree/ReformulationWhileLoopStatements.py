@@ -54,13 +54,13 @@ loops.
 
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .TreeHelpers import (

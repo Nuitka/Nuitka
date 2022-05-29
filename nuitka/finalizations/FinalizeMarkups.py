@@ -127,7 +127,7 @@ class FinalizeMarkups(VisitorNoopMixin):
                             node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
                     # TODO: This might be bad.
-                    assign_source.unmarkAsInplaceSuspect()
+                    assign_source.removeMarkAsInplaceSuspect()
 
         if python_version < 0x300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()

@@ -1119,7 +1119,7 @@ def shallDisableBytecodeCacheUsage():
 
 
 def shallDisableConsoleWindow():
-    """:returns: bool derived from ``--win-disable-console or ``--macos-disable-console``"""
+    """:returns: None (not given), False, or True derived from ``disable-console or ``--enable-console``"""
     return options.disable_console
 
 

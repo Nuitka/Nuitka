@@ -54,6 +54,7 @@ from nuitka.specs.BuiltinParameterSpecs import (
 )
 from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import isWin32Windows
 
 from .ConstantRefNodes import (
     ExpressionConstantSysVersionInfoRef,
@@ -75,6 +76,7 @@ from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .PackageResourceNodes import (
     ExpressionImportlibResourcesReadBinaryRef,
     ExpressionImportlibResourcesReadTextRef,
+    ExpressionOsUnameRef,
     ExpressionPkglibGetDataRef,
     ExpressionPkgResourcesResourceStreamRef,
     ExpressionPkgResourcesResourceStringRef,
@@ -185,6 +187,13 @@ module_typing_trust = {
 }
 
 module_os_trust = {"name": trust_constant}
+
+if isWin32Windows():
+    module_os_trust["uname"] = trust_not_exist
+else:
+    module_os_trust["uname"] = trust_node
+
+    trust_node_factory[("os", "uname")] = ExpressionOsUnameRef
 
 hard_modules_trust = {
     "os": module_os_trust,
@@ -508,15 +517,16 @@ class ExpressionImportModuleHard(
             full_name = self.value_name.getChildNamed(attribute_name)
 
             if full_name in hard_modules:
-                new_node = makeExpressionImportModuleFixed(
+                new_node = ExpressionImportModuleHard(
                     module_name=full_name,
+                    value_name=full_name,
                     source_ref=lookup_node.source_ref,
                 )
 
                 return (
                     new_node,
                     "new_expression",
-                    "Hard module '%s' submodule %r pre-computed."
+                    "Hard module '%s' submodule '%s' pre-computed."
                     % (self.value_name, attribute_name),
                 )
 
