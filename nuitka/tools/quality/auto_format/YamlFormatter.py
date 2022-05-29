@@ -5,7 +5,9 @@ from copy import copy
 
 import yaml
 
-with open(os.path.join(".vscode", "nuitka-package-config-schema.json")) as schema_file:
+with open(
+    os.path.join(".vscode", "nuitka-package-config-schema.json"), encoding="utf-8"
+) as schema_file:
     schema = json.load(schema_file)
 
 MASTER_KEYS = list(schema["items"]["properties"].keys())
@@ -23,13 +25,23 @@ del schema
 
 
 class _MyDumper(yaml.SafeDumper):
+    """
+    custom dumper
+    """
+
     def write_line_break(self, data=None):
         super().write_line_break(data)
         if len(self.indents) == 1:
             super().write_line_break()
 
+    def increase_indent(self, flow=False, indentless=False):
+        return super(_MyDumper, self).increase_indent(flow, False)
+
 
 def _strPresenter(dumper, data):
+    """
+    custom representer for strings
+    """
     if data.count("\n") > 0:
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 
@@ -49,6 +61,12 @@ def _strPresenter(dumper, data):
 
 
 def _getOnTopComments(lines: list):
+    """
+    find comments that are at the top
+    example:
+    # comment
+    - module-name: "module"
+    """
     comments = {}
     new_lines = copy(lines)
     deleted_counter = 0
@@ -83,6 +101,13 @@ def _getOnTopComments(lines: list):
 
 
 def _getBetweenComments(lines: list, comments: dict):
+    """
+    find comments between to lines
+    example:
+    - module-name: "arcade"
+      # comment
+      data-files:
+    """
     for i, line in enumerate(lines):
         if line.strip().startswith("#"):
             comment = line
@@ -116,6 +141,11 @@ def _getBetweenComments(lines: list, comments: dict):
 
 
 def _getEndOfLineComment(lines: list, comments: dict):
+    """
+    find comments at the end of a line
+    example:
+    - "module" # comment
+    """
     # sourcery skip: use-fstring-for-concatenation
     for i, line in enumerate(lines):
         splitted_line = line.split("#")
@@ -143,6 +173,9 @@ def _getEndOfLineComment(lines: list, comments: dict):
 
 
 def _getComments(lines: list):
+    """
+    find all comments using three parses
+    """
     lines, comments = _getOnTopComments(lines)
     lines, comments = _getBetweenComments(lines, comments)
     comments = _getEndOfLineComment(lines, comments)
@@ -150,6 +183,9 @@ def _getComments(lines: list):
 
 
 def _restoreComments(lines: list, comments: dict):
+    """
+    restore all comments from "comments"
+    """
     # sourcery skip: use-fstring-for-concatenation
     new_lines = copy(lines)
     new_lines_counter = 0
@@ -189,7 +225,10 @@ def _restoreComments(lines: list, comments: dict):
     return new_lines
 
 
-def formatYaml(path):
+def formatYaml(path: str):
+    """
+    format and sort a yaml file
+    """
     yaml.add_representer(str, _strPresenter)
     yaml.representer.SafeRepresenter.add_representer(str, _strPresenter)
     with open(path, encoding="utf-8") as f:
