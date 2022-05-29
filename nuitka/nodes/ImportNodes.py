@@ -508,15 +508,16 @@ class ExpressionImportModuleHard(
             full_name = self.value_name.getChildNamed(attribute_name)
 
             if full_name in hard_modules:
-                new_node = makeExpressionImportModuleFixed(
+                new_node = ExpressionImportModuleHard(
                     module_name=full_name,
+                    value_name=full_name,
                     source_ref=lookup_node.source_ref,
                 )
 
                 return (
                     new_node,
                     "new_expression",
-                    "Hard module '%s' submodule %r pre-computed."
+                    "Hard module '%s' submodule '%s' pre-computed."
                     % (self.value_name, attribute_name),
                 )
 
