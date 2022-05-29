@@ -140,6 +140,9 @@ def checkVersion():
 # We need to be backward compatible for Python versions that do not have
 # it.
 
+# super-with-arguments
+# Keeping code portable to Python2 is still good.
+
 
 def getOptions():
     checkVersion()

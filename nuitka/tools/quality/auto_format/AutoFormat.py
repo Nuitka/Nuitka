@@ -55,6 +55,8 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Utils import getOS
 
+from .YamlFormatter import formatYaml
+
 
 def cleanupWindowsNewlines(filename):
     """Remove Windows new-lines from a file.
@@ -610,6 +612,7 @@ def autoFormatFile(
     )
 
     is_rst = effective_filename.endswith(".rst")
+    is_yaml = effective_filename.endswith(".yml")
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
@@ -656,6 +659,10 @@ def autoFormatFile(
 
             if is_rst:
                 _cleanupRstFmt(tmp_filename)
+
+            # TODO: Not ready yet, pylint: disable=condition-evals-to-constant
+            if is_yaml and False:
+                formatYaml(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 
