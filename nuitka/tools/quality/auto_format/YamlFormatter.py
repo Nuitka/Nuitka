@@ -59,6 +59,48 @@ class _IndentingDumper(yaml.SafeDumper):
         return super(_IndentingDumper, self).increase_indent(flow, False)
 
 
+def _decideStrFormat(string: str):
+    """
+    take the character that is not closest to the beginning or end
+    """
+    single_quote_left = string.find("'")
+    single_quote_right = string.rfind("'")
+    quote_left = string.find('"')
+    quote_right = string.rfind('"')
+
+    if single_quote_left == -1 and not quote_left == -1:
+        return "'"
+
+    elif quote_left == -1 and not single_quote_left == -1:
+        return '"'
+
+    elif (
+        single_quote_left == -1
+        and single_quote_right == -1
+        and quote_left == -1
+        and quote_right == -1
+    ):
+        return '"'
+
+    elif single_quote_left > quote_left and single_quote_right < quote_right:
+        return "'"
+
+    elif single_quote_left < quote_left and single_quote_right > quote_right:
+        return '"'
+
+    else:
+        return '"'
+
+
+def _testDecideStrFormat():
+    assert _decideStrFormat("") == '"'
+    assert _decideStrFormat("'") == '"'
+    assert _decideStrFormat('"') == "'"
+    assert _decideStrFormat(""" '" """) == '"'
+    assert _decideStrFormat(""" "'" """) == "'"
+    assert _decideStrFormat(""" '"' """) == '"'
+
+
 def _strPresenter(dumper, data):
     """
     custom Representer for strings
@@ -69,7 +111,7 @@ def _strPresenter(dumper, data):
     return dumper.represent_scalar(
         'tag:yaml.org,2002:str',
         data,
-        style='"'
+        style='"'  # _decideStrFormat(data)
         if (
             data not in MASTER_KEYS
             and data not in DATA_FILES_KEYS
@@ -325,3 +367,6 @@ def formatYaml(path):
         output_file.writelines(
             line + "\n" for line in _restoreComments(dumped.splitlines(), comments)
         )
+
+
+_testDecideStrFormat()
