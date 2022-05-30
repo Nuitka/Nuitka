@@ -50,11 +50,6 @@ class _IndentingDumper(yaml.SafeDumper):
     Custom dumper enforcing indentation.
     """
 
-    def write_line_break(self, data=None):
-        super(_IndentingDumper, self).write_line_break(data)
-        if len(self.indents) == 1:
-            super(_IndentingDumper, self).write_line_break()
-
     def increase_indent(self, flow=False, indentless=False):
         return super(_IndentingDumper, self).increase_indent(flow, False)
 
@@ -359,9 +354,14 @@ def formatYaml(path):
     # new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
 
     with openTextFile(path, "w", encoding="utf-8") as output_file:
-        dumped = yaml.dump(
-            new_data, Dumper=_IndentingDumper, width=10000000, sort_keys=False
-        )
+        dumped = ""
+        for entry in new_data:
+            dumped += (
+                yaml.dump(
+                    [entry], Dumper=_IndentingDumper, width=10000000, sort_keys=False
+                )
+                + "\n"
+            )
 
         output_file.writelines(line + "\n" for line in header)
         output_file.writelines(
