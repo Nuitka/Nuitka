@@ -66,15 +66,14 @@
       - "version.txt"
 
 - module-name: "moto"
-  anti-bloat:
-    - description: "remove pytest testing framework"
-      replacements:
-        "imp.find_module('pytest')": "'None'"
-
   data-files:
     patterns:
       - "ec2/resources/instance_types.json"
       - "ec2/resources/amis.json"
+  anti-bloat:
+    - description: "remove pytest testing framework"
+      replacements:
+        "imp.find_module('pytest')": "'None'"
 
 - module-name: "skimage"
   data-files:
@@ -101,17 +100,17 @@
 
 - module-name: "Cryptodome.Util._raw_api"
   data-files:
-    "empty_dirs":
+    empty_dirs:
       - "."
 
-- module-name: 'Crypto.Util._raw_api"'
+- module-name: "Crypto.Util._raw_api"
   data-files:
-    "empty_dirs":
+    empty_dirs:
       - "."
 
 - module-name: "pendulum"
   data-files:
-    "empty_dir_structures":
+    empty_dir_structures:
       - "locales"
 
 - module-name: "sklearn.datasets"
@@ -126,11 +125,11 @@
       - "data"
 
 - module-name: "pyphen"
-  anti-bloat:
-    - description: "remove doctest usage"
   data-files:
     dirs:
       - "dictionaries"
+  anti-bloat:
+    - description: "remove doctest usage"
 
 - module-name: "pytz"
   data-files:
@@ -228,23 +227,23 @@
 
 - module-name: "jaraco.text"
   data-files:
-    control_tags:
-      - "anti-bloat"
     patterns:
       - "Lorem ipsum.txt"
+    control_tags:
+      - anti-bloat
 
 - module-name: "shapely.geos"
   dlls:
     - dest_path: "shapely"
-      "dll_filename_code": "shapely.geos._lgeos._name"
-      "include_from_code": ""
-      "setup_code": "import shapely.geos"
+      dll_filename_code: "shapely.geos._lgeos._name"
+      include_from_code: ""
+      setup_code: "import shapely.geos"
 
 - module-name: "vosk"
   dlls:
     - dest_path: "vosk"
       dir: "."
-      "include_from_filenames": ""
+      include_from_filenames: ""
       patterns:
         - "libvosk"
 
@@ -252,11 +251,17 @@
   dlls:
     - dest_path: "tensorflow/lite/experimental/microfrontend/python/ops"
       dir: "."
-      "include_from_filenames": ""
+      include_from_filenames: ""
       patterns:
         - "_audio_microfrontend_op"
 
 - module-name: "sklearn._distributor_init"
+  dlls:
+    - dest_path: "sklearn/.libs"
+      dir: ".libs"
+      include_from_filenames: ""
+      patterns:
+        - ""
   anti-bloat:
     - description: "remove site module and distutils usage"
       replacements:
@@ -264,17 +269,17 @@
         "if _running_from_pip_package()": "'if False'"
         "import distutils as _distutils": "'_distutils = None'"
         "import site as _site": "'_site = None'"
-  dlls:
-    - dest_path: "sklearn/.libs"
-      dir: ".libs"
-      "include_from_filenames": ""
-      patterns:
-        - ""
   implicit-imports:
     depends:
       - ".python.keras"
 
 - module-name: "tensorflow"
+  dlls:
+    - dest_path: "tensorflow/core/platform"
+      dir: "core/platform"
+      include_from_filenames: ""
+      patterns:
+        - "_cpu_feature_guard"
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
@@ -282,18 +287,12 @@
         "import site as _site": "'_site = None'"
         "if _running_from_pip_package()": "'if False'"
         "_site.ENABLE_USER_SITE": "'False'"
-  dlls:
-    - dest_path: "tensorflow/core/platform"
-      dir: "core/platform"
-      "include_from_filenames": ""
-      patterns:
-        - "_cpu_feature_guard"
 
 - module-name: "clr"
   dlls:
     - dest_path: "."
       dir: "."
-      "include_from_filenames": ""
+      include_from_filenames: ""
       patterns:
         - "Python.Runtime"
 
@@ -301,7 +300,7 @@
   dlls:
     - dest_path: "torchvision"
       dir: "."
-      "include_from_filenames": ""
+      include_from_filenames: ""
       patterns:
         - "zlib"
         - "libjpeg"
@@ -357,7 +356,7 @@
 - module-name: "sklearn.utils._testing"
   anti-bloat:
     - description: "remove pytest testing framework"
-      "replacements_plain":
+      replacements_plain:
         '_dummy = TestCase("__init__")': ""
         "assert_dict_equal = _dummy.assert_dict_equal": "def assert_dict_equal(*args, **kwargs): pass"
         "assert_raises = _dummy.assertRaises": "def assert_raises(*args, **kwargs): pass"
@@ -374,7 +373,6 @@
         class PytestTester:
           def __init__(self, name):
             pass
-
 - module-name: "matplotlib"
   anti-bloat:
     - description: "remove setuptools and pytest testing framework reference"
@@ -454,7 +452,6 @@
           args = args[1:]
           with _assert_warns_context(warning_class, name=func.__name__):
               return func(*args, **kwargs)
-
 - module-name: "numpy._pytesttester"
   anti-bloat:
     - description: "remove numpy testing framework"
@@ -462,7 +459,6 @@
         class PytestTester:
           def __init__(self, name):
             pass
-
 - module-name: "numpy.testing._private.pytesttester"
   anti-bloat:
     - description: "remove numpy testing framework"
@@ -470,7 +466,6 @@
         class PytestTester:
           def __init__(self, name):
             pass
-
 - module-name: "numpy.core.overrides"
   anti-bloat:
     - description: "workaround numpy issues with compiled code"
@@ -481,7 +476,7 @@
 - module-name: "numpy.lib.utils"
   anti-bloat:
     - description: "remove pydoc usage"
-      "replacements_plain":
+      replacements_plain:
         ".pydoc.allmethods(object)": "()"
         "import pydoc": ""
 
@@ -513,7 +508,6 @@
         class PytestTester:
           def __init__(self, name):
             pass
-
 - module-name: "scipy.integrate._quadrature"
   anti-bloat:
     - description: "remove useless function copying"
@@ -538,7 +532,7 @@
 - module-name: "tensorflow.python.compiler.tensorrt.utils"
   anti-bloat:
     - description: "remove useless distutils usage"
-      "replacements_plain":
+      replacements_plain:
         "distutils_version.LooseVersion": "str"
         ? |
           from distutils import version
@@ -556,7 +550,7 @@
 - module-name: "tensorflow.python.autograph.core.ag_ctx"
   anti-bloat:
     - description: "remove useless no-source warning"
-      "replacements_plain":
+      replacements_plain:
         "ag_logging.warning(": "if False: ag_logging.warning("
 
 - module-name: "gevent._util"
@@ -621,7 +615,6 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "main": "'(lambda: None)'"
-
   implicit-imports:
     depends:
       - "py_compile"
@@ -838,7 +831,6 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "_test": "'(lambda: None)'"
-
   implicit-imports:
     depends:
       - "_bootlocale"
@@ -867,7 +859,7 @@
       change_function:
         "_test": "'(lambda: None)'"
   implicit-imports:
-    "standalone_macos_bundle_mode": "onefile"
+    standalone_macos_bundle_mode: "onefile"
 
 - module-name: "tkinter"
   anti-bloat:
@@ -887,7 +879,6 @@
               raise\n\
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
-
 - module-name: "Bastion"
   anti-bloat:
     - change_function:
@@ -1039,7 +1030,7 @@
     - change_function:
         "__parse_starttag": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))"
         "goahead": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))"
-      "context":
+      context:
         - "import inspect"
         - "import textwrap"
         - "import sgmllib"
@@ -1121,7 +1112,7 @@
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
         'native_module = importlib.import_module("cv2.cv2")': "\"import imp; native_module = imp.load_dynamic(\\\"cv2\\\", os.path.join(os.path.dirname(__file__), \\\"cv2%s\\\"))\" % getSharedLibrarySuffix(False)"
-      "replacements_plain":
+      replacements_plain:
         ? |
           load_first_config([
         : "if False: (["
@@ -1133,7 +1124,7 @@
         - "import orderedmultidict.__version__"
       replacements:
         "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
-      "replacements_plain":
+      replacements_plain:
         "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
 
 - module-name: "tqdm.autonotebook"
@@ -1143,7 +1134,6 @@
         - "allow_ipython"
       module_code: |
         from .std import tqdm, trange
-
 - module-name: "tqdm"
   anti-bloat:
     - change_function:
@@ -1156,25 +1146,25 @@
 - module-name: "pandas.util"
   anti-bloat:
     - description: "remove pandas testing framework"
-      "replacements_plain":
+      replacements_plain:
         'if name == "testing":': "if False:"
 
 - module-name: "torch.fx._symbolic_trace"
   anti-bloat:
     - description: "workaround incompatible check"
-      "replacements_plain":
+      replacements_plain:
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
 
 - module-name: "torch._jit_internal"
   anti-bloat:
     - description: "disable jit warnings"
-      "replacements_plain":
+      replacements_plain:
         "warnings.warn(": "if False: warnings.warn("
 
 - module-name: "scipy._lib._docscrape"
   anti-bloat:
     - description: "remove sphinx reference"
-      "replacements_plain":
+      replacements_plain:
         "if 'sphinx' in sys.modules:": "if False:"
 
 - module-name: "lxml"
@@ -1276,22 +1266,22 @@
 
 - module-name: "wx"
   implicit-imports:
-    "disable_console": "macos"
-    "standalone_macos_bundle_mode": "true"
+    standalone_macos_bundle_mode: "true"
+    disable_console: "macos"
 
 - module-name: "PySide2"
   implicit-imports:
-    "disable_console": "recommend"
-    "standalone_macos_bundle_mode": "onefile"
+    standalone_macos_bundle_mode: "onefile"
+    disable_console: "recommend"
 
 - module-name: "PySide6"
   implicit-imports:
-    "disable_console": "recommend"
+    disable_console: "recommend"
 
 - module-name: "Tkinter"
   implicit-imports:
-    "disable_console": "recommend"
-    "standalone_macos_bundle_mode": "onefile"
+    standalone_macos_bundle_mode: "onefile"
+    disable_console: "recommend"
 
 - module-name: "dns.rdtypes"
   implicit-imports:
