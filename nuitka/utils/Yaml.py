@@ -68,6 +68,17 @@ class Yaml(object):
     def keys(self):
         return self.data.keys()
 
+    def items(self):
+        return self.data.items()
+
+    def update(self, other):
+        # TODO: Full blown merging, including respecting an overload flag, where a config
+        # replaces another one entirely, for now we expect to not overlap.
+        for key, value in other.items():
+            assert key not in self.data, key
+
+            self.data[key] = value
+
 
 def parseYaml(data):
     try:
@@ -99,8 +110,39 @@ def parsePackageYaml(package_name, filename):
     key = package_name, filename
 
     if key not in _yaml_cache:
-        _yaml_cache[key] = Yaml(
-            filename=filename, data=parseYaml(pkgutil.get_data(package_name, filename))
-        )
+        data = pkgutil.get_data(package_name, filename)
+
+        if data is None:
+            raise IOError("Cannot find %s.%s" % (package_name, filename))
+
+        _yaml_cache[key] = Yaml(filename=filename, data=parseYaml(data))
 
     return _yaml_cache[key]
+
+
+_package_config = None
+
+
+def getYamlPackageConfiguration():
+    """Get Nuitka package configuration. Merged from multiple sources."""
+    # Singleton, pylint: disable=global-statement
+    global _package_config
+
+    if _package_config is None:
+        _package_config = parsePackageYaml(
+            "nuitka.plugins.standard", "standard.nuitka-package.config.yml"
+        )
+
+        try:
+            _package_config.update(
+                parsePackageYaml(
+                    "nuitka.plugins.commercial", "commercial.nuitka-package.config.yml"
+                )
+            )
+        except IOError:
+            # No commercial configuration found.
+            pass
+
+        # TODO: User or plugin provided filenames, but we want PRs.
+
+    return _package_config

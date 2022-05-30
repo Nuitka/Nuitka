@@ -29,7 +29,7 @@ from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Yaml import parsePackageYaml
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
@@ -66,9 +66,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
 
-        self.config = parsePackageYaml(
-            __package__, "standard.nuitka-package.config.yml"
-        )
+        self.config = getYamlPackageConfiguration()
 
         self.handled_modules = OrderedDict()
 
@@ -314,6 +312,7 @@ which can and should be a top level package and then one choice, "error",
 
     def onModuleSourceCode(self, module_name, source_code):
         config = self.config.get(module_name, section="anti-bloat")
+
         if config:
             for anti_bloat_config in config:
                 source_code = self._onModuleSourceCode(

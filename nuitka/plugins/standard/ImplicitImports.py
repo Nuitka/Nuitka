@@ -36,16 +36,14 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
-from nuitka.utils.Yaml import parsePackageYaml
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
 class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
     def __init__(self):
-        self.config = parsePackageYaml(
-            __package__, "standard.nuitka-package.config.yml"
-        )
+        self.config = getYamlPackageConfiguration()
 
     @staticmethod
     def isAlwaysEnabled():

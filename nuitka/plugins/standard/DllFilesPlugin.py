@@ -30,16 +30,14 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import listDllFilesFromDirectory
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import isLinux, isWin32Windows
-from nuitka.utils.Yaml import parsePackageYaml
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
 class NuitkaPluginDllFiles(NuitkaPluginBase):
     plugin_name = "dll-files"
 
     def __init__(self):
-        self.config = parsePackageYaml(
-            __package__, "standard.nuitka-package.config.yml"
-        )
+        self.config = getYamlPackageConfiguration()
 
     @staticmethod
     def isAlwaysEnabled():

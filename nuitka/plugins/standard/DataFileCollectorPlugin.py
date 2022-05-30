@@ -28,16 +28,14 @@ from nuitka.utils.FileOperations import (
     getFileList,
     resolveShellPatternToFilenames,
 )
-from nuitka.utils.Yaml import parsePackageYaml
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
     def __init__(self):
-        self.config = parsePackageYaml(
-            __package__, "standard.nuitka-package.config.yml"
-        )
+        self.config = getYamlPackageConfiguration()
 
     @classmethod
     def isRelevant(cls):
