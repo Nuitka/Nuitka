@@ -111,7 +111,7 @@ def _strPresenter(dumper, data):
     return dumper.represent_scalar(
         'tag:yaml.org,2002:str',
         data,
-        style='"'  # _decideStrFormat(data)
+        style=_decideStrFormat(data)
         if (
             data not in MASTER_KEYS
             and data not in DATA_FILES_KEYS
