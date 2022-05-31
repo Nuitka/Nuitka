@@ -39,7 +39,8 @@ def getCachedDownload(
     reject,
     assume_yes_for_downloads,
 ):
-    # Many branches to deal with, pylint: disable=too-many-branches,too-many-statements
+    # Many branches to deal with.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     nuitka_app_dir = getAppDir()
 
@@ -88,13 +89,13 @@ Proceed and download? [Yes]/No """
 
             try:
                 urlretrieve(url, download_path)
-            except Exception:  # Any kind of error, pylint: disable=broad-except
+            except Exception as e:  # Any kind of error, pylint: disable=broad-except
                 try:
                     urlretrieve(url.replace("https://", "http://"), download_path)
                 except Exception:  # Any kind of error, pylint: disable=broad-except
                     Tracing.general.sysexit(
-                        "Failed to download '%s'. Contents should manually be copied to '%s'."
-                        % (url, download_path)
+                        "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
+                        % (url, e, download_path)
                     )
 
     if not os.path.isfile(exe_path) and os.path.isfile(download_path):
