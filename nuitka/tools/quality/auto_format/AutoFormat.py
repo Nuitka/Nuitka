@@ -612,7 +612,7 @@ def autoFormatFile(
     )
 
     is_rst = effective_filename.endswith(".rst")
-    is_yaml = effective_filename.endswith(".yml")
+    is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.

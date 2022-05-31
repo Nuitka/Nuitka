@@ -373,6 +373,7 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
 - module-name: "matplotlib"
   anti-bloat:
     - description: "remove setuptools and pytest testing framework reference"
@@ -452,6 +453,7 @@
           args = args[1:]
           with _assert_warns_context(warning_class, name=func.__name__):
               return func(*args, **kwargs)
+
 - module-name: "numpy._pytesttester"
   anti-bloat:
     - description: "remove numpy testing framework"
@@ -459,6 +461,7 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
 - module-name: "numpy.testing._private.pytesttester"
   anti-bloat:
     - description: "remove numpy testing framework"
@@ -466,6 +469,7 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
 - module-name: "numpy.core.overrides"
   anti-bloat:
     - description: "workaround numpy issues with compiled code"
@@ -492,14 +496,14 @@
     - description: "remove numpy testing framework"
       replacements:
         "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        "from numpy.testing import suppress_warnings": 'r''suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'''
+        "from numpy.testing import suppress_warnings": "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
 
 - module-name: "scipy._lib._numpy_compat"
   anti-bloat:
     - description: "remove numpy testing framework"
       replacements:
         "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        "from numpy.testing import suppress_warnings": 'r''suppress_warnings = __import__("contextmanager").contextmanager(lambda : (yield))'''
+        "from numpy.testing import suppress_warnings": "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
 
 - module-name: "scipy._lib._testutils"
   anti-bloat:
@@ -508,6 +512,7 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
 - module-name: "scipy.integrate._quadrature"
   anti-bloat:
     - description: "remove useless function copying"
@@ -534,10 +539,8 @@
     - description: "remove useless distutils usage"
       replacements_plain:
         "distutils_version.LooseVersion": "str"
-        ? |
-          from distutils import version
-        : |2+
-
+        ? "from distutils import version\n"
+        : "\n"
         "from distutils import version as distutils_version": ""
 
 - module-name: "tensorflow.lite.python.convert"
@@ -869,8 +872,7 @@
       control_tags:
         - "deployment"
       replacements:
-        ? "self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)"
-        : |
+        "self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)": |
           textwrap.indent("""
           try:
             self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
@@ -879,6 +881,7 @@
               raise\n\
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
+
 - module-name: "Bastion"
   anti-bloat:
     - change_function:
@@ -956,38 +959,38 @@
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
-        'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': '''pyarrow.__version__ >= "0.15"'''
+        'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': "'pyarrow.__version__ >= \"0.15\"'"
         "from distutils.version import LooseVersion": "''"
 
 - module-name: "pandas.core.arrays.string_arrow"
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
-        'LooseVersion(pa.__version__) < "1.0.0"': '''pa.__version__ < "1.0.0"'''
+        'LooseVersion(pa.__version__) < "1.0.0"': "'pa.__version__ < \"1.0.0\"'"
         "from distutils.version import LooseVersion": "''"
 
 - module-name: "pandas.io.parquet"
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
-        'LooseVersion(self.api.__version__) >= "0.16"': '''self.api.__version__ >= "0.16"'''
+        'LooseVersion(self.api.__version__) >= "0.16"': "'self.api.__version__ >= \"0.16\"'"
         "from distutils.version import LooseVersion": "''"
 
 - module-name: "pandas.compat.numpy.function"
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
-        'LooseVersion(__version__) >= LooseVersion("1.17.0")': '''__version__ >= "1.17.0"'''
+        'LooseVersion(__version__) >= LooseVersion("1.17.0")': "'__version__ >= \"1.17.0\"'"
         "from distutils.version import LooseVersion": "''"
 
 - module-name: "pandas.compat.numpy"
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
-        'LooseVersion("1.17")': '''"1.17"'''
-        'LooseVersion("1.18")': '''"1.18"'''
-        'LooseVersion("1.19")': '''"1.19"'''
-        'LooseVersion("1.20")': '''"1.20"'''
+        'LooseVersion("1.17")': "'\"1.17\"'"
+        'LooseVersion("1.18")': "'\"1.18\"'"
+        'LooseVersion("1.19")': "'\"1.19\"'"
+        'LooseVersion("1.20")': "'\"1.20\"'"
         "LooseVersion(_np_version)": "'_np_version'"
         "from distutils.version import LooseVersion": "''"
 
@@ -1001,14 +1004,14 @@
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
-        'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': '''pyarrow.__version__ < "0.13.0"'''
+        'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': "'pyarrow.__version__ < \"0.13.0\"'"
         "import distutils": "''"
 
 - module-name: "sphinx.util.docutils"
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
-        "__version_info__ = tuple(LooseVersion(docutils.__version__).version)": '''tuple(int(d) for d in docutils.__version__.split("."))'''
+        "__version_info__ = tuple(LooseVersion(docutils.__version__).version)": "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
         "from distutils.version import LooseVersion": "''"
 
 - module-name: "distributed.scheduler"
@@ -1025,6 +1028,7 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
 - module-name: "feedparser.html"
   anti-bloat:
     - change_function:
@@ -1059,13 +1063,13 @@
   anti-bloat:
     - description: "use own compilation for compatibility"
       replacements:
-        "os.environ.get('PURE_PYTHON')": '''"1"'''
+        "os.environ.get('PURE_PYTHON')": "'\"1\"'"
 
 - module-name: "pkg_resources"
   anti-bloat:
     - description: "avoid using plistlib dependency on non-macOS"
       replacements:
-        "import plistlib": '''if sys.platform == "darwin": import plistlib'''
+        "import plistlib": "'if sys.platform == \"darwin\": import plistlib'"
 
 - module-name: "zope.interface._compat"
   anti-bloat:
@@ -1080,7 +1084,7 @@
   anti-bloat:
     - description: "avoid useless duplication of traceback module"
       replacements:
-        'load_module(str("_traceback_no_io"), traceback)': '''__import__("traceback")'''
+        'load_module(str("_traceback_no_io"), traceback)': "'__import__(\"traceback\")'"
 
 - module-name: "tornado.util"
   anti-bloat:
@@ -1111,10 +1115,9 @@
         - "standalone_mode_only"
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
-        'native_module = importlib.import_module("cv2.cv2")': "\"import imp; native_module = imp.load_dynamic(\\\"cv2\\\", os.path.join(os.path.dirname(__file__), \\\"cv2%s\\\"))\" % getSharedLibrarySuffix(False)"
+        'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
       replacements_plain:
-        ? |
-          load_first_config([
+        ? "load_first_config([\n"
         : "if False: (["
 
 - module-name: "orderedmultidict"
@@ -1132,8 +1135,8 @@
     - description: "remove IPython reference"
       control_tags:
         - "allow_ipython"
-      module_code: |
-        from .std import tqdm, trange
+      module_code: "from .std import tqdm, trange\n"
+
 - module-name: "tqdm"
   anti-bloat:
     - change_function:
