@@ -93,6 +93,9 @@ Organisational
 -  Merged our Yaml files into one and added schema description, for
    completion and checking in Visual Code.
 
+-  Quality: Auto-format the package configuration Yaml file for
+   anti-bloat, implicit dependencies, etc.
+
 -  GitHub: Point out the commit hook in the PR template.
 
 -  UI: Nicer output in case of no commercial version is used
