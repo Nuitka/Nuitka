@@ -51,12 +51,12 @@ class _IndentingDumper(yaml.SafeDumper):
     """
 
     def write_line_break(self, data=None):
-        super(_IndentingDumper, self).write_line_break(data)
+        yaml.SafeDumper.write_line_break(self, data)
         if len(self.indents) == 1:
-            super(_IndentingDumper, self).write_line_break()
+            yaml.SafeDumper.write_line_break(self)
 
     def increase_indent(self, flow=False, indentless=False):
-        return super(_IndentingDumper, self).increase_indent(flow, False)
+        return yaml.SafeDumper.increase_indent(self, flow, False)
 
 
 def _strPresenter(dumper, data):

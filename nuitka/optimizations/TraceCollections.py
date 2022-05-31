@@ -52,7 +52,7 @@ from .ValueTraces import (
     ValueTraceLoopComplete,
     ValueTraceLoopIncomplete,
     ValueTraceMerge,
-    ValueTraceUninit,
+    ValueTraceUninitialized,
     ValueTraceUnknown,
 )
 
@@ -254,7 +254,7 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
         return trace
 
     def _initVariableUninit(self, variable):
-        trace = ValueTraceUninit(owner=self.owner, previous=None)
+        trace = ValueTraceUninitialized(owner=self.owner, previous=None)
 
         self.addVariableTrace(variable, 0, trace)
 

@@ -235,7 +235,7 @@ class ValueTraceUnassignedBase(ValueTraceBase):
         return True
 
 
-class ValueTraceUninit(ValueTraceUnassignedBase):
+class ValueTraceUninitialized(ValueTraceUnassignedBase):
     __slots__ = ()
 
     def __init__(self, owner, previous):
