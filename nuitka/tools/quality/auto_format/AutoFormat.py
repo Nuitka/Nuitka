@@ -660,9 +660,10 @@ def autoFormatFile(
             if is_rst:
                 _cleanupRstFmt(tmp_filename)
 
-            # TODO: Not ready yet, pylint: disable=condition-evals-to-constant
-            if is_yaml and False:
+            if is_package_config_yaml:
                 formatYaml(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename)
+                _cleanupTrailingWhitespace(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 

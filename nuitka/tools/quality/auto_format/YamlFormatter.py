@@ -59,17 +59,50 @@ class _IndentingDumper(yaml.SafeDumper):
         return yaml.SafeDumper.increase_indent(self, flow, False)
 
 
+def _decideStrFormat(string):
+    """
+    take the character that is not closest to the beginning or end
+    """
+    single_quote_left = string.find("'")
+    single_quote_right = string.rfind("'")
+    quote_left = string.find('"')
+    quote_right = string.rfind('"')
+
+    if single_quote_left == -1 and not quote_left == -1:
+        return "'"
+
+    elif quote_left == -1 and not single_quote_left == -1:
+        return '"'
+
+    elif (
+        single_quote_left == -1
+        and single_quote_right == -1
+        and quote_left == -1
+        and quote_right == -1
+    ):
+        return '"'
+
+    elif single_quote_left > quote_left and single_quote_right < quote_right:
+        return "'"
+
+    elif single_quote_left < quote_left and single_quote_right > quote_right:
+        return '"'
+
+    else:
+        return '"'
+
+
 def _strPresenter(dumper, data):
     """
     custom Representer for strings
     """
-    if data.count("\n") > 0:
+    if data.strip().count("\n") > 0:
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 
     return dumper.represent_scalar(
         'tag:yaml.org,2002:str',
         data,
-        style='"'
+        style=_decideStrFormat(data)
         if (
             data not in MASTER_KEYS
             and data not in DATA_FILES_KEYS
@@ -81,7 +114,7 @@ def _strPresenter(dumper, data):
     )
 
 
-def _getOnTopComments(lines: list):
+def _getOnTopComments(lines):
     """
     find comments that are at the top
     example:
@@ -317,9 +350,14 @@ def formatYaml(path):
     # new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
 
     with openTextFile(path, "w", encoding="utf-8") as output_file:
-        dumped = yaml.dump(
-            new_data, Dumper=_IndentingDumper, width=10000000, sort_keys=False
-        )
+        dumped = ""
+        for entry in new_data:
+            dumped += (
+                yaml.dump(
+                    [entry], Dumper=_IndentingDumper, width=10000000, sort_keys=False
+                )
+                + "\n"
+            )
 
         output_file.writelines(line + "\n" for line in header)
         output_file.writelines(
