@@ -366,11 +366,6 @@ def formatYaml(path):
         Custom dumper enforcing indentation.
         """
 
-        def write_line_break(self, data=None):
-            yaml.SafeDumper.write_line_break(self, data)
-            if len(self.indents) == 1:
-                yaml.SafeDumper.write_line_break(self)
-
         def increase_indent(self, flow=False, indentless=False):
             return yaml.SafeDumper.increase_indent(self, flow, False)
 
