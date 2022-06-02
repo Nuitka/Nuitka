@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Main program for autoformat tool.
+""" Main program for auto format tool.
 
 """
 
@@ -90,7 +90,17 @@ Defaults to off.""",
         filenames = list(
             scanTargets(
                 positional_args,
-                suffixes=(".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h"),
+                suffixes=(
+                    ".py",
+                    ".scons",
+                    ".rst",
+                    ".txt",
+                    ".j2",
+                    ".md",
+                    ".c",
+                    ".h",
+                    ".yml",
+                ),
             )
         )
 
@@ -103,10 +113,12 @@ Defaults to off.""",
             enableProgressBar()
 
         for filename in wrapWithProgressBar(
-            filenames, stage="Autoformat", unit="files"
+            filenames, stage="Auto format", unit="files"
         ):
             if autoFormatFile(filename, git_stage=False, check_only=options.check_only):
                 result += 1
+
+        # Tool is named without separator, spellchecker: ignore autoformat
 
         if options.check_only and result > 0:
             tools_logger.sysexit(
