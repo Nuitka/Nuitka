@@ -80,11 +80,20 @@ class Yaml(object):
             self.data[key] = value
 
 
+def getYamlPackage():
+    if not hasattr(getYamlPackage, "yaml"):
+        try:
+            import yaml
+
+            getYamlPackage.yaml = yaml
+        except ImportError:
+            getYamlPackage.yaml = importFromInlineCopy("yaml", must_exist=True)
+
+    return getYamlPackage.yaml
+
+
 def parseYaml(data):
-    try:
-        import yaml
-    except ImportError:
-        yaml = importFromInlineCopy("yaml", must_exist=True)
+    yaml = getYamlPackage()
 
     # Make sure dictionaries are ordered even before 3.6 in the result. We use
     # them for hashing in caching keys.

@@ -22,41 +22,47 @@ import os
 from collections import OrderedDict
 from copy import copy
 
-import yaml
-
 from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.Yaml import getYamlPackage
 
-with openTextFile(
-    os.path.join(".vscode", "nuitka-package-config-schema.json"), "r"
-) as schema_file:
-    schema = json.load(schema_file)
-
-MASTER_KEYS = tuple(schema["items"]["properties"].keys())
-DATA_FILES_KEYS = tuple(
-    schema["items"]["properties"]["data-files"]["items"]["properties"].keys()
-)
-DLLS_KEYS = tuple(schema["items"]["properties"]["dlls"]["items"]["properties"].keys())
-ANTI_BLOAT_KEYS = tuple(
-    schema["items"]["properties"]["anti-bloat"]["items"]["properties"].keys()
-)
-IMPLICIT_IMPORTS_KEYS = tuple(
-    schema["items"]["properties"]["implicit-imports"]["items"]["properties"].keys()
-)
-del schema
+MASTER_KEYS = None
+DATA_FILES_KEYS = None
+DLLS_KEYS = None
+ANTI_BLOAT_KEYS = None
+IMPLICIT_IMPORTS_KEYS = None
 
 
-class _IndentingDumper(yaml.SafeDumper):
-    """
-    Custom dumper enforcing indentation.
-    """
+def _initNuitkaPackageSchema():
+    # Singleton, pylint: disable=global-statement
+    global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
 
-    def write_line_break(self, data=None):
-        yaml.SafeDumper.write_line_break(self, data)
-        if len(self.indents) == 1:
-            yaml.SafeDumper.write_line_break(self)
+    with openTextFile(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "..",
+            ".vscode",
+            "nuitka-package-config-schema.json",
+        ),
+        "r",
+    ) as schema_file:
+        schema = json.load(schema_file)
 
-    def increase_indent(self, flow=False, indentless=False):
-        return yaml.SafeDumper.increase_indent(self, flow, False)
+    MASTER_KEYS = tuple(schema["items"]["properties"].keys())
+    DATA_FILES_KEYS = tuple(
+        schema["items"]["properties"]["data-files"]["items"]["properties"].keys()
+    )
+    DLLS_KEYS = tuple(
+        schema["items"]["properties"]["dlls"]["items"]["properties"].keys()
+    )
+    ANTI_BLOAT_KEYS = tuple(
+        schema["items"]["properties"]["anti-bloat"]["items"]["properties"].keys()
+    )
+    IMPLICIT_IMPORTS_KEYS = tuple(
+        schema["items"]["properties"]["implicit-imports"]["items"]["properties"].keys()
+    )
 
 
 def _decideStrFormat(string):
@@ -281,6 +287,12 @@ def formatYaml(path):
     """
     format and sort a yaml file
     """
+    # spell-checker: ignore representer,indentless
+
+    _initNuitkaPackageSchema()
+
+    yaml = getYamlPackage()
+
     yaml.add_representer(str, _strPresenter)
     yaml.representer.SafeRepresenter.add_representer(str, _strPresenter)
 
@@ -346,8 +358,21 @@ def formatYaml(path):
 
         new_data.append(sorted_entry)
 
-    # TODO: Do not sort by name yet.
+    # Do not sort by name yet, not clear if ever.
     # new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
+
+    class _IndentingDumper(yaml.SafeDumper):
+        """
+        Custom dumper enforcing indentation.
+        """
+
+        def write_line_break(self, data=None):
+            yaml.SafeDumper.write_line_break(self, data)
+            if len(self.indents) == 1:
+                yaml.SafeDumper.write_line_break(self)
+
+        def increase_indent(self, flow=False, indentless=False):
+            return yaml.SafeDumper.increase_indent(self, flow, False)
 
     with openTextFile(path, "w", encoding="utf-8") as output_file:
         dumped = ""
