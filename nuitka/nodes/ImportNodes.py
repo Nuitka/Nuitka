@@ -507,7 +507,7 @@ class ExpressionImportModuleHard(
         if self.module is not None and self.allowed:
             full_name = self.value_name.getChildNamed(attribute_name)
 
-            if full_name in hard_modules:
+            if isHardModule(full_name):
                 new_node = ExpressionImportModuleHard(
                     module_name=full_name,
                     value_name=full_name,
