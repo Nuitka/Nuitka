@@ -251,6 +251,6 @@
     "esbonio.sphinx.confDir": "",
     "cSpell.spellCheckOnlyWorkspaceFiles": true,
     "yaml.schemas": {
-        ".vscode/nuitka-package-config-schema.json": "standard.nuitka-package.config.yml"
+        "misc/nuitka-package-config-schema.json": "standard.nuitka-package.config.yml"
     }
 }

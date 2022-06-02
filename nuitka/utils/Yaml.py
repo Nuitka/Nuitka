@@ -25,6 +25,7 @@ Also we put loading for specific packages in here and a few helpers to work
 with these config files.
 """
 
+import os
 import pkgutil
 
 from nuitka.containers.odict import OrderedDict
@@ -155,3 +156,14 @@ def getYamlPackageConfiguration():
         # TODO: User or plugin provided filenames, but we want PRs.
 
     return _package_config
+
+
+def getYamlPackageConfigurationSchemaFilename():
+    """Get the filename of the schema for Nuitka package configuration."""
+    return os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "misc",
+        "nuitka-package-config-schema.json",
+    )

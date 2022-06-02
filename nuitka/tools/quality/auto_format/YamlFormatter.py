@@ -18,12 +18,14 @@
 """ Automatic formatting of Yaml files. """
 
 import json
-import os
 from collections import OrderedDict
 from copy import copy
 
 from nuitka.utils.FileOperations import openTextFile
-from nuitka.utils.Yaml import getYamlPackage
+from nuitka.utils.Yaml import (
+    getYamlPackage,
+    getYamlPackageConfigurationSchemaFilename,
+)
 
 MASTER_KEYS = None
 DATA_FILES_KEYS = None
@@ -37,15 +39,7 @@ def _initNuitkaPackageSchema():
     global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
 
     with openTextFile(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "..",
-            "..",
-            ".vscode",
-            "nuitka-package-config-schema.json",
-        ),
+        getYamlPackageConfigurationSchemaFilename(),
         "r",
     ) as schema_file:
         schema = json.load(schema_file)
