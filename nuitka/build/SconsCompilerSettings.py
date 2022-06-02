@@ -216,8 +216,6 @@ def checkWindowsCompilerFound(
 
             decision, linker_arch, compiler_arch = decideArchMismatch(
                 target_arch=target_arch,
-                mingw_mode=isGccName(the_cc_name),
-                msvc_mode=not isGccName(the_cc_name),
                 the_cc_name=the_cc_name,
                 compiler_path=compiler_path,
             )

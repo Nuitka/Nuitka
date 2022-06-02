@@ -90,6 +90,7 @@ from .SconsUtils import (
     getExecutablePath,
     getMsvcVersionString,
     initScons,
+    isClangName,
     isGccName,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
@@ -400,7 +401,7 @@ env.pyenv_python = getArgumentBool("pyenv_python", False)
 env.apple_python = getArgumentBool("pyenv_python", False)
 
 # Requested or user provided, detect if it's clang even from environment
-if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
+if isClangName(env.the_cc_name):
     clang_mode = True
     env["CCVERSION"] = None
 
