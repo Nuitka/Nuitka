@@ -27,7 +27,7 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.ImportNodes import makeExpressionImportModuleNameHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
@@ -49,7 +49,7 @@ def buildPrintNode(provider, node, source_ref):
             temp_scope=temp_scope, name="target"
         )
 
-        target_default_statement = StatementAssignmentVariable(
+        target_default_statement = makeStatementAssignmentVariable(
             variable=tmp_target_variable,
             source=makeExpressionImportModuleNameHard(
                 module_name="sys",
@@ -61,7 +61,7 @@ def buildPrintNode(provider, node, source_ref):
         )
 
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_target_variable,
                 source=buildNode(
                     provider=provider, node=node.dest, source_ref=source_ref

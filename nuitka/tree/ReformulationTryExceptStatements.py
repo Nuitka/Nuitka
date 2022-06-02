@@ -40,7 +40,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence,
 )
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -76,7 +76,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
 
     statements = mergeStatements(
         (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_handler_indicator_variable,
                 source=makeConstantRefNode(constant=False, source_ref=source_ref),
                 source_ref=no_raise.getSourceReference(),
@@ -89,7 +89,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise, source
     handling = StatementsSequence(statements=statements, source_ref=source_ref)
 
     return makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_handler_indicator_variable,
             source=makeConstantRefNode(constant=True, source_ref=source_ref),
             source_ref=source_ref,

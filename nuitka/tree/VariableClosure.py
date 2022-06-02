@@ -36,7 +36,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     mergeStatements,
 )
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import (
     StatementReleaseVariable,
     makeStatementDelVariable,
@@ -167,7 +167,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                     statements = mergeStatements(
                         statements=(
-                            StatementAssignmentVariable(
+                            makeStatementAssignmentVariable(
                                 variable=tmp_variable,
                                 source=node.subnode_source.subnode_left,
                                 source_ref=node.source_ref,
@@ -175,7 +175,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             makeTryFinallyStatement(
                                 provider=provider,
                                 tried=(
-                                    StatementAssignmentVariable(
+                                    makeStatementAssignmentVariable(
                                         variable=tmp_variable,
                                         source=makeExpressionOperationBinaryInplace(
                                             left=ExpressionTempVariableRef(
@@ -222,7 +222,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable_name=variable_name
                 )
 
-                new_node = StatementAssignmentVariable(
+                new_node = makeStatementAssignmentVariable(
                     variable=variable,
                     source=node.subnode_source,
                     source_ref=node.source_ref,

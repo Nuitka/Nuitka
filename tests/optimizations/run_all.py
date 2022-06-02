@@ -140,7 +140,7 @@ def checkSequence(filename, statements):
 
             continue
 
-        if kind == "AssignmentVariable":
+        if kind.startswith("AssignmentVariable"):
             variable_name = statement.attrib["variable_name"]
 
             # Ignore "__spec__" assignment for Python3.4, it is not going

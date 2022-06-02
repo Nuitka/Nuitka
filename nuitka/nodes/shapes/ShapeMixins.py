@@ -181,6 +181,10 @@ class ShapeNumberMixin(object):
 
 class ShapeIteratorMixin(ShapeNotContainerMixin):
     @staticmethod
+    def isShapeIterator():
+        return True
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 

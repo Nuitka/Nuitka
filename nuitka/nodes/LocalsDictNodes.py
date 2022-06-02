@@ -30,7 +30,7 @@ from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
-from .VariableAssignNodes import StatementAssignmentVariable
+from .VariableAssignNodes import makeStatementAssignmentVariable
 from .VariableDelNodes import (
     StatementReleaseVariable,
     makeStatementDelVariable,
@@ -377,7 +377,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
                 trace_collection=trace_collection, variable_name=variable_name
             )
 
-            result = StatementAssignmentVariable(
+            result = makeStatementAssignmentVariable(
                 source=self.subnode_source,
                 variable=variable,
                 source_ref=self.source_ref,
@@ -385,15 +385,15 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             result.parent = self.parent
 
             new_result = result.computeStatement(trace_collection)
+            result = new_result[0]
 
-            if new_result[0] is not result:
-                assert False, (new_result, result)
+            assert result.isStatementAssignmentVariable(), new_result
 
             self.finalize()
             return (
                 result,
                 "new_statements",
-                "Replaced dictionary assignment with temporary variable.",
+                "Replaced dictionary assignment with temporary variable assignment.",
             )
 
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -485,12 +485,12 @@ class StatementLocalsDictOperationDel(StatementBase):
             result.parent = self.parent
 
             new_result = result.computeStatement(trace_collection)
+            result = new_result[0]
 
-            if new_result[0] is not result:
-                assert False, (new_result, result)
+            assert result.isStatementDelVariable(), new_result
 
             return (
-                result,
+                new_result,
                 "new_statements",
                 "Replaced dictionary del with temporary variable.",
             )

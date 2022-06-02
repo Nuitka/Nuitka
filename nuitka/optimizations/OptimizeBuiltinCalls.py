@@ -141,7 +141,7 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinType1,
 )
 from nuitka.nodes.VariableAssignNodes import (
-    StatementAssignmentVariable,
+    makeStatementAssignmentVariable,
     makeStatementDelVariable,
 )
 from nuitka.nodes.VariableRefNodes import (
@@ -871,7 +871,7 @@ def eval_extractor(node):
 
         # Source needs some special treatment for eval, if it's a string, it
         # must be stripped.
-        string_fixup = StatementAssignmentVariable(
+        string_fixup = makeStatementAssignmentVariable(
             variable=source_variable,
             source=makeExpressionCall(
                 called=makeExpressionAttributeLookup(
@@ -900,7 +900,7 @@ def eval_extractor(node):
             )
 
         statements = (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=source_variable, source=source, source_ref=source_ref
             ),
             makeStatementConditional(

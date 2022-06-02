@@ -79,7 +79,7 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1, ExpressionTypeCheck
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import (
@@ -306,7 +306,7 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     statements += (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=class_variable,
             source=makeExpressionCall(
                 called=ExpressionTempVariableRef(
@@ -376,7 +376,7 @@ def buildClassNode3(provider, node, source_ref):
 
     if node.bases:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_bases if python_version < 0x370 else tmp_bases_orig,
                 source=_buildBasesTupleCreationNode(
                     provider=provider, elements=node.bases, source_ref=source_ref
@@ -406,13 +406,13 @@ def buildClassNode3(provider, node, source_ref):
             )
 
             statements.append(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_bases, source=bases_conversion, source_ref=source_ref
                 )
             )
 
     statements.append(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_class_decl_dict,
             source=makeDictCreationOrConstant2(
                 keys=[keyword.arg for keyword in keywords],
@@ -472,7 +472,7 @@ def buildClassNode3(provider, node, source_ref):
             builtin_name="type", source_ref=source_ref
         )
 
-    call_prepare = StatementAssignmentVariable(
+    call_prepare = makeStatementAssignmentVariable(
         variable=tmp_prepared,
         source=makeExpressionCall(
             called=makeExpressionAttributeLookup(
@@ -545,7 +545,7 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     statements += (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_metaclass,
             source=ExpressionSelectMetaclass(
                 metaclass=ExpressionConditional(
@@ -610,7 +610,7 @@ def buildClassNode3(provider, node, source_ref):
                 source_ref=source_ref,
             ),
             yes_branch=call_prepare,
-            no_branch=StatementAssignmentVariable(
+            no_branch=makeStatementAssignmentVariable(
                 variable=tmp_prepared,
                 source=makeConstantRefNode(
                     constant={}, source_ref=source_ref, user_provided=True
@@ -735,7 +735,7 @@ def getClassBasesMroConversionHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -778,7 +778,7 @@ def getClassBasesMroConversionHelper():
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -788,7 +788,7 @@ def getClassBasesMroConversionHelper():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant=[], source_ref=internal_source_ref),
             source_ref=internal_source_ref,

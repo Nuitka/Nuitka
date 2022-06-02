@@ -39,7 +39,7 @@ from nuitka.nodes.GeneratorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
@@ -121,7 +121,7 @@ def buildLambdaNode(provider, node, source_ref):
             )
 
             statements = (
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_return_value, source=body, source_ref=source_ref
                 ),
                 makeStatementConditional(

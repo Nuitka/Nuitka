@@ -37,7 +37,7 @@ from nuitka.nodes.FunctionNodes import (
 from nuitka.nodes.KeyValuePairNodes import makeExpressionPairs
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -141,7 +141,7 @@ def buildCallNode(provider, node, source_ref):
             outline_body.setChild(
                 "body",
                 makeStatementsSequenceFromStatements(
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=tmp_called, source=called, source_ref=source_ref
                     ),
                     StatementReturn(

@@ -49,7 +49,7 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
@@ -179,7 +179,7 @@ def buildClassNode2(provider, node, source_ref):
         tmp_base = select_metaclass.allocateTempVariable(temp_scope=None, name="base")
 
         statements = (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_base,
                 source=ExpressionSubscriptLookup(
                     expression=ExpressionTempVariableRef(
@@ -267,7 +267,7 @@ def buildClassNode2(provider, node, source_ref):
     )
 
     statements = [
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_bases,
             source=makeExpressionMakeTupleOrConstant(
                 elements=buildNodeList(
@@ -278,10 +278,10 @@ def buildClassNode2(provider, node, source_ref):
             ),
             source_ref=source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_class_dict, source=function_body, source_ref=source_ref
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_metaclass,
             source=ExpressionConditional(
                 condition=ExpressionDictOperationIn(
@@ -311,7 +311,7 @@ def buildClassNode2(provider, node, source_ref):
             ),
             source_ref=source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_class,
             source=makeExpressionCall(
                 called=ExpressionTempVariableRef(
@@ -342,7 +342,7 @@ def buildClassNode2(provider, node, source_ref):
 
     for decorator in buildNodeList(provider, reversed(node.decorator_list), source_ref):
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_class,
                 source=makeExpressionCall(
                     called=decorator,

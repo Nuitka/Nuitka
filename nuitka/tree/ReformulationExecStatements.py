@@ -36,7 +36,7 @@ from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
@@ -117,10 +117,10 @@ def wrapEvalGlobalsAndLocals(
 
     pre_statements = [
         # First assign globals and locals temporary the values given.
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=globals_keeper_variable, source=globals_node, source_ref=source_ref
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=locals_keeper_variable, source=locals_node, source_ref=source_ref
         ),
         makeStatementConditional(
@@ -131,7 +131,7 @@ def wrapEvalGlobalsAndLocals(
                 right=ExpressionConstantNoneRef(source_ref=source_ref),
                 source_ref=source_ref,
             ),
-            yes_branch=StatementAssignmentVariable(
+            yes_branch=makeStatementAssignmentVariable(
                 variable=locals_keeper_variable,
                 source=locals_default,
                 source_ref=source_ref,
@@ -147,7 +147,7 @@ def wrapEvalGlobalsAndLocals(
                 right=ExpressionConstantNoneRef(source_ref=source_ref),
                 source_ref=source_ref,
             ),
-            yes_branch=StatementAssignmentVariable(
+            yes_branch=makeStatementAssignmentVariable(
                 variable=globals_keeper_variable,
                 source=ExpressionBuiltinGlobals(source_ref=source_ref),
                 source_ref=source_ref,
@@ -244,22 +244,22 @@ exec: arg 1 must be a string, file, or code object""",
 
     tried = (
         # First evaluate the source code expressions.
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=source_variable, source=source_code, source_ref=source_ref
         ),
         # Assign globals and locals temporary the values given, then fix it
         # up, taking note in the "plain" temporary variable, if it was an
         # "exec" statement with None arguments, in which case the copy back
         # will be necessary.
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=globals_keeper_variable,
             source=globals_value,
             source_ref=source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=locals_keeper_variable, source=locals_value, source_ref=source_ref
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=plain_indicator_variable,
             source=makeConstantRefNode(constant=False, source_ref=source_ref),
             source_ref=source_ref,
@@ -273,7 +273,7 @@ exec: arg 1 must be a string, file, or code object""",
                 source_ref=source_ref,
             ),
             yes_branch=makeStatementsSequenceFromStatements(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=globals_keeper_variable,
                     source=ExpressionBuiltinGlobals(source_ref=source_ref),
                     source_ref=source_ref,
@@ -287,7 +287,7 @@ exec: arg 1 must be a string, file, or code object""",
                         source_ref=source_ref,
                     ),
                     yes_branch=makeStatementsSequenceFromStatements(
-                        StatementAssignmentVariable(
+                        makeStatementAssignmentVariable(
                             variable=locals_keeper_variable,
                             source=makeExpressionBuiltinLocals(
                                 locals_scope=provider.getLocalsScope(),
@@ -295,7 +295,7 @@ exec: arg 1 must be a string, file, or code object""",
                             ),
                             source_ref=source_ref,
                         ),
-                        StatementAssignmentVariable(
+                        makeStatementAssignmentVariable(
                             variable=plain_indicator_variable,
                             source=makeConstantRefNode(
                                 constant=True, source_ref=source_ref
@@ -317,7 +317,7 @@ exec: arg 1 must be a string, file, or code object""",
                         source_ref=source_ref,
                     ),
                     yes_branch=makeStatementsSequenceFromStatement(
-                        statement=StatementAssignmentVariable(
+                        statement=makeStatementAssignmentVariable(
                             variable=locals_keeper_variable,
                             source=ExpressionTempVariableRef(
                                 variable=globals_keeper_variable, source_ref=source_ref

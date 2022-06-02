@@ -105,6 +105,10 @@ class ShapeBase(getMetaClassBase("Shape")):
     def hasShapeTrustedAttributes():
         return None
 
+    @staticmethod
+    def isShapeIterator():
+        return None
+
     add_shapes = {}
 
     def getOperationBinaryAddShape(self, right_shape):
@@ -605,6 +609,10 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
 
 class ShapeIterator(ShapeBase, ShapeIteratorMixin):
     """Iterator created by iter with 2 arguments, TODO: could be way more specific."""
+
+    @staticmethod
+    def isShapeIterator():
+        return None
 
     @staticmethod
     def hasShapeSlotBool():

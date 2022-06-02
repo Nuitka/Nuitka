@@ -33,7 +33,7 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
@@ -229,7 +229,7 @@ def buildImportFromNode(provider, node, source_ref):
             )
 
             statements.append(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_import_from,
                     source=imported_from_module,
                     source_ref=source_ref,

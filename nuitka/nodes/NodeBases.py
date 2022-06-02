@@ -341,6 +341,10 @@ class NodeBase(NodeMetaClassBase):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
 
     @staticmethod
+    def isStatementAssignmentVariable():
+        return False
+
+    @staticmethod
     def isStatementDelVariable():
         return False
 

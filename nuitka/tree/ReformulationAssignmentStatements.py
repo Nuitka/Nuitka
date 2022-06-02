@@ -67,7 +67,7 @@ from nuitka.nodes.SubscriptNodes import (
     StatementAssignmentSubscript,
     StatementDelSubscript,
 )
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import (
     StatementReleaseVariable,
     makeStatementDelVariable,
@@ -239,7 +239,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
             if starred_list_var is not None:
                 statements.insert(
                     starred_index + 1,
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=element_var,
                         source=ExpressionListOperationPop(
                             list_arg=ExpressionTempVariableRef(
@@ -252,7 +252,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
                 )
             elif element[0] != "Starred":
                 statements.append(
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=element_var,
                         source=ExpressionSpecialUnpack(
                             value=ExpressionTempVariableRef(
@@ -271,7 +271,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
                 starred_list_var = element_var
 
                 statements.append(
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=element_var,
                         source=ExpressionBuiltinList(
                             value=ExpressionTempVariableRef(
@@ -342,7 +342,7 @@ not enough values to unpack (expected at least %d, got %%d)"""
             iter_creation_class = ExpressionBuiltinIter1
 
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=source_iter_var,
                 source=iter_creation_class(value=source, source_ref=source_ref),
                 source_ref=source_ref,
@@ -563,7 +563,7 @@ def buildAssignNode(provider, node, source_ref):
         )
 
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_source, source=source, source_ref=source_ref
             )
         ]
@@ -796,7 +796,7 @@ def _buildInplaceAssignAttributeNode(
     tmp_variable = provider.allocateTempVariable(temp_scope=temp_scope, name="value")
 
     # First assign the target value to a temporary variable.
-    preserve_to_tmp = StatementAssignmentVariable(
+    preserve_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionAttributeLookup(
             expression=lookup_source.makeClone(),
@@ -807,7 +807,7 @@ def _buildInplaceAssignAttributeNode(
     )
 
     # Second assign the in-place result to a temporary variable
-    inplace_to_tmp = StatementAssignmentVariable(
+    inplace_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable,
         source=makeExpressionOperationBinaryInplace(
             operator=operator,
@@ -854,15 +854,15 @@ def _buildInplaceAssignSubscriptNode(
     source_ref,
 ):
     # First assign the subscribed value to a temporary variable.
-    preserve_to_tmp1 = StatementAssignmentVariable(
+    preserve_to_tmp1 = makeStatementAssignmentVariable(
         variable=tmp_variable1, source=subscribed, source_ref=source_ref
     )
     # Second assign the subscript value to a temporary variable
     statements = (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_variable2, source=subscript, source_ref=source_ref
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_variable3,
             source=ExpressionSubscriptLookup(
                 expression=ExpressionTempVariableRef(
@@ -875,7 +875,7 @@ def _buildInplaceAssignSubscriptNode(
             ),
             source_ref=source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_variable3,
             source=makeExpressionOperationBinaryInplace(
                 operator=operator,
@@ -935,7 +935,7 @@ def _buildInplaceAssignSliceNode(
     # pylint: disable=too-many-locals
 
     # First assign the target value, lower and upper to temporary variables.
-    copy_to_tmp = StatementAssignmentVariable(
+    copy_to_tmp = makeStatementAssignmentVariable(
         variable=tmp_variable1, source=lookup_source, source_ref=source_ref
     )
 
@@ -946,7 +946,7 @@ def _buildInplaceAssignSliceNode(
 
     if lower is not None:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_variable2, source=lower, source_ref=source_ref
             )
         )
@@ -967,7 +967,7 @@ def _buildInplaceAssignSliceNode(
 
     if upper is not None:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_variable3, source=upper, source_ref=source_ref
             )
         )
@@ -991,7 +991,7 @@ def _buildInplaceAssignSliceNode(
     # Second assign the in-place result over the original value.
     if use_sliceobj:
         statements += (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_variable4,
                 source=ExpressionSubscriptLookup(
                     expression=ExpressionTempVariableRef(
@@ -1007,7 +1007,7 @@ def _buildInplaceAssignSliceNode(
                 ),
                 source_ref=source_ref,
             ),
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_variable4,
                 source=makeExpressionOperationBinaryInplace(
                     operator=operator,
@@ -1034,7 +1034,7 @@ def _buildInplaceAssignSliceNode(
         )
     else:
         statements += (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_variable4,
                 source=ExpressionSliceLookup(
                     expression=ExpressionTempVariableRef(
@@ -1046,7 +1046,7 @@ def _buildInplaceAssignSliceNode(
                 ),
                 source_ref=source_ref,
             ),
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_variable4,
                 source=makeExpressionOperationBinaryInplace(
                     operator=operator,
@@ -1219,7 +1219,7 @@ def buildNamedExprNode(provider, node, source_ref):
         )
 
     statements = (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_value, source=value, source_ref=source_ref
         ),
         StatementAssignmentVariableName(

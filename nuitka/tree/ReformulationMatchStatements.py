@@ -43,7 +43,7 @@ from nuitka.nodes.TypeMatchNodes import (
     ExpressionMatchTypeCheckSequence,
 )
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
@@ -466,7 +466,7 @@ def buildMatchNode(provider, node, source_ref):
             branch_code = makeStatementsSequence(
                 statements=(
                     branch_code,
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=tmp_indicator_variable,
                         source=makeConstantRefNode(
                             constant=True, source_ref=source_ref
@@ -527,7 +527,7 @@ def buildMatchNode(provider, node, source_ref):
 
     return makeStatementsSequence(
         statements=(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_subject,
                 source=subject_node,
                 source_ref=subject_node.getSourceReference(),

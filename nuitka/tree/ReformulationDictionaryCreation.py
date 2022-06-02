@@ -56,7 +56,7 @@ from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
@@ -123,7 +123,7 @@ def getDictUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -205,7 +205,7 @@ def getDictUnpackingHelper():
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -215,7 +215,7 @@ def getDictUnpackingHelper():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
             source_ref=internal_source_ref,

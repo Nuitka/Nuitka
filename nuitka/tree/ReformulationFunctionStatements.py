@@ -50,7 +50,7 @@ from nuitka.nodes.GeneratorNodes import (
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
@@ -557,7 +557,7 @@ def _wrapFunctionWithSpecialNestedArgs(
         iter_vars.append(iter_var)
 
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_var,
                 source=ExpressionBuiltinIter1(value=source, source_ref=source_ref),
                 source_ref=source_ref,
@@ -570,7 +570,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 outer_body.getLocalsScope().registerProvidedVariable(arg_var)
 
                 statements.append(
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=arg_var,
                         source=ExpressionSpecialUnpack(
                             value=ExpressionTempVariableRef(

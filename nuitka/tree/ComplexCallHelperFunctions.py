@@ -68,7 +68,7 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinType1,
 )
-from nuitka.nodes.VariableAssignNodes import StatementAssignmentVariable
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
@@ -395,7 +395,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
                 ),
                 source_ref=internal_source_ref,
             ),
-            yes_branch=StatementAssignmentVariable(
+            yes_branch=makeStatementAssignmentVariable(
                 variable=star_list_variable,
                 source=ExpressionBuiltinTuple(
                     value=ExpressionVariableRef(
@@ -412,7 +412,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
         )
     else:
         non_tuple_code = makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=star_list_variable,
                 source=ExpressionBuiltinTuple(
                     value=ExpressionVariableRef(
@@ -509,7 +509,7 @@ def _makeRaiseExceptionMustBeMapping(called_variable, star_dict_variable):
 def _makeIteratingLoopStatement(tmp_iter_variable, tmp_item_variable, statements):
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -582,7 +582,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
 
     mapping_case = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_keys_variable,
                 source=makeCallNode(
                     _makeNameAttributeLookup(
@@ -601,7 +601,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionTempVariableRef(
@@ -611,7 +611,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_dict_variable,
             source=makeConstantRefNode(
                 constant={}, source_ref=internal_source_ref, user_provided=True
@@ -623,7 +623,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
             tmp_item_variable=tmp_key_variable,
             statements=loop_body,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=star_dict_variable,
             source=ExpressionTempVariableRef(
                 variable=tmp_dict_variable, source_ref=internal_source_ref
@@ -833,7 +833,7 @@ def _makeStarDictArgumentMergeToKwStatement(
 
     mapping_case = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_keys_variable,
                 source=makeCallNode(
                     _makeNameAttributeLookup(
@@ -852,7 +852,7 @@ def _makeStarDictArgumentMergeToKwStatement(
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionTempVariableRef(
@@ -888,7 +888,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
     dict_loop_body = (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_key_variable,
             source=ExpressionSubscriptLookup(
                 expression=ExpressionTempVariableRef(
@@ -938,7 +938,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
     dict_case = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=kw_variable,
             source=ExpressionBuiltinDict(
                 pos_arg=ExpressionVariableRef(
@@ -949,7 +949,7 @@ def _makeStarDictArgumentMergeToKwStatement(
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionDictOperationIteritems(
@@ -2063,7 +2063,7 @@ def getFunctionCallHelperDictionaryUnpacking():
     loop_body = (
         makeTryExceptSingleHandlerNode(
             tried=makeStatementsSequenceFromStatements(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_iter2_variable,
                     source=ExpressionBuiltinIter1(
                         value=makeCallNode(
@@ -2113,7 +2113,7 @@ def getFunctionCallHelperDictionaryUnpacking():
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -2123,7 +2123,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
             source_ref=internal_source_ref,
