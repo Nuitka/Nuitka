@@ -94,7 +94,9 @@ class ExpressionPkglibGetDataRef(ExpressionImportModuleNameHardExists):
 
 
 class ExpressionPkglibGetDataCall(
-    ExpressionBytesShapeExactMixin,
+    ExpressionBytesShapeExactMixin
+    if str is not bytes
+    else ExpressionStrShapeExactMixin,
     SideEffectsFromChildrenMixin,
     ExpressionChildrenHavingBase,
 ):
@@ -149,7 +151,9 @@ class ExpressionPkgResourcesResourceStringRef(ExpressionImportModuleNameHardExis
 
 
 class ExpressionPkgResourcesResourceStringCall(
-    ExpressionBytesShapeExactMixin,
+    ExpressionBytesShapeExactMixin
+    if str is not bytes
+    else ExpressionStrShapeExactMixin,
     SideEffectsFromChildrenMixin,
     ExpressionChildrenHavingBase,
 ):
