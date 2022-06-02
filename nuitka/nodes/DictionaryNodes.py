@@ -985,6 +985,7 @@ class ExpressionDictOperationIterkeys(
 
     @staticmethod
     def getTypeShape():
+        # TODO: Actually iterator yield keys
         return tshape_iterator
 
     @staticmethod
@@ -1075,6 +1076,7 @@ class ExpressionDictOperationItervalues(
 
     @staticmethod
     def getTypeShape():
+        # TODO: Actually the iterator yield values.
         return tshape_iterator
 
     @staticmethod
