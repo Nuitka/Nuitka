@@ -304,6 +304,8 @@ _stdlib_no_auto_inclusion_list = (
     "tkFont",
     "tkColorChooser",
     "idlelib",
+    # test code in standard modules
+    "asyncio.test_utils",
 )
 
 if not isWin32Windows():
