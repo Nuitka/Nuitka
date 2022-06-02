@@ -944,10 +944,10 @@ def getScanDirectories(package_name, original_dir):
         and package_name is not None
         and package_name.isBelowNamespace("win32com")
     ):
-        pywin32_dir = getPyWin32Dir()
+        py_win32_dir = getPyWin32Dir()
 
-        if pywin32_dir is not None:
-            scan_dirs.append(pywin32_dir)
+        if py_win32_dir is not None:
+            scan_dirs.append(py_win32_dir)
 
     for path_dir in os.environ["PATH"].split(";"):
         if not os.path.isdir(path_dir):

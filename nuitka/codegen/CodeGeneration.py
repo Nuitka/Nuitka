@@ -291,7 +291,7 @@ from .StringCodes import (
     generateBuiltinUnicodeCode,
     generateBytesOperationCode,
     generateStrFormatMethodCode,
-    generateStringContenationCode,
+    generateStringConcatenationCode,
     generateStrOperationCode,
 )
 from .SubscriptCodes import (

@@ -30,12 +30,14 @@ from nuitka.utils.Importing import importFromInlineCopy
 from nuitka.utils.ThreadedExecutor import RLock
 from nuitka.utils.Utils import isWin32Windows
 
+# spell-checker: ignore tqdm
+
 # Late import and optional to be there.
 use_progress_bar = False
 tqdm = None
 
 
-class NuitkaProgessBar(object):
+class NuitkaProgressBar(object):
     def __init__(self, iterable, stage, total, min_total, unit):
         self.total = total
 
@@ -146,7 +148,7 @@ def setupProgressBar(stage, unit, total, min_total=0):
     assert Tracing.progress is None
 
     if use_progress_bar:
-        Tracing.progress = NuitkaProgessBar(
+        Tracing.progress = NuitkaProgressBar(
             iterable=None,
             stage=stage,
             total=total,
@@ -192,7 +194,7 @@ def wrapWithProgressBar(iterable, stage, unit):
     if tqdm is None:
         return iterable
     else:
-        result = NuitkaProgessBar(
+        result = NuitkaProgressBar(
             iterable=iterable, unit=unit, stage=stage, total=None, min_total=None
         )
 
