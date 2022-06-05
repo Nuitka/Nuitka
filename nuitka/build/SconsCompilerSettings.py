@@ -199,8 +199,6 @@ def checkWindowsCompilerFound(
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
 
-    # Many considerations done here, pylint: disable=too-many-branches
-
     if os.name == "nt":
         # On Windows, in case MSVC was not found and not previously forced, use the
         # winlibs MinGW64 as a download, and use it as a fallback.
@@ -290,9 +288,6 @@ def checkWindowsCompilerFound(
                 target_arch=target_arch,
                 experimental=env.experimental_flags,
             )
-
-            if "MAKE" not in os.environ:
-                setEnvironmentVariable(env, "MAKE", "mingw32-make.exe")
 
             if clang_mode:
                 env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
