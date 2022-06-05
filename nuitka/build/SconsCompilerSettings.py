@@ -42,6 +42,12 @@ from .SconsUtils import (
     setEnvironmentVariable,
 )
 
+# spell-checker: ignore CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
+# spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
+# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
+# spell-checker: ignore -feliminate,noexecstack,implib
+# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,
+
 
 def _detectWindowsSDK(env):
     # Check if there is a WindowsSDK installed.
@@ -493,7 +499,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if env.debug_mode:
             env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
-    # Support for macOS standalone backporting.
+    # Support for macOS standalone to run on older OS versions.
     if isMacOS():
         setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 

@@ -233,6 +233,8 @@
         "traverseproc",
         "tshape",
         "ucrt",
+        "_NUITKA_WINMAIN_ENTRY_POINT",
+        "_XOPEN_SOURCE",
         "uncompiled",
         "unoptimized",
         "unorderable",
