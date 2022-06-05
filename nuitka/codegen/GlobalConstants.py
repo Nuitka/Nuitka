@@ -23,6 +23,8 @@ from nuitka import Options
 from nuitka.__past__ import long
 from nuitka.PythonVersions import python_version
 
+# spell-checker: ignore fromlist
+
 
 def getConstantDefaultPopulation():
     """These are values for non-trivial constants.
@@ -94,6 +96,7 @@ def getConstantDefaultPopulation():
         "level",
         # Meta path based loader.
         "read",
+        "rb",
     ]
 
     # Pickling of instance methods.
