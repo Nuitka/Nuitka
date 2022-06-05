@@ -2687,8 +2687,41 @@ The call to ``_complex_call`` is be a direct function call with no
 parameter parsing overhead. And the call in its end, is a special call
 operation, which relates to the ``PyObject_Call`` C-API.
 
+Assignment Expressions
+----------------------
+
+In Python 3.8 or higher, you assign inside expressions.
+
+.. code:: python
+
+   if (x := cond()):
+      do_something()
+
+this is the same as:
+
+.. code:: python
+
+   # Doesn't exist with that name, and it is not really taking closure variables,
+   # it just shares the execution context.
+   def _outline_func():
+      nonlocal x
+      x = cond()
+
+      return x
+
+   if (_outline_func()):
+      do_something
+
+When we use this outline function, we are allowed statements, even
+assignments, in expressions. For optimization, they of course pose a
+challenge to be removed ever, only happens when it becomes only a return
+statement, but they do not cause much difficulties for code generation,
+since they are transparent.
+
 Match Statements
 ----------------
+
+In Python 3.10 or higher, you can write things like this:
 
 .. code:: python
 
