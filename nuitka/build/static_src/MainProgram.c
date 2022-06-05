@@ -744,11 +744,6 @@ int main(int argc, char **argv) {
     prepareStandaloneEnvironment();
 #else
 
-#if PYTHON_VERSION >= 0x350 && defined(DLL_EXTRA_PATH)
-    NUITKA_PRINT_TIMING("main(): Prepare DLL extra path.");
-    SetDllDirectory(DLL_EXTRA_PATH);
-#endif
-
 #endif
 
 #if _NUITKA_FROZEN > 0
