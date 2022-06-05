@@ -158,6 +158,9 @@ def parseArgs():
     is_nondebug = not is_debug
     is_fullcompat = _isFullCompat()
 
+    if hasattr(options, "experimental"):
+        _experimental.update(options.experimental)
+
     # TODO: Have dedicated option for it.
     is_report_missing = is_debug
 
@@ -1160,7 +1163,7 @@ def isRemoveBuildDir():
     return options.remove_build and not options.generate_c_only
 
 
-experimental = set()
+_experimental = set()
 
 
 def isExperimental(indication):
@@ -1171,19 +1174,15 @@ def isExperimental(indication):
     Returns:
         bool
     """
-    return (
-        indication in experimental
-        or hasattr(options, "experimental")
-        and indication in options.experimental
-    )
+    return indication in _experimental
 
 
 def enableExperimental(indication):
-    experimental.add(indication)
+    _experimental.add(indication)
 
 
 def disableExperimental(indication):
-    experimental.remove(indication)
+    _experimental.remove(indication)
 
 
 def getExperimentalIndications():
