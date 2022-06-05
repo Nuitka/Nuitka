@@ -50,6 +50,10 @@ class ShapeBase(getMetaClassBase("Shape")):
         return tshape_unknown
 
     @staticmethod
+    def hasShapeIndexLookup():
+        return None
+
+    @staticmethod
     def hasShapeModule():
         return None
 
@@ -91,6 +95,10 @@ class ShapeBase(getMetaClassBase("Shape")):
 
     @staticmethod
     def hasShapeSlotNext():
+        return None
+
+    @staticmethod
+    def hasShapeSlotNextCode():
         return None
 
     @staticmethod
@@ -549,11 +557,11 @@ class ShapeTypeUnknown(ShapeBase):
 tshape_unknown = ShapeTypeUnknown()
 
 
-class ShapeTypeUninit(ShapeTypeUnknown):
+class ShapeTypeUninitialized(ShapeTypeUnknown):
     pass
 
 
-tshape_uninit = ShapeTypeUninit()
+tshape_uninitialized = ShapeTypeUninitialized()
 
 
 class ValueShapeBase(object):

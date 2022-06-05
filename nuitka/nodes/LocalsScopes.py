@@ -350,7 +350,7 @@ class LocalsDictHandle(LocalsDictHandleBase):
                 elif variable_trace.isMergeTrace():
                     propagate = False
                     break
-                elif variable_trace.isUninitTrace():
+                elif variable_trace.isUninitializedTrace():
                     pass
                 elif variable_trace.isUnknownTrace():
                     propagate = False

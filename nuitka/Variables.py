@@ -234,6 +234,16 @@ class Variable(getMetaClassBase("Variable")):
 
         return None
 
+    def getMatchingUnescapedAssignTrace(self, assign_node):
+        found = None
+        for trace in self.traces:
+            if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
+                found = trace
+            if trace.isEscapeTrace():
+                return None
+
+        return found
+
     def getMatchingDelTrace(self, del_node):
         for trace in self.traces:
             if trace.isDeletedTrace() and trace.getDelNode() is del_node:

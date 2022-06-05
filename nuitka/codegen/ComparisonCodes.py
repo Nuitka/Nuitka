@@ -119,6 +119,44 @@ specialized_cmp_helpers_set = OrderedSet(
 )
 
 
+def getRichComparisonCode(
+    to_name,
+    comparator,
+    left_name,
+    right_name,
+    left_shape,
+    right_shape,
+    needs_check,
+    source_ref,
+    emit,
+    context,
+):
+    helper = pickCodeHelper(
+        prefix="RICH_COMPARE_xx",
+        suffix="",
+        target_type=to_name.getCType(),
+        left_shape=left_shape,
+        right_shape=right_shape,
+        helpers=specialized_cmp_helpers_set,
+        nonspecialized=(),
+        source_ref=source_ref,
+    )
+
+    # Lets patch this up here, instead of having one set per comparison operation.
+    helper.helper_name = helper.helper_name.replace(
+        "xx", OperatorCodes.rich_comparison_codes[comparator]
+    )
+
+    helper.emitHelperCall(
+        to_name=to_name,
+        arg_names=(left_name, right_name),
+        ref_count=1,
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
+    )
+
+
 def generateComparisonExpressionCode(to_name, expression, emit, context):
     left = expression.subnode_left
     right = expression.subnode_right
@@ -180,29 +218,15 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             release_names=(left_name, right_name), emit=emit, context=context
         )
     elif comparator in OperatorCodes.rich_comparison_codes:
-        needs_check = expression.mayRaiseExceptionComparison()
-
-        helper = pickCodeHelper(
-            prefix="RICH_COMPARE_xx",
-            suffix="",
-            target_type=to_name.getCType(),
-            left_shape=left.getTypeShape(),
-            right_shape=expression.subnode_right.getTypeShape(),
-            helpers=specialized_cmp_helpers_set,
-            nonhelpers=(),
-            source_ref=expression.source_ref,
-        )
-
-        # Lets patch this up here, instead of having one set per comparison operation.
-        helper.helper_name = helper.helper_name.replace(
-            "xx", OperatorCodes.rich_comparison_codes[comparator]
-        )
-
-        helper.emitHelperCall(
+        getRichComparisonCode(
             to_name=to_name,
-            arg_names=(left_name, right_name),
-            ref_count=1,
-            needs_check=needs_check,
+            comparator=comparator,
+            left_shape=left.getTypeShape(),
+            right_shape=right.getTypeShape(),
+            left_name=left_name,
+            right_name=right_name,
+            needs_check=expression.mayRaiseExceptionComparison(),
+            source_ref=expression.source_ref,
             emit=emit,
             context=context,
         )

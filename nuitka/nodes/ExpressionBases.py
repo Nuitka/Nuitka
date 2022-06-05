@@ -588,12 +588,13 @@ class ExpressionBase(NodeBase):
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+        if self.mayHaveSideEffectsNext():
+            trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        return False, (next_node, None, None)
+        return True, (next_node, None, None)
 
     def computeExpressionAsyncIter(self, iter_node, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -689,6 +690,10 @@ class ExpressionBase(NodeBase):
         pass
 
     @staticmethod
+    def onContentIteratedEscapes(trace_collection):
+        pass
+
+    @staticmethod
     def mayRaiseExceptionBool(exception_type):
         """Unless we are told otherwise, everything may raise being checked."""
         # Virtual method, pylint: disable=unused-argument
@@ -777,6 +782,11 @@ class ExpressionBase(NodeBase):
         # for abs, i.e. number shapes like Int, Long, Float, Complex.
 
         return True
+
+    def mayHaveSideEffectsNext(self):
+        """The type shape tells us, if "next" may execute code."""
+
+        return self.getTypeShape().hasShapeSlotNextCode()
 
     def hasShapeSlotLen(self):
         """The type shape tells us, if "len" is available."""

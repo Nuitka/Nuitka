@@ -26,6 +26,7 @@ good.
 
 from nuitka.PythonVersions import python_version
 
+from .BuiltinLenNodes import ExpressionBuiltinLen
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
@@ -37,6 +38,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_iterator
+from .VariableRefNodes import ExpressionTempVariableRef
 
 
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
@@ -44,9 +46,11 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
 
     simulator = iter
 
-    def computeExpression(self, trace_collection):
-        trace_collection.initIteratorValue(self)
+    @staticmethod
+    def isExpressionBuiltinIter1():
+        return True
 
+    def computeExpression(self, trace_collection):
         return self.subnode_value.computeExpressionIter1(
             iter_node=self, trace_collection=trace_collection
         )
@@ -75,12 +79,13 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
                 "Predicted 'next' value from iteration.",
             )
 
-        # TODO: This is only true for a few value types, use type shape to tell if
+        # TODO: This is only relevant for a few value types, use type shape to tell if
         # it might escape or raise.
         self.onContentEscapes(trace_collection)
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+        if value.mayHaveSideEffectsNext():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -154,8 +159,6 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
     kind = "EXPRESSION_BUILTIN_ITER_FOR_UNPACK"
 
     def computeExpression(self, trace_collection):
-        trace_collection.initIteratorValue(self)
-
         result = self.subnode_value.computeExpressionIter1(
             iter_node=self, trace_collection=trace_collection
         )
@@ -185,6 +188,71 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
             raise TypeError(
                 "cannot unpack non-iterable %s object" % (type(value).__name__)
             )
+
+
+class StatementSpecialUnpackCheckFromIterated(StatementChildHavingBase):
+    kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED"
+
+    named_child = "iterated_length"
+
+    __slots__ = ("count",)
+
+    def __init__(self, iterated_length, count, source_ref):
+        StatementChildHavingBase.__init__(
+            self, value=iterated_length, source_ref=source_ref
+        )
+
+        self.count = int(count)
+
+    def computeStatement(self, trace_collection):
+        iterated_length = trace_collection.onExpression(self.subnode_iterated_length)
+
+        if iterated_length.isCompileTimeConstant():
+            iterated_length_value = iterated_length.getCompileTimeConstant()
+
+            if iterated_length_value <= self.count:
+                return (
+                    None,
+                    "new_statements",
+                    lambda: "Determined iteration length check to be always true, because %d <= %d."
+                    % (iterated_length_value, self.count),
+                )
+            else:
+                result = makeRaiseExceptionReplacementStatement(
+                    statement=self,
+                    exception_type="ValueError",
+                    exception_value="too many values to unpack"
+                    if python_version < 0x300
+                    else "too many values to unpack (expected %d)" % self.count,
+                )
+
+                trace_collection.onExceptionRaiseExit(TypeError)
+
+                return (
+                    result,
+                    "new_raise",
+                    """\
+Determined iteration end check to always raise.""",
+                )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+def makeStatementSpecialUnpackCheckFromIterated(
+    tmp_iterated_variable, count, source_ref
+):
+    return StatementSpecialUnpackCheckFromIterated(
+        iterated_length=ExpressionBuiltinLen(
+            ExpressionTempVariableRef(
+                variable=tmp_iterated_variable, source_ref=source_ref
+            ),
+            source_ref=source_ref,
+        ),
+        count=count,
+        source_ref=source_ref,
+    )
 
 
 class StatementSpecialUnpackCheck(StatementChildHavingBase):
@@ -227,47 +295,26 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
 Explicit raise already raises implicitly building exception type.""",
             )
 
-        if (
-            iterator.isExpressionTempVariableRef()
-            and iterator.variable_trace.isAssignTrace()
-        ):
+        if iterator.isExpressionTempVariableRef():
+            iteration_source_node = iterator.variable_trace.getIterationSourceNode()
 
-            iterator = iterator.variable_trace.getAssignNode().subnode_source
+            if iteration_source_node is not None:
+                if iteration_source_node.parent.isStatementAssignmentVariableIterator():
+                    iterator_assign_node = iteration_source_node.parent
 
-            current_index = trace_collection.getIteratorNextCount(iterator)
-        else:
-            current_index = None
+                    if iterator_assign_node.tmp_iterated_variable is not None:
+                        result = makeStatementSpecialUnpackCheckFromIterated(
+                            tmp_iterated_variable=iterator_assign_node.tmp_iterated_variable,
+                            count=self.count,
+                            source_ref=self.source_ref,
+                        )
 
-        if current_index is not None:
-            iter_length = iterator.getIterationLength()
-
-            if iter_length is not None:
-                # Remove the check if it can be decided at compile time.
-                if current_index == iter_length:
-                    return (
-                        None,
-                        "new_statements",
-                        """\
-Determined iteration end check to be always true.""",
-                    )
-                else:
-                    result = makeRaiseExceptionReplacementStatement(
-                        statement=self,
-                        exception_type="ValueError",
-                        exception_value="too many values to unpack"
-                        if python_version < 0x300
-                        else "too many values to unpack (expected %d)"
-                        % self.getCount(),
-                    )
-
-                    trace_collection.onExceptionRaiseExit(TypeError)
-
-                    return (
-                        result,
-                        "new_raise",
-                        """\
-Determined iteration end check to always raise.""",
-                    )
+                        return trace_collection.computedStatementResult(
+                            result,
+                            change_tags="new_statements",
+                            change_desc=lambda: "Iterator check of changed to iterated size check using '%s'."
+                            % iterator_assign_node.tmp_iterated_variable.getName(),
+                        )
 
         trace_collection.onExceptionRaiseExit(BaseException)
 

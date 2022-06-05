@@ -208,8 +208,6 @@ class StatementLoop(StatementChildHavingBase):
         with abort_context:
             # Forget all iterator and other value status. TODO: These should be using
             # more proper tracing to benefit.
-            trace_collection.resetValueStates()
-
             result = loop_body.computeStatementsSequence(
                 trace_collection=trace_collection
             )

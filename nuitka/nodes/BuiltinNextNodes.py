@@ -28,7 +28,7 @@ from .ExpressionBases import (
 
 
 class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
-    __slots__ = ("may_not_raise",)
+    __slots__ = ("may_raise",)
 
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
@@ -37,23 +37,20 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
             self, value=value, source_ref=source_ref
         )
 
-        self.may_not_raise = False
+        self.may_raise = True
 
     def computeExpression(self, trace_collection):
-        self.may_not_raise, result = self.subnode_value.computeExpressionNext1(
+        self.may_raise, result = self.subnode_value.computeExpressionNext1(
             next_node=self, trace_collection=trace_collection
         )
 
         return result
 
     def mayRaiseExceptionOperation(self):
-        return not self.may_not_raise
+        return self.may_raise
 
     def mayRaiseException(self, exception_type):
-        return (
-            self.subnode_value.mayRaiseException(exception_type)
-            or self.mayRaiseExceptionOperation()
-        )
+        return self.may_raise or self.subnode_value.mayRaiseException(exception_type)
 
 
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):

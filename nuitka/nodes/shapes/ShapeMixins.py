@@ -185,12 +185,25 @@ class ShapeIteratorMixin(ShapeNotContainerMixin):
         return True
 
     @staticmethod
+    def getIteratedShape():
+        return None
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 
     @staticmethod
     def hasShapeSlotNext():
         return True
+
+    @staticmethod
+    def hasShapeSlotNextCode():
+        """Does next execute code, i.e. control flow escaped.
+
+        For most known iterators that is not the case, only the generic
+        tshape_iterator needs to say "do not know", aka None.
+        """
+        return False
 
     @staticmethod
     def hasShapeSlotContains():

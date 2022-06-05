@@ -46,7 +46,7 @@ from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
@@ -181,13 +181,11 @@ def buildClassNode2(provider, node, source_ref):
         statements = (
             makeStatementAssignmentVariable(
                 variable=tmp_base,
-                source=ExpressionSubscriptLookup(
+                source=makeExpressionIndexLookup(
                     expression=ExpressionTempVariableRef(
                         variable=tmp_bases, source_ref=source_ref
                     ),
-                    subscript=makeConstantRefNode(
-                        constant=0, source_ref=source_ref, user_provided=True
-                    ),
+                    index_value=0,
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,

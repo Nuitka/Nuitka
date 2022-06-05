@@ -24,13 +24,19 @@ There is be a method "computeExpressionSubscript" to aid predicting them in the
 other nodes.
 """
 
+from nuitka.PythonVersions import python_version
+
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
     StatementChildrenHavingBase,
 )
-from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .NodeMakingHelpers import (
+    makeRaiseExceptionExpressionFromTemplate,
+    wrapExpressionWithNodeSideEffects,
+)
 
 
 class StatementAssignmentSubscript(StatementChildrenHavingBase):
@@ -120,6 +126,23 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
         return None
 
 
+def makeExpressionSubscriptLookup(expression, subscript, source_ref):
+    return ExpressionSubscriptLookup(
+        expression=expression, subscript=subscript, source_ref=source_ref
+    )
+
+
+def makeExpressionIndexLookup(expression, index_value, source_ref):
+    # TODO: Specialize index lookups to actual specific node.
+    return makeExpressionSubscriptLookup(
+        expression=expression,
+        subscript=makeConstantRefNode(
+            constant=index_value, source_ref=source_ref, user_provided=True
+        ),
+        source_ref=source_ref,
+    )
+
+
 def hasSubscript(value, subscript):
     """Check if a value has a subscript."""
 
@@ -178,3 +201,62 @@ class ExpressionSubscriptCheck(
     @staticmethod
     def mayRaiseException(exception_type):
         return False
+
+
+class ExpressionSubscriptLookupForUnpack(ExpressionSubscriptLookup):
+    kind = "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK"
+
+    # TODO: Older Python doesn't need the slot.
+    __slots__ = ("expected",)
+
+    def __init__(self, expression, subscript, expected, source_ref):
+        ExpressionSubscriptLookup.__init__(
+            self, expression=expression, subscript=subscript, source_ref=source_ref
+        )
+
+        self.expected = expected
+
+    def computeExpression(self, trace_collection):
+        result = self.subnode_expression.computeExpressionSubscript(
+            lookup_node=self,
+            subscript=self.subnode_subscript,
+            trace_collection=trace_collection,
+        )
+
+        result_node = result[0]
+
+        # Rewrite exceptions to correct message.
+        if (
+            result_node.isExpressionRaiseException()
+            and result_node.subnode_exception_type.isExpressionBuiltinExceptionRef()
+            and result_node.subnode_exception_type.getExceptionName() == "IndexError"
+        ):
+            if python_version >= 0x360:
+                return (
+                    makeRaiseExceptionExpressionFromTemplate(
+                        exception_type="ValueError",
+                        template="not enough values to unpack (expected %d, got %d)",
+                        template_args=(
+                            makeConstantRefNode(
+                                constant=self.expected, source_ref=self.source_ref
+                            ),
+                            self.subnode_subscript,
+                        ),
+                        source_ref=self.source_ref,
+                    ),
+                    "new_raise",
+                    "Raising for unpack too short iterator.",
+                )
+            else:
+                return (
+                    makeRaiseExceptionExpressionFromTemplate(
+                        exception_type="ValueError",
+                        template="need more than %d value to unpack",
+                        template_args=self.subnode_subscript,
+                        source_ref=self.source_ref,
+                    ),
+                    "new_raise",
+                    "Raising for unpack too short iterator.",
+                )
+
+        return result

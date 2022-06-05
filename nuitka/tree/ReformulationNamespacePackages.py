@@ -43,7 +43,7 @@ from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionNuitkaLoaderCreation,
 )
 from nuitka.nodes.ModuleNodes import CompiledPythonPackage
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
@@ -221,11 +221,11 @@ def createImporterCacheAssignment(package, source_ref):
             module_guaranteed=True,
             source_ref=source_ref,
         ),
-        key=ExpressionSubscriptLookup(
+        key=makeExpressionIndexLookup(
             expression=ExpressionVariableNameRef(
                 provider=package, variable_name="__path__", source_ref=source_ref
             ),
-            subscript=makeConstantRefNode(constant=0, source_ref=source_ref),
+            index_value=0,
             source_ref=source_ref,
         ),
         value=ExpressionNuitkaLoaderCreation(provider=package, source_ref=source_ref),

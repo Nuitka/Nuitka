@@ -209,6 +209,7 @@ from .IteratorCodes import (
     generateBuiltinNext2Code,
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
+    generateUnpackCheckFromIteratedCode,
 )
 from .ListCodes import (
     generateBuiltinListCode,
@@ -766,6 +767,7 @@ addExpressionDispatchDict(
         # TODO: Rename to make more clear it is an outline
         "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
+        "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
@@ -835,6 +837,8 @@ setStatementDispatchDict(
         "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_MUTABLE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_IMMUTABLE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_ATTRIBUTE": generateAssignmentAttributeCode,
         "STATEMENT_ASSIGNMENT_SUBSCRIPT": generateAssignmentSubscriptCode,
         "STATEMENT_ASSIGNMENT_SLICE": generateAssignmentSliceCode,
@@ -873,6 +877,7 @@ setStatementDispatchDict(
         "STATEMENT_RAISE_EXCEPTION_IMPLICIT": generateRaiseCode,
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
+        "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
         "STATEMENT_EXEC": generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC": generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS": generateSetLocalsDictCode,

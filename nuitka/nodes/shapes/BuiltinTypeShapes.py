@@ -740,6 +740,10 @@ class ShapeTypeTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def getShapeIter():
         return tshape_tuple_iterator
 
+    @staticmethod
+    def hasShapeIndexLookup():
+        return True
+
     add_shapes = add_shapes_tuple
     sub_shapes = sub_shapes_tuple
     mult_shapes = mult_shapes_tuple
@@ -775,6 +779,10 @@ class ShapeTypeNamedTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def getShapeIter():
         return tshape_tuple_iterator
 
+    @staticmethod
+    def hasShapeIndexLookup():
+        return True
+
     # TODO: Unsupported operation would be different, account for that.
     add_shapes = add_shapes_tuple
     sub_shapes = sub_shapes_tuple
@@ -800,15 +808,19 @@ class ShapeTypeNamedTuple(ShapeContainerMixin, ShapeNotNumberMixin, ShapeBase):
 tshape_namedtuple = ShapeTypeNamedTuple()
 
 
-class TypeShapeTupleIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
+class ShapeTypeTupleIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     typical_value = iter(tshape_tuple.typical_value)
 
     @staticmethod
     def getTypeName():
         return "tupleiterator" if python_version < 0x300 else "tuple_iterator"
 
+    @staticmethod
+    def getIteratedShape():
+        return tshape_tuple
 
-tshape_tuple_iterator = TypeShapeTupleIterator()
+
+tshape_tuple_iterator = ShapeTypeTupleIterator()
 
 
 class ShapeTypeList(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
@@ -823,6 +835,10 @@ class ShapeTypeList(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def getShapeIter():
         return tshape_list_iterator
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return True
 
     add_shapes = add_shapes_list
     sub_shapes = sub_shapes_list
@@ -871,6 +887,10 @@ class ShapeTypeListIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     def getTypeName():
         return "listiterator" if python_version < 0x300 else "list_iterator"
 
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
+
 
 tshape_list_iterator = ShapeTypeListIterator()
 
@@ -885,6 +905,10 @@ class ShapeTypeSet(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def getShapeIter():
         return tshape_set_iterator
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
 
     add_shapes = add_shapes_set
     sub_shapes = sub_shapes_set
@@ -917,6 +941,10 @@ class ShapeTypeSetIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
     def getTypeName():
         return "setiterator" if python_version < 0x300 else "set_iterator"
 
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
+
 
 tshape_set_iterator = ShapeTypeSetIterator()
 
@@ -931,6 +959,10 @@ class ShapeTypeFrozenset(ShapeContainerImmutableMixin, ShapeNotNumberMixin, Shap
     @staticmethod
     def getShapeIter():
         return tshape_set_iterator
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
 
     add_shapes = add_shapes_frozenset
     sub_shapes = sub_shapes_frozenset
@@ -962,6 +994,10 @@ class ShapeTypeDict(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
     @staticmethod
     def getShapeIter():
         return tshape_dict_iterator
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
 
     add_shapes = add_shapes_dict
     sub_shapes = sub_shapes_dict
@@ -1000,6 +1036,10 @@ class ShapeTypeDictIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
         return (
             "dictionary-keyiterator" if python_version < 0x300 else "dictkey_iterator"
         )
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
 
 
 tshape_dict_iterator = ShapeTypeDictIterator()
@@ -1053,6 +1093,10 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
         return tshape_str_iterator
 
     @staticmethod
+    def hasShapeIndexLookup():
+        return True
+
+    @staticmethod
     def hasShapeTrustedAttributes():
         return True
 
@@ -1102,11 +1146,15 @@ tshape_str_derived = TypeShapeStrDerived()
 
 
 class ShapeTypeStrIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase):
-    tyical_value = iter(tshape_str.typical_value)
+    typical_value = iter(tshape_str.typical_value)
 
     @staticmethod
     def getTypeName():
         return "iterator" if python_version < 0x300 else "str_iterator"
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
 
 
 tshape_str_iterator = ShapeTypeStrIterator()
@@ -1162,6 +1210,10 @@ if python_version < 0x300:
             return tshape_unicode_iterator
 
         @staticmethod
+        def hasShapeIndexLookup():
+            return True
+
+        @staticmethod
         def hasShapeTrustedAttributes():
             return True
 
@@ -1206,6 +1258,10 @@ if python_version < 0x300:
         @staticmethod
         def getTypeName():
             return "iterator"
+
+        @staticmethod
+        def hasShapeIndexLookup():
+            return False
 
     tshape_unicode_iterator = ShapeTypeUnicodeIterator()
 else:
@@ -1252,6 +1308,10 @@ if python_version < 0x300:
 
         @staticmethod
         def hasShapeSlotHash():
+            return True
+
+        @staticmethod
+        def hasShapeIndexLookup():
             return True
 
         @staticmethod
@@ -1326,6 +1386,10 @@ if python_version >= 0x300:
             return tshape_bytes_iterator
 
         @staticmethod
+        def hasShapeIndexLookup():
+            return True
+
+        @staticmethod
         def hasShapeTrustedAttributes():
             return True
 
@@ -1392,6 +1456,10 @@ class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeB
     def getShapeIter():
         return tshape_bytearray_iterator
 
+    @staticmethod
+    def hasShapeIndexLookup():
+        return True
+
     add_shapes = add_shapes_bytearray
     sub_shapes = sub_shapes_bytearray
     mult_shapes = mult_shapes_bytearray
@@ -1435,6 +1503,10 @@ class ShapeTypeBytearrayIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeB
     def getTypeName():
         return "bytearray_iterator"
 
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
+
 
 tshape_bytearray_iterator = ShapeTypeBytearrayIterator()
 
@@ -1450,6 +1522,10 @@ class ShapeTypeEllipsis(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def hasShapeSlotHash():
         return True
 
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
+
 
 tshape_ellipsis = ShapeTypeEllipsis()
 
@@ -1463,6 +1539,10 @@ class ShapeTypeSlice(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
 
     @staticmethod
     def hasShapeSlotHash():
+        return False
+
+    @staticmethod
+    def hasShapeIndexLookup():
         return False
 
 
@@ -1483,6 +1563,10 @@ class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBa
     @staticmethod
     def getShapeIter():
         return tshape_xrange_iterator
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return True
 
     def getComparisonLtShape(self, right_shape):
         if right_shape is tshape_unknown:
@@ -1515,6 +1599,10 @@ class ShapeTypeXrangeIterator(ShapeIteratorMixin, ShapeNotNumberMixin, ShapeBase
     @staticmethod
     def getTypeName():
         return "rangeiterator" if python_version < 0x300 else "range_iterator"
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return False
 
 
 tshape_xrange_iterator = ShapeTypeXrangeIterator()
@@ -1640,7 +1728,7 @@ class ShapeTypeClassmethod(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBas
 tshape_classmethod = ShapeTypeClassmethod()
 
 
-# Precanned tuples to save creating return value tuples:
+# Prepared tuples to save creating return value tuples:
 operation_result_bool_noescape = tshape_bool, ControlFlowDescriptionNoEscape
 operation_result_float_noescape = tshape_float, ControlFlowDescriptionNoEscape
 operation_result_int_noescape = tshape_int, ControlFlowDescriptionNoEscape

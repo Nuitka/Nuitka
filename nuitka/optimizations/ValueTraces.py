@@ -23,10 +23,10 @@ the SSA (Single State Assignment) form being used in Nuitka.
 Values can be seen as:
 
 * Unknown (maybe initialized, maybe not, we cannot know)
-* Uninit (definitely not initialized, first version)
+* Uninitialized (definitely not initialized, first version)
 * Init (definitely initialized, e.g. parameter variables)
 * Assign (assignment was done)
-* Deleted (del was done, now unassigned, uninitialted)
+* Deleted (del was done, now unassigned, uninitialized)
 * Merge (result of diverged code paths, loop potentially)
 * LoopIncomplete (aggregation during loops, not yet fully known)
 * LoopComplete (complete knowledge of loop types)
@@ -36,7 +36,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict, tshape_tuple
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
-    tshape_uninit,
+    tshape_uninitialized,
     tshape_unknown,
 )
 from nuitka.utils.InstanceCounters import (
@@ -132,7 +132,7 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
-    def isUninitTrace():
+    def isUninitializedTrace():
         return False
 
     @staticmethod
@@ -148,8 +148,8 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
-    def isEscapeOrUnknownOrUninitTrace():
-        return False
+    def isTraceThatNeedsEscape():
+        return True
 
     @staticmethod
     def isMergeTrace():
@@ -200,14 +200,28 @@ class ValueTraceBase(object):
 
     @staticmethod
     def getAttributeNode():
+        """Node to use for attribute lookups."""
         return None
 
     @staticmethod
     def getAttributeNodeTrusted():
+        """Node to use for attribute lookups, with increased trust.
+
+        Used with hard imports mainly.
+        """
         return None
 
     @staticmethod
     def getAttributeNodeVeryTrusted():
+        """Node to use for attribute lookups, with highest trust.
+
+        Used for hard imports mainly.
+        """
+        return None
+
+    @staticmethod
+    def getIterationSourceNode():
+        """Node to use for iteration decisions."""
         return None
 
 
@@ -220,7 +234,7 @@ class ValueTraceUnassignedBase(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
-        return tshape_uninit
+        return tshape_uninitialized
 
     def compareValueTrace(self, other):
         # We are unassigned, just need to know if the other one is, pylint: disable=no-self-use
@@ -242,12 +256,12 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
         ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
 
     @staticmethod
-    def isUninitTrace():
+    def isUninitializedTrace():
         return True
 
     @staticmethod
-    def isEscapeOrUnknownOrUninitTrace():
-        return True
+    def isTraceThatNeedsEscape():
+        return False
 
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
@@ -344,8 +358,8 @@ class ValueTraceUnknown(ValueTraceBase):
         return True
 
     @staticmethod
-    def isEscapeOrUnknownOrUninitTrace():
-        return True
+    def isTraceThatNeedsEscape():
+        return False
 
     @staticmethod
     def mustHaveValue():
@@ -407,8 +421,8 @@ class ValueTraceEscaped(ValueTraceUnknown):
         return True
 
     @staticmethod
-    def isEscapeOrUnknownOrUninitTrace():
-        return True
+    def isTraceThatNeedsEscape():
+        return False
 
     def getAttributeNode(self):
         return self.previous.getAttributeNodeTrusted()
@@ -421,18 +435,18 @@ class ValueTraceEscaped(ValueTraceUnknown):
 
 
 class ValueTraceAssign(ValueTraceBase):
-    __slots__ = ("assign_node", "replace_it")
+    __slots__ = ("assign_node",)
 
     def __init__(self, owner, assign_node, previous):
         ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
         self.assign_node = assign_node
-        self.replace_it = None
 
     def __repr__(self):
-        return "<ValueTraceAssign at {source_ref} of {value}>".format(
-            source_ref=self.assign_node.getSourceReference().getAsString(),
-            value=self.assign_node.subnode_source,
+        return "<%s at %s of %s>" % (
+            self.__class__.__name__,
+            self.assign_node.getSourceReference().getAsString(),
+            self.assign_node.subnode_source,
         )
 
     @staticmethod
@@ -455,15 +469,6 @@ class ValueTraceAssign(ValueTraceBase):
 
     def getAssignNode(self):
         return self.assign_node
-
-    def setReplacementNode(self, replacement):
-        self.replace_it = replacement
-
-    def getReplacementNode(self, usage):
-        if self.replace_it is not None:
-            return self.replace_it(usage)
-        else:
-            return None
 
     def hasShapeDictionaryExact(self):
         return self.assign_node.subnode_source.hasShapeDictionaryExact()
@@ -498,6 +503,31 @@ class ValueTraceAssign(ValueTraceBase):
             return source_node
         else:
             return None
+
+    def getIterationSourceNode(self):
+        return self.assign_node.subnode_source
+
+
+class ValueTraceAssignUnescapable(ValueTraceAssign):
+    @staticmethod
+    def isTraceThatNeedsEscape():
+        return False
+
+
+class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
+    """Assignment from value where it is not that escaping doesn't matter."""
+
+    __slots__ = ("replacement",)
+
+    def __init__(self, owner, assign_node, previous, replacement):
+        ValueTraceAssignUnescapable.__init__(
+            self, owner=owner, assign_node=assign_node, previous=previous
+        )
+
+        self.replacement = replacement
+
+    def getReplacementNode(self, usage):
+        return self.replacement(usage)
 
 
 class ValueTraceMergeBase(ValueTraceBase):

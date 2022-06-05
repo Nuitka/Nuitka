@@ -82,6 +82,9 @@ class ExpressionBuiltinContainerBase(
             else:
                 return self, None, None
         else:
+            # They take over the variable content, exposing it to currently untraced usages.
+            value.onContentEscapes(trace_collection)
+
             return self.computeBuiltinSpec(
                 trace_collection=trace_collection, given_values=(value,)
             )

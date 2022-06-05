@@ -77,7 +77,7 @@ from nuitka.nodes.NodeMakingHelpers import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1, ExpressionTypeCheck
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
@@ -442,13 +442,11 @@ def buildClassNode3(provider, node, source_ref):
     # decl dict of course.
     if node.bases:
         unspecified_metaclass_expression = ExpressionBuiltinType1(
-            value=ExpressionSubscriptLookup(
+            value=makeExpressionIndexLookup(
                 expression=ExpressionTempVariableRef(
                     variable=tmp_bases, source_ref=source_ref
                 ),
-                subscript=makeConstantRefNode(
-                    constant=0, source_ref=source_ref, user_provided=True
-                ),
+                index_value=0,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,

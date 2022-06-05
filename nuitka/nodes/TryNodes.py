@@ -273,7 +273,11 @@ class StatementTry(StatementChildrenHavingBase):
             and continue_handler is None
             and return_handler is None
         ):
-            return tried, "new_statements", "Removed useless try, all handlers removed."
+            return (
+                tried,
+                "new_statements",
+                "Removed useless try, all handlers became empty.",
+            )
 
         tried_statements = tried.subnode_statements
 

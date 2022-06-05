@@ -20,6 +20,7 @@
 Next variants and unpacking with related checks.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_int
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -28,7 +29,9 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
+from .ComparisonCodes import getRichComparisonCode
 from .ErrorCodes import (
+    getErrorExitBoolCode,
     getErrorExitCode,
     getErrorExitReleaseCode,
     getFrameVariableTypeDescriptionCode,
@@ -206,6 +209,47 @@ def generateUnpackCheckCode(statement, emit, context):
         )
 
         getReleaseCode(release_name=iterator_name, emit=emit, context=context)
+
+
+def generateUnpackCheckFromIteratedCode(statement, emit, context):
+    iteration_length_name = context.allocateTempName("iteration_length", unique=True)
+
+    generateExpressionCode(
+        to_name=iteration_length_name,
+        expression=statement.subnode_iterated_length,
+        emit=emit,
+        context=context,
+    )
+
+    to_name = context.getBoolResName()
+
+    getRichComparisonCode(
+        to_name=to_name,
+        comparator="Gt",
+        left_shape=statement.subnode_iterated_length.getTypeShape(),
+        right_shape=tshape_int,
+        left_name=iteration_length_name,
+        right_name=context.getConstantCode(constant=statement.count),
+        needs_check=False,
+        source_ref=statement.source_ref,
+        emit=emit,
+        context=context,
+    )
+
+    # TODO: Why is this necessary, to_name doesn't allow storage.
+    context.removeCleanupTempName(to_name)
+
+    # TODO: This exception ought to have a creator function.
+    emit(
+        """
+if (%(to_name)s) {
+    PyErr_Format(PyExc_ValueError, "too many values to unpack");
+}
+"""
+        % {"to_name": to_name}
+    )
+
+    getErrorExitBoolCode(condition=str(to_name), emit=emit, context=context)
 
 
 def generateBuiltinNext2Code(to_name, expression, emit, context):

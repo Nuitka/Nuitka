@@ -30,9 +30,10 @@ the traces.
 
 """
 
-
 from nuitka.ModuleRegistry import getOwnerFromCodeName
+from nuitka.Options import isExperimental
 
+from .ConstantRefNodes import makeConstantRefNode
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
@@ -40,6 +41,7 @@ from .NodeMakingHelpers import (
 )
 from .shapes.StandardShapes import tshape_iterator, tshape_unknown
 from .VariableDelNodes import makeStatementDelVariable
+from .VariableRefNodes import ExpressionTempVariableRef
 
 
 class StatementAssignmentVariableBase(StatementChildHavingBase):
@@ -153,20 +155,129 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_source.mayRaiseException(exception_type)
 
-    def computeStatement(self, trace_collection):
-        # Many cases, pylint: disable=too-many-return-statements
+    def needsReleasePreviousValue(self):
+        previous = self.variable_trace.getPrevious()
 
+        if previous.mustNotHaveValue():
+            return False
+        elif previous.mustHaveValue():
+            return True
+        else:
+            return None
+
+    @staticmethod
+    def getStatementNiceName():
+        return "variable assignment statement"
+
+    def getTypeShape(self):
+        # Might be finalized, e.g. due to being dead code.
+        try:
+            source = self.subnode_source
+        except AttributeError:
+            return tshape_unknown
+
+        return source.getTypeShape()
+
+    @staticmethod
+    def mayHaveSideEffects():
+        # TODO: May execute "__del__" code, it would be sweet to be able to predict
+        # if another reference will still be active for a value though, or if there
+        # is such a code for the type shape.
+        return True
+
+    def _transferState(self, result):
+        self.variable_trace.assign_node = result
+        result.variable_trace = self.variable_trace
+        self.variable_trace = None
+
+    def _considerSpecialization(self, old_source):
+        # Specialize if possible, might have become that way only recently.
+        source = self.subnode_source
+
+        if source is old_source:
+            return self, None, None
+
+        if source.isCompileTimeConstant():
+            result = makeStatementAssignmentVariableConstant(
+                source=source,
+                variable=self.variable,
+                version=self.variable_version,
+                source_ref=self.source_ref,
+            )
+
+            self._transferState(result)
+
+            return (
+                result,
+                "new_statements",
+                "Assignment source of '%s' is now compile time constant."
+                % self.getVariableName(),
+            )
+        if source.isExpressionVariableRef():
+            result = StatementAssignmentVariableFromVariable(
+                source=source,
+                variable=self.variable,
+                version=self.variable_version,
+                source_ref=self.source_ref,
+            )
+
+            self._transferState(result)
+
+            return (
+                result,
+                "new_statements",
+                "Assignment source is now variable reference.",
+            )
+        elif source.isExpressionTempVariableRef():
+            result = StatementAssignmentVariableFromTempVariable(
+                source=source,
+                variable=self.variable,
+                version=self.variable_version,
+                source_ref=self.source_ref,
+            )
+
+            self._transferState(result)
+
+            return (
+                result,
+                "new_statements",
+                "Assignment source is now temp variable reference.",
+            )
+
+        if source.getTypeShape().isShapeIterator():
+            result = StatementAssignmentVariableIterator(
+                source=source,
+                variable=self.variable,
+                version=self.variable_version,
+                source_ref=self.source_ref,
+            )
+
+            self._transferState(result)
+
+            return (
+                result,
+                "new_statements",
+                "Assignment source is now known to be iterator.",
+            )
+
+        return self, None, None
+
+
+class StatementAssignmentVariableGeneric(StatementAssignmentVariableBase):
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE_GENERIC"
+
+    def computeStatement(self, trace_collection):
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here.
-        source = self.subnode_source
+        old_source = self.subnode_source
         variable = self.variable
 
-        if source.isExpressionSideEffects():
+        if old_source.isExpressionSideEffects():
             # If the assignment source has side effects, we can put them into a
             # sequence and compute that instead.
             statements = [
                 makeStatementExpressionOnlyReplacementNode(side_effect, self)
-                for side_effect in source.subnode_side_effects
+                for side_effect in old_source.subnode_side_effects
             ]
 
             statements.append(self)
@@ -176,7 +287,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
 
             # Need to update ourselves to no longer reference the side effects,
             # but go to the wrapped thing.
-            self.setChild("source", source.subnode_expression)
+            self.setChild("source", old_source.subnode_expression)
 
             result = makeStatementsSequenceReplacementNode(
                 statements=statements, node=self
@@ -256,76 +367,23 @@ Removed assignment of %s from itself which is known to be defined."""
         # TODO: Determine from future use of assigned variable, if this is needed at all.
         trace_collection.removeKnowledge(source)
 
-        # Specialize if possible, might have become that way only recently.
-        if source.isCompileTimeConstant():
-            result = makeStatementAssignmentVariableConstant(
-                source=source,
-                variable=variable,
-                version=self.variable_version,
-                source_ref=self.source_ref,
-            )
-
-            return (
-                result,
-                "new_statements",
-                "Assignment source is now compile time constant.",
-            )
-
-        if source.getTypeShape().isShapeIterator():
-            result = StatementAssignmentVariableIterator(
-                source=source,
-                variable=variable,
-                version=self.variable_version,
-                source_ref=self.source_ref,
-            )
-
-            return (
-                result,
-                "new_statements",
-                "Assignment source is now known to be iterator.",
-            )
-
-        return self, None, None
-
-    def needsReleasePreviousValue(self):
-        previous = self.variable_trace.getPrevious()
-
-        if previous.mustNotHaveValue():
-            return False
-        elif previous.mustHaveValue():
-            return True
-        else:
-            return None
-
-    @staticmethod
-    def getStatementNiceName():
-        return "variable assignment statement"
-
-    def getTypeShape(self):
-        # Might be finalized, e.g. due to being dead code.
-        try:
-            source = self.subnode_source
-        except AttributeError:
-            return tshape_unknown
-
-        return source.getTypeShape()
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # TODO: May execute "__del__" code, it would be sweet to be able to predict
-        # if another reference will still be active for a value though, or if there
-        # is such a code for the type shape.
-        return True
-
-
-class StatementAssignmentVariableGeneric(StatementAssignmentVariableBase):
-    kind = "STATEMENT_ASSIGNMENT_VARIABLE_GENERIC"
+        return self._considerSpecialization(old_source)
 
 
 class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
+    # Carries a lot of state for propagating iterators potentially.
+    # pylint: disable=too-many-instance-attributes
+
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR"
 
-    __slots__ = ("type_shape",)
+    __slots__ = (
+        "type_shape",
+        "temp_scope",
+        "tmp_iterated_variable",
+        "tmp_iteration_count_variable",
+        "tmp_iteration_next_variable",
+        "is_indexable",
+    )
 
     def __init__(self, source, variable, version, source_ref):
         StatementAssignmentVariableBase.__init__(
@@ -338,8 +396,84 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
 
         self.type_shape = tshape_iterator
 
+        self.temp_scope = None
+        self.tmp_iterated_variable = None
+        self.tmp_iteration_count_variable = None
+        self.tmp_iteration_next_variable = None
+
+        # When found non-indexable, we do not try again.
+        self.is_indexable = None
+
     def getTypeShape(self):
         return self.type_shape
+
+    def getIterationIndexDesc(self):
+        """For use in optimization outputs only, here and using nodes."""
+        return "'%s[%s]'" % (
+            self.tmp_iterated_variable.getName(),
+            self.tmp_iteration_count_variable.getName(),
+        )
+
+    def _replaceWithDirectAccess(self, trace_collection, provider):
+        self.temp_scope = provider.allocateTempScope("iterator_access")
+
+        self.tmp_iterated_variable = provider.allocateTempVariable(
+            temp_scope=self.temp_scope, name="iterated_value"
+        )
+
+        reference_iterated = ExpressionTempVariableRef(
+            variable=self.tmp_iterated_variable,
+            source_ref=self.subnode_source.source_ref,
+        )
+
+        iterated_value = self.subnode_source.subnode_value
+
+        assign_iterated = makeStatementAssignmentVariable(
+            source=iterated_value,
+            variable=self.tmp_iterated_variable,
+            version=None,
+            source_ref=iterated_value.source_ref,
+        )
+
+        self.tmp_iteration_count_variable = provider.allocateTempVariable(
+            temp_scope=self.temp_scope, name="iteration_count"
+        )
+
+        assign_iteration_count = makeStatementAssignmentVariable(
+            source=makeConstantRefNode(constant=0, source_ref=self.source_ref),
+            variable=self.tmp_iteration_count_variable,
+            version=None,
+            source_ref=iterated_value.source_ref,
+        )
+
+        self.subnode_source.setChild("value", reference_iterated)
+
+        # Make sure variable trace is computed.
+        assign_iterated.computeStatement(trace_collection)
+        assign_iteration_count.computeStatement(trace_collection)
+        reference_iterated.computeExpressionRaw(trace_collection)
+
+        self.variable_trace = trace_collection.onVariableSet(
+            variable=self.variable,
+            version=self.variable_version,
+            assign_node=self,
+        )
+
+        # For use when the "next" is replaced.
+        self.tmp_iteration_next_variable = provider.allocateTempVariable(
+            temp_scope=self.temp_scope, name="next_value"
+        )
+
+        result = makeStatementsSequenceReplacementNode(
+            (assign_iteration_count, assign_iterated, self), self
+        )
+
+        return (
+            result,
+            "new_statements",
+            lambda: "Enabling indexing of iterated value through %s."
+            % self.getIterationIndexDesc(),
+        )
 
     def computeStatement(self, trace_collection):
         # TODO: Way too ugly to have global trace kinds just here, and needs to
@@ -347,8 +481,30 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
         source = self.subnode_source
         variable = self.variable
 
+        provider = trace_collection.getOwner()
+
         # Let assignment source may re-compute first.
         source = trace_collection.onExpression(self.subnode_source)
+
+        if (
+            self.tmp_iterated_variable is None
+            and self.is_indexable is None
+            and source.isExpressionBuiltinIterForUnpack()
+            and isExperimental("iterator-optimization")
+        ):
+            if variable.hasAccessesOutsideOf(provider) is False:
+                last_trace = variable.getMatchingUnescapedAssignTrace(self)
+
+                if last_trace is not None:
+                    # Might not be allowed, remember if it's not allowed, otherwise retry.
+                    self.is_indexable = (
+                        source.subnode_value.getTypeShape().hasShapeIndexLookup()
+                    )
+
+                    if self.is_indexable:
+                        return self._replaceWithDirectAccess(
+                            trace_collection=trace_collection, provider=provider
+                        )
 
         # No assignment will occur, if the assignment source raises, so give up
         # on this, and return it as the only side effect.
@@ -442,10 +598,6 @@ class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBa
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
-        self.variable_trace = trace_collection.onVariableSet(
-            variable=variable, version=self.variable_version, assign_node=self
-        )
-
         provider = trace_collection.getOwner()
 
         if variable.hasAccessesOutsideOf(provider) is False:
@@ -462,25 +614,32 @@ class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBa
                     # Unused constants can be eliminated in any case.
                     if not last_trace.getUsageCount():
                         if not last_trace.getPrevious().isUnassignedTrace():
-                            result = makeStatementDelVariable(
-                                variable=self.variable,
-                                version=self.variable_version,
-                                tolerant=True,
-                                source_ref=self.source_ref,
+                            return trace_collection.computedStatementResult(
+                                statement=makeStatementDelVariable(
+                                    variable=self.variable,
+                                    version=self.variable_version,
+                                    tolerant=True,
+                                    source_ref=self.source_ref,
+                                ),
+                                change_tags="new_statements",
+                                change_desc="Lowered dead assignment statement to '%s' to previous value 'del'."
+                                % self.getVariableName(),
                             )
                         else:
-                            result = None
+                            return (
+                                None,
+                                "new_statements",
+                                "Dropped dead assignment statement to '%s'."
+                                % (self.getVariableName()),
+                            )
 
-                        return (
-                            result,
-                            "new_statements",
-                            "Dropped dead assignment statement to '%s'."
-                            % (self.getVariableName()),
-                        )
-
-                    # Can safely forward propagate non-mutable constants.
-                    self.variable_trace.setReplacementNode(
-                        lambda _usage: self.subnode_source.makeClone()
+                    # Still trace or assignment, for the last time. TODO: Maybe this can be
+                    # used for the keeping of the "replacement node" as well.
+                    self.variable_trace = trace_collection.onVariableSetToUnescapablePropagatedValue(
+                        variable=variable,
+                        version=self.variable_version,
+                        assign_node=self,
+                        replacement=lambda _replaced_node: self.subnode_source.makeClone(),
                     )
 
                     if not last_trace.getPrevious().isUnassignedTrace():
@@ -500,7 +659,100 @@ class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBa
                         % self.getVariableName(),
                     )
 
+        self.variable_trace = trace_collection.onVariableSetToUnescapableValue(
+            variable=variable, version=self.variable_version, assign_node=self
+        )
+
         return self, None, None
+
+
+class StatementAssignmentVariableFromVariable(StatementAssignmentVariableBase):
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE"
+
+    def computeStatement(self, trace_collection):
+        # TODO: Way too ugly to have global trace kinds just here, and needs to
+        # be abstracted somehow. But for now we let it live here.
+        old_source = self.subnode_source
+        variable = self.variable
+
+        if not variable.isModuleVariable() and old_source.getVariable() is variable:
+            # A variable access that has a side effect, must be preserved,
+            # so it can e.g. raise an exception, otherwise we can be fully
+            # removed.
+            if old_source.mayHaveSideEffects():
+                result = makeStatementExpressionOnlyReplacementNode(
+                    expression=old_source, node=self
+                )
+
+                return (
+                    result.computeStatementsSequence(trace_collection),
+                    "new_statements",
+                    """\
+Lowered assignment of %s from itself to mere access of it."""
+                    % variable.getDescription(),
+                )
+            else:
+                return (
+                    None,
+                    "new_statements",
+                    """\
+Removed assignment of %s from itself which is known to be defined."""
+                    % variable.getDescription(),
+                )
+
+        # Let assignment source may re-compute first.
+        source = trace_collection.onExpression(self.subnode_source)
+
+        # Assigning from and to the same variable, can be optimized away
+        # immediately, there is no point in doing it. Exceptions are of course
+        # module variables that collide with built-in names.
+
+        # Set-up the trace to the trace collection, so future references will
+        # find this assignment.
+        self.variable_trace = trace_collection.onVariableSet(
+            variable=variable, version=self.variable_version, assign_node=self
+        )
+
+        # TODO: Determine from future use of assigned variable, if this is needed at all.
+        trace_collection.removeKnowledge(source)
+
+        return self._considerSpecialization(old_source)
+
+
+class StatementAssignmentVariableFromTempVariable(StatementAssignmentVariableBase):
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE"
+
+    def computeStatement(self, trace_collection):
+        # TODO: Way too ugly to have global trace kinds just here, and needs to
+        # be abstracted somehow. But for now we let it live here.
+        old_source = self.subnode_source
+        variable = self.variable
+
+        # Assigning from and to the same variable, can be optimized away
+        # immediately, there is no point in doing it. Exceptions are of course
+        # module variables that collide with built-in names.
+        if old_source.getVariable() is variable:
+            return (
+                None,
+                "new_statements",
+                """\
+Removed assignment of %s from itself which is known to be defined."""
+                % variable.getDescription(),
+            )
+
+        # Let assignment source may re-compute first.
+        source = trace_collection.onExpression(self.subnode_source)
+
+        # Set-up the trace to the trace collection, so future references will
+        # find this assignment.
+        self.variable_trace = trace_collection.onVariableSet(
+            variable=variable, version=self.variable_version, assign_node=self
+        )
+
+        # TODO: Determine from future use of assigned variable, if this is needed at all.
+        trace_collection.removeKnowledge(source)
+
+        return self._considerSpecialization(old_source)
 
 
 def makeStatementAssignmentVariableConstant(source, variable, version, source_ref):
@@ -522,6 +774,14 @@ def makeStatementAssignmentVariable(source, variable, source_ref, version=None):
 
     if source.isCompileTimeConstant():
         return makeStatementAssignmentVariableConstant(
+            source=source, variable=variable, version=version, source_ref=source_ref
+        )
+    elif source.isExpressionVariableRef():
+        return StatementAssignmentVariableFromVariable(
+            source=source, variable=variable, version=version, source_ref=source_ref
+        )
+    elif source.isExpressionTempVariableRef():
+        return StatementAssignmentVariableFromTempVariable(
             source=source, variable=variable, version=version, source_ref=source_ref
         )
     elif source.getTypeShape().isShapeIterator():

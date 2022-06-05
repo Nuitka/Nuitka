@@ -432,7 +432,7 @@ def pickCodeHelper(
     left_shape,
     right_shape,
     helpers,
-    nonhelpers,
+    nonspecialized,
     source_ref,
 ):
     # Lots of details to deal with, pylint: disable=too-many-locals
@@ -480,7 +480,9 @@ def pickCodeHelper(
             helper_right=right_shape,
         )
 
-    if Options.is_report_missing and (not nonhelpers or ideal_helper not in nonhelpers):
+    if Options.is_report_missing and (
+        not nonspecialized or ideal_helper not in nonspecialized
+    ):
         onMissingHelper(ideal_helper, source_ref)
 
     fallback_helper = "%s_%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", "OBJECT", suffix)

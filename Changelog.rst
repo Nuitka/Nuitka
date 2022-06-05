@@ -42,6 +42,10 @@ Bug Fixes
 
       importlib.resources.read_bytes() # gave importlib has no attribute...
 
+-  Windows: Fix, outputs with ``--force-stdout-spec`` or
+   ``--force-stderr-spec`` were created with the file system encoding on
+   Python3, but they nee to be ``utf-8``.
+
 New Features
 ============
 
