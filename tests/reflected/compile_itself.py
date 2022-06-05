@@ -272,9 +272,7 @@ def executePASS1():
     # Copy required data files.
     for filename in (
         "nuitka/build/Backend.scons",
-        "nuitka/plugins/standard/anti-bloat.yml",
-        "nuitka/plugins/standard/implicit-imports.yml",
-        "nuitka/plugins/standard/data-files.yml",
+        "nuitka/plugins/standard/standard.nuitka-package.config.yml",
     ):
         shutil.copyfile(
             os.path.join(base_dir, filename),
