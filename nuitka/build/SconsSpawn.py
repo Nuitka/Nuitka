@@ -183,18 +183,18 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             my_print(data, style="yellow", end="")
 
         if err:
-            err = (
-                b"\r\n".join(
-                    line for line in err.split(b"\r\n") if not isIgnoredError(line)
-                )
-                + b"\r\n"
+            err = b"\r\n".join(
+                line for line in err.split(b"\r\n") if not isIgnoredError(line)
             )
 
-            if str is not bytes:
-                err = decodeData(err)
-
             if err:
-                my_print(err, style="yellow", end="")
+                err += b"\r\n"
+
+                if str is not bytes:
+                    err = decodeData(err)
+
+                if err:
+                    my_print(err, style="yellow", end="")
 
         return rv
 
