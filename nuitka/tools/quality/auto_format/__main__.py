@@ -122,8 +122,8 @@ Defaults to off.""",
 
         if options.check_only and result > 0:
             tools_logger.sysexit(
-                """Error, bin/autoformat-nuitka-source would make changes to %d files, \
-make sure to have commit hook installed."""
+                """Error, 'bin/autoformat-nuitka-source' would make changes to %d files, \
+make sure to have commit hook installed or run it manually."""
                 % result
             )
         elif result > 0:
