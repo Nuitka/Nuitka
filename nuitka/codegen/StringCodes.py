@@ -148,7 +148,7 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
     )
 
 
-def generateStringContenationCode(to_name, expression, emit, context):
+def generateStringConcatenationCode(to_name, expression, emit, context):
     values = expression.subnode_values
 
     with withObjectCodeTemporaryAssignment(

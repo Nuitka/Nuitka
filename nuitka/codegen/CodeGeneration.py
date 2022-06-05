@@ -783,7 +783,7 @@ addExpressionDispatchDict(
         "EXPRESSION_ASYNC_ITER": generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT": generateAsyncNextCode,
         "EXPRESSION_SELECT_METACLASS": generateSelectMetaclassCode,
-        "EXPRESSION_STRING_CONCATENATION": generateStringContenationCode,
+        "EXPRESSION_STRING_CONCATENATION": generateStringConcatenationCode,
         "EXPRESSION_BUILTIN_FORMAT": generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII": generateBuiltinAsciiCode,
         "EXPRESSION_LOCALS_VARIABLE_CHECK": generateLocalsDictVariableCheckCode,
