@@ -91,7 +91,9 @@ Organisational
 ==============
 
 -  Merged our Yaml files into one and added schema description, for
-   completion and checking in Visual Code.
+   completion and checking in Visual Code while editing. Also check the
+   schema in ``check-nuitka-with-yamllint`` which is now slightly
+   misnamed.
 
 -  Quality: Auto-format the package configuration Yaml file for
    anti-bloat, implicit dependencies, etc.
@@ -102,6 +104,12 @@ Organisational
 
 -  Updated the MinGW64 winlibs download used on Windows to the latest
    version based on gcc 11, the gcc 12 is not yet ready.
+
+-  Git: Make sure we are not affected by ``core.autocrlf`` setting, as
+   it interferes with auto-format enforcing Unix newlines.
+
+Summary
+=======
 
 This release is not done yet.
 
