@@ -109,7 +109,7 @@ def _writeConstantValue(output, constant_value):
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is list:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of list to be < 256 with dedicated value
         output.write(b"L" + struct.pack("i", len(constant_value)))
 
         _last_written = None
@@ -117,7 +117,7 @@ def _writeConstantValue(output, constant_value):
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is dict:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of dict to be < 256 with dedicated value
         output.write(b"D" + struct.pack("i", len(constant_value)))
 
         # Write keys first, and values second, such that we allow for the
@@ -132,14 +132,14 @@ def _writeConstantValue(output, constant_value):
         for key, value in items:
             _writeConstantValue(output, value)
     elif constant_type is set:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of set to be < 256 with dedicated value
         output.write(b"S" + struct.pack("i", len(constant_value)))
 
         _last_written = None
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is frozenset:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of set to be < 256 with dedicated value
         output.write(b"P" + struct.pack("i", len(constant_value)))
 
         _last_written = None
