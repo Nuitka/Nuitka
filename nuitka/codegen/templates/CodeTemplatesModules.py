@@ -523,11 +523,13 @@ static PyObject *orig_dunder_file_value;
 static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {
     PyModule_Type.tp_setattro = orig_PyModule_Type_tp_setattro;
 
-    UPDATE_STRING_DICT0(
-        moduledict_%(module_identifier)s,
-        (Nuitka_StringObject *)const_str_plain___file__,
-        orig_dunder_file_value
-    );
+    if (orig_dunder_file_value != NULL) {
+        UPDATE_STRING_DICT0(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___file__,
+            orig_dunder_file_value
+        );
+    }
 
     // Prevent "__spec__" update as well.
 #if PYTHON_VERSION >= 0x340
