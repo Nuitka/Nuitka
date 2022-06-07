@@ -90,7 +90,7 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
 
     PyObject *filename = _Nuitka_ResourceReader_resource_path(reader, resource);
 
-    return BUILTIN_OPEN_SIMPLE(filename, "rb", false);
+    return BUILTIN_OPEN_BINARY_READ_SIMPLE(filename);
 }
 
 #if PYTHON_VERSION >= 0x390 && defined(_NUITKA_EXPERIMENTAL_RESOURCE_READER_FILES)

@@ -1137,6 +1137,10 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     Py_DECREF(coroutine->m_name);
     Py_DECREF(coroutine->m_qualname);
 
+#if PYTHON_VERSION >= 0x370
+    Py_XDECREF(coroutine->m_origin);
+#endif
+
     /* Put the object into freelist or release to GC */
     releaseToFreeList(free_list_coros, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
 

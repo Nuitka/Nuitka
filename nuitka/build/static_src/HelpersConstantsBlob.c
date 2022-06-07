@@ -184,14 +184,14 @@ static Py_hash_t our_set_hash(PyObject *set) {
     // make it identical, or else this won't have the effect intended.
     while (_PySet_Next(set, &pos, &key)) {
         result *= 1000003;
-        result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
+        result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
     }
 #else
     Py_hash_t unused;
 
     while (_PySet_NextEntry(set, &pos, &key, &unused)) {
         result *= 1000003;
-        result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
+        result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
     }
 #endif
 
@@ -201,41 +201,45 @@ static Py_hash_t our_set_hash(PyObject *set) {
 static PyObject *our_set_richcompare(PyObject *set1, PyObject *set2, int op) {
     assert(op == Py_EQ);
 
+    PyObject *result;
+
     Py_ssize_t pos1 = 0, pos2 = 0;
     PyObject *key1, *key2;
 
+    if (Py_SIZE(set1) != Py_SIZE(set2)) {
+        result = Py_False;
+    } else {
+        result = Py_True;
+
 #if PYTHON_VERSION < 0x300
-    // Same sized set, simply check if values are identical. Other reductions should
-    // make it identical, or else this won't have the effect intended.
-    while (_PySet_Next(set1, &pos1, &key1)) {
-        int res = _PySet_Next(set2, &pos2, &key2);
-        assert(res != 0);
+        // Same sized set, simply check if values are identical. Other reductions should
+        // make it identical, or else this won't have the effect intended.
+        while (_PySet_Next(set1, &pos1, &key1)) {
+            int res = _PySet_Next(set2, &pos2, &key2);
+            assert(res != 0);
 
-        if (key1 != key2) {
-            PyObject *result = Py_False;
-            Py_INCREF(result);
-            return result;
+            if (key1 != key2) {
+                result = Py_False;
+                break;
+            }
         }
-    }
 #else
-    Py_hash_t unused;
+        Py_hash_t unused1, unused2;
 
-    // Same sized dictionary, simply check if values are identical. Other reductions should
-    // make it identical, or else this won't have the effect intended.
-    while (_PySet_NextEntry(set1, &pos1, &key1, &unused)) {
-        int res = _PySet_NextEntry(set2, &pos2, &key2, &unused);
-        assert(res != 0);
+        // Same sized dictionary, simply check if values are identical. Other reductions should
+        // make it identical, or else this won't have the effect intended.
+        while (_PySet_NextEntry(set1, &pos1, &key1, &unused1)) {
+            int res = _PySet_NextEntry(set2, &pos2, &key2, &unused2);
+            assert(res != 0);
 
-        if (key1 != key2) {
-            PyObject *result = Py_False;
-            Py_INCREF(result);
-            return result;
+            if (key1 != key2) {
+                result = Py_False;
+                break;
+            }
         }
+#endif
     }
 
-#endif
-
-    PyObject *result = Py_True;
     Py_INCREF(result);
     return result;
 }
@@ -264,9 +268,9 @@ static Py_hash_t our_dict_hash(PyObject *dict) {
 
     while (Nuitka_DictNext(dict, &pos, &key, &value)) {
         result *= 1000003;
-        result ^= Nuitka_FastHashBytes(key, sizeof(PyObject *));
+        result ^= Nuitka_FastHashBytes(&key, sizeof(PyObject *));
         result *= 1000003;
-        result ^= Nuitka_FastHashBytes(value, sizeof(PyObject *));
+        result ^= Nuitka_FastHashBytes(&value, sizeof(PyObject *));
     }
 
     return result;

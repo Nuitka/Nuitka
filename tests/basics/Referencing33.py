@@ -403,6 +403,19 @@ def simpleFunction23():
     gen.throw(MyError)
 
 
+oho = 1
+
+
+def simpleFunction24():
+    def someGenerator():
+        yield from oho
+
+    try:
+        list(someGenerator())
+    except TypeError:
+        pass
+
+
 # These need stderr to be wrapped.
 tests_stderr = (14, 15)
 

@@ -388,22 +388,16 @@ static PyObject *Nuitka_YieldFromGeneratorNext(struct Nuitka_GeneratorObject *ge
 #if PYTHON_VERSION >= 0x350
     if (PyCoro_CheckExact(generator->m_yieldfrom) || Nuitka_Coroutine_Check(generator->m_yieldfrom)) {
         if (unlikely((generator->m_code_object->co_flags & CO_ITERABLE_COROUTINE) == 0)) {
-            Py_DECREF(generator->m_yieldfrom);
-            generator->m_yieldfrom = NULL;
-
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
                                             "cannot 'yield from' a coroutine object in a non-coroutine generator");
-            return NULL;
         }
     } else
 #endif
     {
-        PyObject *old = generator->m_yieldfrom;
-        generator->m_yieldfrom = MAKE_ITERATOR(generator->m_yieldfrom);
-        Py_DECREF(old);
-
-        if (unlikely(generator->m_yieldfrom == NULL)) {
-            return NULL;
+        PyObject *new_iterator = MAKE_ITERATOR(generator->m_yieldfrom);
+        if (new_iterator != NULL) {
+            Py_DECREF(generator->m_yieldfrom);
+            generator->m_yieldfrom = new_iterator;
         }
     }
 

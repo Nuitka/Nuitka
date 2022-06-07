@@ -143,7 +143,10 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
         )
 
     def computeExpression(self, trace_collection):
-        # TODO: Meta class selection is very computable, and should be done.
+        # TODO: Meta class selection is very computable, and should be done, but we need
+        # dictionary tracing for that.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
 

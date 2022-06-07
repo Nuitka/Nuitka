@@ -636,6 +636,12 @@ static PyObject *getExpandedTemplatePath(char const *template) {
 static void setInputOutputHandles(void) {
     /* At least on Windows, we support disabling the console via linker flag, but now
        need to provide the NUL standard file handles manually in this case. */
+#if defined(_WIN32) && PYTHON_VERSION >= 0x300
+    PyObject *encoding = Nuitka_String_FromString("utf-8");
+#else
+    PyObject *encoding = NULL;
+#endif
+
     {
         PyObject *nul_filename = Nuitka_String_FromString("NUL:");
 
@@ -643,7 +649,7 @@ static void setInputOutputHandles(void) {
         if (sys_stdin == NULL || sys_stdin == Py_None) {
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
             // here much.
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", true);
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", true, encoding);
 
             CHECK_OBJECT(stdin_file);
             Nuitka_SysSetObject("stdin", stdin_file);
@@ -651,7 +657,7 @@ static void setInputOutputHandles(void) {
 
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
         if (sys_stdout == NULL || sys_stdout == Py_None) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false);
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false, encoding);
 
             CHECK_OBJECT(stdout_file);
             Nuitka_SysSetObject("stdout", stdout_file);
@@ -659,7 +665,7 @@ static void setInputOutputHandles(void) {
 
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
         if (sys_stderr == NULL || sys_stderr == Py_None) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false);
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false, encoding);
 
             CHECK_OBJECT(stderr_file);
 
@@ -676,7 +682,7 @@ static void setInputOutputHandles(void) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
 #endif
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1);
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
         if (unlikely(stdout_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -693,7 +699,7 @@ static void setInputOutputHandles(void) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
 #endif
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
@@ -702,6 +708,8 @@ static void setInputOutputHandles(void) {
         Nuitka_SysSetObject("stderr", stderr_file);
     }
 #endif
+
+    Py_XDECREF(encoding);
 }
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT

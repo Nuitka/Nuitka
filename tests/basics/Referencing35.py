@@ -190,7 +190,7 @@ async def execute():
     except FileNotFoundError:
         pass
 
-    return 10 ** 10
+    return 10**10
 
 
 async def run():
@@ -201,7 +201,7 @@ def simpleFunction10():
     asyncio.get_event_loop().run_until_complete(run())
 
 
-def nosimpleFunction11():
+def simpleFunction11():
     async def someCoroutine():
         return 10
 

@@ -24,7 +24,7 @@
 #endif
 
 // Small helper to open files with few arguments.
-PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering) {
+PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering, PyObject *encoding) {
     PyObject *mode_obj = Nuitka_String_FromString(mode);
     PyObject *buffering_obj = buffering ? const_int_pos_1 : const_int_0;
 
@@ -63,15 +63,28 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
             return NULL;
         }
 
-        PyObject *args[] = {binary_stream, Py_None, Py_None, Py_None, Py_False, Py_True};
+        PyObject *args[] = {binary_stream, encoding, Py_None, Py_None, Py_False, Py_True};
 
         result = CALL_FUNCTION_WITH_ARGS6(_io_module_text_io_wrapper, args);
     } else {
-        result = BUILTIN_OPEN(filename, mode_obj, buffering_obj, NULL, NULL, NULL, NULL, NULL);
+        result = BUILTIN_OPEN(filename, mode_obj, buffering_obj, encoding, NULL, NULL, NULL, NULL);
     }
 
 #endif
     Py_DECREF(mode_obj);
+
+    return result;
+}
+
+PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyObject *filename) {
+    PyObject *result;
+
+#if PYTHON_VERSION < 0x300
+    // On Windows, it seems that line buffering is actually the default.
+    result = BUILTIN_OPEN(filename, const_str_plain_rb, const_int_0);
+#else
+    result = BUILTIN_OPEN(filename, const_str_plain_rb, const_int_0, NULL, NULL, NULL, NULL, NULL);
+#endif
 
     return result;
 }
@@ -83,7 +96,7 @@ PyObject *GET_FILE_BYTES(PyObject *filename) {
         return result;
     }
 
-    PyObject *data_file = BUILTIN_OPEN_SIMPLE(filename, "rb", false);
+    PyObject *data_file = BUILTIN_OPEN_BINARY_READ_SIMPLE(filename);
 
     if (unlikely(data_file == NULL)) {
         // TODO: Issue a runtime warning maybe.

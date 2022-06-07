@@ -1775,8 +1775,8 @@ static int free_list_asyncgen_athrows_count = 0;
 
 static void Nuitka_AsyncgenAthrow_dealloc(struct Nuitka_AsyncgenAthrowObject *asyncgen_athrow) {
 #if _DEBUG_REFCOUNTS
-    count_active_Nuitka_AIterWrapper_Type -= 1;
-    count_released_Nuitka_AIterWrapper_Type += 1;
+    count_active_Nuitka_AsyncgenAthrow_Type -= 1;
+    count_released_Nuitka_AsyncgenAthrow_Type += 1;
 #endif
 
     Nuitka_GC_UnTrack(asyncgen_athrow);
