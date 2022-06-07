@@ -279,6 +279,7 @@ _stdlib_no_auto_inclusion_list = (
     "compileall",
     "venv",
     "py_compile",
+    "msilib",
     # tkinter under all its names
     "Tkinter",
     "tkinter",
@@ -304,6 +305,10 @@ _stdlib_no_auto_inclusion_list = (
     "tkFont",
     "tkColorChooser",
     "idlelib",
+    # test code in standard modules
+    "asyncio.test_utils",
+    # strange OS specific extensions
+    "_distutils_system_mod",
 )
 
 if not isWin32Windows():

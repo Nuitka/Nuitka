@@ -692,7 +692,7 @@ but errors may happen."""
         Tracing.general.warning(
             """\
 Using very slow fallback for ordered sets, please install 'ordered-set' or \
-'orderset' PyPI packages for best Python compile time performance."""
+'orderedset' PyPI packages for best Python compile time performance."""
         )
 
     if shallUsePythonDebug() and not isDebugPython():

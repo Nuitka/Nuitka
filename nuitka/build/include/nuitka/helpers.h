@@ -257,7 +257,8 @@ extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buf
 #endif
 
 // Small helper to open files with few arguments in C.
-extern PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering);
+extern PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyObject *filename);
+extern PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering, PyObject *encoding);
 
 // Small helper to read file contents with few arguments in C.
 extern PyObject *GET_FILE_BYTES(PyObject *filename);

@@ -140,6 +140,8 @@
         "noinclude",
         "nosite",
         "Nuitka",
+        "__abstractmethods__",
+        "__newobj__",
         "numpy",
         "ob_sval",
         "onefile",
