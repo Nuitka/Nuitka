@@ -93,6 +93,11 @@ def reExecuteNuitka(pgo_filename):
 
     os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
 
+    # In some environments, initial "sys.path" does not contain enough to load "ast" module.
+    import ast
+
+    os.environ["NUITKA_PYTHONPATH_AST"] = os.path.dirname(ast.__file__)
+
     from nuitka.importing.PreloadedPackages import (
         detectPreLoadedPackagePaths,
         detectPthImportedPackages,

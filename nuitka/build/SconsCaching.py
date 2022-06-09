@@ -19,6 +19,7 @@
 
 """
 
+import ast
 import os
 import platform
 import re
@@ -382,9 +383,7 @@ def checkCachingSuccess(source_dir):
         if clcache_stats_filename is not None and os.path.exists(
             clcache_stats_filename
         ):
-            stats = eval(  # lazy, pylint: disable=eval-used
-                getFileContents(clcache_stats_filename)
-            )
+            stats = ast.literal_eval(getFileContents(clcache_stats_filename))
 
             clcache_hit = stats["CacheHits"]
             clcache_miss = stats["CacheMisses"]

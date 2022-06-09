@@ -25,6 +25,7 @@ expression only stuff.
 
 # from abc import abstractmethod
 
+import ast
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
@@ -1175,9 +1176,7 @@ def fromXML(provider, xml, source_ref=None):
     kind, node_class, args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
 
     if "constant" in args:
-        # TODO: Try and reduce/avoid this, use marshal and/or pickle from a file
-        # global stream     instead. For now, this will do. pylint: disable=eval-used
-        args["constant"] = eval(args["constant"])
+        args["constant"] = ast.literal_eval(args["constant"])
 
     if kind in (
         "ExpressionFunctionBody",

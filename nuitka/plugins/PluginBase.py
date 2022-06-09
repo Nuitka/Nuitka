@@ -26,6 +26,7 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
+import ast
 import inspect
 import os
 import sys
@@ -845,9 +846,8 @@ except ImportError:
 
         NamedTupleResult = namedtuple(info_name, keys)
 
-        # We are being lazy here, the code is trusted, pylint: disable=eval-used
         self._runtime_information_cache[info_name] = NamedTupleResult(
-            *(eval(value) for value in feedback)
+            *(ast.literal_eval(value) for value in feedback)
         )
 
         return self._runtime_information_cache[info_name]
