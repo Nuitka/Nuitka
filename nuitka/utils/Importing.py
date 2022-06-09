@@ -147,7 +147,7 @@ def getSharedLibrarySuffix(preferred):
     return result
 
 
-def importFromFolder(logger, module_name, path, must_exist, message):
+def _importFromFolder(logger, module_name, path, must_exist, message):
     """Import a module from a folder by adding it temporarily to sys.path"""
 
     # Circular dependency here
@@ -174,7 +174,7 @@ def importFromFolder(logger, module_name, path, must_exist, message):
             return None
 
         exit_message = (
-            "Error, expected inline copy of %r to be in %r, error was: %r."
+            "Error, expected inline copy of '%s' to be in '%s', error was: %r."
             % (module_name, path, e)
         )
 
@@ -205,7 +205,7 @@ def importFromInlineCopy(module_name, must_exist):
     elif python_version < 0x360 and os.path.exists(candidate_35):
         folder_name = candidate_35
 
-    return importFromFolder(
+    return _importFromFolder(
         module_name=module_name,
         path=folder_name,
         must_exist=must_exist,
