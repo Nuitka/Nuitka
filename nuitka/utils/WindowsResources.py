@@ -130,8 +130,12 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         EnumResourceLanguages(
             hModule, lpType, lpName, EnumResourceLanguagesCallback(callback2), 0
         )
-        # Always pick first one, we should get away with that.
-        lang_id = langs[0]
+        # Always pick first one, we should get away with that. On very old Python,
+        # we do not find any, and pick 0.
+        try:
+            lang_id = langs[0]
+        except IndexError:
+            lang_id = 0
 
         if with_data:
             hResource = ctypes.windll.kernel32.FindResourceA(hModule, lpName, lpType)
