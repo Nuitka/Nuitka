@@ -443,7 +443,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             tuple
         """
-        # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
+        # TODO: This "dist_dir" should no longer be here, as this API is obsolete, pylint: disable=unused-argument
         for included_entry_point in self.getExtraDlls(module):
             # Copy to the dist directory, which normally should not be a plugin task, but is for now.
             makePath(os.path.dirname(included_entry_point.dest_path))

@@ -38,4 +38,6 @@ a = numpy.arange(15).reshape(3, 5)
 
 print("An array", a)
 
+import numpy.random._bounded_integers
+
 print("OK.")

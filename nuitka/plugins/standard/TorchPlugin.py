@@ -17,147 +17,16 @@
 #
 """ Details see below in class definition.
 """
-import os
-import shutil
-
-from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-def getTorchCoreFiles(module):
-    """Return required files from the torch folders.
-
-    Notes:
-        So far only tested for Windows. Requirements for other platforms
-        are unknown.
-    """
-    binaries = []
-    torch_dir = module.getCompileTimeDirectory()
-    extras = os.path.join(torch_dir, "lib")
-
-    if os.path.isdir(extras):
-        for f in os.listdir(extras):
-            # apart from shared libs, also the C header files are required!
-            if f.endswith((".dll", ".so", ".h")) or ".so." in f:
-                item = os.path.join(extras, f)
-                if os.path.isfile(item):
-                    binaries.append((item, "."))
-
-    # this folder exists in the Linux version
-    extras = os.path.join(torch_dir, "bin")
-
-    if os.path.isdir(extras):
-        for f in os.listdir(extras):
-            item = os.path.join(extras, f)
-            if os.path.isfile(item):
-                binaries.append((item, "."))
-
-    # this folder exists in the Linux version
-    extras = os.path.join(torch_dir, "include")
-
-    if os.path.isdir(extras):
-        for root, _, files in os.walk(extras):
-            for f in files:
-                item = os.path.join(root, f)
-                if os.path.isfile(item):
-                    binaries.append((item, "."))
-
-    return binaries
-
-
 class NuitkaPluginTorch(NuitkaPluginBase):
-    """This class represents the main logic of the plugin.
-
-    This is a plugin to ensure torch scripts compile and work well in
-    standalone mode.
-
-    This plugin copies any files required by torch installations.
-
-    """
+    """This plugin is now not doing anything anymore."""
 
     plugin_name = "torch"
-    plugin_desc = "Required by the torch / torchvision packages"
-
-    def __init__(self):
-        """Maintain switch to ensure once-only copy of torch/lib files."""
-        self.files_copied = False
-        return None
+    plugin_desc = "Deprecated, was once required by the torch / torchvision packages"
 
     @classmethod
     def isRelevant(cls):
-        """This method is called one time only to check, whether the plugin might make sense at all.
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def considerExtraDlls(self, dist_dir, module):
-        """Copy extra files from torch/lib.
-
-        Args:
-            dist_dir: the name of the script's dist folder
-            module: module object
-        Returns:
-            empty tuple
-        """
-        if self.files_copied:  # not the first time here
-            return ()
-
-        if module.getFullName() == "torch":
-            self.files_copied = True  # fall through next time
-            binaries = getTorchCoreFiles(module)
-            bin_total = len(binaries)
-            if bin_total == 0:
-                return ()
-            self.info("Copying files from 'torch' installation:")
-
-            for f in binaries:
-                bin_file = f[0]  # full binary file name
-                idx = bin_file.find("torch")  # this will always work (idx > 0)
-                back_end = bin_file[idx:]  # tail of the string
-                tar_file = os.path.join(dist_dir, back_end)
-
-                # create any missing intermediate folders
-                if not os.path.exists(os.path.dirname(tar_file)):
-                    os.makedirs(os.path.dirname(tar_file))
-
-                shutil.copy(bin_file, tar_file)
-
-            self.info(
-                "Copied %i %s." % (bin_total, "file" if bin_total < 2 else "files")
-            )
-        return ()
-
-
-class NuitkaPluginDetectorTorch(NuitkaPluginBase):
-    """Only used if plugin is NOT activated.
-
-    Notes:
-        We are given the chance to issue a warning if we think we may be required.
-    """
-
-    detector_for = NuitkaPluginTorch
-
-    @classmethod
-    def isRelevant(cls):
-        """This method is called one time only to check, whether the plugin might make sense at all.
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def onModuleDiscovered(self, module):
-        """This method checks whether a torch module is imported.
-
-        Notes:
-            For this we check whether its full name contains the string "torch".
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
-        full_name = module.getFullName()
-        if "torch" in full_name or "torchvision" in full_name:
-            self.warnUnusedPlugin("torch support.")
+        # Only to prevent build scripts that reference it from crashing.
+        return False

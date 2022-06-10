@@ -135,6 +135,10 @@
   data-files:
     dirs:
       - "zoneinfo"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
 
 - module-name: "pytzdata"
   data-files:
@@ -898,9 +902,10 @@
 - module-name: "pandas"
   anti-bloat:
     - description: "remove pandas testing framework"
-      replacements:
+      replacements_plain:
         "from pandas.util._tester import test": ""
         "import pandas.testing": ""
+        "from pandas import api, arrays, errors, io, plotting, testing": "from pandas import api, arrays, errors, io, plotting"
 
 - module-name: "pandas._testing"
   anti-bloat:
@@ -1006,6 +1011,11 @@
       replacements:
         'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': "'pyarrow.__version__ < \"0.13.0\"'"
         "import distutils": "''"
+
+- module-name: "pandas._libs.tslibs.fields"
+  implicit-imports:
+    depends:
+      - "pandas._config.localization"
 
 - module-name: "sphinx.util.docutils"
   anti-bloat:
@@ -1152,6 +1162,21 @@
       replacements_plain:
         'if name == "testing":': "if False:"
 
+- module-name: "torch"
+  data-files:
+    # TODO: More like DLLS!
+    dirs:
+      - "bin"
+      - "include"
+    patterns:
+      - "bin/*.h"
+  dlls:
+    - dest_path: "torch/lib"
+      dir: "lib"
+      include_from_filenames: ""
+      patterns:
+        - ""
+
 - module-name: "torch.fx._symbolic_trace"
   anti-bloat:
     - description: "workaround incompatible check"
@@ -1163,6 +1188,15 @@
     - description: "disable jit warnings"
       replacements_plain:
         "warnings.warn(": "if False: warnings.warn("
+
+- module-name: "torch.utils.data._typing"
+  anti-bloat:
+    - description: "compatiblity workaround"
+      replacements_plain:
+        ? "\ndef _dp_init_subclass"
+        : |-
+          @classmethod
+          def _dp_init_subclass
 
 - module-name: "scipy._lib._docscrape"
   anti-bloat:

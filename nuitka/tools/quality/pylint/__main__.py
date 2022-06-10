@@ -41,6 +41,8 @@ def isIgnoredFile(filename):
         return True
     if filename.startswith("tests/") and not filename.endswith("/run_all.py"):
         return True
+    if "inline_copy" in filename:
+        return True
 
     return False
 
