@@ -999,7 +999,7 @@ def _shallUseStaticLibPython():
         if isAnacondaPython() and not isMacOS() and not isWin32Windows():
             return (
                 True,
-                "Nuitka on Anaconda needs package 'libpython-static' installed.",
+                "Nuitka on Anaconda needs package for static libpython installed. Execute 'conda install libpython-static'.",
             )
 
         if isPyenvPython():
