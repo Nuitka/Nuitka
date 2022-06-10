@@ -1386,3 +1386,45 @@
     - description: "remove pdb usage"
       change_function:
         "setBreak": "'(lambda self: None)'"
+
+- module-name: "numexpr"
+  anti-bloat:
+    - description: "remove numexpr.tests usage"
+      replacements_plain:
+        "import numexpr.tests": "raise ImportError"
+
+- module-name: "tables"
+  anti-bloat:
+    - description: "remove tables.tests usage"
+      replacements_plain:
+        "from .tests import print_versions, test": ""
+
+- module-name: "tables.utils"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.path"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.flavor"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.filters"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.misc.enum"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
