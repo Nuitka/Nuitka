@@ -101,7 +101,7 @@ from .build import SconsInterface
 from .codegen import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import packDistFolderToOnefile
-from .freezer.Standalone import copyDllsUsed
+from .freezer.Standalone import checkFreezingModuleSet, copyDllsUsed
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
 from .Reports import writeCompilationReport
@@ -200,6 +200,10 @@ def _createNodeTree(filename):
 
     # Then optimize the tree and potentially recursed modules.
     optimizeModules(main_module.getOutputFilename())
+
+    # Freezer may have concerns for some modules.
+    if Options.isStandaloneMode():
+        checkFreezingModuleSet()
 
     # Allow plugins to comment on final module set.
     Plugins.onModuleCompleteSet()

@@ -90,6 +90,7 @@ from nuitka.utils.SharedLibraries import (
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
+from nuitka.utils.Utils import isDebianBasedLinux
 
 from .DependsExe import detectDLLsWithDependencyWalker
 
@@ -510,6 +511,46 @@ for imp in imports:
         ]
 
     return result
+
+
+def checkFreezingModuleSet():
+    """Check the module set for troubles.
+
+    Typically Linux OS specific packages must be avoided, e.g. Debian packaging
+    does make sure the packages will not run on other OSes.
+    """
+    # Cyclic dependency
+    from nuitka import ModuleRegistry
+
+    problem_modules = OrderedSet()
+
+    if isDebianBasedLinux():
+        message = (
+            "Standard with Python package from Debian installation may not be working."
+        )
+        mnemonic = "debian-dist-packages"
+
+        def checkModulePath(module):
+            if "dist-packages" in module.getCompileTimeFilename().split("/"):
+                module_name = module.getFullName()
+
+                package_name = module_name.getTopLevelPackageName()
+
+                if package_name is not None:
+                    problem_modules.add(package_name)
+                else:
+                    problem_modules.add(module_name)
+
+    else:
+        checkModulePath = None
+
+    if checkModulePath is not None:
+        for module in ModuleRegistry.getDoneModules():
+            checkModulePath(module)
+
+    if problem_modules:
+        general.info("Using Debian packages for '%s'." % ",".join(problem_modules))
+        general.warning(message=message, mnemonic=mnemonic)
 
 
 def detectEarlyImports():
