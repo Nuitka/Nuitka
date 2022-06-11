@@ -100,7 +100,7 @@ sys.exit(%(module_name)s.%(main_name)s)
         }
 
     def onModuleSourceCode(self, module_name, source_code):
-        # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
+        # Many cases to deal with, pylint: disable=too-many-branches
 
         if module_name == "__main__":
             match = re.search(
@@ -113,18 +113,6 @@ sys.exit(%(module_name)s.%(main_name)s)
                 )
 
                 return self._handleEasyInstallEntryScript(*match.groups())
-
-        # The importlib_resources backport has a problem with wanting source files
-        # to exist, that won't be the case with standalone.
-        if module_name == "importlib_resources._compat":
-            return source_code.replace("path.exists()", "True")
-
-        # TODO: Move this to anti-bloat ones it becomes the default.
-        if module_name == "pkg_resources._vendor.jaraco.text":
-            return source_code.replace(
-                "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()",
-                "",
-            )
 
         # This one has strings with false matches, don't attempt those.
         if module_name == "setuptools.command.easy_install":

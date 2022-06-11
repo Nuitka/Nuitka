@@ -65,6 +65,12 @@
     patterns:
       - "version.txt"
 
+- module-name: "importlib_resources._compat"
+  anti-bloat:
+    - description: "workaround file reader check"
+      replacements_plain:
+        "path.exists()": "True"
+
 - module-name: "moto"
   data-files:
     patterns:
@@ -228,6 +234,12 @@
   data-files:
     dirs:
       - "lib"
+
+- module-name: "pkg_resources._vendor.jaraco.text"
+  anti-bloat:
+    - description: "remove useless data file dependency"
+      replacements_plain:
+        "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()": ""
 
 - module-name: "jaraco.text"
   data-files:
