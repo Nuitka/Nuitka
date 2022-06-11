@@ -41,7 +41,7 @@ from setuptools.command import easy_install
 # is optimized for. This is to avoid descending into Nuitka through distutils.
 if __name__ == "__main__":
     from nuitka.PythonFlavors import isMSYS2MingwPython
-    from nuitka.Version import getNuitkaMsiVersion, getNuitkaVersion
+    from nuitka.Version import getNuitkaVersion
 
 scripts = []
 
@@ -50,12 +50,7 @@ if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 
-# The MSI installer enforces a 3 digit version number, which is stupid, but no
-# way around it, so we map our number to it, in some way.
-if os.name == "nt" and "bdist_msi" in sys.argv:
-    version = getNuitkaMsiVersion()
-else:
-    version = getNuitkaVersion()
+version = getNuitkaVersion()
 
 
 def findNuitkaPackages():
@@ -137,13 +132,6 @@ if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2")
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-3.1.2")
-
-# Have different project names for MSI installers, so 32 and 64 bit versions do
-# not conflict.
-if "bdist_msi" in sys.argv:
-    project_name = "Nuitka%s" % (64 if "AMD64" in sys.version else 32)
-else:
-    project_name = "Nuitka"
 
 import distutils.util
 
@@ -282,7 +270,7 @@ with open("README.rst", "rb") as input_file:
     )
 
 setup(
-    name=project_name,
+    name="Nuitka",
     license="Apache License, Version 2.0",
     version=version,
     long_description=long_description,

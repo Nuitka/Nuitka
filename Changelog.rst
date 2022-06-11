@@ -112,6 +112,10 @@ Organisational
 -  Git: Make sure we are not affected by ``core.autocrlf`` setting, as
    it interferes with auto-format enforcing Unix newlines.
 
+-  Removed the MSI downloads. Windows 10 has made them harder to install
+   and Python itself is discontinuing support for them, while often it
+   was only used by beginners, for which it was not intended.
+
 Summary
 =======
 
