@@ -60,7 +60,7 @@ class NuitkaProgressBar(object):
             unit=unit,
             disable=None,
             leave=False,
-            bar_format="{desc}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt}{postfix}",
+            bar_format="{desc}{percentage:3.1f}%|{bar:25}| {n_fmt}/{total_fmt}{postfix}",
         )
 
         self.tqdm.set_description(stage)
