@@ -19,7 +19,11 @@
 
 from nuitka.Options import shallMakeModule
 
-from .CallCodes import getCallCodeNoArgs, getCallCodePosArgsQuick
+from .CallCodes import (
+    getCallCodeKwSplit,
+    getCallCodeNoArgs,
+    getCallCodePosArgsQuick,
+)
 from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
@@ -52,6 +56,105 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
             called_name=get_data_function,
             expression=expression,
             arg_names=(package_name, resource_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesDistributionCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "distribution_value", expression, emit, context
+    ) as result_name:
+        distribution_class_name = context.allocateTempName(
+            "distribution_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=distribution_class_name,
+            module_name="pkg_resources",
+            import_name="Distribution",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(
+                getattr(expression.getCompileTimeConstant(), kw_name)
+            )
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=distribution_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesRequireCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "require_value", expression, emit, context
+    ) as result_name:
+        (requirement_arg_names,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        require_function_name = context.allocateTempName(
+            "require_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=require_function_name,
+            module_name="pkg_resources",
+            import_name="require",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=require_function_name,
+            expression=expression,
+            arg_names=requirement_arg_names,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesGetDistributionCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "get_distribution_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        get_distribution_function_name = context.allocateTempName(
+            "get_distribution_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=get_distribution_function_name,
+            module_name="pkg_resources",
+            import_name="get_distribution",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=get_distribution_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
             needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,

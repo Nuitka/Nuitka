@@ -993,7 +993,7 @@ class ExpressionFunctionCreation(
                 star_dict_arg=call_spec.getStarDictArgumentName(),
                 star_list_single_arg=False,
                 num_defaults=call_spec.getDefaultCount(),
-                num_posonly=call_spec.getPosOnlyParameterCount(),
+                num_pos_only=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
             )

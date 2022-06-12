@@ -17,7 +17,7 @@
 #
 """ Standard plug-in to resolve pkg_resource actions at compile time rather than runtime.
 
-Nuitka can detect some things that pkg_resouces may not even be able to during
+Nuitka can detect some things that "pkg_resources" may not even be able to during
 runtime, e.g. right now checking pip installed versions, is not a thing, while
 some packages in their code, e.g. derive their __version__ value from that.
 """
@@ -100,8 +100,6 @@ sys.exit(%(module_name)s.%(main_name)s)
         }
 
     def onModuleSourceCode(self, module_name, source_code):
-        # Many cases to deal with, pylint: disable=too-many-branches
-
         if module_name == "__main__":
             match = re.search(
                 "\n# EASY-INSTALL-ENTRY-SCRIPT: '(.*?)','(.*?)','(.*?)'", source_code
@@ -117,57 +115,6 @@ sys.exit(%(module_name)s.%(main_name)s)
         # This one has strings with false matches, don't attempt those.
         if module_name == "setuptools.command.easy_install":
             return source_code
-
-        if self.pkg_resources:
-            for match in re.findall(
-                r"""\b(pkg_resources\.get_distribution\(\s*['"](.*?)['"]\s*\)\.((?:parsed_)?version))""",
-                source_code,
-            ):
-                try:
-                    with withNoDeprecationWarning():
-                        value = self.pkg_resources.get_distribution(match[1]).version
-                except self.pkg_resources.DistributionNotFound:
-                    self.warning(
-                        "Cannot find distribution '%s' for '%s', expect potential run time problem."
-                        % (match[1], module_name)
-                    )
-                except Exception:  # catch all, pylint: disable=broad-except
-                    self.sysexit(
-                        "Error, failed to find distribution '%s', probably a plugin parsing bug for '%s' code."
-                        % (match[1], module_name)
-                    )
-                else:
-                    if match[2] == "version":
-                        value = repr(value)
-                    elif match[2] == "parsed_version":
-                        value = (
-                            "pkg_resources.extern.packaging.version.Version(%r)" % value
-                        )
-                    else:
-                        assert False
-
-                    source_code = source_code.replace(match[0], value)
-
-            for match in re.findall(
-                r"""\b(pkg_resources\.require\(\s*['"](.*?)['"]\s*\))""",
-                source_code,
-            ):
-                # Explicitly call the require function at Nuitka compile time.
-                try:
-                    with withNoDeprecationWarning():
-                        self.pkg_resources.require(match[1])
-                except self.pkg_resources.ResolutionError:
-                    self.warning(
-                        "Cannot find requirement '%s' for '%s', expect potential run time problem."
-                        % (match[1], module_name)
-                    )
-                except Exception:  # catch all, pylint: disable=broad-except
-                    self.sysexit(
-                        "Error, failed to resolve '%s', probably a plugin parsing bug for '%s' code."
-                        % (match[1], module_name)
-                    )
-                else:
-                    source_code = source_code.replace(match[0], "")
 
         if self.metadata:
             for total, quote1, name, quote2 in re.findall(

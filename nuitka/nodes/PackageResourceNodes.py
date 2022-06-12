@@ -76,9 +76,6 @@ class ExpressionPkglibGetDataRef(ExpressionImportModuleNameHardExists):
             source_ref=source_ref,
         )
 
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
-
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
@@ -128,9 +125,6 @@ class ExpressionPkgResourcesResourceStringRef(ExpressionImportModuleNameHardExis
             module_guaranteed=not shallMakeModule(),
             source_ref=source_ref,
         )
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # Anything may happen. On next pass, if replaced, we might be better
@@ -190,9 +184,6 @@ class ExpressionPkgResourcesResourceStreamRef(ExpressionImportModuleNameHardExis
             source_ref=source_ref,
         )
 
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
-
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
@@ -242,9 +233,6 @@ class ExpressionImportlibResourcesReadBinaryRef(ExpressionImportModuleNameHardEx
             module_guaranteed=True,
             source_ref=source_ref,
         )
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # Anything may happen. On next pass, if replaced, we might be better
@@ -297,9 +285,6 @@ class ExpressionImportlibResourcesReadTextRef(ExpressionImportModuleNameHardExis
             module_guaranteed=True,
             source_ref=source_ref,
         )
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # Anything may happen. On next pass, if replaced, we might be better
@@ -372,9 +357,6 @@ class ExpressionOsUnameRef(ExpressionImportModuleNameHardExists):
             module_guaranteed=True,
             source_ref=source_ref,
         )
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         # Anything may happen. On next pass, if replaced, we might be better

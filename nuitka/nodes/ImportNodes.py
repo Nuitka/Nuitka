@@ -73,6 +73,10 @@ from .ImportHardNodes import (
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+from .PackageMetadataNodes import (
+    ExpressionPkgResourcesGetDistributionRef,
+    ExpressionPkgResourcesRequireRef,
+)
 from .PackageResourceNodes import (
     ExpressionImportlibResourcesReadBinaryRef,
     ExpressionImportlibResourcesReadTextRef,
@@ -211,13 +215,22 @@ hard_modules_trust = {
     "sysconfig": {},
     "io": {"BytesIO": trust_exist},
     # "cStringIO": {"StringIO": trust_exist},
-    "pkg_resources": {"resource_string": trust_node, "resource_stream": trust_node},
+    "pkg_resources": {
+        "require": trust_node,
+        "get_distribution": trust_node,
+        "resource_string": trust_node,
+        "resource_stream": trust_node,
+    },
     "importlib.resources": {"read_binary": trust_node, "read_text": trust_node},
     "site": {},
 }
 
 
 trust_node_factory[("pkgutil", "get_data")] = ExpressionPkglibGetDataRef
+trust_node_factory[("pkg_resources", "require")] = ExpressionPkgResourcesRequireRef
+trust_node_factory[
+    ("pkg_resources", "get_distribution")
+] = ExpressionPkgResourcesGetDistributionRef
 trust_node_factory[
     ("pkg_resources", "resource_string")
 ] = ExpressionPkgResourcesResourceStringRef

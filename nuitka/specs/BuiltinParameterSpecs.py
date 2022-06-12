@@ -639,7 +639,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             star_list_single_arg=builtin_spec.isStarListSingleArg(),
             star_dict_arg=builtin_spec.getStarDictArgumentName(),
             num_defaults=builtin_spec.getDefaultCount(),
-            num_posonly=builtin_spec.getPosOnlyParameterCount(),
+            num_pos_only=builtin_spec.getPosOnlyParameterCount(),
             positional=positional,
             pairs=pairs,
         )
@@ -658,7 +658,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
         )
 
     # Using list reference for passing the arguments without names where it
-    # it possible, otherwise dictionary to make those distinuishable.
+    # it possible, otherwise dictionary to make those distinguishable.
     args_list = []
 
     for argument_name in builtin_spec.getArgumentNames():

@@ -253,6 +253,36 @@ def _generateCallCodeKwSplitFromConstant(
     context.addCleanupTempName(to_name)
 
 
+def getCallCodeKwSplit(to_name, called_name, kw_names, dict_value_names, emit, context):
+    emit(
+        """\
+{
+    PyObject *kw_values[%(kw_size)d] = {%(kw_value_names)s};
+
+    %(to_name)s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(%(called_name)s, kw_values, %(kw_names)s);
+}
+"""
+        % {
+            "to_name": to_name,
+            "kw_value_names": ", ".join(
+                str(dict_value_name) for dict_value_name in dict_value_names
+            ),
+            "kw_size": len(kw_names),
+            "called_name": called_name,
+            "kw_names": context.getConstantCode(tuple(kw_names)),
+        }
+    )
+
+    getErrorExitCode(
+        check_name=to_name,
+        release_names=(called_name,) + tuple(dict_value_names),
+        emit=emit,
+        context=context,
+    )
+
+    context.addCleanupTempName(to_name)
+
+
 def _generateCallCodeKwSplit(
     to_name, expression, call_kw, called_name, called_attribute_name, emit, context
 ):
@@ -285,33 +315,15 @@ def _generateCallCodeKwSplit(
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    emit(
-        """\
-{
-    PyObject *kw_values[%(kw_size)d] = {%(kw_value_names)s};
-
-    %(to_name)s = CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(%(called_name)s, kw_values, %(kw_names)s);
-}
-"""
-        % {
-            "to_name": to_name,
-            "kw_value_names": ", ".join(
-                str(dict_value_name) for dict_value_name in dict_value_names
-            ),
-            "kw_size": len(call_kw.subnode_pairs),
-            "called_name": called_name,
-            "kw_names": context.getConstantCode(tuple(kw_names)),
-        }
-    )
-
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(called_name,) + tuple(dict_value_names),
+    assert len(kw_names) == len(call_kw.subnode_pairs)
+    getCallCodeKwSplit(
+        to_name=to_name,
+        called_name=called_name,
+        kw_names=kw_names,
+        dict_value_names=dict_value_names,
         emit=emit,
         context=context,
     )
-
-    context.addCleanupTempName(to_name)
 
 
 def _generateCallCodeKwDict(

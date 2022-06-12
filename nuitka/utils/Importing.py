@@ -26,6 +26,8 @@ import sys
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
+from .Utils import withNoDeprecationWarning
+
 
 def _importFilePy3NewWay(filename):
     """Import a file for Python versions 3.5+."""
@@ -212,3 +214,31 @@ def importFromInlineCopy(module_name, must_exist):
         message=None,
         logger=general,
     )
+
+
+_compile_time_modules = {}
+
+
+def importFromCompileTime(module_name, must_exist):
+    """Import a module from the compiled time stage.
+
+    This is not for using the inline copy, but the one from the actual
+    installation of the user. It suppresses warnings and caches the value
+    avoid making more __import__ calls that necessary.
+    """
+
+    if module_name not in _compile_time_modules:
+        with withNoDeprecationWarning():
+            try:
+                __import__(module_name)
+            except (ImportError, RuntimeError):
+                # Preventing a retry, converted to None for return
+                _compile_time_modules[module_name] = False
+            else:
+                _compile_time_modules[module_name] = sys.modules[module_name]
+
+    # Some code should only use this, after knowing it will be found. Complain if
+    # that is not the case.
+    assert _compile_time_modules[module_name] or not must_exist
+
+    return _compile_time_modules[module_name] or None

@@ -132,6 +132,8 @@ def generateChildExpressionsCode(expression, emit, context):
             child_names = []
 
             for child_val in child_value:
+                value_name = context.allocateTempName(child_name + "_value")
+
                 generateExpressionCode(
                     to_name=value_name,
                     expression=child_val,
