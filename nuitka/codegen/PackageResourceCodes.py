@@ -161,6 +161,72 @@ def generatePkgResourcesGetDistributionCallCode(to_name, expression, emit, conte
         )
 
 
+def generateImportlibMetadataVersionCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "version_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        version_function_name = context.allocateTempName(
+            "importlib_metadata_version_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=version_function_name,
+            module_name="importlib.metadata",
+            import_name="version",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=version_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportVersionCallCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "version_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        version_function_name = context.allocateTempName(
+            "importlib_metadata_backport_version_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=version_function_name,
+            module_name="importlib_metadata",
+            import_name="version",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=version_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
 def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, context):
     package_name, resource_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context

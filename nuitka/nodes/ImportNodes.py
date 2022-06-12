@@ -74,6 +74,8 @@ from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .PackageMetadataNodes import (
+    ExpressionImportlibMetadataBackportVersionRef,
+    ExpressionImportlibMetadataVersionRef,
     ExpressionPkgResourcesGetDistributionRef,
     ExpressionPkgResourcesRequireRef,
 )
@@ -206,8 +208,8 @@ hard_modules_trust = {
     "typing": module_typing_trust,
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
     "importlib": module_importlib_trust,
-    "importlib.metadata": {},
-    "importlib_metadata": {},
+    "importlib.metadata": {"version": trust_node},
+    "importlib_metadata": {"version": trust_node},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
@@ -238,6 +240,12 @@ trust_node_factory[
     ("pkg_resources", "resource_stream")
 ] = ExpressionPkgResourcesResourceStreamRef
 trust_node_factory[
+    ("importlib.metadata", "version")
+] = ExpressionImportlibMetadataVersionRef
+trust_node_factory[
+    ("importlib_metadata", "version")
+] = ExpressionImportlibMetadataBackportVersionRef
+trust_node_factory[
     ("importlib.resources", "read_binary")
 ] = ExpressionImportlibResourcesReadBinaryRef
 trust_node_factory[
@@ -253,8 +261,11 @@ def _checkHardModules():
         assert module_name in hard_modules, module_name
 
         for attribute_name, trust_value in trust.items():
-            if trust_value is trust_node_factory:
-                assert (module_name, attribute_name) in trust_node_factory, module_name
+            if trust_value is trust_node:
+                assert (module_name, attribute_name) in trust_node_factory, (
+                    module_name,
+                    attribute_name,
+                )
 
 
 _checkHardModules()

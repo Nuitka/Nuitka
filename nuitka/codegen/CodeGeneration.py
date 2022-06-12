@@ -245,6 +245,8 @@ from .OperationCodes import (
     generateOperationUnaryCode,
 )
 from .PackageResourceCodes import (
+    generateImportlibMetadataBackportVersionCallCode,
+    generateImportlibMetadataVersionCallCode,
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
     generateOsUnameCallCode,
@@ -804,6 +806,8 @@ addExpressionDispatchDict(
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_UNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKGLIB_GET_DATA_CALL": generatePkglibGetDataCallCode,
         "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL": generatePkgResourcesRequireCallCode,
@@ -812,6 +816,8 @@ addExpressionDispatchDict(
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": generatePkgResourcesResourceStreamCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL": generateImportlibMetadataVersionCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL": generateImportlibMetadataBackportVersionCallCode,
         "EXPRESSION_OS_UNAME_CALL": generateOsUnameCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,

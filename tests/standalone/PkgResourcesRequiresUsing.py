@@ -25,6 +25,8 @@ the module used in the example is not installed.
 
 # nuitka-project: --standalone
 
+import sys
+
 from pkg_resources import get_distribution, require
 
 # nuitka-skip-unless-imports: lxml
@@ -37,4 +39,19 @@ print(__version__)
 __version__ = get_distribution("lxml").parsed_version
 print(__version__)
 
-from importlib.metadata import version
+try:
+    from importlib.metadata import version
+except ImportError:
+    print("Old Python", sys.version_info)
+else:
+    __version__ = version("lxml")
+    print(__version__)
+
+
+try:
+    from importlib_metadata import version
+except ImportError:
+    print("Backport importlib_metadata is not installed.")
+else:
+    __version__ = version("lxml")
+    print(__version__)

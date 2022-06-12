@@ -43,8 +43,6 @@ pkg_resources_get_distribution_spec = BuiltinParameterSpec(
     "pkg_resources.get_distribution", ("dist",), default_count=0
 )
 
-_pkg_resources = None
-
 
 def _getPkgResourcesModule():
     """Helper for importing pkg_resources from installation at compile time.
@@ -265,6 +263,235 @@ class ExpressionPkgResourcesGetDistributionCall(ExpressionChildHavingBase):
             self.attempted
             or not pkg_resources_get_distribution_spec.isCompileTimeComputable(
                 (self.subnode_dist,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        with withNoDeprecationWarning():
+            return self._replaceWithCompileTimeValue(trace_collection)
+
+
+importlib_metadata_version_spec = BuiltinParameterSpec(
+    "importlib.metadata.version", ("distribution_name",), default_count=0
+)
+
+
+class ExpressionImportlibMetadataVersionRef(ExpressionImportModuleNameHardExists):
+    """Function reference importlib.metadata.version"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExists.__init__(
+            self,
+            module_name="importlib.metadata",
+            import_name="version",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibMetadataVersionCall,
+            builtin_spec=importlib_metadata_version_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib.metadata.version' recognized.",
+        )
+
+
+class ExpressionImportlibMetadataBackportVersionRef(
+    ExpressionImportModuleNameHardExists
+):
+    """Function reference importlib_metadata.version"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExists.__init__(
+            self,
+            module_name="importlib_metadata",
+            import_name="version",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibMetadataBackportVersionCall,
+            builtin_spec=importlib_metadata_version_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_metadata.version' recognized.",
+        )
+
+
+def _getImportlibMetadataModule():
+    """Helper for importing importlib.metadata from installation at compile time.
+
+    This is not for using the inline copy, but the one from the actual
+    installation of the user. It suppresses warnings and caches the value
+    avoid making more __import__ calls that necessary.
+    """
+
+    return importFromCompileTime("importlib.metadata", must_exist=True)
+
+
+class ExpressionImportlibMetadataVersionCall(ExpressionChildHavingBase):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL"
+
+    named_child = "distribution_name"
+
+    __slots__ = ("attempted",)
+
+    def __init__(self, distribution_name, source_ref):
+        ExpressionChildHavingBase.__init__(
+            self, value=distribution_name, source_ref=source_ref
+        )
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def _replaceWithCompileTimeValue(self, trace_collection):
+        version = _getImportlibMetadataModule().version
+        PackageNotFoundError = _getImportlibMetadataModule().PackageNotFoundError
+
+        arg = self.subnode_distribution_name.getCompileTimeConstant()
+
+        try:
+            distribution = version(arg)
+        except PackageNotFoundError:
+            inclusion_logger.warning(
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                % (arg, self.source_ref.getAsString())
+            )
+
+            self.attempted = True
+
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            inclusion_logger.sysexit(
+                "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
+                % (arg, self.source_ref.getAsString(), repr(e))
+            )
+        else:
+            from .ConstantRefNodes import makeConstantRefNode
+
+            result = makeConstantRefNode(
+                constant=distribution, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time predicted 'importlib.metadata.version' result",
+            )
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not pkg_resources_get_distribution_spec.isCompileTimeComputable(
+                (self.subnode_distribution_name,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        with withNoDeprecationWarning():
+            return self._replaceWithCompileTimeValue(trace_collection)
+
+
+def _getImportlibMetadataBackportModule():
+    """Helper for importing importlib_metadata from installation at compile time.
+
+    This is not for using the inline copy, but the one from the actual
+    installation of the user. It suppresses warnings and caches the value
+    avoid making more __import__ calls that necessary.
+    """
+
+    return importFromCompileTime("importlib_metadata", must_exist=True)
+
+
+class ExpressionImportlibMetadataBackportVersionCall(ExpressionChildHavingBase):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL"
+
+    named_child = "distribution_name"
+
+    __slots__ = ("attempted",)
+
+    def __init__(self, distribution_name, source_ref):
+        ExpressionChildHavingBase.__init__(
+            self, value=distribution_name, source_ref=source_ref
+        )
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def _replaceWithCompileTimeValue(self, trace_collection):
+        version = _getImportlibMetadataBackportModule().version
+        PackageNotFoundError = (
+            _getImportlibMetadataBackportModule().PackageNotFoundError
+        )
+
+        arg = self.subnode_distribution_name.getCompileTimeConstant()
+
+        try:
+            distribution = version(arg)
+        except PackageNotFoundError:
+            inclusion_logger.warning(
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                % (arg, self.source_ref.getAsString())
+            )
+
+            self.attempted = True
+
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            inclusion_logger.sysexit(
+                "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
+                % (arg, self.source_ref.getAsString(), repr(e))
+            )
+        else:
+            from .ConstantRefNodes import makeConstantRefNode
+
+            result = makeConstantRefNode(
+                constant=distribution, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time predicted 'importlib_metadata.version' result",
+            )
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not pkg_resources_get_distribution_spec.isCompileTimeComputable(
+                (self.subnode_distribution_name,)
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)

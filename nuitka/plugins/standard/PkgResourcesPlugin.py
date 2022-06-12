@@ -42,22 +42,6 @@ class NuitkaPluginResources(NuitkaPluginBase):
             else:
                 self.pkg_resources = pkg_resources
 
-        try:
-            import importlib_metadata
-        except (ImportError, SyntaxError, RuntimeError):
-            self.metadata = None
-        else:
-            self.metadata = importlib_metadata
-
-        # Note: This one is overriding above import, but doesn't need to initialize
-        # the value, since it will already be set in case of a problem.
-        try:
-            from importlib import metadata
-
-            self.metadata = metadata
-        except ImportError:
-            pass
-
     @staticmethod
     def isAlwaysEnabled():
         return True
@@ -111,38 +95,5 @@ sys.exit(%(module_name)s.%(main_name)s)
                 )
 
                 return self._handleEasyInstallEntryScript(*match.groups())
-
-        # This one has strings with false matches, don't attempt those.
-        if module_name == "setuptools.command.easy_install":
-            return source_code
-
-        if self.metadata:
-            for total, quote1, name, quote2 in re.findall(
-                r"""\b((?:importlib[_.])?metadata\.version\(\s*(['"]?)(.*?)(['"]?)\s*\))""",
-                source_code,
-            ):
-                if name == "__name__":
-                    name = module_name.asString()
-                    quote1 = quote2 = "'"
-
-                if quote1 == quote2:
-                    if quote1:
-                        try:
-                            value = self.metadata.version(name)
-                        except self.metadata.PackageNotFoundError:
-                            self.warning(
-                                "Cannot find requirement '%s' for '%s', expect potential run time problem."
-                                % (name, module_name)
-                            )
-
-                            continue
-                        except Exception:  # catch all, pylint: disable=broad-except
-                            self.sysexit(
-                                "Error, failed to resolve '%s', probably a plugin parsing bug for '%s' code."
-                                % (name, module_name)
-                            )
-                        else:
-                            value = repr(value)
-                            source_code = source_code.replace(total, value)
 
         return source_code
