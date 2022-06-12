@@ -49,6 +49,7 @@ from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
 from .Checkers import checkStatementsSequenceOrNone
 from .CodeObjectSpecs import CodeObjectSpec
+from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
@@ -1005,7 +1006,7 @@ class ExpressionFunctionCreation(
 
             # TODO: This is probably something that the matchCall ought to do
             # for us, but that will need cleanups. Also these functions and
-            # nodes ought to work with # ordered dictionaries maybe.
+            # nodes ought to work with ordered dictionaries maybe.
             if call_spec.getStarDictArgumentName():
                 values[-1] = makeDictCreationOrConstant2(
                     keys=[value[0] for value in values[-1]],
@@ -1013,8 +1014,21 @@ class ExpressionFunctionCreation(
                     source_ref=call_node.source_ref,
                 )
 
+                star_list_offset = -2
+            else:
+                star_list_offset = -1
+
+            if call_spec.getStarListArgumentName():
+                values[star_list_offset] = makeExpressionMakeTupleOrConstant(
+                    elements=values[star_list_offset],
+                    user_provided=False,
+                    source_ref=call_node.source_ref,
+                )
+
             result = ExpressionFunctionCall(
-                function=self, values=values, source_ref=call_node.source_ref
+                function=self.makeClone(),
+                values=values,
+                source_ref=call_node.source_ref,
             )
 
             return (
