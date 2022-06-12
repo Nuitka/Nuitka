@@ -434,6 +434,14 @@ class ExpressionImportModuleHard(
             not shallMakeModule() or self.module_name not in hard_modules_non_stdlib
         )
 
+    @staticmethod
+    def isExpressionImportModuleHard():
+        return True
+
+    @staticmethod
+    def hasVeryTrustedValue():
+        return True
+
     def finalize(self):
         del self.parent
 

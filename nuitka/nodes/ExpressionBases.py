@@ -864,6 +864,11 @@ class ExpressionBase(NodeBase):
         """Does an expression have exactly a bytes shape."""
         return self.getTypeShape() is tshape_bytes
 
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Trust that value will not be overwritten from the outside."""
+        return False
+
 
 class ExpressionNoSideEffectsMixin(object):
     __slots__ = ()

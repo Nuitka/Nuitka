@@ -71,6 +71,10 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
     def isExpressionImportModuleNameHard():
         return True
 
+    @staticmethod
+    def hasVeryTrustedValue():
+        return True
+
     def finalize(self):
         del self.parent
 

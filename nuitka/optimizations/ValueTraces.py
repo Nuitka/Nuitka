@@ -499,7 +499,8 @@ class ValueTraceAssign(ValueTraceBase):
     def getAttributeNodeVeryTrusted(self):
         source_node = self.assign_node.subnode_source
 
-        if source_node.isExpressionImportModuleHard():
+        # Hard imports typically.
+        if source_node.hasVeryTrustedValue():
             return source_node
         else:
             return None
