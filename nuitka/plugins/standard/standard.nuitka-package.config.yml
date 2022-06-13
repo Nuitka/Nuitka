@@ -1474,3 +1474,38 @@
     - description: "remove docutils usage"
       change_function:
         "_test": "'(lambda: None)'"
+
+- module-name: "llvmlite.binding.analysis"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "__IPYTHON__": "raise NameError"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "numba"
+  anti-bloat:
+    - description: "remove numba testing reference"
+      change_function:
+        "test": "un-callable"
+
+- module-name: "numba.core.caching"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "from IPython.paths import get_ipython_cache_dir": "raise ImportError"
+        "from IPython.utils.path import get_ipython_cache_dir": "raise ImportError"
+
+- module-name: "numba.misc.inspection"
+  anti-bloat:
+    - description: "remove numba.pycc reference"
+      change_function:
+        "disassemble_elf_to_cfg": "un-callable"
+
+- module-name: "numba.cuda"
+  anti-bloat:
+    - description: "remove numba testing reference"
+      change_function:
+        "test": "un-callable"
+      replacements_plain:
+        "from numba import runtests": ""
