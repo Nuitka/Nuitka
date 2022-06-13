@@ -147,13 +147,13 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
 
                 return ExpressionDictOperation{{attribute_name_class}}(
-                    dict_arg=self.subnode_expression, source_ref=source_ref
+                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
                 )
             else:
                 from .DictionaryNodes import ExpressionDictOperation{{python3_operation_name.title()}}
 
                 return ExpressionDictOperation{{python3_operation_name.title()}}(
-                    dict_arg=self.subnode_expression, source_ref=source_ref
+                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
                 )
 {% else %}
 {% if dict_operation_variation %}
@@ -162,21 +162,21 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionDictOperation{{attribute_name_class}}{{count+1}}(
-                    dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:count], starting=False)}}, source_ref=source_ref
+                    dict_arg=self.subnode_expression.makeClone() {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}
 
                 return ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}(
-                    dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:dict_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                    dict_arg=self.subnode_expression.makeClone() {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:dict_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
             from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
 
             return ExpressionDictOperation{{attribute_name_class}}(
-                dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args, starting=False)}}, source_ref=source_ref
+                dict_arg=self.subnode_expression.makeClone() {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
 {% endif %}
@@ -199,6 +199,9 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
             change_tags = "new_expression",
             change_desc = "Call to '{{attribute_name}}' of dictionary recognized."
         )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
     # No computeExpressionCall as dict operation ExpressionDictOperation{{attribute_name_class}} is not yet implemented
 {% endif %}
@@ -233,13 +236,13 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
                 from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
 
                 return ExpressionStrOperation{{attribute_name_class}}(
-                    str_arg=self.subnode_expression, source_ref=source_ref
+                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
                 )
             else:
                 from .StrNodes import ExpressionStrOperation{{python3_operation_name.title()}}
 
                 return ExpressionStrOperation{{python3_operation_name.title()}}(
-                    str_arg=self.subnode_expression, source_ref=source_ref
+                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
                 )
 {% else %}
 {% if str_operation_variation %}
@@ -248,21 +251,21 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
                 from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionStrOperation{{attribute_name_class}}{{count+1}}(
-                    str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
+                    str_arg=self.subnode_expression.makeClone() {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}
 
                 return ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}(
-                    str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                    str_arg=self.subnode_expression.makeClone() {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
             from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
 
             return ExpressionStrOperation{{attribute_name_class}}(
-                str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
+                str_arg=self.subnode_expression.makeClone() {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
 {% endif %}
@@ -281,6 +284,9 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
         )
 
         return result, "new_expression", "Call to '{{attribute_name}}' of str recognized."
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
     # No computeExpressionCall as str operation ExpressionStrOperation{{attribute_name_class}} is not yet implemented
 {% endif %}
@@ -315,13 +321,13 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
                 from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
 
                 return ExpressionBytesOperation{{attribute_name_class}}(
-                    bytes_arg=self.subnode_expression, source_ref=source_ref
+                    bytes_arg=self.subnode_expression.makeClone(), source_ref=source_ref
                 )
             else:
                 from .BytesNodes import ExpressionBytesOperation{{python3_operation_name.title()}}
 
                 return ExpressionBytesOperation{{python3_operation_name.title()}}(
-                    bytes_arg=self.subnode_expression, source_ref=source_ref
+                    bytes_arg=self.subnode_expression.makeClone(), source_ref=source_ref
                 )
 {% else %}
 {% if bytes_operation_variation %}
@@ -330,21 +336,21 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
                 from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{count+1}}
 
                 return ExpressionBytesOperation{{attribute_name_class}}{{count+1}}(
-                    bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:count], starting=False)}}, source_ref=source_ref
+                    bytes_arg=self.subnode_expression.makeClone() {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}
 
                 return ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}(
-                    bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:bytes_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                    bytes_arg=self.subnode_expression.makeClone() {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:bytes_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
             from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
 
             return ExpressionBytesOperation{{attribute_name_class}}(
-                bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
+                bytes_arg=self.subnode_expression.makeClone() {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
 {% endif %}
@@ -360,6 +366,9 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
         )
 
         return result, "new_expression", "Call to '{{attribute_name}}' of bytes recognized."
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 {% else %}
     # No computeExpressionCall as bytes operation ExpressionBytesOperation{{attribute_name_class}} is not yet implemented
 {% endif %}

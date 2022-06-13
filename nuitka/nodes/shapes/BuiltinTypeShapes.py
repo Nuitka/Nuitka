@@ -426,6 +426,10 @@ class ShapeTypeNoneType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def getOperationUnaryReprEscape():
         return ControlFlowDescriptionNoEscape
 
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(None, attribute_name)
+
 
 tshape_none = ShapeTypeNoneType()
 
@@ -474,6 +478,10 @@ class ShapeTypeBool(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
             return operation_result_unknown
 
         return _getComparisonLtShapeGeneric(self, right_shape)
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(True, attribute_name)
 
 
 tshape_bool = ShapeTypeBool()
@@ -526,13 +534,19 @@ class ShapeTypeInt(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
 
         return _getComparisonLtShapeGeneric(self, right_shape)
 
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(7, attribute_name)
+
 
 tshape_int = ShapeTypeInt()
 
 if python_version < 0x300:
 
+    _the_typical_long_value = long(7)  # pylint: disable=I0021,undefined-variable
+
     class ShapeTypeLong(ShapeNotContainerMixin, ShapeNumberMixin, ShapeBase):
-        typical_value = long(7)  # pylint: disable=I0021,undefined-variable
+        typical_value = _the_typical_long_value
 
         @staticmethod
         def getTypeName():
@@ -573,6 +587,10 @@ if python_version < 0x300:
                 return operation_result_unknown
 
             return _getComparisonLtShapeGeneric(self, right_shape)
+
+        @staticmethod
+        def isKnownToHaveAttribute(attribute_name):
+            return hasattr(_the_typical_long_value, attribute_name)
 
     tshape_long = ShapeTypeLong()
 
@@ -628,6 +646,12 @@ if python_version < 0x300:
                 return operation_result_unknown
 
             return _getComparisonLtShapeGeneric(self, right_shape)
+
+        @staticmethod
+        def isKnownToHaveAttribute(attribute_name):
+            return hasattr(7, attribute_name) and hasattr(
+                _the_typical_long_value, attribute_name
+            )
 
     tshape_int_or_long = ShapeTypeIntOrLong()
 
@@ -983,9 +1007,11 @@ class ShapeTypeFrozenset(ShapeContainerImmutableMixin, ShapeNotNumberMixin, Shap
 
 tshape_frozenset = ShapeTypeFrozenset()
 
+_the_empty_dict = {}
+
 
 class ShapeTypeDict(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
-    typical_value = {}
+    typical_value = _the_empty_dict
 
     @staticmethod
     def getTypeName():
@@ -1023,6 +1049,10 @@ class ShapeTypeDict(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
         # TODO: Could return bool with annotation that exception is still
         # possible..
         return operation_result_unknown
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(_the_empty_dict, attribute_name)
 
 
 tshape_dict = ShapeTypeDict()
@@ -1133,6 +1163,10 @@ class ShapeTypeStr(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
                 return operation_result_unknown
 
         return _getComparisonLtShapeGeneric(self, right_shape)
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr("a", attribute_name)
 
 
 tshape_str = ShapeTypeStr()
@@ -1245,6 +1279,10 @@ if python_version < 0x300:
 
             return _getComparisonLtShapeGeneric(self, right_shape)
 
+        @staticmethod
+        def isKnownToHaveAttribute(attribute_name):
+            return hasattr(u"a", attribute_name)
+
     tshape_unicode = ShapeTypeUnicode()
 
     class ShapeTypeUnicodeDerived(ShapeTypeUnknown):
@@ -1328,6 +1366,10 @@ if python_version < 0x300:
         lshift_shapes = lshift_shapes_strorunicode
         rshift_shapes = rshift_shapes_strorunicode
         matmult_shapes = matmult_shapes_strorunicode
+
+        @staticmethod
+        def isKnownToHaveAttribute(attribute_name):
+            return hasattr("a", attribute_name) and hasattr(u"a", attribute_name)
 
     tshape_str_or_unicode = ShapeTypeStrOrUnicode()
 
@@ -1421,6 +1463,10 @@ if python_version >= 0x300:
 
             return _getComparisonLtShapeGeneric(self, right_shape)
 
+        @staticmethod
+        def isKnownToHaveAttribute(attribute_name):
+            return hasattr(b"b", attribute_name)
+
     tshape_bytes = ShapeTypeBytes()
 
     class TypeShapeBytesDerived(ShapeTypeUnknown):
@@ -1444,9 +1490,11 @@ else:
     tshape_bytes_iterator = None
     tshape_bytes_derived = None
 
+_the_typical_bytearray_value = bytearray(b"b")
+
 
 class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeBase):
-    typical_value = bytearray(b"b")
+    typical_value = _the_typical_bytearray_value
 
     @staticmethod
     def getTypeName():
@@ -1492,6 +1540,10 @@ class ShapeTypeBytearray(ShapeContainerMutableMixin, ShapeNotNumberMixin, ShapeB
 
         return _getComparisonLtShapeGeneric(self, right_shape)
 
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(_the_typical_bytearray_value, attribute_name)
+
 
 tshape_bytearray = ShapeTypeBytearray()
 
@@ -1526,12 +1578,18 @@ class ShapeTypeEllipsis(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def hasShapeIndexLookup():
         return False
 
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(Ellipsis, attribute_name)
+
 
 tshape_ellipsis = ShapeTypeEllipsis()
 
+_the_typical_slice_value = slice(7)
+
 
 class ShapeTypeSlice(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
-    typical_value = slice(7)
+    typical_value = _the_typical_slice_value
 
     @staticmethod
     def getTypeName():
@@ -1545,16 +1603,22 @@ class ShapeTypeSlice(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
     def hasShapeIndexLookup():
         return False
 
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(_the_typical_slice_value, attribute_name)
+
 
 tshape_slice = ShapeTypeSlice()
 
+_the_typical_xrange_value = (
+    xrange(1)  # pylint: disable=I0021,undefined-variable
+    if python_version < 0x300
+    else range(1)
+)
+
 
 class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBase):
-    typical_value = (
-        xrange(1)  # pylint: disable=I0021,undefined-variable
-        if python_version < 0x300
-        else range(1)
-    )
+    typical_value = _the_typical_xrange_value
 
     @staticmethod
     def getTypeName():
@@ -1588,6 +1652,10 @@ class ShapeTypeXrange(ShapeContainerImmutableMixin, ShapeNotNumberMixin, ShapeBa
             return operation_result_unknown
 
         return _getComparisonLtShapeGeneric(self, right_shape)
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(_the_typical_xrange_value, attribute_name)
 
 
 tshape_xrange = ShapeTypeXrange()
@@ -1627,6 +1695,10 @@ class ShapeTypeType(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
             return tshape_unknown, ControlFlowDescriptionNoEscape
 
         return _getComparisonLtShapeGeneric(self, right_shape)
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(int, attribute_name)
 
 
 tshape_type = ShapeTypeType()
@@ -1854,7 +1926,7 @@ operation_result_bytearray_formaterror = (
     ControlFlowDescriptionFormatError,
 )
 
-# Precanned values, reject everything.
+# Prepared values, reject everything.
 def _rejectEverything(shapes, operation_unsupported):
     shapes.update(
         {

@@ -480,6 +480,12 @@ class ShapeBase(getMetaClassBase("Shape")):
     def getOperationUnaryReprEscape(self):
         pass
 
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        # Virtual method, pylint: disable=unused-argument
+
+        return None
+
     def emitAlternatives(self, emit):
         emit(self)
 

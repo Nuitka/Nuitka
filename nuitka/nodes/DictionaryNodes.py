@@ -543,7 +543,7 @@ class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return self.subnode_dict_arg.mayRaiseException(
@@ -602,7 +602,7 @@ class ExpressionDictOperationSetdefault3(ExpressionChildrenHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
-        if self.known_hashable_key is None:
+        if self.known_hashable_key is not True:
             return True
         else:
             return (
