@@ -39,6 +39,11 @@ from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
 )
+from .shapes.ControlFlowDescriptions import (
+    ControlFlowDescriptionElementBasedEscape,
+    ControlFlowDescriptionFullEscape,
+    ControlFlowDescriptionNoEscape,
+)
 from .shapes.StandardShapes import tshape_iterator, tshape_unknown
 from .VariableDelNodes import makeStatementDelVariable
 from .VariableRefNodes import ExpressionTempVariableRef
@@ -266,6 +271,10 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
 class StatementAssignmentVariableGeneric(StatementAssignmentVariableBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_GENERIC"
 
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionFullEscape
+
     def computeStatement(self, trace_collection):
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here.
@@ -407,6 +416,13 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
     def getTypeShape(self):
         return self.type_shape
 
+    @staticmethod
+    def getReleaseEscape():
+        # TODO: For iteration over constants that wouldn't be necessary,
+        # but if we know the iteration well enough, it's supposed to be
+        # converted to something else anyway.
+        return ControlFlowDescriptionElementBasedEscape
+
     def getIterationIndexDesc(self):
         """For use in optimization outputs only, here and using nodes."""
         return "'%s[%s]'" % (
@@ -540,6 +556,10 @@ class StatementAssignmentVariableConstantMutable(StatementAssignmentVariableBase
     def mayRaiseException(exception_type):
         return False
 
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionNoEscape
+
     def computeStatement(self, trace_collection):
         variable = self.variable
 
@@ -592,6 +612,10 @@ class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBa
     @staticmethod
     def mayRaiseException(exception_type):
         return False
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionNoEscape
 
     def computeStatement(self, trace_collection):
         variable = self.variable
@@ -669,6 +693,11 @@ class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBa
 class StatementAssignmentVariableFromVariable(StatementAssignmentVariableBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE"
 
+    @staticmethod
+    def getReleaseEscape():
+        # TODO: Variable type may know better.
+        return ControlFlowDescriptionFullEscape
+
     def computeStatement(self, trace_collection):
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here.
@@ -721,6 +750,11 @@ Removed assignment of %s from itself which is known to be defined."""
 
 class StatementAssignmentVariableFromTempVariable(StatementAssignmentVariableBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE"
+
+    @staticmethod
+    def getReleaseEscape():
+        # TODO: Variable type may know better.
+        return ControlFlowDescriptionFullEscape
 
     def computeStatement(self, trace_collection):
         # TODO: Way too ugly to have global trace kinds just here, and needs to

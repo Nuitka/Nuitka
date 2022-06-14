@@ -388,10 +388,13 @@ class StatementReleaseVariable(StatementBase):
                 "Uninitialized %s is not released." % (self.variable.getDescription()),
             )
 
-        # TODO: Annotate value content as escaped, as destruction might run.
+        escape_desc = self.variable_trace.getReleaseEscape()
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+        assert escape_desc is not None, self.variable_trace
+
+        if escape_desc.isControlFlowEscape():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
 
         # TODO: We might be able to remove ourselves based on the trace
         # we belong to.

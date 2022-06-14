@@ -33,6 +33,11 @@ Values can be seen as:
 """
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict, tshape_tuple
+from nuitka.nodes.shapes.ControlFlowDescriptions import (
+    ControlFlowDescriptionElementBasedEscape,
+    ControlFlowDescriptionFullEscape,
+    ControlFlowDescriptionNoEscape,
+)
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
@@ -236,6 +241,10 @@ class ValueTraceUnassignedBase(ValueTraceBase):
     def getTypeShape():
         return tshape_uninitialized
 
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionNoEscape
+
     def compareValueTrace(self, other):
         # We are unassigned, just need to know if the other one is, pylint: disable=no-self-use
         return other.isUnassignedTrace()
@@ -292,6 +301,10 @@ class ValueTraceInit(ValueTraceBase):
     def getTypeShape():
         return tshape_unknown
 
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionFullEscape
+
     def compareValueTrace(self, other):
         # We are initialized, just need to know if the other one is, pylint: disable=no-self-use
         return other.isInitTrace()
@@ -315,6 +328,10 @@ class ValueTraceInitStarArgs(ValueTraceInit):
         return tshape_tuple
 
     @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionElementBasedEscape
+
+    @staticmethod
     def hasShapeTupleExact():
         return True
 
@@ -323,6 +340,10 @@ class ValueTraceInitStarDict(ValueTraceInit):
     @staticmethod
     def getTypeShape():
         return tshape_dict
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionElementBasedEscape
 
     @staticmethod
     def hasShapeDictionaryExact():
@@ -335,6 +356,10 @@ class ValueTraceUnknown(ValueTraceBase):
     @staticmethod
     def getTypeShape():
         return tshape_unknown
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionFullEscape
 
     def addUsage(self):
         self.usage_count += 1
@@ -467,6 +492,9 @@ class ValueTraceAssign(ValueTraceBase):
     def getTypeShape(self):
         return self.assign_node.getTypeShape()
 
+    def getReleaseEscape(self):
+        return self.assign_node.getReleaseEscape()
+
     def getAssignNode(self):
         return self.assign_node
 
@@ -574,7 +602,7 @@ class ValueTraceMerge(ValueTraceMergeBase):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
 
     def getTypeShape(self):
-        type_shapes = set()
+        type_shape_found = None
 
         for trace in self.previous:
             type_shape = trace.getTypeShape()
@@ -582,13 +610,30 @@ class ValueTraceMerge(ValueTraceMergeBase):
             if type_shape is tshape_unknown:
                 return tshape_unknown
 
-            type_shapes.add(type_shape)
+            if type_shape_found is None:
+                type_shape_found = type_shape
+            elif type_shape is not type_shape_found:
+                # TODO: Find the lowest common denominator.
+                return tshape_unknown
 
-        # TODO: Find the lowest common denominator.
-        if len(type_shapes) == 1:
-            return type_shapes.pop()
-        else:
-            return tshape_unknown
+        return type_shape_found
+
+    def getReleaseEscape(self):
+        release_escape_found = None
+
+        for trace in self.previous:
+            release_escape = trace.getReleaseEscape()
+
+            if release_escape is ControlFlowDescriptionFullEscape:
+                return ControlFlowDescriptionFullEscape
+
+            if release_escape_found is None:
+                release_escape_found = release_escape
+            elif release_escape is not release_escape_found:
+                # TODO: Find the lowest common denominator.
+                return ControlFlowDescriptionFullEscape
+
+        return release_escape_found
 
     @staticmethod
     def isMergeTrace():
@@ -712,6 +757,11 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
 class ValueTraceLoopComplete(ValueTraceLoopBase):
     __slots__ = ()
 
+    @staticmethod
+    def getReleaseEscape():
+        # TODO: May consider the shapes for better result
+        return ControlFlowDescriptionFullEscape
+
     def compareValueTrace(self, other):
         # Incomplete loop value traces behave the same.
         return (
@@ -746,6 +796,10 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
             self.type_shape = ShapeLoopInitialAlternative(self.type_shapes)
 
         return self.type_shape
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionFullEscape
 
     def compareValueTrace(self, other):
         # Incomplete loop value traces behave the same.
