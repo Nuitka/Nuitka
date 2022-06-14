@@ -1178,7 +1178,7 @@ def loadPlugins():
         loadStandardPluginClasses()
 
 
-def addStandardPluginCommandlineOptions(parser):
+def addStandardPluginCommandLineOptions(parser):
     loadPlugins()
 
     for (_plugin_name, (plugin_class, _plugin_detector)) in sorted(

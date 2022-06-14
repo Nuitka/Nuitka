@@ -1411,7 +1411,7 @@ def getMacOSAppProtectedResourcesAccesses():
 
 
 def getAppImageCompression():
-    return options.appimage_compression
+    return options.app_image_compression
 
 
 _python_flags = None

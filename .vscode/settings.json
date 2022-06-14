@@ -163,6 +163,7 @@
         "Mult",
         "Namify",
         "NBOOL",
+        "no_docstrings",
         "noelf",
         "nofollow",
         "noinclude",

@@ -209,7 +209,7 @@ enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
-(do not use docstrings), "-u" (alias "unbuffered") and "-m".  Default empty.""",
+(do not use doc strings), "-u" (alias "unbuffered") and "-m".  Default empty.""",
 )
 
 parser.add_option(
@@ -429,9 +429,9 @@ data_group.add_option(
     help="""\
 Include data files from complete directory in the distribution. This is
 recursive. Check '--include-data-files' with patterns if you want non-recursive
-inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
+inclusion. An example would be '--include-data-dir=/path/some_dir=data/some_dir'
 for plain copy, of the whole directory. All files are copied, if you want to
-exclude files you need to remove them beforehand, or use --noinclude-data-files
+exclude files you need to remove them beforehand, or use '--noinclude-data-files'
 option to remove them. Default empty.""",
 )
 
@@ -481,9 +481,9 @@ execute_group.add_option(
     dest="keep_pythonpath",
     default=False,
     help="""\
-When immediately executing the created binary (--execute), don't reset
-PYTHONPATH. When all modules are successfully included, you ought to not need
-PYTHONPATH anymore.""",
+When immediately executing the created binary ('--execute'), don't reset
+'PYTHONPATH' environment. When all modules are successfully included, you
+ought to not need PYTHONPATH anymore.""",
 )
 
 parser.add_option_group(execute_group)
@@ -502,9 +502,9 @@ dump_group.add_option(
 parser.add_option_group(dump_group)
 
 
-codegen_group = OptionGroup(parser, "Code generation choices")
+compilation_group = OptionGroup(parser, "Compilation choices")
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--disable-bytecode-cache",
     action="store_true",
     dest="disable_bytecode_cache",
@@ -514,7 +514,7 @@ Do not reuse dependency analysis results for modules, esp. from standard library
 that are included as bytecode.""",
 )
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--full-compat",
     action="store_false",
     dest="improved",
@@ -523,11 +523,11 @@ codegen_group.add_option(
 Enforce absolute compatibility with CPython. Do not even allow minor
 deviations from CPython behavior, e.g. not having better tracebacks
 or exception messages which are not really incompatible, but only
-different. This is intended for tests only and should not be used
-for normal use.""",
+different or worse. This is intended for tests only and should *not*
+be used.""",
 )
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--file-reference-choice",
     action="store",
     dest="file_reference_mode",
@@ -546,7 +546,7 @@ compatibility reasons, the "__file__" value will always have ".py" suffix
 independent of what it really is.""",
 )
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--module-name-choice",
     action="store",
     dest="module_name_mode",
@@ -562,7 +562,7 @@ is incompatible for modules that normally can be loaded into any package.""",
 )
 
 
-parser.add_option_group(codegen_group)
+parser.add_option_group(compilation_group)
 
 output_group = OptionGroup(parser, "Output choices")
 
@@ -945,8 +945,7 @@ tracing_group.add_option(
     action="store_false",
     dest="progress_bar",
     default=True,
-    help="""Disable progress bar outputs (if tqdm is installed).
-Defaults to off.""",
+    help="""Disable progress bar. Defaults to off.""",
 )
 
 
@@ -1116,7 +1115,7 @@ windows_group.add_option(
 )
 
 windows_group.add_option(
-    "--windows-uac-uiaccess",
+    "--windows-uac-uiaccess",  # spell-checker: ignore uiaccess
     action="store_true",
     dest="windows_uac_uiaccess",
     metavar="WINDOWS_UAC_UIACCESS",
@@ -1256,7 +1255,7 @@ macos_group.add_option(
     metavar="MACOS_SIGNED_APP_NAME",
     default=None,
     help="""\
-Name of the application to use for macOS signing. Follow "com.yourcompany.appname"
+Name of the application to use for macOS signing. Follow "com.YourCompany.AppName"
 naming results for best results, as these have to be globally unique, and will
 potentially grant protected API accesses.""",
 )
@@ -1329,7 +1328,7 @@ linux_group.add_option(
 linux_group.add_option(
     "--linux-onefile-compression",
     action="store",
-    dest="appimage_compression",
+    dest="app_image_compression",
     choices=("gzip", "xz"),
     metavar="COMPRESSION",
     default="gzip",
@@ -1413,11 +1412,11 @@ def _considerPluginOptions(logger):
     # Cyclic dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
-        addStandardPluginCommandlineOptions,
+        addStandardPluginCommandLineOptions,
         addUserPluginCommandLineOptions,
     )
 
-    addStandardPluginCommandlineOptions(parser=parser)
+    addStandardPluginCommandLineOptions(parser=parser)
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
