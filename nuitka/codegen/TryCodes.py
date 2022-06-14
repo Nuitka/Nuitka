@@ -313,7 +313,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         assign_source.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
 

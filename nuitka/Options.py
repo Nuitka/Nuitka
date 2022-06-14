@@ -73,8 +73,8 @@ positional_args = None
 extra_args = []
 is_nuitka_run = None
 is_debug = None
-is_nondebug = None
-is_fullcompat = None
+is_non_debug = None
+is_full_compat = None
 is_report_missing = None
 is_verbose = None
 
@@ -137,8 +137,8 @@ def parseArgs():
     """
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
-    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug
-    global is_fullcompat, is_report_missing, is_verbose
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_non_debug
+    global is_full_compat, is_report_missing, is_verbose
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -155,8 +155,8 @@ def parseArgs():
     )
 
     is_debug = _isDebug()
-    is_nondebug = not is_debug
-    is_fullcompat = _isFullCompat()
+    is_non_debug = not is_debug
+    is_full_compat = _isFullCompat()
 
     if hasattr(options, "experimental"):
         _experimental.update(options.experimental)
@@ -692,6 +692,7 @@ but errors may happen."""
     if hasattr(OrderedSet, "is_fallback") and not (
         isWin32Windows() and python_version < 0x360
     ):
+        # spell-checker: ignore orderedset
         Tracing.general.warning(
             """\
 Using very slow fallback for ordered sets, please install 'ordered-set' or \
@@ -1057,7 +1058,7 @@ def shallTreatUninstalledPython():
 def shallCreateCmdFileForExecution():
     """*bool* = derived from Python installation and modes
 
-    Notes: Most for accerated mode on Windows with uninstalled python, to
+    Notes: Most for accelerated mode on Windows with uninstalled python, to
     make sure they find their Python DLL.
     """
     return isWin32Windows() and shallTreatUninstalledPython()
@@ -1137,7 +1138,7 @@ def _isFullCompat():
     """:returns: bool derived from ``--full-compat``
 
     Notes:
-        Code should should use "Options.is_fullcompat" instead, this
+        Code should should use "Options.is_full_compat" instead, this
         is only used to initialize that value.
     """
     return options is not None and not options.improved
@@ -1273,6 +1274,7 @@ def getIconPaths():
 
     # Check if Linux icon requirement is met.
     if isLinux() and not result and isOnefileMode():
+        # spell-checker: ignore pixmaps
         default_icons = (
             "/usr/share/pixmaps/python%s.xpm" % python_version_str,
             "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],

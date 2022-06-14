@@ -818,7 +818,7 @@ def generateDictOperationRemoveCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         statement.subnode_key.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
         res_name = context.getBoolResName()

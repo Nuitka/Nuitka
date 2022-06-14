@@ -486,7 +486,7 @@ class ExpressionBase(NodeBase):
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 0x300
+                if Options.is_full_compat and python_version < 0x300
                 else "float() argument must be a string or a number, not '%s'",
                 operation="long",
                 original_node=float_node,
@@ -540,7 +540,7 @@ class ExpressionBase(NodeBase):
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 0x300
+                if Options.is_full_compat and python_version < 0x300
                 else "complex() argument must be a string or a number, not '%s'",
                 operation="complex",
                 original_node=complex_node,

@@ -68,7 +68,7 @@ def generateAssignmentSubscriptCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
         if integer_subscript:
@@ -103,7 +103,7 @@ def generateDelSubscriptCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         subscript.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
         _getSubscriptDelCode(

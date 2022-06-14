@@ -48,10 +48,10 @@ class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
     # This can trigger if this is included to early.
-    assert Options.is_fullcompat is not None
+    assert Options.is_full_compat is not None
 
     # Avoid the attribute unless it's really necessary.
-    if Options.is_fullcompat:
+    if Options.is_full_compat:
         __slots__ += ("effective_source_ref",)
 
     # String to identify the node class, to be consistent with its name.
@@ -258,7 +258,7 @@ class NodeBase(NodeMetaClassBase):
         # this first.
         if (
             self.source_ref is not source_ref
-            and Options.is_fullcompat
+            and Options.is_full_compat
             and self.source_ref != source_ref
         ):
             # An attribute outside of "__init__", so we save one memory for the

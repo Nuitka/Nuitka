@@ -265,7 +265,7 @@ def generateExecCode(statement, emit, context):
     filename_name.getCType().emitAssignmentCodeFromConstant(
         to_name=filename_name,
         constant="<string>"
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else "<string at %s>" % source_ref.getAsString(),
         may_escape=False,
         emit=emit,
@@ -280,7 +280,7 @@ def generateExecCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         locals_arg.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
 

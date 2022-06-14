@@ -28,7 +28,7 @@ from .BuiltinParameterSpecs import (
 # TODO: Should be shared, this is duplicate for other types currently.
 class MethodKeywordErrorCompatibilityMixin:
     def getKeywordRefusalText(self):
-        if Options.is_fullcompat:
+        if Options.is_full_compat:
             assert "." in self.name, self.name
 
             try:

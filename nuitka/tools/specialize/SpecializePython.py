@@ -21,7 +21,7 @@
 
 import nuitka.Options
 
-nuitka.Options.is_fullcompat = False
+nuitka.Options.is_full_compat = False
 
 # isort:start
 
