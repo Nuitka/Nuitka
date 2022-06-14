@@ -389,7 +389,7 @@ times. Default empty.""",
 parser.add_option_group(follow_group)
 
 
-data_group = OptionGroup(parser, "Data files for standalone/onefile mode")
+data_group = OptionGroup(parser, "Data files")
 
 data_group.add_option(
     "--include-package-data",
