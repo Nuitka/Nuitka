@@ -542,8 +542,9 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
                 # that e.g. calling it will make it escaped only.
                 trace_collection.markActiveVariableAsEscaped(self.variable)
 
-                return attribute_node.computeExpressionCall(
+                return attribute_node.computeExpressionCallViaVariable(
                     call_node=call_node,
+                    variable_ref_node=self,
                     call_args=call_args,
                     call_kw=call_kw,
                     trace_collection=trace_collection,

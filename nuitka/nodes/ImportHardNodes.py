@@ -131,3 +131,14 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
 
     def mayRaiseException(self, exception_type):
         return not self.module_guaranteed
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        # Hard imports being called, generally have no problem with forward propagation.
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )

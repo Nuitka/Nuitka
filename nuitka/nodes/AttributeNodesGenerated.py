@@ -104,7 +104,7 @@ class ExpressionAttributeLookupStrCapitalize(
             from .StrNodes import ExpressionStrOperationCapitalize
 
             return ExpressionStrOperationCapitalize(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -350,7 +350,7 @@ class ExpressionAttributeLookupDictClear(
             from .DictionaryNodes import ExpressionDictOperationClear
 
             return ExpressionDictOperationClear(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -434,7 +434,7 @@ class ExpressionAttributeLookupDictCopy(
             from .DictionaryNodes import ExpressionDictOperationCopy
 
             return ExpressionDictOperationCopy(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -531,7 +531,7 @@ class ExpressionAttributeLookupStrCount(
                 from .StrNodes import ExpressionStrOperationCount4
 
                 return ExpressionStrOperationCount4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     end=end,
@@ -541,7 +541,7 @@ class ExpressionAttributeLookupStrCount(
                 from .StrNodes import ExpressionStrOperationCount3
 
                 return ExpressionStrOperationCount3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     source_ref=source_ref,
@@ -550,9 +550,7 @@ class ExpressionAttributeLookupStrCount(
                 from .StrNodes import ExpressionStrOperationCount2
 
                 return ExpressionStrOperationCount2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    sub=sub,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -665,7 +663,7 @@ class ExpressionAttributeLookupStrDecode(
                 from .StrNodes import ExpressionStrOperationDecode3
 
                 return ExpressionStrOperationDecode3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     encoding=encoding,
                     errors=errors,
                     source_ref=source_ref,
@@ -674,7 +672,7 @@ class ExpressionAttributeLookupStrDecode(
                 from .StrNodes import ExpressionStrOperationDecode2
 
                 return ExpressionStrOperationDecode2(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     encoding=encoding,
                     source_ref=source_ref,
                 )
@@ -682,7 +680,7 @@ class ExpressionAttributeLookupStrDecode(
                 from .StrNodes import ExpressionStrOperationDecode1
 
                 return ExpressionStrOperationDecode1(
-                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    str_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -727,7 +725,7 @@ class ExpressionAttributeLookupBytesDecode(
                 from .BytesNodes import ExpressionBytesOperationDecode3
 
                 return ExpressionBytesOperationDecode3(
-                    bytes_arg=self.subnode_expression.makeClone(),
+                    bytes_arg=self.subnode_expression,
                     encoding=encoding,
                     errors=errors,
                     source_ref=source_ref,
@@ -736,7 +734,7 @@ class ExpressionAttributeLookupBytesDecode(
                 from .BytesNodes import ExpressionBytesOperationDecode2
 
                 return ExpressionBytesOperationDecode2(
-                    bytes_arg=self.subnode_expression.makeClone(),
+                    bytes_arg=self.subnode_expression,
                     encoding=encoding,
                     source_ref=source_ref,
                 )
@@ -744,7 +742,7 @@ class ExpressionAttributeLookupBytesDecode(
                 from .BytesNodes import ExpressionBytesOperationDecode1
 
                 return ExpressionBytesOperationDecode1(
-                    bytes_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    bytes_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -827,7 +825,7 @@ class ExpressionAttributeLookupStrEncode(
                 from .StrNodes import ExpressionStrOperationEncode3
 
                 return ExpressionStrOperationEncode3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     encoding=encoding,
                     errors=errors,
                     source_ref=source_ref,
@@ -836,7 +834,7 @@ class ExpressionAttributeLookupStrEncode(
                 from .StrNodes import ExpressionStrOperationEncode2
 
                 return ExpressionStrOperationEncode2(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     encoding=encoding,
                     source_ref=source_ref,
                 )
@@ -844,7 +842,7 @@ class ExpressionAttributeLookupStrEncode(
                 from .StrNodes import ExpressionStrOperationEncode1
 
                 return ExpressionStrOperationEncode1(
-                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    str_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -937,7 +935,7 @@ class ExpressionAttributeLookupStrEndswith(
                 from .StrNodes import ExpressionStrOperationEndswith4
 
                 return ExpressionStrOperationEndswith4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     suffix=suffix,
                     start=start,
                     end=end,
@@ -947,7 +945,7 @@ class ExpressionAttributeLookupStrEndswith(
                 from .StrNodes import ExpressionStrOperationEndswith3
 
                 return ExpressionStrOperationEndswith3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     suffix=suffix,
                     start=start,
                     source_ref=source_ref,
@@ -956,7 +954,7 @@ class ExpressionAttributeLookupStrEndswith(
                 from .StrNodes import ExpressionStrOperationEndswith2
 
                 return ExpressionStrOperationEndswith2(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     suffix=suffix,
                     source_ref=source_ref,
                 )
@@ -1159,7 +1157,7 @@ class ExpressionAttributeLookupStrFind(
                 from .StrNodes import ExpressionStrOperationFind4
 
                 return ExpressionStrOperationFind4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     end=end,
@@ -1169,7 +1167,7 @@ class ExpressionAttributeLookupStrFind(
                 from .StrNodes import ExpressionStrOperationFind3
 
                 return ExpressionStrOperationFind3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     source_ref=source_ref,
@@ -1178,9 +1176,7 @@ class ExpressionAttributeLookupStrFind(
                 from .StrNodes import ExpressionStrOperationFind2
 
                 return ExpressionStrOperationFind2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    sub=sub,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -1453,7 +1449,7 @@ class ExpressionAttributeLookupDictGet(
                 from .DictionaryNodes import ExpressionDictOperationGet3
 
                 return ExpressionDictOperationGet3(
-                    dict_arg=self.subnode_expression.makeClone(),
+                    dict_arg=self.subnode_expression,
                     key=key,
                     default=default,
                     source_ref=source_ref,
@@ -1462,9 +1458,7 @@ class ExpressionAttributeLookupDictGet(
                 from .DictionaryNodes import ExpressionDictOperationGet2
 
                 return ExpressionDictOperationGet2(
-                    dict_arg=self.subnode_expression.makeClone(),
-                    key=key,
-                    source_ref=source_ref,
+                    dict_arg=self.subnode_expression, key=key, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -1548,9 +1542,7 @@ class ExpressionAttributeLookupDictHaskey(
             from .DictionaryNodes import ExpressionDictOperationHaskey
 
             return ExpressionDictOperationHaskey(
-                dict_arg=self.subnode_expression.makeClone(),
-                key=key,
-                source_ref=source_ref,
+                dict_arg=self.subnode_expression, key=key, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -1705,7 +1697,7 @@ class ExpressionAttributeLookupStrIndex(
                 from .StrNodes import ExpressionStrOperationIndex4
 
                 return ExpressionStrOperationIndex4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     end=end,
@@ -1715,7 +1707,7 @@ class ExpressionAttributeLookupStrIndex(
                 from .StrNodes import ExpressionStrOperationIndex3
 
                 return ExpressionStrOperationIndex3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     source_ref=source_ref,
@@ -1724,9 +1716,7 @@ class ExpressionAttributeLookupStrIndex(
                 from .StrNodes import ExpressionStrOperationIndex2
 
                 return ExpressionStrOperationIndex2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    sub=sub,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -1838,7 +1828,7 @@ class ExpressionAttributeLookupStrIsalnum(
             from .StrNodes import ExpressionStrOperationIsalnum
 
             return ExpressionStrOperationIsalnum(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -1950,7 +1940,7 @@ class ExpressionAttributeLookupStrIsalpha(
             from .StrNodes import ExpressionStrOperationIsalpha
 
             return ExpressionStrOperationIsalpha(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -2208,7 +2198,7 @@ class ExpressionAttributeLookupStrIsdigit(
             from .StrNodes import ExpressionStrOperationIsdigit
 
             return ExpressionStrOperationIsdigit(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -2378,7 +2368,7 @@ class ExpressionAttributeLookupStrIslower(
             from .StrNodes import ExpressionStrOperationIslower
 
             return ExpressionStrOperationIslower(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -2606,7 +2596,7 @@ class ExpressionAttributeLookupStrIsspace(
             from .StrNodes import ExpressionStrOperationIsspace
 
             return ExpressionStrOperationIsspace(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -2718,7 +2708,7 @@ class ExpressionAttributeLookupStrIstitle(
             from .StrNodes import ExpressionStrOperationIstitle
 
             return ExpressionStrOperationIstitle(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -2830,7 +2820,7 @@ class ExpressionAttributeLookupStrIsupper(
             from .StrNodes import ExpressionStrOperationIsupper
 
             return ExpressionStrOperationIsupper(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -2931,13 +2921,13 @@ class ExpressionAttributeLookupDictItems(
                 from .DictionaryNodes import ExpressionDictOperationItems
 
                 return ExpressionDictOperationItems(
-                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    dict_arg=self.subnode_expression, source_ref=source_ref
                 )
             else:
                 from .DictionaryNodes import ExpressionDictOperationIteritems
 
                 return ExpressionDictOperationIteritems(
-                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    dict_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -3021,7 +3011,7 @@ class ExpressionAttributeLookupDictIteritems(
             from .DictionaryNodes import ExpressionDictOperationIteritems
 
             return ExpressionDictOperationIteritems(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -3105,7 +3095,7 @@ class ExpressionAttributeLookupDictIterkeys(
             from .DictionaryNodes import ExpressionDictOperationIterkeys
 
             return ExpressionDictOperationIterkeys(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -3189,7 +3179,7 @@ class ExpressionAttributeLookupDictItervalues(
             from .DictionaryNodes import ExpressionDictOperationItervalues
 
             return ExpressionDictOperationItervalues(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -3285,7 +3275,7 @@ class ExpressionAttributeLookupStrJoin(
             from .StrNodes import ExpressionStrOperationJoin
 
             return ExpressionStrOperationJoin(
-                str_arg=self.subnode_expression.makeClone(),
+                str_arg=self.subnode_expression,
                 iterable=iterable,
                 source_ref=source_ref,
             )
@@ -3388,13 +3378,13 @@ class ExpressionAttributeLookupDictKeys(
                 from .DictionaryNodes import ExpressionDictOperationKeys
 
                 return ExpressionDictOperationKeys(
-                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    dict_arg=self.subnode_expression, source_ref=source_ref
                 )
             else:
                 from .DictionaryNodes import ExpressionDictOperationIterkeys
 
                 return ExpressionDictOperationIterkeys(
-                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    dict_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -3578,7 +3568,7 @@ class ExpressionAttributeLookupStrLower(
             from .StrNodes import ExpressionStrOperationLower
 
             return ExpressionStrOperationLower(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -3691,15 +3681,13 @@ class ExpressionAttributeLookupStrLstrip(
                 from .StrNodes import ExpressionStrOperationLstrip2
 
                 return ExpressionStrOperationLstrip2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    chars=chars,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, chars=chars, source_ref=source_ref
                 )
             else:
                 from .StrNodes import ExpressionStrOperationLstrip1
 
                 return ExpressionStrOperationLstrip1(
-                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    str_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -3899,9 +3887,7 @@ class ExpressionAttributeLookupStrPartition(
             from .StrNodes import ExpressionStrOperationPartition
 
             return ExpressionStrOperationPartition(
-                str_arg=self.subnode_expression.makeClone(),
-                sep=sep,
-                source_ref=source_ref,
+                str_arg=self.subnode_expression, sep=sep, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -4002,7 +3988,7 @@ class ExpressionAttributeLookupDictPop(
                 from .DictionaryNodes import ExpressionDictOperationPop3
 
                 return ExpressionDictOperationPop3(
-                    dict_arg=self.subnode_expression.makeClone(),
+                    dict_arg=self.subnode_expression,
                     key=key,
                     default=default,
                     source_ref=source_ref,
@@ -4011,9 +3997,7 @@ class ExpressionAttributeLookupDictPop(
                 from .DictionaryNodes import ExpressionDictOperationPop2
 
                 return ExpressionDictOperationPop2(
-                    dict_arg=self.subnode_expression.makeClone(),
-                    key=key,
-                    source_ref=source_ref,
+                    dict_arg=self.subnode_expression, key=key, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -4166,7 +4150,7 @@ class ExpressionAttributeLookupStrReplace(
                 from .StrNodes import ExpressionStrOperationReplace4
 
                 return ExpressionStrOperationReplace4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     old=old,
                     new=new,
                     count=count,
@@ -4176,7 +4160,7 @@ class ExpressionAttributeLookupStrReplace(
                 from .StrNodes import ExpressionStrOperationReplace3
 
                 return ExpressionStrOperationReplace3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     old=old,
                     new=new,
                     source_ref=source_ref,
@@ -4292,7 +4276,7 @@ class ExpressionAttributeLookupStrRfind(
                 from .StrNodes import ExpressionStrOperationRfind4
 
                 return ExpressionStrOperationRfind4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     end=end,
@@ -4302,7 +4286,7 @@ class ExpressionAttributeLookupStrRfind(
                 from .StrNodes import ExpressionStrOperationRfind3
 
                 return ExpressionStrOperationRfind3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     source_ref=source_ref,
@@ -4311,9 +4295,7 @@ class ExpressionAttributeLookupStrRfind(
                 from .StrNodes import ExpressionStrOperationRfind2
 
                 return ExpressionStrOperationRfind2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    sub=sub,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -4426,7 +4408,7 @@ class ExpressionAttributeLookupStrRindex(
                 from .StrNodes import ExpressionStrOperationRindex4
 
                 return ExpressionStrOperationRindex4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     end=end,
@@ -4436,7 +4418,7 @@ class ExpressionAttributeLookupStrRindex(
                 from .StrNodes import ExpressionStrOperationRindex3
 
                 return ExpressionStrOperationRindex3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sub=sub,
                     start=start,
                     source_ref=source_ref,
@@ -4445,9 +4427,7 @@ class ExpressionAttributeLookupStrRindex(
                 from .StrNodes import ExpressionStrOperationRindex2
 
                 return ExpressionStrOperationRindex2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    sub=sub,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, sub=sub, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -4647,9 +4627,7 @@ class ExpressionAttributeLookupStrRpartition(
             from .StrNodes import ExpressionStrOperationRpartition
 
             return ExpressionStrOperationRpartition(
-                str_arg=self.subnode_expression.makeClone(),
-                sep=sep,
-                source_ref=source_ref,
+                str_arg=self.subnode_expression, sep=sep, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -4762,7 +4740,7 @@ class ExpressionAttributeLookupStrRsplit(
                 from .StrNodes import ExpressionStrOperationRsplit3
 
                 return ExpressionStrOperationRsplit3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sep=sep,
                     maxsplit=maxsplit,
                     source_ref=source_ref,
@@ -4771,15 +4749,13 @@ class ExpressionAttributeLookupStrRsplit(
                 from .StrNodes import ExpressionStrOperationRsplit2
 
                 return ExpressionStrOperationRsplit2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    sep=sep,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, sep=sep, source_ref=source_ref
                 )
             else:
                 from .StrNodes import ExpressionStrOperationRsplit1
 
                 return ExpressionStrOperationRsplit1(
-                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    str_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -4892,15 +4868,13 @@ class ExpressionAttributeLookupStrRstrip(
                 from .StrNodes import ExpressionStrOperationRstrip2
 
                 return ExpressionStrOperationRstrip2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    chars=chars,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, chars=chars, source_ref=source_ref
                 )
             else:
                 from .StrNodes import ExpressionStrOperationRstrip1
 
                 return ExpressionStrOperationRstrip1(
-                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    str_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -5001,7 +4975,7 @@ class ExpressionAttributeLookupDictSetdefault(
                 from .DictionaryNodes import ExpressionDictOperationSetdefault3
 
                 return ExpressionDictOperationSetdefault3(
-                    dict_arg=self.subnode_expression.makeClone(),
+                    dict_arg=self.subnode_expression,
                     key=key,
                     default=default,
                     source_ref=source_ref,
@@ -5010,9 +4984,7 @@ class ExpressionAttributeLookupDictSetdefault(
                 from .DictionaryNodes import ExpressionDictOperationSetdefault2
 
                 return ExpressionDictOperationSetdefault2(
-                    dict_arg=self.subnode_expression.makeClone(),
-                    key=key,
-                    source_ref=source_ref,
+                    dict_arg=self.subnode_expression, key=key, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -5109,7 +5081,7 @@ class ExpressionAttributeLookupStrSplit(
                 from .StrNodes import ExpressionStrOperationSplit3
 
                 return ExpressionStrOperationSplit3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     sep=sep,
                     maxsplit=maxsplit,
                     source_ref=source_ref,
@@ -5118,15 +5090,13 @@ class ExpressionAttributeLookupStrSplit(
                 from .StrNodes import ExpressionStrOperationSplit2
 
                 return ExpressionStrOperationSplit2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    sep=sep,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, sep=sep, source_ref=source_ref
                 )
             else:
                 from .StrNodes import ExpressionStrOperationSplit1
 
                 return ExpressionStrOperationSplit1(
-                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    str_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -5327,7 +5297,7 @@ class ExpressionAttributeLookupStrStartswith(
                 from .StrNodes import ExpressionStrOperationStartswith4
 
                 return ExpressionStrOperationStartswith4(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     prefix=prefix,
                     start=start,
                     end=end,
@@ -5337,7 +5307,7 @@ class ExpressionAttributeLookupStrStartswith(
                 from .StrNodes import ExpressionStrOperationStartswith3
 
                 return ExpressionStrOperationStartswith3(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     prefix=prefix,
                     start=start,
                     source_ref=source_ref,
@@ -5346,7 +5316,7 @@ class ExpressionAttributeLookupStrStartswith(
                 from .StrNodes import ExpressionStrOperationStartswith2
 
                 return ExpressionStrOperationStartswith2(
-                    str_arg=self.subnode_expression.makeClone(),
+                    str_arg=self.subnode_expression,
                     prefix=prefix,
                     source_ref=source_ref,
                 )
@@ -5461,15 +5431,13 @@ class ExpressionAttributeLookupStrStrip(
                 from .StrNodes import ExpressionStrOperationStrip2
 
                 return ExpressionStrOperationStrip2(
-                    str_arg=self.subnode_expression.makeClone(),
-                    chars=chars,
-                    source_ref=source_ref,
+                    str_arg=self.subnode_expression, chars=chars, source_ref=source_ref
                 )
             else:
                 from .StrNodes import ExpressionStrOperationStrip1
 
                 return ExpressionStrOperationStrip1(
-                    str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    str_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -5581,7 +5549,7 @@ class ExpressionAttributeLookupStrSwapcase(
             from .StrNodes import ExpressionStrOperationSwapcase
 
             return ExpressionStrOperationSwapcase(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -5693,7 +5661,7 @@ class ExpressionAttributeLookupStrTitle(
             from .StrNodes import ExpressionStrOperationTitle
 
             return ExpressionStrOperationTitle(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -5882,7 +5850,7 @@ class ExpressionAttributeLookupDictUpdate(
                 from .DictionaryNodes import ExpressionDictOperationUpdate3
 
                 return ExpressionDictOperationUpdate3(
-                    dict_arg=self.subnode_expression.makeClone(),
+                    dict_arg=self.subnode_expression,
                     iterable=iterable,
                     pairs=makeKeyValuePairExpressionsFromKwArgs(pairs),
                     source_ref=source_ref,
@@ -5891,7 +5859,7 @@ class ExpressionAttributeLookupDictUpdate(
                 from .DictionaryNodes import ExpressionDictOperationUpdate2
 
                 return ExpressionDictOperationUpdate2(
-                    dict_arg=self.subnode_expression.makeClone(),
+                    dict_arg=self.subnode_expression,
                     iterable=iterable,
                     source_ref=source_ref,
                 )
@@ -5993,7 +5961,7 @@ class ExpressionAttributeLookupStrUpper(
             from .StrNodes import ExpressionStrOperationUpper
 
             return ExpressionStrOperationUpper(
-                str_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                str_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -6094,13 +6062,13 @@ class ExpressionAttributeLookupDictValues(
                 from .DictionaryNodes import ExpressionDictOperationValues
 
                 return ExpressionDictOperationValues(
-                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    dict_arg=self.subnode_expression, source_ref=source_ref
                 )
             else:
                 from .DictionaryNodes import ExpressionDictOperationItervalues
 
                 return ExpressionDictOperationItervalues(
-                    dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                    dict_arg=self.subnode_expression, source_ref=source_ref
                 )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -6184,7 +6152,7 @@ class ExpressionAttributeLookupDictViewitems(
             from .DictionaryNodes import ExpressionDictOperationViewitems
 
             return ExpressionDictOperationViewitems(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -6268,7 +6236,7 @@ class ExpressionAttributeLookupDictViewkeys(
             from .DictionaryNodes import ExpressionDictOperationViewkeys
 
             return ExpressionDictOperationViewkeys(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -6352,7 +6320,7 @@ class ExpressionAttributeLookupDictViewvalues(
             from .DictionaryNodes import ExpressionDictOperationViewvalues
 
             return ExpressionDictOperationViewvalues(
-                dict_arg=self.subnode_expression.makeClone(), source_ref=source_ref
+                dict_arg=self.subnode_expression, source_ref=source_ref
             )
 
         # Anything may happen. On next pass, if replaced, we might be better

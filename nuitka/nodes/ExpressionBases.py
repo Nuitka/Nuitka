@@ -357,6 +357,26 @@ class ExpressionBase(NodeBase):
 
         return call_node, None, None
 
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        # Virtual method, pylint: disable=unused-argument
+
+        # The called and the arguments escape for good.
+        self.onContentEscapes(trace_collection)
+        if call_args is not None:
+            call_args.onContentEscapes(trace_collection)
+        if call_kw is not None:
+            call_kw.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return call_node, None, None
+
     def computeExpressionLen(self, len_node, trace_collection):
         shape = self.getValueShape()
 
