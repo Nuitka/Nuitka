@@ -376,9 +376,10 @@ class ExpressionConstantBoolRefBase(
     def isExpressionConstantBoolRef():
         return True
 
-    def computeExpressionBool(self, trace_collection):
-        # Best case already.
-        pass
+    @staticmethod
+    def computeExpressionBool(trace_collection):
+        # Best case already, None indicated no action.
+        return None, None
 
     @staticmethod
     def getDetails():
