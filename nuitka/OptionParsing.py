@@ -505,6 +505,19 @@ parser.add_option_group(dump_group)
 compilation_group = OptionGroup(parser, "Compilation choices")
 
 compilation_group.add_option(
+    "--user-package-configuration-file",
+    action="append",
+    dest="user_yaml_files",
+    default=[],
+    metavar="USER_YAML",
+    help="""\
+User provided Yaml file with package configuration. You can include DLLs,
+remove bloat, add hidden dependencies. Check User Manual for a complete
+description of the format to use. Can be given multiple times. Defaults
+to empty.""",
+)
+
+compilation_group.add_option(
     "--disable-bytecode-cache",
     action="store_true",
     dest="disable_bytecode_cache",
