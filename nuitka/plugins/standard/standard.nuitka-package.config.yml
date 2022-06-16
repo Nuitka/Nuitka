@@ -396,6 +396,7 @@
       change_function:
         "_init_tests": "'None'"
         "test": "'None'"
+        "_get_version": "'(lambda : _version.version)'"
       replacements:
         '(root / ".git").exists()"': "'None'"
         "test.__test__ = False": ""
