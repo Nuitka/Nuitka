@@ -46,8 +46,36 @@ Bug Fixes
    ``--force-stderr-spec`` were created with the file system encoding on
    Python3, but they nee to be ``utf-8``.
 
+-  Fix, didn't allow zero spaces in Nuitka project options, which is not
+   expected.
+
+-  Modules: Fix, the ``del __file__`` in the top level module in module
+   mode caused crashes at runtime, when trying to restore the original
+   ``__file__`` value, after the loading CPython corrupted it.
+
+-  Python2.6: Fixes for installations without ``pkg_resources``.
+
+-  Windows: Fix for very old Python 2.6 versions, these didn't have a
+   language assigned that could be used.
+
+-  Security: Fix for `CVE-2022-2054
+   <https://security-tracker.debian.org/tracker/CVE-2022-2054>`__ where
+   environment variables used for transfer of information between Nuitka
+   restarting itself, could be used to execute arbitrary code at compile
+   time.
+
+-  Anaconda: Fix, the torch plugin was not working on Linux due to
+   missing DLL dependencies.
+
 New Features
 ============
+
+-  UI: Added new option ``--user-package-configuration-file`` to allow
+   users to provide extra Yaml configuration files for the Nuitka plugin
+   mechanism to add hidden dependencies, anti-bloat, or data files, for
+   packages. This will be useful for developing PRs to the standard file
+   of Nuitka. Currently the schema is available, but it is not
+   documented very well yet, so not really ready for end users just yet.
 
 -  macOS: Signing now optionally uses hardened runtime as require for
    notarization (not complete yet.)
@@ -91,13 +119,68 @@ Optimization
 -  Removing duplicates and non-existent entries from modules search path
    should improve performance when locating modules.
 
+-  Optimize calls through variables as well. These are needed for the
+   package resource nodes to properly resolve at compile time from their
+   hard imports to the called function.
+
+-  Hard imported names should also be considered very trusted
+   themselves, so they are e.g. also optimized in calls.
+
+-  Anti-bloat: Avoid more useless imports in Pandas, Numba, Plotly, and
+   other packages, improving the scalability some more.
+
+-  Added dedicated nodes for ``pkg_resources.require``,
+   ``pkg_resources.get_distribution``, ``importlib.metadata.version``,
+   and ``importlib_metadata.version``, so we can use compile time
+   optimization to resolve their argument values where possible.
+
+-  Avoid annotating control flow escape for all release statements.
+   Sometimes we can tell that ``__del__`` will not execute outside code
+   ever, so this then avoids marking values as escaped, and taking the
+   time to do so.
+
+-  Boolean tests through variables now also are optimized when the
+   original assignment is a compile time constant that is not mutable.
+   This is only basic, but will allow tests on ``TYPE_CHECKING`` coming
+   from a ``from typing import TYPE_CHECKING`` statement to be
+   optimized, avoiding this overhead.
+
+Cleanups
+========
+
+-  Changed to ``torch`` plugin to Yaml based configuration, making it
+   obsolete, it only remains there for a few releases, to not crash
+   existing build scripts.
+
+-  Moved older package specific hacks to the Yaml file. Some of these
+   were from hotfixes where the Yaml file wasn't yet used by default,
+   but now there is no need for them anymore.
+
+-  Removed most of the ``pkg-resources`` plugin work. This is now done
+   during optimization phase and rather than being based on source code
+   matches, it uses actual value tracing, so it immediately covers many
+   more cases.
+
+-  Continued spelling improvements, renaming identifiers used in the
+   source that the cspell based extension doesn't like. This aims at
+   producing more readable and searchable code.
+
 Organisational
 ==============
+
+-  Removed MSI installers from the download page. The MSI installers are
+   discontinued as Python has deprecated their support for them, as well
+   as Windows 10 is making it harder for users to install them. Using
+   the PyPI installation is recommended on Windows.
 
 -  Merged our Yaml files into one and added schema description, for
    completion and checking in Visual Code while editing. Also check the
    schema in ``check-nuitka-with-yamllint`` which is now slightly
-   misnamed.
+   misnamed. The schema is in no way final and will see improvements in
+   future releases.
+
+-  UI: Nicer progress bar layout that avoids flicker when optimizing
+   modules.
 
 -  Quality: Auto-format the package configuration Yaml file for
    anti-bloat, implicit dependencies, etc.
@@ -115,6 +198,12 @@ Organisational
 -  Removed the MSI downloads. Windows 10 has made them harder to install
    and Python itself is discontinuing support for them, while often it
    was only used by beginners, for which it was not intended.
+
+-  Anaconda: Make it more clear how to install static libpython with
+   precise command.
+
+-  UI: Warn about using Debian package contents. These can be
+   non-portable to other OSes.
 
 Summary
 =======
