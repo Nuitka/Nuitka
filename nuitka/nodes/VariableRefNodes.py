@@ -572,6 +572,23 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
         return call_node, None, None
 
+    def computeExpressionBool(self, trace_collection):
+        if self.variable_trace is not None:
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+                if (
+                    attribute_node.isCompileTimeConstant()
+                    and not attribute_node.isMutable()
+                ):
+                    return attribute_node.computeExpressionBool(trace_collection)
+
+        # TODO: This is probably only default stuff here, that could be compressed.
+        if not self.mayRaiseException(BaseException) and self.mayRaiseExceptionBool(
+            BaseException
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
     def hasShapeDictionaryExact(self):
         return (
             self.variable_trace is not None
