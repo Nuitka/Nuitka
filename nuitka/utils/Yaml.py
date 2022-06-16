@@ -29,16 +29,21 @@ import os
 import pkgutil
 
 from nuitka.containers.odict import OrderedDict
+from nuitka.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
+from .FileOperations import getFileContents
 from .Importing import importFromInlineCopy
 
 
 class Yaml(object):
-    __slots__ = ("data", "filename")
+    __slots__ = (
+        "name",
+        "data",
+    )
 
-    def __init__(self, filename, data):
-        self.filename = filename
+    def __init__(self, name, data):
+        self.name = name
 
         assert type(data) is list
 
@@ -50,13 +55,16 @@ class Yaml(object):
             if "/" in module_name:
                 general.sysexit(
                     "Error, invalid module name in '%s' looks like a file path '%s'."
-                    % (filename, module_name)
+                    % (self.name, module_name)
                 )
 
             if module_name in self.data:
                 general.sysexit("Duplicate module-name '%s' encountered." % module_name)
 
             self.data[module_name] = item
+
+    def __rep__(self):
+        return "<Yaml %s>" % self.name
 
     def get(self, name, section):
         result = self.data.get(name)
@@ -125,7 +133,7 @@ def parsePackageYaml(package_name, filename):
         if data is None:
             raise IOError("Cannot find %s.%s" % (package_name, filename))
 
-        _yaml_cache[key] = Yaml(filename=filename, data=parseYaml(data))
+        _yaml_cache[key] = Yaml(name=filename, data=parseYaml(data))
 
     return _yaml_cache[key]
 
@@ -153,7 +161,15 @@ def getYamlPackageConfiguration():
             # No commercial configuration found.
             pass
 
-        # TODO: User or plugin provided filenames, but we want PRs.
+        # User or plugin provided filenames, but we want PRs though, and will nag
+        # about it somewhat.
+        for user_yaml_filename in getUserProvidedYamlFiles():
+            _package_config.update(
+                Yaml(
+                    name=user_yaml_filename,
+                    data=parseYaml(getFileContents(user_yaml_filename, mode="rb")),
+                )
+            )
 
     return _package_config
 

@@ -1654,3 +1654,8 @@ def isLowMemory():
 def getCompilationReportFilename():
     """*str* filename to write XML report of compilation to"""
     return options.compilation_report_filename
+
+
+def getUserProvidedYamlFiles():
+    """*list* files with user provided Yaml files"""
+    return options.user_yaml_files
