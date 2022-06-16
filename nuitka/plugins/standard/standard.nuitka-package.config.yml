@@ -1509,3 +1509,21 @@
         "test": "un-callable"
       replacements_plain:
         "from numba import runtests": ""
+
+- module-name: "plotly.graph_objects"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "import ipywidgets as _ipywidgets": "raise ImportError"
+        "import ipywidgets": "raise ImportError"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "plotly.graph_objs"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "import ipywidgets as _ipywidgets": "raise ImportError"
+        "import ipywidgets": "raise ImportError"
+      control_tags:
+        - "allow_ipython"
