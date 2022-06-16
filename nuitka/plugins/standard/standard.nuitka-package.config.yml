@@ -1516,6 +1516,8 @@
       replacements_plain:
         "import ipywidgets as _ipywidgets": "raise ImportError"
         "import ipywidgets": "raise ImportError"
+        # Disable lazy loading implicit imports.
+        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
       control_tags:
         - "allow_ipython"
 
@@ -1525,5 +1527,21 @@
       replacements_plain:
         "import ipywidgets as _ipywidgets": "raise ImportError"
         "import ipywidgets": "raise ImportError"
+        # Disable lazy loading implicit imports.
+        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
       control_tags:
         - "allow_ipython"
+
+- module-name: "plotly.io"
+  anti-bloat:
+    - description: "include plotly templates"
+      replacements_plain:
+        # Disable lazy loading implicit imports.
+        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
+
+- module-name: "plotly.validator_cache"
+  implicit-imports:
+    depends:
+      # Disable lazy loading implicit imports.
+      - "plotly.validators.*"
+      - "plotly.validators.*.*"
