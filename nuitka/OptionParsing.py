@@ -1513,7 +1513,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
     cond_level = -1
 
     for line_number, line in enumerate(contents_by_line):
-        match = re.match(b"^\\s*#(\\s+)nuitka-project(.*?):(.*)", line)
+        match = re.match(b"^\\s*#(\\s*)nuitka-project(.*?):(.*)", line)
 
         if match:
             level, command, arg = match.groups()
