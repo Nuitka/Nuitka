@@ -75,11 +75,14 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         if noinclude_setuptools_mode != "allow":
             self.handled_modules["setuptools"] = noinclude_setuptools_mode
+            self.handled_modules["setuptools_scm"] = noinclude_setuptools_mode
         else:
             self.control_tags.add("allow_setuptools")
 
         if noinclude_pytest_mode != "allow":
             self.handled_modules["pytest"] = noinclude_pytest_mode
+            self.handled_modules["nose2"] = noinclude_pytest_mode
+            self.handled_modules["nose"] = noinclude_pytest_mode
         else:
             self.control_tags.add("allow_pytest")
 
@@ -140,8 +143,8 @@ Annotate what changes are by the plugin done.""",
             choices=("error", "warning", "nofollow", "allow"),
             default=None,
             help="""\
-What to do if a setuptools import is encountered. This package can be big with
-dependencies, and should definitely be avoided.""",
+What to do if a 'setuptools' or import is encountered. This package can be big with
+dependencies, and should definitely be avoided. Also handles 'setuptools_scm'.""",
         )
 
         group.add_option(
@@ -151,8 +154,8 @@ dependencies, and should definitely be avoided.""",
             choices=("error", "warning", "nofollow", "allow"),
             default=None,
             help="""\
-What to do if a pytest import is encountered. This package can be big with
-dependencies, and should definitely be avoided.""",
+What to do if a 'pytest' import is encountered. This package can be big with
+dependencies, and should definitely be avoided. Also handles 'nose' imports.""",
         )
 
         group.add_option(
