@@ -1058,7 +1058,7 @@ def shallTreatUninstalledPython():
 def shallCreateCmdFileForExecution():
     """*bool* = derived from Python installation and modes
 
-    Notes: Most for accelerated mode on Windows with uninstalled python, to
+    Notes: Mostly for accelerated mode on Windows with uninstalled python, to
     make sure they find their Python DLL.
     """
     return isWin32Windows() and shallTreatUninstalledPython()
@@ -1207,6 +1207,11 @@ def isStandaloneMode():
 def isOnefileMode():
     """:returns: bool derived from ``--onefile``"""
     return options.is_onefile
+
+
+def isAcceleratedMode():
+    """:returns: bool derived from ``--standalone`` and `--module`"""
+    return not isStandaloneMode() and not shallMakeModule()
 
 
 def isOnefileTempDirMode():
