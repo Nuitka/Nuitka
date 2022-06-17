@@ -1546,3 +1546,13 @@
       # Disable lazy loading implicit imports.
       - "plotly.validators.*"
       - "plotly.validators.*.*"
+
+- module-name: "tenacity"
+  anti-bloat:
+    # It would be nice
+    - description: "remove tornado dependency"
+      replacements_plain:
+        "import tornado": "raise ImportError"
+        "from tenacity.tornadoweb import TornadoRetrying": "pass"
+      control_tags:
+        - "allow_tornado"
