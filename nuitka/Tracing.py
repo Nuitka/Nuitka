@@ -282,6 +282,7 @@ class OurLogger(object):
                 subsequent_indent=prefix,
                 break_on_hyphens=False,
                 expand_tabs=False,
+                replace_whitespace=False,
             )
             self.my_print(formatted_message, style=style, file=sys.stderr)
 

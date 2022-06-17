@@ -1155,7 +1155,7 @@ def _detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache
                 if _not_found_dlls:
                     general.warning(
                         """\
-Dependency '%s' could not be found, expect runtime issues. If this is
+Dependency '%s' could not be found, expect runtime issues. If this is \
 working with Python, report a Nuitka bug."""
                         % dll_filename
                     )
