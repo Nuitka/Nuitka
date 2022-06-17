@@ -55,30 +55,34 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
-                        "type": "string",
-                        "include_from_code": {
-                            "type": "string"
+                        "from_filenames": {
+                            "type": "object",
+                            "properties": {
+                                "prefixes": {
+                                    "type": "array"
+                                },
+                                "dir": {
+                                    "type": "string"
+                                }
+                            }
                         },
-                        "setup_code": {
-                            "type": "string"
+                        "by_code": {
+                            "type": "object",
+                            "properties": {
+                                "setup_code": {
+                                    "type": "string"
+                                },
+                                "dll_filename_code": {
+                                    "type": "string"
+                                }
+                            }
                         },
-                        "dll_filename_code": {
-                            "type": "string"
-                        },
+
                         "dest_path": {
                             "type": "string"
                         },
-                        "include_from_filenames": {
+                        "relative_path": {
                             "type": "string"
-                        },
-                        "dir": {
-                            "type": "string"
-                        },
-                        "patterns": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
                         }
                     }
                 }

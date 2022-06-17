@@ -251,33 +251,31 @@
 - module-name: "shapely.geos"
   dlls:
     - dest_path: "shapely"
-      dll_filename_code: "shapely.geos._lgeos._name"
-      include_from_code: ""
-      setup_code: "import shapely.geos"
+      by_code:
+        "setup_code": "import shapely.geos"
+        "dll_filename_code": "shapely.geos._lgeos._name"
 
 - module-name: "vosk"
   dlls:
     - dest_path: "vosk"
-      dir: "."
-      include_from_filenames: ""
-      patterns:
-        - "libvosk"
+      from_filenames:
+        "prefixes":
+          - "libvosk"
 
 - module-name: "tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op"
   dlls:
     - dest_path: "tensorflow/lite/experimental/microfrontend/python/ops"
-      dir: "."
-      include_from_filenames: ""
-      patterns:
-        - "_audio_microfrontend_op"
+      from_filenames:
+        "dir": "."
+        "prefixes":
+          - "_audio_microfrontend_op"
 
 - module-name: "sklearn._distributor_init"
   dlls:
-    - dest_path: "sklearn/.libs"
-      dir: ".libs"
-      include_from_filenames: ""
-      patterns:
-        - ""
+    - relative_path: ".libs"
+      from_filenames:
+        "prefixes":
+          - ""
   anti-bloat:
     - description: "remove site module and distutils usage"
       replacements:
@@ -291,11 +289,10 @@
 
 - module-name: "tensorflow"
   dlls:
-    - dest_path: "tensorflow/core/platform"
-      dir: "core/platform"
-      include_from_filenames: ""
-      patterns:
-        - "_cpu_feature_guard"
+    - relative_path: "core/platform"
+      from_filenames:
+        "prefixes":
+          - "_cpu_feature_guard"
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
@@ -307,20 +304,20 @@
 - module-name: "clr"
   dlls:
     - dest_path: "."
-      dir: "."
-      include_from_filenames: ""
-      patterns:
-        - "Python.Runtime"
+      from_filenames:
+        "dir": "."
+        "prefixes":
+          - "Python.Runtime"
 
 - module-name: "torchvision"
   dlls:
     - dest_path: "torchvision"
-      dir: "."
-      include_from_filenames: ""
-      patterns:
-        - "zlib"
-        - "libjpeg"
-        - "libpng*"
+      from_filenames:
+        "dir": "."
+        "prefixes":
+          - "zlib"
+          - "libjpeg"
+          - "libpng*"
 
 - module-name: "psutil"
   anti-bloat:
@@ -1184,11 +1181,10 @@
     patterns:
       - "bin/*.h"
   dlls:
-    - dest_path: "torch/lib"
-      dir: "lib"
-      include_from_filenames: ""
-      patterns:
-        - ""
+    - relative_path: "lib"
+      from_filenames:
+        "prefixes":
+          - ""
 
 - module-name: "torch.fx._symbolic_trace"
   anti-bloat:

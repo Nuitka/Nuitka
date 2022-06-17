@@ -49,8 +49,17 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
     def _handleDllConfig(self, dll_config, full_name, count):
         config_found = False
+        if "relative_path" in dll_config:
+            relative_path = dll_config.get("relative_path")
+            dest_path = full_name.asString().split(".")[0] + "/" + relative_path
+            dir = relative_path
 
-        if "include_from_code" in dll_config:
+        else:
+            dest_path = dll_config.get("dest_path")
+
+        if "by_code" in dll_config:
+            dll_config = dll_config.get("by_code")
+
             config_found = True
 
             setup_codes = dll_config.get("setup_code")
@@ -74,7 +83,9 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 package_name=full_name,
             )
 
-        if "include_from_filenames" in dll_config:
+        if "from_filenames" in dll_config:
+            dll_config = dll_config.get("from_filenames")
+
             config_found = True
 
             module_filename = self.locateModule(full_name)
@@ -84,10 +95,12 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             else:
                 module_directory = os.path.dirname(module_filename)
 
-            dll_dir = dll_config.get("dir", ".")
-            dll_dir = os.path.normpath(os.path.join(module_directory, dll_dir))
+            if not "dir" in locals():
+                dll_dir = dll_config.get("dir", ".")
+                dll_dir = os.path.normpath(os.path.join(module_directory, dll_dir))
 
-            dest_path = dll_config.get("dest_path")
+            else:
+                dll_dir = dir
 
             if os.path.exists(dll_dir):
                 for pattern in dll_config.get("patterns"):
