@@ -780,7 +780,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
             yield "pywt._extensions._swt"
 
         # imageio imports -----------------------------------------------
-        elif full_name == "imageio":
+        elif full_name == "PIL.Image":
             yield "PIL.BlpImagePlugin"
             yield "PIL.BmpImagePlugin"
             yield "PIL.BufrStubImagePlugin"
