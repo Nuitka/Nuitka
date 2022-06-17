@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 # isort:start
 
+import fnmatch
 import re
 
 from setuptools import Distribution, setup
@@ -79,21 +80,25 @@ def findNuitkaPackages():
 
 
 inline_copy_files = []
+no_byte_compile = []
 
 
-def addInlineCopy(name):
-    inline_copy_files.extend(
-        (
-            "inline_copy/%s/*.py" % name,
-            "inline_copy/%s/*/*.py" % name,
-            "inline_copy/%s/*/*/*.py" % name,
-            "inline_copy/%s/*/*/*/*.py" % name,
-            "inline_copy/%s/*/*/*/*/*.py" % name,
-            "inline_copy/%s/LICENSE*",
-            "inline_copy/%s/*/LICENSE*",
-            "inline_copy/%s/READ*",
-        )
+def addInlineCopy(name, do_byte_compile=True):
+    patterns = (
+        "inline_copy/%s/*.py" % name,
+        "inline_copy/%s/*/*.py" % name,
+        "inline_copy/%s/*/*/*.py" % name,
+        "inline_copy/%s/*/*/*/*.py" % name,
+        "inline_copy/%s/*/*/*/*/*.py" % name,
+        "inline_copy/%s/LICENSE*",
+        "inline_copy/%s/*/LICENSE*",
+        "inline_copy/%s/READ*",
     )
+
+    inline_copy_files.extend(patterns)
+
+    if not do_byte_compile:
+        no_byte_compile.extend(patterns)
 
 
 addInlineCopy("appdirs")
@@ -127,7 +132,7 @@ addInlineCopy("pkg_resources")
 addInlineCopy("bin")
 
 if os.name == "nt" or sdist_mode:
-    addInlineCopy("lib/scons-4.3.0")
+    addInlineCopy("lib/scons-4.3.0", do_byte_compile=sys.version_info >= (2, 7))
 if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2")
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
@@ -141,6 +146,15 @@ orig_byte_compile = distutils.util.byte_compile
 def byte_compile(py_files, *args, **kw):
     # Disable bytecode compilation output, too annoying.
     kw["verbose"] = 0
+
+    # Avoid attempting files that won't work.
+    py_files = [
+        filename
+        for filename in py_files
+        if not any(
+            fnmatch.fnmatch(filename, "*/*/*/" + pattern) for pattern in no_byte_compile
+        )
+    ]
 
     orig_byte_compile(py_files, *args, **kw)
 
