@@ -102,21 +102,21 @@ as that would overwrite it and cause locking issues as well."""
 
     if options.onefile_tempdir_spec.count("%") % 2 != 0:
         Tracing.options_logger.warning(
-            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
+            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may \
 not do what you want it to do: '%s'"""
             % options.onefile_tempdir_spec
         )
 
     if options.onefile_tempdir_spec.count("%") == 0:
         Tracing.options_logger.warning(
-            """Not using any variables for '--onefile-tempdir-spec' should only be
+            """Not using any variables for '--onefile-tempdir-spec' should only be \
 done if your program absolutely needs to be in the same path always: '%s'"""
             % options.onefile_tempdir_spec
         )
 
     if os.path.isabs(options.onefile_tempdir_spec):
         Tracing.options_logger.warning(
-            """Using an absolute path should be avoided unless you are targeting a
+            """Using an absolute path should be avoided unless you are targeting a \
 very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
         )
@@ -124,7 +124,7 @@ very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
         ("%TEMP%", "%HOME%", "%CACHE_DIR%")
     ):
         Tracing.options_logger.warning(
-            """Using an relative to the executable should be avoided unless you are targeting a
+            """Using an relative to the executable should be avoided unless you are targeting a \
 very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
         )

@@ -165,7 +165,7 @@ def _getSystemStaticLibPythonPath():
             # Also check libz, can be missing
             if not locateStaticLinkLibrary("z"):
                 general.warning(
-                    "Error, missing libz-dev installation needed for static lib-python."
+                    "Error, missing 'libz-dev' installation needed for static lib-python."
                 )
 
             return candidate

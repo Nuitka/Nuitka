@@ -952,8 +952,8 @@ def decideCompilationMode(is_top, module_name, for_pgo):
     if result == "bytecode" and is_top:
         plugins_logger.warning(
             """\
-Ignoring plugin decision to compile top level package '%s'
-as bytecode, the extension module entry point is technically
+Ignoring plugin decision to compile top level package '%s' \
+as bytecode, the extension module entry point is technically \
 required to compiled."""
             % module_name
         )

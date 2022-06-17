@@ -1032,8 +1032,7 @@ def main():
 
             if os.path.isdir(base_path):
                 general.warning(
-                    """The compilation result is hidden by package
-                    directory '%s'. Importing will not use compiled code."""
+                    """The compilation result is hidden by package directory '%s'. Importing will not use compiled code."""
                     % base_path
                 )
 
