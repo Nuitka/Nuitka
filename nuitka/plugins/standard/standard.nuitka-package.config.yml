@@ -1138,10 +1138,16 @@
         - "standalone_mode_only"
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+        # Before OpenCV 4.6
         'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
+        # After OpenCV 4.6
+        'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
       replacements_plain:
         ? "load_first_config([\n"
         : "if False: (["
+  implicit-imports:
+    depends:
+      - "cv2.cv2"
 
 - module-name: "orderedmultidict"
   anti-bloat:
