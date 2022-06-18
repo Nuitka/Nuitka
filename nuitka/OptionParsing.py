@@ -1529,7 +1529,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
 
             expect_block = False
 
-            if level == cond_level and command == "-else":
+            if level == cond_level and command == b"-else":
                 execute_block = not execute_block
             elif level <= cond_level:
                 execute_block = True
@@ -1548,7 +1548,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                         "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
 
-                arg = arg[:-1]
+                arg = arg[:-1].strip()
 
                 expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
 
@@ -1560,7 +1560,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 # Likely mistakes, e.g. with "in" tests.
                 if r is not True and r is not False:
                     sys.exit(
-                        "Error, 'nuitka-project-if' condition %r (%r) does not yield boolean result %r"
+                        "Error, 'nuitka-project-if' condition %r (expanded to %r) does not yield boolean result %r"
                         % (arg, expanded, r)
                     )
 
