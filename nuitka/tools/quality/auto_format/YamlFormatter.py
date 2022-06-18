@@ -30,13 +30,15 @@ from nuitka.utils.Yaml import (
 MASTER_KEYS = None
 DATA_FILES_KEYS = None
 DLLS_KEYS = None
+DLLS_BY_CODE_KEYS = None
+DLLS_FROM_FILENAMES_KEYS = None
 ANTI_BLOAT_KEYS = None
 IMPLICIT_IMPORTS_KEYS = None
 
 
 def _initNuitkaPackageSchema():
     # Singleton, pylint: disable=global-statement
-    global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
+    global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS, DLLS_FROM_FILENAMES_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
 
     with openTextFile(
         getYamlPackageConfigurationSchemaFilename(),
@@ -50,6 +52,16 @@ def _initNuitkaPackageSchema():
     )
     DLLS_KEYS = tuple(
         schema["items"]["properties"]["dlls"]["items"]["properties"].keys()
+    )
+    DLLS_BY_CODE_KEYS = tuple(
+        schema["items"]["properties"]["dlls"]["items"]["properties"]["by_code"][
+            "properties"
+        ].keys()
+    )
+    DLLS_FROM_FILENAMES_KEYS = tuple(
+        schema["items"]["properties"]["dlls"]["items"]["properties"]["from_filenames"][
+            "properties"
+        ].keys()
     )
     ANTI_BLOAT_KEYS = tuple(
         schema["items"]["properties"]["anti-bloat"]["items"]["properties"].keys()
@@ -107,6 +119,8 @@ def _strPresenter(dumper, data):
             data not in MASTER_KEYS
             and data not in DATA_FILES_KEYS
             and data not in DLLS_KEYS
+            and data not in DLLS_BY_CODE_KEYS
+            and data not in DLLS_FROM_FILENAMES_KEYS
             and data not in ANTI_BLOAT_KEYS
             and data not in IMPLICIT_IMPORTS_KEYS
         )

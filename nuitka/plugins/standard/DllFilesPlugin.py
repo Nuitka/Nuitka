@@ -52,7 +52,6 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         if "relative_path" in dll_config:
             relative_path = dll_config.get("relative_path")
             dest_path = full_name.asString().split(".")[0] + "/" + relative_path
-            dir = relative_path
 
         else:
             dest_path = dll_config.get("dest_path")
@@ -95,12 +94,12 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             else:
                 module_directory = os.path.dirname(module_filename)
 
-            if not "dir" in locals():
+            if not "relative_path" in locals():
                 dll_dir = dll_config.get("dir", ".")
                 dll_dir = os.path.normpath(os.path.join(module_directory, dll_dir))
 
             else:
-                dll_dir = dir
+                dll_dir = relative_path
 
             if os.path.exists(dll_dir):
                 for pattern in dll_config.get("patterns"):

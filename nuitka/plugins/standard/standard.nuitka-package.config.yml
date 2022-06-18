@@ -252,29 +252,29 @@
   dlls:
     - dest_path: "shapely"
       by_code:
-        "setup_code": "import shapely.geos"
-        "dll_filename_code": "shapely.geos._lgeos._name"
+        setup_code: "import shapely.geos"
+        dll_filename_code: "shapely.geos._lgeos._name"
 
 - module-name: "vosk"
   dlls:
     - dest_path: "vosk"
       from_filenames:
-        "prefixes":
+        prefixes:
           - "libvosk"
 
 - module-name: "tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op"
   dlls:
     - dest_path: "tensorflow/lite/experimental/microfrontend/python/ops"
       from_filenames:
-        "dir": "."
-        "prefixes":
+        dir: "."
+        prefixes:
           - "_audio_microfrontend_op"
 
 - module-name: "sklearn._distributor_init"
   dlls:
     - relative_path: ".libs"
       from_filenames:
-        "prefixes":
+        prefixes:
           - ""
   anti-bloat:
     - description: "remove site module and distutils usage"
@@ -291,7 +291,7 @@
   dlls:
     - relative_path: "core/platform"
       from_filenames:
-        "prefixes":
+        prefixes:
           - "_cpu_feature_guard"
   anti-bloat:
     - description: "remove useless distutils usage"
@@ -305,16 +305,16 @@
   dlls:
     - dest_path: "."
       from_filenames:
-        "dir": "."
-        "prefixes":
+        dir: "."
+        prefixes:
           - "Python.Runtime"
 
 - module-name: "torchvision"
   dlls:
     - dest_path: "torchvision"
       from_filenames:
-        "dir": "."
-        "prefixes":
+        dir: "."
+        prefixes:
           - "zlib"
           - "libjpeg"
           - "libpng*"
@@ -1183,7 +1183,7 @@
   dlls:
     - relative_path: "lib"
       from_filenames:
-        "prefixes":
+        prefixes:
           - ""
 
 - module-name: "torch.fx._symbolic_trace"
