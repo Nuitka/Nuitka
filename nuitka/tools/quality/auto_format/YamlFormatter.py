@@ -38,7 +38,8 @@ IMPLICIT_IMPORTS_KEYS = None
 
 def _initNuitkaPackageSchema():
     # Singleton, pylint: disable=global-statement
-    global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS, DLLS_FROM_FILENAMES_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
+    global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS
+    global DLLS_FROM_FILENAMES_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
 
     with openTextFile(
         getYamlPackageConfigurationSchemaFilename(),
