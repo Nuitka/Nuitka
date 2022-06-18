@@ -191,29 +191,32 @@ def _getRealPathWindows(path):
         if _powershell_path is None:
             _powershell_path = False
 
-    if path not in _real_path_windows_cache and _powershell_path:
-        from .Execution import check_output
+    if path not in _real_path_windows_cache:
+        if _powershell_path:
+            from .Execution import check_output
 
-        result = check_output(
-            [
-                _powershell_path,
-                "-NoProfile",
-                "Get-Item",
-                path,
-                "|",
-                "Select-Object",
-                "-ExpandProperty",
-                "Target",
-            ],
-            shell=False,
-        )
+            result = check_output(
+                [
+                    _powershell_path,
+                    "-NoProfile",
+                    "Get-Item",
+                    path,
+                    "|",
+                    "Select-Object",
+                    "-ExpandProperty",
+                    "Target",
+                ],
+                shell=False,
+            )
 
-        if str is not bytes:
-            result = result.decode("utf8")
+            if str is not bytes:
+                result = result.decode("utf8")
 
-        _real_path_windows_cache[path] = os.path.join(
-            os.path.dirname(path), result.rstrip("\r\n")
-        )
+            _real_path_windows_cache[path] = os.path.join(
+                os.path.dirname(path), result.rstrip("\r\n")
+            )
+        else:
+            _real_path_windows_cache[path] = path
 
     return _real_path_windows_cache[path]
 
