@@ -32,6 +32,9 @@ if "-" in codename:
 else:
     arch = subprocess.check_output("dpkg-architecture -q DEB_HOST_ARCH".split()).strip()
 
+    if str is not bytes:
+        arch = arch.decode("utf8")
+
 start_dir = os.getcwd()
 
 stage = tempfile.mkdtemp()
