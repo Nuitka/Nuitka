@@ -60,10 +60,11 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     "Error, invalid pattern with empty parts used '%s'." % pattern
                 )
 
-            if "." in part or "*" in part:
+            # TODO: Checking for shell pattern should be done in more places and shared code.
+            if "?" in part or "*" in part or "[" in part:
                 if current is None:
                     self.sysexit(
-                        "Error, cannot use patter for first part '%s'." % pattern
+                        "Error, cannot use pattern for first part '%s'." % pattern
                     )
 
                 module_filename = self.locateModule(
