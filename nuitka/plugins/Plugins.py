@@ -823,6 +823,7 @@ class Plugins(object):
     @staticmethod
     def onModuleEncounter(module_name, module_filename, module_kind):
         result = None
+        deciding_plugins = []
 
         for plugin in getActivePlugins():
             must_recurse = plugin.onModuleEncounter(
@@ -841,8 +842,13 @@ class Plugins(object):
 
             if result is not None:
                 # false alarm, pylint: disable=unsubscriptable-object
-                assert result[0] == must_recurse[0]
+                if result[0] != must_recurse[0]:
+                    plugin.sysexit(
+                        "Error, decision %s does not match other plugin '%s' decision."
+                        % (must_recurse[0], ".".join(deciding_plugins))
+                    )
 
+            deciding_plugins.append(plugin.plugin_name)
             result = must_recurse
 
         return result
