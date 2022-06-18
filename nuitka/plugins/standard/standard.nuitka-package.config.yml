@@ -1305,6 +1305,12 @@
     depends:
       - "asyncio"
 
+- module-name: "concurrent.futures.process"
+  implicit-imports:
+    depends:
+      - "multiprocessing"
+      - "multiprocessing.connection"
+
 - module-name: "shelve"
   implicit-imports:
     depends:
