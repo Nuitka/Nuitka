@@ -162,6 +162,16 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
             % type(self.constant),
         )
 
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )
+
     def getCompileTimeConstant(self):
         return self.constant
 
@@ -1259,6 +1269,16 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
         )
 
         return new_node, tags, message
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )
 
     @staticmethod
     def isMutable():
