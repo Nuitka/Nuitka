@@ -591,7 +591,6 @@ def getDLLVersionMacOS(path):
         absence_message=notfound,
     )
     out = stdout.decode().strip().split("\n")
-    print(out)
     if len(out) < 2:
         return None
     dll_id = out[1].strip()
