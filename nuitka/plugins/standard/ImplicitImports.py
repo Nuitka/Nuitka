@@ -1199,6 +1199,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
         elif full_name == "pyreadstat.pyreadstat":
             yield "pyreadstat._readstat_writer"
             yield "pyreadstat.worker"
+            yield "multiprocessing"
         elif full_name == "cytoolz.itertoolz":
             yield "cytoolz.utils"
         elif full_name == "cytoolz.functoolz":
