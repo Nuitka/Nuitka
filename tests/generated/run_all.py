@@ -41,6 +41,12 @@ sys.path.insert(
 # isort:start
 
 import nuitka.specs.BuiltinStrOperationSpecs
+from nuitka.tools.specialize.SpecializePython import (
+    python2_dict_methods as dict_method_names,
+)
+from nuitka.tools.specialize.SpecializePython import (
+    python2_str_methods as str_method_names,
+)
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
@@ -69,12 +75,6 @@ operations = (
     ("Subscript", "["),
 )
 
-from nuitka.tools.specialize.SpecializePython import (
-    python2_dict_methods as dict_method_names,
-)
-from nuitka.tools.specialize.SpecializePython import (
-    python2_str_methods as str_method_names,
-)
 
 # For typical constant values to use in operation tests.
 candidates = (

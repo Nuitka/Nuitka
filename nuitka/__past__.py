@@ -25,6 +25,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 """
 
+import pkgutil
 import sys
 from abc import ABCMeta
 
@@ -162,7 +163,6 @@ else:
 # Just to make this not Windows-specific.
 WindowsError = OSError  # pylint: disable=I0021,redefined-builtin
 
-import pkgutil
 
 if not hasattr(pkgutil, "ModuleInfo"):
     # Python3.5 or lower do not return namedtuple, but it's nicer to read code with it.

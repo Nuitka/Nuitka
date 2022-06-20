@@ -27,6 +27,7 @@ it being used.
 """
 
 import ast
+import functools
 import inspect
 import os
 import sys
@@ -885,9 +886,6 @@ except ImportError:
     @classmethod
     def sysexit(cls, message):
         plugins_logger.sysexit(cls.plugin_name + ": " + message)
-
-
-import functools
 
 
 def standalone_only(func):
