@@ -27,8 +27,6 @@ import marshal
 import os
 import pkgutil
 import sys
-import subprocess
-import re
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iterItems
@@ -82,13 +80,13 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     copyDllFile,
+    getDLLVersionMacOS,
     getOtoolListing,
     getPyWin32Dir,
     getSharedLibraryRPATH,
     getWindowsDLLVersion,
     otool_usage,
     setSharedLibraryRPATH,
-    getDLLVersionMacOS,
 )
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
@@ -1176,7 +1174,6 @@ def _fixupBinaryDLLPathsMacOS(
     if not dll_map:
         return
 
-
     had_self, rpath_map = _detectBinaryPathDLLsMacOS(
         original_dir=os.path.dirname(original_location),
         binary_filename=original_location,
@@ -1293,9 +1290,9 @@ def _removeDuplicateDlls(used_dlls):
                     warned_about.add(dll_name)
 
                     inclusion_logger.warning(
-                            "Conflicting DLLs for '%s' in your installation, newest file version used, hoping for the best."
-                            % dll_name
-                        )
+                        "Conflicting DLLs for '%s' in your installation, newest file version used, hoping for the best."
+                        % dll_name
+                    )
                 solved = True
                 duplicate_dlls.setdefault(dll_filename1, []).append(dll_filename2)
                 duplicate_dlls.setdefault(dll_filename2, []).append(dll_filename1)

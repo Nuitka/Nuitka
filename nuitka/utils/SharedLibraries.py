@@ -582,12 +582,13 @@ class MacOSVersionTuple:
     def version_string_to_tuple(v_string):
         return tuple([int(x) for x in v_string.split(".")])
 
+
 def getDLLVersionMacOS(path):
     notfound = "otool not found. Please check your PATH"
     stdout = executeToolChecked(
         logger=postprocessing_logger,
         command=("otool", "-D", path),
-        absence_message=notfound
+        absence_message=notfound,
     )
     out = stdout.decode().strip().split("\n")
     print(out)
@@ -597,8 +598,8 @@ def getDLLVersionMacOS(path):
     stdout = executeToolChecked(
         logger=postprocessing_logger,
         command=("otool", "-L", path),
-        absence_message=notfound
-        )
+        absence_message=notfound,
+    )
     out = stdout.decode().strip().split("\n")
     for line in out:
         if dll_id in line and "version" in line:
