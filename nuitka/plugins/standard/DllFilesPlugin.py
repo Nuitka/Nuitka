@@ -47,65 +47,99 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
     def isRelevant():
         return isStandaloneMode()
 
-    def _handleDllConfig(self, dll_config, full_name, count):
-        config_found = False
+    def _handleDllConfigFromFilenames(self, dest_path, dll_config, full_name):
+        relative_path = dll_config.get("relative_path", ".")
 
-        if "include_from_code" in dll_config:
-            config_found = True
+        module_filename = self.locateModule(full_name)
 
-            setup_codes = dll_config.get("setup_code")
-            dll_filename_code = dll_config.get("dll_filename_code")
-            dest_path = dll_config.get("dest_path")
+        if os.path.isdir(module_filename):
+            module_directory = module_filename
 
-            dll_filename = self.queryRuntimeInformationMultiple(
-                "%s_%s" % (full_name.asString().replace(".", "_"), count),
-                setup_codes=setup_codes,
-                values=(("dll_filename", dll_filename_code),),
-            ).dll_filename
+            if dest_path is None:
+                dest_path = os.path.join(full_name.asPath(), relative_path)
+        else:
+            module_directory = os.path.dirname(module_filename)
 
-            module_filename = self.locateModule(full_name)
+            if dest_path is None:
+                dest_path = os.path.join(full_name.asPath(), "..", relative_path)
 
-            yield self.makeDllEntryPoint(
-                source_path=dll_filename,
-                dest_path=os.path.join(
-                    dest_path,
-                    os.path.relpath(dll_filename, os.path.dirname(module_filename)),
-                ),
-                package_name=full_name,
-            )
+        dll_dir = os.path.join(module_directory, relative_path)
 
-        if "include_from_filenames" in dll_config:
-            config_found = True
-
-            module_filename = self.locateModule(full_name)
-
-            if os.path.isdir(module_filename):
-                module_directory = module_filename
-            else:
-                module_directory = os.path.dirname(module_filename)
-
-            dll_dir = dll_config.get("dir", ".")
-            dll_dir = os.path.normpath(os.path.join(module_directory, dll_dir))
-
-            dest_path = dll_config.get("dest_path")
-
-            if os.path.exists(dll_dir):
-                for pattern in dll_config.get("patterns"):
-                    for dll_filename, filename in listDllFilesFromDirectory(
-                        dll_dir, prefix=pattern
-                    ):
-                        yield self.makeDllEntryPoint(
-                            source_path=dll_filename,
-                            dest_path=os.path.join(
+        if os.path.exists(dll_dir):
+            for pattern in dll_config.get("prefixes"):
+                for dll_filename, filename in listDllFilesFromDirectory(
+                    dll_dir, prefix=pattern
+                ):
+                    yield self.makeDllEntryPoint(
+                        source_path=dll_filename,
+                        dest_path=os.path.normpath(
+                            os.path.join(
                                 dest_path,
                                 filename,
-                            ),
-                            package_name=full_name,
-                        )
+                            )
+                        ),
+                        package_name=full_name,
+                    )
 
-        if not config_found:
+    def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
+        module_filename = self.locateModule(full_name)
+
+        if dest_path is None:
+            if os.path.isdir(module_filename):
+                dest_path = full_name.asPath()
+            else:
+                dest_path = os.path.join(full_name.asPath(), "..")
+
+        setup_codes = dll_config.get("setup_code")
+        dll_filename_code = dll_config.get("dll_filename_code")
+
+        dll_filename = self.queryRuntimeInformationMultiple(
+            "%s_%s" % (full_name.asString().replace(".", "_"), count),
+            setup_codes=setup_codes,
+            values=(("dll_filename", dll_filename_code),),
+        ).dll_filename
+
+        yield self.makeDllEntryPoint(
+            source_path=dll_filename,
+            dest_path=os.path.normpath(
+                os.path.join(
+                    dest_path,
+                    os.path.relpath(dll_filename, os.path.dirname(module_filename)),
+                )
+            ),
+            package_name=full_name,
+        )
+
+    def _handleDllConfig(self, dll_config, full_name, count):
+        dest_path = dll_config.get("dest_path")
+
+        found = False
+
+        if "by_code" in dll_config:
+            for result in self._handleDllConfigByCode(
+                dll_config=dll_config.get("by_code"),
+                full_name=full_name,
+                dest_path=dest_path,
+                count=count,
+            ):
+                yield result
+
+            found = True
+
+        if "from_filenames" in dll_config:
+            for result in self._handleDllConfigFromFilenames(
+                dll_config=dll_config.get("from_filenames"),
+                full_name=full_name,
+                dest_path=dest_path,
+            ):
+                yield result
+
+            found = True
+
+        if not found:
             self.sysexit(
-                "Unsupported config for module '%s' encountered." % full_name.asString()
+                "Unsupported DLL config for module '%s' encountered."
+                % full_name.asString()
             )
 
     def getExtraDlls(self, module):
