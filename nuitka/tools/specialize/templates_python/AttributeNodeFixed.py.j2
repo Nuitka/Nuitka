@@ -125,6 +125,19 @@ attribute_classes["{{attribute_name}}"] = ExpressionAttributeLookupFixed{{attrib
 
 {% if dict_operation_version_presence %}
 from nuitka.specs.BuiltinDictOperationSpecs import dict_{{attribute_name}}_spec
+{% if python3_operation_name %}
+from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
+from .DictionaryNodes import ExpressionDictOperation{{python3_operation_name.title()}}
+{% else %}
+{% if dict_operation_variation %}
+{% for count in reversed(dict_operation_variation[1:]) %}
+from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{count+1}}
+{% endfor %}
+from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}
+{% else %}
+from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
+{% endif %}
+{% endif %}
 {% endif %}
 
 class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
@@ -144,14 +157,10 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
         def wrapExpressionDictOperation{{attribute_name_class}}({{formatArgs(dict_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
-                from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
-
                 return ExpressionDictOperation{{attribute_name_class}}(
                     dict_arg=self.subnode_expression, source_ref=source_ref
                 )
             else:
-                from .DictionaryNodes import ExpressionDictOperation{{python3_operation_name.title()}}
-
                 return ExpressionDictOperation{{python3_operation_name.title()}}(
                     dict_arg=self.subnode_expression, source_ref=source_ref
                 )
@@ -159,22 +168,16 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
 {% if dict_operation_variation %}
 {% for count in reversed(dict_operation_variation[1:]) %}
             {{"if" if count == dict_operation_variation[-1] else "elif"}} {{dict_operation_args[count-1]}} {{dict_operation_arg_tests[count-1]}}:
-                from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{count+1}}
-
                 return ExpressionDictOperation{{attribute_name_class}}{{count+1}}(
                     dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
-                from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}
-
                 return ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}(
                     dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:dict_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
-            from .DictionaryNodes import ExpressionDictOperation{{attribute_name_class}}
-
             return ExpressionDictOperation{{attribute_name_class}}(
                 dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args, starting=False)}}, source_ref=source_ref
             )
@@ -214,6 +217,19 @@ attribute_typed_classes.add(ExpressionAttributeLookupDict{{attribute_name_class}
 
 {% if str_operation_version_presence %}
 from nuitka.specs.BuiltinStrOperationSpecs import str_{{attribute_name}}_spec
+{% if python3_operation_name %}
+from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
+from .StrNodes import ExpressionStrOperation{{python3_operation_name.title()}}
+{% else %}
+{% if str_operation_variation %}
+{% for count in reversed(str_operation_variation[1:]) %}
+from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{count+1}}
+{% endfor %}
+from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}
+{% else %}
+from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
+{% endif %}
+{% endif %}
 {% endif %}
 
 class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
@@ -233,14 +249,10 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
         def wrapExpressionStrOperation{{attribute_name_class}}({{formatArgs(str_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
-                from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
-
                 return ExpressionStrOperation{{attribute_name_class}}(
                     str_arg=self.subnode_expression, source_ref=source_ref
                 )
             else:
-                from .StrNodes import ExpressionStrOperation{{python3_operation_name.title()}}
-
                 return ExpressionStrOperation{{python3_operation_name.title()}}(
                     str_arg=self.subnode_expression, source_ref=source_ref
                 )
@@ -248,22 +260,16 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
 {% if str_operation_variation %}
 {% for count in reversed(str_operation_variation[1:]) %}
             {{"if" if count == str_operation_variation[-1] else "elif"}} {{str_operation_args[count-1]}} {{str_operation_arg_tests[count-1]}}:
-                from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{count+1}}
-
                 return ExpressionStrOperation{{attribute_name_class}}{{count+1}}(
                     str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
-                from .StrNodes import ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}
-
                 return ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}(
                     str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
-            from .StrNodes import ExpressionStrOperation{{attribute_name_class}}
-
             return ExpressionStrOperation{{attribute_name_class}}(
                 str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
             )
@@ -299,6 +305,19 @@ attribute_typed_classes.add(ExpressionAttributeLookupStr{{attribute_name_class}}
 
 {% if bytes_operation_version_presence %}
 from nuitka.specs.BuiltinBytesOperationSpecs import bytes_{{attribute_name}}_spec
+{% if python3_operation_name %}
+from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
+from .BytesNodes import ExpressionBytesOperation{{python3_operation_name.title()}}
+{% else %}
+{% if bytes_operation_variation %}
+{% for count in reversed(bytes_operation_variation[1:]) %}
+from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{count+1}}
+{% endfor %}
+from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}
+{% else %}
+from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
+{% endif %}
+{% endif %}
 {% endif %}
 
 class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
@@ -318,14 +337,10 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
         def wrapExpressionBytesOperation{{attribute_name_class}}({{formatArgs(bytes_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
-                from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
-
                 return ExpressionBytesOperation{{attribute_name_class}}(
                     bytes_arg=self.subnode_expression, source_ref=source_ref
                 )
             else:
-                from .BytesNodes import ExpressionBytesOperation{{python3_operation_name.title()}}
-
                 return ExpressionBytesOperation{{python3_operation_name.title()}}(
                     bytes_arg=self.subnode_expression, source_ref=source_ref
                 )
@@ -333,22 +348,16 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
 {% if bytes_operation_variation %}
 {% for count in reversed(bytes_operation_variation[1:]) %}
             {{"if" if count == bytes_operation_variation[-1] else "elif"}} {{bytes_operation_args[count-1]}} {{bytes_operation_arg_tests[count-1]}}:
-                from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{count+1}}
-
                 return ExpressionBytesOperation{{attribute_name_class}}{{count+1}}(
                     bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
-                from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}
-
                 return ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}(
                     bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:bytes_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
-            from .BytesNodes import ExpressionBytesOperation{{attribute_name_class}}
-
             return ExpressionBytesOperation{{attribute_name_class}}(
                 bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
             )
