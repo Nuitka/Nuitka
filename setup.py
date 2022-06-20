@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 # isort:start
 
+import distutils.util
 import fnmatch
 import re
 
@@ -138,7 +139,6 @@ if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-3.1.2")
 
-import distutils.util
 
 orig_byte_compile = distutils.util.byte_compile
 
