@@ -555,3 +555,55 @@ def copyDllFile(source_path, dest_path):
 
     if isMacOS() and Options.getMacOSTargetArch() != "universal":
         makeMacOSThinBinary(dest_path)
+
+
+class MacOSVersionTuple:
+    def __init__(self, v_string):
+        self.vtuple = MacOSVersionTuple.version_string_to_tuple(v_string)
+
+    def __lt__(self, other):
+        for i in range(max([len(self.vtuple), len(other.vtuple)])):
+            try:
+                if self.vtuple[i] < other.vtuple[i]:
+                    return True
+                elif self.vtuple[i] > other.vtuple[i]:
+                    return False
+            except IndexError:
+                return len(self.vtuple) < len(other.vtuple)
+        return False
+
+    def __repr__(self):
+        return str(self.vtuple)
+
+    def __str__(self):
+        return ".".join([str(x) for x in self.vtuple])
+
+    @staticmethod
+    def version_string_to_tuple(v_string):
+        return tuple([int(x) for x in v_string.split(".")])
+
+def getDLLVersionMacOS(path):
+    notfound = "otool not found. Please check your PATH"
+    stdout = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("otool", "-D", path),
+        absence_message=notfound
+    )
+    out = stdout.decode().strip().split("\n")
+    print(out)
+    if len(out) < 2:
+        return None
+    dll_id = out[1].strip()
+    stdout = executeToolChecked(
+        logger=postprocessing_logger,
+        command=("otool", "-L", path),
+        absence_message=notfound
+        )
+    out = stdout.decode().strip().split("\n")
+    for line in out:
+        if dll_id in line and "version" in line:
+            try:
+                version_string = re.search(r"current version (.*)\)", line).group(1)
+                return MacOSVersionTuple(version_string)
+            except AttributeError:
+                print(line)

@@ -88,6 +88,7 @@ from nuitka.utils.SharedLibraries import (
     getWindowsDLLVersion,
     otool_usage,
     setSharedLibraryRPATH,
+    getDLLVersionMacOS,
 )
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
@@ -104,44 +105,6 @@ def loadCodeObjectData(precompiled_filename):
 
 
 module_names = set()
-
-import subprocess
-import re
-
-class VersionTuple:
-    def __init__(self, v_string):
-        self.vtuple = version_string_to_tuple(v_string)
-    
-    def __lt__(self, other):
-        for i in range(max([len(self.vtuple), len(other.vtuple)])):
-            try:
-                if self.vtuple[i] < other.vtuple[i]:
-                    return True
-                elif self.vtuple[i] > other.vtuple[i]:
-                    return False
-            except IndexError:
-                return len(self.vtuple) < len(other.vtuple)
-        return False
-
-def get_dll_version(path):
-    proc = subprocess.Popen(f"otool -D {path}", shell=True, stdout=subprocess.PIPE)
-    out = proc.stdout.readlines()
-    if len(out) < 2:
-        return None
-    dll_id = out[1].decode().strip()
-    proc = subprocess.Popen(f"otool -L {path}", shell=True, stdout=subprocess.PIPE)
-    out = proc.stdout.readlines()
-    for line in out:
-        line = line.decode()
-        if dll_id in line and "version" in line:
-            try:
-                version_string = re.search(r"current version (.*)\)", line).group(1)
-                return VersionTuple(version_string)
-            except AttributeError:
-                print(line)
-
-def version_string_to_tuple(v_string):
-    return tuple([int(x) for x in v_string.split(".")])
 
 
 def _detectedPrecompiledFile(filename, module_name, result, user_provided, technical):
@@ -1212,7 +1175,7 @@ def _fixupBinaryDLLPathsMacOS(
     # There may be nothing to do, in case there are no DLLs.
     if not dll_map:
         return
-    
+
 
     had_self, rpath_map = _detectBinaryPathDLLsMacOS(
         original_dir=os.path.dirname(original_location),
@@ -1234,7 +1197,7 @@ def _fixupBinaryDLLPathsMacOS(
                 break
         else:
             dist_path = None
-	
+
         if dist_path is None:
             inclusion_logger.sysexit(
                 """\
@@ -1313,11 +1276,12 @@ def _removeDuplicateDlls(used_dlls):
                 duplicate_dlls.setdefault(dll_filename2, []).append(dll_filename1)
 
                 continue
+
+            # Check file versions on MacOS
             if Utils.isMacOS():
-            # Check file versions
-                dll_version1 = get_dll_version(dll_filename1)
-                dll_version2 = get_dll_version(dll_filename2)
-                
+                dll_version1 = getDLLVersionMacOS(dll_filename1)
+                dll_version2 = getDLLVersionMacOS(dll_filename2)
+
                 if dll_version1 < dll_version2:
                     del used_dlls[dll_filename1]
                     removed_dlls.add(dll_filename1)
