@@ -38,6 +38,8 @@ from .ExpressionShapeMixins import (
     ExpressionFrozensetShapeExactMixin,
     ExpressionListShapeExactMixin,
     ExpressionSetShapeExactMixin,
+    ExpressionStrDerivedShapeMixin,
+    ExpressionStrOrUnicodeDerivedShapeMixin,
     ExpressionTupleShapeExactMixin,
 )
 from .NodeMakingHelpers import (
@@ -201,7 +203,9 @@ class ExpressionBuiltinUnicodeBase(
         )
 
 
-class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinStrP2(
+    ExpressionStrOrUnicodeDerivedShapeMixin, ExpressionBuiltinTypeBase
+):
     """Python2 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P2"
@@ -245,7 +249,9 @@ class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
         return tshape_unicode_derived
 
 
-class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
+class ExpressionBuiltinStrP3(
+    ExpressionStrDerivedShapeMixin, ExpressionBuiltinUnicodeBase
+):
     """Python3 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P3"
