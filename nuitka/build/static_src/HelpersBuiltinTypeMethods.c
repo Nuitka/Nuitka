@@ -46,7 +46,7 @@ static PyObject *str_builtin_expandtabs = NULL;
 static PyObject *str_builtin_find = NULL;
 #endif
 #if PYTHON_VERSION < 0x300
-static PyObject *str_builtin_format = NULL;
+PyObject *str_builtin_format = NULL;
 #endif
 #if PYTHON_VERSION < 0x300
 static PyObject *str_builtin_index = NULL;
@@ -350,7 +350,7 @@ static PyObject *unicode_builtin_encode = NULL;
 static PyObject *unicode_builtin_endswith = NULL;
 static PyObject *unicode_builtin_expandtabs = NULL;
 static PyObject *unicode_builtin_find = NULL;
-static PyObject *unicode_builtin_format = NULL;
+PyObject *unicode_builtin_format = NULL;
 #if PYTHON_VERSION >= 0x300
 static PyObject *unicode_builtin_format_map = NULL;
 #endif

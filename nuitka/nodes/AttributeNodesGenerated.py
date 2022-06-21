@@ -49,6 +49,7 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_encode_spec,
     str_endswith_spec,
     str_find_spec,
+    str_format_spec,
     str_index_spec,
     str_isalnum_spec,
     str_isalpha_spec,
@@ -76,6 +77,11 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
 )
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
+from .BytesNodes import (
+    ExpressionBytesOperationDecode1,
+    ExpressionBytesOperationDecode2,
+    ExpressionBytesOperationDecode3,
+)
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
     ExpressionDictOperationClear,
@@ -119,6 +125,7 @@ from .StrNodes import (
     ExpressionStrOperationFind2,
     ExpressionStrOperationFind3,
     ExpressionStrOperationFind4,
+    ExpressionStrOperationFormat,
     ExpressionStrOperationIndex2,
     ExpressionStrOperationIndex3,
     ExpressionStrOperationIndex4,
@@ -817,8 +824,6 @@ class ExpressionAttributeLookupBytesDecode(
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         def wrapExpressionBytesOperationDecode(encoding, errors, source_ref):
             if errors is not None:
-                from .BytesNodes import ExpressionBytesOperationDecode3
-
                 return ExpressionBytesOperationDecode3(
                     bytes_arg=self.subnode_expression,
                     encoding=encoding,
@@ -826,16 +831,12 @@ class ExpressionAttributeLookupBytesDecode(
                     source_ref=source_ref,
                 )
             elif encoding is not None:
-                from .BytesNodes import ExpressionBytesOperationDecode2
-
                 return ExpressionBytesOperationDecode2(
                     bytes_arg=self.subnode_expression,
                     encoding=encoding,
                     source_ref=source_ref,
                 )
             else:
-                from .BytesNodes import ExpressionBytesOperationDecode1
-
                 return ExpressionBytesOperationDecode1(
                     bytes_arg=self.subnode_expression, source_ref=source_ref
                 )
@@ -1338,7 +1339,29 @@ class ExpressionAttributeLookupStrFormat(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationFormat is not yet implemented
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        def wrapExpressionStrOperationFormat(args, pairs, source_ref):
+            return ExpressionStrOperationFormat(
+                str_arg=self.subnode_expression,
+                args=args,
+                pairs=makeKeyValuePairExpressionsFromKwArgs(pairs),
+                source_ref=source_ref,
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationFormat,
+            builtin_spec=str_format_spec,
+        )
+
+        return result, "new_expression", "Call to 'format' of str recognized."
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrFormat)

@@ -497,12 +497,12 @@ def generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionMakeDict() and call_args.isExpressionMakeTuple()
                 ):
                     # None are constant, pass as args array split keyword values.
-                    _getCallCodePosVariableKeywordVariableArgs(
+                    getCallCodePosVariableKeywordVariableArgs(
                         to_name=result_name,
-                        called_name=called_name,
                         expression=expression,
-                        call_args=call_args,
-                        call_kw=call_kw,
+                        called_name=called_name,
+                        call_args=call_args.subnode_elements,
+                        pairs=call_kw.subnode_pairs,
                         emit=emit,
                         context=context,
                     )
@@ -908,16 +908,76 @@ def _getCallCodePosConstKeywordVariableArgs(
     context.addCleanupTempName(to_name)
 
 
-def _getCallCodePosVariableKeywordVariableArgs(
-    to_name, called_name, expression, call_args, call_kw, emit, context
+def getCallCodePosVariableArgs(
+    to_name, expression, called_name, call_args, emit, context
 ):
-    # More details, pylint: disable=too-many-locals
+    call_arg_names = []
+
+    for count, call_arg_element in enumerate(call_args):
+        call_arg_name = context.allocateTempName("kw_call_arg_value_%d" % count)
+
+        generateExpressionCode(
+            to_name=call_arg_name,
+            expression=call_arg_element,
+            emit=emit,
+            context=context,
+        )
+
+        call_arg_names.append(call_arg_name)
+
+    args_count = len(call_args)
+
+    quick_mixed_calls_used.add((args_count, False, True))
+
+    emitLineNumberUpdateCode(expression, emit, context)
+
+    emit(
+        """\
+{
+    PyObject *args[] = {%(call_arg_names)s};
+    %(to_name)s = CALL_FUNCTION_WITH_ARGS%(args_count)d(%(called_name)s, args);
+}
+"""
+        % {
+            "to_name": to_name,
+            "called_name": called_name,
+            "call_arg_names": ", ".join(
+                str(call_arg_name) for call_arg_name in call_arg_names
+            ),
+            "args_count": args_count,
+        }
+    )
+
+    getErrorExitCode(
+        check_name=to_name,
+        release_names=(called_name,) + tuple(call_arg_names),
+        emit=emit,
+        context=context,
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def getCallCodePosVariableKeywordVariableArgs(
+    to_name, expression, called_name, call_args, pairs, emit, context
+):
+    # Many details for this call variant, pylint: disable=too-many-locals
+
+    if not pairs:
+        return getCallCodePosVariableArgs(
+            to_name=to_name,
+            expression=expression,
+            called_name=called_name,
+            call_args=call_args,
+            emit=emit,
+            context=context,
+        )
 
     kw_names = []
 
     call_arg_names = []
 
-    for count, call_arg_element in enumerate(call_args.subnode_elements):
+    for count, call_arg_element in enumerate(call_args):
         call_arg_name = context.allocateTempName("kw_call_arg_value_%d" % count)
 
         generateExpressionCode(
@@ -931,7 +991,7 @@ def _getCallCodePosVariableKeywordVariableArgs(
 
     dict_value_names = []
 
-    for count, pair in enumerate(call_kw.subnode_pairs):
+    for count, pair in enumerate(pairs):
         kw_names.append(pair.getKeyCompileTimeConstant())
 
         dict_value_name = context.allocateTempName("kw_call_dict_value_%d" % count)
@@ -946,7 +1006,7 @@ def _getCallCodePosVariableKeywordVariableArgs(
 
         dict_value_names.append(dict_value_name)
 
-    args_count = len(call_args.subnode_elements)
+    args_count = len(call_args)
 
     quick_mixed_calls_used.add((args_count, False, True))
 
@@ -962,15 +1022,15 @@ def _getCallCodePosVariableKeywordVariableArgs(
 """
         % {
             "to_name": to_name,
+            "called_name": called_name,
             "call_arg_names": ", ".join(
                 str(call_arg_name) for call_arg_name in call_arg_names
             ),
             "kw_value_names": ", ".join(
                 str(dict_value_name) for dict_value_name in dict_value_names
             ),
-            "kw_size": len(call_kw.subnode_pairs),
+            "kw_size": len(pairs),
             "args_count": args_count,
-            "called_name": called_name,
             "kw_names": context.getConstantCode(tuple(kw_names)),
         }
     )

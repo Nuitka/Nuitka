@@ -2124,11 +2124,7 @@ def makeHelperCalls():
 
 
 def _makeHelperBuiltinTypeAttributes(
-    type_prefix,
-    type_name,
-    python2_methods,
-    python3_methods,
-    emit_c,
+    type_prefix, type_name, python2_methods, python3_methods, emit_c, emit_h
 ):
     # many cases to deal with, pylint: disable=too-many-branches
 
@@ -2136,19 +2132,34 @@ def _makeHelperBuiltinTypeAttributes(
         return "%s_builtin_%s" % (type_prefix, method_name)
 
     for method_name in sorted(set(python2_methods + python3_methods)):
+        is_public = method_name in ("format",)
+
         if method_name in python2_methods and method_name not in python3_methods:
             emit_c("#if PYTHON_VERSION < 0x300")
+            if is_public:
+                emit_h("#if PYTHON_VERSION < 0x300")
             needs_endif = True
         elif method_name not in python2_methods and method_name in python3_methods:
             emit_c("#if PYTHON_VERSION >= 0x300")
+            if is_public:
+                emit_h("#if PYTHON_VERSION >= 0x300")
             needs_endif = True
         else:
             needs_endif = False
 
-        emit_c("static PyObject *%s = NULL;" % getVarName(method_name))
+        if not is_public:
+            emit_c("static")
+
+        emit_c("PyObject *%s = NULL;" % getVarName(method_name))
+
+        if is_public:
+            emit_h("extern PyObject *%s;" % getVarName(method_name))
 
         if needs_endif:
             emit_c("#endif")
+
+            if is_public:
+                emit_h("#endif")
 
     if not python3_methods:
         emit_c("#if PYTHON_VERSION < 0x300")
@@ -2303,18 +2314,10 @@ def makeHelperBuiltinTypeMethods():
             emitIDE(emit)
 
             _makeHelperBuiltinTypeAttributes(
-                "str",
-                "PyString_Type",
-                python2_str_methods,
-                (),
-                emit_c,
+                "str", "PyString_Type", python2_str_methods, (), emit_c, emit_h
             )
             _makeHelperBuiltinTypeAttributes(
-                "bytes",
-                "PyBytes_Type",
-                (),
-                python3_bytes_methods,
-                emit_c,
+                "bytes", "PyBytes_Type", (), python3_bytes_methods, emit_c, emit_h
             )
             _makeHelperBuiltinTypeAttributes(
                 "unicode",
@@ -2322,6 +2325,7 @@ def makeHelperBuiltinTypeMethods():
                 python2_unicode_methods,
                 python3_str_methods,
                 emit_c,
+                emit_h,
             )
             _makeHelperBuiltinTypeAttributes(
                 "dict",
@@ -2329,6 +2333,7 @@ def makeHelperBuiltinTypeMethods():
                 python2_dict_methods,
                 python3_dict_methods,
                 emit_c,
+                emit_h,
             )
 
             template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
