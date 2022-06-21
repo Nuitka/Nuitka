@@ -164,14 +164,6 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 )
 """
 
-attribute_shape_empty[
-    "format", "tshape_str"
-] = """lambda source_ref: self.subnode_expression"""
-
-attribute_shape_empty[
-    "format", "tshape_unicode"
-] = """lambda source_ref: self.subnode_expression"""
-
 
 def emitGenerationWarning(emit, template_name):
     emit(

@@ -133,9 +133,7 @@ str_count_spec = StrMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2
 )
 
-# str_format_spec = StrMethodSpec(
-#     "format", list_star_arg="args", dict_star_arg="pairs"
-# )
+str_format_spec = StrMethodSpec("format", list_star_arg="args", dict_star_arg="pairs")
 
 str_capitalize_spec = StrMethodSpecNoKeywords("capitalize", arg_names=())
 str_upper_spec = StrMethodSpecNoKeywords("upper", arg_names=())
