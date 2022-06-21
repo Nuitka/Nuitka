@@ -160,7 +160,7 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
         constant=None,
         source_ref=source_ref
     ),
-    old_node=self.subnode_expression
+    old_node=dict_arg
 )
 """
 
