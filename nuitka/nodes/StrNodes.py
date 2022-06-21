@@ -1665,7 +1665,6 @@ class ExpressionStrOperationFormat(
 
     def __init__(self, str_arg, args, pairs, source_ref):
         assert str_arg is not None
-        assert args or pairs
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -1681,6 +1680,8 @@ class ExpressionStrOperationFormat(
         str_arg = self.subnode_str_arg
         args = self.subnode_args
         pairs = self.subnode_pairs
+
+        # TODO: Partially constant could also be propagated into there.
 
         if (
             str_arg.isCompileTimeConstant()

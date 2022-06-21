@@ -21,6 +21,7 @@
 
 from nuitka.PythonVersions import python_version
 
+from .CallCodes import getCallCodePosVariableKeywordVariableArgs
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
@@ -272,6 +273,17 @@ def generateBytesOperationCode(to_name, expression, emit, context):
 
 
 def generateStrFormatMethodCode(to_name, expression, emit, context):
-    # TODO: Make call code reusable for pairs and args expressions
-    # without them being tuple+dictionary. pylint: disable=unused-argument
-    assert False
+    if str is bytes:
+        called_name = "str_builtin_format"
+    else:
+        called_name = "unicode_builtin_format"
+
+    getCallCodePosVariableKeywordVariableArgs(
+        to_name=to_name,
+        expression=expression,
+        called_name=called_name,
+        call_args=(expression.subnode_str_arg,) + expression.subnode_args,
+        pairs=expression.subnode_pairs,
+        emit=emit,
+        context=context,
+    )
