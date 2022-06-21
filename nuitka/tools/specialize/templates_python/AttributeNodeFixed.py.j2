@@ -153,33 +153,34 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
         return self, None, None
 
 {% if dict_operation_version_presence %}
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+    @staticmethod
+    def _computeExpressionCall(call_node, dict_arg, trace_collection):
         def wrapExpressionDictOperation{{attribute_name_class}}({{formatArgs(dict_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
                 return ExpressionDictOperation{{attribute_name_class}}(
-                    dict_arg=self.subnode_expression, source_ref=source_ref
+                    dict_arg=dict_arg, source_ref=source_ref
                 )
             else:
                 return ExpressionDictOperation{{python3_operation_name.title()}}(
-                    dict_arg=self.subnode_expression, source_ref=source_ref
+                    dict_arg=dict_arg, source_ref=source_ref
                 )
 {% else %}
 {% if dict_operation_variation %}
 {% for count in reversed(dict_operation_variation[1:]) %}
             {{"if" if count == dict_operation_variation[-1] else "elif"}} {{dict_operation_args[count-1]}} {{dict_operation_arg_tests[count-1]}}:
                 return ExpressionDictOperation{{attribute_name_class}}{{count+1}}(
-                    dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:count], starting=False)}}, source_ref=source_ref
+                    dict_arg=dict_arg {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 return ExpressionDictOperation{{attribute_name_class}}{{dict_operation_variation[0]+1}}(
-                    dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:dict_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                    dict_arg=dict_arg {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args[:dict_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
             return ExpressionDictOperation{{attribute_name_class}}(
-                dict_arg=self.subnode_expression {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args, starting=False)}}, source_ref=source_ref
+                dict_arg=dict_arg {{formatCallArgs(dict_operation_node_arg_mapping, dict_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
 {% endif %}
@@ -202,6 +203,22 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
             change_tags = "new_expression",
             change_desc = "Call to '{{attribute_name}}' of dictionary recognized."
         )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -245,33 +262,34 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
         return self, None, None
 
 {% if str_operation_version_presence %}
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
         def wrapExpressionStrOperation{{attribute_name_class}}({{formatArgs(str_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
                 return ExpressionStrOperation{{attribute_name_class}}(
-                    str_arg=self.subnode_expression, source_ref=source_ref
+                    str_arg=str_arg, source_ref=source_ref
                 )
             else:
                 return ExpressionStrOperation{{python3_operation_name.title()}}(
-                    str_arg=self.subnode_expression, source_ref=source_ref
+                    str_arg=str_arg, source_ref=source_ref
                 )
 {% else %}
 {% if str_operation_variation %}
 {% for count in reversed(str_operation_variation[1:]) %}
             {{"if" if count == str_operation_variation[-1] else "elif"}} {{str_operation_args[count-1]}} {{str_operation_arg_tests[count-1]}}:
                 return ExpressionStrOperation{{attribute_name_class}}{{count+1}}(
-                    str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
+                    str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 return ExpressionStrOperation{{attribute_name_class}}{{str_operation_variation[0]+1}}(
-                    str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                    str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args[:str_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
             return ExpressionStrOperation{{attribute_name_class}}(
-                str_arg=self.subnode_expression {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
+                str_arg=str_arg {{formatCallArgs(str_operation_node_arg_mapping, str_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
 {% endif %}
@@ -290,6 +308,22 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
         )
 
         return result, "new_expression", "Call to '{{attribute_name}}' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -333,33 +367,34 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
         return self, None, None
 
 {% if bytes_operation_version_presence %}
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+    @staticmethod
+    def _computeExpressionCall(call_node, bytes_arg, trace_collection):
         def wrapExpressionBytesOperation{{attribute_name_class}}({{formatArgs(bytes_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
             if str is bytes:
                 return ExpressionBytesOperation{{attribute_name_class}}(
-                    bytes_arg=self.subnode_expression, source_ref=source_ref
+                    bytes_arg=bytes_arg, source_ref=source_ref
                 )
             else:
                 return ExpressionBytesOperation{{python3_operation_name.title()}}(
-                    bytes_arg=self.subnode_expression, source_ref=source_ref
+                    bytes_arg=bytes_arg, source_ref=source_ref
                 )
 {% else %}
 {% if bytes_operation_variation %}
 {% for count in reversed(bytes_operation_variation[1:]) %}
             {{"if" if count == bytes_operation_variation[-1] else "elif"}} {{bytes_operation_args[count-1]}} {{bytes_operation_arg_tests[count-1]}}:
                 return ExpressionBytesOperation{{attribute_name_class}}{{count+1}}(
-                    bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:count], starting=False)}}, source_ref=source_ref
+                    bytes_arg=bytes_arg {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:count], starting=False)}}, source_ref=source_ref
                 )
 {% endfor %}
             else:
                 return ExpressionBytesOperation{{attribute_name_class}}{{bytes_operation_variation[0]+1}}(
-                    bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:bytes_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                    bytes_arg=bytes_arg {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args[:bytes_operation_variation[0]], starting=False)}}, source_ref=source_ref
                 )
 
 {% else %}
             return ExpressionBytesOperation{{attribute_name_class}}(
-                bytes_arg=self.subnode_expression {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
+                bytes_arg=bytes_arg {{formatCallArgs(bytes_operation_node_arg_mapping, bytes_operation_args, starting=False)}}, source_ref=source_ref
             )
 {% endif %}
 {% endif %}
@@ -375,6 +410,22 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
         )
 
         return result, "new_expression", "Call to '{{attribute_name}}' of bytes recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        bytes_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, bytes_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)

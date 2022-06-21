@@ -160,7 +160,7 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
         constant=None,
         source_ref=source_ref
     ),
-    old_node=self.subnode_expression
+    old_node=dict_arg
 )
 """
 
@@ -231,6 +231,8 @@ def makeAttributeNodes():
         emit(
             "from nuitka.nodes.KeyValuePairNodes import makeKeyValuePairExpressionsFromKwArgs"
         )
+
+        emit("from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup")
 
         # TODO: Maybe generate its effect instead of using a base class.
         emit("from .NodeBases import SideEffectsFromChildrenMixin")
