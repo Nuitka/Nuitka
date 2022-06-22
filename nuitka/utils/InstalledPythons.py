@@ -156,7 +156,7 @@ def _getPythonInstallPathsWindows(python_version):
                         os.path.join(install_dir, "python.exe")
                     )
 
-                    if candidate not in seen:
+                    if os.path.exists(candidate) and candidate not in seen:
                         yield candidate
                         seen.add(candidate)
 
