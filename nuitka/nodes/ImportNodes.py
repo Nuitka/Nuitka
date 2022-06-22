@@ -775,10 +775,7 @@ class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
                     # raise ValueError("attempted relative import beyond top-level package")
             return "%s.%s" % (package_name[:dot], module_name)
 
-        if package_name:
-            return "%s.%s" % (package_name, module_name)
-        else:
-            return module_name
+        return module_name
 
     def computeExpression(self, trace_collection):
         module_name = self.subnode_name
