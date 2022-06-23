@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -307,7 +307,7 @@ def matchCall(
     star_list_single_arg,
     star_dict_arg,
     num_defaults,
-    num_posonly,
+    num_pos_only,
     positional,
     pairs,
     improved=False,
@@ -321,7 +321,7 @@ def matchCall(
         star_list_arg - name of star list argument if any
         star_dict_arg - name of star dict argument if any
         num_defaults - amount of arguments that have default values
-        num_posonly - amount of arguments that must be given by position
+        num_pos_only - amount of arguments that must be given by position
         positional - tuple of argument values given for simulated call
         pairs - tuple of pairs arg argument name and argument values
         improved - (bool) should we give better errors than CPython or not.
@@ -409,7 +409,7 @@ def matchCall(
 
                 raise TooManyArguments(TypeError(message))
             else:
-                if arg_index < num_posonly:
+                if arg_index < num_pos_only:
                     message = "'%s' is an invalid keyword argument for %s()" % (
                         pair[0],
                         func_name,

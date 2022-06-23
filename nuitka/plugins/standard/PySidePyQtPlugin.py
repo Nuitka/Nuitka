@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,12 +49,14 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     # For overload in the derived bindings plugin.
     binding_name = None
 
+    warned_about = set()
+
     def __init__(self, qt_plugins, no_qt_translations):
         self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins.split(","))
         self.no_qt_translations = no_qt_translations
 
-        self.webengine_done_binaries = False
-        self.webengine_done_data = False
+        self.web_engine_done_binaries = False
+        self.web_engine_done_data = False
         self.qt_plugins_dirs = None
 
         self.binding_package_name = ModuleName(self.binding_name)
@@ -73,11 +75,9 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
 
         if active_qt_plugin_name is not None:
             self.sysexit(
-                "Error, confliciting plugin '%s', you can only have one enabled."
+                "Error, conflicting plugin '%s', you can only have one enabled."
                 % active_qt_plugin_name
             )
-
-        self.warned_about = set()
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -282,7 +282,7 @@ import %(binding_name)s.QtCore
         return self._getQtInformation().translations_path
 
     def _getResourcesPath(self):
-        """Get the path to the Qt webengine resources."""
+        """Get the path to the Qt web engine resources."""
         return os.path.join(self._getQtInformation().data_path, "resources")
 
     def _getLibraryExecutablePath(self):
@@ -344,7 +344,7 @@ import %(binding_name)s.QtCore
     def _getQmlFileList(self, dlls):
         qml_plugin_dir = self._getQmlDirectory()
 
-        # List all file types of the QML plugin folder that are datafiles and not DLLs.
+        # List all file types of the QML plugin folder that are data files and not DLLs.
         datafile_suffixes = (
             ".qml",
             ".qmlc",
@@ -659,8 +659,8 @@ if not path.startswith(__nuitka_binary_dir):
                     reason="Qt QML datafile",
                     tags="qml",
                 )
-        elif self.isQtWebEngineModule(full_name) and not self.webengine_done_data:
-            self.webengine_done_data = True
+        elif self.isQtWebEngineModule(full_name) and not self.web_engine_done_data:
+            self.web_engine_done_data = True
 
             # TODO: This is probably wrong/not needed on macOS
             if not isMacOS():
@@ -803,8 +803,8 @@ Prefix = .
                         dest_path=os.path.basename(dll_path),
                         package_name=full_name,
                     )
-        elif self.isQtWebEngineModule(full_name) and not self.webengine_done_binaries:
-            self.webengine_done_binaries = True  # prevent multiple copies
+        elif self.isQtWebEngineModule(full_name) and not self.web_engine_done_binaries:
+            self.web_engine_done_binaries = True  # prevent multiple copies
             self.info("Including QtWebEngine executable.")
 
             qt_web_engine_dir = self._getLibraryExecutablePath()
@@ -1165,3 +1165,32 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
             """\
 Support for PyQt6 is experimental, use PySide6 if you can."""
         )
+
+
+class NuitkaPluginNoQt(NuitkaPluginBase):
+    """This is a plugins for suppression of all Qt binding plugins."""
+
+    plugin_name = "no-qt"
+    plugin_desc = "Disable all Qt bindings for standalone mode."
+
+    warned_about = set()
+
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
+        top_package_name = module_name.getTopLevelPackageName()
+
+        if isStandaloneMode():
+            if top_package_name in _qt_binding_names:
+                if top_package_name not in self.warned_about:
+                    self.info(
+                        """\
+Unwanted import of '%(unwanted)s' that is forbidden encountered, preventing
+its use. As a result an "ImportError" might be given at run time. Uninstall
+it for full compatible behavior with the uncompiled code to debug it."""
+                        % {
+                            "unwanted": top_package_name,
+                        }
+                    )
+
+                    self.warned_about.add(top_package_name)
+
+                return (False, "Not included due to all Qt bindings disallowed.")

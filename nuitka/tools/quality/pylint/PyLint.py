@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -86,10 +86,10 @@ def checkVersion():
 # W0632: Possible unbalanced tuple unpacking with sequence defined at ...
 # It's not really good at guessing these things.
 #
-# W1504: Using type() instead of isinstance() for a typecheck.
+# W1504: Using type() instead of isinstance() for typechecking.
 # Nuitka is all about exact type checks, so this doesn't apply
 #
-# C0123: Using type() instead of isinstance() for a typecheck.
+# C0123: Using type() instead of isinstance() for typechecking.
 # Nuitka is all about exact type checks, so this doesn't apply
 #
 # C0413: Import "..." should be placed at the top of the module
@@ -140,9 +140,14 @@ def checkVersion():
 # We need to be backward compatible for Python versions that do not have
 # it.
 
+# super-with-arguments
+# Keeping code portable to Python2 is still good.
+
 
 def getOptions():
     checkVersion()
+
+    # spell-checker: ignore setrecursionlimit,rcfile
 
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())

@@ -1,0 +1,1562 @@
+---
+# yamllint disable rule:line-length
+# too many spelling things, spell-checker: disable
+- module-name: "boto3"
+  data-files:
+    dirs:
+      - "data"
+
+- module-name: "botocore"
+  data-files:
+    dirs:
+      - "data"
+    patterns:
+      - "cacert.pem"
+
+- module-name: "site"
+  data-files:
+    patterns:
+      - "orig-prefix.txt"
+
+- module-name: "nose.core"
+  data-files:
+    patterns:
+      - "usage.txt"
+
+- module-name: "scrapy"
+  data-files:
+    patterns:
+      - "VERSION"
+
+- module-name: "dask"
+  data-files:
+    patterns:
+      - "dask.yaml"
+
+- module-name: "cairocffi"
+  data-files:
+    patterns:
+      - "VERSION"
+
+- module-name: "cairosvg"
+  data-files:
+    patterns:
+      - "VERSION"
+
+- module-name: "weasyprint"
+  data-files:
+    dirs:
+      - "css"
+    patterns:
+      - "VERSION"
+
+- module-name: "tinycss2"
+  data-files:
+    patterns:
+      - "VERSION"
+
+- module-name: "certifi"
+  data-files:
+    patterns:
+      - "cacert.pem"
+
+- module-name: "importlib_resources"
+  data-files:
+    patterns:
+      - "version.txt"
+
+- module-name: "importlib_resources._compat"
+  anti-bloat:
+    - description: "workaround file reader check"
+      replacements_plain:
+        "path.exists()": "True"
+
+- module-name: "moto"
+  data-files:
+    patterns:
+      - "ec2/resources/instance_types.json"
+      - "ec2/resources/amis.json"
+  anti-bloat:
+    - description: "remove pytest testing framework"
+      replacements:
+        "imp.find_module('pytest')": "'None'"
+
+- module-name: "skimage"
+  data-files:
+    dirs:
+      - "data"
+    patterns:
+      - "io/_plugins/fits_plugin*.ini"
+
+- module-name: "skimage.feature._orb_descriptor_positions"
+  data-files:
+    patterns:
+      - "orb_descriptor_positions.txt"
+
+- module-name: "lib2to3.pgen2"
+  data-files:
+    dest_path: "lib2to3"
+    patterns:
+      - "../*.pickle"
+
+- module-name: "eel"
+  data-files:
+    patterns:
+      - "eel.js"
+
+- module-name: "Cryptodome.Util._raw_api"
+  data-files:
+    empty_dirs:
+      - "."
+
+- module-name: "Crypto.Util._raw_api"
+  data-files:
+    empty_dirs:
+      - "."
+
+- module-name: "pendulum"
+  data-files:
+    empty_dir_structures:
+      - "locales"
+
+- module-name: "sklearn.datasets"
+  data-files:
+    dirs:
+      - "data"
+      - "descr"
+
+- module-name: "osgeo"
+  data-files:
+    dirs:
+      - "data"
+
+- module-name: "pyphen"
+  data-files:
+    dirs:
+      - "dictionaries"
+  anti-bloat:
+    - description: "remove doctest usage"
+
+- module-name: "pytz"
+  data-files:
+    dirs:
+      - "zoneinfo"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "pytzdata"
+  data-files:
+    dirs:
+      - "zoneinfo"
+
+- module-name: "tzdata"
+  data-files:
+    dirs:
+      - "zones"
+
+- module-name: "pywt"
+  data-files:
+    dirs:
+      - "data"
+
+- module-name: "xarray"
+  data-files:
+    dirs:
+      - "static"
+
+- module-name: "gooey"
+  data-files:
+    dirs:
+      - "languages"
+      - "images"
+
+- module-name: "jsonschema"
+  data-files:
+    dirs:
+      - "schemas"
+
+- module-name: "xmlschema"
+  data-files:
+    dirs:
+      - "schemas"
+
+- module-name: "openapi_spec_validator"
+  data-files:
+    dirs:
+      - "resources/schemas"
+
+- module-name: "kivy"
+  data-files:
+    dirs:
+      - "data"
+
+- module-name: "kivymd"
+  data-files:
+    dirs:
+      - "fonts"
+      - "images"
+
+- module-name: "arcade"
+  data-files:
+    dirs:
+      - "resources"
+
+- module-name: "seedir.printing"
+  data-files:
+    patterns:
+      - "words.txt"
+
+- module-name: "pygsheets"
+  data-files:
+    dirs:
+      - "data"
+
+- module-name: "accessible_output2"
+  data-files:
+    dirs:
+      - "lib"
+
+- module-name: "babel"
+  data-files:
+    dirs:
+      - "locale-data"
+    patterns:
+      - "global.dat"
+
+- module-name: "frozendict"
+  data-files:
+    patterns:
+      - "VERSION"
+
+- module-name: "sound_lib"
+  data-files:
+    dirs:
+      - "lib"
+
+- module-name: "pkg_resources._vendor.jaraco.text"
+  anti-bloat:
+    - description: "remove useless data file dependency"
+      replacements_plain:
+        "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()": ""
+
+- module-name: "jaraco.text"
+  data-files:
+    patterns:
+      - "Lorem ipsum.txt"
+    control_tags:
+      - anti-bloat
+
+- module-name: "shapely.geos"
+  dlls:
+    - dest_path: "shapely"
+      by_code:
+        setup_code: "import shapely.geos"
+        dll_filename_code: "shapely.geos._lgeos._name"
+
+- module-name: "vosk"
+  dlls:
+    - from_filenames:
+        prefixes:
+          - "libvosk"
+
+- module-name: "tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op"
+  dlls:
+    - from_filenames:
+        prefixes:
+          - "_audio_microfrontend_op"
+
+- module-name: "sklearn._distributor_init"
+  dlls:
+    - from_filenames:
+        relative_path: ".libs"
+        prefixes:
+          - ""
+  anti-bloat:
+    - description: "remove site module and distutils usage"
+      replacements:
+        "_site.ENABLE_USER_SITE": "'False'"
+        "if _running_from_pip_package()": "'if False'"
+        "import distutils as _distutils": "'_distutils = None'"
+        "import site as _site": "'_site = None'"
+  implicit-imports:
+    depends:
+      - ".python.keras"
+
+- module-name: "tensorflow"
+  dlls:
+    - from_filenames:
+        relative_path: "core/platform"
+        prefixes:
+          - "_cpu_feature_guard"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "import distutils as _distutils": "'_distutils = None'"
+        "import site as _site": "'_site = None'"
+        "if _running_from_pip_package()": "'if False'"
+        "_site.ENABLE_USER_SITE": "'False'"
+
+- module-name: "clr"
+  dlls:
+    - from_filenames:
+        prefixes:
+          - "Python.Runtime"
+
+- module-name: "torchvision"
+  dlls:
+    - from_filenames:
+        prefixes:
+          - "zlib"
+          - "libjpeg"
+          - "libpng*"
+
+- module-name: "psutil"
+  anti-bloat:
+    - description: "resolve platform specific imports at compile time"
+      context:
+        - "import psutil"
+      replacements:
+        "from ._common import AIX": "'AIX = %r' % psutil.AIX"
+        "from ._common import BSD": "'BSD = %r' % psutil.BSD"
+        "from ._common import FREEBSD": "'FREEBSD = %r' % + psutil.FREEBSD"
+        "from ._common import LINUX": "'LINUX = %r' % + psutil.LINUX"
+        "from ._common import MACOS": "'MACOS = %r' % + psutil.MACOS"
+        "from ._common import NETBSD": "'NETBSD = %r' % + psutil.NETBSD"
+        "from ._common import OPENBSD": "'OPENBSD = %r' % + psutil.OPENBSD"
+        "from ._common import OSX": "'OSX = %r' % psutil.OSX"
+        "from ._common import POSIX": "'POSIX = %r' % psutil.POSIX"
+        "from ._common import SUNOS": "'SUNOS = %r' % psutil.SUNOS"
+        "from ._common import WINDOWS": "'WINDOWS = %r' % psutil.WINDOWS"
+
+- module-name: "cffi.ffiplatform"
+  anti-bloat:
+    - description: "disable distutils hacks"
+      replacements:
+        "import setuptools": "'pass'"
+    - description: "disable distutils hacks"
+      change_function:
+        "get_extension": "un-callable"
+        "_build": "un-callable"
+      control_tags:
+        - "allow_cffi_recompiler"
+
+- module-name: "cffi.api"
+  anti-bloat:
+    - description: "disable source recompile"
+      change_function:
+        "emit_python_code": "un-callable"
+        "emit_c_code": "un-callable"
+        "compile": "un-callable"
+        "distutils_extension": "un-callable"
+      control_tags:
+        - "allow_cffi_recompiler"
+
+- module-name: "sklearn.random_projection"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      replacements:
+        "from numpy.testing import assert_equal": "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
+
+- module-name: "sklearn.utils._testing"
+  anti-bloat:
+    - description: "remove pytest testing framework"
+      replacements_plain:
+        '_dummy = TestCase("__init__")': ""
+        "assert_dict_equal = _dummy.assert_dict_equal": "def assert_dict_equal(*args, **kwargs): pass"
+        "assert_raises = _dummy.assertRaises": "def assert_raises(*args, **kwargs): pass"
+        "assert_raises_regex = _dummy.assert_raises_regex": "def assert_dict_equal(*args, **kwargs): pass"
+        "from unittest import TestCase": ""
+        "import pytest": "raise ImportError"
+        "import unittest": ""
+        "unittest.case.SkipTest": "None"
+
+- module-name: "skimage._shared.tester"
+  anti-bloat:
+    - description: "remove skimage testing framework"
+      module_code: |
+        class PytestTester:
+          def __init__(self, name):
+            pass
+
+- module-name: "matplotlib"
+  anti-bloat:
+    - description: "remove setuptools and pytest testing framework reference"
+      change_function:
+        "_init_tests": "'None'"
+        "test": "'None'"
+        "_get_version": "'(lambda : _version.version)'"
+      replacements:
+        '(root / ".git").exists()"': "'None'"
+        "test.__test__ = False": ""
+
+- module-name: "matplotlib.backend_bases"
+  anti-bloat:
+    - description: "remove IPython reference"
+      change_function:
+        "_fix_ipython_backend2gui": "'(lambda cls: None)'"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "matplotlib.pyplot"
+  anti-bloat:
+    - description: "remove IPython reference"
+      change_function:
+        "install_repl_displayhook": "'(lambda: None)'"
+        "uninstall_repl_displayhook": "'(lambda: None)'"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "matplotlib.figure"
+  anti-bloat:
+    - description: "remove IPython reference"
+      change_function:
+        "_repr_html_": "un-callable"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "PIL.ImageShow"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements:
+        "from IPython.display import display as ipython_display": "'raise ImportError'"
+
+- module-name: "numpy.ctypeslib"
+  anti-bloat:
+    - description: "remove numpy.distutils references"
+      context:
+        - "import numpy.distutils.misc_util"
+      replacements:
+        "from numpy.distutils.misc_util import get_shared_lib_extension": ""
+        "get_shared_lib_extension()": "repr(numpy.distutils.misc_util.get_shared_lib_extension())"
+        "get_shared_lib_extension(is_python_ext=True)": "repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))"
+
+- module-name: "numpy.testing"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      module_code: |
+        from contextlib import contextmanager
+        class Tester:
+          test = None
+          bench = None
+
+        def assert_allclose(*args, **kwargs):
+          return True
+
+        @contextmanager
+        def suppress_warnings(forwarding_rule="always"):
+          yield
+
+        @contextmanager
+        def _assert_warns_context(warning_class, name=None):
+            yield
+
+        def assert_warns(warning_class, *args, **kwargs):
+          if not args:
+              return _assert_warns_context(warning_class)
+
+          func = args[0]
+          args = args[1:]
+          with _assert_warns_context(warning_class, name=func.__name__):
+              return func(*args, **kwargs)
+
+- module-name: "numpy._pytesttester"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      module_code: |
+        class PytestTester:
+          def __init__(self, name):
+            pass
+
+- module-name: "numpy.testing._private.pytesttester"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      module_code: |
+        class PytestTester:
+          def __init__(self, name):
+            pass
+
+- module-name: "numpy.core.overrides"
+  anti-bloat:
+    - description: "workaround numpy issues with compiled code"
+      replacements:
+        "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+        "public_api.__code__ = ": ""
+
+- module-name: "numpy.lib.utils"
+  anti-bloat:
+    - description: "remove pydoc usage"
+      replacements_plain:
+        ".pydoc.allmethods(object)": "()"
+        "import pydoc": ""
+
+- module-name: "scipy.stats.morestats"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      replacements:
+        "@setastest(False)": ""
+        "from numpy.testing.decorators import setastest": ""
+
+- module-name: "scipy.lib.numpy_compat"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      replacements:
+        "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
+        "from numpy.testing import suppress_warnings": "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+
+- module-name: "scipy._lib._numpy_compat"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      replacements:
+        "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
+        "from numpy.testing import suppress_warnings": "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+
+- module-name: "scipy._lib._testutils"
+  anti-bloat:
+    - description: "remove numpy testing framework"
+      module_code: |
+        class PytestTester:
+          def __init__(self, name):
+            pass
+
+- module-name: "scipy.integrate._quadrature"
+  anti-bloat:
+    - description: "remove useless function copying"
+      change_function:
+        "_copy_func": "'(lambda f: f)'"
+
+- module-name: "tensorflow.python.ops.distributions.distribution"
+  anti-bloat:
+    - description: "remove useless function copying"
+      change_function:
+        "_copy_fn": "'(lambda fn: fn)'"
+      replacements:
+        "class_attr_value.__doc__ = _update_docstring": "'class_attr_value___doc__ = _update_docstring'"
+
+- module-name: "tensorflow.python.framework.meta_graph"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "distutils_version.LooseVersion": "'str'"
+        "from distutils import version as distutils_version": ""
+
+- module-name: "tensorflow.python.compiler.tensorrt.utils"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements_plain:
+        "distutils_version.LooseVersion": "str"
+        ? "from distutils import version\n"
+        : "\n"
+        "from distutils import version as distutils_version": ""
+
+- module-name: "tensorflow.lite.python.convert"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
+        "import distutils.spawn": ""
+
+- module-name: "tensorflow.python.autograph.core.ag_ctx"
+  anti-bloat:
+    - description: "remove useless no-source warning"
+      replacements_plain:
+        "ag_logging.warning(": "if False: ag_logging.warning("
+
+- module-name: "gevent._util"
+  anti-bloat:
+    - description: "remove gevent release framework"
+      change_function:
+        "postreleaser_before": "'(lambda data: None)'"
+        "prereleaser_middle": "'(lambda data: None)'"
+
+- module-name: "inspect"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "sysconfig"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "ensurepip"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "ensurepip._uninstall"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "pyclbr"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "pydoc"
+  anti-bloat:
+    - description: "remove module ability to display GUI with tkinter and topics data"
+      change_function:
+        "gui": "'(lambda : None)'"
+      replacements:
+        "import pydoc_data.topics": "'raise ImportError'"
+
+- module-name: "mimetypes"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "tarfile"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "quopri"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+  implicit-imports:
+    depends:
+      - "py_compile"
+
+- module-name: "zipfile"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "gzip"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+        "main": "'(lambda: None)'"
+
+- module-name: "base64"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+        "test": "'(lambda: None)'"
+
+- module-name: "ast"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "tokenize"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "keyword"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "tabnanny"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "trace"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "uu"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "xmllib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "mhlib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "sgmllib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "imghdr"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "audiodev"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "BaseHTTPServer"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "sndhdr"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "ftplib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "pdb"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+        "help": "'(lambda: None)'"
+
+- module-name: "mailcap"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "lib2to3.pgen2.literals"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "rexec"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "modulefinder"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "StringIO"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "fpformat"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "telnetlib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "ctypes.util"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "formatter"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "pickletools"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "random"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "dis"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "threading"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "xml.sax.xmlreader.py"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "doctest"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "difflib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "Cookie"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+  implicit-imports:
+    depends:
+      - "_bootlocale"
+
+- module-name: "locale"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "binhex"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "copy"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "pickle"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+  implicit-imports:
+    standalone_macos_bundle_mode: "onefile"
+
+- module-name: "tkinter"
+  anti-bloat:
+    - description: "enhanced tk-inter in case of missing tcl"
+      context:
+        - "import textwrap"
+      control_tags:
+        - "deployment"
+      replacements:
+        "self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)": |
+          textwrap.indent("""
+          try:
+            self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+          except _tkinter.TclError as e:
+            if "usable init.tcl" not in str(e):
+              raise\n\
+            sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
+          """, "        ")
+
+- module-name: "Bastion"
+  anti-bloat:
+    - change_function:
+        "_test": "'(lambda: None)'"
+      description: "remove module ability to run as a binary"
+
+- module-name: "h5py"
+  anti-bloat:
+    - change_function:
+        "enable_ipython_completer": "'(lambda: None)'"
+        "run_tests": "'(lambda args=None: None)'"
+      description: "remove h5py testing framework and interactive IPython completer"
+
+- module-name: "pandas"
+  anti-bloat:
+    - description: "remove pandas testing framework"
+      replacements_plain:
+        "from pandas.util._tester import test": ""
+        "import pandas.testing": ""
+        "from pandas import api, arrays, errors, io, plotting, testing": "from pandas import api, arrays, errors, io, plotting"
+
+- module-name: "pandas._testing"
+  anti-bloat:
+    - change_function:
+        "ensure_clean": "'(lambda: None)'"
+        "external_error_raised": "'(lambda: None)'"
+        "network": "'(lambda: None)'"
+        "round_trip_localpath": "'(lambda: None)'"
+        "round_trip_pathlib": "'(lambda: None)'"
+      description: "remove pytest testing framework"
+
+- module-name: "pandas._testing._io"
+  anti-bloat:
+    - change_function:
+        "network": "'(lambda: None)'"
+        "round_trip_localpath": "'(lambda: None)'"
+        "round_trip_pathlib": "'(lambda: None)'"
+      description: "remove pytest testing framework"
+
+- module-name: "pandas.compat._optional"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "distutils.version.LooseVersion(version) < minimum_version": "'False'"
+        "import distutils.version": "''"
+
+- module-name: "pandas.core.computation.ops"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.io.excel._base"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "LooseVersion(xlrd.__version__)": "'xlrd.__version__'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.core.util.numba_"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': "'True'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.plotting._matplotlib.compat"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "from distutils.version import LooseVersion": "''"
+        "op(LooseVersion(mpl.__version__), LooseVersion(version))": "'op(mpl.__version__, version)'"
+
+- module-name: "pandas.core.arrays._arrow_utils"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': "'pyarrow.__version__ >= \"0.15\"'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.core.arrays.string_arrow"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'LooseVersion(pa.__version__) < "1.0.0"': "'pa.__version__ < \"1.0.0\"'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.io.parquet"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'LooseVersion(self.api.__version__) >= "0.16"': "'self.api.__version__ >= \"0.16\"'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.compat.numpy.function"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'LooseVersion(__version__) >= LooseVersion("1.17.0")': "'__version__ >= \"1.17.0\"'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.compat.numpy"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'LooseVersion("1.17")': "'\"1.17\"'"
+        'LooseVersion("1.18")': "'\"1.18\"'"
+        'LooseVersion("1.19")': "'\"1.19\"'"
+        'LooseVersion("1.20")': "'\"1.20\"'"
+        "LooseVersion(_np_version)": "'_np_version'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.io.formats.printing"
+  anti-bloat:
+    - change_function:
+        "enable_data_resource_formatter": "'(lambda enable: None)'"
+      description: "remove IPython reference"
+
+- module-name: "pandas.io.orc"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': "'pyarrow.__version__ < \"0.13.0\"'"
+        "import distutils": "''"
+
+- module-name: "pandas._libs.tslibs.fields"
+  implicit-imports:
+    depends:
+      - "pandas._config.localization"
+
+- module-name: "sphinx.util.docutils"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "__version_info__ = tuple(LooseVersion(docutils.__version__).version)": "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
+        "from distutils.version import LooseVersion": "''"
+
+- module-name: "distributed.scheduler"
+  anti-bloat:
+    - description: "remove cython support"
+      replacements:
+        "from cython import compiled": "'raise ImportError'"
+        "if compiled:": "'if False:'"
+
+- module-name: "pywt._pytesttester"
+  anti-bloat:
+    - description: "remove pywt testing framework"
+      module_code: |
+        class PytestTester:
+          def __init__(self, name):
+            pass
+
+- module-name: "feedparser.html"
+  anti-bloat:
+    - change_function:
+        "__parse_starttag": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))"
+        "goahead": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))"
+      context:
+        - "import inspect"
+        - "import textwrap"
+        - "import sgmllib"
+      description: "use SGML code more naturally"
+      replacements:
+        "__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__": "'pass'"
+        "def goahead(self, i):": "'def goahead(self, end):'"
+        "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
+
+- module-name: "certifi.core"
+  anti-bloat:
+    - description: "avoid using importlib.resources without need"
+      replacements:
+        "from importlib.resources import path as get_path, read_text": "'raise ImportError'"
+
+- module-name: "tensorboard"
+  anti-bloat:
+    - description: "remove IPython reference"
+      change_function:
+        "load_ipython_extension": "'(lambda ipython: None)'"
+        "notebook": "'(lambda: None)'"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "persistent._compat"
+  anti-bloat:
+    - description: "use own compilation for compatibility"
+      replacements:
+        "os.environ.get('PURE_PYTHON')": "'\"1\"'"
+
+- module-name: "pkg_resources"
+  anti-bloat:
+    - description: "avoid using plistlib dependency on non-macOS"
+      replacements:
+        "import plistlib": "'if sys.platform == \"darwin\": import plistlib'"
+
+- module-name: "zope.interface._compat"
+  anti-bloat:
+    - description: "remove unittest reference"
+      change_function:
+        "_skip_under_py2": "'(lambda test_method: None)'"
+        "_skip_under_py3k": "'(lambda test_method: None)'"
+      control_tags:
+        - "allow_unittest"
+
+- module-name: "eliot._traceback"
+  anti-bloat:
+    - description: "avoid useless duplication of traceback module"
+      replacements:
+        'load_module(str("_traceback_no_io"), traceback)': "'__import__(\"traceback\")'"
+
+- module-name: "tornado.util"
+  anti-bloat:
+    - description: "remove doctest usage"
+      change_function:
+        "doctests": "'(lambda: None)'"
+
+- module-name: "tornado.iostream"
+  anti-bloat:
+    - description: "remove doctest usage"
+      change_function:
+        "doctests": "'(lambda: None)'"
+
+- module-name: "tornado.httputil"
+  anti-bloat:
+    - description: "remove doctest usage"
+      change_function:
+        "doctests": "'(lambda: None)'"
+
+- module-name: "cv2"
+  anti-bloat:
+    - description: "workaround for colliding native module import"
+      context:
+        - "import textwrap"
+        - "import pkgutil"
+        - "from nuitka.utils.Importing import getSharedLibrarySuffix"
+      control_tags:
+        - "standalone_mode_only"
+      replacements:
+        "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
+        # Before OpenCV 4.6
+        'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
+        # After OpenCV 4.6
+        'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
+      replacements_plain:
+        ? "load_first_config([\n"
+        : "if False: (["
+  implicit-imports:
+    depends:
+      - "cv2.cv2"
+
+- module-name: "orderedmultidict"
+  anti-bloat:
+    - description: "remove manual version file import"
+      context:
+        - "import orderedmultidict.__version__"
+      replacements:
+        "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
+      replacements_plain:
+        "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
+
+- module-name: "tqdm.autonotebook"
+  anti-bloat:
+    - description: "remove IPython reference"
+      control_tags:
+        - "allow_ipython"
+      module_code: "from .std import tqdm, trange\n"
+
+- module-name: "tqdm"
+  anti-bloat:
+    - change_function:
+        "tnrange": "'(lambda *args, **kwargs: None)'"
+        "tqdm_notebook": "'(lambda *args, **kwargs: None)'"
+      control_tags:
+        - "allow_ipython"
+      description: "remove IPython reference"
+
+- module-name: "pandas.util"
+  anti-bloat:
+    - description: "remove pandas testing framework"
+      replacements_plain:
+        'if name == "testing":': "if False:"
+
+- module-name: "torch"
+  data-files:
+    # TODO: More like DLLS!
+    dirs:
+      - "bin"
+      - "include"
+    patterns:
+      - "bin/*.h"
+  dlls:
+    - from_filenames:
+        relative_path: "lib"
+        prefixes:
+          - ""
+
+- module-name: "torch.fx._symbolic_trace"
+  anti-bloat:
+    - description: "workaround incompatible check"
+      replacements_plain:
+        "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
+
+- module-name: "torch._jit_internal"
+  anti-bloat:
+    - description: "disable jit warnings"
+      replacements_plain:
+        "warnings.warn(": "if False: warnings.warn("
+
+- module-name: "torch.utils.data._typing"
+  anti-bloat:
+    - description: "compatiblity workaround"
+      replacements_plain:
+        ? "\ndef _dp_init_subclass"
+        : |-
+          @classmethod
+          def _dp_init_subclass
+
+- module-name: "scipy._lib._docscrape"
+  anti-bloat:
+    - description: "remove sphinx reference"
+      replacements_plain:
+        "if 'sphinx' in sys.modules:": "if False:"
+
+- module-name: "lxml"
+  implicit-imports:
+    depends:
+      - ".builder"
+      - ".etree"
+      - ".objectify"
+      - ".sax"
+      - "._elementpath"
+
+- module-name: "lxml.etree"
+  implicit-imports:
+    depends:
+      - "._elementpath"
+      - "gzip"
+
+- module-name: "lxml.html"
+  implicit-imports:
+    depends:
+      - ".html.clean"
+      - ".html.diff"
+      - ".etree"
+
+- module-name: "pendulum.locales"
+  implicit-imports:
+    depends:
+      - ".*.locale"
+
+- module-name: "phonenumbers.data"
+  implicit-imports:
+    depends:
+      - ".region_*"
+
+- module-name: "srsly.msgpack._packer"
+  implicit-imports:
+    depends:
+      - "srsly.msgpack.util"
+
+- module-name: "anyio._core._eventloop"
+  implicit-imports:
+    depends:
+      - "anyio._backends._asyncio"
+
+- module-name: "asyncpg.protocol.protocol"
+  implicit-imports:
+    depends:
+      - "asyncpg.pgproto.pgproto"
+
+- module-name: "asyncpg.pgproto.pgproto"
+  implicit-imports:
+    depends:
+      - "asyncpg.pgproto.exceptions"
+
+- module-name: "encodings"
+  implicit-imports:
+    depends:
+      - ".idna"
+      - ".base64_codec"
+      - ".hex_codec"
+      - ".rot_13"
+
+- module-name: "pathlib"
+  implicit-imports:
+    depends:
+      - "ntpath"
+      - "posixpath"
+
+- module-name: "importlib.metadata"
+  implicit-imports:
+    depends:
+      - "email"
+
+- module-name: "urllib.request"
+  implicit-imports:
+    depends:
+      - "http.client"
+      - "http.cookiejar"
+
+- module-name: "_asyncio"
+  implicit-imports:
+    depends:
+      - "asyncio"
+
+- module-name: "concurrent.futures.process"
+  implicit-imports:
+    depends:
+      - "multiprocessing"
+      - "multiprocessing.connection"
+
+- module-name: "shelve"
+  implicit-imports:
+    depends:
+      - "dbm.dumb"
+
+- module-name: "wsgiref.simple_server"
+  implicit-imports:
+    depends:
+      - "http.server"
+
+- module-name: "shiboken6"
+  implicit-imports:
+    depends:
+      - "argparse"
+
+- module-name: "wx"
+  implicit-imports:
+    standalone_macos_bundle_mode: "true"
+    disable_console: "macos"
+
+- module-name: "PySide2"
+  implicit-imports:
+    standalone_macos_bundle_mode: "onefile"
+    disable_console: "recommend"
+
+- module-name: "PySide6"
+  implicit-imports:
+    disable_console: "recommend"
+
+- module-name: "Tkinter"
+  implicit-imports:
+    standalone_macos_bundle_mode: "onefile"
+    disable_console: "recommend"
+
+- module-name: "dns.rdtypes"
+  implicit-imports:
+    depends:
+      - ".IN.A"
+      - ".CH.A"
+
+- module-name: "tensorflow.python.compiler.tensorrt.trt_convert"
+  implicit-imports:
+    depends:
+      - "tensorflow.compiler.tf2tensorrt.ops.gen_trt_ops"
+      - "tensorflow.compiler.tf2tensorrt._pywrap_py_utils"
+
+- module-name: "persistent.ring"
+  implicit-imports:
+    depends:
+      - "_cffi_backend"
+
+- module-name: "pydantic.typing"
+  implicit-imports:
+    depends:
+      - "typing_extensions"
+
+- module-name: "falcon.app"
+  implicit-imports:
+    depends:
+      - ".app_helpers"
+      - ".responders"
+      - ".routing"
+
+- module-name: "falcon.request"
+  implicit-imports:
+    depends:
+      - ".request_helpers"
+      - ".forwarded"
+      - ".media"
+
+- module-name: "falcon.media.handlers"
+  implicit-imports:
+    depends:
+      - "falcon.vendor.mimeparse"
+
+- module-name: "falcon.response"
+  implicit-imports:
+    depends:
+      - ".response_helpers"
+
+- module-name: "uvicorn.config"
+  implicit-imports:
+    depends:
+      - "websockets.legacy.server"
+
+- module-name: "sklearn.metrics._dist_metrics"
+  implicit-imports:
+    depends:
+      - "sklearn.utils._typedefs"
+
+- module-name: "sklearn.neighbors._dist_metrics"
+  implicit-imports:
+    depends:
+      - "sklearn.neighbors._typedefs"
+
+- module-name: "sklearn.neighbors._ball_tree"
+  implicit-imports:
+    depends:
+      - "sklearn.neighbors._partition_nodes"
+
+- module-name: "sklearn.linear_model._sgd_fast"
+  implicit-imports:
+    depends:
+      - "sklearn.utils._weight_vector"
+
+- module-name: "sklearn.tree._tree"
+  implicit-imports:
+    depends:
+      - "sklearn.neighbors._quad_tree"
+
+- module-name: "torch.onnx.symbolic_registry"
+  implicit-imports:
+    depends:
+      - "torch.onnx.symbolic_opset7"
+      - "torch.onnx.symbolic_opset12"
+      - "torch.onnx.symbolic_opset14"
+      - "torch.onnx.symbolic_opset15"
+
+- module-name: "torchvision.io.image"
+  implicit-imports:
+    depends:
+      - "torchvision.image"
+
+- module-name: "pyparsing"
+  anti-bloat:
+    - description: "remove pdb usage"
+      change_function:
+        "setBreak": "'(lambda self: None)'"
+
+- module-name: "pkg_resources._vendor.pyparsing"
+  anti-bloat:
+    - description: "remove pdb usage"
+      change_function:
+        "setBreak": "'(lambda self: None)'"
+
+- module-name: "numexpr"
+  anti-bloat:
+    - description: "remove numexpr.tests usage"
+      replacements_plain:
+        "import numexpr.tests": "raise ImportError"
+
+- module-name: "tables"
+  anti-bloat:
+    - description: "remove tables.tests usage"
+      replacements_plain:
+        "from .tests import print_versions, test": ""
+
+- module-name: "tables.utils"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.path"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.flavor"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.filters"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "tables.misc.enum"
+  anti-bloat:
+    - description: "remove docutils usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "llvmlite.binding.analysis"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "__IPYTHON__": "raise NameError"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "numba"
+  anti-bloat:
+    - description: "remove numba testing reference"
+      change_function:
+        "test": "un-callable"
+
+- module-name: "numba.core.caching"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "from IPython.paths import get_ipython_cache_dir": "raise ImportError"
+        "from IPython.utils.path import get_ipython_cache_dir": "raise ImportError"
+
+- module-name: "numba.misc.inspection"
+  anti-bloat:
+    - description: "remove numba.pycc reference"
+      change_function:
+        "disassemble_elf_to_cfg": "un-callable"
+
+- module-name: "numba.cuda"
+  anti-bloat:
+    - description: "remove numba testing reference"
+      change_function:
+        "test": "un-callable"
+      replacements_plain:
+        "from numba import runtests": ""
+
+- module-name: "plotly.graph_objects"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "import ipywidgets as _ipywidgets": "raise ImportError"
+        "import ipywidgets": "raise ImportError"
+        # Disable lazy loading implicit imports.
+        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "plotly.graph_objs"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "import ipywidgets as _ipywidgets": "raise ImportError"
+        "import ipywidgets": "raise ImportError"
+        # Disable lazy loading implicit imports.
+        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
+      control_tags:
+        - "allow_ipython"
+
+- module-name: "plotly.io"
+  anti-bloat:
+    - description: "include plotly templates"
+      replacements_plain:
+        # Disable lazy loading implicit imports.
+        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
+
+- module-name: "plotly.validator_cache"
+  implicit-imports:
+    depends:
+      # Disable lazy loading implicit imports.
+      - "plotly.validators.*"
+      - "plotly.validators.*.*"
+      # Maybe misplaced those here. TODO: Also make recursive dependency a thing.
+      - "plotly.graph_objs.layout.*"
+      - "plotly.graph_objs.layout.*.*"
+
+- module-name: "tenacity"
+  anti-bloat:
+    # It would be nice
+    - description: "remove tornado dependency"
+      replacements_plain:
+        "import tornado": "raise ImportError"
+        "from tenacity.tornadoweb import TornadoRetrying": "pass"
+      control_tags:
+        - "allow_tornado"

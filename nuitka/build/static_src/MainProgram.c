@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -159,7 +159,7 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
     argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t *) * argc);
 
     // Temporarily disable locale for conversions to not use it.
-    char *oldloc = strdup(setlocale(LC_ALL, NULL));
+    char *old_locale = strdup(setlocale(LC_ALL, NULL));
     setlocale(LC_ALL, "");
 
     for (int i = 0; i < argc; i++) {
@@ -174,12 +174,77 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
         assert(argv_copy[i]);
     }
 
-    setlocale(LC_ALL, oldloc);
-    free(oldloc);
+    setlocale(LC_ALL, old_locale);
+    free(old_locale);
 
     return argv_copy;
 }
 #endif
+
+static int HANDLE_PROGRAM_EXIT(void) {
+    int exit_code;
+
+    if (ERROR_OCCURRED()) {
+#if PYTHON_VERSION >= 0x300
+        /* Remove the frozen importlib traceback part, which would not be compatible. */
+        PyThreadState *thread_state = PyThreadState_GET();
+
+        while (thread_state->curexc_traceback) {
+            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
+            PyFrameObject *frame = tb->tb_frame;
+
+            if (0 == strcmp(PyUnicode_AsUTF8(frame->f_code->co_filename), "<frozen importlib._bootstrap>")) {
+                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
+                Py_INCREF(tb->tb_next);
+
+                continue;
+            }
+
+            break;
+        }
+#endif
+
+        PyErr_PrintEx(0);
+
+        exit_code = 1;
+    } else {
+        exit_code = 0;
+    }
+
+    return exit_code;
+}
+
+static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
+    NUITKA_INIT_PROGRAM_LATE(module_name);
+
+#if NUITKA_MAIN_PACKAGE_MODE
+    {
+        char const *w = module_name;
+
+        for (;;) {
+            char const *s = strchr(w, '.');
+
+            if (s == NULL) {
+                break;
+            }
+
+            w = s + 1;
+
+            char buffer[1024];
+            memset(buffer, 0, sizeof(buffer));
+            memcpy(buffer, module_name, s - module_name);
+
+            PyObject *result = IMPORT_EMBEDDED_MODULE(buffer);
+
+            if (ERROR_OCCURRED()) {
+                return result;
+            }
+        }
+    }
+#endif
+
+    return IMPORT_EMBEDDED_MODULE(module_name);
+}
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
 extern void SvcInstall();
@@ -344,71 +409,6 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     return 0;
 }
 #endif
-
-static int HANDLE_PROGRAM_EXIT(void) {
-    int exit_code;
-
-    if (ERROR_OCCURRED()) {
-#if PYTHON_VERSION >= 0x300
-        /* Remove the frozen importlib traceback part, which would not be compatible. */
-        PyThreadState *thread_state = PyThreadState_GET();
-
-        while (thread_state->curexc_traceback) {
-            PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
-            PyFrameObject *frame = tb->tb_frame;
-
-            if (0 == strcmp(PyUnicode_AsUTF8(frame->f_code->co_filename), "<frozen importlib._bootstrap>")) {
-                thread_state->curexc_traceback = (PyObject *)tb->tb_next;
-                Py_INCREF(tb->tb_next);
-
-                continue;
-            }
-
-            break;
-        }
-#endif
-
-        PyErr_PrintEx(0);
-
-        exit_code = 1;
-    } else {
-        exit_code = 0;
-    }
-
-    return exit_code;
-}
-
-static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
-    NUITKA_INIT_PROGRAM_LATE(module_name);
-
-#if NUITKA_MAIN_PACKAGE_MODE
-    {
-        char const *w = module_name;
-
-        for (;;) {
-            char const *s = strchr(w, '.');
-
-            if (s == NULL) {
-                break;
-            }
-
-            w = s + 1;
-
-            char buffer[1024];
-            memset(buffer, 0, sizeof(buffer));
-            memcpy(buffer, module_name, s - module_name);
-
-            PyObject *result = IMPORT_EMBEDDED_MODULE(buffer);
-
-            if (ERROR_OCCURRED()) {
-                return result;
-            }
-        }
-    }
-#endif
-
-    return IMPORT_EMBEDDED_MODULE(module_name);
-}
 
 #if defined(_WIN32) && PYTHON_VERSION < 0x300
 static char **getCommandLineToArgvA(char *lpCmdline) {
@@ -576,7 +576,7 @@ static char **getCommandLineToArgvA(char *lpCmdline) {
 }
 #endif
 
-// Disable wild card expansion for MinGW64.
+// Disable wild card expansion for MinGW64, spell-checker: ignore _dowildcard
 #if defined(__MINGW64__) || defined(__MINGW32__)
 int _dowildcard = 0;
 #endif
@@ -752,11 +752,6 @@ int main(int argc, char **argv) {
     prepareStandaloneEnvironment();
 #else
 
-#if PYTHON_VERSION >= 0x350 && defined(DLL_EXTRA_PATH)
-    NUITKA_PRINT_TIMING("main(): Prepare DLL extra path.");
-    SetDllDirectory(DLL_EXTRA_PATH);
-#endif
-
 #endif
 
 #if _NUITKA_FROZEN > 0
@@ -843,7 +838,7 @@ orig_argv = argv;
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
-    char const *old_env_hashseed = getenv("PYTHONHASHSEED");
+    char const *old_env_hash_seed = getenv("PYTHONHASHSEED");
     setenv("PYTHONHASHSEED", "0", 1);
 #endif
 
@@ -884,8 +879,8 @@ orig_argv = argv;
     Py_Initialize();
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
-    if (old_env_hashseed) {
-        undoEnvironmentVariable("PYTHONHASHSEED", old_env_hashseed);
+    if (old_env_hash_seed) {
+        undoEnvironmentVariable("PYTHONHASHSEED", old_env_hash_seed);
     }
 #endif
 
@@ -953,7 +948,7 @@ orig_argv = argv;
 
     _initSlotCompare();
 #if PYTHON_VERSION >= 0x270
-    _initSlotIternext();
+    _initSlotIterNext();
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling enhancePythonTypes().");

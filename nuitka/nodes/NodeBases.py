@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,7 @@ expression only stuff.
 
 # from abc import abstractmethod
 
+import ast
 from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
@@ -47,10 +48,10 @@ class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
     # This can trigger if this is included to early.
-    assert Options.is_fullcompat is not None
+    assert Options.is_full_compat is not None
 
     # Avoid the attribute unless it's really necessary.
-    if Options.is_fullcompat:
+    if Options.is_full_compat:
         __slots__ += ("effective_source_ref",)
 
     # String to identify the node class, to be consistent with its name.
@@ -257,7 +258,7 @@ class NodeBase(NodeMetaClassBase):
         # this first.
         if (
             self.source_ref is not source_ref
-            and Options.is_fullcompat
+            and Options.is_full_compat
             and self.source_ref != source_ref
         ):
             # An attribute outside of "__init__", so we save one memory for the
@@ -339,6 +340,14 @@ class NodeBase(NodeMetaClassBase):
 
     def isExpressionBuiltin(self):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
+
+    @staticmethod
+    def isStatementAssignmentVariable():
+        return False
+
+    @staticmethod
+    def isStatementDelVariable():
+        return False
 
     @staticmethod
     def isExpressionConstantRef():
@@ -1167,9 +1176,7 @@ def fromXML(provider, xml, source_ref=None):
     kind, node_class, args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
 
     if "constant" in args:
-        # TODO: Try and reduce/avoid this, use marshal and/or pickle from a file
-        # global stream     instead. For now, this will do. pylint: disable=eval-used
-        args["constant"] = eval(args["constant"])
+        args["constant"] = ast.literal_eval(args["constant"])
 
     if kind in (
         "ExpressionFunctionBody",

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,10 +23,6 @@ types, and then specialize for the ones, where it makes sense.
 
 from nuitka.__past__ import xrange
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
@@ -119,6 +115,9 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
+from nuitka.nodes.KeyValuePairNodes import (
+    makeKeyValuePairExpressionsFromKwArgs,
+)
 from nuitka.nodes.NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeExpressionBuiltinLocals,
@@ -140,6 +139,10 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinSuper0,
     ExpressionBuiltinSuper2,
     ExpressionBuiltinType1,
+)
+from nuitka.nodes.VariableAssignNodes import (
+    makeStatementAssignmentVariable,
+    makeStatementDelVariable,
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
@@ -316,7 +319,7 @@ def dict_extractor(node):
 
         return ExpressionBuiltinDict(
             pos_arg=pos_arg,
-            pairs=dict_star_arg,
+            pairs=makeKeyValuePairExpressionsFromKwArgs(dict_star_arg),
             source_ref=source_ref,
         )
 
@@ -837,7 +840,7 @@ def eval_extractor(node):
             "statements",
             final.subnode_statements
             + (
-                StatementDelVariable(
+                makeStatementDelVariable(
                     variable=source_variable, tolerant=True, source_ref=source_ref
                 ),
             ),
@@ -868,7 +871,7 @@ def eval_extractor(node):
 
         # Source needs some special treatment for eval, if it's a string, it
         # must be stripped.
-        string_fixup = StatementAssignmentVariable(
+        string_fixup = makeStatementAssignmentVariable(
             variable=source_variable,
             source=makeExpressionCall(
                 called=makeExpressionAttributeLookup(
@@ -897,7 +900,7 @@ def eval_extractor(node):
             )
 
         statements = (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=source_variable, source=source, source_ref=source_ref
             ),
             makeStatementConditional(

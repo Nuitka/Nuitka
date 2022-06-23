@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@
 
 import nuitka.Options
 
-nuitka.Options.is_fullcompat = False
+nuitka.Options.is_full_compat = False
 
 # isort:start
 
@@ -41,8 +41,8 @@ from .Common import (
     python3_bytes_methods,
     python3_dict_methods,
     python3_str_methods,
-    withFileOpenedAndAutoformatted,
-    writeline,
+    withFileOpenedAndAutoFormatted,
+    writeLine,
 )
 
 # This defines which attribute nodes are to specialize and how
@@ -64,6 +64,9 @@ attribute_shape_node_arg_mapping = {}
 # Argument names of an operation.
 attribute_shape_args = {}
 
+# How to test for argument name presence
+attribute_shape_arg_tests = {}
+
 
 def processTypeShapeAttribute(
     shape_name, spec_module, python2_methods, python3_methods
@@ -75,7 +78,13 @@ def processTypeShapeAttribute(
         if method_name not in python3_methods:
             attribute_shape_versions[key] = "str is bytes"
 
-        present, arg_names, arg_name_mapping, arg_counts = getMethodVariations(
+        (
+            present,
+            arg_names,
+            arg_tests,
+            arg_name_mapping,
+            arg_counts,
+        ) = getMethodVariations(
             spec_module=spec_module, shape_name=shape_name, method_name=method_name
         )
 
@@ -83,6 +92,7 @@ def processTypeShapeAttribute(
 
         if present:
             attribute_shape_args[key] = arg_names
+            attribute_shape_arg_tests[key] = arg_tests
 
             if len(arg_counts) > 1:
                 attribute_shape_variations[key] = arg_counts
@@ -96,7 +106,13 @@ def processTypeShapeAttribute(
         if method_name not in python2_methods:
             attribute_shape_versions[key] = "str is not bytes"
 
-        present, arg_names, arg_name_mapping, arg_counts = getMethodVariations(
+        (
+            present,
+            arg_names,
+            arg_tests,
+            arg_name_mapping,
+            arg_counts,
+        ) = getMethodVariations(
             spec_module=spec_module, shape_name=shape_name, method_name=method_name
         )
 
@@ -104,6 +120,7 @@ def processTypeShapeAttribute(
 
         if present:
             attribute_shape_args[key] = arg_names
+            attribute_shape_arg_tests[key] = arg_tests
 
             if len(arg_counts) > 1:
                 attribute_shape_variations[key] = arg_counts
@@ -133,6 +150,20 @@ processTypeShapeAttribute(
     python3_bytes_methods,
 )
 
+attribute_shape_empty = {}
+
+attribute_shape_empty[
+    "update", "tshape_dict"
+] = """\
+lambda source_ref: wrapExpressionWithNodeSideEffects(
+    new_node=makeConstantRefNode(
+        constant=None,
+        source_ref=source_ref
+    ),
+    old_node=dict_arg
+)
+"""
+
 
 def emitGenerationWarning(emit, template_name):
     emit(
@@ -154,10 +185,16 @@ def formatCallArgs(operation_node_arg_mapping, args, starting=True):
         else:
             return operation_node_arg_mapping.get(arg, arg)
 
+    def mapValue(arg):
+        if arg == "pairs":
+            return "makeKeyValuePairExpressionsFromKwArgs(pairs)"
+        else:
+            return arg
+
     if args is None:
         result = ""
     else:
-        result = ",".join("%s=%s" % (mapName(arg), arg) for arg in args)
+        result = ",".join("%s=%s" % (mapName(arg), mapValue(arg)) for arg in args)
 
     if not starting and result:
         result = "," + result
@@ -176,15 +213,24 @@ def makeAttributeNodes():
         template_name="AttributeNodeFixed.py.j2",
     )
 
-    with withFileOpenedAndAutoformatted(filename_python) as output_python:
+    with withFileOpenedAndAutoFormatted(filename_python) as output_python:
 
         def emit(*args):
-            writeline(output_python, *args)
+            writeLine(output_python, *args)
 
         emitGenerationWarning(emit, template.name)
 
         emit("from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase")
         emit("from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs")
+
+        emit("from nuitka.nodes.ConstantRefNodes import makeConstantRefNode")
+        emit(
+            "from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects"
+        )
+
+        emit(
+            "from nuitka.nodes.KeyValuePairNodes import makeKeyValuePairExpressionsFromKwArgs"
+        )
 
         # TODO: Maybe generate its effect instead of using a base class.
         emit("from .NodeBases import SideEffectsFromChildrenMixin")
@@ -212,6 +258,8 @@ def makeAttributeNodes():
                 attribute_shape_variations=attribute_shape_variations,
                 attribute_shape_node_arg_mapping=attribute_shape_node_arg_mapping,
                 attribute_shape_args=attribute_shape_args,
+                attribute_shape_arg_tests=attribute_shape_arg_tests,
+                attribute_shape_empty=attribute_shape_empty,
                 formatArgs=formatArgs,
                 formatCallArgs=formatCallArgs,
                 reversed=reversed,

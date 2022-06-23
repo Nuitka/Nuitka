@@ -24,6 +24,7 @@ toml >= 0.10.1 ; python_version >= '3.7'
 isort == 5.9.3 ; python_version >= '3.7'
 yamllint == 1.26.3 ; python_version >= '3.7'
 rstfmt == 0.0.10 ; python_version >= '3.7'
+jsonschema == 4.6.0 ; python_version >= '3.7'
 
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'

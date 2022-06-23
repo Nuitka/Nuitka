@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -39,7 +39,8 @@ def getCachedDownload(
     reject,
     assume_yes_for_downloads,
 ):
-    # Many branches to deal with, pylint: disable=too-many-branches,too-many-statements
+    # Many branches to deal with.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     nuitka_app_dir = getAppDir()
 
@@ -88,13 +89,13 @@ Proceed and download? [Yes]/No """
 
             try:
                 urlretrieve(url, download_path)
-            except Exception:  # Any kind of error, pylint: disable=broad-except
+            except Exception as e:  # Any kind of error, pylint: disable=broad-except
                 try:
                     urlretrieve(url.replace("https://", "http://"), download_path)
                 except Exception:  # Any kind of error, pylint: disable=broad-except
                     Tracing.general.sysexit(
-                        "Failed to download '%s'. Contents should manually be copied to '%s'."
-                        % (url, download_path)
+                        "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
+                        % (url, e, download_path)
                     )
 
     if not os.path.isfile(exe_path) and os.path.isfile(download_path):
@@ -141,10 +142,10 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
     # Large URLs, pylint: disable=line-too-long
 
     if target_arch == "x86_64":
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-14.0.0-9.0.0-msvcrt-r7/winlibs-x86_64-posix-seh-gcc-11.2.0-llvm-14.0.0-mingw-w64msvcrt-9.0.0-r7.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-x86_64-posix-seh-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
         binary = r"mingw64\bin\gcc.exe"
     else:
-        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.2.0-14.0.0-9.0.0-msvcrt-r7/winlibs-i686-posix-dwarf-gcc-11.2.0-llvm-14.0.0-mingw-w64msvcrt-9.0.0-r7.zip"
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-i686-posix-dwarf-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
         binary = r"mingw32\bin\gcc.exe"
 
     gcc_binary = getCachedDownload(

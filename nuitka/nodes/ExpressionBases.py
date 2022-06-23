@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -357,6 +357,26 @@ class ExpressionBase(NodeBase):
 
         return call_node, None, None
 
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        # Virtual method, pylint: disable=unused-argument
+
+        # The called and the arguments escape for good.
+        self.onContentEscapes(trace_collection)
+        if call_args is not None:
+            call_args.onContentEscapes(trace_collection)
+        if call_kw is not None:
+            call_kw.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return call_node, None, None
+
     def computeExpressionLen(self, len_node, trace_collection):
         shape = self.getValueShape()
 
@@ -486,7 +506,7 @@ class ExpressionBase(NodeBase):
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "float() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 0x300
+                if Options.is_full_compat and python_version < 0x300
                 else "float() argument must be a string or a number, not '%s'",
                 operation="long",
                 original_node=float_node,
@@ -540,7 +560,7 @@ class ExpressionBase(NodeBase):
 
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 "complex() argument must be a string or a number"
-                if Options.is_fullcompat and python_version < 0x300
+                if Options.is_full_compat and python_version < 0x300
                 else "complex() argument must be a string or a number, not '%s'",
                 operation="complex",
                 original_node=complex_node,
@@ -588,12 +608,13 @@ class ExpressionBase(NodeBase):
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+        if self.mayHaveSideEffectsNext():
+            trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        return False, (next_node, None, None)
+        return True, (next_node, None, None)
 
     def computeExpressionAsyncIter(self, iter_node, trace_collection):
         self.onContentEscapes(trace_collection)
@@ -689,6 +710,10 @@ class ExpressionBase(NodeBase):
         pass
 
     @staticmethod
+    def onContentIteratedEscapes(trace_collection):
+        pass
+
+    @staticmethod
     def mayRaiseExceptionBool(exception_type):
         """Unless we are told otherwise, everything may raise being checked."""
         # Virtual method, pylint: disable=unused-argument
@@ -778,6 +803,11 @@ class ExpressionBase(NodeBase):
 
         return True
 
+    def mayHaveSideEffectsNext(self):
+        """The type shape tells us, if "next" may execute code."""
+
+        return self.getTypeShape().hasShapeSlotNextCode()
+
     def hasShapeSlotLen(self):
         """The type shape tells us, if "len" is available."""
         return self.getTypeShape().hasShapeSlotLen()
@@ -853,6 +883,11 @@ class ExpressionBase(NodeBase):
     def hasShapeBytesExact(self):
         """Does an expression have exactly a bytes shape."""
         return self.getTypeShape() is tshape_bytes
+
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Trust that value will not be overwritten from the outside."""
+        return False
 
 
 class ExpressionNoSideEffectsMixin(object):

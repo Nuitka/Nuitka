@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -1911,7 +1911,7 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 #if PYTHON_VERSION >= 0x270
 iternextfunc default_iternext;
 
-void _initSlotIternext(void) {
+void _initSlotIterNext(void) {
     PyObject *pos_args = PyTuple_New(1);
     PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyBaseObject_Type);
     Py_INCREF(&PyBaseObject_Type);

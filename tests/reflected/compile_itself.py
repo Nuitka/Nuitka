@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -42,11 +42,14 @@ import shutil
 import subprocess
 import time
 
+from nuitka.tools.Basics import addPYTHONPATH
 from nuitka.tools.testing.Common import (
+    getPythonSysPath,
     getTempDir,
     my_print,
     setup,
     test_logger,
+    withPythonPathChange,
 )
 from nuitka.utils.Execution import wrapCommandForDebuggerForSubprocess
 from nuitka.utils.FileOperations import (
@@ -248,7 +251,7 @@ def executePASS1():
         "--nofollow-imports",
         "--plugin-enable=pylint-warnings",
         "--output-dir=.",
-        "--python-flag=-S",
+        "--python-flag=no_site",
         "nuitka-runner.py",
     ]
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -269,9 +272,7 @@ def executePASS1():
     # Copy required data files.
     for filename in (
         "nuitka/build/Backend.scons",
-        "nuitka/plugins/standard/anti-bloat.yml",
-        "nuitka/plugins/standard/implicit-imports.yml",
-        "nuitka/plugins/standard/data-files.yml",
+        "nuitka/plugins/standard/standard.nuitka-package.config.yml",
     ):
         shutil.copyfile(
             os.path.join(base_dir, filename),
@@ -375,18 +376,15 @@ def executePASS2():
         "PASS 2: Compiling from compiler running from entry '.exe' and many extension files."
     )
 
-    # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
-    # have to add it.
-    if os.name == "nt":
-        os.environ["PYTHONPATH"] = ":".join(PACKAGE_LIST)
+    with withPythonPathChange(getPythonSysPath()):
+        # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
+        # have to add it.
+        if os.name == "nt":
+            addPYTHONPATH(PACKAGE_LIST)
 
-    compileAndCompareWith(
-        nuitka=os.path.join(".", "nuitka" + exe_suffix), pass_number=2
-    )
-
-    # Undo the damage from above.
-    if os.name == "nt":
-        del os.environ["PYTHONPATH"]
+        compileAndCompareWith(
+            nuitka=os.path.join(".", "nuitka" + exe_suffix), pass_number=2
+        )
 
     test_logger.info("OK.")
 
@@ -417,7 +415,6 @@ def executePASS3():
         "--output-dir=%s" % tmp_dir,
         "--python-flag=-S",
         "--follow-imports",
-        #        "--include-package=nuitka.plugins",
     ]
 
     my_print("Command: ", " ".join(command))
@@ -436,7 +433,13 @@ def executePASS4():
 
     exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
-    compileAndCompareWith(exe_path, pass_number=4)
+    with withPythonPathChange(getPythonSysPath()):
+        # Windows will load the compiled modules (pyd) only from PYTHONPATH, so we
+        # have to add it.
+        if os.name == "nt":
+            addPYTHONPATH(PACKAGE_LIST)
+
+        compileAndCompareWith(exe_path, pass_number=4)
 
     test_logger.info("OK.")
 

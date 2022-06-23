@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -551,6 +551,11 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #else
 #define NUITKA_INIT_PROGRAM_EARLY(argc, argv)
 #define NUITKA_INIT_PROGRAM_LATE(module_name)
+#endif
+
+// Only Python3.9+ has a more precise check, while making the old one slow.
+#ifndef PyCFunction_CheckExact
+#define PyCFunction_CheckExact PyCFunction_Check
 #endif
 
 #endif

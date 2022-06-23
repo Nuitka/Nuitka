@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,6 +49,7 @@ from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
 from .Checkers import checkStatementsSequenceOrNone
 from .CodeObjectSpecs import CodeObjectSpec
+from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
@@ -992,7 +993,7 @@ class ExpressionFunctionCreation(
                 star_dict_arg=call_spec.getStarDictArgumentName(),
                 star_list_single_arg=False,
                 num_defaults=call_spec.getDefaultCount(),
-                num_posonly=call_spec.getPosOnlyParameterCount(),
+                num_pos_only=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
             )
@@ -1005,7 +1006,7 @@ class ExpressionFunctionCreation(
 
             # TODO: This is probably something that the matchCall ought to do
             # for us, but that will need cleanups. Also these functions and
-            # nodes ought to work with # ordered dictionaries maybe.
+            # nodes ought to work with ordered dictionaries maybe.
             if call_spec.getStarDictArgumentName():
                 values[-1] = makeDictCreationOrConstant2(
                     keys=[value[0] for value in values[-1]],
@@ -1013,8 +1014,21 @@ class ExpressionFunctionCreation(
                     source_ref=call_node.source_ref,
                 )
 
+                star_list_offset = -2
+            else:
+                star_list_offset = -1
+
+            if call_spec.getStarListArgumentName():
+                values[star_list_offset] = makeExpressionMakeTupleOrConstant(
+                    elements=values[star_list_offset],
+                    user_provided=False,
+                    source_ref=call_node.source_ref,
+                )
+
             result = ExpressionFunctionCall(
-                function=self, values=values, source_ref=call_node.source_ref
+                function=self.makeClone(),
+                values=values,
+                source_ref=call_node.source_ref,
             )
 
             return (

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -64,6 +64,8 @@ from .SearchModes import (
     SearchModeResume,
 )
 
+# spellchecker: ignore popenargs,pathsep
+
 test_logger = OurLogger("", base_style="blue")
 
 
@@ -73,9 +75,9 @@ def check_result(*popenargs, **kwargs):
 
     process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
     _unused_output, _unused_err = process.communicate()
-    retcode = process.poll()
+    ret_value = process.poll()
 
-    if retcode:
+    if ret_value:
         return False
     else:
         return True
@@ -863,7 +865,7 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr, explain=
             my_print(name + ": SKIPPED (%s)" % tests_skipped[number])
             continue
 
-        # Avoid unraisable output.
+        # Avoid non-raisable output.
         try:
             if number in tests_stderr:
                 sys.stderr = getNullOutput()
@@ -1799,3 +1801,26 @@ def getInstalledPythonVersion(python_version, must_exist):
         )
 
     return result
+
+
+_sys_path_path = None
+
+
+def getPythonSysPath():
+    global _sys_path_path  # singleton, pylint: disable=global-statement
+
+    if _sys_path_path is None:
+        _sys_path_path = check_output(
+            [
+                os.environ["PYTHON"],
+                "-c",
+                "import sys, os; print(os.pathsep.join(sys.path))",
+            ]
+        )
+
+        if str is not bytes:
+            _sys_path_path = _sys_path_path.decode("utf8")
+
+        _sys_path_path = _sys_path_path.strip()
+
+    return _sys_path_path

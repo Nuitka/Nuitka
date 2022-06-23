@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,8 +47,11 @@ from nuitka.Constants import (
     the_empty_set,
     the_empty_tuple,
 )
+from nuitka.Options import isStandaloneMode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import optimization_logger
+from nuitka.utils.Importing import importFromCompileTime
+from nuitka.utils.Utils import withNoDeprecationWarning
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .ExpressionShapeMixins import (
@@ -157,6 +160,16 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
             "new_raise",
             "Predicted call of constant %s value to exception raise."
             % type(self.constant),
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
         )
 
     def getCompileTimeConstant(self):
@@ -1257,6 +1270,16 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
 
         return new_node, tags, message
 
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )
+
     @staticmethod
     def isMutable():
         return False
@@ -1557,6 +1580,50 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
             "new_constant",
             """Iteration over constant sys.version_info lowered to tuple.""",
         )
+
+    @staticmethod
+    def getTruthValue():
+        return True
+
+
+class ExpressionConstantPkgResourcesDistributionRef(ExpressionConstantUntrackedRefBase):
+    kind = "EXPRESSION_CONSTANT_PKG_RESOURCES_DISTRIBUTION_REF"
+
+    __slots__ = ()
+
+    preserved_attributes = ("py_version", "platform", "version", "project_name")
+
+    def __init__(self, distribution, source_ref):
+        with withNoDeprecationWarning():
+            Distribution = importFromCompileTime(
+                "pkg_resources", must_exist=True
+            ).Distribution
+
+            preserved_attributes = self.preserved_attributes
+            if not isStandaloneMode():
+                preserved_attributes += ("location",)
+
+            constant = Distribution(
+                **dict(
+                    (key, getattr(distribution, key)) for key in preserved_attributes
+                )
+            )
+
+        ExpressionConstantUntrackedRefBase.__init__(
+            self, constant=constant, source_ref=source_ref
+        )
+
+    @staticmethod
+    def isMutable():
+        return False
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def isIterableConstant():
+        return False
 
     @staticmethod
     def getTruthValue():

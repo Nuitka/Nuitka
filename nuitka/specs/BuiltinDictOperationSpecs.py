@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -73,4 +73,6 @@ dict_setdefault_spec = DictMethodSpec(
 
 dict_pop_spec = DictMethodSpec("pop", arg_names=("key", "default"), default_count=1)
 
-dict_update_spec = BuiltinParameterSpecSinglePosArgStarDictArgs("dict.update")
+dict_update_spec = BuiltinParameterSpecSinglePosArgStarDictArgs(
+    "dict.update", list_star_arg="iterable", dict_star_arg="pairs"
+)

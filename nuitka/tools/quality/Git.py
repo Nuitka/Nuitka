@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -179,7 +179,7 @@ def updateWorkingFile(path, orig_object_hash, new_object_hash):
 
     # Windows extra ball, new files have new lines that make the patch fail.
     if exit_code != 0 and os.name == "nt":
-        from .autoformat.Autoformat import cleanupWindowsNewlines
+        from .auto_format.AutoFormat import cleanupWindowsNewlines
 
         cleanupWindowsNewlines(path)
 

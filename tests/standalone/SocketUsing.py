@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#     Copyright 2021, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com>
+#     Copyright 2022, Paweł Kierzkowski, mailto:<pk.pawelo@gmail.com>
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,6 +32,8 @@ sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 # isort:start
 
+import distutils.util
+import fnmatch
 import re
 
 from setuptools import Distribution, setup
@@ -41,7 +43,7 @@ from setuptools.command import easy_install
 # is optimized for. This is to avoid descending into Nuitka through distutils.
 if __name__ == "__main__":
     from nuitka.PythonFlavors import isMSYS2MingwPython
-    from nuitka.Version import getNuitkaMsiVersion, getNuitkaVersion
+    from nuitka.Version import getNuitkaVersion
 
 scripts = []
 
@@ -50,12 +52,7 @@ if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 
-# The MSI installer enforces a 3 digit version number, which is stupid, but no
-# way around it, so we map our number to it, in some way.
-if os.name == "nt" and "bdist_msi" in sys.argv:
-    version = getNuitkaMsiVersion()
-else:
-    version = getNuitkaVersion()
+version = getNuitkaVersion()
 
 
 def findNuitkaPackages():
@@ -84,21 +81,25 @@ def findNuitkaPackages():
 
 
 inline_copy_files = []
+no_byte_compile = []
 
 
-def addInlineCopy(name):
-    inline_copy_files.extend(
-        (
-            "inline_copy/%s/*.py" % name,
-            "inline_copy/%s/*/*.py" % name,
-            "inline_copy/%s/*/*/*.py" % name,
-            "inline_copy/%s/*/*/*/*.py" % name,
-            "inline_copy/%s/*/*/*/*/*.py" % name,
-            "inline_copy/%s/LICENSE*",
-            "inline_copy/%s/*/LICENSE*",
-            "inline_copy/%s/READ*",
-        )
+def addInlineCopy(name, do_byte_compile=True):
+    patterns = (
+        "inline_copy/%s/*.py" % name,
+        "inline_copy/%s/*/*.py" % name,
+        "inline_copy/%s/*/*/*.py" % name,
+        "inline_copy/%s/*/*/*/*.py" % name,
+        "inline_copy/%s/*/*/*/*/*.py" % name,
+        "inline_copy/%s/LICENSE*",
+        "inline_copy/%s/*/LICENSE*",
+        "inline_copy/%s/READ*",
     )
+
+    inline_copy_files.extend(patterns)
+
+    if not do_byte_compile:
+        no_byte_compile.extend(patterns)
 
 
 addInlineCopy("appdirs")
@@ -132,20 +133,12 @@ addInlineCopy("pkg_resources")
 addInlineCopy("bin")
 
 if os.name == "nt" or sdist_mode:
-    addInlineCopy("lib/scons-4.3.0")
+    addInlineCopy("lib/scons-4.3.0", do_byte_compile=sys.version_info >= (2, 7))
 if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2")
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-3.1.2")
 
-# Have different project names for MSI installers, so 32 and 64 bit versions do
-# not conflict.
-if "bdist_msi" in sys.argv:
-    project_name = "Nuitka%s" % (64 if "AMD64" in sys.version else 32)
-else:
-    project_name = "Nuitka"
-
-import distutils.util
 
 orig_byte_compile = distutils.util.byte_compile
 
@@ -153,6 +146,15 @@ orig_byte_compile = distutils.util.byte_compile
 def byte_compile(py_files, *args, **kw):
     # Disable bytecode compilation output, too annoying.
     kw["verbose"] = 0
+
+    # Avoid attempting files that won't work.
+    py_files = [
+        filename
+        for filename in py_files
+        if not any(
+            fnmatch.fnmatch(filename, "*/*/*/" + pattern) for pattern in no_byte_compile
+        )
+    ]
 
     orig_byte_compile(py_files, *args, **kw)
 
@@ -282,7 +284,7 @@ with open("README.rst", "rb") as input_file:
     )
 
 setup(
-    name=project_name,
+    name="Nuitka",
     license="Apache License, Version 2.0",
     version=version,
     long_description=long_description,

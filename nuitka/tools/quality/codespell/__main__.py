@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,7 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
-from nuitka.tools.quality.autoformat.Autoformat import cleanupWindowsNewlines
+from nuitka.tools.quality.auto_format.AutoFormat import cleanupWindowsNewlines
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import withEnvironmentPathAdded

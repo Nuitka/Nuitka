@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -34,6 +34,7 @@ work on, and let them decide and do the heavy lifting of optimization
 and annotation is happening in the nodes that implement these compute slots.
 """
 
+from .AttributeLookupNodes import ExpressionAttributeLookup
 from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
@@ -143,11 +144,9 @@ class StatementDelAttribute(StatementChildHavingBase):
         return "attribute del statement"
 
 
-from .AttributeLookupNodes import ExpressionAttributeLookup
-from .AttributeNodesGenerated import attribute_classes
-
-
 def makeExpressionAttributeLookup(expression, attribute_name, source_ref):
+    from .AttributeNodesGenerated import attribute_classes
+
     attribute_class = attribute_classes.get(attribute_name)
 
     if attribute_class is not None:

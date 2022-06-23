@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -54,13 +54,13 @@ loops.
 
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .TreeHelpers import (
@@ -94,7 +94,7 @@ def buildWhileLoopNode(provider, node, source_ref):
         )
 
         statements = (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_break_indicator,
                 source=makeConstantRefNode(constant=True, source_ref=source_ref),
                 source_ref=source_ref,
@@ -137,7 +137,7 @@ def buildWhileLoopNode(provider, node, source_ref):
         return loop_statement
     else:
         return makeStatementsSequenceFromStatements(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_break_indicator,
                 source=makeConstantRefNode(constant=False, source_ref=source_ref),
                 source_ref=source_ref,

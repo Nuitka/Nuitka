@@ -1,4 +1,4 @@
-{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
 {#                                                                              #}
 {#     Python test originally created or extracted from other peoples work. The #}
 {#     parts from me are licensed as below. It is at least Free Software where  #}
@@ -24,7 +24,22 @@
 
 from __future__ import print_function
 
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
+
+import os
+import sys
+
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
 from nuitka.tools.testing.Common import checkReferenceCount
+
+# isort:start
 
 # Function to hide type because it is not seen through
 def forgetType(value):
@@ -47,6 +62,8 @@ def forgetType(value):
 {% set method_arg_variants = ["", "'a'", "'a', 'utf8'"] %}
 {% elif "find" in str_method_name or "index" in str_method_name or "with" in str_method_name %}
 {% set method_arg_variants = ["1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
+{% elif str_method_name == "count"  %}
+{% set method_arg_variants = ["'a'", "'a', 1", "'a', 'b'", "'a', 1, 2"] %}
 {% else %}
 {% set method_arg_variants = ["", "1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
 {% endif %}

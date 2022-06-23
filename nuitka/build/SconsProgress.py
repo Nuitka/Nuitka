@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -64,7 +64,8 @@ def updateSconsProgressBar():
         closeSconsProgressBar()
 
         scons_logger.info(
-            "%s linking program (no progress information available)." % _stage
+            "%s linking program with %d modules (no progress information available)."
+            % (_stage, _total)
         )
 
 

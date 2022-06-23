@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ from .BuiltinParameterSpecs import (
 # TODO: Should be shared, this is duplicate for other types currently.
 class MethodKeywordErrorCompatibilityMixin:
     def getKeywordRefusalText(self):
-        if Options.is_fullcompat:
+        if Options.is_full_compat:
             assert "." in self.name, self.name
 
             try:

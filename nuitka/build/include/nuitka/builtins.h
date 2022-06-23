@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -83,7 +83,7 @@ extern void _initBuiltinOriginalValues(void);
 #endif
 
 // Avoid the casts needed for older Python, as it's easily forgotten and potentially
-// have our own better implementation later.
+// have our own better implementation later. Gives no reference.
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_SysGetObject(char const *name) { return PySys_GetObject((char *)name); }
 
 NUITKA_MAY_BE_UNUSED static void Nuitka_SysSetObject(char const *name, PyObject *value) {

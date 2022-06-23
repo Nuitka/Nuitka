@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,7 +36,14 @@ from optparse import OptionParser
 from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import (
+    openTextFile,
+    resolveShellPatternToFilenames,
+)
+from nuitka.utils.Yaml import (
+    getYamlPackage,
+    getYamlPackageConfigurationSchemaFilename,
+)
 
 
 def checkYamllint(document):
@@ -55,6 +62,24 @@ def checkYamllint(document):
         sys.exit("Error, no lint clean yaml.")
 
     my_print("OK.", style="blue")
+
+
+def checkSchema(document):
+    import json  # pylint: disable=I0021,import-error
+
+    from jsonschema import validators  # pylint: disable=I0021,import-error
+    from jsonschema.exceptions import ValidationError
+
+    yaml = getYamlPackage()
+
+    with openTextFile(getYamlPackageConfigurationSchemaFilename(), "r") as schema_file:
+        with openTextFile(document, "r") as yaml_file:
+            try:
+                validators.Draft202012Validator(
+                    schema=json.loads(schema_file.read())
+                ).validate(instance=yaml.load(yaml_file, yaml.BaseLoader))
+            except ValidationError:
+                sys.exit("Error, please fix the errors in yaml.")
 
 
 def main():
@@ -88,6 +113,7 @@ def main():
 
     for filename in filenames:
         checkYamllint(filename)
+        checkSchema(filename)
 
 
 if __name__ == "__main__":
