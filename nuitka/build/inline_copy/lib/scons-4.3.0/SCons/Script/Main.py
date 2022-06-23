@@ -1295,7 +1295,7 @@ def _build_targets(fs, options, targets, target_top):
     # python_has_threads = sysconfig.get_config_var('WITH_THREAD') or is_pypy or is_37_or_later
 
     # As of python 3.4 threading has a dummy_threading module for use when there is no threading
-    # it's get_ident() will allways return -1, while real threading modules get_ident() will
+    # it's get_ident() will always return -1, while real threading modules get_ident() will
     # always return a positive integer
     python_has_threads = threading.get_ident() != -1
     # to check if python configured with threads.
