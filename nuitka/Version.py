@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V0.9
+Nuitka V1.0rc1
 Copyright (C) 2022 Kay Hayen."""
 
 
