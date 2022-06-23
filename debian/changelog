@@ -2,6 +2,10 @@ nuitka (0.9+ds-1) unstable; urgency=medium
 
   * New upstream release.
 
+  * Python 3.10 is now compatible again. (Closes: #1006051)
+
+  * Solved CVE-2022-2054 (Closes: #1012762)
+
  -- Kay Hayen <kay.hayen@gmail.com>  Thu, 23 Jun 2022 08:36:25 +0200
 
 nuitka (0.8.4+ds-1) unstable; urgency=medium
@@ -25,8 +29,6 @@ nuitka (0.8.2+ds-1) unstable; urgency=medium
 nuitka (0.8.1+ds-1) unstable; urgency=medium
 
   * New upstream hotfix release.
-
-  * Python 3.10 is now compatible again. (Closes: #1006051)
 
  -- Kay Hayen <kay.hayen@gmail.com>  Mon, 23 May 2022 08:31:51 +0200
 
