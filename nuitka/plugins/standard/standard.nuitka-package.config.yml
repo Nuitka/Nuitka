@@ -1317,8 +1317,8 @@
 
 - module-name: "wx"
   implicit-imports:
-    standalone_macos_bundle_mode: "true"
-    disable_console: "macos"
+    standalone_macos_bundle_mode: "yes"
+    disable_console: "recommend_on_macos"
 
 - module-name: "PySide2"
   implicit-imports:
