@@ -10,6 +10,10 @@ Nuitka blog.
  Nuitka Release 0.9 (Draft)
 ****************************
 
+This release has a many optimization improvements, and scalability
+improvements, while also adding new features, with also some important
+bug fixes.
+
 Bug Fixes
 =========
 
@@ -67,6 +71,31 @@ Bug Fixes
 -  Anaconda: Fix, the torch plugin was not working on Linux due to
    missing DLL dependencies.
 
+-  Fix, static optimization of ``importlib.import_module`` with a
+   package given, for an absolute import was optimized into the wrong
+   import, package was not ignored as it should be.
+
+-  Windows: Installed Python scan could crash on trying installation
+   paths from registry that were manually removed in the mean time, but
+   not through an uninstaller.
+
+-  Standalone: Added missing implicit dependency for ``pyreadstat``
+   because parts of standard library it uses are no more automatically
+   included.
+
+-  Windows: Could still crash when no ``powershell`` is available with
+   symlinks, handle this more gracefully.
+
+-  Standalone: Added more missing Plotly dependencies, but more work
+   will be needed to complete this.
+
+-  Standalone: Add missing stdlib dependency on ``multiprocessing`` by
+   ``concurrent.futures.process``.
+
+-  Standalone: Fix, implicit dependencies assigned to ``imageio`` on PIL
+   plugins should actually be assigned to ``PIL.Image`` that actually
+   loads them, so it works outside of ``imageio`` too.
+
 New Features
 ============
 
@@ -76,9 +105,6 @@ New Features
    packages. This will be useful for developing PRs to the standard file
    of Nuitka. Currently the schema is available, but it is not
    documented very well yet, so not really ready for end users just yet.
-
--  macOS: Signing now optionally uses hardened runtime as require for
-   notarization (not complete yet.)
 
 -  Standalone: Added new ``no-qt`` plugin as an easy way to prevent all
    of the Qt bindings from being included in a compilation.
@@ -98,8 +124,8 @@ Optimization
    ``PyDict_Next`` that avoids the DLL call overhead (in case of
    non-static libpython) and does less unnecessary checks.
 
--  Added optimization for ``str.count`` methods as well, this should
-   help in some cases with compile time optimization.
+-  Added optimization for ``str.count`` and ``str.format`` methods as
+   well, this should help in some cases with compile time optimization.
 
 -  The node for ``dict.update`` with only an iterable argument, but no
    keyword arguments, was in fact unused due to wrongly generated code.
@@ -139,6 +165,9 @@ Optimization
    ever, so this then avoids marking values as escaped, and taking the
    time to do so.
 
+-  Calls of methods through variables on ``str``, ``dict``, ``bytes``
+   that have dedicated nodes are now also optimized through variables.
+
 -  Boolean tests through variables now also are optimized when the
    original assignment is a compile time constant that is not mutable.
    This is only basic, but will allow tests on ``TYPE_CHECKING`` coming
@@ -165,6 +194,13 @@ Cleanups
    source that the cspell based extension doesn't like. This aims at
    producing more readable and searchable code.
 
+-  Generated attribute nodes no longer do local imports of the operation
+   nodes they refer to. This also avoids compile time penalties during
+   optimization that are not necessary.
+
+-  Windows: Avoid useless bytecode of inline copy used by Python3 when
+   installing for Python2, this spams just a lot of errors.
+
 Organisational
 ==============
 
@@ -182,12 +218,15 @@ Organisational
 -  UI: Nicer progress bar layout that avoids flicker when optimizing
    modules.
 
+-  UI: When linking, output the total number of object files used, to
+   have that knowledge after the progress bar for C compilation is gone.
+
 -  Quality: Auto-format the package configuration Yaml file for
    anti-bloat, implicit dependencies, etc.
 
 -  GitHub: Point out the commit hook in the PR template.
 
--  UI: Nicer output in case of no commercial version is used
+-  UI: Nicer output in case of no commercial version is used.
 
 -  Updated the MinGW64 winlibs download used on Windows to the latest
    version based on gcc 11, the gcc 12 is not yet ready.
@@ -205,10 +244,30 @@ Organisational
 -  UI: Warn about using Debian package contents. These can be
    non-portable to other OSes.
 
+-  Quality: The auto-format now floats imports to the top for
+   consistency. With few exceptions, it was already done like this. But
+   it makes things easier for generated code.
+
 Summary
 =======
 
-This release is not done yet.
+This release marks a point, that will allow us to open up the
+compatibility work for implicit dependencies and anti-bloat stuff even
+further. The Yaml format will need documentation and potentially more
+refinement, but will open up a future, where latest packages can be
+supported with just updating this configuration.
+
+The scalability improvements really make a difference for many libraries
+and are a welcome improvement on both memory usage and compile time.
+They are achieved by an accord of static optimization of
+
+One optimization aimed at optimizing tuple unpacking, was not finished
+in time for this release, but will be subject of a future release. It
+has driven many other improvements though.
+
+Generally, also from the UI, this is a huge step forward. With links to
+the website for complex topics being started, and the progress bar
+flicker being removed, the tool has yet again become more user friendly.
 
 ********************
  Nuitka Release 0.8
