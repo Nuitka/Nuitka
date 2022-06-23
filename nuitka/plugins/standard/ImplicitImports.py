@@ -120,8 +120,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
                 if standalone_macos_bundle_mode not in ("yes", "no", "onefile"):
                     self.sysexit(
-                        "Error, illegal value for 'standalone_macos_bundle_mode' for '%s' entry."
-                        % full_name
+                        "Error, illegal value '%s' for 'standalone_macos_bundle_mode' for '%s' entry."
+                        % (standalone_macos_bundle_mode, full_name)
                     )
 
                 if isMacOS():
@@ -153,7 +153,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                     )
 
                 # Required on macOS is recommended elsewhere.
-                if not isMacOS() and disable_console == "macos":
+                if not isMacOS() and disable_console == "recommend_on_macos":
                     disable_console = "recommend"
 
                 if (
@@ -169,6 +169,16 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                     self.info(
                         "Note, when using '%s', consider using '--disable-console' option. %s"
                         % (full_name, downside_message)
+                    )
+
+                if (
+                    disable_console == "yes"
+                    and mayDisableConsoleWindow()
+                    and shallDisableConsoleWindow() is not True
+                ):
+                    self.sysexit(
+                        "Note, when using '%s', you have to use '--disable-console' option."
+                        % full_name
                     )
 
             if (
