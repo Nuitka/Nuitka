@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -90,6 +90,7 @@ from nuitka.utils.SharedLibraries import (
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
+from nuitka.utils.Utils import isDebianBasedLinux
 
 from .DependsExe import detectDLLsWithDependencyWalker
 
@@ -510,6 +511,46 @@ for imp in imports:
         ]
 
     return result
+
+
+def checkFreezingModuleSet():
+    """Check the module set for troubles.
+
+    Typically Linux OS specific packages must be avoided, e.g. Debian packaging
+    does make sure the packages will not run on other OSes.
+    """
+    # Cyclic dependency
+    from nuitka import ModuleRegistry
+
+    problem_modules = OrderedSet()
+
+    if isDebianBasedLinux():
+        message = (
+            "Standard with Python package from Debian installation may not be working."
+        )
+        mnemonic = "debian-dist-packages"
+
+        def checkModulePath(module):
+            if "dist-packages" in module.getCompileTimeFilename().split("/"):
+                module_name = module.getFullName()
+
+                package_name = module_name.getTopLevelPackageName()
+
+                if package_name is not None:
+                    problem_modules.add(package_name)
+                else:
+                    problem_modules.add(module_name)
+
+    else:
+        checkModulePath = None
+
+    if checkModulePath is not None:
+        for module in ModuleRegistry.getDoneModules():
+            checkModulePath(module)
+
+    if problem_modules:
+        general.info("Using Debian packages for '%s'." % ",".join(problem_modules))
+        general.warning(message=message, mnemonic=mnemonic)
 
 
 def detectEarlyImports():
@@ -944,10 +985,10 @@ def getScanDirectories(package_name, original_dir):
         and package_name is not None
         and package_name.isBelowNamespace("win32com")
     ):
-        pywin32_dir = getPyWin32Dir()
+        py_win32_dir = getPyWin32Dir()
 
-        if pywin32_dir is not None:
-            scan_dirs.append(pywin32_dir)
+        if py_win32_dir is not None:
+            scan_dirs.append(py_win32_dir)
 
     for path_dir in os.environ["PATH"].split(";"):
         if not os.path.isdir(path_dir):
@@ -1114,7 +1155,7 @@ def _detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache
                 if _not_found_dlls:
                     general.warning(
                         """\
-Dependency '%s' could not be found, expect runtime issues. If this is
+Dependency '%s' could not be found, expect runtime issues. If this is \
 working with Python, report a Nuitka bug."""
                         % dll_filename
                     )

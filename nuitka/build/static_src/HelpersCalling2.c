@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -99,7 +99,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -447,7 +447,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -823,7 +823,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -1178,7 +1178,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -1537,7 +1537,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -1871,7 +1871,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -2230,7 +2230,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -2564,7 +2564,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -2923,7 +2923,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -3257,7 +3257,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -3616,7 +3616,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -3950,7 +3950,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -4309,7 +4309,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -4643,7 +4643,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -5002,7 +5002,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -5336,7 +5336,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -5695,7 +5695,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -6029,7 +6029,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -6388,7 +6388,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -6722,7 +6722,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
@@ -7081,7 +7081,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 

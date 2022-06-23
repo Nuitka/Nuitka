@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -64,7 +64,10 @@ def generateCAPIObjectCodeCommon(
             arg_name = context.allocateTempName(arg_name)
 
             generateExpressionCode(
-                to_name=arg_name, expression=arg_expression, emit=emit, context=context
+                to_name=arg_name,
+                expression=arg_expression,
+                emit=emit,
+                context=context,
             )
 
             arg_names.append(arg_name)

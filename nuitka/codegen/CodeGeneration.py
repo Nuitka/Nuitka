@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -209,6 +209,7 @@ from .IteratorCodes import (
     generateBuiltinNext2Code,
     generateSpecialUnpackCode,
     generateUnpackCheckCode,
+    generateUnpackCheckFromIteratedCode,
 )
 from .ListCodes import (
     generateBuiltinListCode,
@@ -244,9 +245,15 @@ from .OperationCodes import (
     generateOperationUnaryCode,
 )
 from .PackageResourceCodes import (
+    generateImportlibMetadataBackportVersionCallCode,
+    generateImportlibMetadataVersionCallCode,
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
+    generateOsUnameCallCode,
     generatePkglibGetDataCallCode,
+    generatePkgResourcesDistributionCode,
+    generatePkgResourcesGetDistributionCallCode,
+    generatePkgResourcesRequireCallCode,
     generatePkgResourcesResourceStreamCallCode,
     generatePkgResourcesResourceStringCallCode,
 )
@@ -289,7 +296,8 @@ from .StringCodes import (
     generateBuiltinStrCode,
     generateBuiltinUnicodeCode,
     generateBytesOperationCode,
-    generateStringContenationCode,
+    generateStrFormatMethodCode,
+    generateStringConcatenationCode,
     generateStrOperationCode,
 )
 from .SubscriptCodes import (
@@ -659,6 +667,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
         "EXPRESSION_CONSTANT_UNION_TYPE": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SYS_VERSION_INFO_REF": generateConstantSysVersionInfoCode,
+        "EXPRESSION_CONSTANT_PKG_RESOURCES_DISTRIBUTION_REF": generatePkgResourcesDistributionCode,
         "EXPRESSION_CONDITIONAL": generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR": generateConditionalAndOrCode,
         "EXPRESSION_CONDITIONAL_AND": generateConditionalAndOrCode,
@@ -764,6 +773,7 @@ addExpressionDispatchDict(
         # TODO: Rename to make more clear it is an outline
         "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
+        "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
         "EXPRESSION_SLICE_LOOKUP": generateSliceLookupCode,
         "EXPRESSION_SET_OPERATION_UPDATE": generateSetOperationUpdateCode,
@@ -781,7 +791,7 @@ addExpressionDispatchDict(
         "EXPRESSION_ASYNC_ITER": generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT": generateAsyncNextCode,
         "EXPRESSION_SELECT_METACLASS": generateSelectMetaclassCode,
-        "EXPRESSION_STRING_CONCATENATION": generateStringContenationCode,
+        "EXPRESSION_STRING_CONCATENATION": generateStringConcatenationCode,
         "EXPRESSION_BUILTIN_FORMAT": generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII": generateBuiltinAsciiCode,
         "EXPRESSION_LOCALS_VARIABLE_CHECK": generateLocalsDictVariableCheckCode,
@@ -790,16 +800,27 @@ addExpressionDispatchDict(
         "EXPRESSION_RAISE_EXCEPTION": generateRaiseExpressionCode,
         "EXPRESSION_NUITKA_LOADER_CREATION": generateNuitkaLoaderCreationCode,
         "EXPRESSION_PKGLIB_GET_DATA_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKG_RESOURCES_REQUIRE_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_OS_UNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_PKGLIB_GET_DATA_CALL": generatePkglibGetDataCallCode,
+        "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL": generatePkgResourcesRequireCallCode,
+        "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_CALL": generatePkgResourcesGetDistributionCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL": generatePkgResourcesResourceStringCallCode,
         "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_CALL": generatePkgResourcesResourceStreamCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL": generateImportlibResourcesReadBinaryCallCode,
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL": generateImportlibMetadataVersionCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL": generateImportlibMetadataBackportVersionCallCode,
+        "EXPRESSION_OS_UNAME_CALL": generateOsUnameCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
+        "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
     }
 )
 
@@ -826,11 +847,17 @@ addExpressionDispatchDict(
 
 setStatementDispatchDict(
     {
-        "STATEMENT_ASSIGNMENT_VARIABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_GENERIC": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_MUTABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_IMMUTABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_ATTRIBUTE": generateAssignmentAttributeCode,
         "STATEMENT_ASSIGNMENT_SUBSCRIPT": generateAssignmentSubscriptCode,
         "STATEMENT_ASSIGNMENT_SLICE": generateAssignmentSliceCode,
-        "STATEMENT_DEL_VARIABLE": generateDelVariableCode,
+        "STATEMENT_DEL_VARIABLE_TOLERANT": generateDelVariableCode,
+        "STATEMENT_DEL_VARIABLE_INTOLERANT": generateDelVariableCode,
         "STATEMENT_DEL_ATTRIBUTE": generateDelAttributeCode,
         "STATEMENT_DEL_SUBSCRIPT": generateDelSubscriptCode,
         "STATEMENT_DEL_SLICE": generateDelSliceCode,
@@ -864,6 +891,7 @@ setStatementDispatchDict(
         "STATEMENT_RAISE_EXCEPTION_IMPLICIT": generateRaiseCode,
         "STATEMENT_RERAISE_EXCEPTION": generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK": generateUnpackCheckCode,
+        "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
         "STATEMENT_EXEC": generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC": generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS": generateSetLocalsDictCode,

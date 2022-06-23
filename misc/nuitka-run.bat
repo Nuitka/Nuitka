@@ -1,5 +1,5 @@
 @echo off
-rem     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+rem     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 rem 
 rem     Part of "Nuitka", an optimizing Python compiler that is compatible and
 rem     integrates with CPython, but also works on its own.

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,7 +29,7 @@ from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Yaml import parsePackageYaml
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
@@ -50,8 +50,11 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         noinclude_ipython_mode,
         noinclude_default_mode,
         custom_choices,
+        show_changes,
     ):
         # Many details, due to many repetitive arguments, pylint: disable=too-many-branches
+
+        self.show_changes = show_changes
 
         # Default manually to default argument value:
         if noinclude_setuptools_mode is None:
@@ -63,7 +66,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
 
-        self.config = parsePackageYaml(__package__, "anti-bloat.yml")
+        self.config = getYamlPackageConfiguration()
 
         self.handled_modules = OrderedDict()
 
@@ -72,11 +75,14 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         if noinclude_setuptools_mode != "allow":
             self.handled_modules["setuptools"] = noinclude_setuptools_mode
+            self.handled_modules["setuptools_scm"] = noinclude_setuptools_mode
         else:
             self.control_tags.add("allow_setuptools")
 
         if noinclude_pytest_mode != "allow":
             self.handled_modules["pytest"] = noinclude_pytest_mode
+            self.handled_modules["nose2"] = noinclude_pytest_mode
+            self.handled_modules["nose"] = noinclude_pytest_mode
         else:
             self.control_tags.add("allow_pytest")
 
@@ -113,8 +119,23 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
             self.handled_modules[ModuleName(module_name)] = mode
 
+    def getCacheContributionValues(self, module_name):
+        config = self.config.get(module_name, section="anti-bloat")
+
+        if config:
+            yield str(config)
+
     @classmethod
     def addPluginCommandLineOptions(cls, group):
+        group.add_option(
+            "--show-anti-bloat-changes",
+            action="store_true",
+            dest="show_changes",
+            default=False,
+            help="""\
+Annotate what changes are by the plugin done.""",
+        )
+
         group.add_option(
             "--noinclude-setuptools-mode",
             action="store",
@@ -122,8 +143,8 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             choices=("error", "warning", "nofollow", "allow"),
             default=None,
             help="""\
-What to do if a setuptools import is encountered. This package can be big with
-dependencies, and should definitely be avoided.""",
+What to do if a 'setuptools' or import is encountered. This package can be big with
+dependencies, and should definitely be avoided. Also handles 'setuptools_scm'.""",
         )
 
         group.add_option(
@@ -133,8 +154,8 @@ dependencies, and should definitely be avoided.""",
             choices=("error", "warning", "nofollow", "allow"),
             default=None,
             help="""\
-What to do if a pytest import is encountered. This package can be big with
-dependencies, and should definitely be avoided.""",
+What to do if a 'pytest' import is encountered. This package can be big with
+dependencies, and should definitely be avoided. Also handles 'nose' imports.""",
         )
 
         group.add_option(
@@ -181,33 +202,30 @@ which can and should be a top level package and then one choice, "error",
 "warning", "nofollow", e.g. PyQt5:error.""",
         )
 
-    def onModuleSourceCode(self, module_name, source_code):
+    def _onModuleSourceCode(self, module_name, anti_bloat_config, source_code):
         # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-        config = self.config.get(module_name)
-
-        if not config:
-            return source_code
-
         # Allow disabling config for a module with matching control tags.
-        for control_tag in config.get("control_tags", ()):
+        for control_tag in anti_bloat_config.get("control_tags", ()):
             if control_tag in self.control_tags:
                 return source_code
 
-        description = config.get("description", "description not given")
+        description = anti_bloat_config.get("description", "description not given")
 
         # To allow detection if it did anything.
         change_count = 0
 
         context = {}
-        context_code = config.get("context", "")
+        context_code = anti_bloat_config.get("context", "")
         if type(context_code) in (tuple, list):
             context_code = "\n".join(context_code)
 
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for replace_src, replace_code in config.get("replacements", {}).items():
+        for replace_src, replace_code in anti_bloat_config.get(
+            "replacements", {}
+        ).items():
             # Avoid the eval, if the replace doesn't hit.
             if replace_src not in source_code:
                 continue
@@ -245,14 +263,16 @@ which can and should be a top level package and then one choice, "error",
             if old != source_code:
                 change_count += 1
 
-        for replace_src, replace_dst in config.get("replacements_plain", {}).items():
+        for replace_src, replace_dst in anti_bloat_config.get(
+            "replacements_plain", {}
+        ).items():
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
 
             if old != source_code:
                 change_count += 1
 
-        append_code = config.get("append_result", "")
+        append_code = anti_bloat_config.get("append_result", "")
         if type(append_code) in (tuple, list):
             append_code = "\n".join(append_code)
 
@@ -272,46 +292,60 @@ which can and should be a top level package and then one choice, "error",
             source_code += "\n" + append_result
             change_count += 1
 
-        if change_count > 0:
+        if change_count > 0 and self.show_changes:
             self.info(
                 "Handling module '%s' with %d change(s) for: %s."
                 % (module_name.asString(), change_count, description)
             )
 
-        module_code = config.get("module_code", None)
+        module_code = anti_bloat_config.get("module_code", None)
 
         if module_code is not None:
             assert not change_count
 
-            self.info(
-                "Handling module '%s' with full replacement : %s."
-                % (module_name.asString(), description)
-            )
+            if self.show_changes:
+                self.info(
+                    "Handling module '%s' with full replacement : %s."
+                    % (module_name.asString(), description)
+                )
 
             source_code = module_code
 
         return source_code
 
-    def onFunctionBodyParsing(self, module_name, function_name, body):
-        config = self.config.get(module_name)
+    def onModuleSourceCode(self, module_name, source_code):
+        config = self.config.get(module_name, section="anti-bloat")
 
-        if not config:
-            return
+        if config:
+            for anti_bloat_config in config:
+                source_code = self._onModuleSourceCode(
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    source_code=source_code,
+                )
 
+        return source_code
+
+    def _onFunctionBodyParsing(
+        self, module_name, anti_bloat_config, function_name, body
+    ):
         context = {}
-        context_code = config.get("context", "")
+        context_code = anti_bloat_config.get("context", "")
         if type(context_code) in (tuple, list):
             context_code = "\n".join(context_code)
 
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)
 
-        for change_function_name, replace_code in (
-            config.get("change_function") or {}
-        ).items():
-            if function_name != change_function_name:
-                continue
+        replace_code = anti_bloat_config.get("change_function", {}).get(function_name)
 
+        if replace_code == "un-callable":
+            replace_code = """'raise RuntimeError("Must not call %s.%s")'""" % (
+                module_name,
+                function_name,
+            )
+
+        if replace_code is not None:
             if not context_ready:
                 exec(context_code, context)
                 context_ready = True
@@ -324,7 +358,7 @@ which can and should be a top level package and then one choice, "error",
                     % (replace_code, context_code, e)
                 )
 
-            # Single node is required, extrace the generated module body with
+            # Single node is required, extract the generated module body with
             # single expression only statement value or a function body.
             replacement = ast.parse(replacement).body[0]
 
@@ -333,13 +367,28 @@ which can and should be a top level package and then one choice, "error",
                     body[:] = [ast.Return(replacement.value.body)]
                 else:
                     body[:] = [ast.Return(replacement.value)]
+            elif type(replacement) is ast.Raise:
+                body[:] = [replacement]
             else:
                 body[:] = replacement.body
 
-            self.info(
-                "Updated module '%s' function '%s'."
-                % (module_name.asString(), function_name)
-            )
+            if self.show_changes:
+                self.info(
+                    "Updated module '%s' function '%s'."
+                    % (module_name.asString(), function_name)
+                )
+
+    def onFunctionBodyParsing(self, module_name, function_name, body):
+        config = self.config.get(module_name, section="anti-bloat")
+
+        if config:
+            for anti_bloat_config in config:
+                self._onFunctionBodyParsing(
+                    module_name=module_name,
+                    anti_bloat_config=anti_bloat_config,
+                    function_name=function_name,
+                    body=body,
+                )
 
     def onModuleRecursion(self, module_name, module_filename, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
@@ -356,9 +405,10 @@ which can and should be a top level package and then one choice, "error",
                 # Either issue a warning, or pretend the module doesn't exist for standalone or
                 # at least will not be included.
                 if mode == "nofollow":
-                    self.info(
-                        "Forcing import of '%s' to not be followed." % module_name
-                    )
+                    if self.show_changes:
+                        self.info(
+                            "Forcing import of '%s' to not be followed." % module_name
+                        )
                     return (
                         False,
                         "user requested to not follow '%s' import" % module_name,

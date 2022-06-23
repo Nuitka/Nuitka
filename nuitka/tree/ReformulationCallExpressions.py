@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,24 +22,22 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
 )
-from nuitka.nodes.DictionaryNodes import (
-    makeExpressionMakeDictOrConstant,
-    makeExpressionPairs,
-)
+from nuitka.nodes.DictionaryNodes import makeExpressionMakeDictOrConstant
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef,
 )
+from nuitka.nodes.KeyValuePairNodes import makeExpressionPairs
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -143,7 +141,7 @@ def buildCallNode(provider, node, source_ref):
             outline_body.setChild(
                 "body",
                 makeStatementsSequenceFromStatements(
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=tmp_called, source=called, source_ref=source_ref
                     ),
                     StatementReturn(

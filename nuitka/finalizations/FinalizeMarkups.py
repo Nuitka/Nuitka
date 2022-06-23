@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -127,7 +127,7 @@ class FinalizeMarkups(VisitorNoopMixin):
                             node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
                     # TODO: This might be bad.
-                    assign_source.unmarkAsInplaceSuspect()
+                    assign_source.removeMarkAsInplaceSuspect()
 
         if python_version < 0x300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -350,7 +350,7 @@ def _reportCandidates(package_name, module_name, candidate, candidates):
 
     if (
         candidate.priority == 1
-        and Options.shallPreferSourcecodeOverExtensionModules() is None
+        and Options.shallPreferSourceCodeOverExtensionModules() is None
     ):
         for c in candidates:
             # Don't compare to itself and don't consider unused bytecode a problem.
@@ -387,7 +387,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
     # Higher values are lower priority.
     priority_map = {
         imp.PY_COMPILED: 3,
-        imp.PY_SOURCE: 0 if Options.shallPreferSourcecodeOverExtensionModules() else 2,
+        imp.PY_SOURCE: 0 if Options.shallPreferSourceCodeOverExtensionModules() else 2,
         imp.C_EXTENSION: 1,
     }
 
@@ -524,7 +524,7 @@ def getPackageSearchPath(package_name):
     assert main_path is not None
 
     if package_name is None:
-        return [os.getcwd(), main_path] + [
+        result = [os.getcwd(), main_path] + [
             _unpackPathElement(path_element) for path_element in sys.path
         ]
     elif "." in package_name:
@@ -563,7 +563,8 @@ def getPackageSearchPath(package_name):
                 if isPackageDir(package_dir) or force_package:
                     result.append(package_dir)
 
-        return result
+    result = [element for element in result if os.path.exists(element)]
+    return OrderedSet(result)
 
 
 def _findModuleInPath(module_name):

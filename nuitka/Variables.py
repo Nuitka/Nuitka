@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -233,6 +233,16 @@ class Variable(getMetaClassBase("Variable")):
                 return trace
 
         return None
+
+    def getMatchingUnescapedAssignTrace(self, assign_node):
+        found = None
+        for trace in self.traces:
+            if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
+                found = trace
+            if trace.isEscapeTrace():
+                return None
+
+        return found
 
     def getMatchingDelTrace(self, del_node):
         for trace in self.traces:

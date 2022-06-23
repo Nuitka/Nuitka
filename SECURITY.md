@@ -2,10 +2,11 @@
 
 ## Supported Versions
 
-There are no LTS supported versions of Nuitka, but mostly the stable version is hotfixed,
-and would be for security issues. If possible, git rebases would be done just as they are
-for corruption bugs, which would then allow to use these, but usually newer Nuitka is the
-expected to use version, with main always being as bug free as possible.
+There are no LTS supported versions of Nuitka, but mostly the stable version is
+hot-fixed, and would be for security issues. If possible, git rebases would be
+done just as they are for corruption bugs, which would then allow to use these,
+but usually newer Nuitka is the expected to use version, with main always being
+as bug free as possible.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -15,6 +16,7 @@ expected to use version, with main always being as bug free as possible.
 
 ## Reporting a Vulnerability
 
-When you email me at `kay.hayen@gmail.com` with a well defined report, I guarantee a reaction
-within 24h, and correction as soon as possible. Generally private emails are not acceptable
-for questions, there I would point to GitHub, but for sensitive information only, it's great.
+When you email me at `kay.hayen@gmail.com` with a well defined report, I
+guarantee a reaction within 72h, and correction as soon as possible. Generally
+private emails are not acceptable for questions, there I would point to GitHub,
+but for sensitive information only, it's great.

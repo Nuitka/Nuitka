@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,6 +24,7 @@ such that it allows to restore it directly.
 import os
 
 from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
+from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, makePath
 from nuitka.utils.Hashing import Hash, getStringHash
@@ -112,7 +113,7 @@ def getModuleImportableFilesHash(full_name):
     paths = getPackageSearchPath(None)
 
     if package_name is not None:
-        paths += getPackageSearchPath(package_name)
+        paths.update(getPackageSearchPath(package_name))
 
     all_suffixes = getAllModuleSuffixes()
 
@@ -125,5 +126,7 @@ def getModuleImportableFilesHash(full_name):
         for fullname, filename in listDir(path):
             if isPackageDir(fullname) or filename.endswith(all_suffixes):
                 result_hash.updateFromValues(filename, b"\0")
+
+    result_hash.updateFromValues(*Plugins.getCacheContributionValues(full_name))
 
     return result_hash.asHexDigest()

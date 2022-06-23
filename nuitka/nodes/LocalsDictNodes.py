@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,15 +26,15 @@ from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
-from .AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable,
-    StatementReleaseVariable,
-)
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .VariableAssignNodes import makeStatementAssignmentVariable
+from .VariableDelNodes import (
+    StatementReleaseVariable,
+    makeStatementDelVariable,
+)
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -377,7 +377,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
                 trace_collection=trace_collection, variable_name=variable_name
             )
 
-            result = StatementAssignmentVariable(
+            result = makeStatementAssignmentVariable(
                 source=self.subnode_source,
                 variable=variable,
                 source_ref=self.source_ref,
@@ -385,15 +385,15 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             result.parent = self.parent
 
             new_result = result.computeStatement(trace_collection)
+            result = new_result[0]
 
-            if new_result[0] is not result:
-                assert False, (new_result, result)
+            assert result.isStatementAssignmentVariable(), new_result
 
             self.finalize()
             return (
                 result,
                 "new_statements",
-                "Replaced dictionary assignment with temporary variable.",
+                "Replaced dictionary assignment with temporary variable assignment.",
             )
 
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -479,18 +479,18 @@ class StatementLocalsDictOperationDel(StatementBase):
                 trace_collection=trace_collection, variable_name=variable_name
             )
 
-            result = StatementDelVariable(
+            result = makeStatementDelVariable(
                 variable=variable, tolerant=False, source_ref=self.source_ref
             )
             result.parent = self.parent
 
             new_result = result.computeStatement(trace_collection)
+            result = new_result[0]
 
-            if new_result[0] is not result:
-                assert False, (new_result, result)
+            assert result.isStatementDelVariable(), new_result
 
             return (
-                result,
+                new_result,
                 "new_statements",
                 "Replaced dictionary del with temporary variable.",
             )

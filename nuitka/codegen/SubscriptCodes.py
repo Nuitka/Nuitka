@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -68,7 +68,7 @@ def generateAssignmentSubscriptCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
         if integer_subscript:
@@ -103,7 +103,7 @@ def generateDelSubscriptCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         subscript.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
         _getSubscriptDelCode(
