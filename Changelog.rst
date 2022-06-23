@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 0.9 (Draft)
-****************************
+********************
+ Nuitka Release 0.9
+********************
 
 This release has a many optimization improvements, and scalability
 improvements, while also adding new features, with also some important
