@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,6 +19,7 @@
 
 """
 
+import ast
 import os
 import platform
 import re
@@ -382,9 +383,7 @@ def checkCachingSuccess(source_dir):
         if clcache_stats_filename is not None and os.path.exists(
             clcache_stats_filename
         ):
-            stats = eval(  # lazy, pylint: disable=eval-used
-                getFileContents(clcache_stats_filename)
-            )
+            stats = ast.literal_eval(getFileContents(clcache_stats_filename))
 
             clcache_hit = stats["CacheHits"]
             clcache_miss = stats["CacheMisses"]

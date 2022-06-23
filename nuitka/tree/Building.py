@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -69,7 +69,6 @@ from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import (
     StatementAssignmentAttribute,
     makeExpressionAttributeLookup,
@@ -121,7 +120,10 @@ from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
-from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode
@@ -950,8 +952,8 @@ def decideCompilationMode(is_top, module_name, for_pgo):
     if result == "bytecode" and is_top:
         plugins_logger.warning(
             """\
-Ignoring plugin decision to compile top level package '%s'
-as bytecode, the extension module entry point is technically
+Ignoring plugin decision to compile top level package '%s' \
+as bytecode, the extension module entry point is technically \
 required to compiled."""
             % module_name
         )

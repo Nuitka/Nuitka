@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -56,9 +56,9 @@ PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
 #endif
         // Frame release protects against recursion as it may lead to variable
         // destruction.
-        ++tstate->recursion_depth;
+        tstate->recursion_depth++;
         Py_DECREF(frame);
-        --tstate->recursion_depth;
+        tstate->recursion_depth--;
 
         return result;
     }
@@ -120,9 +120,9 @@ static PyObject *_fast_function_noargs(PyObject *func) {
 
         // Frame release protects against recursion as it may lead to variable
         // destruction.
-        ++tstate->recursion_depth;
+        tstate->recursion_depth++;
         Py_DECREF(frame);
-        --tstate->recursion_depth;
+        tstate->recursion_depth--;
 
         return result;
     }

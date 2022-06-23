@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,7 +19,11 @@
 
 from nuitka.Options import shallMakeModule
 
-from .CallCodes import getCallCodePosArgsQuick
+from .CallCodes import (
+    getCallCodeKwSplit,
+    getCallCodeNoArgs,
+    getCallCodePosArgsQuick,
+)
 from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
@@ -52,6 +56,171 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
             called_name=get_data_function,
             expression=expression,
             arg_names=(package_name, resource_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesDistributionCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "distribution_value", expression, emit, context
+    ) as result_name:
+        distribution_class_name = context.allocateTempName(
+            "distribution_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=distribution_class_name,
+            module_name="pkg_resources",
+            import_name="Distribution",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(
+                getattr(expression.getCompileTimeConstant(), kw_name)
+            )
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=distribution_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesRequireCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "require_value", expression, emit, context
+    ) as result_name:
+        (requirement_arg_names,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        require_function_name = context.allocateTempName(
+            "require_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=require_function_name,
+            module_name="pkg_resources",
+            import_name="require",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=require_function_name,
+            expression=expression,
+            arg_names=requirement_arg_names,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesGetDistributionCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "get_distribution_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        get_distribution_function_name = context.allocateTempName(
+            "get_distribution_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=get_distribution_function_name,
+            module_name="pkg_resources",
+            import_name="get_distribution",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=get_distribution_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataVersionCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "version_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        version_function_name = context.allocateTempName(
+            "importlib_metadata_version_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=version_function_name,
+            module_name="importlib.metadata",
+            import_name="version",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=version_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportVersionCallCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "version_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        version_function_name = context.allocateTempName(
+            "importlib_metadata_backport_version_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=version_function_name,
+            module_name="importlib_metadata",
+            import_name="version",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=version_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
             needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
@@ -181,6 +350,33 @@ def generatePkgResourcesResourceStreamCallCode(to_name, expression, emit, contex
             called_name=resource_stream_function,
             expression=expression,
             arg_names=(package_name, resource_name),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateOsUnameCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "os_uname_value", expression, emit, context
+    ) as result_name:
+        resource_stream_function = context.allocateTempName(
+            "os_uname_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=resource_stream_function,
+            module_name="os",
+            import_name="uname",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodeNoArgs(
+            to_name=result_name,
+            called_name=resource_stream_function,
+            expression=expression,
             needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,

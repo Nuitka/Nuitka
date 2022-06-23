@@ -1,4 +1,4 @@
-{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
 {#                                                                              #}
 {#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
 {#     integrates with CPython, but also works on its own.                      #}
@@ -30,7 +30,6 @@ PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix
     {{arg_type.getCheckValueCode(arg_name)}}
 {% endif %}
 {% endfor %}
-
 
 {% if len(arg_names) > 0 %}
     PyObject *args[{{len(arg_names)+1}}] = { {{builtin_arg_name}}, {{",".join(arg_names)}} };

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,6 +26,8 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
+import ast
+import functools
 import inspect
 import os
 import sys
@@ -442,7 +444,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             tuple
         """
-        # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
+        # TODO: This "dist_dir" should no longer be here, as this API is obsolete, pylint: disable=unused-argument
         for included_entry_point in self.getExtraDlls(module):
             # Copy to the dist directory, which normally should not be a plugin task, but is for now.
             makePath(os.path.dirname(included_entry_point.dest_path))
@@ -845,9 +847,8 @@ except ImportError:
 
         NamedTupleResult = namedtuple(info_name, keys)
 
-        # We are being lazy here, the code is trusted, pylint: disable=eval-used
         self._runtime_information_cache[info_name] = NamedTupleResult(
-            *(eval(value) for value in feedback)
+            *(ast.literal_eval(value) for value in feedback)
         )
 
         return self._runtime_information_cache[info_name]
@@ -859,9 +860,20 @@ except ImportError:
             values=(("key", value),),
         ).key
 
-    @staticmethod
-    def onFunctionBodyParsing(module_name, function_name, body):
-        pass
+    def onFunctionBodyParsing(self, module_name, function_name, body):
+        """Provide a different function body for the function of that module."""
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def getCacheContributionValues(self, module_name):
+        """Provide values that represent the include of a plugin on the compilation.
+
+        This must be used to invalidate cache results, e.g. when using the
+        onFunctionBodyParsing function, and other things, that do not directly
+        affect the source code.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
 
     @classmethod
     def warning(cls, message):
@@ -874,9 +886,6 @@ except ImportError:
     @classmethod
     def sysexit(cls, message):
         plugins_logger.sysexit(cls.plugin_name + ": " + message)
-
-
-import functools
 
 
 def standalone_only(func):

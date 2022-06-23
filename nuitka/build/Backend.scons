@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -90,6 +90,7 @@ from .SconsUtils import (
     getExecutablePath,
     getMsvcVersionString,
     initScons,
+    isClangName,
     isGccName,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
@@ -400,7 +401,7 @@ env.pyenv_python = getArgumentBool("pyenv_python", False)
 env.apple_python = getArgumentBool("pyenv_python", False)
 
 # Requested or user provided, detect if it's clang even from environment
-if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
+if isClangName(env.the_cc_name):
     clang_mode = True
     env["CCVERSION"] = None
 
@@ -954,11 +955,6 @@ def createBuildDefinitionsFile():
     build_definitions = {}
 
     if uninstalled_python and not static_libpython:
-        if win_target:
-            build_definitions["DLL_EXTRA_PATH"] = os.path.dirname(
-                getWindowsPythonDLLPath()
-            )
-
         build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
     build_definitions["NO_PYTHON_WARNINGS"] = 1 if no_python_warnings else 0

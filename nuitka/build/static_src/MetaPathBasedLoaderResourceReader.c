@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -47,6 +47,7 @@ static PyObject *Nuitka_ResourceReader_tp_repr(struct Nuitka_ResourceReaderObjec
     return PyUnicode_FromFormat("<nuitka_resource_reader for '%s'>", reader->m_loader_entry->name);
 }
 
+// Obligatory, even if we have nothing to own
 static int Nuitka_ResourceReader_tp_traverse(struct Nuitka_ResourceReaderObject *reader, visitproc visit, void *arg) {
     return 0;
 }
@@ -92,13 +93,24 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
     return BUILTIN_OPEN_BINARY_READ_SIMPLE(filename);
 }
 
+#if PYTHON_VERSION >= 0x390 && defined(_NUITKA_EXPERIMENTAL_RESOURCE_READER_FILES)
+
+#include "MetaPathBasedLoaderResourceReaderFiles.c"
+
+static PyObject *Nuitka_ResourceReader_files(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
+                                             PyObject *kwds) {
+
+    return Nuitka_ResourceReaderFiles_New(reader->m_loader_entry);
+}
+#endif
+
 static PyMethodDef Nuitka_ResourceReader_methods[] = {
     {"resource_path", (PyCFunction)Nuitka_ResourceReader_resource_path, METH_VARARGS | METH_KEYWORDS, NULL},
     {"open_resource", (PyCFunction)Nuitka_ResourceReader_open_resource, METH_VARARGS | METH_KEYWORDS, NULL},
-
+#if PYTHON_VERSION >= 0x390 && defined(_NUITKA_EXPERIMENTAL_RESOURCE_READER_FILES)
+    {"files", (PyCFunction)Nuitka_ResourceReader_files, METH_NOARGS, NULL},
+#endif
     {NULL}};
-
-static PyGetSetDef Nuitka_ResourceReader_getsetlist[] = {{NULL}};
 
 static PyTypeObject Nuitka_ResourceReader_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "nuitka_resource_reader",
@@ -129,7 +141,7 @@ static PyTypeObject Nuitka_ResourceReader_Type = {
     0,                                               /* tp_iternext */
     Nuitka_ResourceReader_methods,                   /* tp_methods */
     0,                                               /* tp_members */
-    Nuitka_ResourceReader_getsetlist,                /* tp_getset */
+    0,                                               /* tp_getset */
 };
 
 static PyObject *Nuitka_ResourceReader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {

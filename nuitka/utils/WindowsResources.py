@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,9 +32,10 @@ multiple resources proved to be not possible.
 import ctypes
 import os
 import struct
-import time
 
 from nuitka import TreeXML
+
+from .Utils import decoratorRetries
 
 # SxS manifest files resource kind
 RT_MANIFEST = 24
@@ -129,8 +130,12 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         EnumResourceLanguages(
             hModule, lpType, lpName, EnumResourceLanguagesCallback(callback2), 0
         )
-        # Always pick first one, we should get away with that.
-        lang_id = langs[0]
+        # Always pick first one, we should get away with that. On very old Python,
+        # we do not find any, and pick 0.
+        try:
+            lang_id = langs[0]
+        except IndexError:
+            lang_id = 0
 
         if with_data:
             hResource = ctypes.windll.kernel32.FindResourceA(hModule, lpName, lpType)
@@ -258,41 +263,19 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kinds
 
 
 def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, logger):
-    max_attempts = 5
+    assert os.path.exists(target_filename), target_filename
 
-    for attempt in range(1, max_attempts + 1):
+    @decoratorRetries(
+        logger=logger,
+        purpose="add resources to file %r" % target_filename,
+        consequence="the result is unusable",
+    )
+    def _addResourceToFile():
         update_handle = _openFileWindowsResources(target_filename)
-
         _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
+        _closeFileWindowsResources(update_handle)
 
-        try:
-            _closeFileWindowsResources(update_handle)
-        except OSError as e:
-            if e.errno in (110, 13):
-                logger.warning(
-                    """
-Failed to add resources to file %r in attempt %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
-                    % (target_filename, attempt)
-                )
-            else:
-                logger.warning(
-                    """
-Failed to add resources to file %r in attempt %d with error code %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
-                    % (target_filename, attempt, e.errno)
-                )
-
-            time.sleep(1)
-            continue
-        else:
-            if attempt != 1:
-                logger.warning(
-                    "Succeeded with resource update in attempt %d." % attempt
-                )
-            break
-    else:
-        logger.sysexit("Failed to update resources, the result is unusable.")
+    _addResourceToFile()
 
 
 class WindowsExecutableManifest(object):

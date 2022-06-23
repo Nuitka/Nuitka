@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,7 +49,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
         if attribute_name == "__dict__":
@@ -88,7 +88,7 @@ def generateDelAttributeCode(statement, emit, context):
 
     with context.withCurrentSourceCodeReference(
         statement.subnode_expression.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
     ):
         getAttributeDelCode(

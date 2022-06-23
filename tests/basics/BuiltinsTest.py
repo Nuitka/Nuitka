@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -683,7 +683,7 @@ print(all(range(2, 999, 4)))
 print("all with compile time strings and bytes:")
 print(all("Nuitka rocks!"))
 print(all("string"))
-print(all(u"unicode"))
+print(all("unicode"))
 print(all(b"bytes"))
 print(all(b"bytes\0"))
 
@@ -725,7 +725,7 @@ print(any(range(2, 999, 4)))
 print("any with compile time strings and bytes:")
 print(any("Nuitka rocks!"))
 print(any("string"))
-print(any(u"unicode"))
+print(any("unicode"))
 print(any(b"bytes"))
 print(any(b"bytes\0"))
 
@@ -742,3 +742,8 @@ x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
 print(x)
 for v in zip([1, 2, 3], "String"):
     print(v)
+
+# This used to crash, because of how variables are to be picked apart rather
+# that propagated as call argument.
+func = "{foo}".format
+print(func(foo="Foo"))

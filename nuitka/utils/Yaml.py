@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,38 +25,161 @@ Also we put loading for specific packages in here and a few helpers to work
 with these config files.
 """
 
+import os
 import pkgutil
 
+from nuitka.containers.odict import OrderedDict
+from nuitka.Options import getUserProvidedYamlFiles
+from nuitka.Tracing import general
+
+from .FileOperations import getFileContents
 from .Importing import importFromInlineCopy
 
 
 class Yaml(object):
-    def __init__(self, filename, data):
-        self.filename = filename
-        self.data = data
+    __slots__ = (
+        "name",
+        "data",
+    )
 
-    def get(self, name):
-        return self.data.get(name)
+    def __init__(self, name, data):
+        self.name = name
+
+        assert type(data) is list
+
+        self.data = OrderedDict()
+
+        for item in data:
+            module_name = item.pop("module-name")
+
+            if "/" in module_name:
+                general.sysexit(
+                    "Error, invalid module name in '%s' looks like a file path '%s'."
+                    % (self.name, module_name)
+                )
+
+            if module_name in self.data:
+                general.sysexit("Duplicate module-name '%s' encountered." % module_name)
+
+            self.data[module_name] = item
+
+    def __rep__(self):
+        return "<Yaml %s>" % self.name
+
+    def get(self, name, section):
+        result = self.data.get(name)
+
+        if result is not None:
+            result = result.get(section)
+
+        return result
 
     def keys(self):
         return self.data.keys()
 
+    def items(self):
+        return self.data.items()
+
+    def update(self, other):
+        # TODO: Full blown merging, including respecting an overload flag, where a config
+        # replaces another one entirely, for now we expect to not overlap.
+        for key, value in other.items():
+            assert key not in self.data, key
+
+            self.data[key] = value
+
+
+def getYamlPackage():
+    if not hasattr(getYamlPackage, "yaml"):
+        try:
+            import yaml
+
+            getYamlPackage.yaml = yaml
+        except ImportError:
+            getYamlPackage.yaml = importFromInlineCopy("yaml", must_exist=True)
+
+    return getYamlPackage.yaml
+
 
 def parseYaml(data):
-    try:
-        import yaml
-    except ImportError:
-        yaml = importFromInlineCopy("yaml", must_exist=True)
+    yaml = getYamlPackage()
 
-    try:
-        yaml_load_function = yaml.safe_load
-    except AttributeError:
-        yaml_load_function = yaml.load
+    # Make sure dictionaries are ordered even before 3.6 in the result. We use
+    # them for hashing in caching keys.
+    class OrderedLoader(yaml.SafeLoader):
+        pass
 
-    return yaml_load_function(data)
+    def construct_mapping(loader, node):
+        loader.flatten_mapping(node)
+
+        return OrderedDict(loader.construct_pairs(node))
+
+    OrderedLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+    )
+
+    return yaml.load(data, OrderedLoader)
+
+
+_yaml_cache = {}
 
 
 def parsePackageYaml(package_name, filename):
-    return Yaml(
-        filename=filename, data=parseYaml(pkgutil.get_data(package_name, filename))
+    key = package_name, filename
+
+    if key not in _yaml_cache:
+        data = pkgutil.get_data(package_name, filename)
+
+        if data is None:
+            raise IOError("Cannot find %s.%s" % (package_name, filename))
+
+        _yaml_cache[key] = Yaml(name=filename, data=parseYaml(data))
+
+    return _yaml_cache[key]
+
+
+_package_config = None
+
+
+def getYamlPackageConfiguration():
+    """Get Nuitka package configuration. Merged from multiple sources."""
+    # Singleton, pylint: disable=global-statement
+    global _package_config
+
+    if _package_config is None:
+        _package_config = parsePackageYaml(
+            "nuitka.plugins.standard", "standard.nuitka-package.config.yml"
+        )
+
+        try:
+            _package_config.update(
+                parsePackageYaml(
+                    "nuitka.plugins.commercial", "commercial.nuitka-package.config.yml"
+                )
+            )
+        except IOError:
+            # No commercial configuration found.
+            pass
+
+        # User or plugin provided filenames, but we want PRs though, and will nag
+        # about it somewhat.
+        for user_yaml_filename in getUserProvidedYamlFiles():
+            _package_config.update(
+                Yaml(
+                    name=user_yaml_filename,
+                    data=parseYaml(getFileContents(user_yaml_filename, mode="rb")),
+                )
+            )
+
+    return _package_config
+
+
+def getYamlPackageConfigurationSchemaFilename():
+    """Get the filename of the schema for Nuitka package configuration."""
+    return os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "misc",
+        "nuitka-package-config-schema.json",
     )

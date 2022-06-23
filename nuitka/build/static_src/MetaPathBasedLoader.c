@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -1896,7 +1896,7 @@ void setEarlyFrozenModulesFileAttribute(void) {
     Py_ssize_t pos = 0;
     PyObject *key, *value;
 
-    while (PyDict_Next(sys_modules, &pos, &key, &value)) {
+    while (Nuitka_DictNext(sys_modules, &pos, &key, &value)) {
         if (key != NULL && value != NULL && PyModule_Check(value)) {
             if (HAS_ATTR_BOOL(value, const_str_plain___file__)) {
                 bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);

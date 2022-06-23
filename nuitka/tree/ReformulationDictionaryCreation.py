@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,21 +28,15 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionKeyValuePair,
     StatementDictOperationUpdate,
     makeExpressionMakeDict,
     makeExpressionMakeDictOrConstant,
-    makeExpressionPairs,
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
@@ -53,10 +47,17 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef,
 )
+from nuitka.nodes.KeyValuePairNodes import (
+    makeExpressionKeyValuePair,
+    makeExpressionKeyValuePairConstantKey,
+    makeExpressionPairs,
+)
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -122,7 +123,7 @@ def getDictUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -204,7 +205,7 @@ def getDictUnpackingHelper():
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -214,7 +215,7 @@ def getDictUnpackingHelper():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
             source_ref=internal_source_ref,
@@ -255,12 +256,9 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             result.append(
                 makeExpressionMakeDict(
                     pairs=(
-                        ExpressionKeyValuePair(
-                            key=makeConstantRefNode(
-                                constant=key, source_ref=source_ref
-                            ),
+                        makeExpressionKeyValuePairConstantKey(
+                            key=key,
                             value=buildNode(provider, value, source_ref),
-                            source_ref=source_ref,
                         ),
                     ),
                     source_ref=source_ref,
@@ -270,10 +268,9 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
             result.append(
                 makeExpressionMakeDict(
                     pairs=(
-                        ExpressionKeyValuePair(
+                        makeExpressionKeyValuePair(
                             key=buildNode(provider, key, source_ref),
                             value=buildNode(provider, value, source_ref),
-                            source_ref=source_ref,
                         ),
                     ),
                     source_ref=source_ref,

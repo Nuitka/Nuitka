@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,11 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
@@ -38,6 +33,9 @@ from nuitka.nodes.ImportNodes import (
 )
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
@@ -231,7 +229,7 @@ def buildImportFromNode(provider, node, source_ref):
             )
 
             statements.append(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_import_from,
                     source=imported_from_module,
                     source_ref=source_ref,

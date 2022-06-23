@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -150,6 +150,16 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
         return new_node, tags, message
 
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )
+
     @staticmethod
     def isKnownToBeIterable(count):
         # TODO: Why yes, some may be, could be told here.
@@ -260,3 +270,13 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         assert new_node is not None
 
         return new_node, "new_expression", "Detected built-in exception making."
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )

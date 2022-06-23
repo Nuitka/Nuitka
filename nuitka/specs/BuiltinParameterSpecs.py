@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -106,10 +106,8 @@ class BuiltinParameterSpec(ParameterSpec):
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
-                    arg_name = given_dict_star_arg.subnode_key.getCompileTimeConstant()
-                    arg_value = (
-                        given_dict_star_arg.subnode_value.getCompileTimeConstant()
-                    )
+                    arg_name = given_dict_star_arg.getKeyCompileTimeConstant()
+                    arg_value = given_dict_star_arg.getValueCompileTimeConstant()
 
                     arg_dict[arg_name] = arg_value
 
@@ -309,15 +307,15 @@ builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), default_co
 
 
 class BuiltinParameterSpecSinglePosArgStarDictArgs(BuiltinParameterSpec):
-    def __init__(self, name):
+    def __init__(self, name, list_star_arg="list_args", dict_star_arg="kw_args"):
         BuiltinParameterSpec.__init__(
             self,
             name=name,
             arg_names=(),
             default_count=0,
-            list_star_arg="list_args",
+            list_star_arg=list_star_arg,
             is_list_star_arg_single=True,
-            dict_star_arg="kw_args",
+            dict_star_arg=dict_star_arg,
         )
 
 
@@ -641,7 +639,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
             star_list_single_arg=builtin_spec.isStarListSingleArg(),
             star_dict_arg=builtin_spec.getStarDictArgumentName(),
             num_defaults=builtin_spec.getDefaultCount(),
-            num_posonly=builtin_spec.getPosOnlyParameterCount(),
+            num_pos_only=builtin_spec.getPosOnlyParameterCount(),
             positional=positional,
             pairs=pairs,
         )
@@ -660,7 +658,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
         )
 
     # Using list reference for passing the arguments without names where it
-    # it possible, otherwise dictionary to make those distinuishable.
+    # it possible, otherwise dictionary to make those distinguishable.
     args_list = []
 
     for argument_name in builtin_spec.getArgumentNames():

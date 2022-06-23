@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -22,5 +22,17 @@
 import pandas as pd
 
 # nuitka-skip-unless-imports: pandas
+
+# nuitka-project: --standalone
+# nuitka-project: --enable-plugin=numpy
+
+# Make sure, the usual bad ones are not included with anti-bloat.
+
+# nuitka-project: --noinclude-default-mode=error
+# nuitka-project: --noinclude-custom-mode=numpy.distutils:error
+
+# scipy.lib._docscrape insists on it, and seems not easy to get
+# rid of.
+## nuitka-project: --noinclude-custom-mode=pydoc:error
 
 print(pd.__version__)

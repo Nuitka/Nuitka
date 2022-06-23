@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -130,6 +130,10 @@ struct _dictkeysobject {
 #define DK_ENTRIES(dk) ((PyDictKeyEntry *)(&(dk)->dk_indices.as_1[DK_SIZE(dk) * DK_IXSIZE(dk)]))
 
 #define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
+
+#else
+
+#define DK_ENTRIES(dk) (dk->dk_entries)
 
 #endif
 
@@ -394,5 +398,8 @@ extern PyObject *DICT_COPY(PyObject *dict);
 
 // Python dictionary clear, empty a dictionary.
 extern void DICT_CLEAR(PyObject *dict);
+
+// Replacement for PyDict_Next that is faster (to call).
+extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
 #endif
