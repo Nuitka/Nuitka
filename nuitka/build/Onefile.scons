@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -74,6 +74,7 @@ from .SconsUtils import (
     getExecutablePath,
     getMsvcVersionString,
     initScons,
+    isClangName,
     isGccName,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
@@ -313,7 +314,7 @@ env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
 
 # Requested or user provided, detect if it's clang even from environment
-if "clang" in env.the_cc_name and "-cl" not in env.the_cc_name:
+if isClangName(env.the_cc_name):
     clang_mode = True
     env["CCVERSION"] = None
 

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,7 @@
 
 from nuitka.PythonVersions import python_version
 
+from .CallCodes import getCallCodePosVariableKeywordVariableArgs
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
@@ -148,7 +149,7 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
     )
 
 
-def generateStringContenationCode(to_name, expression, emit, context):
+def generateStringConcatenationCode(to_name, expression, emit, context):
     values = expression.subnode_values
 
     with withObjectCodeTemporaryAssignment(
@@ -238,6 +239,9 @@ def generateStrOperationCode(to_name, expression, emit, context):
     else:
         api_name = "UNICODE_" + api_name
 
+    # This operation has no default available for compile time.
+    none_null = expression.isExpressionStrOperationDecode3()
+
     generateCAPIObjectCode(
         to_name=to_name,
         capi=api_name,
@@ -247,6 +251,7 @@ def generateStrOperationCode(to_name, expression, emit, context):
         source_ref=expression.getCompatibleSourceReference(),
         emit=emit,
         context=context,
+        none_null=none_null,
     )
 
 
@@ -262,6 +267,23 @@ def generateBytesOperationCode(to_name, expression, emit, context):
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateStrFormatMethodCode(to_name, expression, emit, context):
+    if str is bytes:
+        called_name = "str_builtin_format"
+    else:
+        called_name = "unicode_builtin_format"
+
+    getCallCodePosVariableKeywordVariableArgs(
+        to_name=to_name,
+        expression=expression,
+        called_name=called_name,
+        call_args=(expression.subnode_str_arg,) + expression.subnode_args,
+        pairs=expression.subnode_pairs,
         emit=emit,
         context=context,
     )

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,8 @@ import sys
 
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
+
+from .Utils import withNoDeprecationWarning
 
 
 def _importFilePy3NewWay(filename):
@@ -147,7 +149,7 @@ def getSharedLibrarySuffix(preferred):
     return result
 
 
-def importFromFolder(logger, module_name, path, must_exist, message):
+def _importFromFolder(logger, module_name, path, must_exist, message):
     """Import a module from a folder by adding it temporarily to sys.path"""
 
     # Circular dependency here
@@ -174,7 +176,7 @@ def importFromFolder(logger, module_name, path, must_exist, message):
             return None
 
         exit_message = (
-            "Error, expected inline copy of %r to be in %r, error was: %r."
+            "Error, expected inline copy of '%s' to be in '%s', error was: %r."
             % (module_name, path, e)
         )
 
@@ -205,10 +207,38 @@ def importFromInlineCopy(module_name, must_exist):
     elif python_version < 0x360 and os.path.exists(candidate_35):
         folder_name = candidate_35
 
-    return importFromFolder(
+    return _importFromFolder(
         module_name=module_name,
         path=folder_name,
         must_exist=must_exist,
         message=None,
         logger=general,
     )
+
+
+_compile_time_modules = {}
+
+
+def importFromCompileTime(module_name, must_exist):
+    """Import a module from the compiled time stage.
+
+    This is not for using the inline copy, but the one from the actual
+    installation of the user. It suppresses warnings and caches the value
+    avoid making more __import__ calls that necessary.
+    """
+
+    if module_name not in _compile_time_modules:
+        with withNoDeprecationWarning():
+            try:
+                __import__(module_name)
+            except (ImportError, RuntimeError):
+                # Preventing a retry, converted to None for return
+                _compile_time_modules[module_name] = False
+            else:
+                _compile_time_modules[module_name] = sys.modules[module_name]
+
+    # Some code should only use this, after knowing it will be found. Complain if
+    # that is not the case.
+    assert _compile_time_modules[module_name] or not must_exist
+
+    return _compile_time_modules[module_name] or None

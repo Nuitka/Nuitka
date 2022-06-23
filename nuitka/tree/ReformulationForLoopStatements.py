@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,10 +22,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionAsyncIter,
     ExpressionAsyncNext,
@@ -37,6 +33,8 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 
@@ -87,7 +85,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         )
 
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_break_indicator,
                 source=makeConstantRefNode(constant=True, source_ref=source_ref),
                 source_ref=source_ref,
@@ -122,7 +120,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_value_variable, source=next_node, source_ref=source_ref
             ),
             exception_name="StopIteration" if sync else "StopAsyncIteration",
@@ -156,7 +154,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     if else_block is not None:
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_break_indicator,
                 source=makeConstantRefNode(constant=False, source_ref=source_ref),
                 source_ref=source_ref,
@@ -179,7 +177,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     statements += (
         # First create the iterator and store it.
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable, source=iter_source, source_ref=source_ref
         ),
         makeTryFinallyStatement(

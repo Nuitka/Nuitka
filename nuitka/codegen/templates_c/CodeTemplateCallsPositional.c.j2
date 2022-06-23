@@ -1,4 +1,4 @@
-{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
 {#                                                                              #}
 {#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
 {#     integrates with CPython, but also works on its own.                      #}
@@ -161,7 +161,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 
             return result;
         }
-    } else if (PyCFunction_Check(called)) {
+    } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 

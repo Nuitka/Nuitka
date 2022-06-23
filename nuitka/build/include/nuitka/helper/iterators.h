@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@
 // Initialize value for "tp_iternext" to compare with, needed by HAS_ITERNEXT
 // which emulates "PyCheck_Iter" but is bug free.
 extern iternextfunc default_iternext;
-extern void _initSlotIternext(void);
+extern void _initSlotIterNext(void);
 #endif
 
 // This is like "PyIter_Check" but without bugs due to shared library pointers.

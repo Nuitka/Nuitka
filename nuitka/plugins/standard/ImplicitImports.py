@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,21 +36,14 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
-from nuitka.utils.Yaml import parsePackageYaml
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
 class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
     def __init__(self):
-        self.config = parsePackageYaml(__package__, "implicit-imports.yml")
-
-        for key in self.config.keys():
-            if "/" in key:
-                self.sysexit(
-                    "Error, invalid key in 'implicit-imports.yml' looks like a file path, not module name '%s'."
-                    % key
-                )
+        self.config = getYamlPackageConfiguration()
 
     @staticmethod
     def isAlwaysEnabled():
@@ -67,10 +60,11 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     "Error, invalid pattern with empty parts used '%s'." % pattern
                 )
 
-            if "." in part or "*" in part:
+            # TODO: Checking for shell pattern should be done in more places and shared code.
+            if "?" in part or "*" in part or "[" in part:
                 if current is None:
                     self.sysexit(
-                        "Error, cannot use patter for first part '%s'." % pattern
+                        "Error, cannot use pattern for first part '%s'." % pattern
                     )
 
                 module_filename = self.locateModule(
@@ -104,7 +98,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         """Provides names of modules to imported implicitly."""
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
-        config = self.config.get(full_name)
+        config = self.config.get(full_name, section="implicit-imports")
 
         # Checking for config, but also allowing fall through.
         if config:
@@ -165,11 +159,16 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 if (
                     disable_console == "recommend"
                     and mayDisableConsoleWindow()
-                    and not shallDisableConsoleWindow()
+                    and shallDisableConsoleWindow() is None
                 ):
+                    if isMacOS():
+                        downside_message = "Otherwise high resolution will not be available and a terminal window will open."
+                    else:
+                        downside_message = "Otherwise a terminal window will open."
+
                     self.info(
-                        "Note, when using '%s', consider using '--disable-console' option."
-                        % full_name
+                        "Note, when using '%s', consider using '--disable-console' option. %s"
+                        % (full_name, downside_message)
                     )
 
             if (
@@ -782,7 +781,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
             yield "pywt._extensions._swt"
 
         # imageio imports -----------------------------------------------
-        elif full_name == "imageio":
+        elif full_name == "PIL.Image":
             yield "PIL.BlpImagePlugin"
             yield "PIL.BmpImagePlugin"
             yield "PIL.BufrStubImagePlugin"
@@ -1201,6 +1200,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
         elif full_name == "pyreadstat.pyreadstat":
             yield "pyreadstat._readstat_writer"
             yield "pyreadstat.worker"
+            yield "multiprocessing"
         elif full_name == "cytoolz.itertoolz":
             yield "cytoolz.utils"
         elif full_name == "cytoolz.functoolz":
@@ -1306,6 +1306,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
         "site",  # Not performance relevant and problems with .pth files
         "packaging",  # Not performance relevant.
         "appdirs",  # Not performance relevant.
+        "dropbox.team_log",  # Too large generated code
     )
 
     def decideCompilation(self, module_name):

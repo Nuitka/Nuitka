@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -54,6 +54,7 @@ from nuitka.specs.BuiltinParameterSpecs import (
 )
 from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import isWin32Windows
 
 from .ConstantRefNodes import (
     ExpressionConstantSysVersionInfoRef,
@@ -72,9 +73,16 @@ from .ImportHardNodes import (
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+from .PackageMetadataNodes import (
+    ExpressionImportlibMetadataBackportVersionRef,
+    ExpressionImportlibMetadataVersionRef,
+    ExpressionPkgResourcesGetDistributionRef,
+    ExpressionPkgResourcesRequireRef,
+)
 from .PackageResourceNodes import (
     ExpressionImportlibResourcesReadBinaryRef,
     ExpressionImportlibResourcesReadTextRef,
+    ExpressionOsUnameRef,
     ExpressionPkglibGetDataRef,
     ExpressionPkgResourcesResourceStreamRef,
     ExpressionPkgResourcesResourceStringRef,
@@ -186,6 +194,13 @@ module_typing_trust = {
 
 module_os_trust = {"name": trust_constant}
 
+if isWin32Windows():
+    module_os_trust["uname"] = trust_not_exist
+else:
+    module_os_trust["uname"] = trust_node
+
+    trust_node_factory[("os", "uname")] = ExpressionOsUnameRef
+
 hard_modules_trust = {
     "os": module_os_trust,
     "sys": module_sys_trust,
@@ -193,8 +208,8 @@ hard_modules_trust = {
     "typing": module_typing_trust,
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
     "importlib": module_importlib_trust,
-    "importlib.metadata": {},
-    "importlib_metadata": {},
+    "importlib.metadata": {"version": trust_node},
+    "importlib_metadata": {"version": trust_node},
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
@@ -202,19 +217,34 @@ hard_modules_trust = {
     "sysconfig": {},
     "io": {"BytesIO": trust_exist},
     # "cStringIO": {"StringIO": trust_exist},
-    "pkg_resources": {"resource_string": trust_node, "resource_stream": trust_node},
+    "pkg_resources": {
+        "require": trust_node,
+        "get_distribution": trust_node,
+        "resource_string": trust_node,
+        "resource_stream": trust_node,
+    },
     "importlib.resources": {"read_binary": trust_node, "read_text": trust_node},
     "site": {},
 }
 
 
 trust_node_factory[("pkgutil", "get_data")] = ExpressionPkglibGetDataRef
+trust_node_factory[("pkg_resources", "require")] = ExpressionPkgResourcesRequireRef
+trust_node_factory[
+    ("pkg_resources", "get_distribution")
+] = ExpressionPkgResourcesGetDistributionRef
 trust_node_factory[
     ("pkg_resources", "resource_string")
 ] = ExpressionPkgResourcesResourceStringRef
 trust_node_factory[
     ("pkg_resources", "resource_stream")
 ] = ExpressionPkgResourcesResourceStreamRef
+trust_node_factory[
+    ("importlib.metadata", "version")
+] = ExpressionImportlibMetadataVersionRef
+trust_node_factory[
+    ("importlib_metadata", "version")
+] = ExpressionImportlibMetadataBackportVersionRef
 trust_node_factory[
     ("importlib.resources", "read_binary")
 ] = ExpressionImportlibResourcesReadBinaryRef
@@ -231,8 +261,11 @@ def _checkHardModules():
         assert module_name in hard_modules, module_name
 
         for attribute_name, trust_value in trust.items():
-            if trust_value is trust_node_factory:
-                assert (module_name, attribute_name) in trust_node_factory, module_name
+            if trust_value is trust_node:
+                assert (module_name, attribute_name) in trust_node_factory, (
+                    module_name,
+                    attribute_name,
+                )
 
 
 _checkHardModules()
@@ -424,6 +457,14 @@ class ExpressionImportModuleHard(
         self.guaranteed = self.allowed and (
             not shallMakeModule() or self.module_name not in hard_modules_non_stdlib
         )
+
+    @staticmethod
+    def isExpressionImportModuleHard():
+        return True
+
+    @staticmethod
+    def hasVeryTrustedValue():
+        return True
 
     def finalize(self):
         del self.parent
@@ -734,10 +775,7 @@ class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
                     # raise ValueError("attempted relative import beyond top-level package")
             return "%s.%s" % (package_name[:dot], module_name)
 
-        if package_name:
-            return "%s.%s" % (package_name, module_name)
-        else:
-            return module_name
+        return module_name
 
     def computeExpression(self, trace_collection):
         module_name = self.subnode_name

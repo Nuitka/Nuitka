@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,6 +41,12 @@ from .SconsUtils import (
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
 )
+
+# spell-checker: ignore CPPDEFINES,CPPPATH,CXXVERSION,CCFLAGS,LINKFLAGS,CXXFLAGS
+# spell-checker: ignore -flto,-fpartial-inlining,-freorder-functions,-defsym,-fprofile
+# spell-checker: ignore -fwrapv,-Wunused,fcompare,-ftrack,-fvisibility,-municode,
+# spell-checker: ignore -feliminate,noexecstack,implib
+# spell-checker: ignore LTCG,GENPROFILE,USEPROFILE,
 
 
 def _detectWindowsSDK(env):
@@ -214,8 +220,6 @@ def checkWindowsCompilerFound(
 
             decision, linker_arch, compiler_arch = decideArchMismatch(
                 target_arch=target_arch,
-                mingw_mode=isGccName(the_cc_name),
-                msvc_mode=not isGccName(the_cc_name),
                 the_cc_name=the_cc_name,
                 compiler_path=compiler_path,
             )
@@ -495,7 +499,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if env.debug_mode:
             env.Append(CCFLAGS=["-Wunused-but-set-variable"])
 
-    # Support for macOS standalone backporting.
+    # Support for macOS standalone to run on older OS versions.
     if isMacOS():
         setEnvironmentVariable(env, "MACOSX_DEPLOYMENT_TARGET", env.macos_min_version)
 

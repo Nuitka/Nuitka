@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,9 @@ if "-" in codename:
     codename, arch = codename.split("-")
 else:
     arch = subprocess.check_output("dpkg-architecture -q DEB_HOST_ARCH".split()).strip()
+
+    if str is not bytes:
+        arch = arch.decode("utf8")
 
 start_dir = os.getcwd()
 

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -208,8 +208,6 @@ class StatementLoop(StatementChildHavingBase):
         with abort_context:
             # Forget all iterator and other value status. TODO: These should be using
             # more proper tracing to benefit.
-            trace_collection.resetValueStates()
-
             result = loop_body.computeStatementsSequence(
                 trace_collection=trace_collection
             )

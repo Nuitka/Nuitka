@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,6 +29,7 @@ from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeStatementExpressionOnlyReplacementNode,
     wrapExpressionWithNodeSideEffects,
     wrapStatementWithSideEffects,
@@ -38,7 +39,37 @@ from .shapes.BuiltinTypeShapes import tshape_bool, tshape_unknown
 from .StatementNodes import StatementsSequence
 
 
-class ExpressionConditional(ExpressionChildrenHavingBase):
+class ConditionalValueComputeMixin(object):
+    __slots__ = ()
+
+    def _computeConditionTruthValue(self, trace_collection):
+        condition = self.subnode_condition
+
+        truth_value, message = condition.computeExpressionBool(trace_collection)
+        if truth_value is not None:
+            assert type(truth_value) is bool, truth_value
+
+            new_condition = wrapExpressionWithNodeSideEffects(
+                new_node=makeConstantReplacementNode(
+                    constant=truth_value, node=condition, user_provided=False
+                ),
+                old_node=condition,
+            )
+
+            self.replaceChild(condition, new_condition)
+
+            trace_collection.signalChange(
+                tags="new_constant", source_ref=self.source_ref, message=message
+            )
+
+            return truth_value, new_condition
+        else:
+            # Query the truth value after the expression is evaluated, once it is
+            # evaluated in onExpression, it is known.
+            return condition.getTruthValue(), condition
+
+
+class ExpressionConditional(ConditionalValueComputeMixin, ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CONDITIONAL"
 
     named_children = ("condition", "expression_yes", "expression_no")
@@ -90,11 +121,7 @@ branches.""",
 
         # Tell it we are evaluation it for boolean value only, it may demote
         # itself possibly.
-        condition.computeExpressionBool(trace_collection)
-        condition = self.subnode_condition
-
-        # Decide this based on truth value of condition.
-        truth_value = condition.getTruthValue()
+        truth_value, condition = self._computeConditionTruthValue(trace_collection)
 
         # TODO: We now know that condition evaluates to true for the yes branch
         # and to not true for no branch, the branch should know that.
@@ -416,7 +443,7 @@ Convert conditional 'and' expression with unused result into conditional stateme
         )
 
 
-class StatementConditional(StatementChildrenHavingBase):
+class StatementConditional(ConditionalValueComputeMixin, StatementChildrenHavingBase):
     kind = "STATEMENT_CONDITIONAL"
 
     named_children = ("condition", "yes_branch", "no_branch")
@@ -521,12 +548,7 @@ branches.""",
 
         # Tell it we are evaluation it for boolean value only, it may demote
         # itself possibly.
-        condition.computeExpressionBool(trace_collection)
-        condition = self.subnode_condition
-
-        # Query the truth value after the expression is evaluated, once it is
-        # evaluated in onExpression, it is known.
-        truth_value = condition.getTruthValue()
+        truth_value, condition = self._computeConditionTruthValue(trace_collection)
 
         # TODO: We now know that condition evaluates to true for the yes branch
         # and to not true for no branch, the branch collection should know that.

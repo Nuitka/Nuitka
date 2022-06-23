@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,10 +23,6 @@ source code comments with Developer Manual sections.
 """
 
 from nuitka.__past__ import intern
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
     ExpressionMakeAsyncgenObject,
@@ -69,6 +65,8 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
@@ -290,7 +288,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     function_body.setChild(
         "body",
         makeStatementsSequenceFromStatements(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_tmp,
                 source=_makeIteratorCreation(
                     provider=provider,
@@ -392,7 +390,7 @@ def _buildContractionBodyNode(
     # First assign the iterator if we are an outline.
     if assign_provider:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_tmp,
                 source=_makeIteratorCreation(
                     provider=provider,
@@ -406,7 +404,7 @@ def _buildContractionBodyNode(
 
     if for_asyncgen and python_version >= 0x370 and node.generators[0].is_async:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_tmp,
                 source=ExpressionTempVariableRef(
                     variable=iter_tmp, source_ref=source_ref
@@ -417,7 +415,7 @@ def _buildContractionBodyNode(
 
     if start_value is not None:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=container_tmp,
                 source=makeConstantRefNode(constant=start_value, source_ref=source_ref),
                 source_ref=source_ref.atInternal(),
@@ -505,7 +503,7 @@ def _buildContractionBodyNode(
             tmp_variables.append(tmp_iter_variable)
 
             nested_statements = [
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_iter_variable,
                     source=value_iterator,
                     source_ref=source_ref,
@@ -518,7 +516,7 @@ def _buildContractionBodyNode(
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
-                tried=StatementAssignmentVariable(
+                tried=makeStatementAssignmentVariable(
                     variable=tmp_value_variable,
                     source=_makeIteratorNext(
                         iterator_ref=iterator_ref, qual=qual, source_ref=source_ref
@@ -618,7 +616,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         source_ref=source_ref,
     )
 
-    assign_iter_statement = StatementAssignmentVariable(
+    assign_iter_statement = makeStatementAssignmentVariable(
         source=_makeIteratorCreation(
             provider=provider,
             qual=node.generators[0],

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -86,7 +86,7 @@ def getStandaloneDirectoryPath(bundle=True):
     return result
 
 
-def getResultBasepath(onefile=False):
+def getResultBasePath(onefile=False):
     if Options.isOnefileMode() and onefile:
         file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
 
@@ -108,7 +108,7 @@ def getResultBasepath(onefile=False):
 def getResultFullpath(onefile):
     """Get the final output binary result full path."""
 
-    result = getResultBasepath(onefile=onefile)
+    result = getResultBasePath(onefile=onefile)
 
     if Options.shallMakeModule():
         result += getSharedLibrarySuffix(preferred=True)
@@ -141,7 +141,7 @@ def getResultRunFilename(onefile):
     result = getResultFullpath(onefile=onefile)
 
     if isWin32Windows() and Options.shallTreatUninstalledPython():
-        result = getResultBasepath(onefile=onefile) + ".cmd"
+        result = getResultBasePath(onefile=onefile) + ".cmd"
 
     return result
 

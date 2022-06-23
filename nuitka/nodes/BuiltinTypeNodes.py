@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -38,6 +38,8 @@ from .ExpressionShapeMixins import (
     ExpressionFrozensetShapeExactMixin,
     ExpressionListShapeExactMixin,
     ExpressionSetShapeExactMixin,
+    ExpressionStrDerivedShapeMixin,
+    ExpressionStrOrUnicodeDerivedShapeMixin,
     ExpressionTupleShapeExactMixin,
 )
 from .NodeMakingHelpers import (
@@ -82,6 +84,9 @@ class ExpressionBuiltinContainerBase(
             else:
                 return self, None, None
         else:
+            # They take over the variable content, exposing it to currently untraced usages.
+            value.onContentEscapes(trace_collection)
+
             return self.computeBuiltinSpec(
                 trace_collection=trace_collection, given_values=(value,)
             )
@@ -198,7 +203,9 @@ class ExpressionBuiltinUnicodeBase(
         )
 
 
-class ExpressionBuiltinStrP2(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinStrP2(
+    ExpressionStrOrUnicodeDerivedShapeMixin, ExpressionBuiltinTypeBase
+):
     """Python2 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P2"
@@ -242,7 +249,9 @@ class ExpressionBuiltinUnicodeP2(ExpressionBuiltinUnicodeBase):
         return tshape_unicode_derived
 
 
-class ExpressionBuiltinStrP3(ExpressionBuiltinUnicodeBase):
+class ExpressionBuiltinStrP3(
+    ExpressionStrDerivedShapeMixin, ExpressionBuiltinUnicodeBase
+):
     """Python3 built-in str call."""
 
     kind = "EXPRESSION_BUILTIN_STR_P3"

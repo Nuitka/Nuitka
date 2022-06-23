@@ -205,6 +205,9 @@ disable statements.
 Identifiers
 ===========
 
+Classes
+-------
+
 Classes are camel case with leading upper case. Functions and methods
 are with leading verb in lower case, but also camel case. Variables and
 arguments are lower case with ``_`` as a separator.
@@ -218,6 +221,9 @@ arguments are lower case with ``_`` as a separator.
 Base classes that are abstract have their name end with ``Base``, so
 that a meta class can use that convention, and readers immediately know,
 that it will not be instantiated like that.
+
+Functions
+---------
 
 Function calls use keyword argument preferably. These are slower in
 CPython, but more readable:
@@ -240,7 +246,7 @@ still better to add them. But in this instance, the variable name
 already indicates that it is.
 
 Module/Package Names
-====================
+--------------------
 
 Normal modules are named in camel case with leading upper case, because
 of their role as singleton classes. The difference between a module and
@@ -262,8 +268,10 @@ There is no code in packages themselves. For programs, we use
 Names of modules should be plurals if they contain classes. Example is
 that a ``Nodes`` module that contains a ``Node`` class.
 
+Context Managers
+----------------
+
 Names for context manages start with ``with``
-=============================================
 
 In order to easily recognize that something is to be used as a context
 manager, we follow a pattern of naming them ``withSomething``, to make
@@ -435,11 +443,16 @@ block.
       git fetch upstream
       git rebase upstream/develop
 
-   Fix the merge conflicts if any, stash them and continue:
+   Fix the merge conflicts if any and continue or skip commit if it is
+   not your. Sometimes for important bug fixes, develop history gets
+   rewritten. In that case, old and new commits will conflict during
+   your rebase, and skipping is the best way to go.
 
    .. code:: bash
 
       git rebase --continue
+      # not your commit:
+      git rebase --skip
 
    If anything goes wrong while rebasing:
 
@@ -2674,8 +2687,41 @@ The call to ``_complex_call`` is be a direct function call with no
 parameter parsing overhead. And the call in its end, is a special call
 operation, which relates to the ``PyObject_Call`` C-API.
 
+Assignment Expressions
+----------------------
+
+In Python 3.8 or higher, you assign inside expressions.
+
+.. code:: python
+
+   if (x := cond()):
+      do_something()
+
+this is the same as:
+
+.. code:: python
+
+   # Doesn't exist with that name, and it is not really taking closure variables,
+   # it just shares the execution context.
+   def _outline_func():
+      nonlocal x
+      x = cond()
+
+      return x
+
+   if (_outline_func()):
+      do_something
+
+When we use this outline function, we are allowed statements, even
+assignments, in expressions. For optimization, they of course pose a
+challenge to be removed ever, only happens when it becomes only a return
+statement, but they do not cause much difficulties for code generation,
+since they are transparent.
+
 Match Statements
 ----------------
+
+In Python 3.10 or higher, you can write things like this:
 
 .. code:: python
 

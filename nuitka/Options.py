@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -73,8 +73,8 @@ positional_args = None
 extra_args = []
 is_nuitka_run = None
 is_debug = None
-is_nondebug = None
-is_fullcompat = None
+is_non_debug = None
+is_full_compat = None
 is_report_missing = None
 is_verbose = None
 
@@ -102,21 +102,21 @@ as that would overwrite it and cause locking issues as well."""
 
     if options.onefile_tempdir_spec.count("%") % 2 != 0:
         Tracing.options_logger.warning(
-            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may
+            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may \
 not do what you want it to do: '%s'"""
             % options.onefile_tempdir_spec
         )
 
     if options.onefile_tempdir_spec.count("%") == 0:
         Tracing.options_logger.warning(
-            """Not using any variables for '--onefile-tempdir-spec' should only be
+            """Not using any variables for '--onefile-tempdir-spec' should only be \
 done if your program absolutely needs to be in the same path always: '%s'"""
             % options.onefile_tempdir_spec
         )
 
     if os.path.isabs(options.onefile_tempdir_spec):
         Tracing.options_logger.warning(
-            """Using an absolute path should be avoided unless you are targeting a
+            """Using an absolute path should be avoided unless you are targeting a \
 very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
         )
@@ -124,7 +124,7 @@ very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
         ("%TEMP%", "%HOME%", "%CACHE_DIR%")
     ):
         Tracing.options_logger.warning(
-            """Using an relative to the executable should be avoided unless you are targeting a
+            """Using an relative to the executable should be avoided unless you are targeting a \
 very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
         )
@@ -137,8 +137,8 @@ def parseArgs():
     """
     # singleton with many cases checking the options right away.
     # pylint: disable=global-statement,too-many-branches,too-many-locals,too-many-statements
-    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_nondebug
-    global is_fullcompat, is_report_missing, is_verbose
+    global is_nuitka_run, options, positional_args, extra_args, is_debug, is_non_debug
+    global is_full_compat, is_report_missing, is_verbose
 
     if os.name == "nt":
         # Windows store Python's don't allow looking at the python, catch that.
@@ -155,8 +155,11 @@ def parseArgs():
     )
 
     is_debug = _isDebug()
-    is_nondebug = not is_debug
-    is_fullcompat = _isFullCompat()
+    is_non_debug = not is_debug
+    is_full_compat = _isFullCompat()
+
+    if hasattr(options, "experimental"):
+        _experimental.update(options.experimental)
 
     # TODO: Have dedicated option for it.
     is_report_missing = is_debug
@@ -689,6 +692,7 @@ but errors may happen."""
     if hasattr(OrderedSet, "is_fallback") and not (
         isWin32Windows() and python_version < 0x360
     ):
+        # spell-checker: ignore orderedset
         Tracing.general.warning(
             """\
 Using very slow fallback for ordered sets, please install 'ordered-set' or \
@@ -996,7 +1000,7 @@ def _shallUseStaticLibPython():
         if isAnacondaPython() and not isMacOS() and not isWin32Windows():
             return (
                 True,
-                "Nuitka on Anaconda needs package 'libpython-static' installed.",
+                "Nuitka on Anaconda needs package for static libpython installed. Execute 'conda install libpython-static'.",
             )
 
         if isPyenvPython():
@@ -1054,7 +1058,7 @@ def shallTreatUninstalledPython():
 def shallCreateCmdFileForExecution():
     """*bool* = derived from Python installation and modes
 
-    Notes: Most for accerated mode on Windows with uninstalled python, to
+    Notes: Mostly for accelerated mode on Windows with uninstalled python, to
     make sure they find their Python DLL.
     """
     return isWin32Windows() and shallTreatUninstalledPython()
@@ -1119,7 +1123,7 @@ def shallDisableBytecodeCacheUsage():
 
 
 def shallDisableConsoleWindow():
-    """:returns: bool derived from ``--win-disable-console or ``--macos-disable-console``"""
+    """:returns: None (not given), False, or True derived from ``disable-console or ``--enable-console``"""
     return options.disable_console
 
 
@@ -1134,7 +1138,7 @@ def _isFullCompat():
     """:returns: bool derived from ``--full-compat``
 
     Notes:
-        Code should should use "Options.is_fullcompat" instead, this
+        Code should should use "Options.is_full_compat" instead, this
         is only used to initialize that value.
     """
     return options is not None and not options.improved
@@ -1160,7 +1164,7 @@ def isRemoveBuildDir():
     return options.remove_build and not options.generate_c_only
 
 
-experimental = set()
+_experimental = set()
 
 
 def isExperimental(indication):
@@ -1171,19 +1175,15 @@ def isExperimental(indication):
     Returns:
         bool
     """
-    return (
-        indication in experimental
-        or hasattr(options, "experimental")
-        and indication in options.experimental
-    )
+    return indication in _experimental
 
 
 def enableExperimental(indication):
-    experimental.add(indication)
+    _experimental.add(indication)
 
 
 def disableExperimental(indication):
-    experimental.remove(indication)
+    _experimental.remove(indication)
 
 
 def getExperimentalIndications():
@@ -1207,6 +1207,11 @@ def isStandaloneMode():
 def isOnefileMode():
     """:returns: bool derived from ``--onefile``"""
     return options.is_onefile
+
+
+def isAcceleratedMode():
+    """:returns: bool derived from ``--standalone`` and `--module`"""
+    return not isStandaloneMode() and not shallMakeModule()
 
 
 def isOnefileTempDirMode():
@@ -1274,6 +1279,7 @@ def getIconPaths():
 
     # Check if Linux icon requirement is met.
     if isLinux() and not result and isOnefileMode():
+        # spell-checker: ignore pixmaps
         default_icons = (
             "/usr/share/pixmaps/python%s.xpm" % python_version_str,
             "/usr/share/pixmaps/python%s.xpm" % sys.version_info[0],
@@ -1412,7 +1418,7 @@ def getMacOSAppProtectedResourcesAccesses():
 
 
 def getAppImageCompression():
-    return options.appimage_compression
+    return options.app_image_compression
 
 
 _python_flags = None
@@ -1620,7 +1626,7 @@ def shallCompileWithoutBuildDirectory():
     return not shallRunInDebugger()
 
 
-def shallPreferSourcecodeOverExtensionModules():
+def shallPreferSourceCodeOverExtensionModules():
     """*bool* prefer source code over extension modules if both are there"""
     return options is not None and options.prefer_source_code
 
@@ -1653,3 +1659,8 @@ def isLowMemory():
 def getCompilationReportFilename():
     """*str* filename to write XML report of compilation to"""
     return options.compilation_report_filename
+
+
+def getUserProvidedYamlFiles():
+    """*list* files with user provided Yaml files"""
+    return options.user_yaml_files
