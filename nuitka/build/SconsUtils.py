@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -388,6 +388,10 @@ def isGccName(cc_name):
     return "gcc" in cc_name or "g++" in cc_name or "gnu-cc" in cc_name
 
 
+def isClangName(cc_name):
+    return "clang" in cc_name and "-cl" not in cc_name
+
+
 def cheapCopyFile(src, dst):
     dirname = os.path.dirname(dst)
     if not os.path.exists(dirname):
@@ -509,12 +513,18 @@ def _getBinaryArch(binary, mingw_mode):
     if "linux" in sys.platform or mingw_mode:
         assert os.path.exists(binary), binary
 
+        # Binutils binary name, spell-checker: ignore objdump,binutils
         command = ["objdump", "-f", binary]
 
         try:
             data, _err, rv = executeProcess(command)
         except OSError:
-            return None
+            command[0] = "llvm-objdump"
+
+            try:
+                data, _err, rv = executeProcess(command)
+            except OSError:
+                return None
 
         if rv != 0:
             return None
@@ -522,9 +532,18 @@ def _getBinaryArch(binary, mingw_mode):
         if str is not bytes:
             data = decodeData(data)
 
+        found = None
+
         for line in data.splitlines():
             if " file format " in line:
-                return line.split(" file format ")[-1]
+                found = line.split(" file format ")[-1]
+            if "\tfile format " in line:
+                found = line.split("\tfile format ")[-1]
+
+        if os.name == "nt" and found == "coff-x86-64":
+            found = "pei-x86-64"
+
+        return found
     else:
         # TODO: Missing for macOS, FreeBSD, other Linux
         return None
@@ -593,7 +612,10 @@ def getCompilerArch(mingw_mode, msvc_mode, the_cc_name, compiler_path):
     return _compiler_arch[compiler_path]
 
 
-def decideArchMismatch(target_arch, mingw_mode, msvc_mode, the_cc_name, compiler_path):
+def decideArchMismatch(target_arch, the_cc_name, compiler_path):
+    mingw_mode = isGccName(the_cc_name) or isClangName(the_cc_name)
+    msvc_mode = not mingw_mode
+
     linker_arch = getLinkerArch(target_arch=target_arch, mingw_mode=mingw_mode)
     compiler_arch = getCompilerArch(
         mingw_mode=mingw_mode,
@@ -616,11 +638,9 @@ a) If a suitable Visual Studio version is installed, it will be located
 
 b) Using --mingw64 lets Nuitka download MinGW64 for you.
 
-Note: Only MinGW64 will work! MinGW64 does *not* mean 64 bits, just better
-Windows compatibility, it is available for 32 and 64 bits. Cygwin based gcc
-will not work. MSYS2 based gcc will only work if you know what you are doing.
-
-Note: The clang-cl will only work if Visual Studio already works for you.
+Note: MinGW64 is the name, it does *not* mean 64 bits, just a gcc with
+better Windows compatibility, it is available for 32 and 64 bits. Cygwin
+based gcc do not work.
 """
         )
     else:

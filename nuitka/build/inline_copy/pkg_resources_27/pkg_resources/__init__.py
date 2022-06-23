@@ -345,7 +345,7 @@ _provider_factories = {}
 try:
    PY_MAJOR = '{}.{}'.format(*sys.version_info)
 except ValueError:
-   PY_MAHOR = '2.6'
+   PY_MAJOR = '2.6'
 
 EGG_DIST = 3
 BINARY_DIST = 2
@@ -406,7 +406,11 @@ def get_build_platform():
     XXX Currently this is the same as ``distutils.util.get_platform()``, but it
     needs some hacks for Linux and Mac OS X.
     """
-    from sysconfig import get_platform
+    try:
+        from sysconfig import get_platform
+    except ImportError:
+        # Nuitka 2.6 Python in Windows does this.
+        from distutils.util import get_platform
 
     plat = get_platform()
     if sys.platform == "darwin" and not plat.startswith('macosx-'):

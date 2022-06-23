@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -108,7 +108,7 @@ def _getBinaryOperationCode(
         left_shape=left.getTypeShape(),
         right_shape=expression.subnode_right.getTypeShape(),
         helpers=HelperDefinitions.getSpecializedOperations(operator),
-        nonhelpers=HelperDefinitions.getNonSpecializedOperations(operator),
+        nonspecialized=HelperDefinitions.getNonSpecializedOperations(operator),
         source_ref=expression.source_ref,
     )
 

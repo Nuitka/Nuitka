@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -96,8 +96,8 @@ def generateDelVariableCode(statement, emit, context):
             variable=statement.getVariable(),
             variable_trace=statement.variable_trace,
             previous_trace=statement.previous_trace,
-            tolerant=statement.isTolerant(),
-            needs_check=statement.isTolerant()
+            tolerant=statement.is_tolerant,
+            needs_check=statement.is_tolerant
             or statement.mayRaiseException(BaseException),
             emit=emit,
             context=context,

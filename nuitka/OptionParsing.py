@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -209,7 +209,7 @@ enforces a specific mode. These are options that also exist to standard
 Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
 give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
-(do not use docstrings), "-u" (alias "unbuffered") and "-m".  Default empty.""",
+(do not use doc strings), "-u" (alias "unbuffered") and "-m".  Default empty.""",
 )
 
 parser.add_option(
@@ -389,7 +389,7 @@ times. Default empty.""",
 parser.add_option_group(follow_group)
 
 
-data_group = OptionGroup(parser, "Data files for standalone/onefile mode")
+data_group = OptionGroup(parser, "Data files")
 
 data_group.add_option(
     "--include-package-data",
@@ -429,9 +429,9 @@ data_group.add_option(
     help="""\
 Include data files from complete directory in the distribution. This is
 recursive. Check '--include-data-files' with patterns if you want non-recursive
-inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
+inclusion. An example would be '--include-data-dir=/path/some_dir=data/some_dir'
 for plain copy, of the whole directory. All files are copied, if you want to
-exclude files you need to remove them beforehand, or use --noinclude-data-files
+exclude files you need to remove them beforehand, or use '--noinclude-data-files'
 option to remove them. Default empty.""",
 )
 
@@ -481,9 +481,9 @@ execute_group.add_option(
     dest="keep_pythonpath",
     default=False,
     help="""\
-When immediately executing the created binary (--execute), don't reset
-PYTHONPATH. When all modules are successfully included, you ought to not need
-PYTHONPATH anymore.""",
+When immediately executing the created binary ('--execute'), don't reset
+'PYTHONPATH' environment. When all modules are successfully included, you
+ought to not need PYTHONPATH anymore.""",
 )
 
 parser.add_option_group(execute_group)
@@ -502,9 +502,22 @@ dump_group.add_option(
 parser.add_option_group(dump_group)
 
 
-codegen_group = OptionGroup(parser, "Code generation choices")
+compilation_group = OptionGroup(parser, "Compilation choices")
 
-codegen_group.add_option(
+compilation_group.add_option(
+    "--user-package-configuration-file",
+    action="append",
+    dest="user_yaml_files",
+    default=[],
+    metavar="USER_YAML",
+    help="""\
+User provided Yaml file with package configuration. You can include DLLs,
+remove bloat, add hidden dependencies. Check User Manual for a complete
+description of the format to use. Can be given multiple times. Defaults
+to empty.""",
+)
+
+compilation_group.add_option(
     "--disable-bytecode-cache",
     action="store_true",
     dest="disable_bytecode_cache",
@@ -514,7 +527,7 @@ Do not reuse dependency analysis results for modules, esp. from standard library
 that are included as bytecode.""",
 )
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--full-compat",
     action="store_false",
     dest="improved",
@@ -523,11 +536,11 @@ codegen_group.add_option(
 Enforce absolute compatibility with CPython. Do not even allow minor
 deviations from CPython behavior, e.g. not having better tracebacks
 or exception messages which are not really incompatible, but only
-different. This is intended for tests only and should not be used
-for normal use.""",
+different or worse. This is intended for tests only and should *not*
+be used.""",
 )
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--file-reference-choice",
     action="store",
     dest="file_reference_mode",
@@ -546,7 +559,7 @@ compatibility reasons, the "__file__" value will always have ".py" suffix
 independent of what it really is.""",
 )
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--module-name-choice",
     action="store",
     dest="module_name_mode",
@@ -562,7 +575,7 @@ is incompatible for modules that normally can be loaded into any package.""",
 )
 
 
-parser.add_option_group(codegen_group)
+parser.add_option_group(compilation_group)
 
 output_group = OptionGroup(parser, "Output choices")
 
@@ -945,8 +958,7 @@ tracing_group.add_option(
     action="store_false",
     dest="progress_bar",
     default=True,
-    help="""Disable progress bar outputs (if tqdm is installed).
-Defaults to off.""",
+    help="""Disable progress bar. Defaults to off.""",
 )
 
 
@@ -1011,8 +1023,30 @@ Where to output --verbose, should be a filename. Default is standard output.""",
 
 parser.add_option_group(tracing_group)
 
-
 os_group = OptionGroup(parser, "General OS controls")
+
+os_group.add_option(
+    "--disable-console",
+    "--macos-disable-console",
+    "--windows-disable-console",
+    action="store_true",
+    dest="disable_console",
+    default=None,
+    help="""\
+When compiling for Windows or macOS, disable the console window and create a GUI
+application. Defaults to off.""",
+)
+
+os_group.add_option(
+    "--enable-console",
+    action="store_false",
+    dest="disable_console",
+    default=None,
+    help="""\
+When compiling for Windows or macOS, enable the console window and create a console
+application. This disables hints from certain modules, e.g. "PySide" that suggest
+to disable it. Defaults to true.""",
+)
 
 os_group.add_option(
     "--force-stdout-spec",
@@ -1051,15 +1085,6 @@ windows_group.add_option(
     dest="dependency_tool",
     default=None,
     help=SUPPRESS_HELP,
-)
-
-windows_group.add_option(
-    "--windows-disable-console",
-    action="store_true",
-    dest="disable_console",
-    default=False,
-    help="""\
-When compiling for Windows, disable the console window. Defaults to off.""",
 )
 
 windows_group.add_option(
@@ -1103,7 +1128,7 @@ windows_group.add_option(
 )
 
 windows_group.add_option(
-    "--windows-uac-uiaccess",
+    "--windows-uac-uiaccess",  # spell-checker: ignore uiaccess
     action="store_true",
     dest="windows_uac_uiaccess",
     metavar="WINDOWS_UAC_UIACCESS",
@@ -1216,17 +1241,6 @@ the architecture the Python is run with.""",
 )
 
 macos_group.add_option(
-    "--macos-disable-console",
-    "--disable-console",
-    action="store_true",
-    dest="disable_console",
-    default=False,
-    help="""\
-When compiling for macOS, disable the console window and create a GUI
-application. Defaults to off.""",
-)
-
-macos_group.add_option(
     "--macos-create-app-bundle",
     action="store_true",
     dest="macos_create_bundle",
@@ -1254,7 +1268,7 @@ macos_group.add_option(
     metavar="MACOS_SIGNED_APP_NAME",
     default=None,
     help="""\
-Name of the application to use for macOS signing. Follow "com.yourcompany.appname"
+Name of the application to use for macOS signing. Follow "com.YourCompany.AppName"
 naming results for best results, as these have to be globally unique, and will
 potentially grant protected API accesses.""",
 )
@@ -1327,7 +1341,7 @@ linux_group.add_option(
 linux_group.add_option(
     "--linux-onefile-compression",
     action="store",
-    dest="appimage_compression",
+    dest="app_image_compression",
     choices=("gzip", "xz"),
     metavar="COMPRESSION",
     default="gzip",
@@ -1411,11 +1425,11 @@ def _considerPluginOptions(logger):
     # Cyclic dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
-        addStandardPluginCommandlineOptions,
+        addStandardPluginCommandLineOptions,
         addUserPluginCommandLineOptions,
     )
 
-    addStandardPluginCommandlineOptions(parser=parser)
+    addStandardPluginCommandLineOptions(parser=parser)
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
@@ -1499,7 +1513,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
     cond_level = -1
 
     for line_number, line in enumerate(contents_by_line):
-        match = re.match(b"^\\s*#(\\s+)nuitka-project(.*?):(.*)", line)
+        match = re.match(b"^\\s*#(\\s*)nuitka-project(.*?):(.*)", line)
 
         if match:
             level, command, arg = match.groups()
@@ -1515,7 +1529,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
 
             expect_block = False
 
-            if level == cond_level and command == "-else":
+            if level == cond_level and command == b"-else":
                 execute_block = not execute_block
             elif level <= cond_level:
                 execute_block = True
@@ -1534,7 +1548,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                         "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
 
-                arg = arg[:-1]
+                arg = arg[:-1].strip()
 
                 expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
 
@@ -1546,7 +1560,7 @@ def _getProjectOptions(logger, filename_arg, module_mode):
                 # Likely mistakes, e.g. with "in" tests.
                 if r is not True and r is not False:
                     sys.exit(
-                        "Error, 'nuitka-project-if' condition %r (%r) does not yield boolean result %r"
+                        "Error, 'nuitka-project-if' condition %r (expanded to %r) does not yield boolean result %r"
                         % (arg, expanded, r)
                     )
 

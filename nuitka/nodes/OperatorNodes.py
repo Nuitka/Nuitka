@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -87,7 +87,7 @@ class ExpressionOperationBinaryBase(
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
 
-    def unmarkAsInplaceSuspect(self):
+    def removeMarkAsInplaceSuspect(self):
         self.inplace_suspect = False
 
     def isInplaceSuspect(self):

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,8 +21,10 @@ Here the small things that fit nowhere else and don't deserve their own module.
 
 """
 
+import functools
 import os
 import sys
+import time
 from contextlib import contextmanager
 
 
@@ -303,3 +305,64 @@ def withNoDeprecationWarning():
 def withNoSyntaxWarning():
     with withWarningRemoved(SyntaxWarning):
         yield
+
+
+def decoratorRetries(
+    logger, purpose, consequence, attempts=5, sleep_time=1, exception_type=OSError
+):
+    """Make retries for errors on Windows.
+
+    This executes a decorated function multiple times, and imposes a delay and
+    a virus checker warning.
+    """
+
+    def inner(func):
+        if os.name != "nt":
+            return func
+
+        @functools.wraps(func)
+        def retryingFunction(*args, **kwargs):
+            for attempt in range(1, attempts + 1):
+                try:
+                    result = func(*args, **kwargs)
+                except exception_type as e:
+                    if not isinstance(e, OSError):
+                        logger.warning(
+                            """\
+Failed to %s in attempt %d due to %s.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                            % (purpose, attempt, str(e))
+                        )
+
+                    else:
+                        if isinstance(e, OSError) and e.errno in (110, 13):
+                            logger.warning(
+                                """\
+Failed to %s in attempt %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                                % (purpose, attempt)
+                            )
+                        else:
+                            logger.warning(
+                                """\
+Failed to %s in attempt %d with error code %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                                % (purpose, attempt, e.errno)
+                            )
+
+                    time.sleep(sleep_time)
+                    continue
+
+                else:
+                    if attempt != 1:
+                        logger.warning(
+                            "Succeeded with %s in attempt %d." % (purpose, attempt)
+                        )
+
+                    return result
+
+            logger.sysexit("Failed to %s, %s." % (purpose, consequence))
+
+        return retryingFunction
+
+    return inner

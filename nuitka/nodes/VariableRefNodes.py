@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,9 @@ and its expressions, changing the meaning of course dramatically.
 from nuitka import Builtins, Variables
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.PythonVersions import python_version
+from nuitka.tree.TreeHelpers import makeStatementsSequenceFromStatements
 
+from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
     ExpressionDictOperationIn,
     ExpressionDictOperationItem,
@@ -44,61 +46,10 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
 )
+from .OutlineNodes import ExpressionOutlineBody
+from .ReturnNodes import makeStatementReturn
 from .shapes.StandardShapes import tshape_unknown
-
-
-class ExpressionVariableNameRef(ExpressionBase):
-    """These are used before the actual variable object is known from VariableClosure."""
-
-    kind = "EXPRESSION_VARIABLE_NAME_REF"
-
-    __slots__ = "variable_name", "provider"
-
-    def __init__(self, provider, variable_name, source_ref):
-        assert not provider.isExpressionOutlineBody(), source_ref
-
-        ExpressionBase.__init__(self, source_ref=source_ref)
-
-        self.variable_name = variable_name
-
-        self.provider = provider
-
-    def finalize(self):
-        del self.parent
-        del self.provider
-
-    @staticmethod
-    def isExpressionVariableNameRef():
-        return True
-
-    def getDetails(self):
-        return {"variable_name": self.variable_name, "provider": self.provider}
-
-    def getVariableName(self):
-        return self.variable_name
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None
-
-    @staticmethod
-    def needsFallback():
-        return True
-
-
-class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
-    """These are used before the actual variable object is known from VariableClosure.
-
-    The special thing about this as opposed to ExpressionVariableNameRef is that
-    these must remain local names and cannot fallback to outside scopes. This is
-    used for "__annotations__".
-
-    """
-
-    kind = "EXPRESSION_VARIABLE_LOCAL_NAME_REF"
-
-    @staticmethod
-    def needsFallback():
-        return False
+from .SubscriptNodes import ExpressionSubscriptLookupForUnpack
 
 
 class ExpressionVariableRefBase(ExpressionBase):
@@ -157,8 +108,6 @@ class ExpressionVariableRefBase(ExpressionBase):
                 iter_length = value.getIterationLength()
 
                 if iter_length is not None:
-                    from .ConstantRefNodes import makeConstantRefNode
-
                     result = makeConstantRefNode(
                         constant=int(iter_length),  # make sure to downcast long
                         source_ref=len_node.getSourceReference(),
@@ -167,7 +116,8 @@ class ExpressionVariableRefBase(ExpressionBase):
                     return (
                         result,
                         "new_constant",
-                        "Predicted 'len' result of variable.",
+                        lambda: "Predicted 'len' result of variable '%s'."
+                        % self.getVariableName(),
                     )
 
         # The variable itself is to be considered escaped.
@@ -214,10 +164,14 @@ class ExpressionVariableRefBase(ExpressionBase):
 
     def isKnownToHaveAttribute(self, attribute_name):
         if self.variable_trace is not None:
+            type_shape = self.variable_trace.getTypeShape()
+
+            if type_shape.isKnownToHaveAttribute(attribute_name):
+                return True
+
             attribute_node = self.variable_trace.getAttributeNode()
 
             if attribute_node is not None:
-
                 return attribute_node.isKnownToHaveAttribute(attribute_name)
 
         return None
@@ -391,7 +345,7 @@ Subscript look-up to dictionary lowered to dictionary look-up.""",
             statement = self.parent.parent
 
             if statement.isStatementAssignmentVariable():
-                statement.unmarkAsInplaceSuspect()
+                statement.removeMarkAsInplaceSuspect()
 
         # Need to compute the replacement still.
         return replacement.computeExpressionRaw(trace_collection)
@@ -425,6 +379,10 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             "owner": self.variable.getOwner().getCodeName(),
         }
 
+    @staticmethod
+    def isExpressionTempVariableRef():
+        return True
+
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
         assert cls is ExpressionVariableRef, cls
@@ -433,10 +391,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         variable = owner.getProvidedVariable(args["variable_name"])
 
         return cls(variable=variable, source_ref=source_ref)
-
-    @staticmethod
-    def isTargetVariableRef():
-        return False
 
     def getVariable(self):
         return self.variable
@@ -578,6 +532,24 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        if self.variable_trace is not None:
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+                # The variable itself is to be considered escaped no matter what, since
+                # we don't know exactly what the attribute is used for later on. We would
+                # have to attach the variable to the result created here in such a way,
+                # that e.g. calling it will make it escaped only.
+                trace_collection.markActiveVariableAsEscaped(self.variable)
+
+                return attribute_node.computeExpressionCallViaVariable(
+                    call_node=call_node,
+                    variable_ref_node=self,
+                    call_args=call_args,
+                    call_kw=call_kw,
+                    trace_collection=trace_collection,
+                )
+
         # The called and the arguments escape for good.
         self.onContentEscapes(trace_collection)
         if call_args is not None:
@@ -599,6 +571,25 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             trace_collection.onLocalsUsage(locals_scope=self.getFunctionsLocalsScope())
 
         return call_node, None, None
+
+    def computeExpressionBool(self, trace_collection):
+        if self.variable_trace is not None:
+            attribute_node = self.variable_trace.getAttributeNode()
+
+            if attribute_node is not None:
+                if (
+                    attribute_node.isCompileTimeConstant()
+                    and not attribute_node.isMutable()
+                ):
+                    return attribute_node.computeExpressionBool(trace_collection)
+
+        # TODO: This is probably only default stuff here, that could be compressed.
+        if not self.mayRaiseException(BaseException) and self.mayRaiseExceptionBool(
+            BaseException
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return None, None
 
     def hasShapeDictionaryExact(self):
         return (
@@ -670,7 +661,7 @@ def makeExpressionVariableRef(variable, locals_scope, source_ref):
         return ExpressionVariableRef(variable=variable, source_ref=source_ref)
 
 
-# Note: Temporary variable references are to be guarantueed to not raise
+# Note: Temporary variable references are to be guaranteed to not raise
 # therefore no side effects.
 class ExpressionTempVariableRef(
     ExpressionNoSideEffectsMixin, ExpressionVariableRefBase
@@ -703,10 +694,6 @@ class ExpressionTempVariableRef(
 
         return cls(variable=variable, source_ref=source_ref)
 
-    @staticmethod
-    def isTargetVariableRef():
-        return False
-
     def computeExpressionRaw(self, trace_collection):
         self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable=self.variable
@@ -721,49 +708,117 @@ class ExpressionTempVariableRef(
         # Nothing to do here.
         return self, None, None
 
+    def _makeIterationNextReplacementNode(
+        self, trace_collection, next_node, iterator_assign_node
+    ):
+        from .OperatorNodes import makeExpressionOperationBinaryInplace
+        from .VariableAssignNodes import makeStatementAssignmentVariable
+
+        provider = trace_collection.getOwner()
+
+        outline_body = ExpressionOutlineBody(
+            provider=provider,
+            name="next_value_accessor",
+            source_ref=self.source_ref,
+        )
+
+        if next_node.isExpressionSpecialUnpack():
+            source = ExpressionSubscriptLookupForUnpack(
+                expression=ExpressionTempVariableRef(
+                    variable=iterator_assign_node.tmp_iterated_variable,
+                    source_ref=self.source_ref,
+                ),
+                subscript=ExpressionTempVariableRef(
+                    variable=iterator_assign_node.tmp_iteration_count_variable,
+                    source_ref=self.source_ref,
+                ),
+                expected=next_node.getExpected(),
+                source_ref=self.source_ref,
+            )
+        else:
+            source = ExpressionSubscriptLookupForUnpack(
+                expression=ExpressionTempVariableRef(
+                    variable=iterator_assign_node.tmp_iterated_variable,
+                    source_ref=self.source_ref,
+                ),
+                subscript=ExpressionTempVariableRef(
+                    variable=iterator_assign_node.tmp_iteration_count_variable,
+                    source_ref=self.source_ref,
+                ),
+                expected=None,
+                source_ref=self.source_ref,
+            )
+
+        statements = (
+            makeStatementAssignmentVariable(
+                variable=iterator_assign_node.tmp_iteration_next_variable,
+                source=source,
+                source_ref=self.source_ref,
+            ),
+            makeStatementAssignmentVariable(
+                variable=iterator_assign_node.tmp_iteration_count_variable,
+                source=makeExpressionOperationBinaryInplace(
+                    left=ExpressionTempVariableRef(
+                        variable=iterator_assign_node.tmp_iteration_count_variable,
+                        source_ref=self.source_ref,
+                    ),
+                    right=makeConstantRefNode(constant=1, source_ref=self.source_ref),
+                    operator="IAdd",
+                    source_ref=self.source_ref,
+                ),
+                source_ref=self.source_ref,
+            ),
+            makeStatementReturn(
+                expression=ExpressionTempVariableRef(
+                    variable=iterator_assign_node.tmp_iteration_next_variable,
+                    source_ref=self.source_ref,
+                ),
+                source_ref=self.source_ref,
+            ),
+        )
+
+        outline_body.setChild(
+            "body",
+            makeStatementsSequenceFromStatements(*statements),
+        )
+
+        return False, trace_collection.computedExpressionResultRaw(
+            outline_body,
+            change_tags="new_expression",
+            change_desc=lambda: "Iterator 'next' converted to %s."
+            % iterator_assign_node.getIterationIndexDesc(),
+        )
+
     def computeExpressionNext1(self, next_node, trace_collection):
-        may_not_raise = False
+        iteration_source_node = self.variable_trace.getIterationSourceNode()
 
-        if self.variable_trace.isAssignTrace():
-            value = self.variable_trace.getAssignNode().subnode_source
+        if iteration_source_node is not None:
+            if iteration_source_node.parent.isStatementAssignmentVariableIterator():
+                iterator_assign_node = iteration_source_node.parent
 
-            # TODO: Add iteration handles to trace collections instead.
-            current_index = trace_collection.getIteratorNextCount(value)
-            trace_collection.onIteratorNext(value)
+                if iterator_assign_node.tmp_iterated_variable is not None:
+                    return self._makeIterationNextReplacementNode(
+                        trace_collection=trace_collection,
+                        next_node=next_node,
+                        iterator_assign_node=iterator_assign_node,
+                    )
 
-            if value.hasShapeSlotNext():
-                if (
-                    current_index is not None
-                    # TODO: Change to iteration handles.
-                    and value.isKnownToBeIterableAtMin(current_index + 1)
-                ):
-                    may_not_raise = True
+            iteration_source_node.onContentIteratedEscapes(trace_collection)
 
-                    # TODO: Make use of this
-                    # candidate = value.getIterationValue(current_index)
+            if iteration_source_node.mayHaveSideEffectsNext():
+                trace_collection.onControlFlowEscape(self)
 
-                    # if False:
-                    # and value.canPredictIterationValues()
-                    #    return (
-                    #        candidate,
-                    #        "new_expression",
-                    #        "Predicted 'next' value from iteration.",
-                    #    )
-            else:
-                # TODO: Could ask it about exception predictability for that case
-                # or warn about it at least.
-                pass
-                # assert False, value
+        else:
+            self.onContentEscapes(trace_collection)
 
-        self.onContentEscapes(trace_collection)
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+            # Any code could be run, note that.
+            if self.mayHaveSideEffectsNext():
+                trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        return may_not_raise, (next_node, None, None)
+        return True, (next_node, None, None)
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         if self.variable_trace is not None and self.variable_trace.isAssignTrace():

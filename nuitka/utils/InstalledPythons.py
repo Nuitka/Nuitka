@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -156,7 +156,7 @@ def _getPythonInstallPathsWindows(python_version):
                         os.path.join(install_dir, "python.exe")
                     )
 
-                    if candidate not in seen:
+                    if os.path.exists(candidate) and candidate not in seen:
                         yield candidate
                         seen.add(candidate)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,14 +17,14 @@
 #     limitations under the License.
 #
 
-""" Main program for autoformat tool.
+""" Main program for auto format tool.
 
 """
 
 from optparse import OptionParser
 
 from nuitka.Progress import enableProgressBar, wrapWithProgressBar
-from nuitka.tools.quality.autoformat.Autoformat import autoformat
+from nuitka.tools.quality.auto_format.AutoFormat import autoFormatFile
 from nuitka.tools.quality.Git import getStagedFileChangeDesc
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print, tools_logger
@@ -72,7 +72,7 @@ Defaults to off.""",
     if options.from_commit:
         assert not positional_args
         for desc in getStagedFileChangeDesc():
-            autoformat(desc["src_path"], git_stage=desc)
+            autoFormatFile(desc["src_path"], git_stage=desc)
     else:
         if not positional_args:
             positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
@@ -90,7 +90,17 @@ Defaults to off.""",
         filenames = list(
             scanTargets(
                 positional_args,
-                suffixes=(".py", ".scons", ".rst", ".txt", ".j2", ".md", ".c", ".h"),
+                suffixes=(
+                    ".py",
+                    ".scons",
+                    ".rst",
+                    ".txt",
+                    ".j2",
+                    ".md",
+                    ".c",
+                    ".h",
+                    ".yml",
+                ),
             )
         )
 
@@ -103,15 +113,17 @@ Defaults to off.""",
             enableProgressBar()
 
         for filename in wrapWithProgressBar(
-            filenames, stage="Autoformat", unit="files"
+            filenames, stage="Auto format", unit="files"
         ):
-            if autoformat(filename, git_stage=False, check_only=options.check_only):
+            if autoFormatFile(filename, git_stage=False, check_only=options.check_only):
                 result += 1
+
+        # Tool is named without separator, spellchecker: ignore autoformat
 
         if options.check_only and result > 0:
             tools_logger.sysexit(
-                """Error, bin/autoformat-nuitka-source would make changes to %d files, \
-make sure to have commit hook installed."""
+                """Error, 'bin/autoformat-nuitka-source' would make changes to %d files, \
+make sure to have commit hook installed or run it manually."""
                 % result
             )
         elif result > 0:

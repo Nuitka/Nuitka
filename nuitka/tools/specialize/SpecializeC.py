@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@
 
 import nuitka.Options
 
-nuitka.Options.is_fullcompat = False
+nuitka.Options.is_full_compat = False
 
 # isort:start
 
@@ -40,7 +40,7 @@ from nuitka.__past__ import getMetaClassBase, long
 from nuitka.codegen.CallCodes import (
     getQuickCallCode,
     getQuickMethodCallCode,
-    getQuickMethodDescrCallCode,
+    getQuickMethodDescriptorCallCode,
     getQuickMixedCallCode,
     getTemplateCodeDeclaredFunction,
     max_quick_call,
@@ -62,8 +62,8 @@ from .Common import (
     python3_bytes_methods,
     python3_dict_methods,
     python3_str_methods,
-    withFileOpenedAndAutoformatted,
-    writeline,
+    withFileOpenedAndAutoFormatted,
+    writeLine,
 )
 
 
@@ -1841,14 +1841,14 @@ def makeHelpersComparisonOperation(operand, op_code):
     filename_c = "nuitka/build/static_src/HelpersComparison%s.c" % op_code.capitalize()
     filename_h = "nuitka/build/include/nuitka/helper/comparisons_%s.h" % op_code.lower()
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -1888,14 +1888,14 @@ def makeHelpersBinaryOperation(operand, op_code):
         "nuitka/build/include/nuitka/helper/operations_binary_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -1937,14 +1937,14 @@ def makeHelpersInplaceOperation(operand, op_code):
         "nuitka/build/include/nuitka/helper/operations_inplace_%s.h" % op_code.lower()
     )
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -1977,14 +1977,14 @@ def makeHelpersImportHard():
 
     template = getDoExtensionUsingTemplateC("HelperImportHard.c.j2")
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -2048,15 +2048,15 @@ def makeHelperCalls():
     filename_c = "nuitka/build/static_src/HelpersCalling2.c"
     filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
 
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
                 assert args[0] != "extern "
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -2111,7 +2111,7 @@ def makeHelperCalls():
                         emit_h(getTemplateCodeDeclaredFunction(code))
 
             for args_count in range(1, 5):
-                code = getQuickMethodDescrCallCode(args_count=args_count)
+                code = getQuickMethodDescriptorCallCode(args_count=args_count)
 
                 emit_c(code)
                 emit_h(getTemplateCodeDeclaredFunction(code))
@@ -2124,11 +2124,7 @@ def makeHelperCalls():
 
 
 def _makeHelperBuiltinTypeAttributes(
-    type_prefix,
-    type_name,
-    python2_methods,
-    python3_methods,
-    emit_c,
+    type_prefix, type_name, python2_methods, python3_methods, emit_c, emit_h
 ):
     # many cases to deal with, pylint: disable=too-many-branches
 
@@ -2136,19 +2132,34 @@ def _makeHelperBuiltinTypeAttributes(
         return "%s_builtin_%s" % (type_prefix, method_name)
 
     for method_name in sorted(set(python2_methods + python3_methods)):
+        is_public = method_name in ("format",)
+
         if method_name in python2_methods and method_name not in python3_methods:
             emit_c("#if PYTHON_VERSION < 0x300")
+            if is_public:
+                emit_h("#if PYTHON_VERSION < 0x300")
             needs_endif = True
         elif method_name not in python2_methods and method_name in python3_methods:
             emit_c("#if PYTHON_VERSION >= 0x300")
+            if is_public:
+                emit_h("#if PYTHON_VERSION >= 0x300")
             needs_endif = True
         else:
             needs_endif = False
 
-        emit_c("static PyObject *%s = NULL;" % getVarName(method_name))
+        if not is_public:
+            emit_c("static")
+
+        emit_c("PyObject *%s = NULL;" % getVarName(method_name))
+
+        if is_public:
+            emit_h("extern PyObject *%s;" % getVarName(method_name))
 
         if needs_endif:
             emit_c("#endif")
+
+            if is_public:
+                emit_h("#endif")
 
     if not python3_methods:
         emit_c("#if PYTHON_VERSION < 0x300")
@@ -2199,9 +2210,10 @@ generate_builtin_type_operations = [
         nuitka.specs.BuiltinDictOperationSpecs,
         ("pop", "setdefault"),
     ),
-    # TODO: These are very complex things using stringlib in Python, that we do not have easy access to,
-    # but we might one day for Nuitka-Python expose it for the static linking of it and then we
-    # could in fact call these directly.
+    # TODO: These are very complex things using "string lib" code in CPython,
+    # that we do not have easy access to, but we might one day for Nuitka-Python
+    # expose it for the static linking of it and then we could in fact call
+    # these directly.
     (
         "tshape_str",
         str_desc,
@@ -2235,6 +2247,7 @@ generate_builtin_type_operations = [
             "replace",
             "encode",
             "decode",
+            "count",
         ),
     ),
     # TODO: This is using Python2 spec module for Python3 strings, that will be a problem down the
@@ -2269,6 +2282,7 @@ generate_builtin_type_operations = [
             "endswith",
             "replace",
             "encode",
+            "count",
         ),
     ),
     (
@@ -2284,14 +2298,14 @@ def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
     filename_h = "nuitka/build/include/nuitka/helper/operations_builtin_types.h"
-    with withFileOpenedAndAutoformatted(filename_c) as output_c:
-        with withFileOpenedAndAutoformatted(filename_h) as output_h:
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
 
             def emit_h(*args):
-                writeline(output_h, *args)
+                writeLine(output_h, *args)
 
             def emit_c(*args):
-                writeline(output_c, *args)
+                writeLine(output_c, *args)
 
             def emit(*args):
                 emit_h(*args)
@@ -2300,18 +2314,10 @@ def makeHelperBuiltinTypeMethods():
             emitIDE(emit)
 
             _makeHelperBuiltinTypeAttributes(
-                "str",
-                "PyString_Type",
-                python2_str_methods,
-                (),
-                emit_c,
+                "str", "PyString_Type", python2_str_methods, (), emit_c, emit_h
             )
             _makeHelperBuiltinTypeAttributes(
-                "bytes",
-                "PyBytes_Type",
-                (),
-                python3_bytes_methods,
-                emit_c,
+                "bytes", "PyBytes_Type", (), python3_bytes_methods, emit_c, emit_h
             )
             _makeHelperBuiltinTypeAttributes(
                 "unicode",
@@ -2319,6 +2325,7 @@ def makeHelperBuiltinTypeMethods():
                 python2_unicode_methods,
                 python3_str_methods,
                 emit_c,
+                emit_h,
             )
             _makeHelperBuiltinTypeAttributes(
                 "dict",
@@ -2326,6 +2333,7 @@ def makeHelperBuiltinTypeMethods():
                 python2_dict_methods,
                 python3_dict_methods,
                 emit_c,
+                emit_h,
             )
 
             template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
@@ -2343,6 +2351,7 @@ def makeHelperBuiltinTypeMethods():
                     (
                         present,
                         arg_names,
+                        _arg_tests,
                         arg_name_mapping,
                         arg_counts,
                     ) = getMethodVariations(

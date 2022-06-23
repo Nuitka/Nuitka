@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -71,6 +71,8 @@ def flushStandardOutputs():
 
 
 def _getEnableStyleCode(style):
+    style = _aliasStyle(style)
+
     if style == "pink":
         style = "\033[95m"
     elif style == "blue":
@@ -181,13 +183,15 @@ def _getTerminalSize():
             return 1000
 
 
-def aliasStyle(style):
+def _aliasStyle(style):
     if style == "test-prepare":
         return "pink"
     if style == "test-progress":
         return "blue"
     if style == "test-debug":
         return "bold"
+    if style == "link":
+        return "blue"
     else:
         return style
 
@@ -195,9 +199,6 @@ def aliasStyle(style):
 def _my_print(file_output, is_atty, args, kwargs):
     if "style" in kwargs:
         style = kwargs["style"]
-
-        style = aliasStyle(style)
-
         del kwargs["style"]
 
         if "end" in kwargs:
@@ -260,7 +261,7 @@ class OurLogger(object):
         # For overload, pylint: disable=no-self-use
         my_print(message, **kwargs)
 
-    def warning(self, message, style="red"):
+    def warning(self, message, style="red", mnemonic=None):
         if not self.is_no_warnings:
             if self.name:
                 prefix = "%s:WARNING: " % self.name
@@ -281,8 +282,17 @@ class OurLogger(object):
                 subsequent_indent=prefix,
                 break_on_hyphens=False,
                 expand_tabs=False,
+                replace_whitespace=False,
             )
             self.my_print(formatted_message, style=style, file=sys.stderr)
+
+            if mnemonic is not None:
+                self.warning(
+                    """\
+    Complex topic! More information can be found at %shttps://nuitka.net/info/%s.html"""
+                    % (_getEnableStyleCode("link"), mnemonic),
+                    style=style,
+                )
 
     def sysexit(self, message="", exit_code=1):
         from nuitka.Progress import closeProgressBar

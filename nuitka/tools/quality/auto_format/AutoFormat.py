@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -55,6 +55,8 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Utils import getOS
 
+from .YamlFormatter import formatYaml
+
 
 def cleanupWindowsNewlines(filename):
     """Remove Windows new-lines from a file.
@@ -70,7 +72,7 @@ def cleanupWindowsNewlines(filename):
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
     # Smuggle consistency replacement in here.
-    if "Autoformat.py" not in filename:
+    if "AutoFormat.py" not in filename:
         updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
 
@@ -370,6 +372,7 @@ def _cleanupImportSortOrder(filename):
             "-tc",  # Trailing commas
             "-p",  # make sure nuitka is first party package in import sorting.
             "nuitka",
+            "--float-to-top",  # move imports to start
             "-o",
             "SCons",
             filename,
@@ -544,7 +547,7 @@ def _transferBOM(source_filename, target_filename):
                 f.write(source_code)
 
 
-def autoformat(
+def autoFormatFile(
     filename, git_stage, check_only=False, effective_filename=None, trace=True
 ):
     """Format source code with external tools
@@ -610,6 +613,7 @@ def autoformat(
     )
 
     is_rst = effective_filename.endswith(".rst")
+    is_package_config_yaml = effective_filename.endswith(".nuitka-package.config.yml")
 
     # Some parts of Nuitka must not be re-formatted with black or clang-format
     # as they have different intentions.
@@ -657,6 +661,11 @@ def autoformat(
             if is_rst:
                 _cleanupRstFmt(tmp_filename)
 
+            if is_package_config_yaml:
+                formatYaml(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename)
+                _cleanupTrailingWhitespace(tmp_filename)
+
         _transferBOM(filename, tmp_filename)
 
         changed = False
@@ -687,20 +696,20 @@ def autoformat(
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoformatted(filename):
+def withFileOpenedAndAutoFormatted(filename):
     my_print("Creating %r ..." % filename)
 
     tmp_filename = filename + ".tmp"
     with openTextFile(tmp_filename, "w") as output:
         yield output
 
-    autoformat(
+    autoFormatFile(
         filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
     )
 
     # No idea why, but this helps.
     if os.name == "nt":
-        autoformat(
+        autoFormatFile(
             filename=tmp_filename,
             git_stage=None,
             effective_filename=filename,

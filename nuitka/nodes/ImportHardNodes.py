@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -71,6 +71,10 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
     def isExpressionImportModuleNameHard():
         return True
 
+    @staticmethod
+    def hasVeryTrustedValue():
+        return True
+
     def finalize(self):
         del self.parent
 
@@ -127,3 +131,14 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
 
     def mayRaiseException(self, exception_type):
         return not self.module_guaranteed
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        # Hard imports being called, generally have no problem with forward propagation.
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )

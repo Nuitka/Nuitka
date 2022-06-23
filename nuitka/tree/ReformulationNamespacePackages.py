@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,6 @@ Namespace packages of Python3.3 or higher
 import os
 
 from nuitka import Options
-from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -44,8 +43,11 @@ from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionNuitkaLoaderCreation,
 )
 from nuitka.nodes.ModuleNodes import CompiledPythonPackage
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import makeStatementsSequenceFromStatement
@@ -219,11 +221,11 @@ def createImporterCacheAssignment(package, source_ref):
             module_guaranteed=True,
             source_ref=source_ref,
         ),
-        key=ExpressionSubscriptLookup(
+        key=makeExpressionIndexLookup(
             expression=ExpressionVariableNameRef(
                 provider=package, variable_name="__path__", source_ref=source_ref
             ),
-            subscript=makeConstantRefNode(constant=0, source_ref=source_ref),
+            index_value=0,
             source_ref=source_ref,
         ),
         value=ExpressionNuitkaLoaderCreation(provider=package, source_ref=source_ref),

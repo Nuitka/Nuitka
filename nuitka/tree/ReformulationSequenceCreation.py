@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,10 +28,6 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
@@ -55,6 +51,8 @@ from nuitka.nodes.FunctionNodes import (
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -170,7 +168,7 @@ def getListUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -213,7 +211,7 @@ def getListUnpackingHelper():
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -223,7 +221,7 @@ def getListUnpackingHelper():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant=[], source_ref=internal_source_ref),
             source_ref=internal_source_ref,
@@ -277,7 +275,7 @@ def getSetUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -320,7 +318,7 @@ def getSetUnpackingHelper():
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -330,7 +328,7 @@ def getSetUnpackingHelper():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant=set(), source_ref=internal_source_ref),
             source_ref=internal_source_ref,

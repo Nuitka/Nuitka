@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,7 +17,7 @@
 #
 """ Standard plug-in to resolve pkg_resource actions at compile time rather than runtime.
 
-Nuitka can detect some things that pkg_resouces may not even be able to during
+Nuitka can detect some things that "pkg_resources" may not even be able to during
 runtime, e.g. right now checking pip installed versions, is not a thing, while
 some packages in their code, e.g. derive their __version__ value from that.
 """
@@ -41,22 +41,6 @@ class NuitkaPluginResources(NuitkaPluginBase):
                 self.pkg_resources = None
             else:
                 self.pkg_resources = pkg_resources
-
-        try:
-            import importlib_metadata
-        except (ImportError, SyntaxError, RuntimeError):
-            self.metadata = None
-        else:
-            self.metadata = importlib_metadata
-
-        # Note: This one is overriding above import, but doesn't need to initialize
-        # the value, since it will already be set in case of a problem.
-        try:
-            from importlib import metadata
-
-            self.metadata = metadata
-        except ImportError:
-            pass
 
     @staticmethod
     def isAlwaysEnabled():
@@ -100,8 +84,6 @@ sys.exit(%(module_name)s.%(main_name)s)
         }
 
     def onModuleSourceCode(self, module_name, source_code):
-        # Many cases to deal with, pylint: disable=too-many-branches,too-many-statements
-
         if module_name == "__main__":
             match = re.search(
                 "\n# EASY-INSTALL-ENTRY-SCRIPT: '(.*?)','(.*?)','(.*?)'", source_code
@@ -113,101 +95,5 @@ sys.exit(%(module_name)s.%(main_name)s)
                 )
 
                 return self._handleEasyInstallEntryScript(*match.groups())
-
-        # The importlib_resources backport has a problem with wanting source files
-        # to exist, that won't be the case with standalone.
-        if module_name == "importlib_resources._compat":
-            return source_code.replace("path.exists()", "True")
-
-        # TODO: Move this to anti-bloat ones it becomes the default.
-        if module_name == "pkg_resources._vendor.jaraco.text":
-            return source_code.replace(
-                "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()",
-                "",
-            )
-
-        # This one has strings with false matches, don't attempt those.
-        if module_name == "setuptools.command.easy_install":
-            return source_code
-
-        if self.pkg_resources:
-            for match in re.findall(
-                r"""\b(pkg_resources\.get_distribution\(\s*['"](.*?)['"]\s*\)\.((?:parsed_)?version))""",
-                source_code,
-            ):
-                try:
-                    with withNoDeprecationWarning():
-                        value = self.pkg_resources.get_distribution(match[1]).version
-                except self.pkg_resources.DistributionNotFound:
-                    self.warning(
-                        "Cannot find distribution '%s' for '%s', expect potential run time problem."
-                        % (match[1], module_name)
-                    )
-                except Exception:  # catch all, pylint: disable=broad-except
-                    self.sysexit(
-                        "Error, failed to find distribution '%s', probably a plugin parsing bug for '%s' code."
-                        % (match[1], module_name)
-                    )
-                else:
-                    if match[2] == "version":
-                        value = repr(value)
-                    elif match[2] == "parsed_version":
-                        value = (
-                            "pkg_resources.extern.packaging.version.Version(%r)" % value
-                        )
-                    else:
-                        assert False
-
-                    source_code = source_code.replace(match[0], value)
-
-            for match in re.findall(
-                r"""\b(pkg_resources\.require\(\s*['"](.*?)['"]\s*\))""",
-                source_code,
-            ):
-                # Explicitly call the require function at Nuitka compile time.
-                try:
-                    with withNoDeprecationWarning():
-                        self.pkg_resources.require(match[1])
-                except self.pkg_resources.ResolutionError:
-                    self.warning(
-                        "Cannot find requirement '%s' for '%s', expect potential run time problem."
-                        % (match[1], module_name)
-                    )
-                except Exception:  # catch all, pylint: disable=broad-except
-                    self.sysexit(
-                        "Error, failed to resolve '%s', probably a plugin parsing bug for '%s' code."
-                        % (match[1], module_name)
-                    )
-                else:
-                    source_code = source_code.replace(match[0], "")
-
-        if self.metadata:
-            for total, quote1, name, quote2 in re.findall(
-                r"""\b((?:importlib[_.])?metadata\.version\(\s*(['"]?)(.*?)(['"]?)\s*\))""",
-                source_code,
-            ):
-                if name == "__name__":
-                    name = module_name.asString()
-                    quote1 = quote2 = "'"
-
-                if quote1 == quote2:
-                    if quote1:
-                        try:
-                            value = self.metadata.version(name)
-                        except self.metadata.PackageNotFoundError:
-                            self.warning(
-                                "Cannot find requirement '%s' for '%s', expect potential run time problem."
-                                % (name, module_name)
-                            )
-
-                            continue
-                        except Exception:  # catch all, pylint: disable=broad-except
-                            self.sysexit(
-                                "Error, failed to resolve '%s', probably a plugin parsing bug for '%s' code."
-                                % (name, module_name)
-                            )
-                        else:
-                            value = repr(value)
-                            source_code = source_code.replace(total, value)
 
         return source_code

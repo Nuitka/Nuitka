@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,15 +22,13 @@ source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.ImportNodes import makeExpressionImportModuleNameHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -51,7 +49,7 @@ def buildPrintNode(provider, node, source_ref):
             temp_scope=temp_scope, name="target"
         )
 
-        target_default_statement = StatementAssignmentVariable(
+        target_default_statement = makeStatementAssignmentVariable(
             variable=tmp_target_variable,
             source=makeExpressionImportModuleNameHard(
                 module_name="sys",
@@ -63,7 +61,7 @@ def buildPrintNode(provider, node, source_ref):
         )
 
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_target_variable,
                 source=buildNode(
                     provider=provider, node=node.dest, source_ref=source_ref
