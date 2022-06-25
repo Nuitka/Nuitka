@@ -37,7 +37,6 @@ from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.odict import OrderedDict
 from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPointOld
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import (
@@ -458,7 +457,7 @@ class Plugins(object):
             plugin.onFinalResult(filename)
 
     @staticmethod
-    def considerExtraDlls(dist_dir, module):
+    def considerExtraDlls(module):
         """Ask plugins to provide extra DLLs.
 
         Notes:
@@ -472,20 +471,10 @@ class Plugins(object):
         result = []
 
         for plugin in getActivePlugins():
-            for extra_dll in plugin.considerExtraDlls(dist_dir, module):
+            for extra_dll in plugin.getExtraDlls(module):
                 # Backward compatibility with plugins not yet migrated to getExtraDlls usage.
                 if len(extra_dll) == 3:
-                    extra_dll = makeDllEntryPointOld(
-                        source_path=extra_dll[0],
-                        dest_path=extra_dll[1],
-                        package_name=extra_dll[2],
-                    )
-
-                    if not os.path.isfile(extra_dll.dest_path):
-                        plugin.sysexit(
-                            "Error, copied filename %r for module %r that is not a file."
-                            % (extra_dll.dest_path, module.getFullName())
-                        )
+                    plugin.sysexit("Error, produce DLL entry point objects now.")
                 else:
                     if not os.path.isfile(extra_dll.source_path):
                         plugin.sysexit(

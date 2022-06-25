@@ -29,7 +29,6 @@ it being used.
 import ast
 import functools
 import inspect
-import os
 import sys
 from collections import namedtuple
 
@@ -46,7 +45,6 @@ from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
-from nuitka.utils.FileOperations import copyFile, makePath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 
@@ -434,24 +432,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             )
 
             self.info(msg)
-
-    def considerExtraDlls(self, dist_dir, module):
-        """Provide a tuple of names of binaries to be included.
-
-        Args:
-            dist_dir: the distribution folder
-            module: the module object needing the binaries
-        Returns:
-            tuple
-        """
-        # TODO: This "dist_dir" should no longer be here, as this API is obsolete, pylint: disable=unused-argument
-        for included_entry_point in self.getExtraDlls(module):
-            # Copy to the dist directory, which normally should not be a plugin task, but is for now.
-            makePath(os.path.dirname(included_entry_point.dest_path))
-
-            copyFile(included_entry_point.source_path, included_entry_point.dest_path)
-
-            yield included_entry_point
 
     def getExtraDlls(self, module):
         """Provide IncludedEntryPoint named tuples describing extra needs of the module.
