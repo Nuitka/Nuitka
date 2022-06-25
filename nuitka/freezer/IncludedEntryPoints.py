@@ -90,18 +90,6 @@ def makeExeEntryPoint(source_path, dest_path, package_name):
     )
 
 
-def makeDllEntryPointOld(source_path, dest_path, package_name):
-    assert os.path.exists(source_path), source_path
-
-    return makeIncludedEntryPoint(
-        "dll",
-        source_path=source_path,
-        dest_path=dest_path,
-        package_name=package_name,
-        executable=False,
-    )
-
-
 def makeExtensionModuleEntryPoint(source_path, dest_path, package_name):
     return makeIncludedEntryPoint(
         "extension",
