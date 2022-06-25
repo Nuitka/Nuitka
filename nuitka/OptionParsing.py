@@ -1213,7 +1213,6 @@ windows_group.add_option(
 )
 
 windows_group.add_option(
-    "--windows-onefile-tempdir-spec",
     "--onefile-tempdir-spec",
     action="store",
     dest="onefile_tempdir_spec",
@@ -1330,22 +1329,13 @@ parser.add_option_group(macos_group)
 linux_group = OptionGroup(parser, "Linux specific controls")
 
 linux_group.add_option(
+    "--linux-icon",
     "--linux-onefile-icon",
     action="append",
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
     help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
-)
-
-linux_group.add_option(
-    "--linux-onefile-compression",
-    action="store",
-    dest="app_image_compression",
-    choices=("gzip", "xz"),
-    metavar="COMPRESSION",
-    default="gzip",
-    help="Compression method to use for Linux onefile builds. Defaults to gzip for faster decompression",
 )
 
 parser.add_option_group(linux_group)
