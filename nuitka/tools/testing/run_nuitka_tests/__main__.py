@@ -27,7 +27,6 @@ import subprocess
 import sys
 from optparse import OptionParser
 
-from nuitka.freezer.Onefile import checkOnefileReadiness
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import (
     getInstalledPythonVersion,
@@ -756,9 +755,7 @@ def main():
                 executeSubTest("./tests/standalone/run_all.py search")
 
         if options.onefile_tests and not options.coverage:
-            if checkOnefileReadiness(
-                assume_yes_for_downloads=options.assume_yes_for_downloads
-            ):
+            if hasOnefileSupportedOS():
                 my_print(
                     "Running the onefile tests with options '%s' with '%s':"
                     % (flags, use_python)

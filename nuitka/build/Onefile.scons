@@ -84,7 +84,7 @@ from .SconsUtils import (
 )
 
 # spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
-# spell-checker: ignore cxxflags,ldflags
+# spell-checker: ignore cxxflags,ldflags,libpath,linkflags
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -193,9 +193,6 @@ link_libraries = getArgumentList("link_libraries", "")
 compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
-
-# Onefile compression is optional.
-onefile_compression = getArgumentBool("onefile_compression", False)
 
 # Onefile bootstrap is optional.
 onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
@@ -595,19 +592,21 @@ if env.msvc_mode and not disable_ccache:
 def createBuildDefinitionsFile():
     onefile_definitions = {}
 
-    if "ONEFILE_TEMP_SPEC" in os.environ:
-        onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ[
-            "ONEFILE_TEMP_SPEC"
-        ]
-        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
-    else:
-        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
+    onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ[
+        "_NUITKA_ONEFILE_TEMP_SPEC"
+    ]
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = int(
+        os.environ["_NUITKA_ONEFILE_TEMP"]
+    )
 
-    if onefile_compression:
-        onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
+    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = int(
+        os.environ["_NUITKA_ONEFILE_COMPRESSION"]
+    )
 
     if onefile_splash_screen:
         onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
+
+        # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
 
     setProductVersionDefinitions(onefile_definitions)
