@@ -52,6 +52,8 @@ def forgetType(value):
 {% set method_arg_variants = [""] %}
 {% elif "partition" in str_method_name or "strip" in str_method_name %}
 {% set method_arg_variants = ["'a'", "1", "None"] %}
+{% elif str_method_name == "splitlines" %}
+{% set method_arg_variants = ["", "True"] %}
 {% elif "split" in str_method_name %}
 {% set method_arg_variants = ["", "1", "'a'", "None", "'a', 'b'", "'a', 1", "None, 1"] %}
 {% elif str_method_name == "join"  %}
@@ -64,6 +66,12 @@ def forgetType(value):
 {% set method_arg_variants = ["1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
 {% elif str_method_name == "count"  %}
 {% set method_arg_variants = ["'a'", "'a', 1", "'a', 'b'", "'a', 1, 2"] %}
+{% elif str_method_name == "expandtabs"  %}
+{% set method_arg_variants = ["", "1"] %}
+{% elif str_method_name == "translate"  %}
+{% set method_arg_variants = ["'12'"] %}
+{% elif str_method_name in ("zfill", "ljust", "rjust", "center") %}
+{% set method_arg_variants = ["12"] %}
 {% else %}
 {% set method_arg_variants = ["", "1", "'a'", "'a', 'b'", "'a', 'b', 'c'"] %}
 {% endif %}

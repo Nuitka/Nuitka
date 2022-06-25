@@ -68,48 +68,48 @@ python3_dict_methods = (
     "values",
 )
 
-python2_str_methods = (
-    "capitalize",  # has full str coverage
+python2_str_methods = (  # has full str coverage for all methods
+    "capitalize",
     "center",
-    "count",  # has full str coverage
-    "decode",  # has full str coverage
-    "encode",  # has full str coverage
-    "endswith",  # has full str coverage
+    "count",
+    "decode",
+    "encode",
+    "endswith",
     "expandtabs",
-    "find",  # has full str coverage
+    "find",
     "format",
-    "index",  # has full str coverage
-    "isalnum",  # has full str coverage
-    "isalpha",  # has full str coverage
-    "isdigit",  # has full str coverage
-    "islower",  # has full str coverage
-    "isspace",  # has full str coverage
-    "istitle",  # has full str coverage
-    "isupper",  # has full str coverage
-    "join",  # has full str coverage
+    "index",
+    "isalnum",
+    "isalpha",
+    "isdigit",
+    "islower",
+    "isspace",
+    "istitle",
+    "isupper",
+    "join",
     "ljust",
-    "lower",  # has full str coverage
-    "lstrip",  # has full str coverage
-    "partition",  # has full str coverage
+    "lower",
+    "lstrip",
+    "partition",
     "replace",
-    "rfind",  # has full str coverage
-    "rindex",  # has full str coverage
+    "rfind",
+    "rindex",
     "rjust",
-    "rpartition",  # has full str coverage
-    "rsplit",  # has full str coverage
-    "rstrip",  # has full str coverage
-    "split",  # has full str coverage
+    "rpartition",
+    "rsplit",
+    "rstrip",
+    "split",
     "splitlines",
-    "startswith",  # has full str coverage
-    "strip",  # has full str coverage
-    "swapcase",  # has full str coverage
-    "title",  # has full str coverage
+    "startswith",
+    "strip",
+    "swapcase",
+    "title",
     "translate",
-    "upper",  # has full str coverage
+    "upper",
     "zfill",
 )
 
-python3_str_methods = (
+python3_str_methods = (  # has full str coverage for all methods
     "capitalize",
     "casefold",
     "center",

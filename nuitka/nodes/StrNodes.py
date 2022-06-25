@@ -1715,3 +1715,483 @@ class ExpressionStrOperationFormat(
     @staticmethod
     def mayRaiseException(exception_type):
         return True
+
+
+class ExpressionStrOperationExpandtabs1(
+    ExpressionStrShapeExactMixin,
+    ExpressionStrOperationSingleArgBase,
+):
+    """This operation represents s.expandtabs()."""
+
+    kind = "EXPRESSION_STR_OPERATION_EXPANDTABS1"
+
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation."""
+
+        return str.expandtabs
+
+
+class ExpressionStrOperationExpandtabs2(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    kind = "EXPRESSION_STR_OPERATION_EXPANDTABS2"
+
+    named_children = ("str_arg", "tabsize")
+
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation."""
+
+        return str.expandtabs
+
+    def __init__(self, str_arg, tabsize, source_ref):
+        assert str_arg is not None
+        assert tabsize is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "tabsize": tabsize},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        tabsize = self.subnode_tabsize
+
+        if str_arg.isCompileTimeConstant() and tabsize.isCompileTimeConstant():
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    tabsize.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.expandtabs' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sep is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Only if tabsize is not correct type shape
+        return True
+
+
+class ExpressionStrOperationTranslate(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents s.translate(table)."""
+
+    kind = "EXPRESSION_STR_OPERATION_TRANSLATE"
+
+    named_children = ("str_arg", "table")
+
+    def __init__(self, str_arg, table, source_ref):
+        assert str_arg is not None
+        assert table is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "table": table},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        table = self.subnode_table
+
+        if str_arg.isCompileTimeConstant() and table.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: str_arg.getCompileTimeConstant().translate(
+                    table.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.translate' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the table is not indexable.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationZfill(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents s.zfill(width)."""
+
+    kind = "EXPRESSION_STR_OPERATION_ZFILL"
+
+    named_children = ("str_arg", "width")
+
+    def __init__(self, str_arg, width, source_ref):
+        assert str_arg is not None
+        assert width is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "width": width},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        width = self.subnode_width
+
+        if str_arg.isCompileTimeConstant() and width.isCompileTimeConstant():
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: str_arg.getCompileTimeConstant().zfill(
+                    width.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.zfill' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the table is not indexable.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationCenterBase(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.center
+
+
+class ExpressionStrOperationCenter2(ExpressionStrOperationCenterBase):
+    kind = "EXPRESSION_STR_OPERATION_CENTER2"
+
+    named_children = ("str_arg", "width")
+
+    def __init__(self, str_arg, width, source_ref):
+        assert str_arg is not None
+        assert width is not None
+
+        ExpressionStrOperationCenterBase.__init__(
+            self,
+            values={"str_arg": str_arg, "width": width},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        width = self.subnode_width
+
+        if str_arg.isCompileTimeConstant() and width.isCompileTimeConstant():
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(), width.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.center' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the width is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationCenter3(ExpressionStrOperationCenterBase):
+    kind = "EXPRESSION_STR_OPERATION_CENTER3"
+
+    named_children = ("str_arg", "width", "fillchar")
+
+    def __init__(self, str_arg, width, fillchar, source_ref):
+        assert str_arg is not None
+        assert width is not None
+        assert fillchar is not None
+
+        ExpressionStrOperationCenterBase.__init__(
+            self,
+            values={"str_arg": str_arg, "width": width, "fillchar": fillchar},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        width = self.subnode_width
+        fillchar = self.subnode_fillchar
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and width.isCompileTimeConstant()
+            and fillchar.isCompileTimeConstant()
+        ):
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    width.getCompileTimeConstant(),
+                    fillchar.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.center' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the arguments have wrong shapes
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationLjustBase(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.ljust
+
+
+class ExpressionStrOperationLjust2(ExpressionStrOperationLjustBase):
+    kind = "EXPRESSION_STR_OPERATION_LJUST2"
+
+    named_children = ("str_arg", "width")
+
+    def __init__(self, str_arg, width, source_ref):
+        assert str_arg is not None
+        assert width is not None
+
+        ExpressionStrOperationLjustBase.__init__(
+            self,
+            values={"str_arg": str_arg, "width": width},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        width = self.subnode_width
+
+        if str_arg.isCompileTimeConstant() and width.isCompileTimeConstant():
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(), width.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.ljust' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the width is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationLjust3(ExpressionStrOperationLjustBase):
+    kind = "EXPRESSION_STR_OPERATION_LJUST3"
+
+    named_children = ("str_arg", "width", "fillchar")
+
+    def __init__(self, str_arg, width, fillchar, source_ref):
+        assert str_arg is not None
+        assert width is not None
+        assert fillchar is not None
+
+        ExpressionStrOperationLjustBase.__init__(
+            self,
+            values={"str_arg": str_arg, "width": width, "fillchar": fillchar},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        width = self.subnode_width
+        fillchar = self.subnode_fillchar
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and width.isCompileTimeConstant()
+            and fillchar.isCompileTimeConstant()
+        ):
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    width.getCompileTimeConstant(),
+                    fillchar.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.ljust' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the arguments have wrong shapes
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationRjustBase(
+    ExpressionStrShapeExactMixin, ExpressionChildrenHavingBase
+):
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation"""
+
+        return str.rjust
+
+
+class ExpressionStrOperationRjust2(ExpressionStrOperationRjustBase):
+    kind = "EXPRESSION_STR_OPERATION_RJUST2"
+
+    named_children = ("str_arg", "width")
+
+    def __init__(self, str_arg, width, source_ref):
+        assert str_arg is not None
+        assert width is not None
+
+        ExpressionStrOperationRjustBase.__init__(
+            self,
+            values={"str_arg": str_arg, "width": width},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        width = self.subnode_width
+
+        if str_arg.isCompileTimeConstant() and width.isCompileTimeConstant():
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(), width.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.rjust' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the width is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationRjust3(ExpressionStrOperationRjustBase):
+    kind = "EXPRESSION_STR_OPERATION_RJUST3"
+
+    named_children = ("str_arg", "width", "fillchar")
+
+    def __init__(self, str_arg, width, fillchar, source_ref):
+        assert str_arg is not None
+        assert width is not None
+        assert fillchar is not None
+
+        ExpressionStrOperationRjustBase.__init__(
+            self,
+            values={"str_arg": str_arg, "width": width, "fillchar": fillchar},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        width = self.subnode_width
+        fillchar = self.subnode_fillchar
+
+        if (
+            str_arg.isCompileTimeConstant()
+            and width.isCompileTimeConstant()
+            and fillchar.isCompileTimeConstant()
+        ):
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    width.getCompileTimeConstant(),
+                    fillchar.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.rjust' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the arguments have wrong shapes
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionStrOperationSplitlines1(
+    ExpressionListShapeExactMixin, ExpressionStrOperationSingleArgBase
+):
+    """This operation represents s.splitlines()."""
+
+    kind = "EXPRESSION_STR_OPERATION_SPLITLINES1"
+
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation."""
+
+        return str.splitlines
+
+
+class ExpressionStrOperationSplitlines2(
+    ExpressionListShapeExactMixin, ExpressionChildrenHavingBase
+):
+    """This operation represents s.splitlines(sep)."""
+
+    kind = "EXPRESSION_STR_OPERATION_SPLITLINES2"
+
+    named_children = ("str_arg", "keepends")
+
+    @staticmethod
+    def getSimulator():
+        """Compile time simulation."""
+
+        return str.splitlines
+
+    def __init__(self, str_arg, keepends, source_ref):
+        assert str_arg is not None
+        assert keepends is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "keepends": keepends},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        keepends = self.subnode_keepends
+
+        if str_arg.isCompileTimeConstant() and keepends.isCompileTimeConstant():
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(), keepends.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.splitlines' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sep is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
