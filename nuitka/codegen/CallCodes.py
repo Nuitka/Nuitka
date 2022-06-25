@@ -503,6 +503,7 @@ def generateCallCode(to_name, expression, emit, context):
                         called_name=called_name,
                         call_args=call_args.subnode_elements,
                         pairs=call_kw.subnode_pairs,
+                        needs_check=expression.mayRaiseException(BaseException),
                         emit=emit,
                         context=context,
                     )
@@ -908,70 +909,10 @@ def _getCallCodePosConstKeywordVariableArgs(
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosVariableArgs(
-    to_name, expression, called_name, call_args, emit, context
-):
-    call_arg_names = []
-
-    for count, call_arg_element in enumerate(call_args):
-        call_arg_name = context.allocateTempName("kw_call_arg_value_%d" % count)
-
-        generateExpressionCode(
-            to_name=call_arg_name,
-            expression=call_arg_element,
-            emit=emit,
-            context=context,
-        )
-
-        call_arg_names.append(call_arg_name)
-
-    args_count = len(call_args)
-
-    quick_mixed_calls_used.add((args_count, False, True))
-
-    emitLineNumberUpdateCode(expression, emit, context)
-
-    emit(
-        """\
-{
-    PyObject *args[] = {%(call_arg_names)s};
-    %(to_name)s = CALL_FUNCTION_WITH_ARGS%(args_count)d(%(called_name)s, args);
-}
-"""
-        % {
-            "to_name": to_name,
-            "called_name": called_name,
-            "call_arg_names": ", ".join(
-                str(call_arg_name) for call_arg_name in call_arg_names
-            ),
-            "args_count": args_count,
-        }
-    )
-
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(called_name,) + tuple(call_arg_names),
-        emit=emit,
-        context=context,
-    )
-
-    context.addCleanupTempName(to_name)
-
-
 def getCallCodePosVariableKeywordVariableArgs(
-    to_name, expression, called_name, call_args, pairs, emit, context
+    to_name, expression, called_name, call_args, pairs, needs_check, emit, context
 ):
     # Many details for this call variant, pylint: disable=too-many-locals
-
-    if not pairs:
-        return getCallCodePosVariableArgs(
-            to_name=to_name,
-            expression=expression,
-            called_name=called_name,
-            call_args=call_args,
-            emit=emit,
-            context=context,
-        )
 
     kw_names = []
 
@@ -988,6 +929,17 @@ def getCallCodePosVariableKeywordVariableArgs(
         )
 
         call_arg_names.append(call_arg_name)
+
+    if not pairs:
+        return getCallCodePosArgsQuick(
+            to_name=to_name,
+            expression=expression,
+            called_name=called_name,
+            arg_names=call_arg_names,
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
+        )
 
     dict_value_names = []
 
@@ -1039,6 +991,7 @@ def getCallCodePosVariableKeywordVariableArgs(
         check_name=to_name,
         release_names=(called_name,) + tuple(call_arg_names) + tuple(dict_value_names),
         emit=emit,
+        needs_check=needs_check,
         context=context,
     )
 
