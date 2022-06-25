@@ -545,7 +545,7 @@ class ExpressionStrOperationRfind4(
     kind = "EXPRESSION_STR_OPERATION_RFIND4"
 
 
-class ExpressionStrOperationIndexMixin(object):
+class ExpressionStrOperationIndexMixin(ExpressionIntShapeExactMixin):
     __slots__ = ()
 
     @staticmethod
@@ -821,7 +821,7 @@ class ExpressionStrOperationSplit1(
     kind = "EXPRESSION_STR_OPERATION_SPLIT1"
 
 
-# TODO: This one could be eliminated in factor of simpleExpressionStrOperationSplit1
+# TODO: This one could be eliminated in favor of simple ExpressionStrOperationSplit1
 # since without an argument, there is no difference.
 class ExpressionStrOperationRsplit1(
     ExpressionStrRsplitMixin, ExpressionStrOperationSplit1Base
