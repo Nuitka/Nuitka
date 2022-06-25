@@ -1561,17 +1561,7 @@
       control_tags:
         - "allow_tornado"
 
-- module-name: "Xlib.XK"
+- module-name: "zmq.backend"
   implicit-imports:
     depends:
-      - "Xlib.keysymdef.*"
-
-- module-name: "Xlib.support.connect"
-  implicit-imports:
-    depends:
-      - "Xlib.support.unix_connect"
-
-- module-name: "Xlib.display"
-  implicit-imports:
-    depends:
-      - "Xlib.ext.*"
+      - "zmq.backend.cython"

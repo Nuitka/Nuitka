@@ -24,15 +24,15 @@ import re
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.FileOperations import copyFile, getFileList
-from nuitka.utils.Importing import getSharedLibrarySuffix
-from nuitka.utils.Utils import isWin32Windows
+from nuitka.utils.FileOperations import getFileList
+
+# spell-checker: ignore delvewheel,pyzmq
 
 
 class NuitkaPluginZmq(NuitkaPluginBase):
     """This class represents the main logic of the pyzmq plugin.
 
-    This is a plugin to ensure that gldw platform specific backends are loading
+    This is a plugin to ensure that pyzmq platform specific backends are loading
     properly. This need to include the correct DLL and make sure it's used by
     setting an environment variable.
 
@@ -48,30 +48,6 @@ class NuitkaPluginZmq(NuitkaPluginBase):
     @staticmethod
     def isAlwaysEnabled():
         return True
-
-    @staticmethod
-    def getImplicitImports(module):
-        module_name = module.getFullName()
-
-        if module_name == "zmq.backend":
-            yield "zmq.backend.cython"
-
-    def considerExtraDlls(self, dist_dir, module):
-        module_name = module.getFullName()
-
-        if module_name == "zmq.libzmq" and isWin32Windows():
-            # TODO: Very strange thing for zmq on Windows, needs the .pyd file in wrong dir too. Have
-            # this done in a dedicated form somewhere.
-            copyFile(
-                os.path.join(dist_dir, "zmq\\libzmq.pyd"),
-                os.path.join(
-                    dist_dir, "libzmq" + getSharedLibrarySuffix(preferred=True)
-                ),
-            )
-
-        return NuitkaPluginBase.considerExtraDlls(
-            self, dist_dir=dist_dir, module=module
-        )
 
     def _add_dll_directory(self, arg):
         self.dll_directory = arg
@@ -108,6 +84,7 @@ class NuitkaPluginZmq(NuitkaPluginBase):
                 exec(code, exec_globals)
 
     def getExtraDlls(self, module):
+        # TODO: DLL directory from code like this, is not yet a thing.
         if module.getFullName() == "zmq" and self.dll_directory is not None:
             for dll_filename in getFileList(self.dll_directory):
                 yield self.makeDllEntryPoint(
