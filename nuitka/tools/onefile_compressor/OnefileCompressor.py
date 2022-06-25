@@ -34,6 +34,7 @@ from nuitka.Progress import (
 )
 from nuitka.Tracing import onefile_logger
 from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.Hashing import HashCRC32
 from nuitka.utils.Utils import isPosixWindows, isWin32Windows
 
 
@@ -111,7 +112,7 @@ Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a se
 
 
 def attachOnefilePayload(
-    dist_dir, onefile_output_filename, start_binary, expect_compression
+    dist_dir, onefile_output_filename, start_binary, expect_compression, file_checksums
 ):
     # Somewhat detail rich, pylint: disable=too-many-locals
     compression_indicator, compressor = getCompressorFunction(
@@ -162,10 +163,20 @@ def attachOnefilePayload(
                     input_size = input_file.tell()
                     input_file.seek(0, 0)
 
-                    compressed_file.write(struct.pack("Q", input_size))
+                    file_header = struct.pack("Q", input_size)
+                    if file_checksums:
+                        hash_crc32 = HashCRC32()
+                        hash_crc32.updateFromFileHandle(input_file)
+                        input_file.seek(0, 0)
+
+                        # CRC32 value 0 is avoided, used as error indicator in C code.
+                        file_header += struct.pack("I", hash_crc32.asDigest() or 1)
+
+                    compressed_file.write(file_header)
+
                     shutil.copyfileobj(input_file, compressed_file)
 
-                    payload_size += input_size + 8
+                    payload_size += input_size + len(file_header)
 
                 reportProgressBar(
                     item=filename_relative,
@@ -213,7 +224,7 @@ def main():
     dist_dir = sys.argv[1]
     onefile_output_filename = sys.argv[2]
     start_binary = sys.argv[3]
-    expect_compression = sys.argv[4] == "True"
+    file_checksums = sys.argv[4] == "True"
 
     if os.environ.get("NUITKA_PROGRESS_BAR") == "1":
         enableProgressBar()
@@ -222,7 +233,9 @@ def main():
         dist_dir=dist_dir,
         onefile_output_filename=onefile_output_filename,
         start_binary=start_binary,
-        expect_compression=expect_compression,
+        # We wouldn't be here, if that was not the case.
+        expect_compression=True,
+        file_checksums=file_checksums,
     )
 
     sys.exit(0)

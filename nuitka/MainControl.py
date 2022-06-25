@@ -992,7 +992,7 @@ def main():
             Plugins.onStandaloneDistributionFinished(dist_dir)
 
             if Options.isOnefileMode():
-                packDistFolderToOnefile(dist_dir, binary_filename)
+                packDistFolderToOnefile(dist_dir)
 
                 if Options.isRemoveBuildDir():
                     general.info("Removing dist folder %r." % dist_dir)
