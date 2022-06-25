@@ -27,10 +27,12 @@ from nuitka.specs.BuiltinDictOperationSpecs import (
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.BuiltinStrOperationSpecs import (
     str_capitalize_spec,
+    str_center_spec,
     str_count_spec,
     str_decode_spec,
     str_encode_spec,
     str_endswith_spec,
+    str_expandtabs_spec,
     str_find_spec,
     str_format_spec,
     str_index_spec,
@@ -42,21 +44,26 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_istitle_spec,
     str_isupper_spec,
     str_join_spec,
+    str_ljust_spec,
     str_lower_spec,
     str_lstrip_spec,
     str_partition_spec,
     str_replace_spec,
     str_rfind_spec,
     str_rindex_spec,
+    str_rjust_spec,
     str_rpartition_spec,
     str_rsplit_spec,
     str_rstrip_spec,
     str_split_spec,
+    str_splitlines_spec,
     str_startswith_spec,
     str_strip_spec,
     str_swapcase_spec,
     str_title_spec,
+    str_translate_spec,
     str_upper_spec,
+    str_zfill_spec,
 )
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
@@ -94,6 +101,8 @@ from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from .StrNodes import (
     ExpressionStrOperationCapitalize,
+    ExpressionStrOperationCenter2,
+    ExpressionStrOperationCenter3,
     ExpressionStrOperationCount2,
     ExpressionStrOperationCount3,
     ExpressionStrOperationCount4,
@@ -106,6 +115,8 @@ from .StrNodes import (
     ExpressionStrOperationEndswith2,
     ExpressionStrOperationEndswith3,
     ExpressionStrOperationEndswith4,
+    ExpressionStrOperationExpandtabs1,
+    ExpressionStrOperationExpandtabs2,
     ExpressionStrOperationFind2,
     ExpressionStrOperationFind3,
     ExpressionStrOperationFind4,
@@ -121,6 +132,8 @@ from .StrNodes import (
     ExpressionStrOperationIstitle,
     ExpressionStrOperationIsupper,
     ExpressionStrOperationJoin,
+    ExpressionStrOperationLjust2,
+    ExpressionStrOperationLjust3,
     ExpressionStrOperationLower,
     ExpressionStrOperationLstrip1,
     ExpressionStrOperationLstrip2,
@@ -133,6 +146,8 @@ from .StrNodes import (
     ExpressionStrOperationRindex2,
     ExpressionStrOperationRindex3,
     ExpressionStrOperationRindex4,
+    ExpressionStrOperationRjust2,
+    ExpressionStrOperationRjust3,
     ExpressionStrOperationRpartition,
     ExpressionStrOperationRsplit1,
     ExpressionStrOperationRsplit2,
@@ -142,6 +157,8 @@ from .StrNodes import (
     ExpressionStrOperationSplit1,
     ExpressionStrOperationSplit2,
     ExpressionStrOperationSplit3,
+    ExpressionStrOperationSplitlines1,
+    ExpressionStrOperationSplitlines2,
     ExpressionStrOperationStartswith2,
     ExpressionStrOperationStartswith3,
     ExpressionStrOperationStartswith4,
@@ -149,7 +166,9 @@ from .StrNodes import (
     ExpressionStrOperationStrip2,
     ExpressionStrOperationSwapcase,
     ExpressionStrOperationTitle,
+    ExpressionStrOperationTranslate,
     ExpressionStrOperationUpper,
+    ExpressionStrOperationZfill,
 )
 
 attribute_classes = {}
@@ -402,7 +421,47 @@ class ExpressionAttributeLookupStrCenter(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationCenter is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationCenter(width, fillchar, source_ref):
+            if fillchar is not None:
+                return ExpressionStrOperationCenter3(
+                    str_arg=str_arg,
+                    width=width,
+                    fillchar=fillchar,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionStrOperationCenter2(
+                    str_arg=str_arg, width=width, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationCenter,
+            builtin_spec=str_center_spec,
+        )
+
+        return result, "new_expression", "Call to 'center' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(
+            call_node, variable_ref_node, trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrCenter)
@@ -1258,7 +1317,44 @@ class ExpressionAttributeLookupStrExpandtabs(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationExpandtabs is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationExpandtabs(tabsize, source_ref):
+            if tabsize is not None:
+                return ExpressionStrOperationExpandtabs2(
+                    str_arg=str_arg, tabsize=tabsize, source_ref=source_ref
+                )
+            else:
+                return ExpressionStrOperationExpandtabs1(
+                    str_arg=str_arg, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationExpandtabs,
+            builtin_spec=str_expandtabs_spec,
+        )
+
+        return result, "new_expression", "Call to 'expandtabs' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(
+            call_node, variable_ref_node, trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrExpandtabs)
@@ -3910,7 +4006,47 @@ class ExpressionAttributeLookupStrLjust(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationLjust is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationLjust(width, fillchar, source_ref):
+            if fillchar is not None:
+                return ExpressionStrOperationLjust3(
+                    str_arg=str_arg,
+                    width=width,
+                    fillchar=fillchar,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionStrOperationLjust2(
+                    str_arg=str_arg, width=width, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationLjust,
+            builtin_spec=str_ljust_spec,
+        )
+
+        return result, "new_expression", "Call to 'ljust' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(
+            call_node, variable_ref_node, trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrLjust)
@@ -5039,7 +5175,47 @@ class ExpressionAttributeLookupStrRjust(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationRjust is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationRjust(width, fillchar, source_ref):
+            if fillchar is not None:
+                return ExpressionStrOperationRjust3(
+                    str_arg=str_arg,
+                    width=width,
+                    fillchar=fillchar,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionStrOperationRjust2(
+                    str_arg=str_arg, width=width, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationRjust,
+            builtin_spec=str_rjust_spec,
+        )
+
+        return result, "new_expression", "Call to 'rjust' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(
+            call_node, variable_ref_node, trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrRjust)
@@ -5757,7 +5933,44 @@ class ExpressionAttributeLookupStrSplitlines(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationSplitlines is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationSplitlines(keepends, source_ref):
+            if keepends is not None:
+                return ExpressionStrOperationSplitlines2(
+                    str_arg=str_arg, keepends=keepends, source_ref=source_ref
+                )
+            else:
+                return ExpressionStrOperationSplitlines1(
+                    str_arg=str_arg, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationSplitlines,
+            builtin_spec=str_splitlines_spec,
+        )
+
+        return result, "new_expression", "Call to 'splitlines' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(
+            call_node, variable_ref_node, trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrSplitlines)
@@ -6365,7 +6578,39 @@ class ExpressionAttributeLookupStrTranslate(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationTranslate is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationTranslate(table, source_ref):
+            return ExpressionStrOperationTranslate(
+                str_arg=str_arg, table=table, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationTranslate,
+            builtin_spec=str_translate_spec,
+        )
+
+        return result, "new_expression", "Call to 'translate' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(
+            call_node, variable_ref_node, trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrTranslate)
@@ -7084,7 +7329,39 @@ class ExpressionAttributeLookupStrZfill(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationZfill is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationZfill(width, source_ref):
+            return ExpressionStrOperationZfill(
+                str_arg=str_arg, width=width, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationZfill,
+            builtin_spec=str_zfill_spec,
+        )
+
+        return result, "new_expression", "Call to 'zfill' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(
+            call_node, variable_ref_node, trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrZfill)
