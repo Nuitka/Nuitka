@@ -62,7 +62,7 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
         )
 
 
-def generatePkgResourcesDistributionCode(to_name, expression, emit, context):
+def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "distribution_value", expression, emit, context
     ) as result_name:
@@ -81,9 +81,7 @@ def generatePkgResourcesDistributionCode(to_name, expression, emit, context):
 
         kw_names = expression.__class__.preserved_attributes
         dict_value_names = [
-            context.getConstantCode(
-                getattr(expression.getCompileTimeConstant(), kw_name)
-            )
+            context.getConstantCode(getattr(expression.distribution, kw_name))
             for kw_name in kw_names
         ]
 
