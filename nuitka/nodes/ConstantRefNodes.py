@@ -47,11 +47,8 @@ from nuitka.Constants import (
     the_empty_set,
     the_empty_tuple,
 )
-from nuitka.Options import isStandaloneMode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import optimization_logger
-from nuitka.utils.Importing import importFromCompileTime
-from nuitka.utils.Utils import withNoDeprecationWarning
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .ExpressionShapeMixins import (
@@ -1580,50 +1577,6 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
             "new_constant",
             """Iteration over constant sys.version_info lowered to tuple.""",
         )
-
-    @staticmethod
-    def getTruthValue():
-        return True
-
-
-class ExpressionConstantPkgResourcesDistributionRef(ExpressionConstantUntrackedRefBase):
-    kind = "EXPRESSION_CONSTANT_PKG_RESOURCES_DISTRIBUTION_REF"
-
-    __slots__ = ()
-
-    preserved_attributes = ("py_version", "platform", "version", "project_name")
-
-    def __init__(self, distribution, source_ref):
-        with withNoDeprecationWarning():
-            Distribution = importFromCompileTime(
-                "pkg_resources", must_exist=True
-            ).Distribution
-
-            preserved_attributes = self.preserved_attributes
-            if not isStandaloneMode():
-                preserved_attributes += ("location",)
-
-            constant = Distribution(
-                **dict(
-                    (key, getattr(distribution, key)) for key in preserved_attributes
-                )
-            )
-
-        ExpressionConstantUntrackedRefBase.__init__(
-            self, constant=constant, source_ref=source_ref
-        )
-
-    @staticmethod
-    def isMutable():
-        return False
-
-    @staticmethod
-    def isKnownToBeHashable():
-        return True
-
-    @staticmethod
-    def isIterableConstant():
-        return False
 
     @staticmethod
     def getTruthValue():
