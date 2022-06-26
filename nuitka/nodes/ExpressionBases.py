@@ -40,6 +40,7 @@ from .NodeMakingHelpers import (
 from .shapes.BuiltinTypeShapes import (
     tshape_bytes,
     tshape_dict,
+    tshape_list,
     tshape_str,
     tshape_unicode,
 )
@@ -864,6 +865,11 @@ class ExpressionBase(NodeBase):
 
     def hasShapeTrustedAttributes(self):
         return self.getTypeShape().hasShapeTrustedAttributes()
+
+    def hasShapeListExact(self):
+        """Does a node have exactly a list shape."""
+
+        return self.getTypeShape() is tshape_list
 
     def hasShapeDictionaryExact(self):
         """Does a node have exactly a dictionary shape."""

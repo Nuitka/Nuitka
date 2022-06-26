@@ -19,11 +19,7 @@
 
 """
 
-from .ChildrenHavingMixins import (
-    ChildrenExpressionListOperationExtendMixin,
-    ChildrenExpressionListOperationPopMixin,
-    ChildrenExpressionSetOperationUpdateMixin,
-)
+from .ChildrenHavingMixins import ChildrenExpressionSetOperationUpdateMixin
 from .ExpressionBases import ExpressionBase
 from .StatementBasesGenerated import (
     StatementListOperationAppendBase,
@@ -47,55 +43,6 @@ class StatementListOperationAppend(StatementListOperationAppendBase):
         return self.subnode_list_arg.mayRaiseException(
             exception_type
         ) or self.subnode_value.mayRaiseException(exception_type)
-
-
-class ExpressionListOperationExtend(
-    ChildrenExpressionListOperationExtendMixin, ExpressionBase
-):
-    kind = "EXPRESSION_LIST_OPERATION_EXTEND"
-
-    named_children = ("list_arg", "value")
-
-    def __init__(self, list_arg, value, source_ref):
-        ChildrenExpressionListOperationExtendMixin.__init__(
-            self,
-            list_arg=list_arg,
-            value=value,
-        )
-
-        ExpressionBase.__init__(self, source_ref)
-
-    def computeExpression(self, trace_collection):
-        # TODO: Until we have proper list tracing.
-        trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        return self, None, None
-
-
-class ExpressionListOperationExtendForUnpack(ExpressionListOperationExtend):
-    kind = "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK"
-
-
-class ExpressionListOperationPop(
-    ChildrenExpressionListOperationPopMixin, ExpressionBase
-):
-    kind = "EXPRESSION_LIST_OPERATION_POP"
-
-    named_children = ("list_arg",)
-
-    def __init__(self, list_arg, source_ref):
-        ChildrenExpressionListOperationPopMixin.__init__(self, list_arg=list_arg)
-
-        ExpressionBase.__init__(self, source_ref)
-
-    def computeExpression(self, trace_collection):
-        if not self.subnode_list_arg.isKnownToBeIterableAtMin(1):
-            trace_collection.onExceptionRaiseExit(IndexError)
-
-        # TODO: Until we have proper list tracing.
-        trace_collection.removeKnowledge(self.subnode_list_arg)
-
-        return self, None, None
 
 
 class StatementSetOperationAdd(StatementSetOperationAddBase):

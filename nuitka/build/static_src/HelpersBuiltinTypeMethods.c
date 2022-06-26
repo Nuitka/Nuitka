@@ -15,6 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+/* WARNING, this code is GENERATED. Modify the template HelperBuiltinMethodOperation.c.j2 instead! */
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
@@ -511,6 +512,38 @@ static void _initDictBuiltinMethods(void) {
     dict_builtin_viewvalues = PyObject_GetAttrString((PyObject *)&PyDict_Type, "viewvalues");
 #endif
 }
+static PyObject *list_builtin_append = NULL;
+#if PYTHON_VERSION >= 0x300
+static PyObject *list_builtin_clear = NULL;
+#endif
+#if PYTHON_VERSION >= 0x300
+static PyObject *list_builtin_copy = NULL;
+#endif
+static PyObject *list_builtin_count = NULL;
+static PyObject *list_builtin_extend = NULL;
+static PyObject *list_builtin_index = NULL;
+static PyObject *list_builtin_insert = NULL;
+static PyObject *list_builtin_pop = NULL;
+static PyObject *list_builtin_remove = NULL;
+static PyObject *list_builtin_reverse = NULL;
+static PyObject *list_builtin_sort = NULL;
+static void _initListBuiltinMethods(void) {
+    list_builtin_append = PyObject_GetAttrString((PyObject *)&PyList_Type, "append");
+#if PYTHON_VERSION >= 0x300
+    list_builtin_clear = PyObject_GetAttrString((PyObject *)&PyList_Type, "clear");
+#endif
+#if PYTHON_VERSION >= 0x300
+    list_builtin_copy = PyObject_GetAttrString((PyObject *)&PyList_Type, "copy");
+#endif
+    list_builtin_count = PyObject_GetAttrString((PyObject *)&PyList_Type, "count");
+    list_builtin_extend = PyObject_GetAttrString((PyObject *)&PyList_Type, "extend");
+    list_builtin_index = PyObject_GetAttrString((PyObject *)&PyList_Type, "index");
+    list_builtin_insert = PyObject_GetAttrString((PyObject *)&PyList_Type, "insert");
+    list_builtin_pop = PyObject_GetAttrString((PyObject *)&PyList_Type, "pop");
+    list_builtin_remove = PyObject_GetAttrString((PyObject *)&PyList_Type, "remove");
+    list_builtin_reverse = PyObject_GetAttrString((PyObject *)&PyList_Type, "reverse");
+    list_builtin_sort = PyObject_GetAttrString((PyObject *)&PyList_Type, "sort");
+}
 PyObject *DICT_POP2(PyObject *dict, PyObject *key) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
@@ -582,6 +615,33 @@ PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_valu
 
     PyObject *args[3] = {dict, key, default_value};
     PyObject *result = CALL_METHODDESCR_WITH_ARGS3(called, args);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+PyObject *LIST_POP1(PyObject *list) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
+    PyObject *called = list_builtin_pop;
+    CHECK_OBJECT(called);
+
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, list);
+
+    CHECK_OBJECT_X(result);
+    return result;
+}
+PyObject *LIST_POP2(PyObject *list, PyObject *index) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
+    CHECK_OBJECT(index);
+
+    PyObject *called = list_builtin_pop;
+    CHECK_OBJECT(called);
+
+    PyObject *args[2] = {list, index};
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS2(called, args);
 
     CHECK_OBJECT_X(result);
     return result;
