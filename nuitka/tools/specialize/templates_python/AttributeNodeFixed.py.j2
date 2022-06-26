@@ -55,6 +55,19 @@
 {% endif %}
 
 
+{% if "tshape_list" in shape_names %}
+{% set list_shape = 1 %}
+{% set list_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_list")) %}
+{% set list_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_list")) %}
+{% set list_operation_args = attribute_shape_args.get((attribute_name, "tshape_list")) %}
+{% set list_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_list")) %}
+{% set list_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_list")) %}
+{% set list_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_list")) %}
+{% else %}
+{% set list_shape = 0 %}
+{% endif %}
+
+
 {% set attribute_name_class = attribute_name.replace("_", "").title() %}
 
 class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttributeLookupFixedBase):
@@ -410,5 +423,99 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
 {% endif %}
 
 attribute_typed_classes.add(ExpressionAttributeLookupBytes{{attribute_name_class}})
+
+{% endif %}
+
+{% if "tshape_list" in shape_names %}
+
+{% if list_operation_version_presence %}
+from nuitka.specs.BuiltinListOperationSpecs import list_{{attribute_name}}_spec
+{% if python3_operation_name %}
+from .ListNodes import ExpressionListOperation{{attribute_name_class}}
+from .ListNodes import ExpressionListOperation{{python3_operation_name.title()}}
+{% else %}
+{% if list_operation_variation %}
+{% for count in reversed(list_operation_variation[1:]) %}
+from .ListNodes import ExpressionListOperation{{attribute_name_class}}{{count+1}}
+{% endfor %}
+from .ListNodes import ExpressionListOperation{{attribute_name_class}}{{list_operation_variation[0]+1}}
+{% else %}
+from .ListNodes import ExpressionListOperation{{attribute_name_class}}
+{% endif %}
+{% endif %}
+{% endif %}
+
+class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixed{{attribute_name_class}}):
+    """Attribute {{attribute_name_class}} lookup on a list.
+
+    Typically code like: some_list.{{attribute_name}}
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_{{attribute_name_class.upper()}}"
+    attribute_name = "{{attribute_name}}"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+{% if list_operation_version_presence %}
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperation{{attribute_name_class}}({{formatArgs(list_operation_args, starting=True, finishing=False)}} source_ref):
+{% if python3_operation_name %}
+            if str is list:
+                return ExpressionListOperation{{attribute_name_class}}(
+                    list_arg=list_arg, source_ref=source_ref
+                )
+            else:
+                return ExpressionListOperation{{python3_operation_name.title()}}(
+                    list_arg=list_arg, source_ref=source_ref
+                )
+{% else %}
+{% if list_operation_variation %}
+{% for count in reversed(list_operation_variation[1:]) %}
+            {{"if" if count == list_operation_variation[-1] else "elif"}} {{list_operation_args[count-1]}} {{list_operation_arg_tests[count-1]}}:
+                return ExpressionListOperation{{attribute_name_class}}{{count+1}}(
+                    list_arg=list_arg {{formatCallArgs(list_operation_node_arg_mapping, list_operation_args[:count], starting=False)}}, source_ref=source_ref
+                )
+{% endfor %}
+            else:
+                return ExpressionListOperation{{attribute_name_class}}{{list_operation_variation[0]+1}}(
+                    list_arg=list_arg {{formatCallArgs(list_operation_node_arg_mapping, list_operation_args[:list_operation_variation[0]], starting=False)}}, source_ref=source_ref
+                )
+
+{% else %}
+            return ExpressionListOperation{{attribute_name_class}}(
+                list_arg=list_arg {{formatCallArgs(list_operation_node_arg_mapping, list_operation_args, starting=False)}}, source_ref=source_ref
+            )
+{% endif %}
+{% endif %}
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperation{{attribute_name_class}},
+            builtin_spec=list_{{attribute_name}}_spec,
+        )
+
+        return result, "new_expression", "Call to '{{attribute_name}}' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(call_node, self.subnode_expression, trace_collection)
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self._computeExpressionCall(call_node, variable_ref_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+{% else %}
+    # No computeExpressionCall as list operation ExpressionListOperation{{attribute_name_class}} is not yet implemented
+{% endif %}
+
+attribute_typed_classes.add(ExpressionAttributeLookupList{{attribute_name_class}})
 
 {% endif %}

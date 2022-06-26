@@ -31,6 +31,7 @@ import nuitka.codegen.Namify
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
+import nuitka.specs.BuiltinListOperationSpecs
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
@@ -38,9 +39,11 @@ from .Common import (
     getMethodVariations,
     python2_dict_methods,
     python2_str_methods,
+    python2_list_methods,
     python3_bytes_methods,
     python3_dict_methods,
     python3_str_methods,
+    python3_list_methods,
     withFileOpenedAndAutoFormatted,
     writeLine,
 )
@@ -148,6 +151,13 @@ processTypeShapeAttribute(
     nuitka.specs.BuiltinBytesOperationSpecs,
     (),
     python3_bytes_methods,
+)
+
+processTypeShapeAttribute(
+    "tshape_list",
+    nuitka.specs.BuiltinListOperationSpecs,
+    python2_list_methods,
+    python3_list_methods,
 )
 
 attribute_shape_empty = {}

@@ -250,6 +250,32 @@ python3_bytes_methods = (
     "zfill",
 )
 
+python2_list_methods = (
+    "append",
+    "count",
+    "extend",
+    "index",
+    "insert",
+    "pop",
+    "remove",
+    "reverse",
+    "sort",
+)
+
+python3_list_methods = (
+    "append",
+    "clear",
+    "copy",
+    "count",
+    "extend",
+    "index",
+    "insert",
+    "pop",
+    "remove",
+    "reverse",
+    "sort",
+)
+
 
 def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
     spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"
