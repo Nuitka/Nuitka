@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" CType classes for nuitka_ilong, an struct to represent long values.
+""" CType classes for nuitka_ilong, a struct to represent long values.
 
 """
 
