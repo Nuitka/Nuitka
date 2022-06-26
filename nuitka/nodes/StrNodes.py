@@ -1508,7 +1508,7 @@ class ExpressionStrOperationDecode3(
 
 
 class ExpressionStrOperationCountBase(
-    ExpressionBoolShapeExactMixin, ExpressionChildrenHavingBase
+    ExpressionIntShapeExactMixin, ExpressionChildrenHavingBase
 ):
     @staticmethod
     def getSimulator():

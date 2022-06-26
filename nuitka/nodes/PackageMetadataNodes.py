@@ -20,7 +20,8 @@
 """
 
 
-from nuitka.Options import shallMakeModule
+from nuitka.Constants import isCompileTimeConstantValue
+from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.specs.BuiltinParameterSpecs import (
     BuiltinParameterSpec,
     extractBuiltinArgs,
@@ -31,8 +32,10 @@ from nuitka.utils.Utils import withNoDeprecationWarning
 
 from .ContainerMakingNodes import makeExpressionMakeList
 from .ExpressionBases import (
+    ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildTupleHavingBase,
+    ExpressionNoSideEffectsMixin,
 )
 from .ImportHardNodes import ExpressionImportModuleNameHardExists
 
@@ -142,13 +145,9 @@ class ExpressionPkgResourcesRequireCall(ExpressionChildTupleHavingBase):
                 )
             )
         else:
-            from .ConstantRefNodes import (
-                ExpressionConstantPkgResourcesDistributionRef,
-            )
-
             result = makeExpressionMakeList(
                 elements=[
-                    ExpressionConstantPkgResourcesDistributionRef(
+                    ExpressionPkgResourcesDistributionValueRef(
                         distribution=distribution, source_ref=self.source_ref
                     )
                     for distribution in distributions
@@ -244,11 +243,7 @@ class ExpressionPkgResourcesGetDistributionCall(ExpressionChildHavingBase):
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
         else:
-            from .ConstantRefNodes import (
-                ExpressionConstantPkgResourcesDistributionRef,
-            )
-
-            result = ExpressionConstantPkgResourcesDistributionRef(
+            result = ExpressionPkgResourcesDistributionValueRef(
                 distribution=distribution, source_ref=self.source_ref
             )
 
@@ -500,3 +495,80 @@ class ExpressionImportlibMetadataBackportVersionCall(ExpressionChildHavingBase):
 
         with withNoDeprecationWarning():
             return self._replaceWithCompileTimeValue(trace_collection)
+
+
+# TODO: This is much like a compile time variable, but not a good compile time
+# constant, have that too. Treating it as semi-constant, we should get away
+# with.
+
+
+class ExpressionPkgResourcesDistributionValueRef(
+    ExpressionNoSideEffectsMixin, ExpressionBase
+):
+    kind = "EXPRESSION_PKG_RESOURCES_DISTRIBUTION_VALUE_REF"
+
+    __slots__ = ("distribution", "computed_attribute")
+
+    preserved_attributes = ("py_version", "platform", "version", "project_name")
+
+    def __init__(self, distribution, source_ref):
+        with withNoDeprecationWarning():
+            Distribution = importFromCompileTime(
+                "pkg_resources", must_exist=True
+            ).Distribution
+
+            preserved_attributes = self.preserved_attributes
+            if not isStandaloneMode():
+                preserved_attributes += ("location",)
+
+            distribution = Distribution(
+                **dict(
+                    (key, getattr(distribution, key)) for key in preserved_attributes
+                )
+            )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.distribution = distribution
+        self.computed_attribute = None
+
+    def finalize(self):
+        del self.distribution
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def getTruthValue():
+        return True
+
+    def computeExpressionRaw(self, trace_collection):
+        # Cannot compute any further, this is already the best.
+        return self, None, None
+
+    def isKnownToHaveAttribute(self, attribute_name):
+        if self.computed_attribute is None:
+            self.computed_attribute = hasattr(self.distribution, attribute_name)
+
+        return self.computed_attribute
+
+    def getKnownAttributeValue(self, attribute_name):
+        return getattr(self.distribution, attribute_name)
+
+    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        if self.computed_attribute is None:
+            self.computed_attribute = hasattr(self.distribution, attribute_name)
+
+        # If it raises, or the attribute itself is a compile time constant,
+        # then do execute it.
+        if not self.computed_attribute or isCompileTimeConstantValue(
+            getattr(self.distribution, attribute_name, None)
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=lookup_node,
+                computation=lambda: getattr(self.distribution, attribute_name),
+                description="Attribute '%s' pre-computed." % (attribute_name),
+            )
+
+        return lookup_node, None, None
