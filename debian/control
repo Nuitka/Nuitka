@@ -27,6 +27,7 @@ Build-Depends: debhelper (>= 9),
                ccache,
                strace,
                patchelf,
+               libzstd-dev,
                gdb | lldb
 Rules-Requires-Root: no
 Vcs-Git: https://github.com/Nuitka/Nuitka.git
@@ -44,6 +45,7 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          python3-appdirs | base-files (<< 7.2),
          python3-dev,
          zlib1g-dev,
+         libzstd-dev,
          ccache,
          patchelf,
          ${misc:Depends},
