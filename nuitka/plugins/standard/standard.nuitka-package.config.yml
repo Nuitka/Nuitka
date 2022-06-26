@@ -1565,3 +1565,18 @@
   implicit-imports:
     depends:
       - "zmq.backend.cython"
+
+- module-name: "Xlib.XK"
+  implicit-imports:
+    depends:
+      - "Xlib.keysymdef.*"
+
+- module-name: "Xlib.support.connect"
+  implicit-imports:
+    depends:
+      - "Xlib.support.unix_connect"
+
+- module-name: "Xlib.display"
+  implicit-imports:
+    depends:
+      - "Xlib.ext.*"
