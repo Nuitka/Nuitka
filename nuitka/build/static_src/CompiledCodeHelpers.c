@@ -41,6 +41,8 @@ static void _initBuiltinTypeMethods(void) {
     _initUnicodeBuiltinMethods();
     NUITKA_PRINT_TRACE("main(): Calling _initDictBuiltinMethods().");
     _initDictBuiltinMethods();
+    NUITKA_PRINT_TRACE("main(): Calling _initListBuiltinMethods().");
+    _initListBuiltinMethods();
 }
 
 #include "HelpersBuiltin.c"

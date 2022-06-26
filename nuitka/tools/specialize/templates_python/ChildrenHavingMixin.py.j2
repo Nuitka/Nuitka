@@ -40,7 +40,7 @@
 {% if is_statement %}
 {% set base_class = "StatementBase" %}
 from nuitka.nodes.NodeBases import StatementBase
-{% elif is_compute_final or node_attributes %}
+{% elif is_compute_final or node_attributes or is_compute_no_raise %}
 {% set base_class = "ExpressionBase" %}
 from nuitka.nodes.ExpressionBases import ExpressionBase
 {% else %}
@@ -363,6 +363,28 @@ class {{mixin_name}}({{base_class}}):
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
+
+{% if named_children %}
+    def mayRaiseException(self, exception_type):
+        return \
+{% for named_child in named_children %}
+{% if named_children_types.get(named_child) == "optional" %}
+            (self.subnode_{{named_child}} is not None and self.subnode_{{named_child}}.mayRaiseException(exception_type)) \
+{% elif named_children_types.get(named_child) == "tuple" %}
+            any(value.mayRaiseException(exception_type) for value in self.subnode_{{named_child}}) \
+{% else %}
+            self.subnode_{{named_child}}.mayRaiseException(exception_type) \
+{% endif %}
+{% if named_child != named_children[-1] %}
+            or \
+{% endif %}
+{% endfor %}
+{% else %}
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+{% endif %}
+
 {% endif %}
 
 {# TODO: Should make it abstract for mere mixins too, but too much work now. #}

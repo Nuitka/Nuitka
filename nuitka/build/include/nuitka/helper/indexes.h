@@ -34,6 +34,7 @@ static inline bool Nuitka_Index_Check(PyObject *obj) {
 #define Nuitka_Index_Check(obj) PyIndex_Check(obj)
 #endif
 
+// Similar to "PyNumber_Index" but "Nuitka_Number_IndexAsLong" could be more relevant
 extern PyObject *Nuitka_Number_Index(PyObject *item);
 
 // In Python 3.10 or higher, the conversion to long is forced, but sometimes we

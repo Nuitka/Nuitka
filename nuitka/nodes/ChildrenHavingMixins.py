@@ -26,8 +26,8 @@
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore capitalize casefold center clear copy count decode encode endswith expandtabs find format formatmap get haskey index isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem replace rfind rindex rjust rpartition rsplit rstrip setdefault split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar iterable keepends key maxsplit new old pairs prefix sep start sub suffix table tabsize width
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
 
@@ -47,6 +47,7 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
 
     # This is generated for use in
     #   CompiledPythonModule
+    #   CompiledPythonPackage
     #   PythonMainModule
 
     def __init__(
@@ -163,6 +164,9 @@ class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object
 
 # Assign the names that are easier to import with a stable name.
 ChildrenCompiledPythonModuleMixin = (
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin
+)
+ChildrenCompiledPythonPackageMixin = (
     ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin
 )
 ChildrenPythonMainModuleMixin = (
@@ -5943,6 +5947,7 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupDictViewitems
     #   ExpressionAttributeLookupDictViewkeys
     #   ExpressionAttributeLookupDictViewvalues
+    #   ExpressionAttributeLookupFixedAppend
     #   ExpressionAttributeLookupFixedCapitalize
     #   ExpressionAttributeLookupFixedCasefold
     #   ExpressionAttributeLookupFixedCenter
@@ -5953,12 +5958,14 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupFixedEncode
     #   ExpressionAttributeLookupFixedEndswith
     #   ExpressionAttributeLookupFixedExpandtabs
+    #   ExpressionAttributeLookupFixedExtend
     #   ExpressionAttributeLookupFixedFind
     #   ExpressionAttributeLookupFixedFormat
     #   ExpressionAttributeLookupFixedFormatmap
     #   ExpressionAttributeLookupFixedGet
     #   ExpressionAttributeLookupFixedHaskey
     #   ExpressionAttributeLookupFixedIndex
+    #   ExpressionAttributeLookupFixedInsert
     #   ExpressionAttributeLookupFixedIsalnum
     #   ExpressionAttributeLookupFixedIsalpha
     #   ExpressionAttributeLookupFixedIsascii
@@ -5984,7 +5991,9 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupFixedPartition
     #   ExpressionAttributeLookupFixedPop
     #   ExpressionAttributeLookupFixedPopitem
+    #   ExpressionAttributeLookupFixedRemove
     #   ExpressionAttributeLookupFixedReplace
+    #   ExpressionAttributeLookupFixedReverse
     #   ExpressionAttributeLookupFixedRfind
     #   ExpressionAttributeLookupFixedRindex
     #   ExpressionAttributeLookupFixedRjust
@@ -5992,6 +6001,7 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupFixedRsplit
     #   ExpressionAttributeLookupFixedRstrip
     #   ExpressionAttributeLookupFixedSetdefault
+    #   ExpressionAttributeLookupFixedSort
     #   ExpressionAttributeLookupFixedSplit
     #   ExpressionAttributeLookupFixedSplitlines
     #   ExpressionAttributeLookupFixedStartswith
@@ -6006,6 +6016,17 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupFixedViewkeys
     #   ExpressionAttributeLookupFixedViewvalues
     #   ExpressionAttributeLookupFixedZfill
+    #   ExpressionAttributeLookupListAppend
+    #   ExpressionAttributeLookupListClear
+    #   ExpressionAttributeLookupListCopy
+    #   ExpressionAttributeLookupListCount
+    #   ExpressionAttributeLookupListExtend
+    #   ExpressionAttributeLookupListIndex
+    #   ExpressionAttributeLookupListInsert
+    #   ExpressionAttributeLookupListPop
+    #   ExpressionAttributeLookupListRemove
+    #   ExpressionAttributeLookupListReverse
+    #   ExpressionAttributeLookupListSort
     #   ExpressionAttributeLookupStrCapitalize
     #   ExpressionAttributeLookupStrCasefold
     #   ExpressionAttributeLookupStrCenter
@@ -6190,6 +6211,7 @@ ChildrenExpressionAttributeLookupDictValuesMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictViewitemsMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictViewkeysMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictViewvaluesMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupFixedAppendMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedCapitalizeMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedCasefoldMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedCenterMixin = ChildHavingExpressionMixin
@@ -6200,12 +6222,14 @@ ChildrenExpressionAttributeLookupFixedDecodeMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedEncodeMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedEndswithMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedExpandtabsMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupFixedExtendMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedFindMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedFormatMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedFormatmapMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedGetMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedHaskeyMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedIndexMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupFixedInsertMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedIsalnumMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedIsalphaMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedIsasciiMixin = ChildHavingExpressionMixin
@@ -6231,7 +6255,9 @@ ChildrenExpressionAttributeLookupFixedMaketransMixin = ChildHavingExpressionMixi
 ChildrenExpressionAttributeLookupFixedPartitionMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedPopMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedPopitemMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupFixedRemoveMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedReplaceMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupFixedReverseMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedRfindMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedRindexMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedRjustMixin = ChildHavingExpressionMixin
@@ -6239,6 +6265,7 @@ ChildrenExpressionAttributeLookupFixedRpartitionMixin = ChildHavingExpressionMix
 ChildrenExpressionAttributeLookupFixedRsplitMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedRstripMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedSetdefaultMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupFixedSortMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedSplitMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedSplitlinesMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedStartswithMixin = ChildHavingExpressionMixin
@@ -6253,6 +6280,17 @@ ChildrenExpressionAttributeLookupFixedViewitemsMixin = ChildHavingExpressionMixi
 ChildrenExpressionAttributeLookupFixedViewkeysMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedViewvaluesMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedZfillMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListAppendMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListClearMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListCopyMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListCountMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListExtendMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListIndexMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListInsertMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListPopMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListRemoveMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListReverseMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupListSortMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupStrCapitalizeMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupStrCasefoldMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupStrCenterMixin = ChildHavingExpressionMixin
@@ -8731,7 +8769,9 @@ class ChildHavingListArgMixin(object):
     __slots__ = ()
 
     # This is generated for use in
-    #   ExpressionListOperationPop
+    #   ExpressionListOperationCopy
+    #   ExpressionListOperationPop1
+    #   ExpressionListOperationSort1
 
     def __init__(
         self,
@@ -8809,7 +8849,526 @@ class ChildHavingListArgMixin(object):
 
 
 # Assign the names that are easier to import with a stable name.
-ChildrenExpressionListOperationPopMixin = ChildHavingListArgMixin
+ChildrenExpressionListOperationCopyMixin = ChildHavingListArgMixin
+ChildrenExpressionListOperationPop1Mixin = ChildHavingListArgMixin
+ChildrenExpressionListOperationSort1Mixin = ChildHavingListArgMixin
+
+
+class ChildrenHavingListArgIndexMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationPop2
+
+    def __init__(
+        self,
+        list_arg,
+        index,
+    ):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        index.parent = self
+
+        self.subnode_index = index
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_list_arg,
+            self.subnode_index,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("index", self.subnode_index),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_index
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_index = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "index": self.subnode_index.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        self.subnode_index.finalize()
+        del self.subnode_index
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionListOperationPop2Mixin = ChildrenHavingListArgIndexMixin
+
+
+class ChildrenHavingListArgIndexItemMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationInsert
+
+    def __init__(
+        self,
+        list_arg,
+        index,
+        item,
+    ):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        index.parent = self
+
+        self.subnode_index = index
+
+        item.parent = self
+
+        self.subnode_item = item
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_list_arg,
+            self.subnode_index,
+            self.subnode_item,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("index", self.subnode_index),
+            ("item", self.subnode_item),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_index
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_index = new_node
+
+            return
+
+        value = self.subnode_item
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_item = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "index": self.subnode_index.makeClone(),
+            "item": self.subnode_item.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        self.subnode_index.finalize()
+        del self.subnode_index
+        self.subnode_item.finalize()
+        del self.subnode_item
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionListOperationInsertMixin = ChildrenHavingListArgIndexItemMixin
+
+
+class ChildrenHavingListArgKeyMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationSort2
+
+    def __init__(
+        self,
+        list_arg,
+        key,
+    ):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        key.parent = self
+
+        self.subnode_key = key
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_list_arg,
+            self.subnode_key,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("key", self.subnode_key),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_key
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_key = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "key": self.subnode_key.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        self.subnode_key.finalize()
+        del self.subnode_key
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionListOperationSort2Mixin = ChildrenHavingListArgKeyMixin
+
+
+class ChildrenHavingListArgKeyOptionalReverseMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationSort3
+
+    def __init__(
+        self,
+        list_arg,
+        key,
+        reverse,
+    ):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        if key is not None:
+            key.parent = self
+
+        self.subnode_key = key
+
+        reverse.parent = self
+
+        self.subnode_reverse = reverse
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        result.append(self.subnode_list_arg)
+        value = self.subnode_key
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        result.append(self.subnode_reverse)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("key", self.subnode_key),
+            ("reverse", self.subnode_reverse),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_key
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_key = new_node
+
+            return
+
+        value = self.subnode_reverse
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_reverse = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "key": self.subnode_key.makeClone()
+            if self.subnode_key is not None
+            else None,
+            "reverse": self.subnode_reverse.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        if self.subnode_key is not None:
+            self.subnode_key.finalize()
+        del self.subnode_key
+        self.subnode_reverse.finalize()
+        del self.subnode_reverse
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionListOperationSort3Mixin = ChildrenHavingListArgKeyOptionalReverseMixin
 
 
 class ChildrenHavingListArgValueMixin(object):
@@ -8819,6 +9378,8 @@ class ChildrenHavingListArgValueMixin(object):
     # This is generated for use in
     #   ExpressionListOperationExtend
     #   ExpressionListOperationExtendForUnpack
+    #   ExpressionListOperationIndex2
+    #   ExpressionListOperationRemove
 
     def __init__(
         self,
@@ -8930,6 +9491,298 @@ class ChildrenHavingListArgValueMixin(object):
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionListOperationExtendMixin = ChildrenHavingListArgValueMixin
 ChildrenExpressionListOperationExtendForUnpackMixin = ChildrenHavingListArgValueMixin
+ChildrenExpressionListOperationIndex2Mixin = ChildrenHavingListArgValueMixin
+ChildrenExpressionListOperationRemoveMixin = ChildrenHavingListArgValueMixin
+
+
+class ChildrenHavingListArgValueStartMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationIndex3
+
+    def __init__(
+        self,
+        list_arg,
+        value,
+        start,
+    ):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        value.parent = self
+
+        self.subnode_value = value
+
+        start.parent = self
+
+        self.subnode_start = start
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_list_arg,
+            self.subnode_value,
+            self.subnode_start,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("value", self.subnode_value),
+            ("start", self.subnode_start),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_value = new_node
+
+            return
+
+        value = self.subnode_start
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_start = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "value": self.subnode_value.makeClone(),
+            "start": self.subnode_start.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        self.subnode_value.finalize()
+        del self.subnode_value
+        self.subnode_start.finalize()
+        del self.subnode_start
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionListOperationIndex3Mixin = ChildrenHavingListArgValueStartMixin
+
+
+class ChildrenHavingListArgValueStartStopMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationIndex4
+
+    def __init__(
+        self,
+        list_arg,
+        value,
+        start,
+        stop,
+    ):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        value.parent = self
+
+        self.subnode_value = value
+
+        start.parent = self
+
+        self.subnode_start = start
+
+        stop.parent = self
+
+        self.subnode_stop = stop
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_list_arg,
+            self.subnode_value,
+            self.subnode_start,
+            self.subnode_stop,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("value", self.subnode_value),
+            ("start", self.subnode_start),
+            ("stop", self.subnode_stop),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_value = new_node
+
+            return
+
+        value = self.subnode_start
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_start = new_node
+
+            return
+
+        value = self.subnode_stop
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_stop = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "value": self.subnode_value.makeClone(),
+            "start": self.subnode_start.makeClone(),
+            "stop": self.subnode_stop.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        self.subnode_value.finalize()
+        del self.subnode_value
+        self.subnode_start.finalize()
+        del self.subnode_start
+        self.subnode_stop.finalize()
+        del self.subnode_stop
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionListOperationIndex4Mixin = ChildrenHavingListArgValueStartStopMixin
 
 
 class ChildHavingLowMixin(object):

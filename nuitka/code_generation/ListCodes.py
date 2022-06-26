@@ -23,13 +23,24 @@ Right now only the creation is done here. But more should be added later on.
 from .CodeHelpers import (
     assignConstantNoneResult,
     decideConversionCheckNeeded,
+    generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes,
+)
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    generateCAPIObjectCode0,
+    makeArgDescFromExpression,
+)
+from .SubscriptCodes import decideIntegerSubscript
 
 
 def generateListCreationCode(to_name, expression, emit, context):
@@ -115,6 +126,35 @@ def generateListOperationAppendCode(statement, emit, context):
     )
 
 
+def generateListOperationAppendCode2(to_name, expression, emit, context):
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    context.setCurrentSourceCodeReference(expression.getSourceReference())
+
+    res_name = context.getBoolResName()
+
+    if context.needsCleanup(value_arg_name):
+        emit("%s = LIST_APPEND1(%s, %s);" % (res_name, list_arg_name, value_arg_name))
+        context.removeCleanupTempName(value_arg_name)
+    else:
+        emit("%s = LIST_APPEND0(%s, %s);" % (res_name, list_arg_name, value_arg_name))
+
+    # TODO: Only really MemoryError, which we often ignore.
+    getErrorExitBoolCode(
+        condition="%s == false" % res_name,
+        release_names=(list_arg_name, value_arg_name),
+        needs_check=False,
+        emit=emit,
+        context=context,
+    )
+
+    assignConstantNoneResult(to_name, emit, context)
+
+
 def generateListOperationExtendCode(to_name, expression, emit, context):
     list_arg_name, value_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
@@ -147,7 +187,21 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
     assignConstantNoneResult(to_name, emit, context)
 
 
-def generateListOperationPopCode(to_name, expression, emit, context):
+def generateListOperationClearCode(to_name, expression, emit, context):
+    (list_arg_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    emit("LIST_CLEAR(%s);" % list_arg_name)
+
+    getReleaseCode(release_name=list_arg_name, emit=emit, context=context)
+
+    assignConstantNoneResult(to_name, emit, context)
+
+
+def generateListOperationCopyCode(to_name, expression, emit, context):
     (list_arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
@@ -155,23 +209,303 @@ def generateListOperationPopCode(to_name, expression, emit, context):
     emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
-        to_name, "list_pop_result", expression, emit, context
+        to_name, "list_copy_result", expression, emit, context
     ) as result_name:
-
-        # TODO: Have a dedicated helper instead, this could be more efficient.
-        emit(
-            '%s = PyObject_CallMethod(%s, (char *)"pop", NULL);'
-            % (result_name, list_arg_name)
-        )
+        emit("%s = LIST_COPY(%s);" % (result_name, list_arg_name))
 
         getErrorExitCode(
             check_name=result_name,
             release_name=list_arg_name,
             emit=emit,
+            needs_check=False,
             context=context,
         )
 
         context.addCleanupTempName(result_name)
+
+
+def generateListOperationReverseCode(to_name, expression, emit, context):
+    (list_arg_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    emit("LIST_REVERSE(%s);" % list_arg_name)
+
+    getReleaseCode(release_name=list_arg_name, emit=emit, context=context)
+
+    assignConstantNoneResult(to_name, emit, context)
+
+
+def generateListOperationIndex2Code(to_name, expression, emit, context):
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "list_index_result", expression, emit, context
+    ) as result_name:
+        emit("%s = LIST_INDEX2(%s, %s);" % (result_name, list_arg_name, value_arg_name))
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(list_arg_name, value_arg_name),
+            needs_check=expression.mayRaiseExceptionOperation(),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateListOperationIndex3Code(to_name, expression, emit, context):
+    list_arg_name, value_arg_name, start_arg_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "list_index_result", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = LIST_INDEX3(%s, %s, %s);"
+            % (result_name, list_arg_name, value_arg_name, start_arg_name)
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(list_arg_name, value_arg_name, start_arg_name),
+            needs_check=expression.mayRaiseExceptionOperation(),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateListOperationIndex4Code(to_name, expression, emit, context):
+    (
+        list_arg_name,
+        value_arg_name,
+        start_arg_name,
+        stop_arg_name,
+    ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "list_index_result", expression, emit, context
+    ) as result_name:
+        emit(
+            "%s = LIST_INDEX4(%s, %s, %s, %s);"
+            % (
+                result_name,
+                list_arg_name,
+                value_arg_name,
+                start_arg_name,
+                stop_arg_name,
+            )
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(
+                list_arg_name,
+                value_arg_name,
+                start_arg_name,
+                stop_arg_name,
+            ),
+            needs_check=expression.mayRaiseExceptionOperation(),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateListOperationInsertCode(to_name, expression, emit, context):
+    index_constant, is_integer_index = decideIntegerSubscript(expression.subnode_index)
+
+    if is_integer_index:
+        list_arg_name = generateChildExpressionCode(
+            expression=expression.subnode_list_arg, emit=emit, context=context
+        )
+
+        item_arg_name = generateChildExpressionCode(
+            expression=expression.subnode_item, emit=emit, context=context
+        )
+    else:
+        list_arg_name, index_arg_name, item_arg_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    if is_integer_index:
+        emit(
+            "LIST_INSERT_CONST(%s, %s, %s);"
+            % (
+                list_arg_name,
+                index_constant,
+                item_arg_name,
+            )
+        )
+
+        getReleaseCodes(
+            release_names=(
+                list_arg_name,
+                item_arg_name,
+            ),
+            emit=emit,
+            context=context,
+        )
+    else:
+        res_name = context.getBoolResName()
+
+        emit(
+            "%s = LIST_INSERT(%s, %s, %s);"
+            % (
+                res_name,
+                list_arg_name,
+                index_arg_name,
+                item_arg_name,
+            )
+        )
+
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_names=(
+                list_arg_name,
+                index_arg_name,
+                item_arg_name,
+            ),
+            needs_check=expression.mayRaiseExceptionOperation(),
+            emit=emit,
+            context=context,
+        )
+
+    assignConstantNoneResult(to_name, emit, context)
+
+
+def generateListOperationCountCode(to_name, expression, emit, context):
+    list_arg_name, value_arg_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "list_count_result", expression, emit, context
+    ) as result_name:
+        emit("%s = LIST_COUNT(%s, %s);" % (result_name, list_arg_name, value_arg_name))
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(list_arg_name, value_arg_name),
+            emit=emit,
+            needs_check=expression.mayRaiseExceptionOperation(),
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateListOperationPop1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_POP1",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateListOperationPop2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_POP2",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateListOperationRemoveCode(to_name, expression, emit, context):
+    (list_arg_name, value_arg_name) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    emit("assert(PyList_Check(%s));" % list_arg_name)
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "list_remove_result", expression, emit, context
+    ) as result_name:
+
+        # TODO: Have a dedicated list helper instead, this could be more efficient,
+        # this call is also very bad.
+        emit(
+            '%s = PyObject_CallMethod(%s, (char *)"remove", "O", %s);'
+            % (result_name, list_arg_name, value_arg_name)
+        )
+
+        getErrorExitCode(
+            check_name=result_name,
+            release_names=(list_arg_name, value_arg_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateListOperationSort1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_SORT1",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateListOperationSort2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="LIST_SORT2",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateListOperationSort3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name=to_name,
+        capi="LIST_SORT3",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        none_null=True,
+        emit=emit,
+        context=context,
+    )
 
 
 def generateBuiltinListCode(to_name, expression, emit, context):

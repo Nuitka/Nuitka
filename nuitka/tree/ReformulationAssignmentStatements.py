@@ -42,11 +42,11 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode,
 )
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.InjectCNodes import (
     StatementInjectCCode,
     StatementInjectCDecl,
 )
+from nuitka.nodes.ListOperationNodes import ExpressionListOperationPop1
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
 )
@@ -239,7 +239,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source, source_
                     starred_index + 1,
                     makeStatementAssignmentVariable(
                         variable=element_var,
-                        source=ExpressionListOperationPop(
+                        source=ExpressionListOperationPop1(
                             list_arg=ExpressionTempVariableRef(
                                 variable=starred_list_var, source_ref=source_ref
                             ),

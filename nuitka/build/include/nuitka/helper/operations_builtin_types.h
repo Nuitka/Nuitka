@@ -15,6 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+/* WARNING, this code is GENERATED. Modify the template HelperBuiltinMethodOperation.c.j2 instead! */
 
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
@@ -30,6 +31,8 @@ extern PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_valu
 extern PyObject *DICT_POPITEM(PyObject *dict);
 extern PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key);
 extern PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_value);
+extern PyObject *LIST_POP1(PyObject *list);
+extern PyObject *LIST_POP2(PyObject *list, PyObject *index);
 #if PYTHON_VERSION < 0x300
 extern PyObject *STR_CAPITALIZE(PyObject *str);
 extern PyObject *STR_CENTER2(PyObject *str, PyObject *width);
