@@ -23,7 +23,8 @@ the scope, to make sure it can be used without.
 
 Note: This is using "optparse", because "argparse" is only Python 2.7 and
 higher, and we still support Python 2.6 due to the RHELs still being used,
-and despite the long deprecation, it's in every later release.
+and despite the long deprecation, it's in every later release, and actually
+pretty good.
 """
 
 import os
@@ -224,7 +225,10 @@ for Scons. Otherwise Nuitka can use what you run Nuitka with or a "scons"
 binary that is found in PATH, or a Python installation from Windows registry.""",
 )
 
-parser.add_option(
+warnings_group = OptionGroup(parser, "Control the warnings to be given by Nuitka")
+
+
+warnings_group.add_option(
     "--warn-implicit-exceptions",
     action="store_true",
     dest="warn_implicit_exceptions",
@@ -233,7 +237,7 @@ parser.add_option(
 Enable warnings for implicit exceptions detected at compile time.""",
 )
 
-parser.add_option(
+warnings_group.add_option(
     "--warn-unusual-code",
     action="store_true",
     dest="warn_unusual_code",
@@ -242,7 +246,7 @@ parser.add_option(
 Enable warnings for unusual code detected at compile time.""",
 )
 
-parser.add_option(
+warnings_group.add_option(
     "--assume-yes-for-downloads",
     action="store_true",
     dest="assume_yes_for_downloads",
@@ -254,8 +258,23 @@ from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
 )
 
 
+warnings_group.add_option(
+    "--nowarn-mnemonic",
+    action="append",
+    dest="nowarn_mnemonics",
+    metavar="MNEMONIC",
+    default=[],
+    help="""\
+Disable warning for a given mnemonic. These are given to make sure you are aware of
+certain topics, and typically point to the Nuitka website. The mnemonic is the part
+of the URL at the end, without the HTML suffix. Can be given multiple times and
+accepts shell pattern. Default empty.""",
+)
+
+parser.add_option_group(warnings_group)
+
 include_group = OptionGroup(
-    parser, "Control the inclusion of modules and packages in result."
+    parser, "Control the inclusion of modules and packages in result"
 )
 
 include_group.add_option(
