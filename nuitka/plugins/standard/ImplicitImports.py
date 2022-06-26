@@ -1202,7 +1202,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
             elif isWin32Windows():
                 yield full_name.getChildNamed("_win32")
             else:
-                yield full_name.getChildNamed("xorg")
+                yield full_name.getChildNamed("_xorg")
         elif full_name == "_pytest._code.code":
             yield "py._path.local"
         elif full_name == "pyreadstat._readstat_parser":
