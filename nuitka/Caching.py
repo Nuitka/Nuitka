@@ -31,6 +31,7 @@ from nuitka.utils.Hashing import Hash, getStringHash
 from nuitka.utils.Importing import getAllModuleSuffixes
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.Version import version_string
 
 
 def _getCacheDir():
@@ -128,5 +129,8 @@ def getModuleImportableFilesHash(full_name):
                 result_hash.updateFromValues(filename, b"\0")
 
     result_hash.updateFromValues(*Plugins.getCacheContributionValues(full_name))
+
+    # Take Nuitka version into account as well, ought to catch code changes.
+    result_hash.updateFromValues(version_string)
 
     return result_hash.asHexDigest()
