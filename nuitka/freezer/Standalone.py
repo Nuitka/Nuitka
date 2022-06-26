@@ -58,11 +58,7 @@ from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import (
-    executeProcess,
-    executeToolChecked,
-    withEnvironmentPathAdded,
-)
+from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getDirectoryRealPath,
@@ -80,11 +76,11 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     copyDllFile,
+    getDLLVersion,
+    getOtoolDependencyOutput,
     getOtoolListing,
     getPyWin32Dir,
     getSharedLibraryRPATH,
-    getWindowsDLLVersion,
-    otool_usage,
     setSharedLibraryRPATH,
 )
 from nuitka.utils.Signing import addMacOSCodeSignature
@@ -773,23 +769,6 @@ def _parseOtoolListingOutput(output):
     return paths
 
 
-_otool_dependency_cache = {}
-
-
-def getOtoolDependencyOutput(filename, package_specific_dirs):
-    key = filename, tuple(package_specific_dirs), os.environ.get("DYLD_LIBRARY_PATH")
-
-    if key not in _otool_dependency_cache:
-        with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
-            _otool_dependency_cache[key] = executeToolChecked(
-                logger=inclusion_logger,
-                command=("otool", "-L", filename),
-                absence_message=otool_usage,
-            )
-
-    return _otool_dependency_cache[key]
-
-
 def _detectBinaryPathDLLsMacOS(
     original_dir, binary_filename, package_name, keep_unresolved, recursive
 ):
@@ -1265,7 +1244,7 @@ ms_runtime_dlls = (
 
 
 def _removeDuplicateDlls(used_dlls):
-    # Many things to consider, pylint: disable=too-many-branches
+    # Many things to consider and verbose code, pylint: disable=too-many-branches,too-many-statements
     removed_dlls = set()
     warned_about = set()
 
@@ -1285,7 +1264,7 @@ def _removeDuplicateDlls(used_dlls):
             if dll_filename2 in removed_dlls:
                 continue
 
-            # Colliding basenames are an issue to us.
+            # Only DLLs with colliding basename are an issue to us.
             if os.path.basename(dll_filename1) != os.path.basename(dll_filename2):
                 continue
 
@@ -1315,34 +1294,43 @@ def _removeDuplicateDlls(used_dlls):
 
                 continue
 
-            # For Win32 we can check out file versions.
-            if Utils.isWin32Windows():
-                dll_version1 = getWindowsDLLVersion(dll_filename1)
-                dll_version2 = getWindowsDLLVersion(dll_filename2)
+            # For Win32 and macOS, we can check out file versions.
+            dll_version1 = getDLLVersion(dll_filename1)
+            dll_version2 = getDLLVersion(dll_filename2)
 
-                if dll_version2 < dll_version1:
-                    del used_dlls[dll_filename2]
-                    removed_dlls.add(dll_filename2)
+            if dll_version1 is None and dll_version2 is None:
+                solved = False
+            elif dll_version1 is None and dll_version2 is not None:
+                del used_dlls[dll_filename1]
+                removed_dlls.add(dll_filename1)
 
-                    solved = True
-                elif dll_version1 < dll_version2:
-                    del used_dlls[dll_filename1]
-                    removed_dlls.add(dll_filename1)
+                solved = True
+            elif dll_version1 is not None and dll_version2 is None:
+                del used_dlls[dll_filename2]
+                removed_dlls.add(dll_filename2)
 
-                    solved = True
-                else:
-                    solved = False
+                solved = True
+            elif dll_version2 < dll_version1:
+                del used_dlls[dll_filename2]
+                removed_dlls.add(dll_filename2)
 
-                if solved:
-                    if dll_name not in warned_about and dll_name not in ms_runtime_dlls:
-                        warned_about.add(dll_name)
+                solved = True
+            elif dll_version1 < dll_version2:
+                del used_dlls[dll_filename1]
+                removed_dlls.add(dll_filename1)
 
-                        inclusion_logger.warning(
-                            "Conflicting DLLs for '%s' in your installation, newest file version used, hoping for the best."
-                            % dll_name
-                        )
+                solved = True
 
-                    continue
+            if solved:
+                if dll_name not in warned_about and dll_name not in ms_runtime_dlls:
+                    warned_about.add(dll_name)
+
+                    inclusion_logger.warning(
+                        "Conflicting DLLs for '%s' in your installation, newest file version used, hoping for the best."
+                        % dll_name
+                    )
+
+                continue
 
             # So we have conflicting DLLs, in which case we do report the fact.
             inclusion_logger.warning(

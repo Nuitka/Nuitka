@@ -28,7 +28,11 @@ from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked, withEnvironmentVarOverridden
+from .Execution import (
+    executeToolChecked,
+    withEnvironmentPathAdded,
+    withEnvironmentVarOverridden,
+)
 from .FileOperations import copyFile, getFileList, withMadeWritableFileMode
 from .Utils import isAlpineLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
@@ -150,7 +154,7 @@ def _removeSxsFromDLL(filename):
         deleteWindowsResources(filename, RT_MANIFEST, res_names)
 
 
-def getWindowsDLLVersion(filename):
+def _getDLLVersionWindows(filename):
     """Return DLL version information from a file.
 
     If not present, it will be (0, 0, 0, 0), otherwise it will be
@@ -244,24 +248,58 @@ def _getSharedLibraryRPATHElf(filename):
     return None
 
 
-otool_usage = (
-    "The 'otool' is used to analyse dependencies on macOS and required to be found."
-)
+_otool_output_cache = {}
 
-_otool_l_cache = {}
+
+def _getOToolCommandOutput(otool_option, filename):
+    filename = os.path.abspath(filename)
+
+    if otool_option == "-L":
+        cache_key = filename, os.environ.get("DYLD_LIBRARY_PATH")
+    else:
+        cache_key = filename
+
+    command = ("otool", otool_option, filename)
+
+    if cache_key not in _otool_output_cache:
+        _otool_output_cache[cache_key] = executeToolChecked(
+            logger=postprocessing_logger,
+            command=command,
+            absence_message="The 'otool' is used to analyze dependencies on macOS and required to be found.",
+        )
+
+    return _otool_output_cache[cache_key]
 
 
 def getOtoolListing(filename):
-    filename = os.path.abspath(filename)
+    return _getOToolCommandOutput("-l", filename)
 
-    if filename not in _otool_l_cache:
-        _otool_l_cache[filename] = executeToolChecked(
-            logger=postprocessing_logger,
-            command=("otool", "-l", filename),
-            absence_message=otool_usage,
-        )
 
-    return _otool_l_cache[filename]
+def getOtoolDependencyOutput(filename, package_specific_dirs):
+    with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
+        return _getOToolCommandOutput("-L", filename)
+
+
+def _getDLLVersionMacOS(filename):
+    output = _getOToolCommandOutput("-D", filename).splitlines()
+    if len(output) < 2:
+        return None
+
+    dll_id = output[1].strip()
+
+    if str is not bytes:
+        dll_id = dll_id.decode("utf8")
+
+    output = _getOToolCommandOutput("-L", filename).splitlines()
+    for line in output:
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        if dll_id in line and "version" in line:
+            version_string = re.search(r"current version (.*)\)", line).group(1)
+            return tuple(int(x) for x in version_string.split("."))
+
+    return None
 
 
 def _getSharedLibraryRPATHDarwin(filename):
@@ -555,3 +593,11 @@ def copyDllFile(source_path, dest_path):
 
     if isMacOS() and Options.getMacOSTargetArch() != "universal":
         makeMacOSThinBinary(dest_path)
+
+
+def getDLLVersion(filename):
+    """Determine version of the DLL filename."""
+    if isMacOS():
+        return _getDLLVersionMacOS(filename)
+    elif isWin32Windows():
+        return _getDLLVersionWindows(filename)
