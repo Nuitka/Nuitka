@@ -47,10 +47,7 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
 )
-from nuitka.nodes.ContainerOperationNodes import (
-    ExpressionListOperationExtend,
-    StatementListOperationAppend,
-)
+from nuitka.nodes.ContainerOperationNodes import StatementListOperationAppend
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
@@ -64,6 +61,7 @@ from nuitka.nodes.FunctionNodes import (
     makeExpressionFunctionCreation,
 )
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
+from nuitka.nodes.ListOperationNodes import ExpressionListOperationExtend
 from nuitka.nodes.LocalsDictNodes import (
     StatementLocalsDictOperationSet,
     StatementReleaseLocals,

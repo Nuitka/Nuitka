@@ -29,6 +29,7 @@ import os
 
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
+import nuitka.specs.BuiltinListOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
 from nuitka.code_generation.BinaryOperationHelperDefinitions import (
@@ -68,10 +69,12 @@ from .Common import (
     formatArgs,
     getMethodVariations,
     python2_dict_methods,
+    python2_list_methods,
     python2_str_methods,
     python2_unicode_methods,
     python3_bytes_methods,
     python3_dict_methods,
+    python3_list_methods,
     python3_str_methods,
     withFileOpenedAndAutoFormatted,
     writeLine,
@@ -890,6 +893,16 @@ generate_builtin_type_operations = [
         nuitka.specs.BuiltinDictOperationSpecs,
         ("pop", "popitem", "setdefault"),
     ),
+    (
+        "tshape_list",
+        list_desc,
+        nuitka.specs.BuiltinListOperationSpecs,
+        (
+            "pop",
+            # TODO: template doesn't do positional only yet.
+            # "sort",
+        ),
+    ),
     # TODO: These are very complex things using "string lib" code in CPython,
     # that we do not have easy access to, but we might one day for Nuitka-Python
     # expose it for the static linking of it and then we could in fact call
@@ -1086,8 +1099,14 @@ def makeHelperBuiltinTypeMethods():
                 emit_h(*args)
                 emit_c(*args)
 
+            template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
+
+            emitGenerationWarning(emit, template.name)
+
             emitIDE(emit)
 
+            # TODO: Isn't this creating more than necessary, we don't use all of them, e.g.
+            # not with lists and dicts.
             _makeHelperBuiltinTypeAttributes(
                 "str", "PyString_Type", python2_str_methods, (), emit_c, emit_h
             )
@@ -1110,8 +1129,14 @@ def makeHelperBuiltinTypeMethods():
                 emit_c,
                 emit_h,
             )
-
-            template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
+            _makeHelperBuiltinTypeAttributes(
+                "list",
+                "PyList_Type",
+                python2_list_methods,
+                python3_list_methods,
+                emit_c,
+                emit_h,
+            )
 
             for (
                 shape_name,

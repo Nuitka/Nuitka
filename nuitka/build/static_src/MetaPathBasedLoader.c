@@ -1826,15 +1826,14 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 #endif
 
     // Register it as a meta path loader.
-    int res = PyList_Insert(Nuitka_SysGetObject("meta_path"),
+    LIST_INSERT_CONST(Nuitka_SysGetObject("meta_path"),
 #if PYTHON_VERSION < 0x300
-                            0,
+                      0,
 #else
-                            2,
+                      2,
 #endif
 
-                            Nuitka_Loader_New(NULL));
-    assert(res == 0);
+                      Nuitka_Loader_New(NULL));
 }
 
 #if defined(_NUITKA_STANDALONE)

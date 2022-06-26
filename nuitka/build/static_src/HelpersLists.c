@@ -25,6 +25,10 @@
 #include "nuitka/prelude.h"
 #endif
 
+// #include "richcomparisons.h"
+
+static PyObject *Nuitka_LongFromCLong(long ival);
+
 #if NUITKA_LIST_HAS_FREELIST
 static struct _Py_list_state *_Nuitka_Py_get_list_state(void) {
     PyInterpreterState *interp = _PyInterpreterState_GET();
@@ -45,7 +49,6 @@ PyObject *MAKE_LIST_EMPTY(Py_ssize_t size) {
 
         Nuitka_Py_NewReference((PyObject *)result_list);
     } else {
-        // TODO: Have Nuitka_GC_New available.
         result_list = (PyListObject *)Nuitka_GC_New(&PyList_Type);
     }
 
@@ -382,6 +385,263 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
 
     return true;
 #endif
+}
+
+void LIST_CLEAR(PyObject *target) {
+    CHECK_OBJECT(target);
+    assert(PyList_Check(target));
+
+    PyListObject *list = (PyListObject *)target;
+
+    PyObject **items = list->ob_item;
+
+    if (items != NULL) {
+        // Make the list empty first, so the data we release is not accessible.
+        Py_ssize_t i = Py_SIZE(list);
+        Py_SET_SIZE(list, 0);
+        list->ob_item = NULL;
+        list->allocated = 0;
+
+        while (--i >= 0) {
+            Py_XDECREF(items[i]);
+        }
+
+        PyMem_Free(items);
+    }
+}
+
+PyObject *getListIndexObject(Py_ssize_t value) {
+#if PYTHON_VERSION < 0x300
+    return PyInt_FromSsize_t(value);
+#else
+    // TODO: Actually to be fully correct, we will need a "Nuitka_LongFromCSsize_t" which
+    // we do not have yet.
+    return Nuitka_LongFromCLong((long)value);
+#endif
+}
+
+PyObject *LIST_COUNT(PyObject *list, PyObject *item) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
+    Py_ssize_t count = 0;
+
+    for (Py_ssize_t i = 0; i < Py_SIZE(list); i++) {
+        PyObject *element = PyList_GET_ITEM(list, i);
+
+        // Fast path, is identical
+        if (element == item) {
+            count++;
+            continue;
+        }
+
+        // Rich compare element while holding a reference. TODO: If we knew the type
+        // of "item" we could be faster by picking variants that know stuff, but
+        // maybe it is not as important.
+        Py_INCREF(element);
+        nuitka_bool nbool_res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(element, item);
+        Py_DECREF(element);
+
+        if (nbool_res == NUITKA_BOOL_TRUE) {
+            count++;
+            continue;
+        }
+
+        // Pass on exceptions from comparisons.
+        if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
+            return NULL;
+        }
+    }
+
+    return getListIndexObject(count);
+}
+
+static PyObject *_LIST_INDEX_COMMON(PyListObject *list, PyObject *item, Py_ssize_t start, Py_ssize_t stop) {
+    // Negative values for start/stop are handled here.
+    if (start < 0) {
+        start += Py_SIZE(list);
+
+        if (start < 0) {
+            start = 0;
+        }
+    }
+
+    if (stop < 0) {
+        stop += Py_SIZE(list);
+
+        if (stop < 0) {
+            stop = 0;
+        }
+    }
+
+    for (Py_ssize_t i = start; i < stop && i < Py_SIZE(list); i++) {
+        PyObject *element = list->ob_item[i];
+
+        Py_INCREF(element);
+        nuitka_bool nbool_res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(element, item);
+        Py_DECREF(element);
+
+        if (nbool_res == NUITKA_BOOL_TRUE) {
+            return getListIndexObject(i);
+        }
+
+        // Pass on exceptions from comparisons.
+        if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
+            return NULL;
+        }
+    }
+
+#if PYTHON_VERSION < 0x300
+    PyObject *err_format = PyString_FromString("%r is not in list");
+    PyObject *format_tuple = MAKE_TUPLE1_0(item);
+    PyObject *err_string = PyString_Format(err_format, format_tuple);
+    Py_DECREF(format_tuple);
+
+    if (err_string == NULL) {
+        return NULL;
+    }
+
+    SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyExc_ValueError, err_string);
+    return NULL;
+#else
+    PyErr_Format(PyExc_ValueError, "%R is not in list", item);
+    return NULL;
+#endif
+}
+
+PyObject *LIST_INDEX2(PyObject *list, PyObject *item) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
+    return _LIST_INDEX_COMMON((PyListObject *)list, item, 0, Py_SIZE(list));
+}
+
+PyObject *LIST_INDEX3(PyObject *list, PyObject *item, PyObject *start) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
+    PyObject *start_index = Nuitka_Number_IndexAsLong(start);
+
+    if (unlikely(start_index == NULL)) {
+        DROP_ERROR_OCCURRED();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "slice indices must be integers or have an __index__ method");
+        return NULL;
+    }
+
+    Py_ssize_t start_ssize = PyLong_AsSsize_t(start_index);
+
+    return _LIST_INDEX_COMMON((PyListObject *)list, item, start_ssize, Py_SIZE(list));
+}
+
+PyObject *LIST_INDEX4(PyObject *list, PyObject *item, PyObject *start, PyObject *stop) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
+    PyObject *start_index = Nuitka_Number_IndexAsLong(start);
+
+    if (unlikely(start_index == NULL)) {
+        DROP_ERROR_OCCURRED();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "slice indices must be integers or have an __index__ method");
+        return NULL;
+    }
+
+    Py_ssize_t start_ssize = PyLong_AsSsize_t(start_index);
+
+    PyObject *stop_index = Nuitka_Number_IndexAsLong(stop);
+
+    if (unlikely(stop_index == NULL)) {
+        DROP_ERROR_OCCURRED();
+
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "slice indices must be integers or have an __index__ method");
+        return NULL;
+    }
+
+    Py_ssize_t stop_ssize = PyLong_AsSsize_t(stop_index);
+
+    return _LIST_INDEX_COMMON((PyListObject *)list, item, start_ssize, stop_ssize);
+}
+
+bool LIST_INSERT(PyObject *list, PyObject *index, PyObject *item) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+    CHECK_OBJECT(item);
+
+    PyObject *index_long = Nuitka_Number_IndexAsLong(index);
+
+    if (unlikely(index_long == NULL)) {
+        DROP_ERROR_OCCURRED();
+
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' cannot be interpreted as an integer", index);
+        return false;
+    }
+
+    Py_ssize_t index_ssize = PyLong_AsSsize_t(index_long);
+
+    LIST_INSERT_CONST(list, index_ssize, item);
+    return true;
+}
+
+void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+    CHECK_OBJECT(item);
+
+    PyListObject *list_object = (PyListObject *)list;
+
+    Py_ssize_t n = Py_SIZE(list_object);
+
+    // Expand the list by needed space.
+    if (LIST_RESIZE(list_object, n + 1) == false) {
+        abort();
+    }
+
+    // Negative values and overflow for for index are handled here.
+    if (index < 0) {
+        index += n;
+        if (index < 0) {
+            index = 0;
+        }
+    }
+    if (index > n) {
+        index = n;
+    }
+
+    // Shift the items behind the insert index.
+    PyObject **items = list_object->ob_item;
+
+    for (Py_ssize_t i = n; --i >= index;) {
+        items[i + 1] = items[i];
+    }
+
+    Py_INCREF(item);
+    items[index] = item;
+}
+
+static void _Nuitka_ReverseObjectsSlice(PyObject **lo, PyObject **hi) {
+    assert(lo != NULL && hi != NULL);
+
+    hi -= 1;
+
+    while (lo < hi) {
+        {
+            PyObject *t = *lo;
+            *lo = *hi;
+            *hi = t;
+        }
+
+        lo += 1;
+        hi -= 1;
+    }
+}
+
+void LIST_REVERSE(PyObject *list) {
+    PyListObject *list_object = (PyListObject *)list;
+
+    if (Py_SIZE(list_object) > 1) {
+        _Nuitka_ReverseObjectsSlice(list_object->ob_item, list_object->ob_item + Py_SIZE(list_object));
+    }
 }
 
 #if PYTHON_VERSION >= 0x340

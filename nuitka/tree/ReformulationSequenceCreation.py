@@ -38,15 +38,15 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
 )
-from nuitka.nodes.ContainerOperationNodes import (
-    ExpressionListOperationExtend,
-    ExpressionListOperationExtendForUnpack,
-    ExpressionSetOperationUpdate,
-)
+from nuitka.nodes.ContainerOperationNodes import ExpressionSetOperationUpdate
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef,
     makeExpressionFunctionCall,
     makeExpressionFunctionCreation,
+)
+from nuitka.nodes.ListOperationNodes import (
+    ExpressionListOperationExtend,
+    ExpressionListOperationExtendForUnpack,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.ReturnNodes import StatementReturn

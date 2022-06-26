@@ -26,8 +26,8 @@
 
 WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
 
-spell-checker: ignore capitalize casefold center clear copy count decode encode endswith expandtabs find format formatmap get haskey index isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem replace rfind rindex rjust rpartition rsplit rstrip setdefault split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar iterable keepends key maxsplit new old pairs prefix sep start sub suffix table tabsize width
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
 
@@ -87,6 +87,18 @@ from nuitka.specs.BuiltinDictOperationSpecs import (
     dict_viewitems_spec,
     dict_viewkeys_spec,
     dict_viewvalues_spec,
+)
+from nuitka.specs.BuiltinListOperationSpecs import (
+    list_append_spec,
+    list_clear_spec,
+    list_copy_spec,
+    list_count_spec,
+    list_extend_spec,
+    list_index_spec,
+    list_insert_spec,
+    list_pop_spec,
+    list_remove_spec,
+    list_reverse_spec,
 )
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.BuiltinStrOperationSpecs import (
@@ -225,6 +237,21 @@ from .DictionaryNodes import (
     makeExpressionDictOperationUpdate3,
 )
 from .KeyValuePairNodes import makeKeyValuePairExpressionsFromKwArgs
+from .ListOperationNodes import (
+    ExpressionListOperationAppend,
+    ExpressionListOperationClear,
+    ExpressionListOperationCopy,
+    ExpressionListOperationCount,
+    ExpressionListOperationExtend,
+    ExpressionListOperationIndex2,
+    ExpressionListOperationIndex3,
+    ExpressionListOperationIndex4,
+    ExpressionListOperationInsert,
+    ExpressionListOperationPop1,
+    ExpressionListOperationPop2,
+    ExpressionListOperationRemove,
+    ExpressionListOperationReverse,
+)
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from .StrNodes import (
@@ -301,6 +328,102 @@ from .StrNodes import (
 
 attribute_classes = {}
 attribute_typed_classes = set()
+
+
+class ExpressionAttributeLookupFixedAppend(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'append' of an object.
+
+    Typically code like: source.append
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_APPEND"
+    attribute_name = "append"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListAppend(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'append' on list shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="append",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="append"
+        )
+
+
+attribute_classes["append"] = ExpressionAttributeLookupFixedAppend
+
+
+class ExpressionAttributeLookupListAppend(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedAppend
+):
+    """Attribute Append lookup on a list.
+
+    Typically code like: some_list.append
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_APPEND"
+    attribute_name = "append"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationAppend(item, source_ref):
+            return ExpressionListOperationAppend(
+                list_arg=list_arg, item=item, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationAppend,
+            builtin_spec=list_append_spec,
+        )
+
+        return result, "new_expression", "Call to 'append' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListAppend)
 
 
 class ExpressionAttributeLookupFixedCapitalize(ExpressionAttributeLookupFixedBase):
@@ -745,6 +868,16 @@ class ExpressionAttributeLookupFixedClear(ExpressionAttributeLookupFixedBase):
                 change_tags="new_expression",
                 change_desc="Attribute lookup 'clear' on dict shape resolved.",
             )
+        if str is not bytes and subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListClear(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'clear' on list shape resolved.",
+            )
 
         return subnode_expression.computeExpressionAttribute(
             lookup_node=self,
@@ -827,6 +960,64 @@ class ExpressionAttributeLookupDictClear(
 attribute_typed_classes.add(ExpressionAttributeLookupDictClear)
 
 
+class ExpressionAttributeLookupListClear(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedClear
+):
+    """Attribute Clear lookup on a list.
+
+    Typically code like: some_list.clear
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_CLEAR"
+    attribute_name = "clear"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationClear(source_ref):
+            return ExpressionListOperationClear(
+                list_arg=list_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationClear,
+            builtin_spec=list_clear_spec,
+        )
+
+        return result, "new_expression", "Call to 'clear' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListClear)
+
+
 class ExpressionAttributeLookupFixedCopy(ExpressionAttributeLookupFixedBase):
     """Looking up an attribute value 'copy' of an object.
 
@@ -846,6 +1037,16 @@ class ExpressionAttributeLookupFixedCopy(ExpressionAttributeLookupFixedBase):
                 ),
                 change_tags="new_expression",
                 change_desc="Attribute lookup 'copy' on dict shape resolved.",
+            )
+        if str is not bytes and subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListCopy(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'copy' on list shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -927,6 +1128,62 @@ class ExpressionAttributeLookupDictCopy(
 attribute_typed_classes.add(ExpressionAttributeLookupDictCopy)
 
 
+class ExpressionAttributeLookupListCopy(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCopy
+):
+    """Attribute Copy lookup on a list.
+
+    Typically code like: some_list.copy
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_COPY"
+    attribute_name = "copy"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationCopy(source_ref):
+            return ExpressionListOperationCopy(list_arg=list_arg, source_ref=source_ref)
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationCopy,
+            builtin_spec=list_copy_spec,
+        )
+
+        return result, "new_expression", "Call to 'copy' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListCopy)
+
+
 class ExpressionAttributeLookupFixedCount(ExpressionAttributeLookupFixedBase):
     """Looking up an attribute value 'count' of an object.
 
@@ -958,6 +1215,16 @@ class ExpressionAttributeLookupFixedCount(ExpressionAttributeLookupFixedBase):
                 result,
                 "new_expression",
                 "Attribute lookup 'count' on bytes shape resolved.",
+            )
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListCount(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'count' on list shape resolved.",
             )
 
         return subnode_expression.computeExpressionAttribute(
@@ -1123,6 +1390,64 @@ class ExpressionAttributeLookupBytesCount(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupBytesCount)
+
+
+class ExpressionAttributeLookupListCount(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedCount
+):
+    """Attribute Count lookup on a list.
+
+    Typically code like: some_list.count
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_COUNT"
+    attribute_name = "count"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationCount(value, source_ref):
+            return ExpressionListOperationCount(
+                list_arg=list_arg, value=value, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationCount,
+            builtin_spec=list_count_spec,
+        )
+
+        return result, "new_expression", "Call to 'count' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListCount)
 
 
 class ExpressionAttributeLookupFixedDecode(ExpressionAttributeLookupFixedBase):
@@ -1816,6 +2141,102 @@ class ExpressionAttributeLookupBytesExpandtabs(
 attribute_typed_classes.add(ExpressionAttributeLookupBytesExpandtabs)
 
 
+class ExpressionAttributeLookupFixedExtend(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'extend' of an object.
+
+    Typically code like: source.extend
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_EXTEND"
+    attribute_name = "extend"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListExtend(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'extend' on list shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="extend",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="extend"
+        )
+
+
+attribute_classes["extend"] = ExpressionAttributeLookupFixedExtend
+
+
+class ExpressionAttributeLookupListExtend(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedExtend
+):
+    """Attribute Extend lookup on a list.
+
+    Typically code like: some_list.extend
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_EXTEND"
+    attribute_name = "extend"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationExtend(value, source_ref):
+            return ExpressionListOperationExtend(
+                list_arg=list_arg, value=value, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationExtend,
+            builtin_spec=list_extend_spec,
+        )
+
+        return result, "new_expression", "Call to 'extend' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListExtend)
+
+
 class ExpressionAttributeLookupFixedFind(ExpressionAttributeLookupFixedBase):
     """Looking up an attribute value 'find' of an object.
 
@@ -2420,6 +2841,16 @@ class ExpressionAttributeLookupFixedIndex(ExpressionAttributeLookupFixedBase):
                 "new_expression",
                 "Attribute lookup 'index' on bytes shape resolved.",
             )
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListIndex(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'index' on list shape resolved.",
+            )
 
         return subnode_expression.computeExpressionAttribute(
             lookup_node=self,
@@ -2584,6 +3015,173 @@ class ExpressionAttributeLookupBytesIndex(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupBytesIndex)
+
+
+class ExpressionAttributeLookupListIndex(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedIndex
+):
+    """Attribute Index lookup on a list.
+
+    Typically code like: some_list.index
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_INDEX"
+    attribute_name = "index"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationIndex(value, start, stop, source_ref):
+            if stop is not None:
+                return ExpressionListOperationIndex4(
+                    list_arg=list_arg,
+                    value=value,
+                    start=start,
+                    stop=stop,
+                    source_ref=source_ref,
+                )
+            elif start is not None:
+                return ExpressionListOperationIndex3(
+                    list_arg=list_arg, value=value, start=start, source_ref=source_ref
+                )
+            else:
+                return ExpressionListOperationIndex2(
+                    list_arg=list_arg, value=value, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationIndex,
+            builtin_spec=list_index_spec,
+        )
+
+        return result, "new_expression", "Call to 'index' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListIndex)
+
+
+class ExpressionAttributeLookupFixedInsert(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'insert' of an object.
+
+    Typically code like: source.insert
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_INSERT"
+    attribute_name = "insert"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListInsert(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'insert' on list shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="insert",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="insert"
+        )
+
+
+attribute_classes["insert"] = ExpressionAttributeLookupFixedInsert
+
+
+class ExpressionAttributeLookupListInsert(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedInsert
+):
+    """Attribute Insert lookup on a list.
+
+    Typically code like: some_list.insert
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_INSERT"
+    attribute_name = "insert"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationInsert(index, item, source_ref):
+            return ExpressionListOperationInsert(
+                list_arg=list_arg, index=index, item=item, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationInsert,
+            builtin_spec=list_insert_spec,
+        )
+
+        return result, "new_expression", "Call to 'insert' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListInsert)
 
 
 class ExpressionAttributeLookupFixedIsalnum(ExpressionAttributeLookupFixedBase):
@@ -5572,6 +6170,16 @@ class ExpressionAttributeLookupFixedPop(ExpressionAttributeLookupFixedBase):
                 change_tags="new_expression",
                 change_desc="Attribute lookup 'pop' on dict shape resolved.",
             )
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListPop(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'pop' on list shape resolved.",
+            )
 
         return subnode_expression.computeExpressionAttribute(
             lookup_node=self,
@@ -5657,6 +6265,69 @@ class ExpressionAttributeLookupDictPop(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictPop)
+
+
+class ExpressionAttributeLookupListPop(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedPop
+):
+    """Attribute Pop lookup on a list.
+
+    Typically code like: some_list.pop
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_POP"
+    attribute_name = "pop"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationPop(index, source_ref):
+            if index is not None:
+                return ExpressionListOperationPop2(
+                    list_arg=list_arg, index=index, source_ref=source_ref
+                )
+            else:
+                return ExpressionListOperationPop1(
+                    list_arg=list_arg, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationPop,
+            builtin_spec=list_pop_spec,
+        )
+
+        return result, "new_expression", "Call to 'pop' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListPop)
 
 
 class ExpressionAttributeLookupFixedPopitem(ExpressionAttributeLookupFixedBase):
@@ -5759,6 +6430,102 @@ class ExpressionAttributeLookupDictPopitem(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictPopitem)
+
+
+class ExpressionAttributeLookupFixedRemove(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'remove' of an object.
+
+    Typically code like: source.remove
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_REMOVE"
+    attribute_name = "remove"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListRemove(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'remove' on list shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="remove",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="remove"
+        )
+
+
+attribute_classes["remove"] = ExpressionAttributeLookupFixedRemove
+
+
+class ExpressionAttributeLookupListRemove(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedRemove
+):
+    """Attribute Remove lookup on a list.
+
+    Typically code like: some_list.remove
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_REMOVE"
+    attribute_name = "remove"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationRemove(value, source_ref):
+            return ExpressionListOperationRemove(
+                list_arg=list_arg, value=value, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationRemove,
+            builtin_spec=list_remove_spec,
+        )
+
+        return result, "new_expression", "Call to 'remove' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListRemove)
 
 
 class ExpressionAttributeLookupFixedReplace(ExpressionAttributeLookupFixedBase):
@@ -5949,6 +6716,102 @@ class ExpressionAttributeLookupBytesReplace(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupBytesReplace)
+
+
+class ExpressionAttributeLookupFixedReverse(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'reverse' of an object.
+
+    Typically code like: source.reverse
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_REVERSE"
+    attribute_name = "reverse"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListReverse(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'reverse' on list shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="reverse",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="reverse"
+        )
+
+
+attribute_classes["reverse"] = ExpressionAttributeLookupFixedReverse
+
+
+class ExpressionAttributeLookupListReverse(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedReverse
+):
+    """Attribute Reverse lookup on a list.
+
+    Typically code like: some_list.reverse
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_REVERSE"
+    attribute_name = "reverse"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, list_arg, trace_collection):
+        def wrapExpressionListOperationReverse(source_ref):
+            return ExpressionListOperationReverse(
+                list_arg=list_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionListOperationReverse,
+            builtin_spec=list_reverse_spec,
+        )
+
+        return result, "new_expression", "Call to 'reverse' of list recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        list_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, list_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListReverse)
 
 
 class ExpressionAttributeLookupFixedRfind(ExpressionAttributeLookupFixedBase):
@@ -7187,6 +8050,64 @@ class ExpressionAttributeLookupDictSetdefault(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictSetdefault)
+
+
+class ExpressionAttributeLookupFixedSort(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'sort' of an object.
+
+    Typically code like: source.sort
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_SORT"
+    attribute_name = "sort"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if subnode_expression.hasShapeListExact():
+            result = ExpressionAttributeLookupListSort(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Attribute lookup 'sort' on list shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="sort",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="sort"
+        )
+
+
+attribute_classes["sort"] = ExpressionAttributeLookupFixedSort
+
+
+class ExpressionAttributeLookupListSort(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedSort
+):
+    """Attribute Sort lookup on a list.
+
+    Typically code like: some_list.sort
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_LIST_SORT"
+    attribute_name = "sort"
+
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
+    # No computeExpressionCall as list operation ExpressionListOperationSort is not yet implemented
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupListSort)
 
 
 class ExpressionAttributeLookupFixedSplit(ExpressionAttributeLookupFixedBase):

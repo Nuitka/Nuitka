@@ -26,8 +26,8 @@
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore capitalize casefold center clear copy count decode encode endswith expandtabs find format formatmap get haskey index isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem replace rfind rindex rjust rpartition rsplit rstrip setdefault split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar iterable keepends key maxsplit new old pairs prefix sep start sub suffix table tabsize width
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
 
@@ -62,6 +62,10 @@ class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
 
     @staticmethod
     def mayRaiseExceptionOperation():
+        return False
+
+    @staticmethod
+    def mayRaiseException(exception_type):
         return False
 
 
@@ -175,6 +179,11 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
+
+    def mayRaiseException(self, exception_type):
+        return any(
+            value.mayRaiseException(exception_type) for value in self.subnode_args
+        )
 
 
 # Assign the names that are easier to import with a stable name.
@@ -338,6 +347,19 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
+
+    def mayRaiseException(self, exception_type):
+        return (
+            any(value.mayRaiseException(exception_type) for value in self.subnode_args)
+            or (
+                self.subnode_name is not None
+                and self.subnode_name.mayRaiseException(exception_type)
+            )
+            or (
+                self.subnode_path is not None
+                and self.subnode_path.mayRaiseException(exception_type)
+            )
+        )
 
 
 # Assign the names that are easier to import with a stable name.
@@ -569,6 +591,11 @@ class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
     def mayRaiseExceptionOperation():
         return False
 
+    def mayRaiseException(self, exception_type):
+        return any(
+            value.mayRaiseException(exception_type) for value in self.subnode_elements
+        )
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointsValueRefBase = (
@@ -677,6 +704,357 @@ ExpressionAttributeLookupBase = ChildHavingExpressionAttributeNameMixin
 ExpressionAttributeLookupSpecialBase = ChildHavingExpressionAttributeNameMixin
 
 
+class ChildHavingListArgNoRaiseMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationClear
+    #   ExpressionListOperationReverse
+
+    def __init__(self, list_arg, source_ref):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_list_arg,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("list_arg", self.subnode_list_arg),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = trace_collection.onExpression(self.subnode_list_arg)
+
+        if expression.willRaiseAnyException():
+            return (
+                expression,
+                "new_raise",
+                lambda: "For '%s' the child expression '%s' will raise."
+                % (self.getChildNameNice(), expression.getChildNameNice()),
+            )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_list_arg.mayRaiseException(exception_type)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionListOperationClearBase = ChildHavingListArgNoRaiseMixin
+ExpressionListOperationReverseBase = ChildHavingListArgNoRaiseMixin
+
+
+class ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationAppend
+
+    def __init__(self, list_arg, item, source_ref):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        item.parent = self
+
+        self.subnode_item = item
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_list_arg,
+            self.subnode_item,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("item", self.subnode_item),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_item
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_item = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "item": self.subnode_item.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        self.subnode_item.finalize()
+        del self.subnode_item
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_list_arg.mayRaiseException(
+            exception_type
+        ) or self.subnode_item.mayRaiseException(exception_type)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionListOperationAppendBase = ChildrenHavingListArgItemNoRaiseMixin
+
+
+class ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionListOperationCount
+
+    def __init__(self, list_arg, value, source_ref):
+        list_arg.parent = self
+
+        self.subnode_list_arg = list_arg
+
+        value.parent = self
+
+        self.subnode_value = value
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_list_arg,
+            self.subnode_value,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("list_arg", self.subnode_list_arg),
+            ("value", self.subnode_value),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_list_arg
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_list_arg = new_node
+
+            return
+
+        value = self.subnode_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "list_arg": self.subnode_list_arg.makeClone(),
+            "value": self.subnode_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_list_arg.finalize()
+        del self.subnode_list_arg
+        self.subnode_value.finalize()
+        del self.subnode_value
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_list_arg.mayRaiseException(
+            exception_type
+        ) or self.subnode_value.mayRaiseException(exception_type)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionListOperationCountBase = ChildrenHavingListArgValueFinalNoRaiseMixin
+
+
 class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -782,6 +1160,11 @@ class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
     def mayRaiseExceptionOperation():
         return False
 
+    def mayRaiseException(self, exception_type):
+        return any(
+            value.mayRaiseException(exception_type) for value in self.subnode_pairs
+        )
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase = (
@@ -875,6 +1258,9 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(exception_type)
 
 
 # Assign the names that are easier to import with a stable name.

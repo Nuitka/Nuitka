@@ -37,6 +37,7 @@ import nuitka.nodes.PackageResourceNodes
 import nuitka.nodes.SideEffectNodes
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
+import nuitka.specs.BuiltinListOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
@@ -59,9 +60,11 @@ from .Common import (
     getMethodVariations,
     getSpecs,
     python2_dict_methods,
+    python2_list_methods,
     python2_str_methods,
     python3_bytes_methods,
     python3_dict_methods,
+    python3_list_methods,
     python3_str_methods,
     withFileOpenedAndAutoFormatted,
     writeLine,
@@ -216,6 +219,13 @@ processTypeShapeAttribute(
     nuitka.specs.BuiltinBytesOperationSpecs,
     (),
     python3_bytes_methods,
+)
+
+processTypeShapeAttribute(
+    "tshape_list",
+    nuitka.specs.BuiltinListOperationSpecs,
+    python2_list_methods,
+    python3_list_methods,
 )
 
 attribute_shape_empty = {}
@@ -552,7 +562,8 @@ def addChildrenMixin(
 
     if mixin_name not in children_mixins_intentions:
         children_mixins_intentions[mixin_name] = []
-    children_mixins_intentions[mixin_name].append(intended_for)
+    if intended_for not in children_mixins_intentions[mixin_name]:
+        children_mixins_intentions[mixin_name].append(intended_for)
 
     for named_child in named_children_types:
         assert named_child in named_children, named_child
@@ -669,20 +680,12 @@ def _addFromNode(node_class):
 
 
 def addFromNodes():
-    for kind, node_class in NodeCheckMetaClass.kinds.items():
+    for node_class in NodeCheckMetaClass.kinds.values():
         # Find nodes with a make variant.
         if hasattr(sys.modules[node_class.__module__], "make" + node_class.__name__):
             node_factory_translations[node_class.__name__] = (
                 "make" + node_class.__name__
             )
-
-        if (
-            "EXPRESSION" not in kind
-            and "STATEMENT_" not in kind
-            and "STATEMENTS_" not in kind
-            and "MODULE" not in kind
-        ):
-            continue
 
         _addFromNode(node_class)
 
