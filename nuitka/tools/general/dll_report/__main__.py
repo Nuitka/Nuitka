@@ -29,7 +29,7 @@ from nuitka.freezer.Standalone import (
     detectBinaryPathDLLsWindowsDependencyWalker,
 )
 from nuitka.Tracing import my_print
-from nuitka.utils.SharedLibraries import getSxsFromDLL, getWindowsDLLVersion
+from nuitka.utils.SharedLibraries import getDLLVersion, getSxsFromDLL
 from nuitka.utils.Timing import TimerReport
 
 
@@ -43,14 +43,14 @@ def main():
 
     for filename in positional_args:
         my_print("Filename: %s" % filename)
-        my_print("Version Information: %s" % getWindowsDLLVersion(filename))
+        my_print("Version Information: %s" % getDLLVersion(filename))
 
         my_print("SXS information (manifests):")
         sxs = getSxsFromDLL(filename=filename, with_data=True)
         if sxs:
             my_print(sxs)
 
-        my_print("DLLs recursively dependended (depends.exe):")
+        my_print("DLLs recursively depended (depends.exe):")
 
         with TimerReport(
             message="Finding dependencies for %s took %%.2f seconds" % filename
