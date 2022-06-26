@@ -284,6 +284,7 @@ def generateStrFormatMethodCode(to_name, expression, emit, context):
         called_name=called_name,
         call_args=(expression.subnode_str_arg,) + expression.subnode_args,
         pairs=expression.subnode_pairs,
+        needs_check=expression.mayRaiseException(BaseException),
         emit=emit,
         context=context,
     )
