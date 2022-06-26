@@ -26,6 +26,7 @@ some handling of defaults.
 # spell-checker: ignore uiaccess,noannotations,reexecution,etherium
 # spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
 
+import fnmatch
 import os
 import shlex
 import sys
@@ -1682,3 +1683,16 @@ def getCompilationReportFilename():
 def getUserProvidedYamlFiles():
     """*list* files with user provided Yaml files"""
     return options.user_yaml_files
+
+
+def _getWarningMnemonicsDisabled():
+    return sum([_splitShellPattern(x) for x in options.nowarn_mnemonics], [])
+
+
+def shallDisplayWarningMnemonic(mnemonic):
+    """*bool*" derived from --nowarn-mnemonic"""
+    for pattern in _getWarningMnemonicsDisabled():
+        if fnmatch.fnmatch(mnemonic, pattern):
+            return False
+
+    return True
