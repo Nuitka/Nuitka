@@ -121,7 +121,7 @@ def _getIoctlGWINSZ(fd):
         import fcntl
         import termios
 
-        return struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+        return struct.unpack("hh", fcntl.ioctl(fd, termios.TIOCGWINSZ, "1234"))
     except BaseException:  # Catch all the things, pylint: disable=broad-except
         return None
 
@@ -254,45 +254,46 @@ class OurLogger(object):
         self.base_style = base_style
         self.is_quiet = quiet
 
-        # Can disable warnings, we do that for options parsing during re-execution.
-        self.is_no_warnings = False
-
     def my_print(self, message, **kwargs):
         # For overload, pylint: disable=no-self-use
         my_print(message, **kwargs)
 
     def warning(self, message, style="red", mnemonic=None):
-        if not self.is_no_warnings:
-            if self.name:
-                prefix = "%s:WARNING: " % self.name
-            else:
-                prefix = "WARNING: "
+        if mnemonic is not None:
+            from .Options import shallDisplayWarningMnemonic
 
-            style = style or self.base_style
+            if not shallDisplayWarningMnemonic(mnemonic):
+                return
 
-            if sys.stderr.isatty():
-                width = _getTerminalSize()
-            else:
-                width = 10000
+        if self.name:
+            prefix = "%s:WARNING: " % self.name
+        else:
+            prefix = "WARNING: "
 
-            formatted_message = textwrap.fill(
-                message,
-                width=width,
-                initial_indent=prefix,
-                subsequent_indent=prefix,
-                break_on_hyphens=False,
-                expand_tabs=False,
-                replace_whitespace=False,
+        style = style or self.base_style
+
+        if sys.stderr.isatty():
+            width = _getTerminalSize()
+        else:
+            width = 10000
+
+        formatted_message = textwrap.fill(
+            message,
+            width=width,
+            initial_indent=prefix,
+            subsequent_indent=prefix,
+            break_on_hyphens=False,
+            expand_tabs=False,
+            replace_whitespace=False,
+        )
+        self.my_print(formatted_message, style=style, file=sys.stderr)
+
+        if mnemonic is not None:
+            self.warning(
+                """    Complex topic! More information can be found at %shttps://nuitka.net/info/%s.html"""
+                % (_getEnableStyleCode("link"), mnemonic),
+                style=style,
             )
-            self.my_print(formatted_message, style=style, file=sys.stderr)
-
-            if mnemonic is not None:
-                self.warning(
-                    """\
-    Complex topic! More information can be found at %shttps://nuitka.net/info/%s.html"""
-                    % (_getEnableStyleCode("link"), mnemonic),
-                    style=style,
-                )
 
     def sysexit(self, message="", exit_code=1):
         from nuitka.Progress import closeProgressBar
