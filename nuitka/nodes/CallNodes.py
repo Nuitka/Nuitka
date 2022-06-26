@@ -78,6 +78,11 @@ class ExpressionCall(ExpressionCallMixin, ChildrenExpressionCallMixin, Expressio
 
         return args.extractSideEffects() + kwargs.extractSideEffects()
 
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
+        self.subnode_args.onContentEscapes(trace_collection)
+        self.subnode_kwargs.onContentEscapes(trace_collection)
+
 
 class ExpressionCallNoKeywords(
     ExpressionCallMixin, ChildrenExpressionCallNoKeywordsMixin, ExpressionBase
@@ -111,6 +116,10 @@ class ExpressionCallNoKeywords(
         args = self.subnode_args
 
         return args.extractSideEffects()
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
+        self.subnode_args.onContentEscapes(trace_collection)
 
 
 class ExpressionCallKeywordsOnly(
@@ -146,6 +155,10 @@ class ExpressionCallKeywordsOnly(
 
         return kwargs.extractSideEffects()
 
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
+        self.subnode_kwargs.onContentEscapes(trace_collection)
+
 
 class ExpressionCallEmpty(
     ExpressionCallMixin, ChildrenExpressionCallEmptyMixin, ExpressionBase
@@ -175,6 +188,9 @@ class ExpressionCallEmpty(
     @staticmethod
     def extractSideEffectsPreCall():
         return ()
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
 
 
 def makeExpressionCall(called, args, kw, source_ref):

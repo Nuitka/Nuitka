@@ -40,6 +40,7 @@ from .NodeMakingHelpers import (
 from .shapes.BuiltinTypeShapes import (
     tshape_bytes,
     tshape_dict,
+    tshape_list,
     tshape_str,
     tshape_unicode,
 )
@@ -347,12 +348,10 @@ class ExpressionBase(NodeBase):
         return set_node, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Virtual method, pylint: disable=unused-argument
+
         # The called and the arguments escape for good.
-        self.onContentEscapes(trace_collection)
-        if call_args is not None:
-            call_args.onContentEscapes(trace_collection)
-        if call_kw is not None:
-            call_kw.onContentEscapes(trace_collection)
+        call_node.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -864,6 +863,11 @@ class ExpressionBase(NodeBase):
 
     def hasShapeTrustedAttributes(self):
         return self.getTypeShape().hasShapeTrustedAttributes()
+
+    def hasShapeListExact(self):
+        """Does a node have exactly a list shape."""
+
+        return self.getTypeShape() is tshape_list
 
     def hasShapeDictionaryExact(self):
         """Does a node have exactly a dictionary shape."""
