@@ -494,6 +494,25 @@ int removeDirectory(char const *path) {
 }
 #endif
 
+#if !defined(_WIN32)
+static int waitpid_retried(pid_t pid, int *status) {
+    int res;
+
+    for (;;) {
+        *status = 0;
+        res = waitpid(pid, status, 0);
+
+        if ((res == -1) && (errno == EINTR)) {
+            continue;
+        }
+
+        break;
+    }
+
+    return res;
+}
+#endif
+
 static void cleanupChildProcess(void) {
 
     // Cause KeyboardInterrupt in the child process.
@@ -517,7 +536,8 @@ static void cleanupChildProcess(void) {
         WaitForSingleObject(handle_process, INFINITE);
         CloseHandle(handle_process);
 #else
-        waitpid(handle_process, NULL, 0);
+        int status;
+        waitpid_retried(handle_process, &status);
 #endif
         NUITKA_PRINT_TRACE("Child is exited.\n");
 #endif
@@ -984,7 +1004,7 @@ int main(int argc, char **argv) {
     } else {
         handle_process = pid;
         int status;
-        int res = waitpid(handle_process, &status, 0);
+        int res = waitpid_retried(handle_process, &status);
 
         if (res == -1 && errno != ECHILD) {
             printError("waitpid");

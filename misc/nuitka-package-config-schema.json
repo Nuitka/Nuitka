@@ -137,7 +137,10 @@
                             "type": "string",
                             "oneOf": [
                                 {
-                                    "const": "true"
+                                    "const": "yes"
+                                },
+                                {
+                                    "const": "no"
                                 },
                                 {
                                     "const": "onefile"
@@ -148,10 +151,16 @@
                             "type": "string",
                             "oneOf": [
                                 {
-                                    "const": "macos"
+                                    "const": "yes"
+                                },
+                                {
+                                    "const": "no"
                                 },
                                 {
                                     "const": "recommend"
+                                },
+                                {
+                                    "const": "recommend_on_macos"
                                 }
                             ]
                         }
