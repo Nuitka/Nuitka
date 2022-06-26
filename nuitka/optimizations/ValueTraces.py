@@ -188,6 +188,10 @@ class ValueTraceBase(object):
         return None
 
     @staticmethod
+    def hasShapeListExact():
+        return False
+
+    @staticmethod
     def hasShapeDictionaryExact():
         return False
 
@@ -474,6 +478,16 @@ class ValueTraceEscaped(ValueTraceUnknown):
     def getAttributeNodeVeryTrusted(self):
         return self.previous.getAttributeNodeVeryTrusted()
 
+    # For escaped values, these do not have to forget their shape, the mutable ones
+    # and the only ones affected.
+    def hasShapeListExact(self):
+        trusted_node = self.previous.getAttributeNodeTrusted()
+        return trusted_node is not None and trusted_node.hasShapeListExact()
+
+    def hasShapeDictionaryExact(self):
+        trusted_node = self.previous.getAttributeNodeTrusted()
+        return trusted_node is not None and trusted_node.hasShapeDictionaryExact()
+
 
 class ValueTraceAssign(ValueTraceBase):
     __slots__ = ("assign_node",)
@@ -513,6 +527,9 @@ class ValueTraceAssign(ValueTraceBase):
 
     def getAssignNode(self):
         return self.assign_node
+
+    def hasShapeListExact(self):
+        return self.assign_node.subnode_source.hasShapeListExact()
 
     def hasShapeDictionaryExact(self):
         return self.assign_node.subnode_source.hasShapeDictionaryExact()
@@ -708,6 +725,9 @@ class ValueTraceMerge(ValueTraceMergeBase):
                 return False
 
         return True
+
+    def hasShapeListExact(self):
+        return all(previous.hasShapeListExact() for previous in self.previous)
 
     def hasShapeDictionaryExact(self):
         return all(previous.hasShapeDictionaryExact() for previous in self.previous)

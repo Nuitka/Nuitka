@@ -97,7 +97,7 @@ class VariableDeclaration(object):
         )
 
     def getCType(self):
-        # TODO: This ought to become unnecessry function
+        # TODO: This ought to become unnecessary function
         # In the mean time, many cases: pylint: disable=too-many-return-statements
 
         c_type = self.c_type
