@@ -32,32 +32,34 @@ def writeLine(output, *args):
 
 
 # Python2 dict methods:
-python2_dict_methods = (
-    "clear",  # has full dict coverage
-    "copy",  # has full dict coverage
-    "fromkeys",
-    "get",  # has full dict coverage
-    "has_key",  # has full dict coverage
-    "items",  # has full dict coverage
-    "iteritems",  # has full dict coverage
-    "iterkeys",  # has full dict coverage
-    "itervalues",  # has full dict coverage
-    "keys",  # has full dict coverage
-    "pop",  # has full dict coverage
-    "popitem",  # has full dict coverage
-    "setdefault",  # has full dict coverage
-    "update",  # has full dict coverage
-    "values",  # has full dict coverage
-    "viewitems",  # has full dict coverage
-    "viewkeys",  # has full dict coverage
-    "viewvalues",  # has full dict coverage
+python2_dict_methods = (  # we have full coverage for all methods
+    "clear",
+    "copy",
+    # This is actually a static method, not useful to call on on instance
+    # "fromkeys",
+    "get",
+    "has_key",
+    "items",
+    "iteritems",
+    "iterkeys",
+    "itervalues",
+    "keys",
+    "pop",
+    "popitem",
+    "setdefault",
+    "update",
+    "values",
+    "viewitems",
+    "viewkeys",
+    "viewvalues",
 )
 
 python3_dict_methods = (
     # see Python2 methods, these are only less
     "clear",
     "copy",
-    "fromkeys",
+    # This is actually a static method, not useful to call on on instance
+    # "fromkeys",
     "get",
     "items",
     "keys",
@@ -68,7 +70,7 @@ python3_dict_methods = (
     "values",
 )
 
-python2_str_methods = (  # has full str coverage for all methods
+python2_str_methods = (  # we have full coverage for all methods
     "capitalize",
     "center",
     "count",
@@ -109,7 +111,7 @@ python2_str_methods = (  # has full str coverage for all methods
     "zfill",
 )
 
-python3_str_methods = (  # has full str coverage for all methods
+python3_str_methods = (  # we have full coverage for all methods
     "capitalize",
     "casefold",
     "center",
@@ -207,7 +209,7 @@ python3_bytes_methods = (
     "capitalize",
     "center",
     "count",
-    "decode",
+    "decode",  # has full coverage
     "endswith",
     "expandtabs",
     "find",

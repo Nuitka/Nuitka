@@ -73,6 +73,8 @@ dict_setdefault_spec = DictMethodSpec(
 
 dict_pop_spec = DictMethodSpec("pop", arg_names=("key", "default"), default_count=1)
 
+dict_popitem_spec = DictMethodSpec("popitem")
+
 dict_update_spec = BuiltinParameterSpecSinglePosArgStarDictArgs(
     "dict.update", list_star_arg="iterable", dict_star_arg="pairs"
 )

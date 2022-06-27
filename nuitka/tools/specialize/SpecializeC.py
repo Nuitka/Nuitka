@@ -2208,7 +2208,7 @@ generate_builtin_type_operations = [
         "tshape_dict",
         dict_desc,
         nuitka.specs.BuiltinDictOperationSpecs,
-        ("pop", "setdefault"),
+        ("pop", "popitem", "setdefault"),
     ),
     # TODO: These are very complex things using "string lib" code in CPython,
     # that we do not have easy access to, but we might one day for Nuitka-Python

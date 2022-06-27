@@ -27,6 +27,7 @@ extern PyObject *str_builtin_format;
 extern PyObject *unicode_builtin_format;
 extern PyObject *DICT_POP2(PyObject *dict, PyObject *key);
 extern PyObject *DICT_POP3(PyObject *dict, PyObject *key, PyObject *default_value);
+extern PyObject *DICT_POPITEM(PyObject *dict);
 extern PyObject *DICT_SETDEFAULT2(PyObject *dict, PyObject *key);
 extern PyObject *DICT_SETDEFAULT3(PyObject *dict, PyObject *key, PyObject *default_value);
 #if PYTHON_VERSION < 0x300
