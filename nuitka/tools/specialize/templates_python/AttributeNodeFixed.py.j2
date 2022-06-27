@@ -462,7 +462,7 @@ class ExpressionAttributeLookupList{{attribute_name_class}}(SideEffectsFromChild
     def _computeExpressionCall(call_node, list_arg, trace_collection):
         def wrapExpressionListOperation{{attribute_name_class}}({{formatArgs(list_operation_args, starting=True, finishing=False)}} source_ref):
 {% if python3_operation_name %}
-            if str is list:
+            if str is bytes:
                 return ExpressionListOperation{{attribute_name_class}}(
                     list_arg=list_arg, source_ref=source_ref
                 )
