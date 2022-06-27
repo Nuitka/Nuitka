@@ -53,7 +53,7 @@ from .templates.CodeTemplatesLoader import (
 )
 
 
-def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
+def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
     module_c_name = encodePythonStringToC(
         Plugins.encodeDataComposerName(module.getFullName().asString())
     )
@@ -114,7 +114,7 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
         }
 
 
-def getMetapathLoaderBodyCode(bytecode_accessor):
+def getMetaPathLoaderBodyCode(bytecode_accessor):
     metapath_loader_inittab = []
     metapath_module_decls = []
 
@@ -126,7 +126,7 @@ def getMetapathLoaderBodyCode(bytecode_accessor):
             continue
 
         metapath_loader_inittab.append(
-            getModuleMetapathLoaderEntryCode(
+            getModuleMetaPathLoaderEntryCode(
                 module=other_module, bytecode_accessor=bytecode_accessor
             )
         )
@@ -140,7 +140,7 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
 
     for uncompiled_module in uncompiled_modules:
         metapath_loader_inittab.append(
-            getModuleMetapathLoaderEntryCode(
+            getModuleMetaPathLoaderEntryCode(
                 module=uncompiled_module, bytecode_accessor=bytecode_accessor
             )
         )

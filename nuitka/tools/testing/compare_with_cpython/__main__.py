@@ -71,7 +71,7 @@ def checkNoPermissionError(output):
         if candidate in output:
             return False
 
-    # These are localized it seems.
+    # These are localized it seems, spell-checker: ignore totest
     if re.search(
         b"(WindowsError|FileNotFoundError|FileExistsError|WinError 145):"
         b".*(@test|totest|xx|Error 145)",
@@ -149,7 +149,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
         command_hash.update(hash_salt)
 
         if os.name == "nt" and python_version < 0x300:
-            curdir = os.getcwdu()
+            curdir = os.getcwdu()  # spell-checker: ignore getcwdu
         else:
             curdir = os.getcwd()
 
@@ -254,9 +254,9 @@ def main():
     full_compat = not hasArg("improved")
     cpython_cached = hasArg("cpython_cache")
     syntax_errors = hasArg("syntax_errors")
-    noprefer_source = hasArg("noprefer_source")
-    noverbose_log = hasArg("noverbose_log")
-    noinclusion_log = hasArg("noinclusion_log")
+    no_prefer_source = hasArg("--no-prefer-source")
+    no_verbose_log = hasArg("no_verbose_log")
+    no_inclusion_log = hasArg("no_inclusion_log")
     send_kill = hasArg("--send-ctrl-c")
     output_dir = hasArgValue("--output-dir", None)
     include_packages = hasArgValues("--include-package")
@@ -417,6 +417,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         else:
             assert coverage_mode
 
+            # spell-checker: ignore rcfile
+
             nuitka_call = [
                 os.environ["PYTHON"],
                 "-S",
@@ -448,7 +450,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if full_compat:
         extra_options.append("--full-compat")
 
-    if noprefer_source:
+    if no_prefer_source:
         extra_options.append("--no-prefer-source")
 
     if python_flag_m:
@@ -501,10 +503,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     for user_plugin in user_plugins:
         extra_options.append("--user-plugin=" + user_plugin)
 
-    if not noverbose_log:
+    if not no_verbose_log:
         extra_options.append("--verbose-output=%s.optimization.log" % filename)
 
-    if not noinclusion_log:
+    if not no_inclusion_log:
         extra_options.append("--show-modules-output=%s.inclusion.log" % filename)
 
     if output_dir is not None:

@@ -136,8 +136,9 @@ def _setupSconsEnvironment():
     Python DLL lives, in case it needs to be copied, and then also the
     "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
 
-    We also need to preserve PYTHONPATH and PYTHONHOME, but remove it potentially
-    as well, so not to confuse the other Python binary used to run scons.
+    We also need to preserve "PYTHONPATH" and "PYTHONHOME", but remove it
+    potentially as well, so not to confuse the other Python binary used to run
+    scons.
     """
 
     # For Python2, avoid unicode working directory.
