@@ -402,7 +402,7 @@ def makeSourceDirectory():
 
         source_code = CodeGeneration.generateModuleCode(
             module=module,
-            data_filename=os.path.basename(c_filename + "onst"),  # Really .const
+            data_filename=os.path.basename(c_filename[:-2] + ".const"),
         )
 
         writeSourceCode(filename=c_filename, source_code=source_code)
@@ -496,6 +496,7 @@ def _runCPgoBinary():
     else:
         _exit_code = _runPgoBinary()
 
+        # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = os.path.join(
             OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
         )
@@ -814,7 +815,7 @@ def compileTree():
 
         # This should take all bytecode values, even ones needed for frozen or
         # not produce anything.
-        loader_code = LoaderCodes.getMetapathLoaderBodyCode(bytecode_accessor)
+        loader_code = LoaderCodes.getMetaPathLoaderBodyCode(bytecode_accessor)
 
         writeSourceCode(
             filename=os.path.join(source_dir, "__loader.c"), source_code=loader_code
