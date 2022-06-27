@@ -58,7 +58,7 @@
 {% set attribute_name_class = attribute_name.replace("_", "").title() %}
 
 class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value '{{attribute_name}}' of an object. spell-checker: ignore {{attribute_name}}
+    """Looking up an attribute value '{{attribute_name}}' of an object.
 
     Typically code like: source.{{attribute_name}}
     """

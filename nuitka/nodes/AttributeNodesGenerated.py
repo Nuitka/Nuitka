@@ -1,9 +1,31 @@
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
+# pylint: disable=too-many-lines
+# pylint: disable=line-too-long
+
 """Specialized attribute nodes
 
 WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
+
+spell-checker: ignore capitalize casefold center clear copy count decode encode endswith expandtabs find format formatmap fromkeys get haskey hex index isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem replace rfind rindex rjust rpartition rsplit rstrip setdefault split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore args chars count default encoding end errors fillchar iterable keepends key maxsplit new old pairs prefix sep start sub suffix table tabsize width
 """
 
-# pylint: disable=too-many-lines
 
 from nuitka.specs.BuiltinBytesOperationSpecs import bytes_decode_spec
 from nuitka.specs.BuiltinDictOperationSpecs import (
@@ -176,7 +198,7 @@ attribute_typed_classes = set()
 
 
 class ExpressionAttributeLookupFixedCapitalize(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'capitalize' of an object. spell-checker: ignore capitalize
+    """Looking up an attribute value 'capitalize' of an object.
 
     Typically code like: source.capitalize
     """
@@ -302,7 +324,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesCapitalize)
 
 
 class ExpressionAttributeLookupFixedCasefold(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'casefold' of an object. spell-checker: ignore casefold
+    """Looking up an attribute value 'casefold' of an object.
 
     Typically code like: source.casefold
     """
@@ -360,7 +382,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrCasefold)
 
 
 class ExpressionAttributeLookupFixedCenter(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'center' of an object. spell-checker: ignore center
+    """Looking up an attribute value 'center' of an object.
 
     Typically code like: source.center
     """
@@ -494,7 +516,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesCenter)
 
 
 class ExpressionAttributeLookupFixedClear(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'clear' of an object. spell-checker: ignore clear
+    """Looking up an attribute value 'clear' of an object.
 
     Typically code like: source.clear
     """
@@ -592,7 +614,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictClear)
 
 
 class ExpressionAttributeLookupFixedCopy(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'copy' of an object. spell-checker: ignore copy
+    """Looking up an attribute value 'copy' of an object.
 
     Typically code like: source.copy
     """
@@ -688,7 +710,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictCopy)
 
 
 class ExpressionAttributeLookupFixedCount(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'count' of an object. spell-checker: ignore count
+    """Looking up an attribute value 'count' of an object.
 
     Typically code like: source.count
     """
@@ -827,7 +849,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesCount)
 
 
 class ExpressionAttributeLookupFixedDecode(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'decode' of an object. spell-checker: ignore decode
+    """Looking up an attribute value 'decode' of an object.
 
     Typically code like: source.decode
     """
@@ -1015,7 +1037,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesDecode)
 
 
 class ExpressionAttributeLookupFixedEncode(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'encode' of an object. spell-checker: ignore encode
+    """Looking up an attribute value 'encode' of an object.
 
     Typically code like: source.encode
     """
@@ -1123,7 +1145,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrEncode)
 
 
 class ExpressionAttributeLookupFixedEndswith(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'endswith' of an object. spell-checker: ignore endswith
+    """Looking up an attribute value 'endswith' of an object.
 
     Typically code like: source.endswith
     """
@@ -1262,7 +1284,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesEndswith)
 
 
 class ExpressionAttributeLookupFixedExpandtabs(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'expandtabs' of an object. spell-checker: ignore expandtabs
+    """Looking up an attribute value 'expandtabs' of an object.
 
     Typically code like: source.expandtabs
     """
@@ -1393,7 +1415,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesExpandtabs)
 
 
 class ExpressionAttributeLookupFixedFind(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'find' of an object. spell-checker: ignore find
+    """Looking up an attribute value 'find' of an object.
 
     Typically code like: source.find
     """
@@ -1532,7 +1554,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesFind)
 
 
 class ExpressionAttributeLookupFixedFormat(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'format' of an object. spell-checker: ignore format
+    """Looking up an attribute value 'format' of an object.
 
     Typically code like: source.format
     """
@@ -1631,7 +1653,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrFormat)
 
 
 class ExpressionAttributeLookupFixedFormatmap(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'format_map' of an object. spell-checker: ignore format_map
+    """Looking up an attribute value 'format_map' of an object.
 
     Typically code like: source.format_map
     """
@@ -1689,7 +1711,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrFormatmap)
 
 
 class ExpressionAttributeLookupFixedFromkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'fromkeys' of an object. spell-checker: ignore fromkeys
+    """Looking up an attribute value 'fromkeys' of an object.
 
     Typically code like: source.fromkeys
     """
@@ -1745,7 +1767,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictFromkeys)
 
 
 class ExpressionAttributeLookupFixedGet(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'get' of an object. spell-checker: ignore get
+    """Looking up an attribute value 'get' of an object.
 
     Typically code like: source.get
     """
@@ -1848,7 +1870,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictGet)
 
 
 class ExpressionAttributeLookupFixedHaskey(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'has_key' of an object. spell-checker: ignore has_key
+    """Looking up an attribute value 'has_key' of an object.
 
     Typically code like: source.has_key
     """
@@ -1946,7 +1968,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictHaskey)
 
 
 class ExpressionAttributeLookupFixedHex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'hex' of an object. spell-checker: ignore hex
+    """Looking up an attribute value 'hex' of an object.
 
     Typically code like: source.hex
     """
@@ -2004,7 +2026,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesHex)
 
 
 class ExpressionAttributeLookupFixedIndex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'index' of an object. spell-checker: ignore index
+    """Looking up an attribute value 'index' of an object.
 
     Typically code like: source.index
     """
@@ -2143,7 +2165,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIndex)
 
 
 class ExpressionAttributeLookupFixedIsalnum(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isalnum' of an object. spell-checker: ignore isalnum
+    """Looking up an attribute value 'isalnum' of an object.
 
     Typically code like: source.isalnum
     """
@@ -2267,7 +2289,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsalnum)
 
 
 class ExpressionAttributeLookupFixedIsalpha(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isalpha' of an object. spell-checker: ignore isalpha
+    """Looking up an attribute value 'isalpha' of an object.
 
     Typically code like: source.isalpha
     """
@@ -2391,7 +2413,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsalpha)
 
 
 class ExpressionAttributeLookupFixedIsascii(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isascii' of an object. spell-checker: ignore isascii
+    """Looking up an attribute value 'isascii' of an object.
 
     Typically code like: source.isascii
     """
@@ -2479,7 +2501,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsascii)
 
 
 class ExpressionAttributeLookupFixedIsdecimal(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isdecimal' of an object. spell-checker: ignore isdecimal
+    """Looking up an attribute value 'isdecimal' of an object.
 
     Typically code like: source.isdecimal
     """
@@ -2537,7 +2559,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsdecimal)
 
 
 class ExpressionAttributeLookupFixedIsdigit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isdigit' of an object. spell-checker: ignore isdigit
+    """Looking up an attribute value 'isdigit' of an object.
 
     Typically code like: source.isdigit
     """
@@ -2661,7 +2683,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsdigit)
 
 
 class ExpressionAttributeLookupFixedIsidentifier(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isidentifier' of an object. spell-checker: ignore isidentifier
+    """Looking up an attribute value 'isidentifier' of an object.
 
     Typically code like: source.isidentifier
     """
@@ -2719,7 +2741,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsidentifier)
 
 
 class ExpressionAttributeLookupFixedIslower(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'islower' of an object. spell-checker: ignore islower
+    """Looking up an attribute value 'islower' of an object.
 
     Typically code like: source.islower
     """
@@ -2843,7 +2865,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIslower)
 
 
 class ExpressionAttributeLookupFixedIsnumeric(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isnumeric' of an object. spell-checker: ignore isnumeric
+    """Looking up an attribute value 'isnumeric' of an object.
 
     Typically code like: source.isnumeric
     """
@@ -2901,7 +2923,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsnumeric)
 
 
 class ExpressionAttributeLookupFixedIsprintable(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isprintable' of an object. spell-checker: ignore isprintable
+    """Looking up an attribute value 'isprintable' of an object.
 
     Typically code like: source.isprintable
     """
@@ -2959,7 +2981,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsprintable)
 
 
 class ExpressionAttributeLookupFixedIsspace(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isspace' of an object. spell-checker: ignore isspace
+    """Looking up an attribute value 'isspace' of an object.
 
     Typically code like: source.isspace
     """
@@ -3083,7 +3105,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsspace)
 
 
 class ExpressionAttributeLookupFixedIstitle(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'istitle' of an object. spell-checker: ignore istitle
+    """Looking up an attribute value 'istitle' of an object.
 
     Typically code like: source.istitle
     """
@@ -3207,7 +3229,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIstitle)
 
 
 class ExpressionAttributeLookupFixedIsupper(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isupper' of an object. spell-checker: ignore isupper
+    """Looking up an attribute value 'isupper' of an object.
 
     Typically code like: source.isupper
     """
@@ -3331,7 +3353,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsupper)
 
 
 class ExpressionAttributeLookupFixedItems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'items' of an object. spell-checker: ignore items
+    """Looking up an attribute value 'items' of an object.
 
     Typically code like: source.items
     """
@@ -3434,7 +3456,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictItems)
 
 
 class ExpressionAttributeLookupFixedIteritems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'iteritems' of an object. spell-checker: ignore iteritems
+    """Looking up an attribute value 'iteritems' of an object.
 
     Typically code like: source.iteritems
     """
@@ -3532,7 +3554,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictIteritems)
 
 
 class ExpressionAttributeLookupFixedIterkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'iterkeys' of an object. spell-checker: ignore iterkeys
+    """Looking up an attribute value 'iterkeys' of an object.
 
     Typically code like: source.iterkeys
     """
@@ -3630,7 +3652,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictIterkeys)
 
 
 class ExpressionAttributeLookupFixedItervalues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'itervalues' of an object. spell-checker: ignore itervalues
+    """Looking up an attribute value 'itervalues' of an object.
 
     Typically code like: source.itervalues
     """
@@ -3728,7 +3750,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictItervalues)
 
 
 class ExpressionAttributeLookupFixedJoin(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'join' of an object. spell-checker: ignore join
+    """Looking up an attribute value 'join' of an object.
 
     Typically code like: source.join
     """
@@ -3854,7 +3876,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesJoin)
 
 
 class ExpressionAttributeLookupFixedKeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'keys' of an object. spell-checker: ignore keys
+    """Looking up an attribute value 'keys' of an object.
 
     Typically code like: source.keys
     """
@@ -3957,7 +3979,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictKeys)
 
 
 class ExpressionAttributeLookupFixedLjust(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'ljust' of an object. spell-checker: ignore ljust
+    """Looking up an attribute value 'ljust' of an object.
 
     Typically code like: source.ljust
     """
@@ -4091,7 +4113,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesLjust)
 
 
 class ExpressionAttributeLookupFixedLower(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'lower' of an object. spell-checker: ignore lower
+    """Looking up an attribute value 'lower' of an object.
 
     Typically code like: source.lower
     """
@@ -4215,7 +4237,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesLower)
 
 
 class ExpressionAttributeLookupFixedLstrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'lstrip' of an object. spell-checker: ignore lstrip
+    """Looking up an attribute value 'lstrip' of an object.
 
     Typically code like: source.lstrip
     """
@@ -4346,7 +4368,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesLstrip)
 
 
 class ExpressionAttributeLookupFixedMaketrans(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'maketrans' of an object. spell-checker: ignore maketrans
+    """Looking up an attribute value 'maketrans' of an object.
 
     Typically code like: source.maketrans
     """
@@ -4434,7 +4456,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesMaketrans)
 
 
 class ExpressionAttributeLookupFixedPartition(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'partition' of an object. spell-checker: ignore partition
+    """Looking up an attribute value 'partition' of an object.
 
     Typically code like: source.partition
     """
@@ -4560,7 +4582,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesPartition)
 
 
 class ExpressionAttributeLookupFixedPop(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'pop' of an object. spell-checker: ignore pop
+    """Looking up an attribute value 'pop' of an object.
 
     Typically code like: source.pop
     """
@@ -4663,7 +4685,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictPop)
 
 
 class ExpressionAttributeLookupFixedPopitem(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'popitem' of an object. spell-checker: ignore popitem
+    """Looking up an attribute value 'popitem' of an object.
 
     Typically code like: source.popitem
     """
@@ -4719,7 +4741,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictPopitem)
 
 
 class ExpressionAttributeLookupFixedReplace(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'replace' of an object. spell-checker: ignore replace
+    """Looking up an attribute value 'replace' of an object.
 
     Typically code like: source.replace
     """
@@ -4854,7 +4876,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesReplace)
 
 
 class ExpressionAttributeLookupFixedRfind(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rfind' of an object. spell-checker: ignore rfind
+    """Looking up an attribute value 'rfind' of an object.
 
     Typically code like: source.rfind
     """
@@ -4993,7 +5015,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRfind)
 
 
 class ExpressionAttributeLookupFixedRindex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rindex' of an object. spell-checker: ignore rindex
+    """Looking up an attribute value 'rindex' of an object.
 
     Typically code like: source.rindex
     """
@@ -5132,7 +5154,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRindex)
 
 
 class ExpressionAttributeLookupFixedRjust(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rjust' of an object. spell-checker: ignore rjust
+    """Looking up an attribute value 'rjust' of an object.
 
     Typically code like: source.rjust
     """
@@ -5266,7 +5288,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRjust)
 
 
 class ExpressionAttributeLookupFixedRpartition(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rpartition' of an object. spell-checker: ignore rpartition
+    """Looking up an attribute value 'rpartition' of an object.
 
     Typically code like: source.rpartition
     """
@@ -5392,7 +5414,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRpartition)
 
 
 class ExpressionAttributeLookupFixedRsplit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rsplit' of an object. spell-checker: ignore rsplit
+    """Looking up an attribute value 'rsplit' of an object.
 
     Typically code like: source.rsplit
     """
@@ -5527,7 +5549,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRsplit)
 
 
 class ExpressionAttributeLookupFixedRstrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rstrip' of an object. spell-checker: ignore rstrip
+    """Looking up an attribute value 'rstrip' of an object.
 
     Typically code like: source.rstrip
     """
@@ -5658,7 +5680,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRstrip)
 
 
 class ExpressionAttributeLookupFixedSetdefault(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'setdefault' of an object. spell-checker: ignore setdefault
+    """Looking up an attribute value 'setdefault' of an object.
 
     Typically code like: source.setdefault
     """
@@ -5761,7 +5783,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictSetdefault)
 
 
 class ExpressionAttributeLookupFixedSplit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'split' of an object. spell-checker: ignore split
+    """Looking up an attribute value 'split' of an object.
 
     Typically code like: source.split
     """
@@ -5896,7 +5918,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesSplit)
 
 
 class ExpressionAttributeLookupFixedSplitlines(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'splitlines' of an object. spell-checker: ignore splitlines
+    """Looking up an attribute value 'splitlines' of an object.
 
     Typically code like: source.splitlines
     """
@@ -6027,7 +6049,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesSplitlines)
 
 
 class ExpressionAttributeLookupFixedStartswith(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'startswith' of an object. spell-checker: ignore startswith
+    """Looking up an attribute value 'startswith' of an object.
 
     Typically code like: source.startswith
     """
@@ -6166,7 +6188,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesStartswith)
 
 
 class ExpressionAttributeLookupFixedStrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'strip' of an object. spell-checker: ignore strip
+    """Looking up an attribute value 'strip' of an object.
 
     Typically code like: source.strip
     """
@@ -6297,7 +6319,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesStrip)
 
 
 class ExpressionAttributeLookupFixedSwapcase(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'swapcase' of an object. spell-checker: ignore swapcase
+    """Looking up an attribute value 'swapcase' of an object.
 
     Typically code like: source.swapcase
     """
@@ -6423,7 +6445,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesSwapcase)
 
 
 class ExpressionAttributeLookupFixedTitle(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'title' of an object. spell-checker: ignore title
+    """Looking up an attribute value 'title' of an object.
 
     Typically code like: source.title
     """
@@ -6547,7 +6569,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesTitle)
 
 
 class ExpressionAttributeLookupFixedTranslate(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'translate' of an object. spell-checker: ignore translate
+    """Looking up an attribute value 'translate' of an object.
 
     Typically code like: source.translate
     """
@@ -6673,7 +6695,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesTranslate)
 
 
 class ExpressionAttributeLookupFixedUpdate(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'update' of an object. spell-checker: ignore update
+    """Looking up an attribute value 'update' of an object.
 
     Typically code like: source.update
     """
@@ -6783,7 +6805,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictUpdate)
 
 
 class ExpressionAttributeLookupFixedUpper(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'upper' of an object. spell-checker: ignore upper
+    """Looking up an attribute value 'upper' of an object.
 
     Typically code like: source.upper
     """
@@ -6907,7 +6929,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesUpper)
 
 
 class ExpressionAttributeLookupFixedValues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'values' of an object. spell-checker: ignore values
+    """Looking up an attribute value 'values' of an object.
 
     Typically code like: source.values
     """
@@ -7010,7 +7032,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictValues)
 
 
 class ExpressionAttributeLookupFixedViewitems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewitems' of an object. spell-checker: ignore viewitems
+    """Looking up an attribute value 'viewitems' of an object.
 
     Typically code like: source.viewitems
     """
@@ -7108,7 +7130,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewitems)
 
 
 class ExpressionAttributeLookupFixedViewkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewkeys' of an object. spell-checker: ignore viewkeys
+    """Looking up an attribute value 'viewkeys' of an object.
 
     Typically code like: source.viewkeys
     """
@@ -7206,7 +7228,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewkeys)
 
 
 class ExpressionAttributeLookupFixedViewvalues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewvalues' of an object. spell-checker: ignore viewvalues
+    """Looking up an attribute value 'viewvalues' of an object.
 
     Typically code like: source.viewvalues
     """
@@ -7304,7 +7326,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewvalues)
 
 
 class ExpressionAttributeLookupFixedZfill(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'zfill' of an object. spell-checker: ignore zfill
+    """Looking up an attribute value 'zfill' of an object.
 
     Typically code like: source.zfill
     """
