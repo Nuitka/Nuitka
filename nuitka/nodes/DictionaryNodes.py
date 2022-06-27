@@ -40,6 +40,7 @@ from .ExpressionShapeMixins import (
     ExpressionDictShapeExactMixin,
     ExpressionListShapeExactMixin,
     ExpressionNoneShapeExactMixin,
+    ExpressionTupleShapeExactMixin,
 )
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -490,6 +491,47 @@ class ExpressionDictOperationPop3(ExpressionChildrenHavingBase):
                 or self.subnode_key.mayRaiseException(exception_type)
                 or self.subnode_default.mayRaiseException(exception_type)
             )
+
+
+class ExpressionDictOperationPopitem(
+    ExpressionTupleShapeExactMixin, ExpressionChildHavingBase
+):
+    """This operation represents d.popitem()."""
+
+    kind = "EXPRESSION_DICT_OPERATION_POPITEM"
+
+    named_child = "dict_arg"
+
+    def __init__(self, dict_arg, source_ref):
+        assert dict_arg is not None
+
+        ExpressionChildHavingBase.__init__(
+            self,
+            value=dict_arg,
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        dict_arg = self.subnode_dict_arg
+
+        # TODO: Check if dict_arg is not empty.
+
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(dict_arg)
+
+        # TODO: Until we can know KeyError won't happen, but then we should change into
+        # something else.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    # TODO: These turn this into dictionary item removal, as value is unused.
+    # def computeExpressionDrop(self, statement, trace_collection):
+
+    # TODO: Might raise KeyError depending on dictionary.
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
 
 
 class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
