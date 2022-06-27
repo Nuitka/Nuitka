@@ -99,7 +99,7 @@ def action(stage_dir, _root, path):
         "--remove-output",
         "--quiet",
         "--nofollow-imports",
-        "--enable-plugin=pylint-warnings",
+        "--no-progressbar",
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
