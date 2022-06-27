@@ -101,6 +101,8 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
+            # Don't care here, this is mostly for coverage.
+            "--nowarn-mnemonic=debian-dist-packages",
         ]
 
         # skip each test if their respective requirements are not met

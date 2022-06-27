@@ -281,18 +281,11 @@ def main():
             user_plugins.append(arg[len("user_plugin:") :])
             del args[count]
 
-    recurse_not = []
+    nowarn_mnemonics = []
 
     for count, arg in reversed(tuple(enumerate(args))):
-        if arg.startswith("recurse_not:"):
-            recurse_not.append(arg[len("recurse_not:") :])
-            del args[count]
-
-    recurse_to = []
-
-    for count, arg in reversed(tuple(enumerate(args))):
-        if arg.startswith("recurse_to:"):
-            recurse_to.append(arg[len("recurse_to:") :])
+        if arg.startswith("--nowarn-mnemonic="):
+            nowarn_mnemonics.append(arg[len("--nowarn-mnemonic=") :])
             del args[count]
 
     if args:
@@ -487,8 +480,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if follow_imports:
         extra_options.append("--follow-imports")
 
-    if recurse_not:
-        extra_options.extend("--nofollow-import-to=" + v for v in recurse_not)
+    if nowarn_mnemonics:
+        extra_options.extend("--nowarn-mnemonic=" + v for v in nowarn_mnemonics)
 
     if coverage_mode:
         extra_options.append("--must-not-re-execute")
