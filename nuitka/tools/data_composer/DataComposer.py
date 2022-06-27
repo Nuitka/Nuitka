@@ -252,7 +252,7 @@ def _writeConstantValue(output, constant_value):
         if len(range_args) < 3:
             range_args.append(1)
 
-        output.write(struct.pack("iii", *range_args))
+        output.write(struct.pack("lll", *range_args))
     elif constant_type is complex:
         # Some float values do not transport well, use float streaming then.
         if (
