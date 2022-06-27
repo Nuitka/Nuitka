@@ -35,6 +35,15 @@ extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB(void);
 extern PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void);
 #endif
 
+/* C helper for hard import of module "ctypes" import. */
+extern PyObject *IMPORT_HARD_CTYPES(void);
+
+/* C helper for hard import of module "ctypes.macholib" import. */
+extern PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void);
+
+/* C helper for hard import of module "ctypes.wintypes" import. */
+extern PyObject *IMPORT_HARD_CTYPES__WINTYPES(void);
+
 /* C helper for hard import of module "functools" import. */
 extern PyObject *IMPORT_HARD_FUNCTOOLS(void);
 
