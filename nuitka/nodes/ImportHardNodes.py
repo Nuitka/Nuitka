@@ -78,9 +78,6 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
     def finalize(self):
         del self.parent
 
-    def getDetails(self):
-        return {"module_name": self.module_name, "import_name": self.import_name}
-
     def getModuleName(self):
         return self.module_name
 
@@ -96,6 +93,13 @@ class ExpressionImportModuleNameHardMaybeExists(ExpressionImportModuleNameHardBa
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS"
+
+    def getDetails(self):
+        return {
+            "module_name": self.module_name,
+            "import_name": self.import_name,
+            "module_guaranteed": self.module_guaranteed,
+        }
 
     def computeExpressionRaw(self, trace_collection):
         trace_collection.onExceptionRaiseExit(AttributeError)
@@ -118,6 +122,13 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS"
+
+    def getDetails(self):
+        return {
+            "module_name": self.module_name,
+            "import_name": self.import_name,
+            "module_guaranteed": self.module_guaranteed,
+        }
 
     def computeExpressionRaw(self, trace_collection):
         if not self.module_guaranteed:
