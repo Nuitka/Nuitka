@@ -115,6 +115,7 @@ def main():
             "--run",
             "--output-dir=%s" % stage_dir,
             "--remove-output",
+            "--no-progressbar",
         ]
 
         filename = os.path.join(stage_dir, "importer.py")
