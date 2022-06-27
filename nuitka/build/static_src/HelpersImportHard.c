@@ -83,6 +83,63 @@ PyObject *IMPORT_HARD__FROZEN_IMPORTLIB_EXTERNAL(void) {
 }
 #endif
 
+/* C helper for hard import of module "ctypes" import. */
+PyObject *IMPORT_HARD_CTYPES(void) {
+    static PyObject *module_import_hard_ctypes = NULL;
+
+    if (module_import_hard_ctypes == NULL) {
+        module_import_hard_ctypes = PyImport_ImportModule("ctypes");
+
+        if (unlikely(module_import_hard_ctypes == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'ctypes'");
+            abort();
+        }
+    }
+
+    return module_import_hard_ctypes;
+}
+
+/* C helper for hard import of module "ctypes.macholib" import. */
+PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void) {
+    static PyObject *module_import_hard_ctypes__macholib = NULL;
+
+    if (module_import_hard_ctypes__macholib == NULL) {
+        module_import_hard_ctypes__macholib = PyImport_ImportModule("ctypes.macholib");
+
+        if (unlikely(module_import_hard_ctypes__macholib == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'ctypes.macholib'");
+            abort();
+        }
+    }
+
+    return module_import_hard_ctypes__macholib;
+}
+
+/* C helper for hard import of module "ctypes.wintypes" import. */
+PyObject *IMPORT_HARD_CTYPES__WINTYPES(void) {
+    static PyObject *module_import_hard_ctypes__wintypes = NULL;
+
+    if (module_import_hard_ctypes__wintypes == NULL) {
+        module_import_hard_ctypes__wintypes = PyImport_ImportModule("ctypes.wintypes");
+
+        if (unlikely(module_import_hard_ctypes__wintypes == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'ctypes.wintypes'");
+            abort();
+        }
+    }
+
+    return module_import_hard_ctypes__wintypes;
+}
+
 /* C helper for hard import of module "functools" import. */
 PyObject *IMPORT_HARD_FUNCTOOLS(void) {
     static PyObject *module_import_hard_functools = NULL;
