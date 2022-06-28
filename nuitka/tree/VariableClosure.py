@@ -87,16 +87,18 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             source_ref,
         ) in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
-
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
-
-                node.getLocalsScope().registerClosureVariable(variable)
 
                 if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (non_local_name),
                         source_ref,
                     )
+
+                if node.isExpressionClassBody() and non_local_name == "__class__":
+                    pass
+                else:
+                    node.getLocalsScope().registerClosureVariable(variable)
 
                 variable.addVariableUser(node)
 
