@@ -143,7 +143,7 @@ def _enableLtoSettings(
     ):
         lto_mode = True
         reason = "known to be supported (Debian)"
-    elif env.gcc_mode and env.the_cc_name == "gnu-cc":
+    elif env.gcc_mode and "gnu-cc" in env.the_cc_name and env.anaconda_python:
         lto_mode = True
         reason = "known to be supported (CondaCC)"
     elif env.mingw_mode and env.clang_mode:

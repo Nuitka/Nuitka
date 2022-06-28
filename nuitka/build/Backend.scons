@@ -78,7 +78,6 @@ from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
-    addToPATH,
     changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     createEnvironment,
@@ -92,6 +91,7 @@ from .SconsUtils import (
     initScons,
     isClangName,
     isGccName,
+    prepareEnvironment,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     scanSourceDir,
@@ -305,43 +305,22 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+# Anaconda Python might use its own compiler.
+anaconda_python = getArgumentBool("anaconda_python", False)
+
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
-
-
-def printCompilerVersionOutput(*args):
-    if compiler_version_mode or show_scons_mode:
-        my_print("Scons:", *args)
-
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
-# Add environment specified compilers to the PATH variable.
-if "CC" in os.environ:
-    os.environ["CC"] = os.path.normpath(os.environ["CC"])
-
-    if os.path.isdir(os.environ["CC"]):
-        scons_logger.sysexit(
-            "Error, the CC variable must point to file, not directory."
-        )
-
-    if os.path.sep in os.environ["CC"]:
-        cc_dirname = os.path.dirname(os.environ["CC"])
-        if os.path.isdir(cc_dirname):
-            addToPATH(None, cc_dirname, prefix=True)
-
-    if win_target and isGccName(os.path.basename(os.environ["CC"])):
-        scons_details_logger.info(
-            "Environment CC seems to be a gcc, enabling mingw_mode."
-        )
-        mingw_mode = True
-
-    printCompilerVersionOutput("CC=%r" % os.environ["CC"])
+# Prepare environment for compiler detection.
+mingw_mode = prepareEnvironment(
+    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
+)
 
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
-
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
@@ -359,7 +338,7 @@ scons_details_logger.info(
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
-    env["CC"] = os.path.expanduser(os.environ["CC"])
+    env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
 
     scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
@@ -396,7 +375,7 @@ env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
 
 # Various flavors could influence builds.
-env.anaconda_python = getArgumentBool("anaconda_python", False)
+env.anaconda_python = anaconda_python
 env.pyenv_python = getArgumentBool("pyenv_python", False)
 env.apple_python = getArgumentBool("pyenv_python", False)
 

@@ -56,7 +56,6 @@ from nuitka.Progress import (
     setupProgressBar,
 )
 from nuitka.PythonFlavors import (
-    isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
     isMSYS2MingwPython,
@@ -579,9 +578,6 @@ def runSconsBackend(quiet):
 
     if isMSYS2MingwPython():
         options["msys2_mingw_python"] = asBoolStr(True)
-
-    if isAnacondaPython():
-        options["anaconda_python"] = asBoolStr(True)
 
     if isApplePython():
         options["apple_python"] = asBoolStr(True)
