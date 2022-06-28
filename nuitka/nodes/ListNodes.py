@@ -61,7 +61,11 @@ class ExpressionListOperationAppend(
         list_arg = self.subnode_list_arg
         item = self.subnode_item
 
+        # the state of the object changes
         trace_collection.removeKnowledge(list_arg)
+
+        # exposing the variable content
+        item.onContentEscapes(trace_collection)
 
         return self, None, None
 
@@ -87,13 +91,14 @@ class ExpressionListOperationClear(
     def computeExpression(self, trace_collection):
         list_arg = self.subnode_list_arg
 
+        # only the state of object changes
         trace_collection.removeKnowledge(list_arg)
 
         return self, None, None
 
 
 class ExpressionListOperationCopy(
-    ExpressionListShapeExactMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     """This operation represents l.copy()."""
 
@@ -111,6 +116,9 @@ class ExpressionListOperationCopy(
         )
 
     def computeExpression(self, trace_collection):
+        list_arg = self.subnode_list_arg
+
+        list_arg.onContentEscapes(trace_collection)
         return self, None, None
 
 
@@ -120,7 +128,6 @@ class ExpressionListOperationExtend(
     """This operation represents l.extend(iterable)."""
 
     kind = "EXPRESSION_LIST_OPERATION_EXTEND"
-
     name_children = ('list_arg', 'value')
 
     def __init__(self, list_arg, value, source_ref):
@@ -137,10 +144,14 @@ class ExpressionListOperationExtend(
         list_arg = self.subnode_list_arg
         value = self.subnode_value
 
+        # the content of the list changes
         trace_collection.removeKnowledge(list_arg)
 
-        trace_collection.onExceptionRaiseExit(BaseException)
+        # expose the input value
+        value.onContentEscapes(trace_collection)
 
+        # if the argument is no iterable
+        trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
 
@@ -150,7 +161,6 @@ class ExpressionListOperationIndex(
     """This operation represents l.index(value, start, stop)."""
 
     kind = "EXPRESSION_LIST_OPERATION_INDEX"
-
     name_children = ('list_arg', 'value', 'start', 'stop')
 
     def __init__(self, list_arg, value, start, stop, source_ref):
@@ -168,10 +178,10 @@ class ExpressionListOperationIndex(
         list_arg = self.subnode_list_arg
         value = self.subnode_value
 
-        trace_collection.removeKnowledge(list_arg)
+        value.onContentEscapes(trace_collection)
 
+        # raises ValueError when the value is not found
         trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
 
@@ -181,7 +191,6 @@ class ExpressionListOperationInsert(
     """This operation represents l.insert(index, item)."""
 
     kind = "EXPRESSION_LIST_OPERATION_INSERT"
-
     name_children = ('list_arg', 'index', 'item')
 
     def __init__(self, list_arg, index, item, source_ref):
@@ -197,9 +206,12 @@ class ExpressionListOperationInsert(
 
     def computeExpression(self, trace_collection):
         list_arg = self.subnode_list_arg
+        item = self.subnode_item
 
+        # expose the item
+        item.onContentEscapes(trace_collection)
         trace_collection.removeKnowledge(list_arg)
-        trace_collection.onExceptionRaiseExit(BaseException)
+        # it raises no index error
 
         return self, None, None
 
@@ -210,7 +222,6 @@ class ExpressionListOperationPop(
     """This operation represents l.pop(index)."""
 
     kind = "EXPRESSION_LIST_OPERATION_POP"
-
     name_children = ('list_arg', 'index')
 
     def __init__(self, list_arg, index, source_ref):
@@ -227,18 +238,18 @@ class ExpressionListOperationPop(
         list_arg = self.subnode_list_arg
 
         trace_collection.removeKnowledge(list_arg)
-        trace_collection.onExceptionRaiseExit(BaseException)
 
+        # raises index error
+        trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
 
 class ExpressionListOperationRemove(
     ExpressionListShapeExactMixin, ExpressionChildHavingBase
 ):
-    """This operation represents l.remove(index, item)."""
+    """This operation represents l.remove(value)."""
 
     kind = "EXPRESSION_LIST_OPERATION_REMOVE"
-
     name_children = ('list_arg', 'value')
 
     def __init__(self, list_arg, value, source_ref):
@@ -253,8 +264,12 @@ class ExpressionListOperationRemove(
 
     def computeExpression(self, trace_collection):
         list_arg = self.subnode_list_arg
+        value = self.subnode_value
 
+        # TODO: do i need to call onContentEscapes?
         trace_collection.removeKnowledge(list_arg)
+
+        # raises ValuerError if the value is not found
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
@@ -282,8 +297,6 @@ class ExpressionListOperationReverse(
         list_arg = self.subnode_list_arg
 
         trace_collection.removeKnowledge(list_arg)
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         return self, None, None
 
 
