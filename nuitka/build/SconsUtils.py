@@ -30,6 +30,7 @@ from nuitka.__past__ import basestring, unicode
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
+from nuitka.utils.Utils import isLinux
 
 
 def initScons():
@@ -138,6 +139,35 @@ def _enableExperimentalSettings(env, experimental_flags):
     env.experimental_flags = experimental_flags
 
 
+def prepareEnvironment(mingw_mode, anaconda_python, python_prefix):
+    # Add environment specified compilers to the PATH variable.
+    if "CC" in os.environ:
+        scons_details_logger.info("CC=%r" % os.environ["CC"])
+
+        os.environ["CC"] = os.path.normpath(os.path.expanduser(os.environ["CC"]))
+
+        if os.path.isdir(os.environ["CC"]):
+            scons_logger.sysexit(
+                "Error, the 'CC' variable must point to file, not directory."
+            )
+
+        if os.path.sep in os.environ["CC"]:
+            cc_dirname = os.path.dirname(os.environ["CC"])
+            if os.path.isdir(cc_dirname):
+                addToPATH(None, cc_dirname, prefix=True)
+
+        if win_target and isGccName(os.path.basename(os.environ["CC"])):
+            scons_details_logger.info(
+                "Environment CC seems to be a gcc, enabling mingw_mode."
+            )
+            mingw_mode = True
+    else:
+        if isLinux() and anaconda_python:
+            addToPATH(None, os.path.join(python_prefix, "bin"), prefix=True)
+
+    return mingw_mode
+
+
 def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
     from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
@@ -150,6 +180,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
             "Installed MSVC versions are %s."
             % ",".join(repr(v) for v in SCons.Tool.MSCommon.vc.get_installed_vcs()),
         )
+
     # If we are on Windows, and MinGW is not enforced, lets see if we can
     # find "cl.exe", and if we do, disable automatic scan.
     if (

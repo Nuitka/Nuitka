@@ -31,6 +31,7 @@ import sys
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
@@ -378,6 +379,9 @@ def setCommonOptions(options):
 
     if Options.isUnstriped():
         options["unstriped_mode"] = asBoolStr(True)
+
+    if isAnacondaPython():
+        options["anaconda_python"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
