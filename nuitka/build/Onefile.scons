@@ -63,7 +63,6 @@ from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
-    addToPATH,
     changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     createEnvironment,
@@ -76,6 +75,7 @@ from .SconsUtils import (
     initScons,
     isClangName,
     isGccName,
+    prepareEnvironment,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     setArguments,
@@ -203,6 +203,8 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+# Anaconda Python might use its own compiler.
+anaconda_python = getArgumentBool("anaconda_python", False)
 
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
@@ -216,25 +218,12 @@ def printCompilerVersionOutput(*args):
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
-# Add environment specified compilers to the PATH variable.
-if "CC" in os.environ:
-    os.environ["CC"] = os.path.normpath(os.environ["CC"])
+# Prepare environment for compiler detection.
+mingw_mode = prepareEnvironment(
+    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
+)
 
-    if os.path.isdir(os.environ["CC"]):
-        sys.exit("Error, the CC variable must point to file, not directory.")
-
-    cc_dirname = os.path.dirname(os.environ["CC"])
-
-    if win_target and isGccName(os.path.basename(os.environ["CC"])):
-        if show_scons_mode:
-            my_print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
-        mingw_mode = True
-
-    if os.path.isdir(cc_dirname):
-        addToPATH(None, cc_dirname, prefix=True)
-
-    printCompilerVersionOutput("CC=%r" % os.environ["CC"])
-
+# TODO: Merge to prepareEnvironment as well.
 if "CXX" in os.environ:
     os.environ["CXX"] = os.path.normpath(os.environ["CXX"])
 
@@ -252,8 +241,6 @@ if "CXX" in os.environ:
         os.environ["PATH"] = os.pathsep.join(
             [cxx_dirname] + os.environ["PATH"].split(os.pathsep)
         )
-
-    printCompilerVersionOutput("CXX=%r" % os.environ["CXX"])
 
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
@@ -274,7 +261,6 @@ scons_details_logger.info(
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
-    env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
 
     scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
@@ -309,6 +295,8 @@ env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
+
+env.anaconda_python = anaconda_python
 
 # Requested or user provided, detect if it's clang even from environment
 if isClangName(env.the_cc_name):

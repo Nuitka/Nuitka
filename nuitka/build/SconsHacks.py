@@ -36,6 +36,7 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
 from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.Utils import isLinux
 
 from .SconsUtils import decodeData, getExecutablePath, isGccName
 
@@ -169,6 +170,10 @@ orig_detect = Environment.Detect
 
 def getEnhancedToolDetect():
     SCons.Tool.gcc.detect_version = myDetectVersion
+
+    # Allow CondaCC to be detected if it is in PATH.
+    if isLinux():
+        SCons.Tool.gcc.compilers.insert(0, "x86_64-conda-linux-gnu-gcc")
 
     return myDetect
 
