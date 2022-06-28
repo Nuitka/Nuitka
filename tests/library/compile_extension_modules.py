@@ -133,12 +133,13 @@ def main():
             if module_name.hasNamespace("PySide2"):
                 plugin_names.add("pyside2")
             elif module_name.hasNamespace("PySide6"):
-                plugin_names.add("pyside2")
+                plugin_names.add("pyside6")
             elif module_name.hasNamespace("PyQt5"):
                 plugin_names.add("pyqt5")
+            elif module_name.hasNamespace("PyQt6"):
+                plugin_names.add("pyqt6")
             else:
-                # TODO: We do not have a noqt plugin yet.
-                plugin_names.add("pyqt5")
+                plugin_names.add("no-qt")
 
             for plugin_name in plugin_names:
                 output.write("# nuitka-project: --enable-plugin=%s\n" % plugin_name)
