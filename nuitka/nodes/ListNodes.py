@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Cjw, mailto:cjw@ŧhedeadfly.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -16,7 +16,6 @@
 #     limitations under the License.
 #
 """ Nodes that build and operate on lists."""
-
 
 
 from abc import abstractmethod
@@ -51,7 +50,6 @@ class ExpressionListOperationAppend(
     def __init__(self, list_arg, item, source_ref):
         assert list_arg is not None
         assert item is not None
-
 
         ExpressionChildHavingBase.__init__(
             self,
@@ -206,7 +204,6 @@ class ExpressionListOperationInsert(
         return self, None, None
 
 
-
 class ExpressionListOperationPop(
     ExpressionListShapeExactMixin, ExpressionChildHavingBase
 ):
@@ -244,7 +241,7 @@ class ExpressionListOperationRemove(
 
     name_children = ('list_arg', 'value')
 
-    def __init__(self, list_arg, value,source_ref):
+    def __init__(self, list_arg, value, source_ref):
         assert list_arg is not None
         assert value is not None
 
