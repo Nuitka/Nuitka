@@ -146,6 +146,9 @@ def _enableLtoSettings(
     elif env.gcc_mode and "gnu-cc" in env.the_cc_name and env.anaconda_python:
         lto_mode = True
         reason = "known to be supported (CondaCC)"
+    elif isMacOS() and env.gcc_mode and env.clang_mode:
+        lto_mode = True
+        reason = "known to be supported (macOS clang)"
     elif env.mingw_mode and env.clang_mode:
         lto_mode = False
         reason = "known to not be supported (new MinGW64 Clang)"
