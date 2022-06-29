@@ -708,6 +708,18 @@ and not with the non-debug version.
 """
         )
 
+    filename = getPositionalArgs()[0]
+    if not os.path.exists(filename):
+        Tracing.general.sysexit("Error, file '%s' is not found." % filename)
+
+    if (
+        shallMakeModule()
+        and os.path.normcase(os.path.basename(filename)) == "__init__.py"
+    ):
+        Tracing.general.sysexit(
+            "Error, to compile a package, specify its directory name, not the '__init__.py'."
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""

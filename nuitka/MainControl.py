@@ -922,9 +922,6 @@ def main():
 
     filename = Options.getPositionalArgs()[0]
 
-    if not os.path.exists(filename):
-        general.sysexit("Error, file '%s' is not found." % filename)
-
     # Inform the importing layer about the main script directory, so it can use
     # it when attempting to follow imports.
     Importing.setMainScriptDirectory(
