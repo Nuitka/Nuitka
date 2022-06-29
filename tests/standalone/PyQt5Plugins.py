@@ -19,6 +19,9 @@
 #
 from PyQt5 import QtGui
 
+# nuitka-project: --standalone
+# nuitka-project: --enable-plugin=pyqt5
+
 # nuitka-skip-unless-imports: PyQt5.QtGui
 
 print(QtGui.QImageReader.supportedImageFormats())
