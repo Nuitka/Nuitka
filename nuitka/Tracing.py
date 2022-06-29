@@ -283,6 +283,7 @@ class OurLogger(object):
             initial_indent=prefix,
             subsequent_indent=prefix,
             break_on_hyphens=False,
+            break_long_words=False,
             expand_tabs=False,
             replace_whitespace=False,
         )
