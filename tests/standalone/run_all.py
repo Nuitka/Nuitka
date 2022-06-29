@@ -18,6 +18,25 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#
+#     Python test originally created or extracted from other peoples work. The
+#     parts from me are licensed as below. It is at least Free Software where
+#     it's copied from other people. In these cases, that will normally be
+#     indicated.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
 
 """ Runner for standalone program tests of Nuitka.
 
@@ -170,10 +189,8 @@ def main():
 
         if filename == "PandasUsing.py":
             extra_flags.append("plugin_enable:numpy")
+            extra_flags.append("plugin_enable:no-qt")
             extra_flags.append("plugin_disable:pylint-warnings")
-            extra_flags.append("plugin_disable:pyqt5")
-            extra_flags.append("plugin_disable:pyside2")
-            extra_flags.append("plugin_disable:pyside6")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
@@ -200,16 +217,6 @@ def main():
             if python_version < (2, 7) or ((3,) <= python_version < (3, 7)):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
-
-            # For the plug-in information
-            if filename.startswith("PySide2"):
-                extra_flags.append("plugin_enable:pyside6")
-            elif filename.startswith("PySide6"):
-                extra_flags.append("plugin_enable:pyside6")
-            elif filename.startswith("PyQt5"):
-                extra_flags.append("plugin_enable:pyqt5")
-            elif filename.startswith("PyQt6"):
-                extra_flags.append("plugin_enable:pyqt6")
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename

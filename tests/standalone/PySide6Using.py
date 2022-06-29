@@ -17,17 +17,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-# This test is using signals and will only work if PySide properly accepts
-# compiled functions as callables.
+""" This test is using signals and will only work if PySide properly accepts
+compiled functions as callables.
+"""
 
 # nuitka-project: --standalone
 # nuitka-project: --enable-plugin=pyside6
 
+# nuitka-skip-unless-imports: PySide6.QtCore
+
 from __future__ import print_function
 
 from PySide6.QtCore import QMetaObject, QObject, Signal, Slot
-
-# nuitka-skip-unless-imports: PySide6.QtCore
 
 
 class Communicate(QObject):
