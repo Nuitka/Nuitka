@@ -695,8 +695,9 @@ but errors may happen."""
         # spell-checker: ignore orderedset
         Tracing.general.warning(
             """\
-Using very slow fallback for ordered sets, please install 'ordered-set' or \
-'orderedset' PyPI packages for best Python compile time performance."""
+Using very slow fallback for ordered sets, please install '%s' \
+PyPI package for best Python compile time performance."""
+            % ('ordered-set' if python_version >= 0x3A0 else 'orderedset')
         )
 
     if shallUsePythonDebug() and not isDebugPython():
