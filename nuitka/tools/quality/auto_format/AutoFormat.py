@@ -642,10 +642,7 @@ def autoFormatFile(
 
                 black_call = _getPythonBinaryCall("black")
 
-                subprocess.call(
-                    black_call
-                    + ["-q", "--fast", "--skip-string-normalization", tmp_filename]
-                )
+                subprocess.call(black_call + ["-q", "--fast", tmp_filename])
                 cleanupWindowsNewlines(tmp_filename)
 
         elif is_c or is_cpp:

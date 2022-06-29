@@ -22,6 +22,7 @@
 from nuitka.codegen.c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from nuitka.codegen.c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from nuitka.codegen.Reports import onMissingOperation
+from nuitka.Constants import the_empty_unicode
 from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 
@@ -1197,7 +1198,7 @@ tshape_str_iterator = ShapeTypeStrIterator()
 if python_version < 0x300:
 
     class ShapeTypeUnicode(ShapeNotContainerMixin, ShapeNotNumberMixin, ShapeBase):
-        typical_value = u"a"
+        typical_value = the_empty_unicode
 
         @staticmethod
         def getTypeName():
@@ -1281,7 +1282,7 @@ if python_version < 0x300:
 
         @staticmethod
         def isKnownToHaveAttribute(attribute_name):
-            return hasattr(u"a", attribute_name)
+            return hasattr(the_empty_unicode, attribute_name)
 
     tshape_unicode = ShapeTypeUnicode()
 
@@ -1369,7 +1370,9 @@ if python_version < 0x300:
 
         @staticmethod
         def isKnownToHaveAttribute(attribute_name):
-            return hasattr("a", attribute_name) and hasattr(u"a", attribute_name)
+            return hasattr("a", attribute_name) and hasattr(
+                the_empty_unicode, attribute_name
+            )
 
     tshape_str_or_unicode = ShapeTypeStrOrUnicode()
 

@@ -31,6 +31,7 @@ from nuitka.Constants import (
     the_empty_set,
     the_empty_slice,
     the_empty_tuple,
+    the_empty_unicode,
 )
 
 from .NodeMakingHelpers import (
@@ -530,11 +531,11 @@ class ExpressionUnicodeShapeExactMixin(
 
     @staticmethod
     def isKnownToHaveAttribute(attribute_name):
-        return hasattr(u"", attribute_name)
+        return hasattr(the_empty_unicode, attribute_name)
 
     @staticmethod
     def getKnownAttributeValue(attribute_name):
-        return getattr(u"", attribute_name)
+        return getattr(the_empty_unicode, attribute_name)
 
     @staticmethod
     def isKnownToBeHashable():
@@ -562,7 +563,9 @@ else:
 
         @staticmethod
         def isKnownToHaveAttribute(attribute_name):
-            return hasattr(u"", attribute_name) and hasattr("", attribute_name)
+            return hasattr("", attribute_name) and hasattr(
+                the_empty_unicode, attribute_name
+            )
 
         @staticmethod
         def getKnownAttributeValue(attribute_name):
