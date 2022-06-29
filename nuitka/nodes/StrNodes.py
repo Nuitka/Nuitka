@@ -414,7 +414,7 @@ class ExpressionStrOperationRfind2(
 class ExpressionStrOperationFind3Base(
     ExpressionIntShapeExactMixin, ExpressionChildrenHavingBase
 ):
-    """This operation represents s.find(sub)."""
+    """This operation represents s.find(sub,start)."""
 
     kind = "EXPRESSION_STR_OPERATION_FIND3"
 
