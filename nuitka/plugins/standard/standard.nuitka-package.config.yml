@@ -868,8 +868,6 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "_test": "'(lambda: None)'"
-  implicit-imports:
-    standalone_macos_bundle_mode: "onefile"
 
 - module-name: "tkinter"
   anti-bloat:
