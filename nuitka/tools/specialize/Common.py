@@ -17,6 +17,7 @@
 #
 """ Common helper functions for specializing code."""
 
+from nuitka.Constants import the_empty_unicode
 from nuitka.tools.quality.auto_format.AutoFormat import (  # For import from here, pylint: disable=unused-import
     withFileOpenedAndAutoFormatted,
 )
@@ -320,7 +321,7 @@ def check():
         for method_name in python2_str_methods:
             assert hasattr("", method_name), method_name
         for method_name in python2_unicode_methods:
-            assert hasattr(u"", method_name), method_name
+            assert hasattr(the_empty_unicode, method_name), method_name
         for method_name in python2_dict_methods:
             assert hasattr({}, method_name), method_name
     else:
