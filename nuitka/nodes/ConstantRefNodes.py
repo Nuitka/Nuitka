@@ -46,6 +46,7 @@ from nuitka.Constants import (
     the_empty_list,
     the_empty_set,
     the_empty_tuple,
+    the_empty_unicode,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import optimization_logger
@@ -1017,7 +1018,7 @@ class ExpressionConstantUnicodeEmptyRef(
     def __init__(self, user_provided, source_ref):
         ExpressionConstantUnicodeRef.__init__(
             self,
-            constant=u"",
+            constant=the_empty_unicode,
             user_provided=user_provided,
             source_ref=source_ref,
         )

@@ -110,10 +110,10 @@ def _strPresenter(dumper, data):
     custom Representer for strings
     """
     if data.strip().count("\n") > 0:
-        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
 
     return dumper.represent_scalar(
-        'tag:yaml.org,2002:str',
+        "tag:yaml.org,2002:str",
         data,
         style=_decideStrFormat(data)
         if (
@@ -125,7 +125,7 @@ def _strPresenter(dumper, data):
             and data not in ANTI_BLOAT_KEYS
             and data not in IMPLICIT_IMPORTS_KEYS
         )
-        else '',
+        else "",
     )
 
 

@@ -213,7 +213,7 @@ def _getDLLVersionWindows(filename):
     file_info = ctypes.POINTER(VsFixedFileInfoStructure)()
     uLen = ctypes.c_uint32(ctypes.sizeof(file_info))
 
-    b = VerQueryValueA(res, br"\\", ctypes.byref(file_info), ctypes.byref(uLen))
+    b = VerQueryValueA(res, b"\\\\", ctypes.byref(file_info), ctypes.byref(uLen))
     if not b:
         return (0, 0, 0, 0)
 
