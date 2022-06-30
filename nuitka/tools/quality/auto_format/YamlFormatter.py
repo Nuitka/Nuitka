@@ -34,12 +34,15 @@ DLLS_BY_CODE_KEYS = None
 DLLS_FROM_FILENAMES_KEYS = None
 ANTI_BLOAT_KEYS = None
 IMPLICIT_IMPORTS_KEYS = None
+OPTIONS_KEYS = None
+OPTIONS_CHECKS_KEYS = None
 
 
 def _initNuitkaPackageSchema():
     # Singleton, pylint: disable=global-statement
     global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS
     global DLLS_FROM_FILENAMES_KEYS, ANTI_BLOAT_KEYS, IMPLICIT_IMPORTS_KEYS
+    global OPTIONS_KEYS, OPTIONS_CHECKS_KEYS
 
     with openTextFile(
         getYamlPackageConfigurationSchemaFilename(),
@@ -49,7 +52,7 @@ def _initNuitkaPackageSchema():
 
     MASTER_KEYS = tuple(schema["items"]["properties"].keys())
     DATA_FILES_KEYS = tuple(
-        schema["items"]["properties"]["data-files"]["items"]["properties"].keys()
+        schema["items"]["properties"]["data-files"]["properties"].keys()
     )
     DLLS_KEYS = tuple(
         schema["items"]["properties"]["dlls"]["items"]["properties"].keys()
@@ -69,6 +72,12 @@ def _initNuitkaPackageSchema():
     )
     IMPLICIT_IMPORTS_KEYS = tuple(
         schema["items"]["properties"]["implicit-imports"]["items"]["properties"].keys()
+    )
+    OPTIONS_KEYS = tuple(schema["items"]["properties"]["options"]["properties"].keys())
+    OPTIONS_CHECKS_KEYS = tuple(
+        schema["items"]["properties"]["options"]["properties"]["checks"]["items"][
+            "properties"
+        ].keys()
     )
 
 
@@ -124,6 +133,8 @@ def _strPresenter(dumper, data):
             and data not in DLLS_FROM_FILENAMES_KEYS
             and data not in ANTI_BLOAT_KEYS
             and data not in IMPLICIT_IMPORTS_KEYS
+            and data not in OPTIONS_KEYS
+            and data not in OPTIONS_CHECKS_KEYS
         )
         else '',
     )
@@ -355,15 +366,28 @@ def formatYaml(path):
                 )
 
         if "implicit-imports" in sorted_entry:
-            sorted_entry["implicit-imports"] = dict(
-                OrderedDict(
-                    [
-                        (key, entry["implicit-imports"][key])
-                        for key in IMPLICIT_IMPORTS_KEYS
-                        if key in entry["implicit-imports"].keys()
-                    ]
+            for sub_entry in sorted_entry["implicit-imports"]:
+                sub_entry = dict(
+                    OrderedDict(
+                        [
+                            (key, sub_entry[key])
+                            for key in IMPLICIT_IMPORTS_KEYS
+                            if key in sub_entry.keys()
+                        ]
+                    )
                 )
-            )
+
+        if "options" in sorted_entry:
+            for sub_entry in sorted_entry["options"]["checks"]:
+                sub_entry = dict(
+                    OrderedDict(
+                        [
+                            (key, sub_entry[key])
+                            for key in OPTIONS_CHECKS_KEYS
+                            if key in sub_entry.keys()
+                        ]
+                    )
+                )
 
         new_data.append(sorted_entry)
 

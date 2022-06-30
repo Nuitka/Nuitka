@@ -43,10 +43,12 @@ from nuitka.freezer.IncludedDataFiles import (
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
+from nuitka.PythonVersions import getSupportedPythonVersions
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 warned_unused_plugins = set()
 
@@ -854,6 +856,26 @@ except ImportError:
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    def evaluateControlTags(self, control_tags):
+        context = {"macos_only": isMacOS(), "win32_only": isWin32Windows()}
+        versions = getSupportedPythonVersions()
+        for version in versions:
+            big, major = version.split(".")
+            is_same_or_higher_version = (
+                int(big) + 1 >= sys.version_info.major
+                and int(major) + 1 >= sys.version_info.minor
+            )
+            is_lower_version = (
+                int(big) > sys.version_info.major or int(major) > sys.version_info.minor
+            )
+
+            context["python" + big + major + "_or_higher"] = str(
+                is_same_or_higher_version
+            )
+            context["before_python" + big + major] = str(is_lower_version)
+
+        return eval(control_tags, context)
 
     @classmethod
     def warning(cls, message):
