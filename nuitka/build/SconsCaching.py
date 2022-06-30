@@ -73,6 +73,9 @@ def _getCcacheGuessedPaths(python_prefix):
 
     elif isMacOS():
         # For macOS, we might find Homebrew ccache installed but not in PATH.
+        for python_dir in _getPythonDirCandidates(python_prefix):
+            yield os.path.join(python_dir, "bin", "ccache")
+
         yield "/usr/local/opt/ccache"
         yield "/opt/homebrew/bin/ccache"
 
