@@ -10,6 +10,98 @@ Nuitka blog.
  Nuitka Release 1.0 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Python3: Fix, ``bytes.decode`` with only ``errors`` argument given
+   was not working. Fixed in 0.9.1 already.
+
+-  MSYS2: Fix, the accelerate mode CMD file was not working correctly.
+   Fixed in 0.9.1 already.
+
+-  Onefile: Fix, the bootstrap when waiting for the child, didn't
+   protect against signals that interrupt this call. This only affected
+   users of ``--onefile-tempdir`` option, but with that becoming the
+   default in 1.0, this was discovered. Fixed in 0.9.1 already.
+
+-  Fix, ``pkg_resources`` compile time generated ``Distribution`` values
+   could cause issues with code that put it into calls, or in tried
+   blocks. Fixed in 0.9.1 already.
+
+-  Standalone: Added implicit dependencies of ``Xlib`` package. Fixed in
+   0.9.1 already.
+
+-  macOS: Fix, the package configuration for ``wx`` had become invalid
+   when restructuring the Yaml with code and schema disagreeing on
+   allowed values. Fixed in 0.9.1 already.
+
+-  Fix: The ``str.format`` with a single positional argument didn't
+   generate proper code. Fixed in 0.9.1 already.
+
+-  Fix, the type shape of ``str.count`` result was wrong. Fixed in 0.9.1
+   already.
+
+-  UI: Fix, the warning about collision of compile package and original
+   package in the same folder hiding the compiled package should not
+   apply to packages without an ``__init__.py`` as those do not take
+   precedence. Fixed in 0.9.2 already.
+
+-  Fix, the fallback to ``lldb`` from ``gdb`` when using the option
+   ``--debugger`` was broken on anything but Windows. Fixed in 0.9.2
+   already.
+
+-  Python3.8: The module ``importlib.metapath`` was not recognized
+   before 3.9, but actually 3.8 has it already, causing the compile time
+   resolution of package versions to not work there. Fixed in 0.9.2
+   already.
+
+-  Standalone: Fix, at least on macOS we should also scan from parent
+   folders of DLLs, since they can contain sub-directories in their
+   names. Fixed in 0.9.2 already.
+
+-  Standalone: Added package configuration for ``PyQt5`` to require
+   onefile bundle mode, and recommend to disable console for PyQt6. This
+   is same as we already do for ``PySide2`` and ``PySide6``. Fixed in
+   0.9.2 already.
+
+-  macOS: Remove stray onefile bundle package configuration for
+   ``pickle`` module which must have been added in error. Fixed in 0.9.2
+   already.
+
+-  UI: Catch user error of attempting to compile the ``__init__.py``
+   rather than the package directory. Fixed in 0.9.2 already.
+
+-  Fix, hard name import nodes failed to clone, causing issues in
+   optimization phase. Fixed in 0.9.2 already.
+
+-  Fix, avoid warnings given with gcc 11. Fixed in 0.9.2 already.
+
+-  Fix, dictionary nodes where the operation itself has no effect, e.g.
+   ``dict.copy`` were not properly annotation that their dictionary
+   argument could still cause a raise and have side effects. Fixed in
+   0.9.2 already.
+
+-  Standalone: Added ``pynput`` implicit dependencies on Linux. Fixed in
+   0.9.2 already.
+
+-  Fix, boolean condition checks on variables converted immutable
+   constant value assignments to boolean values, leading to incorrect
+   code execution. Fixed in 0.9.2 already.
+
+Organisational
+==============
+
+-  UI: Ask user to install the ordered set package that will actually
+   work for the specific Python version.
+
+Tests
+=====
+
+-  Added generated test to cover ``bytes`` method operations as well.
+
+Summary
+=======
+
 This release is not done yet.
 
 ********************
