@@ -127,7 +127,7 @@ hard_modules_version = {
     "_frozen_importlib": (0x300, None),
     "_frozen_importlib_external": (0x350, None),
     "importlib.resources": (0x370, None),
-    "importlib.metadata": (0x390, None),
+    "importlib.metadata": (0x380, None),
 }
 
 

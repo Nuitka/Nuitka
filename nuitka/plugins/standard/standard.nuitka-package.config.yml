@@ -868,8 +868,6 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "_test": "'(lambda: None)'"
-  implicit-imports:
-    standalone_macos_bundle_mode: "onefile"
 
 - module-name: "tkinter"
   anti-bloat:
@@ -1326,6 +1324,16 @@
     disable_console: "recommend"
 
 - module-name: "PySide6"
+  implicit-imports:
+    disable_console: "recommend"
+
+- module-name: "PyQt5"
+  implicit-imports:
+    # TODO: Use control tag "not anaconda", they solve this better.
+    standalone_macos_bundle_mode: "onefile"
+    disable_console: "recommend"
+
+- module-name: "PyQt6"
   implicit-imports:
     disable_console: "recommend"
 

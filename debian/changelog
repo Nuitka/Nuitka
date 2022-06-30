@@ -1,3 +1,9 @@
+nuitka (0.9.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 30 Jun 2022 08:40:14 +0200
+
 nuitka (0.9.1+ds-1) unstable; urgency=medium
 
   * New upstream hotfix release.

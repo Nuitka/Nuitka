@@ -44,7 +44,7 @@ from nuitka.Tracing import general, my_print, options_logger
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import getOS, isWin32Windows
+from .Utils import getOS, isMacOS, isWin32Windows
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -409,7 +409,7 @@ def getSubDirectoriesWithDlls(path):
         path: directory to create a recursive listing from
 
     Returns:
-        Sorted list of all directories below that directory,
+        Sorted tuple of all directories below that directory,
         relative to it, that contain DLL files.
 
     Notes:
@@ -417,9 +417,32 @@ def getSubDirectoriesWithDlls(path):
         not follow symlinks.
     """
 
+    result = set()
+
+    for dll_sub_directory in _getSubDirectoriesWithDlls(path):
+        result.add(dll_sub_directory)
+
+    return tuple(sorted(result))
+
+
+def _getSubDirectoriesWithDlls(path):
     for sub_directory in getSubDirectories(path=path, ignore_dirs=("__pycache__",)):
-        if any(listDllFilesFromDirectory(sub_directory)):
+        if any(listDllFilesFromDirectory(sub_directory)) or _isMacOSFramework(
+            sub_directory
+        ):
             yield sub_directory
+
+            candidate = os.path.dirname(sub_directory)
+
+            # Should be string identical, no normalization in is done in "getSubDirectories"
+            while candidate != path:
+                yield candidate
+                candidate = os.path.dirname(candidate)
+
+
+def _isMacOSFramework(path):
+    """Decide if a folder is a framework folder."""
+    return isMacOS() and os.path.isdir(path) and path.endswith(".framework")
 
 
 def deleteFile(path, must_exist):
