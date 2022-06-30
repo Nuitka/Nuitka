@@ -34,7 +34,6 @@ from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
     ExpressionChildTupleHavingBase,
-    ExpressionNoSideEffectsMixin,
 )
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
@@ -845,7 +844,7 @@ class ExpressionDictOperationGet3(ExpressionChildrenHavingBase):
 
 class ExpressionDictOperationCopy(
     ExpressionDictShapeExactMixin,
-    ExpressionNoSideEffectsMixin,
+    SideEffectsFromChildrenMixin,
     ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_COPY"
@@ -877,6 +876,9 @@ class ExpressionDictOperationCopy(
 
         return self, None, None
 
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
+
 
 class ExpressionDictOperationClear(
     ExpressionNoneShapeExactMixin, ExpressionChildHavingBase
@@ -897,14 +899,13 @@ class ExpressionDictOperationClear(
 
         return self, None, None
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationKeys(
     ExpressionListShapeExactMixin,
-    ExpressionNoSideEffectsMixin,
+    SideEffectsFromChildrenMixin,
     ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_KEYS"
@@ -934,13 +935,12 @@ class ExpressionDictOperationKeys(
 
         return self, None, None
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationViewkeys(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_VIEWKEYS"
 
@@ -961,13 +961,12 @@ class ExpressionDictOperationViewkeys(
         # TODO: Actually iterator that yields key values
         return tshape_iterator
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationIterkeys(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITERKEYS"
 
@@ -988,14 +987,13 @@ class ExpressionDictOperationIterkeys(
         # TODO: Actually iterator yield keys
         return tshape_iterator
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationValues(
     ExpressionListShapeExactMixin,
-    ExpressionNoSideEffectsMixin,
+    SideEffectsFromChildrenMixin,
     ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_VALUES"
@@ -1025,13 +1023,12 @@ class ExpressionDictOperationValues(
 
         return self, None, None
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationViewvalues(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_VIEWVALUES"
 
@@ -1052,13 +1049,12 @@ class ExpressionDictOperationViewvalues(
         # TODO: Actually iterator that yields key values
         return tshape_iterator
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationItervalues(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITERVALUES"
 
@@ -1079,14 +1075,13 @@ class ExpressionDictOperationItervalues(
         # TODO: Actually the iterator yield values.
         return tshape_iterator
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationItems(
     ExpressionListShapeExactMixin,
-    ExpressionNoSideEffectsMixin,
+    SideEffectsFromChildrenMixin,
     ExpressionChildHavingBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITEMS"
@@ -1116,13 +1111,12 @@ class ExpressionDictOperationItems(
 
         return self, None, None
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationIteritems(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITERITEMS"
 
@@ -1144,13 +1138,12 @@ class ExpressionDictOperationIteritems(
         # for that too.
         return tshape_iterator
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationViewitems(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_VIEWITEMS"
 
@@ -1171,9 +1164,8 @@ class ExpressionDictOperationViewitems(
         # TODO: Actually iterator that yields key values
         return tshape_iterator
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
 class ExpressionDictOperationUpdate2(
