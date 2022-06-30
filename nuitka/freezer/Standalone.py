@@ -53,6 +53,7 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
@@ -774,8 +775,24 @@ def _detectBinaryPathDLLsMacOS(
 ):
     assert os.path.exists(binary_filename), binary_filename
 
+    # This is for Anaconda, which puts required libraries of packages in this folder.
+    # pylint: disable=global-statement
+    global _detected_python_rpath
+    global _detected_python_rpath
+    if _detected_python_rpath is None:
+        if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
+            _detected_python_rpath = os.path.normpath(
+                os.path.join(os.environ["CONDA_PYTHON_EXE"], "..", "..", "lib")
+            )
+            if not os.path.isdir(_detected_python_rpath):
+                _detected_python_rpath = False
+        else:
+            _detected_python_rpath = False
+
+    python_rpath = _detected_python_rpath if _detected_python_rpath else None
+
     package_specific_dirs = _getLdLibraryPath(
-        package_name=package_name, python_rpath=None, original_dir=original_dir
+        package_name=package_name, python_rpath=python_rpath, original_dir=original_dir
     )
 
     # This is recursive potentially and might add more and more.
