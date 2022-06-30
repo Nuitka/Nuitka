@@ -175,8 +175,10 @@ def getEnhancedToolDetect():
     if isLinux():
         SCons.Tool.gcc.compilers.insert(0, "x86_64-conda-linux-gnu-gcc")
 
-    if isMacOS():
-        SCons.Tool.gcc.compilers.insert(0, "x86_64-apple-darwin13.4.0-clang")
+    if isMacOS() and "CONDA_TOOLCHAIN_BUILD" in os.environ:
+        SCons.Tool.gcc.compilers.insert(
+            0, "%s-clang" % os.environ["CONDA_TOOLCHAIN_BUILD"]
+        )
 
     return myDetect
 
