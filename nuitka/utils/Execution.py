@@ -249,6 +249,7 @@ def wrapCommandForDebuggerForExec(*args):
     """
 
     gdb_path = getExecutablePath("gdb")
+    lldb_path = None
 
     # Windows extra ball, attempt the downloaded one.
     if isWin32Windows() and gdb_path is None:

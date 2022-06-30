@@ -456,9 +456,15 @@ class ExpressionAttributeLookupStrCenter(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1349,9 +1355,15 @@ class ExpressionAttributeLookupStrExpandtabs(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -4041,9 +4053,15 @@ class ExpressionAttributeLookupStrLjust(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5210,9 +5228,15 @@ class ExpressionAttributeLookupStrRjust(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5965,9 +5989,15 @@ class ExpressionAttributeLookupStrSplitlines(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6605,9 +6635,15 @@ class ExpressionAttributeLookupStrTranslate(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -7356,9 +7392,15 @@ class ExpressionAttributeLookupStrZfill(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
