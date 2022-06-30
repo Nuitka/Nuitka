@@ -19,6 +19,7 @@
 #define __NUITKA_PRELUDE_H__
 
 #ifdef __NUITKA_NO_ASSERT__
+#undef NDEBUG
 #define NDEBUG
 #endif
 

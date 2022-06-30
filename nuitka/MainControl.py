@@ -922,9 +922,6 @@ def main():
 
     filename = Options.getPositionalArgs()[0]
 
-    if not os.path.exists(filename):
-        general.sysexit("Error, file '%s' is not found." % filename)
-
     # Inform the importing layer about the main script directory, so it can use
     # it when attempting to follow imports.
     Importing.setMainScriptDirectory(
@@ -1030,9 +1027,13 @@ def main():
         if Options.shallMakeModule():
             base_path = OutputDirectories.getResultBasePath(onefile=False)
 
-            if os.path.isdir(base_path):
+            if os.path.isdir(base_path) and os.path.isfile(
+                os.path.join(base_path, "__init__.py")
+            ):
                 general.warning(
-                    """The compilation result is hidden by package directory '%s'. Importing will not use compiled code."""
+                    """\
+The compilation result is hidden by package directory '%s'. Importing will \
+not use compiled code while it exists."""
                     % base_path
                 )
 

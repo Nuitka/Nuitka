@@ -695,8 +695,9 @@ but errors may happen."""
         # spell-checker: ignore orderedset
         Tracing.general.warning(
             """\
-Using very slow fallback for ordered sets, please install 'ordered-set' or \
-'orderedset' PyPI packages for best Python compile time performance."""
+Using very slow fallback for ordered sets, please install '%s' \
+PyPI package for best Python compile time performance."""
+            % ('ordered-set' if python_version >= 0x3A0 else 'orderedset')
         )
 
     if shallUsePythonDebug() and not isDebugPython():
@@ -705,6 +706,18 @@ Using very slow fallback for ordered sets, please install 'ordered-set' or \
 Error, for using the debug Python version, you need to run it will that version
 and not with the non-debug version.
 """
+        )
+
+    filename = getPositionalArgs()[0]
+    if not os.path.exists(filename):
+        Tracing.general.sysexit("Error, file '%s' is not found." % filename)
+
+    if (
+        shallMakeModule()
+        and os.path.normcase(os.path.basename(filename)) == "__init__.py"
+    ):
+        Tracing.general.sysexit(
+            "Error, to compile a package, specify its directory name, not the '__init__.py'."
         )
 
 
