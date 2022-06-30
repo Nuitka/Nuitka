@@ -92,6 +92,7 @@
         "asyncgen",
         "binaryfunc",
         "bytecode",
+        "bytecodes",
         "CBOOL",
         "ccache",
         "clangcl",
