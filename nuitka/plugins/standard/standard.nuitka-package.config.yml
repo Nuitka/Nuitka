@@ -298,6 +298,14 @@
         "if _running_from_pip_package()": "'if False'"
         "_site.ENABLE_USER_SITE": "'False'"
 
+- module-name: "tensorflow_core"
+  anti-bloat:
+    - description: "remove useless distutils usage"
+      replacements:
+        "import distutils as _distutils": "'_distutils = None'"
+        "import site as _site": "'_site = None'"
+        "if _running_from_pip_package()": "'if False'"
+
 - module-name: "clr"
   dlls:
     - from_filenames:
