@@ -91,17 +91,17 @@ from nuitka.utils.Utils import isDebianBasedLinux
 from .DependsExe import detectDLLsWithDependencyWalker
 
 
-def loadCodeObjectData(precompiled_filename):
+def loadCodeObjectData(bytecode_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
     # CPython already checked them (would have rejected it otherwise).
-    with open(precompiled_filename, "rb") as f:
+    with open(bytecode_filename, "rb") as f:
         return f.read()[8 if str is bytes else 16 :]
 
 
 module_names = set()
 
 
-def _detectedPrecompiledFile(filename, module_name, result, user_provided, technical):
+def _detectedPreCompiledFile(filename, module_name, result, user_provided, technical):
     if filename.endswith(".pyc") and os.path.isfile(filename[:-1]):
         return _detectedSourceFile(
             filename=filename[:-1],
@@ -121,7 +121,7 @@ def _detectedPrecompiledFile(filename, module_name, result, user_provided, techn
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=module_name,
-        bytecode=loadCodeObjectData(precompiled_filename=filename),
+        bytecode=loadCodeObjectData(bytecode_filename=filename),
         is_package="__init__" in filename,
         filename=filename,
         user_provided=user_provided,
@@ -372,7 +372,7 @@ print("\\n".join(sorted(
                 technical=technical,
             )
         elif kind == "precompiled":
-            _detectedPrecompiledFile(
+            _detectedPreCompiledFile(
                 filename=filename,
                 module_name=module_name,
                 result=result,
@@ -1031,7 +1031,7 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             return result
 
     if Options.isShowProgress():
-        general.info("Analysing dependencies of '%s'." % binary_filename)
+        general.info("Analyzing dependencies of '%s'." % binary_filename)
 
     scan_dirs = getScanDirectories(package_name, original_dir)
 
