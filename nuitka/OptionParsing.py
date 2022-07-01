@@ -470,6 +470,23 @@ empty.""",
 parser.add_option_group(data_group)
 
 
+dll_group = OptionGroup(parser, "DLL files")
+
+dll_group.add_option(
+    "--noinclude-dlls",
+    action="append",
+    dest="dll_files_inhibited",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Do not include DLL files matching the filename pattern given. This is against
+the target filename, not source paths. So ignore a DLL "someDLL" contained in
+the package "package_name" it should be matched as "package_name/someDLL.*".
+Default empty.""",
+)
+
+parser.add_option_group(dll_group)
+
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
 
 execute_group.add_option(
