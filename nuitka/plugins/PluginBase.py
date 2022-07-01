@@ -43,10 +43,13 @@ from nuitka.freezer.IncludedDataFiles import (
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
+from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 warned_unused_plugins = set()
 
@@ -854,6 +857,31 @@ except ImportError:
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    @staticmethod
+    def evaluateControlTags(control_tags):
+        # Note: Caching makes no sense yet, this should all be very fast and
+        # cache themselves. TODO: Allow plugins to contribute their own control
+        # tag values during creation and during certain actions.
+        context = {
+            "macos_only": isMacOS(),
+            "win32_only": isWin32Windows(),
+            "linux_only": isLinux(),
+            "anaconda": isAnacondaPython(),
+        }
+        versions = getSupportedPythonVersions()
+
+        for version in versions:
+            big, major = version.split(".")
+            numeric_version = int(big) * 256 + int(major) * 16
+            is_same_or_higher_version = numeric_version >= python_version
+            is_lower_version = numeric_version >= python_version
+
+            context["python" + big + major + "_or_higher"] = is_same_or_higher_version
+            context["before_python" + big + major] = is_lower_version
+
+        # We trust the yaml files, pylint: disable=eval-used
+        return eval(control_tags, context)
 
     @classmethod
     def warning(cls, message):

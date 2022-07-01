@@ -25,13 +25,6 @@ to add to this and submit patches to make it more complete.
 import fnmatch
 
 from nuitka.__past__ import iter_modules
-from nuitka.Options import (
-    isOnefileMode,
-    isStandaloneMode,
-    mayDisableConsoleWindow,
-    shallCreateAppBundle,
-    shallDisableConsoleWindow,
-)
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
@@ -102,113 +95,31 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
         # Checking for config, but also allowing fall through.
         if config:
-            dependencies = config.get("depends", [])
-            standalone_macos_bundle_mode = config.get("standalone_macos_bundle_mode")
-            disable_console = config.get("disable_console")
+            for entry in config:
+                if entry.get("control_tags"):
+                    if not self.evaluateControlTags(entry.get("control_tags")):
+                        continue
 
-            if standalone_macos_bundle_mode is not None:
-                if standalone_macos_bundle_mode is True:
-                    standalone_macos_bundle_mode = "yes"
-                if standalone_macos_bundle_mode is False:
-                    standalone_macos_bundle_mode = "no"
+                dependencies = entry.get("depends")
+                for dependency in dependencies:
+                    if dependency.startswith("."):
+                        if (
+                            module.isUncompiledPythonPackage()
+                            or module.isCompiledPythonPackage()
+                        ):
+                            dependency = full_name.getChildNamed(
+                                dependency[1:]
+                            ).asString()
+                        else:
+                            dependency = full_name.getSiblingNamed(
+                                dependency[1:]
+                            ).asString()
 
-                if type(standalone_macos_bundle_mode) is not str:
-                    self.sysexit(
-                        "Error, requiring str as 'standalone_macos_bundle_mode' value for '%s' entry."
-                        % full_name
-                    )
-
-                if standalone_macos_bundle_mode not in ("yes", "no", "onefile"):
-                    self.sysexit(
-                        "Error, illegal value '%s' for 'standalone_macos_bundle_mode' for '%s' entry."
-                        % (standalone_macos_bundle_mode, full_name)
-                    )
-
-                if isMacOS():
-                    if standalone_macos_bundle_mode == "yes":
-                        if isStandaloneMode() and not shallCreateAppBundle():
-                            self.sysexit(
-                                """\
-Error, package '%s' requires '--macos-create-app-bundle' to be used or else it cannot work."""
-                                % full_name
-                            )
-                    elif standalone_macos_bundle_mode == "onefile":
-                        if shallCreateAppBundle() and not isOnefileMode():
-                            self.sysexit(
-                                """\
-Error, package '%s' requires '--onefile' to be used on top of '--macos-create-app-bundle' or else it cannot work."""
-                                % full_name
-                            )
-
-            if disable_console is not None:
-                if disable_console is True:
-                    disable_console = "yes"
-                if disable_console is False:
-                    disable_console = "no"
-
-                if type(disable_console) is not str:
-                    self.sysexit(
-                        "Error, requiring str as 'disable_console' value for '%s' entry."
-                        % full_name
-                    )
-
-                # Required on macOS is recommended elsewhere.
-                if not isMacOS() and disable_console == "recommend_on_macos":
-                    disable_console = "recommend"
-
-                if (
-                    disable_console == "recommend"
-                    and mayDisableConsoleWindow()
-                    and shallDisableConsoleWindow() is None
-                ):
-                    if isMacOS():
-                        downside_message = "Otherwise high resolution will not be available and a terminal window will open."
+                    if "*" in dependency or "?" in dependency:
+                        for resolved in self._resolveModulePattern(dependency):
+                            yield resolved
                     else:
-                        downside_message = "Otherwise a terminal window will open."
-
-                    self.info(
-                        "Note, when using '%s', consider using '--disable-console' option. %s"
-                        % (full_name, downside_message)
-                    )
-
-                if (
-                    disable_console == "yes"
-                    and mayDisableConsoleWindow()
-                    and shallDisableConsoleWindow() is not True
-                ):
-                    self.sysexit(
-                        "Note, when using '%s', you have to use '--disable-console' option."
-                        % full_name
-                    )
-
-            if (
-                type(dependencies) is not list
-                and not dependencies
-                and standalone_macos_bundle_mode is None
-                and disable_console is None
-            ):
-                self.sysexit(
-                    "Error, requiring list below 'depends' entry for '%s' entry."
-                    % full_name
-                )
-
-            for dependency in dependencies:
-                if dependency.startswith("."):
-                    if (
-                        module.isUncompiledPythonPackage()
-                        or module.isCompiledPythonPackage()
-                    ):
-                        dependency = full_name.getChildNamed(dependency[1:]).asString()
-                    else:
-                        dependency = full_name.getSiblingNamed(
-                            dependency[1:]
-                        ).asString()
-
-                if "*" in dependency or "?" in dependency:
-                    for resolved in self._resolveModulePattern(dependency):
-                        yield resolved
-                else:
-                    yield dependency
+                        yield dependency
 
         if full_name == "sip" and python_version < 0x300:
             yield "enum"

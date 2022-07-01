@@ -9,42 +9,37 @@
                 "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
             },
             "data-files": {
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "dest_path": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "dest_path": {
+                        "type": "string"
+                    },
+                    "dirs": {
+                        "type": "array",
+                        "items": {
                             "type": "string"
-                        },
-                        "dirs": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "patterns": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "control_tags": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "empty_dirs": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "empty_dir_structures": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                        }
+                    },
+                    "patterns": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "control_tags": {
+                        "type": "string"
+                    },
+                    "empty_dirs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "empty_dir_structures": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
                         }
                     }
                 }
@@ -79,7 +74,6 @@
                                 }
                             }
                         },
-
                         "dest_path": {
                             "type": "string"
                         }
@@ -105,10 +99,7 @@
                             }
                         },
                         "control_tags": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
                         },
                         "replacements": {
                             "type": "object"
@@ -123,6 +114,7 @@
                 }
             },
             "implicit-imports": {
+                "type": "array",
                 "items": {
                     "type": "object",
                     "additionalProperties": false,
@@ -131,38 +123,70 @@
                             "type": "array",
                             "items": {
                                 "type": "string"
+                            },
+                            "control_tags": {
+                                "type": "string"
                             }
-                        },
-                        "standalone_macos_bundle_mode": {
-                            "type": "string",
-                            "oneOf": [
-                                {
-                                    "const": "yes"
+                        }
+                    }
+                }
+            },
+            "options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "checks": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "description": {
+                                    "type": "string"
                                 },
-                                {
-                                    "const": "no"
+                                "console": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        },
+                                        {
+                                            "const": "recommend"
+                                        }
+                                    ]
                                 },
-                                {
-                                    "const": "onefile"
+                                "macos_bundle": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        },
+                                        {
+                                            "const": "recommend"
+                                        }
+                                    ]
+                                },
+                                "macos_bundle_as_onefile": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        }
+                                    ]
+                                },
+                                "control_tags": {
+                                    "type": "string"
                                 }
-                            ]
-                        },
-                        "disable_console": {
-                            "type": "string",
-                            "oneOf": [
-                                {
-                                    "const": "yes"
-                                },
-                                {
-                                    "const": "no"
-                                },
-                                {
-                                    "const": "recommend"
-                                },
-                                {
-                                    "const": "recommend_on_macos"
-                                }
-                            ]
+                            }
                         }
                     }
                 }
