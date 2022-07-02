@@ -66,9 +66,9 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         dll_dir = os.path.join(module_directory, relative_path)
 
         if os.path.exists(dll_dir):
-            for pattern in dll_config.get("prefixes"):
+            for prefix in dll_config.get("prefixes"):
                 for dll_filename, filename in listDllFilesFromDirectory(
-                    dll_dir, prefix=pattern
+                    dll_dir, prefix=prefix
                 ):
                     yield self.makeDllEntryPoint(
                         source_path=dll_filename,
