@@ -50,9 +50,9 @@ Bug Fixes
    ``--debugger`` was broken on anything but Windows. Fixed in 0.9.2
    already.
 
--  Python3.8: The module ``importlib.metapath`` was not recognized
+-  Python3.8: The module ``importlib.metadata`` was not recognized
    before 3.9, but actually 3.8 has it already, causing the compile time
-   resolution of package versions to not work there. Fixed in 0.9.2
+   resolution of package versions to not work there. Fixed in 0.9.3
    already.
 
 -  Standalone: Fix, at least on macOS we should also scan from parent
@@ -87,6 +87,13 @@ Bug Fixes
 -  Fix, boolean condition checks on variables converted immutable
    constant value assignments to boolean values, leading to incorrect
    code execution. Fixed in 0.9.2 already.
+
+-  Python3.9: Fix, could crash on generic aliases with non-hashable
+   values. Fixed in 0.9.9 already.
+
+   .. code:: python
+
+      dict[str:any]
 
 Organisational
 ==============
