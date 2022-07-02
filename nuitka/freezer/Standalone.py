@@ -22,6 +22,7 @@ FreeBSD are also very welcome, but might break with time and need your
 help.
 """
 
+import collections
 import hashlib
 import marshal
 import os
@@ -1200,12 +1201,12 @@ working with Python, report a Nuitka bug."""
 
 
 def _fixupBinaryDLLPathsMacOS(
-    binary_filename, package_name, dll_map, duplicate_dlls, original_location
+    binary_filename, package_name, duplicate_dlls, original_location
 ):
     """For macOS, the binary needs to be told to use relative DLL paths"""
 
-    # There may be nothing to do, in case there are no DLLs.
-    if not dll_map:
+    # There may be nothing to do, in case there are no DLLs pulled in.
+    if not dlls_used_map:
         return
 
     had_self, rpath_map = _detectBinaryPathDLLsMacOS(
@@ -1219,12 +1220,14 @@ def _fixupBinaryDLLPathsMacOS(
     mapping = []
 
     for resolved_filename, rpath_filename in rpath_map.items():
-        for (original_path, _package_name, dist_path) in dll_map:
-            if resolved_filename == original_path:
+        for copied_dll in dlls_used_map:
+            if resolved_filename == copied_dll.source_path:
+                dist_path = copied_dll.dest_path
                 break
 
             # Might have been a removed duplicate, check those too.
-            if original_path in duplicate_dlls.get(resolved_filename, ()):
+            if copied_dll.source_path in duplicate_dlls.get(resolved_filename, ()):
+                dist_path = copied_dll.dest_path
                 break
 
         else:
@@ -1368,6 +1371,12 @@ different from
     return duplicate_dlls
 
 
+CopiedDLLInfo = collections.namedtuple(
+    "CopiedDLLInfo",
+    ("source_path", "dest_path", "package_name", "dll_name", "sources"),
+)
+
+
 def _copyDllsUsed(dist_dir, used_dlls):
     setupProgressBar(
         stage="Copying used DLLs",
@@ -1375,10 +1384,11 @@ def _copyDllsUsed(dist_dir, used_dlls):
         total=len(used_dlls),
     )
 
-    dll_map = []
+    result = []
 
     for dll_filename, (package_name, sources) in iterItems(used_dlls):
         dll_name = os.path.basename(dll_filename)
+        dest_path = dll_name
 
         target_path = os.path.join(dist_dir, dll_name)
 
@@ -1389,7 +1399,15 @@ def _copyDllsUsed(dist_dir, used_dlls):
         if not os.path.exists(target_path):
             copyDllFile(source_path=dll_filename, dest_path=target_path)
 
-        dll_map.append((dll_filename, package_name, dll_name))
+        result.append(
+            CopiedDLLInfo(
+                source_path=dll_filename,
+                dest_path=dest_path,
+                package_name=package_name,
+                dll_name=dll_name,
+                sources=sources,
+            )
+        )
 
         if Options.isShowInclusion():
             inclusion_logger.info(
@@ -1399,7 +1417,20 @@ def _copyDllsUsed(dist_dir, used_dlls):
 
     closeProgressBar()
 
-    return dll_map
+    return result
+
+
+dlls_used_map = None
+
+
+def getCopiedDLLInfos():
+    """Get information about copied DLLs that were determined as dependencies
+
+    This does not yet cover plugin provided DLLs, as these are considered standalone
+    entry points.
+    """
+
+    return dlls_used_map or ()
 
 
 def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
@@ -1416,7 +1447,9 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
 
     duplicate_dlls = _removeDuplicateDlls(used_dlls=used_dlls)
 
-    dll_map = _copyDllsUsed(dist_dir=dist_dir, used_dlls=used_dlls)
+    # We want to make this accessible for reports, pylint: disable=global-statement
+    global dlls_used_map
+    dlls_used_map = _copyDllsUsed(dist_dir=dist_dir, used_dlls=used_dlls)
 
     # TODO: This belongs inside _copyDllsUsed
     if Utils.isMacOS():
@@ -1426,18 +1459,16 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
             _fixupBinaryDLLPathsMacOS(
                 binary_filename=standalone_entry_point.dest_path,
                 package_name=standalone_entry_point.package_name,
-                dll_map=dll_map,
                 duplicate_dlls=duplicate_dlls,
                 original_location=standalone_entry_point.source_path,
             )
 
-        for original_path, package_name, dll_filename in dll_map:
+        for copied_dll_info in dlls_used_map:
             _fixupBinaryDLLPathsMacOS(
-                binary_filename=os.path.join(dist_dir, dll_filename),
-                package_name=package_name,
-                dll_map=dll_map,
+                binary_filename=os.path.join(dist_dir, copied_dll_info.dest_path),
+                package_name=copied_dll_info.package_name,
                 duplicate_dlls=duplicate_dlls,
-                original_location=original_path,
+                original_location=copied_dll_info.source_path,
             )
 
     # Remove or update rpath settings.
@@ -1452,8 +1483,10 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
             rpath = os.path.join("$ORIGIN", *([".."] * count))
             setSharedLibraryRPATH(standalone_entry_point.dest_path, rpath)
 
-        for _original_path, _package_name, dll_filename in dll_map:
-            setSharedLibraryRPATH(os.path.join(dist_dir, dll_filename), "$ORIGIN")
+        for copied_dll in dlls_used_map:
+            setSharedLibraryRPATH(
+                os.path.join(dist_dir, copied_dll.dest_path), "$ORIGIN"
+            )
 
     if Utils.isMacOS():
         setSharedLibraryRPATH(standalone_entry_points[0].dest_path, "$ORIGIN")
@@ -1464,8 +1497,8 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
                 for standalone_entry_point in standalone_entry_points
             ]
             + [
-                os.path.join(dist_dir, dll_filename)
-                for _original_path, _package_name, dll_filename in dll_map
+                os.path.join(dist_dir, copied_dll.dest_path)
+                for copied_dll in dlls_used_map
             ]
         )
 

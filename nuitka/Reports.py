@@ -21,6 +21,7 @@
 
 from nuitka import TreeXML
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
+from nuitka.freezer.Standalone import getCopiedDLLInfos
 from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.ModuleRegistry import getDoneModules, getModuleInclusionInfos
 from nuitka.Tracing import general
@@ -64,6 +65,20 @@ def writeCompilationReport(report_filename):
                     tags=",".join(included_datafile.tags),
                 )
             )
+
+    for copied_dll_info in getCopiedDLLInfos():
+        root.append(
+            TreeXML.Element(
+                "included_dll",
+                name=copied_dll_info.dll_name,
+                dest_path=copied_dll_info.dest_path,
+                source_path=copied_dll_info.source_path,
+                package=copied_dll_info.source_path,
+                sources=".".join(copied_dll_info.sources),
+                # TODO: No reason yet.
+                # reason=copied_dll_info.reason,
+            )
+        )
 
     search_path = getPackageSearchPath(None)
 
