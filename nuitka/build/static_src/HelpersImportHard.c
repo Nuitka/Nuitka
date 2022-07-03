@@ -179,7 +179,7 @@ PyObject *IMPORT_HARD_IMPORTLIB(void) {
 }
 
 /* C helper for hard import of module "importlib.metadata" import. */
-#if PYTHON_VERSION >= 0x390
+#if PYTHON_VERSION >= 0x380
 PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void) {
     static PyObject *module_import_hard_importlib__metadata = NULL;
 
