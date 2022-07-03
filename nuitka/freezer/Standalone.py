@@ -781,9 +781,7 @@ def _detectBinaryPathDLLsMacOS(
     # This is recursive potentially and might add more and more.
     stdout = getOtoolDependencyOutput(
         filename=binary_filename,
-        package_specific_dirs=_getLdLibraryPath(
-            package_name=package_name, python_rpath=None, original_dir=original_dir
-        ),
+        package_specific_dirs=package_specific_dirs,
     )
     paths = _parseOtoolListingOutput(stdout)
 
