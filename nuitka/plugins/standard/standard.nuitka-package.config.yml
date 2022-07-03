@@ -1583,3 +1583,15 @@
   implicit-imports:
     depends:
       - "Xlib.ext.*"
+
+- module-name: "xgboost"
+  data-files:
+    patterns:
+      - "VERSION"
+
+- module-name: "xgboost.core"
+  dlls:
+    - from_filenames:
+        relative_path: "lib"
+        prefixes:
+          - "xgboost"

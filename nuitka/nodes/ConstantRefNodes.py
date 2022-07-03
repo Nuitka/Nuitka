@@ -1111,7 +1111,7 @@ class ExpressionConstantBytearrayRef(
         return (
             iter_node,
             "new_constant",
-            """Iteration over constant bytesarray lowered to bytes.""",
+            """Iteration over constant bytearray lowered to bytes.""",
         )
 
 
@@ -1329,208 +1329,206 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
         return ExpressionConstantFalseRef(source_ref=source_ref)
     elif constant is Ellipsis:
         return ExpressionConstantEllipsisRef(source_ref=source_ref)
-    else:
-        # Next, dispatch based on type.
-        constant_type = type(constant)
 
-        if constant_type is int:
-            return ExpressionConstantIntRef(constant=constant, source_ref=source_ref)
-        elif constant_type is str:
-            if constant:
-                return ExpressionConstantStrRef(
-                    constant=constant,
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-            else:
-                return ExpressionConstantStrEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is float:
-            return ExpressionConstantFloatRef(constant=constant, source_ref=source_ref)
-        elif constant_type is long:
-            return ExpressionConstantLongRef(
+    # Next, dispatch based on type.
+    constant_type = type(constant)
+
+    if constant_type is int:
+        return ExpressionConstantIntRef(constant=constant, source_ref=source_ref)
+    elif constant_type is str:
+        if constant:
+            return ExpressionConstantStrRef(
                 constant=constant,
                 user_provided=user_provided,
                 source_ref=source_ref,
             )
-        elif constant_type is unicode:
-            if constant:
-                return ExpressionConstantUnicodeRef(
-                    constant=constant,
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-            else:
-                return ExpressionConstantUnicodeEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is bytes:
-            if constant:
-                return ExpressionConstantBytesRef(
-                    constant=constant,
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-            else:
-                return ExpressionConstantBytesEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is dict:
-            if constant:
-                assert isConstant(constant), repr(constant)
-
-                return ExpressionConstantDictRef(
-                    constant=constant,
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-            else:
-                return ExpressionConstantDictEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is tuple:
-            if constant:
-                assert isConstant(constant), repr(constant)
-
-                if isMutable(constant):
-                    return ExpressionConstantTupleMutableRef(
-                        constant=constant,
-                        user_provided=user_provided,
-                        source_ref=source_ref,
-                    )
-                else:
-                    return ExpressionConstantTupleRef(
-                        constant=constant,
-                        user_provided=user_provided,
-                        source_ref=source_ref,
-                    )
-            else:
-                return ExpressionConstantTupleEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is list:
-            if constant:
-                assert isConstant(constant), repr(constant)
-
-                return ExpressionConstantListRef(
-                    constant=constant,
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-            else:
-                return ExpressionConstantListEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is set:
-            if constant:
-                assert isConstant(constant), repr(constant)
-
-                return ExpressionConstantSetRef(
-                    constant=constant,
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-            else:
-                return ExpressionConstantSetEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is frozenset:
-            if constant:
-                assert isConstant(constant), repr(constant)
-
-                return ExpressionConstantFrozensetRef(
-                    constant=constant,
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-            else:
-                return ExpressionConstantFrozensetEmptyRef(
-                    user_provided=user_provided,
-                    source_ref=source_ref,
-                )
-        elif constant_type is complex:
-            return ExpressionConstantComplexRef(
-                constant=constant,
-                source_ref=source_ref,
-            )
-        elif constant_type is slice:
-            return ExpressionConstantSliceRef(
-                constant=constant,
-                source_ref=source_ref,
-            )
-        elif constant_type is type:
-            if python_version >= 0x390 and constant in (
-                set,
-                frozenset,
-                tuple,
-                list,
-                dict,
-            ):
-                return ExpressionConstantTypeSubscriptableRef(
-                    constant=constant, source_ref=source_ref
-                )
-
-            return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
-        elif constant_type is xrange:
-            return ExpressionConstantXrangeRef(
-                constant=constant,
-                source_ref=source_ref,
-            )
-        elif constant_type is bytearray:
-            return ExpressionConstantBytearrayRef(
-                constant=constant,
-                user_provided=user_provided,
-                source_ref=source_ref,
-            )
-        elif constant in builtin_anon_values:
-            from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef
-
-            return ExpressionBuiltinAnonymousRef(
-                builtin_name=builtin_anon_values[constant],
-                source_ref=source_ref,
-            )
-        elif constant in builtin_named_values:
-            from .BuiltinRefNodes import ExpressionBuiltinRef
-
-            return ExpressionBuiltinRef(
-                builtin_name=builtin_named_values[constant], source_ref=source_ref
-            )
-        elif constant in builtin_exception_values_list:
-            from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
-
-            if constant is NotImplemented:
-                exception_name = "NotImplemented"
-            else:
-                exception_name = constant.__name__
-
-            return ExpressionBuiltinExceptionRef(
-                exception_name=exception_name, source_ref=source_ref
-            )
-        elif constant_type is GenericAlias:
-            from .BuiltinTypeNodes import ExpressionConstantGenericAlias
-
-            return ExpressionConstantGenericAlias(
-                generic_alias=constant, source_ref=source_ref
-            )
-        elif constant_type is UnionType:
-            from .BuiltinTypeNodes import ExpressionConstantUnionType
-
-            return ExpressionConstantUnionType(
-                union_type=constant, source_ref=source_ref
-            )
-        elif constant is sys.version_info:
-            return ExpressionConstantSysVersionInfoRef(source_ref=source_ref)
         else:
-            # Missing constant type, ought to not happen, please report.
-            assert False, (constant, constant_type)
+            return ExpressionConstantStrEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is float:
+        return ExpressionConstantFloatRef(constant=constant, source_ref=source_ref)
+    elif constant_type is long:
+        return ExpressionConstantLongRef(
+            constant=constant,
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+    elif constant_type is unicode:
+        if constant:
+            return ExpressionConstantUnicodeRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        else:
+            return ExpressionConstantUnicodeEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is bytes:
+        if constant:
+            return ExpressionConstantBytesRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        else:
+            return ExpressionConstantBytesEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is dict:
+        if constant:
+            assert isConstant(constant), repr(constant)
+
+            return ExpressionConstantDictRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        else:
+            return ExpressionConstantDictEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is tuple:
+        if constant:
+            assert isConstant(constant), repr(constant)
+
+            if isMutable(constant):
+                return ExpressionConstantTupleMutableRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionConstantTupleRef(
+                    constant=constant,
+                    user_provided=user_provided,
+                    source_ref=source_ref,
+                )
+        else:
+            return ExpressionConstantTupleEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is list:
+        if constant:
+            assert isConstant(constant), repr(constant)
+
+            return ExpressionConstantListRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        else:
+            return ExpressionConstantListEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is set:
+        if constant:
+            assert isConstant(constant), repr(constant)
+
+            return ExpressionConstantSetRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        else:
+            return ExpressionConstantSetEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is frozenset:
+        if constant:
+            assert isConstant(constant), repr(constant)
+
+            return ExpressionConstantFrozensetRef(
+                constant=constant,
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+        else:
+            return ExpressionConstantFrozensetEmptyRef(
+                user_provided=user_provided,
+                source_ref=source_ref,
+            )
+    elif constant_type is complex:
+        return ExpressionConstantComplexRef(
+            constant=constant,
+            source_ref=source_ref,
+        )
+    elif constant_type is slice:
+        return ExpressionConstantSliceRef(
+            constant=constant,
+            source_ref=source_ref,
+        )
+    elif constant_type is type:
+        if python_version >= 0x390 and constant in (
+            set,
+            frozenset,
+            tuple,
+            list,
+            dict,
+        ):
+            return ExpressionConstantTypeSubscriptableRef(
+                constant=constant, source_ref=source_ref
+            )
+
+        return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
+    elif constant_type is xrange:
+        return ExpressionConstantXrangeRef(
+            constant=constant,
+            source_ref=source_ref,
+        )
+    elif constant_type is bytearray:
+        return ExpressionConstantBytearrayRef(
+            constant=constant,
+            user_provided=user_provided,
+            source_ref=source_ref,
+        )
+    elif constant_type is GenericAlias:
+        from .BuiltinTypeNodes import ExpressionConstantGenericAlias
+
+        return ExpressionConstantGenericAlias(
+            generic_alias=constant, source_ref=source_ref
+        )
+    elif constant_type is UnionType:
+        from .BuiltinTypeNodes import ExpressionConstantUnionType
+
+        return ExpressionConstantUnionType(union_type=constant, source_ref=source_ref)
+    elif constant is sys.version_info:
+        return ExpressionConstantSysVersionInfoRef(source_ref=source_ref)
+    elif constant in builtin_anon_values:
+        from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef
+
+        return ExpressionBuiltinAnonymousRef(
+            builtin_name=builtin_anon_values[constant],
+            source_ref=source_ref,
+        )
+    elif constant in builtin_named_values:
+        from .BuiltinRefNodes import ExpressionBuiltinRef
+
+        return ExpressionBuiltinRef(
+            builtin_name=builtin_named_values[constant], source_ref=source_ref
+        )
+    elif constant in builtin_exception_values_list:
+        from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+
+        if constant is NotImplemented:
+            exception_name = "NotImplemented"
+        else:
+            exception_name = constant.__name__
+
+        return ExpressionBuiltinExceptionRef(
+            exception_name=exception_name, source_ref=source_ref
+        )
+    else:
+        # Missing constant type, ought to not happen, please report.
+        assert False, (constant, constant_type)
 
 
 class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
@@ -1571,12 +1569,19 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         # For iteration, we are just a normal tuple.
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=True,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
         return (
-            ExpressionConstantTupleRef(
-                self.constant, user_provided=True, source_ref=self.source_ref
-            ),
+            iter_node,
             "new_constant",
-            """Iteration over constant sys.version_info lowered to tuple.""",
+            """Iteration over constant 'sys.version_info' lowered to tuple.""",
         )
 
     @staticmethod

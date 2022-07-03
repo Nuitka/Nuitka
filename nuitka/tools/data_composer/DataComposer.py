@@ -289,14 +289,6 @@ def _writeConstantValue(output, constant_value):
         output.write(b"X")
         output.write(struct.pack("i", len(constant_value)))
         output.write(constant_value)
-    elif constant_value in builtin_named_values:
-        output.write(b"O")
-        output.write(builtin_named_values[constant_value].encode("utf8"))
-        output.write(b"\0")
-    elif constant_value in builtin_exception_values_list:
-        output.write(b"E")
-        output.write(constant_value.__name__.encode("utf8"))
-        output.write(b"\0")
     elif constant_type is GenericAlias:
         output.write(b"G")
         _last_written = None
@@ -306,6 +298,14 @@ def _writeConstantValue(output, constant_value):
         output.write(b"H")
         _last_written = None
         _writeConstantValue(output, constant_value.args)
+    elif constant_value in builtin_named_values:
+        output.write(b"O")
+        output.write(builtin_named_values[constant_value].encode("utf8"))
+        output.write(b"\0")
+    elif constant_value in builtin_exception_values_list:
+        output.write(b"E")
+        output.write(constant_value.__name__.encode("utf8"))
+        output.write(b"\0")
     else:
         assert False, constant_value
 
