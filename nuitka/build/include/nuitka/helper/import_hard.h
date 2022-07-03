@@ -42,7 +42,7 @@ extern PyObject *IMPORT_HARD_FUNCTOOLS(void);
 extern PyObject *IMPORT_HARD_IMPORTLIB(void);
 
 /* C helper for hard import of module "importlib.metadata" import. */
-#if PYTHON_VERSION >= 0x390
+#if PYTHON_VERSION >= 0x380
 extern PyObject *IMPORT_HARD_IMPORTLIB__METADATA(void);
 #endif
 
