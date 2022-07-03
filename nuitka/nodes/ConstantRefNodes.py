@@ -1111,7 +1111,7 @@ class ExpressionConstantBytearrayRef(
         return (
             iter_node,
             "new_constant",
-            """Iteration over constant bytesarray lowered to bytes.""",
+            """Iteration over constant bytearray lowered to bytes.""",
         )
 
 
@@ -1569,12 +1569,19 @@ class ExpressionConstantSysVersionInfoRef(ExpressionConstantUntrackedRefBase):
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         # For iteration, we are just a normal tuple.
+        result = makeConstantRefNode(
+            constant=tuple(self.constant),
+            user_provided=True,
+            source_ref=self.source_ref,
+        )
+
+        self.parent.replaceChild(self, result)
+        self.finalize()
+
         return (
-            ExpressionConstantTupleRef(
-                self.constant, user_provided=True, source_ref=self.source_ref
-            ),
+            iter_node,
             "new_constant",
-            """Iteration over constant sys.version_info lowered to tuple.""",
+            """Iteration over constant 'sys.version_info' lowered to tuple.""",
         )
 
     @staticmethod
