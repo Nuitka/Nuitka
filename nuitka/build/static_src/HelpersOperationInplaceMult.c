@@ -124,7 +124,6 @@ bool BINARY_OPERATION_MULT_INT_INT_INPLACE(PyObject **operand1, PyObject *operan
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -155,9 +154,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObj
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyInt_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyInt_Type.tp_as_number->nb_multiply;
 
@@ -277,7 +275,6 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObj
             }
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'int'", type1->tp_name);
         goto exit_inplace_exception;
@@ -313,11 +310,8 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyInt_Type) {
         // return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -407,7 +401,6 @@ bool BINARY_OPERATION_MULT_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *ope
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -421,15 +414,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObj
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyInt_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -441,7 +432,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObj
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyInt_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -551,12 +542,10 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObj
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // Special case for "*", also work with sequence repeat from right argument.
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
             if (sq_slot != NULL) {
@@ -600,12 +589,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_OBJECT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyInt_Type == type2) {
         // return _BINARY_OPERATION_MULT_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -738,7 +724,6 @@ bool BINARY_OPERATION_MULT_LONG_LONG_INPLACE(PyObject **operand1, PyObject *oper
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -769,9 +754,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyOb
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyLong_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_multiply;
 
@@ -891,7 +875,6 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyOb
             }
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'long'", type1->tp_name);
@@ -931,11 +914,8 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyLong_Type) {
         // return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -972,7 +952,6 @@ bool BINARY_OPERATION_MULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *op
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -986,15 +965,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyLong_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -1006,7 +983,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyOb
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyLong_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -1116,12 +1093,10 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyOb
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // Special case for "*", also work with sequence repeat from right argument.
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
             if (sq_slot != NULL) {
@@ -1169,12 +1144,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_OBJECT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyLong_Type == type2) {
         // return _BINARY_OPERATION_MULT_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -1270,7 +1242,6 @@ bool BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *op
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1301,9 +1272,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyO
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyFloat_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_multiply;
 
@@ -1423,7 +1393,6 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyO
             }
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: '%s' and 'float'", type1->tp_name);
         goto exit_inplace_exception;
@@ -1459,11 +1428,8 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operan
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyFloat_Type) {
         // return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
 
 #ifdef _MSC_VER
@@ -1515,7 +1481,6 @@ bool BINARY_OPERATION_MULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *o
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1529,15 +1494,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyO
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyFloat_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -1549,7 +1512,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyO
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyFloat_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -1659,12 +1622,10 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyO
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // Special case for "*", also work with sequence repeat from right argument.
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             ssizeargfunc sq_slot = type2->tp_as_sequence != NULL ? type2->tp_as_sequence->sq_repeat : NULL;
 
             if (sq_slot != NULL) {
@@ -1708,12 +1669,9 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_OBJECT_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyFloat_Type == type2) {
         // return _BINARY_OPERATION_MULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
 
 #ifdef _MSC_VER
@@ -1778,7 +1736,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_STR_INPLACE(PyObject **operand1
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyString_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1807,8 +1764,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_STR_INPLACE(PyObject **operand1
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -1877,7 +1832,7 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_STR_INPLACE(PyObject **operand1
         }
         if (type1->tp_as_sequence == NULL) {
             if (unlikely(!PyIndex_Check(*operand1))) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -1955,7 +1910,6 @@ static inline bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1969,14 +1923,12 @@ static inline bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyString_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -2034,7 +1986,7 @@ static inline bool _BINARY_OPERATION_MULT_STR_OBJECT_INPLACE(PyObject **operand1
 #endif
 
         if (unlikely(!PyIndex_Check(operand2))) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -2110,9 +2062,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_STR_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyString_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2124,35 +2073,19 @@ static inline bool _BINARY_OPERATION_MULT_INT_STR_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -2218,9 +2151,6 @@ static inline bool _BINARY_OPERATION_MULT_STR_INT_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2232,33 +2162,14 @@ static inline bool _BINARY_OPERATION_MULT_STR_INT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -2322,9 +2233,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyString_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2336,35 +2244,19 @@ static inline bool _BINARY_OPERATION_MULT_LONG_STR_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -2436,9 +2328,6 @@ static inline bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2450,33 +2339,14 @@ static inline bool _BINARY_OPERATION_MULT_STR_LONG_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -2545,7 +2415,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_UNICODE_INPLACE(PyObject **oper
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyUnicode_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2574,8 +2443,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_UNICODE_INPLACE(PyObject **oper
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -2644,7 +2511,7 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_UNICODE_INPLACE(PyObject **oper
         }
         if (type1->tp_as_sequence == NULL) {
             if (unlikely(!PyIndex_Check(*operand1))) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -2724,7 +2591,6 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **oper
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -2738,14 +2604,12 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **oper
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyUnicode_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -2803,7 +2667,7 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_OBJECT_INPLACE(PyObject **oper
 #endif
 
         if (unlikely(!PyIndex_Check(operand2))) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -2878,9 +2742,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_UNICODE_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyUnicode_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2892,35 +2753,19 @@ static inline bool _BINARY_OPERATION_MULT_INT_UNICODE_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -2986,9 +2831,6 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_INT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3000,33 +2842,14 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_INT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -3090,9 +2913,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyUnicode_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3104,35 +2924,19 @@ static inline bool _BINARY_OPERATION_MULT_LONG_UNICODE_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -3211,9 +3015,6 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3225,33 +3026,14 @@ static inline bool _BINARY_OPERATION_MULT_UNICODE_LONG_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -3323,7 +3105,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_TUPLE_INPLACE(PyObject **operan
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyTuple_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -3352,8 +3133,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_TUPLE_INPLACE(PyObject **operan
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -3422,7 +3201,7 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_TUPLE_INPLACE(PyObject **operan
         }
         if (type1->tp_as_sequence == NULL) {
             if (unlikely(!PyIndex_Check(*operand1))) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -3498,7 +3277,6 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -3512,14 +3290,12 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyTuple_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -3577,7 +3353,7 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_OBJECT_INPLACE(PyObject **operan
 #endif
 
         if (unlikely(!PyIndex_Check(operand2))) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -3652,9 +3428,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_TUPLE_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyTuple_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3666,35 +3439,19 @@ static inline bool _BINARY_OPERATION_MULT_INT_TUPLE_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -3760,9 +3517,6 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_INT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyTuple_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3774,33 +3528,14 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_INT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -3863,9 +3598,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyTuple_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3877,35 +3609,19 @@ static inline bool _BINARY_OPERATION_MULT_LONG_TUPLE_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -3983,9 +3699,6 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyTuple_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3997,33 +3710,14 @@ static inline bool _BINARY_OPERATION_MULT_TUPLE_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -4095,7 +3789,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LIST_INPLACE(PyObject **operand
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyList_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -4124,8 +3817,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LIST_INPLACE(PyObject **operand
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -4194,7 +3885,7 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_LIST_INPLACE(PyObject **operand
         }
         if (type1->tp_as_sequence == NULL) {
             if (unlikely(!PyIndex_Check(*operand1))) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -4270,7 +3961,6 @@ static inline bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyList_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -4284,14 +3974,12 @@ static inline bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyList_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -4349,7 +4037,7 @@ static inline bool _BINARY_OPERATION_MULT_LIST_OBJECT_INPLACE(PyObject **operand
 #endif
 
         if (unlikely(!PyIndex_Check(operand2))) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -4424,9 +4112,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_LIST_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyList_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4438,35 +4123,19 @@ static inline bool _BINARY_OPERATION_MULT_INT_LIST_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -4532,9 +4201,6 @@ static inline bool _BINARY_OPERATION_MULT_LIST_INT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyList_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4546,33 +4212,14 @@ static inline bool _BINARY_OPERATION_MULT_LIST_INT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -4635,9 +4282,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyList_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4649,35 +4293,19 @@ static inline bool _BINARY_OPERATION_MULT_LONG_LIST_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot1 ignored on purpose, type2 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -4755,9 +4383,6 @@ static inline bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyList_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4769,33 +4394,14 @@ static inline bool _BINARY_OPERATION_MULT_LIST_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -4868,7 +4474,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_BYTES_INPLACE(PyObject **operan
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyBytes_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -4897,8 +4502,6 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_BYTES_INPLACE(PyObject **operan
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_multiply : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -4967,7 +4570,7 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_BYTES_INPLACE(PyObject **operan
         }
         if (type1->tp_as_sequence == NULL) {
             if (unlikely(!PyIndex_Check(*operand1))) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -5045,7 +4648,6 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -5059,14 +4661,12 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyBytes_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;
@@ -5124,7 +4724,7 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_OBJECT_INPLACE(PyObject **operan
 #endif
 
         if (unlikely(!PyIndex_Check(operand2))) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -5200,9 +4800,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyBytes_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5214,72 +4811,19 @@ static inline bool _BINARY_OPERATION_MULT_LONG_BYTES_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_multiply == NULL ||
-               type1->tp_as_number->nb_multiply == type2->tp_as_number->nb_multiply);
+        // Slot1 ignored on purpose, type2 takes precedence.
 
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!1 || !0) {
-            coercion c1 = PyLong_Type.tp_as_number->nb_coerce;
-
-            if (c1 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c1(&coerced1, &coerced2);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_multiply;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
+        // Statically recognized that coercion is not possible with these types
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
-        if (type1->tp_as_sequence == NULL) {
+        if (true) {
             if (unlikely(!1)) {
-                PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type1->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", *operand1);
 
                 goto exit_inplace_exception;
             }
@@ -5351,9 +4895,6 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5365,70 +4906,14 @@ static inline bool _BINARY_OPERATION_MULT_BYTES_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot2 = NULL;
+        // Slot2 ignored on purpose, type1 takes precedence.
 
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!0 || !1) {
-            coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
-
-            if (c2 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c2(&coerced2, &coerced1);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_multiply;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
+        // Statically recognized that coercion is not possible with these types
 
         if (unlikely(!1)) {
-            PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", type2->tp_name);
+            SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
@@ -5498,9 +4983,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5512,28 +4994,15 @@ static inline bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -5551,12 +5020,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_LONG_INPLACE(PyObject **operand1, 
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'long'");
         goto exit_inplace_exception;
@@ -5600,9 +5066,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5614,32 +5077,13 @@ static inline bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_multiply;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -5653,12 +5097,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_INT_INPLACE(PyObject **operand1, 
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'int'");
         goto exit_inplace_exception;
@@ -5702,9 +5143,6 @@ static inline bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5716,28 +5154,15 @@ static inline bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_multiply;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -5755,12 +5180,9 @@ static inline bool _BINARY_OPERATION_MULT_INT_FLOAT_INPLACE(PyObject **operand1,
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'int' and 'float'");
         goto exit_inplace_exception;
@@ -5804,9 +5226,6 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5818,32 +5237,13 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_multiply;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -5857,12 +5257,9 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_INT_INPLACE(PyObject **operand1,
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'int'");
         goto exit_inplace_exception;
@@ -5905,9 +5302,6 @@ static inline bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -5919,28 +5313,15 @@ static inline bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_multiply;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_multiply;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -5958,12 +5339,9 @@ static inline bool _BINARY_OPERATION_MULT_LONG_FLOAT_INPLACE(PyObject **operand1
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'long' and 'float'");
@@ -6009,9 +5387,6 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -6023,32 +5398,13 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_multiply available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_multiply == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_multiply;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_multiply;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -6062,12 +5418,9 @@ static inline bool _BINARY_OPERATION_MULT_FLOAT_LONG_INPLACE(PyObject **operand1
 
         {
             // No sequence repeat slot sq_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_repeat == NULL);
             // No inplace sequence repeat slot sq_inplace_repeat available for this type.
-            assert(type1->tp_as_sequence == NULL || type1->tp_as_sequence->sq_inplace_repeat == NULL);
         }
         // No sequence repeat slot sq_repeat available for this type.
-        assert(type2->tp_as_sequence == NULL || type2->tp_as_sequence->sq_repeat == NULL);
 
 #if PYTHON_VERSION < 0x300
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for *: 'float' and 'long'");
@@ -6235,8 +5588,7 @@ static inline bool _BINARY_OPERATION_MULT_OBJECT_OBJECT_INPLACE(PyObject **opera
         binaryfunc slot2 = NULL;
 
         if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_multiply : NULL;

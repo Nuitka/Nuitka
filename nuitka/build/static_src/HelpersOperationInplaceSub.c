@@ -113,7 +113,6 @@ bool BINARY_OPERATION_SUB_INT_INT_INPLACE(PyObject **operand1, PyObject *operand
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -144,9 +143,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_OBJECT_INT_INPLACE(PyObje
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_subtract : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyInt_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyInt_Type.tp_as_number->nb_subtract;
 
@@ -285,11 +283,8 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_INT_INPLACE(PyObject **operand1,
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyInt_Type) {
         // return _BINARY_OPERATION_SUB_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -368,7 +363,6 @@ bool BINARY_OPERATION_SUB_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *oper
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -382,15 +376,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_INT_OBJECT_INPLACE(PyObje
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyInt_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;
@@ -402,7 +394,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_INT_OBJECT_INPLACE(PyObje
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyInt_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -543,12 +535,9 @@ static inline bool _BINARY_OPERATION_SUB_INT_OBJECT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyInt_Type == type2) {
         // return _BINARY_OPERATION_SUB_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -730,7 +719,6 @@ bool BINARY_OPERATION_SUB_LONG_LONG_INPLACE(PyObject **operand1, PyObject *opera
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -761,9 +749,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_OBJECT_LONG_INPLACE(PyObj
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_subtract : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyLong_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_subtract;
 
@@ -906,11 +893,8 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_LONG_INPLACE(PyObject **operand1
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyLong_Type) {
         // return _BINARY_OPERATION_SUB_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -1007,7 +991,6 @@ bool BINARY_OPERATION_SUB_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *ope
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1021,15 +1004,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_LONG_OBJECT_INPLACE(PyObj
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyLong_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;
@@ -1041,7 +1022,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_LONG_OBJECT_INPLACE(PyObj
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyLong_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -1186,12 +1167,9 @@ static inline bool _BINARY_OPERATION_SUB_LONG_OBJECT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyLong_Type == type2) {
         // return _BINARY_OPERATION_SUB_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -1347,7 +1325,6 @@ bool BINARY_OPERATION_SUB_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *ope
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1378,9 +1355,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_OBJECT_FLOAT_INPLACE(PyOb
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_subtract : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyFloat_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_subtract;
 
@@ -1519,11 +1495,8 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_FLOAT_INPLACE(PyObject **operand
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyFloat_Type) {
         // return _BINARY_OPERATION_SUB_FLOAT_FLOAT_INPLACE(operand1, operand2);
 
 #ifdef _MSC_VER
@@ -1575,7 +1548,6 @@ bool BINARY_OPERATION_SUB_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *op
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1589,15 +1561,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_FLOAT_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyFloat_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;
@@ -1609,7 +1579,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_SUB_FLOAT_OBJECT_INPLACE(PyOb
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyFloat_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -1750,12 +1720,9 @@ static inline bool _BINARY_OPERATION_SUB_FLOAT_OBJECT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyFloat_Type == type2) {
         // return _BINARY_OPERATION_SUB_FLOAT_FLOAT_INPLACE(operand1, operand2);
 
 #ifdef _MSC_VER
@@ -1820,9 +1787,6 @@ static inline bool _BINARY_OPERATION_SUB_INT_LONG_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1834,28 +1798,15 @@ static inline bool _BINARY_OPERATION_SUB_INT_LONG_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_subtract;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -1913,9 +1864,6 @@ static inline bool _BINARY_OPERATION_SUB_LONG_INT_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1927,32 +1875,13 @@ static inline bool _BINARY_OPERATION_SUB_LONG_INT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_subtract;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -2006,9 +1935,6 @@ static inline bool _BINARY_OPERATION_SUB_INT_FLOAT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2020,28 +1946,15 @@ static inline bool _BINARY_OPERATION_SUB_INT_FLOAT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_subtract;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_subtract;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -2099,9 +2012,6 @@ static inline bool _BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2113,32 +2023,13 @@ static inline bool _BINARY_OPERATION_SUB_FLOAT_INT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_subtract;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -2191,9 +2082,6 @@ static inline bool _BINARY_OPERATION_SUB_LONG_FLOAT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2205,28 +2093,15 @@ static inline bool _BINARY_OPERATION_SUB_LONG_FLOAT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_subtract;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_subtract;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -2286,9 +2161,6 @@ static inline bool _BINARY_OPERATION_SUB_FLOAT_LONG_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2300,32 +2172,13 @@ static inline bool _BINARY_OPERATION_SUB_FLOAT_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_subtract available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_subtract == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_subtract;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_subtract;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -2492,8 +2345,7 @@ static inline bool _BINARY_OPERATION_SUB_OBJECT_OBJECT_INPLACE(PyObject **operan
         binaryfunc slot2 = NULL;
 
         if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 =
                 (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_subtract : NULL;

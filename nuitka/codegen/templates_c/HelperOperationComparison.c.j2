@@ -15,18 +15,7 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-{{target.getTypeDecl()}} RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-
-{# Divert to more special implementation immediately if possible. #}
-{% if left.getSameTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2") %}
-{% if left != right %}
-    if ({{left.getTypeValueExpression("operand1")}} == {{right.getTypeValueExpression("operand2")}}) {
-        {{left.getSameTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2")}}
-    }
-{% else %}
-    {{left.getSameTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2")}}
-{% endif %}
-{% endif %}
+{% macro comparison_fallback(op_code, target, left, right, type1, type2, operand1, operand2) %}
 {# For non-identical types, or for "OBJECT_OBJECT", do the full work. #}
 {% if left != right or left.type_name == "object" %}
 {# CPython2 treats integer values with fast path. #}
@@ -58,8 +47,13 @@
     }
 #endif
 
-    PyTypeObject *type1 = {{left.getTypeValueExpression("operand1")}};
-    PyTypeObject *type2 = {{right.getTypeValueExpression("operand2")}};
+{# TODO: Make these optional too #}
+{% if True or left == object_desc %}
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if True or right == object_desc %}
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -135,7 +129,7 @@
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && {{left.getRealSubTypeCheckCode(right, "type2", "type1")}}) {
+    if ({{left.getTypeNonIdenticalCheckExpression(right, "type1", "type2")}} && {{left.getRealSubTypeCheckCode(right, "type2", "type1")}}) {
         f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
 
         if (f != NULL) {
@@ -188,7 +182,7 @@
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if ({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}}) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -266,7 +260,7 @@
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if ({{left.getTypeNonIdenticalCheckExpression(right, "type1", "type2")}} && PyType_IsSubtype(type2, type1)) {
         f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
 
         if (f != NULL) {
@@ -335,5 +329,22 @@
         {{target.getReturnUnorderableTypeErrorCode(operator, left, right, "type1", "type2")}}
     }
 #endif
+{% endif %}
+{% endmacro %}
+{{target.getTypeDecl()}} RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+
+{# Divert to more special implementation immediately if possible. #}
+{% if left.getTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2") %}
+{% if left != right and object_desc in (left, right) %}
+    if ({{left.getTypeIdenticalCheckExpression(right, left.getTypeValueExpression("operand1"), right.getTypeValueExpression("operand2"))}}) {
+        {{left.getTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2")}}
+    }
+
+    {{ comparison_fallback(op_code, target, left, right, type1, type2, operand1, operand2) }}
+{% else %}
+    {{left.getTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2")}}
+{% endif %}
+{% else %}
+{{ comparison_fallback(op_code, target, left, right, type1, type2, operand1, operand2) }}
 {% endif %}
 }

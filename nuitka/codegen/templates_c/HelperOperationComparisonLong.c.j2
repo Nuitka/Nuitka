@@ -15,107 +15,176 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{% macro is_long_digit_negative(type_desc, operand) %}
+{% if type_desc == long_desc %}
+Py_SIZE({{operand}}_long_object) < 0
+{% elif type_desc == c_long_desc %}
+{{operand}}_is_negative
+{% endif %}
+{% endmacro %}
+{% macro get_long_digit(type_desc, operand, index) %}
+{% if type_desc == long_desc %}
+{{operand}}_long_object->ob_digit[{{index}}]
+{% elif type_desc == c_long_desc %}
+{{operand}}_digits[{{index}}]
+{% endif %}
+{% endmacro %}
+{% macro get_long_digit_count(type_desc, operand) %}
+{% if type_desc == long_desc %}
+Py_ABS(Py_SIZE({{operand}}_long_object))
+{% elif type_desc == c_long_desc %}
+(Py_ssize_t)({{operand}}_digit_count)
+{% endif %}
+{% endmacro %}
+{% macro get_long_size(type_desc, operand) %}
+{% if type_desc == long_desc %}
+Py_SIZE({{operand}}_long_object)
+{% elif type_desc == c_long_desc %}
+(Py_ssize_t)({{operand}}_size)
+{% endif %}
+{% endmacro %}
+{% macro is_same_long_object(left, right, operand1, operand2) %}
+{% if left == right == long_desc %}
+{{operand1}}_long_object == {{operand2}}_long_object
+{% else %}
+false
+{% endif %}
+{% endmacro %}
+{% macro declare_long_access(type_desc, operand) %}
+{% if type_desc == long_desc %}
+    PyLongObject *{{operand}}_long_object = (PyLongObject *){{operand}};
+{% elif type_desc == c_long_desc %}
+    bool {{operand}}_is_negative;
+    unsigned long {{operand}}_abs_ival;
+
+    if ({{operand}} < 0) {
+        {{operand}}_abs_ival = (unsigned long)(-1-{{operand}}) + 1;
+        {{operand}}_is_negative = true;
+    } else {
+        {{operand}}_abs_ival = (unsigned long){{operand}};
+        {{operand}}_is_negative = false;
+    }
+
+    int {{operand}}_digit_count = 0;
+    digit {{operand}}_digits[5]; // Could be more minimal and depend on sizeof(digit)
+    {
+        unsigned long t = {{operand}}_abs_ival;
+
+        while (t != 0) {
+            {{operand}}_digit_count += 1;
+            assert({{operand}}_digit_count <= (sizeof({{operand}}_digit_count) / sizeof(digit)));
+
+            {{operand}}_digits[{{operand}}_digit_count] = (digit)(t & PyLong_MASK);
+            t >>= PyLong_SHIFT;
+        }
+    }
+
+    int {{operand}}_size = {{operand}}_is_negative == false ? {{operand}}_digit_count : -{{operand}}_digit_count;
+{% else %}
+# error "Not done for {{type_desc}} yet"
+{% endif %}
+{% endmacro %}
+
 static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
     {{left.getCheckValueCode("operand1")}}
     {{right.getCheckValueCode("operand2")}}
 
-    PyLongObject *a = (PyLongObject *)operand1;
-    PyLongObject *b = (PyLongObject *)operand2;
-
+    {{declare_long_access(left, "operand1")}}
+    {{declare_long_access(right, "operand2")}}
 
     bool r;
 
-
 {% if operand == "==" %}
-    if (a == b) {
+    if ({{ is_same_long_object(left, right, "operand1", "operand2") }}) {
         r = true;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+    } else if ( {{ get_long_size(left, "operand1") }} != {{ get_long_size(right, "operand2") }} ) {
         r = false;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = {{ get_long_digit_count(left, "operand1") }};
         r = true;
+
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
+            if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
                 r = false;
                 break;
             }
         }
     }
 {% elif operand == "!=" %}
-    if (a == b) {
+    if ({{ is_same_long_object(left, right, "operand1", "operand2") }}) {
         r = false;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+    } else if ( {{ get_long_size(left, "operand1") }} != {{ get_long_size(right, "operand2") }} ) {
         r = true;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = {{ get_long_digit_count(left, "operand1") }};
         r = false;
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
+            if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
                 r = true;
                 break;
             }
         }
     }
 {% elif operand == "<=" %}
-    if (a == b) {
+    if ({{ is_same_long_object(left, right, "operand1", "operand2") }}) {
         r = true;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
-        r = Py_SIZE(a) - Py_SIZE(b) < 0;
+    } else if ( {{ get_long_size(left, "operand1") }} != {{ get_long_size(right, "operand2") }} ) {
+        r = {{ get_long_size(left, "operand1") }} - {{ get_long_size(right, "operand2") }} < 0;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = {{ get_long_digit_count(left, "operand1") }};
         r = true;
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
-                r = a->ob_digit[i] < b->ob_digit[i];
-                if (Py_SIZE(a) < 0) r = !r;
+            if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
+                r = {{ get_long_digit(left, "operand1", "i") }} < {{ get_long_digit(right, "operand2", "i") }};
+                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
                 break;
             }
         }
     }
 {% elif operand == ">=" %}
-    if (a == b) {
+    if ({{ is_same_long_object(left, right, "operand1", "operand2") }}) {
         r = true;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
-        r = Py_SIZE(a) - Py_SIZE(b) > 0;
+    } else if ( {{ get_long_size(left, "operand1") }} != {{ get_long_size(right, "operand2") }} ) {
+        r = {{ get_long_size(left, "operand1") }} - {{ get_long_size(right, "operand2") }} > 0;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = {{ get_long_digit_count(left, "operand1") }};
         r = true;
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
-                r = a->ob_digit[i] > b->ob_digit[i];
-                if (Py_SIZE(a) < 0) r = !r;
+            if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
+                r = {{ get_long_digit(left, "operand1", "i") }} > {{ get_long_digit(right, "operand2", "i") }};
+                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
                 break;
             }
         }
     }
 {% elif operand == "<" %}
-    if (a == b) {
+    if ({{ is_same_long_object(left, right, "operand1", "operand2") }}) {
         r = false;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
-        r = Py_SIZE(a) - Py_SIZE(b) < 0;
+    } else if ( {{ get_long_size(left, "operand1") }} != {{ get_long_size(right, "operand2") }} ) {
+        r = {{ get_long_size(left, "operand1") }} - {{ get_long_size(right, "operand2") }} < 0;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = {{ get_long_digit_count(left, "operand1") }};
         r = false;
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
-                r = a->ob_digit[i] < b->ob_digit[i];
-                if (Py_SIZE(a) < 0) r = !r;
+            if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
+                r = {{ get_long_digit(left, "operand1", "i") }} < {{ get_long_digit(right, "operand2", "i") }};
+                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
                 break;
             }
         }
     }
 {% elif operand == ">" %}
-    if (a == b) {
+    if ({{ is_same_long_object(left, right, "operand1", "operand2") }}) {
         r = false;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
-        r = Py_SIZE(a) - Py_SIZE(b) > 0;
+    } else if ( {{ get_long_size(left, "operand1") }} != {{ get_long_size(right, "operand2") }} ) {
+        r = {{ get_long_size(left, "operand1") }} - {{ get_long_size(right, "operand2") }} > 0;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = {{ get_long_digit_count(left, "operand1") }};
         r = false;
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
-                r = a->ob_digit[i] > b->ob_digit[i];
-                if (Py_SIZE(a) < 0) r = !r;
+            if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
+                r = {{ get_long_digit(left, "operand1", "i") }} > {{ get_long_digit(right, "operand2", "i") }};
+                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
                 break;
             }
         }

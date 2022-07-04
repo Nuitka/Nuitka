@@ -117,7 +117,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(PyObject *operand1, PyObject 
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1,
                                                                                    PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -133,9 +132,8 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_I
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(type1 == &PyInt_Type)) {
+        // Different types, need to consider second value slot.
 
         slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
 
@@ -255,11 +253,8 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1
     assert(PyInt_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyInt_Type) {
         PyObject *result;
 
         // return _BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(operand1, operand2);
@@ -349,7 +344,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_INT(PyObject *operand1, PyObje
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJECT(PyObject *operand1,
                                                                                    PyObject *operand2) {
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -365,9 +359,8 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJE
     binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyInt_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
@@ -379,7 +372,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJE
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (PyType_IsSubtype(type2, &PyInt_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -501,12 +494,9 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_OBJECT(PyObject *operand1
     assert(PyInt_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyInt_Type == type2) {
         PyObject *result;
 
         // return _BINARY_OPERATION_FLOORDIV_OBJECT_INT_INT(operand1, operand2);
@@ -686,7 +676,6 @@ nuitka_bool BINARY_OPERATION_FLOORDIV_NBOOL_INT_INT(PyObject *operand1, PyObject
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_INT(PyObject *operand1,
                                                                                     PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -702,9 +691,8 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(type1 == &PyInt_Type)) {
+        // Different types, need to consider second value slot.
 
         slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
 
@@ -832,11 +820,8 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_INT(PyObject *operand
     assert(PyInt_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyInt_Type) {
         nuitka_bool result;
 
         // return _BINARY_OPERATION_FLOORDIV_NBOOL_INT_INT(operand1, operand2);
@@ -927,7 +912,6 @@ nuitka_bool BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_INT(PyObject *operand1, PyObj
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_INT_OBJECT(PyObject *operand1,
                                                                                     PyObject *operand2) {
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -943,9 +927,8 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_INT_OBJ
     binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyInt_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
@@ -957,7 +940,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_INT_OBJ
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (PyType_IsSubtype(type2, &PyInt_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -1087,12 +1070,9 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_INT_OBJECT(PyObject *operand
     assert(PyInt_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyInt_Type == type2) {
         nuitka_bool result;
 
         // return _BINARY_OPERATION_FLOORDIV_NBOOL_INT_INT(operand1, operand2);
@@ -1219,7 +1199,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(PyObject *operand1, PyObjec
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_LONG(PyObject *operand1,
                                                                                     PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1235,9 +1214,8 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_L
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(type1 == &PyLong_Type)) {
+        // Different types, need to consider second value slot.
 
         slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
 
@@ -1361,11 +1339,8 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_LONG(PyObject *operand
     assert(PyLong_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyLong_Type) {
         PyObject *result;
 
         // return _BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(operand1, operand2);
@@ -1403,7 +1378,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_LONG(PyObject *operand1, PyObj
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJECT(PyObject *operand1,
                                                                                     PyObject *operand2) {
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1419,9 +1393,8 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJ
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyLong_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
@@ -1433,7 +1406,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJ
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (PyType_IsSubtype(type2, &PyLong_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -1559,12 +1532,9 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_OBJECT(PyObject *operand
     assert(PyLong_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyLong_Type == type2) {
         PyObject *result;
 
         // return _BINARY_OPERATION_FLOORDIV_OBJECT_LONG_LONG(operand1, operand2);
@@ -1640,7 +1610,6 @@ nuitka_bool BINARY_OPERATION_FLOORDIV_NBOOL_LONG_LONG(PyObject *operand1, PyObje
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_LONG(PyObject *operand1,
                                                                                      PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1656,9 +1625,8 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(type1 == &PyLong_Type)) {
+        // Different types, need to consider second value slot.
 
         slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
 
@@ -1790,11 +1758,8 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_LONG(PyObject *operan
     assert(PyLong_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyLong_Type) {
         nuitka_bool result;
 
         // return _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_LONG(operand1, operand2);
@@ -1833,7 +1798,6 @@ nuitka_bool BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_LONG(PyObject *operand1, PyOb
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_LONG_OBJECT(PyObject *operand1,
                                                                                      PyObject *operand2) {
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1849,9 +1813,8 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_LONG_OB
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyLong_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
@@ -1863,7 +1826,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_LONG_OB
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (PyType_IsSubtype(type2, &PyLong_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -1997,12 +1960,9 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_OBJECT(PyObject *operan
     assert(PyLong_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyLong_Type == type2) {
         nuitka_bool result;
 
         // return _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_LONG(operand1, operand2);
@@ -2115,7 +2075,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObj
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1,
                                                                                      PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2131,9 +2090,8 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_F
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(type1 == &PyFloat_Type)) {
+        // Different types, need to consider second value slot.
 
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
@@ -2253,11 +2211,8 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_FLOAT(PyObject *operan
     assert(PyFloat_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyFloat_Type) {
         PyObject *result;
 
         // return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
@@ -2332,7 +2287,6 @@ PyObject *BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyOb
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1,
                                                                                      PyObject *operand2) {
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -2348,9 +2302,8 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OB
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyFloat_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
@@ -2362,7 +2315,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OB
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (PyType_IsSubtype(type2, &PyFloat_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -2484,12 +2437,9 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_OBJECT(PyObject *operan
     assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyFloat_Type == type2) {
         PyObject *result;
 
         // return _BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_FLOAT(operand1, operand2);
@@ -2638,7 +2588,6 @@ nuitka_bool BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyOb
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_FLOAT(PyObject *operand1,
                                                                                       PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2654,9 +2603,8 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_floor_divide : NULL;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(type1 == &PyFloat_Type)) {
+        // Different types, need to consider second value slot.
 
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
 
@@ -2784,11 +2732,8 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_FLOAT(PyObject *opera
     assert(PyFloat_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyFloat_Type) {
         nuitka_bool result;
 
         // return _BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_FLOAT(operand1, operand2);
@@ -2863,7 +2808,6 @@ nuitka_bool BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyO
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_OBJECT(PyObject *operand1,
                                                                                       PyObject *operand2) {
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -2879,9 +2823,8 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_O
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyFloat_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
@@ -2893,7 +2836,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_O
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (PyType_IsSubtype(type2, &PyFloat_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -3023,12 +2966,9 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_OBJECT(PyObject *opera
     assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyFloat_Type == type2) {
         nuitka_bool result;
 
         // return _BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_FLOAT(operand1, operand2);
@@ -3108,9 +3048,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, 
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3121,25 +3058,13 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_LONG(PyObject *operand1, 
 #pragma warning(pop)
 #endif
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
+    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
-    }
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -3178,9 +3103,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, 
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3192,28 +3114,10 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_INT(PyObject *operand1, 
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
-    }
+    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -3248,9 +3152,6 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_INT_LONG(PyObject *operand1,
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3261,25 +3162,13 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_INT_LONG(PyObject *operand1,
 #pragma warning(pop)
 #endif
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
+    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
-    }
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -3326,9 +3215,6 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_INT(PyObject *operand1,
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3340,28 +3226,10 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_INT(PyObject *operand1,
 #endif
 
     binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
-    }
+    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -3404,9 +3272,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_FLOAT(PyObject *operand1,
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3417,25 +3282,13 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_INT_FLOAT(PyObject *operand1,
 #pragma warning(pop)
 #endif
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
+    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    }
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -3474,9 +3327,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_INT(PyObject *operand1,
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3488,28 +3338,10 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_INT(PyObject *operand1,
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
-    }
+    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -3544,9 +3376,6 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_INT_FLOAT(PyObject *operand1
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3557,25 +3386,13 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_INT_FLOAT(PyObject *operand1
 #pragma warning(pop)
 #endif
 
-    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_floor_divide;
+    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    }
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -3622,9 +3439,6 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_INT(PyObject *operand1
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3636,28 +3450,10 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_INT(PyObject *operand1
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyInt_Type.tp_as_number->nb_floor_divide;
-    }
+    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -3699,9 +3495,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_FLOAT(PyObject *operand1
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3712,25 +3505,13 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_LONG_FLOAT(PyObject *operand1
 #pragma warning(pop)
 #endif
 
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
+    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    }
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -3771,9 +3552,6 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(PyObject *operand1
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3785,28 +3563,10 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_FLOAT_LONG(PyObject *operand1
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
-    }
+    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -3843,9 +3603,6 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_FLOAT(PyObject *operand
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3856,25 +3613,13 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_LONG_FLOAT(PyObject *operand
 #pragma warning(pop)
 #endif
 
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_floor_divide;
+    // Slot1 ignored on purpose, type2 takes precedence.
     binaryfunc slot2 = NULL;
 
     if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    }
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
     }
 
     if (slot2 != NULL) {
@@ -3923,9 +3668,6 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_LONG(PyObject *operand
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3937,28 +3679,10 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_FLOAT_LONG(PyObject *operand
 #endif
 
     binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_floor_divide;
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
-
-        slot2 = PyLong_Type.tp_as_number->nb_floor_divide;
-    }
+    // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             obj_result = x;
@@ -4097,8 +3821,7 @@ static PyObject *_BINARY_OPERATION_FLOORDIV_OBJECT_OBJECT_OBJECT(PyObject *opera
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;
@@ -4335,8 +4058,7 @@ static nuitka_bool _BINARY_OPERATION_FLOORDIV_NBOOL_OBJECT_OBJECT(PyObject *oper
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 =
             (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_floor_divide : NULL;

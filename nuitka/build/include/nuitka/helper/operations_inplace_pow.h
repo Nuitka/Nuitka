@@ -67,5 +67,21 @@ extern bool BINARY_OPERATION_POW_INT_LONG_INPLACE(PyObject **operand1, PyObject 
 extern bool BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2);
 #endif
 
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+extern bool BINARY_OPERATION_POW_INT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+extern bool BINARY_OPERATION_POW_FLOAT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
+#endif
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+extern bool BINARY_OPERATION_POW_LONG_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
+extern bool BINARY_OPERATION_POW_FLOAT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern bool BINARY_OPERATION_POW_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);

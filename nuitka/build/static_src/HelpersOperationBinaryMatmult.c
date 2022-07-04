@@ -32,9 +32,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, 
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -44,9 +41,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_LONG(PyObject *operand1, 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
-           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
 
@@ -74,7 +68,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1
     assert(PyLong_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -88,8 +81,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_LONG(PyObject *operand1
 
     binaryfunc slot1 =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
-    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
-           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -130,7 +121,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
     assert(PyLong_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -145,9 +135,8 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_LONG_OBJECT(PyObject *operand1
 
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyLong_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;
@@ -193,9 +182,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -205,9 +191,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_FLOAT(PyObject *operand1
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
-    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
-           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     // Statically recognized that coercion is not possible with Python3 only operator '@'
 
@@ -231,7 +214,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand
     assert(PyFloat_CheckExact(operand2));
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -245,8 +227,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_FLOAT(PyObject *operand
 
     binaryfunc slot1 =
         (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_matrix_multiply : NULL;
-    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_matrix_multiply == NULL ||
-           type1->tp_as_number->nb_matrix_multiply == type2->tp_as_number->nb_matrix_multiply);
 
     if (slot1 != NULL) {
         PyObject *x = slot1(operand1, operand2);
@@ -283,7 +263,6 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
     assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -298,9 +277,8 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_FLOAT_OBJECT(PyObject *operand
 
     binaryfunc slot2 = NULL;
 
-    if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+    if (!(&PyFloat_Type == type2)) {
+        // Different types, need to consider second value slot.
 
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;
@@ -410,8 +388,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
     binaryfunc slot2 = NULL;
 
     if (!(type1 == type2)) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_matrix_multiply
                                                                               : NULL;

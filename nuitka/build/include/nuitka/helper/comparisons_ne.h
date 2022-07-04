@@ -164,6 +164,16 @@ extern nuitka_bool RICH_COMPARE_NE_NBOOL_INT_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *RICH_COMPARE_NE_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *RICH_COMPARE_NE_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_NE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif
