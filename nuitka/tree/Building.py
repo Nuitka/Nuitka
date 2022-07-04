@@ -62,7 +62,7 @@ from nuitka.Caching import (
     getCachedImportedModulesNames,
     hasCachedImportedModulesNames,
 )
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import CodeTooComplexCode
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing

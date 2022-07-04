@@ -26,7 +26,7 @@ too.
 
 """
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 
 
 def parseTypesFromHelper(helper_name):

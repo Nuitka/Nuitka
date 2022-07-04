@@ -34,7 +34,7 @@ are in another context.
 
 from nuitka import Tracing
 from nuitka.__past__ import unicode
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Operations import VisitorNoopMixin
 
