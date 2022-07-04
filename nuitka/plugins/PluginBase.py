@@ -919,23 +919,18 @@ def standalone_only(func):
 class TagContext(dict):
     def __init__(self, full_name, *args, **kwargs):
         self.full_name = full_name
-        super().__init__(*args, **kwargs)
+        dict.__init__(*args, **kwargs)
 
     def __getitem__(self, key):
         try:
-            dict.__getitem__(self, key)
+            return dict.__getitem__(self, key)
 
         except KeyError:
             if key.startswith("use_"):
-                Tracing.plugins_logger.info(
-                    "Use default 'False' for not existing tag '" + key + "'."
-                )
+                self.info("Use default 'False' for not existing tag '%s'." % key)
                 return False
 
             Tracing.plugins_logger.sysexit(
-                "Tag '"
-                + key
-                + "' in module configuration of '"
-                + self.full_name
-                + "' unknown."
+                "Tag '%s' in module configuration of '%s' unknown."
+                % (key, self.full_name)
             )
