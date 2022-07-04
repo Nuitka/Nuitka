@@ -901,6 +901,9 @@ PyObject *DICT_COPY(PyObject *value) {
     CHECK_OBJECT(value);
     assert(PyDict_CheckExact(value));
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+    return PyDict_Copy(value);
+#else
     if (((PyDictObject *)value)->ma_used == 0) {
         return PyDict_New();
     }
@@ -979,6 +982,7 @@ PyObject *DICT_COPY(PyObject *value) {
 
         return result;
     }
+#endif
 #endif
 }
 

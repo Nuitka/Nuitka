@@ -484,7 +484,7 @@ PyTypeObject Nuitka_Function_Type = {
     sizeof(struct Nuitka_FunctionObject),               /* tp_basicsize */
     sizeof(struct Nuitka_CellObject *),                 /* tp_itemsize */
     (destructor)Nuitka_Function_tp_dealloc,             /* tp_dealloc */
-#if PYTHON_VERSION < 0x380
+#if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     0, /* tp_print */
 #else
     offsetof(struct Nuitka_FunctionObject, m_vectorcall), /* tp_vectorcall_offset */
@@ -758,7 +758,7 @@ void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *func
     function->m_c_code = _Nuitka_FunctionEmptyCodeGenericImpl;
 }
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kw_names);
 #endif
@@ -874,7 +874,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     static long Nuitka_Function_counter = 0;
     result->m_counter = Nuitka_Function_counter++;
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     result->m_vectorcall = (vectorcallfunc)Nuitka_Function_tp_vectorcall;
 #endif
 
@@ -1424,9 +1424,12 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
     assert(star_dict_index != -1);
 
-    if (kw == NULL) {
+    if (kw == NULL || ((PyDictObject *)kw)->ma_used == 0) {
         python_pars[star_dict_index] = PyDict_New();
-    } else if (((PyDictObject *)kw)->ma_used > 0) {
+    } else {
+#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+        python_pars[star_dict_index] = PyDict_Copy(kw);
+#else
 #if PYTHON_VERSION < 0x300
         python_pars[star_dict_index] = _PyDict_NewPresized(((PyDictObject *)kw)->ma_used);
 
@@ -1521,8 +1524,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
             }
         }
 #endif
-    } else {
-        python_pars[star_dict_index] = PyDict_New();
+#endif
     }
 
     return true;
@@ -2703,7 +2705,7 @@ static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function,
     }
 }
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kw_names) {
     assert(kw_names == NULL || PyTuple_CheckExact(kw_names));
