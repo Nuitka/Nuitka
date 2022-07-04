@@ -22,7 +22,7 @@
 import os
 
 from nuitka import Options
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import (
     getFileList,

@@ -25,8 +25,8 @@ for dependency analysis.
 import fnmatch
 import os
 
-from nuitka.containers.odict import OrderedDict
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
     getShallIncludeDataDirs,
     getShallIncludeDataFiles,
@@ -192,17 +192,17 @@ def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
     )
 
 
-included_datafiles = []
+_included_data_files = []
 
 
 def addIncludedDataFile(included_datafile):
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
-    included_datafiles.append(included_datafile)
+    _included_data_files.append(included_datafile)
 
 
 def getIncludedDataFiles():
-    return included_datafiles
+    return _included_data_files
 
 
 def _addIncludedDataFilesFromFileOptions():

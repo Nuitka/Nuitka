@@ -32,7 +32,7 @@ import shlex
 import sys
 
 from nuitka import Progress, Tracing
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OptionParsing import isPyenvPython, parseOptions
 from nuitka.PythonFlavors import (
     isAnacondaPython,

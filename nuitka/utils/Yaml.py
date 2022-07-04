@@ -28,7 +28,7 @@ with these config files.
 import os
 import pkgutil
 
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 

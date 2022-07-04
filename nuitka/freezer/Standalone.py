@@ -33,8 +33,8 @@ from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.Bytecodes import compileSourceToBytecode
-from nuitka.containers.odict import OrderedDict
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.importing import ImportCache
 from nuitka.importing.Importing import locateModule

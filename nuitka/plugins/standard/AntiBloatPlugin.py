@@ -24,7 +24,7 @@ that to be done and causing massive degradations.
 
 import ast
 
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.plugins.PluginBase import NuitkaPluginBase

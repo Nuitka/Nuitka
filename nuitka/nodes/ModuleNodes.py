@@ -24,7 +24,7 @@ together and cross-module optimizations are the most difficult to tackle.
 import os
 
 from nuitka import Options, Variables
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename,
     locateModule,

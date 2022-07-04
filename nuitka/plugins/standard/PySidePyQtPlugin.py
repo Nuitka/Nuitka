@@ -23,7 +23,7 @@ own dependencies.
 
 import os
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedEntryPoints import makeExeEntryPoint
 from nuitka.Options import isExperimental, isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase

@@ -21,8 +21,8 @@ Initially this is about missing optimization only, but it should expand into
 real stuff.
 """
 
-from nuitka.containers.odict import OrderedDict
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Tracing import codegen_logger, optimization_logger
 
 _missing_helpers = OrderedDict()

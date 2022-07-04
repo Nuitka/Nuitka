@@ -23,7 +23,7 @@ import sys
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     WindowsError,
 )
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version_str
 
 from .Execution import (
