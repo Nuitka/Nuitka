@@ -124,7 +124,6 @@ bool BINARY_OPERATION_MOD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -156,9 +155,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObje
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyInt_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyInt_Type.tp_as_number->nb_remainder;
 
@@ -297,11 +295,8 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1,
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyInt_Type) {
         // return _BINARY_OPERATION_MOD_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -391,7 +386,6 @@ bool BINARY_OPERATION_MOD_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *oper
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -405,15 +399,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObje
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyInt_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
                                                                                   : NULL;
@@ -425,7 +417,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObje
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyInt_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -566,12 +558,9 @@ static inline bool _BINARY_OPERATION_MOD_INT_OBJECT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyInt_Type == type2) {
         // return _BINARY_OPERATION_MOD_INT_INT_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -704,7 +693,6 @@ bool BINARY_OPERATION_MOD_LONG_LONG_INPLACE(PyObject **operand1, PyObject *opera
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -736,9 +724,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObj
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyLong_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_remainder;
 
@@ -881,11 +868,8 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyLong_Type) {
         // return _BINARY_OPERATION_MOD_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -922,7 +906,6 @@ bool BINARY_OPERATION_MOD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *ope
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -936,15 +919,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObj
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyLong_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
                                                                                   : NULL;
@@ -956,7 +937,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObj
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyLong_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -1101,12 +1082,9 @@ static inline bool _BINARY_OPERATION_MOD_LONG_OBJECT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyLong_Type == type2) {
         // return _BINARY_OPERATION_MOD_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -1219,7 +1197,6 @@ bool BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *ope
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1251,9 +1228,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyOb
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyFloat_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_remainder;
 
@@ -1392,11 +1368,8 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyFloat_Type) {
         // return _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(operand1, operand2);
 
 #ifdef _MSC_VER
@@ -1465,7 +1438,6 @@ bool BINARY_OPERATION_MOD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *op
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1479,15 +1451,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyFloat_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
                                                                                   : NULL;
@@ -1499,7 +1469,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyOb
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyFloat_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -1640,12 +1610,9 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_OBJECT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyFloat_Type == type2) {
         // return _BINARY_OPERATION_MOD_FLOAT_FLOAT_INPLACE(operand1, operand2);
 
 #ifdef _MSC_VER
@@ -1727,9 +1694,6 @@ static inline bool _BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1741,28 +1705,15 @@ static inline bool _BINARY_OPERATION_MOD_INT_LONG_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_remainder;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -1820,9 +1771,6 @@ static inline bool _BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1834,32 +1782,13 @@ static inline bool _BINARY_OPERATION_MOD_LONG_INT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_remainder;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -1913,9 +1842,6 @@ static inline bool _BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyInt_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -1927,28 +1853,15 @@ static inline bool _BINARY_OPERATION_MOD_INT_FLOAT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
-        binaryfunc slot1 = PyInt_Type.tp_as_number->nb_remainder;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -2006,9 +1919,6 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2020,32 +1930,13 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_INT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_remainder;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -2098,9 +1989,6 @@ static inline bool _BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2112,28 +2000,15 @@ static inline bool _BINARY_OPERATION_MOD_LONG_FLOAT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
+        // Slot1 ignored on purpose, type2 takes precedence.
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
         }
 
         if (slot2 != NULL) {
@@ -2193,9 +2068,6 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyFloat_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2207,32 +2079,13 @@ static inline bool _BINARY_OPERATION_MOD_FLOAT_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-        binaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyLong_Type.tp_as_number->nb_remainder;
-        }
+        // Slot2 ignored on purpose, type1 takes precedence.
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 obj_result = x;
@@ -2289,9 +2142,6 @@ static inline bool _BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, Py
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2303,15 +2153,13 @@ static inline bool _BINARY_OPERATION_MOD_STR_INT_INPLACE(PyObject **operand1, Py
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyInt_Type.tp_as_number->nb_remainder;
         }
@@ -2382,9 +2230,6 @@ static inline bool _BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2396,15 +2241,13 @@ static inline bool _BINARY_OPERATION_MOD_STR_LONG_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_remainder;
         }
@@ -2475,9 +2318,6 @@ static inline bool _BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2489,15 +2329,13 @@ static inline bool _BINARY_OPERATION_MOD_STR_FLOAT_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_remainder;
         }
@@ -2613,9 +2451,6 @@ static inline bool _BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyUnicode_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2627,15 +2462,13 @@ static inline bool _BINARY_OPERATION_MOD_STR_UNICODE_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
         }
@@ -2706,9 +2539,6 @@ static inline bool _BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, 
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyTuple_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2720,12 +2550,9 @@ static inline bool _BINARY_OPERATION_MOD_STR_TUPLE_INPLACE(PyObject **operand1, 
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -2782,9 +2609,6 @@ static inline bool _BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyList_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2796,12 +2620,9 @@ static inline bool _BINARY_OPERATION_MOD_STR_LIST_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -2858,9 +2679,6 @@ static inline bool _BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, P
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
-    PyTypeObject *type2 = &PyDict_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2872,12 +2690,9 @@ static inline bool _BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, P
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -2922,7 +2737,6 @@ bool BINARY_OPERATION_MOD_STR_DICT_INPLACE(PyObject **operand1, PyObject *operan
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyString_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -2936,15 +2750,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObje
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyString_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyString_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
                                                                                   : NULL;
@@ -2956,7 +2768,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObje
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyString_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -3063,12 +2875,9 @@ static inline bool _BINARY_OPERATION_MOD_STR_OBJECT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyString_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyString_Type == type2) {
         // return _BINARY_OPERATION_MOD_STR_STR_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -3119,9 +2928,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3133,15 +2939,13 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_INT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyInt_Type.tp_as_number->nb_remainder;
         }
@@ -3212,9 +3016,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3226,15 +3027,13 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LONG_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_remainder;
         }
@@ -3307,9 +3106,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3321,15 +3117,13 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_FLOAT_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_remainder;
         }
@@ -3403,9 +3197,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyString_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3417,15 +3208,13 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_STR_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyString_Type.tp_as_number->nb_remainder;
         }
@@ -3496,9 +3285,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyBytes_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3510,15 +3296,13 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_BYTES_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyBytes_Type.tp_as_number->nb_remainder;
         }
@@ -3632,9 +3416,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyTuple_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3646,12 +3427,9 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_TUPLE_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -3710,9 +3488,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyList_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3724,12 +3499,9 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_LIST_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -3788,9 +3560,6 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
-    PyTypeObject *type2 = &PyDict_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -3802,12 +3571,9 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -3854,7 +3620,6 @@ bool BINARY_OPERATION_MOD_UNICODE_DICT_INPLACE(PyObject **operand1, PyObject *op
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyUnicode_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -3868,15 +3633,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(Py
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyUnicode_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyUnicode_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
                                                                                   : NULL;
@@ -3888,7 +3651,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(Py
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyUnicode_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -3999,12 +3762,9 @@ static inline bool _BINARY_OPERATION_MOD_UNICODE_OBJECT_INPLACE(PyObject **opera
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyUnicode_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyUnicode_Type == type2) {
         // return _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -4100,9 +3860,6 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyLong_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4114,15 +3871,13 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyLong_Type.tp_as_number->nb_remainder;
         }
@@ -4149,44 +3904,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LONG_INPLACE(PyObject **operand1,
             Py_DECREF(x);
         }
 
-#if PYTHON_VERSION < 0x300
-        if (!0 || !1) {
-            coercion c2 = PyLong_Type.tp_as_number->nb_coerce;
-
-            if (c2 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c2(&coerced2, &coerced1);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
+        // Statically recognized that coercion is not possible with these types
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'int'");
         goto exit_inplace_exception;
@@ -4230,9 +3948,6 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyFloat_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4244,15 +3959,13 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyFloat_Type.tp_as_number->nb_remainder;
         }
@@ -4279,44 +3992,7 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_FLOAT_INPLACE(PyObject **operand1
             Py_DECREF(x);
         }
 
-#if PYTHON_VERSION < 0x300
-        if (!0 || !1) {
-            coercion c2 = PyFloat_Type.tp_as_number->nb_coerce;
-
-            if (c2 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c2(&coerced2, &coerced1);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
+        // Statically recognized that coercion is not possible with these types
 
         PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'bytes' and 'float'");
         goto exit_inplace_exception;
@@ -4360,9 +4036,6 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operan
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyUnicode_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4374,15 +4047,13 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_UNICODE_INPLACE(PyObject **operan
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
         if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
         }
@@ -4453,9 +4124,6 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyTuple_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4467,12 +4135,9 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_TUPLE_INPLACE(PyObject **operand1
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -4529,9 +4194,6 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyList_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4543,12 +4205,9 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_LIST_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -4605,9 +4264,6 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1,
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
-    PyTypeObject *type2 = &PyDict_Type;
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -4619,12 +4275,9 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1,
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -4669,7 +4322,6 @@ bool BINARY_OPERATION_MOD_BYTES_DICT_INPLACE(PyObject **operand1, PyObject *oper
 #if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = &PyBytes_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -4683,15 +4335,13 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyOb
 #endif
 
     // No inplace number slot nb_inplace_remainder available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_remainder == NULL);
 
     {
         binaryfunc slot1 = PyBytes_Type.tp_as_number->nb_remainder;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(&PyBytes_Type == type2)) {
+            // Different types, need to consider second value slot.
 
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
                                                                                   : NULL;
@@ -4703,7 +4353,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyOb
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (PyType_IsSubtype(type2, &PyBytes_Type)) {
                     PyObject *x = slot2(*operand1, operand2);
 
                     if (x != Py_NotImplemented) {
@@ -4810,12 +4460,9 @@ static inline bool _BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand
         // execute stuff in-place.
     }
 
-    PyTypeObject *type1 = &PyBytes_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (&PyBytes_Type == type2) {
         // return _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -4856,7 +4503,6 @@ bool BINARY_OPERATION_MOD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *op
 /* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyString_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -4888,9 +4534,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObje
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyString_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyString_Type.tp_as_number->nb_remainder;
 
@@ -4995,11 +4640,8 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1,
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyString_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyString_Type) {
         // return _BINARY_OPERATION_MOD_STR_STR_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -5039,7 +4681,6 @@ bool BINARY_OPERATION_MOD_OBJECT_STR_INPLACE(PyObject **operand1, PyObject *oper
 /* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyBytes_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -5071,9 +4712,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyOb
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyBytes_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyBytes_Type.tp_as_number->nb_remainder;
 
@@ -5178,11 +4818,8 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyBytes_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyBytes_Type) {
         // return _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -5222,7 +4859,6 @@ bool BINARY_OPERATION_MOD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *op
 /* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyUnicode_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -5254,9 +4890,8 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(Py
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
         binaryfunc slot2 = NULL;
 
-        if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+        if (!(type1 == &PyUnicode_Type)) {
+            // Different types, need to consider second value slot.
 
             slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
 
@@ -5365,11 +5000,8 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_UNICODE_INPLACE(PyObject **opera
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyUnicode_Type;
 
-    if (type1 == type2) {
-        assert(type1 == type2);
-
+    if (type1 == &PyUnicode_Type) {
         // return _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
@@ -5418,7 +5050,6 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_TUPLE_INPLACE(PyObject **operand
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyTuple_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -5448,8 +5079,6 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_TUPLE_INPLACE(PyObject **operand
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -5542,7 +5171,6 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LIST_INPLACE(PyObject **operand1
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyList_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -5572,8 +5200,6 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_LIST_INPLACE(PyObject **operand1
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -5666,7 +5292,6 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_DICT_INPLACE(PyObject **operand1
     }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
-    PyTypeObject *type2 = &PyDict_Type;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -5696,8 +5321,6 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_DICT_INPLACE(PyObject **operand1
     {
         binaryfunc slot1 =
             (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-        assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->nb_remainder == NULL ||
-               type1->tp_as_number->nb_remainder == type2->tp_as_number->nb_remainder);
 
         if (slot1 != NULL) {
             PyObject *x = slot1(*operand1, operand2);
@@ -5913,8 +5536,7 @@ static inline bool _BINARY_OPERATION_MOD_OBJECT_OBJECT_INPLACE(PyObject **operan
         binaryfunc slot2 = NULL;
 
         if (!(type1 == type2)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
+            // Different types, need to consider second value slot.
 
             slot2 = (type2->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type2)) ? type2->tp_as_number->nb_remainder
                                                                                   : NULL;

@@ -42,7 +42,6 @@
     }
 {% else %}
     // No inplace number slot {{ nb_islot }} available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->{{ nb_islot }} == NULL);
 {% endif %}
 
     {
@@ -79,8 +78,12 @@ exit_inplace_exception:
 {% if not left.hasTypeSpecializationCode(right, nb_slot, sq_slot) and left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
 static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
 {% set props = {"exits": {}} %}
+{% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
+{% endif %}
+{% if right == object_desc %}
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
 
     {{ inplace_fallback_operation(props, left, right, "type1", "type2") }}
 }
@@ -225,12 +228,14 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% elif left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
 {% set props = {"exits": {}} %}
 
+{% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
+{% endif %}
+{% if right == object_desc %}
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
 
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
-        assert(type1 == type2);
-
         {# There is special code for same types. #}
         // return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
 
@@ -248,9 +253,12 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     return __BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE(operand1, operand2);
 {% else %}
 {% set props = {"exits": {}} %}
-
+{% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
+{% endif %}
+{% if right == object_desc %}
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
 
     {{ inplace_fallback_operation(props, left, right, "type1", "type2") }}
 {% endif %}

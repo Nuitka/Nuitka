@@ -60,15 +60,15 @@
 {% set right_name_3 = right.getTypeName3() %}
 {% if right_name_2 == right_name_3 or left.python_requirement or right.python_requirement %}
 {% if left.python_requirement == "PYTHON_VERSION < 0x300" or right.python_requirement == "PYTHON_VERSION < 0x300" %}
-    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer" );
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer");
 {% else %}
-    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer" );
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer");
 {% endif %}
 {% else %}
 #if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer" );
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer");
 #else
-    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer" );
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer");
 #endif
 {% endif %}
 {% endif %}
@@ -82,14 +82,18 @@
     }
 {% endif %}
     {
+{% if left != object_desc and right != object_desc and right.hasSlot(sq_slot) and right.hasPreferredSlot(left, sq_slot) %}
+        PyObject *o = {{ right.getSlotValueExpression(type1, "sq_concat") }}({{ operand1 }}, {{ operand2 }});
+{% else %}
         PyObject *o = {{ left.getSlotValueExpression(type1, "sq_concat") }}({{ operand1 }}, {{ operand2 }});
+{% endif %}
         {{ goto_exit(props, exit_result_object, "o") }}
     }
 {% endmacro %}
 {% macro repeat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) %}
-{# This is the SEQUENCE_REPEAT() helper specialized #}
+    {# This is the SEQUENCE_REPEAT() helper specialized #}
     if (unlikely(!{{ right.getIndexCheckExpression(operand2) }})) {
-        PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", {{ type2 }}->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", {{operand2}});
 
         {{ goto_exit(props, exit_result_exception) }}
     }
@@ -143,16 +147,21 @@
 {% macro binary_operation(props, operator, nb_slot, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_cbool_ok, exit_result_nbool, exit_result_exception) %}
 {% set slot1_relevant = left == object_desc or left.hasSlot(nb_slot) %}
 {% set slot2_relevant = right == object_desc or (left != right and right.hasSlot(nb_slot)) %}
-    {% set error_needed = 1 %}
+{% set error_needed = 1 %}
+{% set slot1_ignored = slot1_relevant and left != object_desc and right != object_desc and right.hasPreferredSlot(left, nb_slot) %}
+{% set slot1_relevant = slot1_relevant and not slot1_ignored %}
+{% set slot2_ignored = slot2_relevant and left != object_desc and right != object_desc and left.hasPreferredSlot(right, nb_slot) %}
+{% set slot2_relevant = slot2_relevant and not slot2_ignored %}
 {% if slot1_relevant %}
     {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression(type1, nb_slot) }};
+{% elif slot1_ignored %}
+    // Slot1 ignored on purpose, type2 takes precedence.
 {% endif %}
 {% if slot2_relevant %}
     {{ left.getSlotType(nb_slot) }} slot2 = NULL;
 
     if (!({{ left.getTypeIdenticalCheckExpression(right, type1, type2) }})) {
-        assert(type1 != type2);
-        /* Different types, need to consider second value slot. */
+        // Different types, need to consider second value slot.
 
         slot2 = {{ right.getSlotValueExpression(type2, nb_slot) }};
 
@@ -162,15 +171,15 @@
         }
 {% endif %}
     }
-{% else %}
-    assert(type2 == NULL || type2->tp_as_number == NULL || type2->tp_as_number->{{nb_slot}} == NULL || type1->tp_as_number->{{nb_slot}} == type2->tp_as_number->{{nb_slot}});
+{% elif slot2_ignored %}
+    // Slot2 ignored on purpose, type1 takes precedence.
 {% endif %}
 
 {% if slot1_relevant %}
     if (slot1 != NULL) {
 {% if slot2_relevant and right == object_desc %}
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if ({{ left.getTypeSubTypeCheckExpression(right, type2, type1) }}) {
                 PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot2", operand1, operand2) }};
 
                 if (x != Py_NotImplemented) {
@@ -312,10 +321,8 @@
         {% set lslot_needed = 1 %}
 {% else %}
         // No sequence repeat slot {{ sq_slot }} available for this type.
-        assert({{ type1 }}->tp_as_sequence == NULL || {{ type1 }}->tp_as_sequence->{{ sq_slot }} == NULL);
 {% if sq_islot %}
         // No inplace sequence repeat slot {{ sq_islot }} available for this type.
-        assert({{ type1 }}->tp_as_sequence == NULL || {{ type1 }}->tp_as_sequence->{{ sq_islot }} == NULL);
 {% endif %}
         {% set lslot_needed = 0 %}
 {% endif %}
@@ -336,7 +343,7 @@
 {% if right.type_name != "object" and right.hasSlot("sq_repeat")  %}
 {% if operator == "*" %}
 {% if sq_islot %}
-    if ({{ type1 }}->tp_as_sequence == NULL) {
+    if ({{ left.getNoSequenceSlotAccessTestCode("type1") }}) {
 {% endif %}
         {{ repeat_operation(props, right, left, type2, type1, operand2, operand1, exit_result_object, exit_result_exception) }}
 {% if sq_islot %}
@@ -359,14 +366,13 @@
 {% if right == object_desc or right.hasSlot(sq_slot) %}
     // Special case for "*", also work with sequence repeat from right argument.
 {% if sq_islot %}
-    if ({{ type1 }}->tp_as_sequence == NULL )
+    if ({{ left.getNoSequenceSlotAccessTestCode("type1") }})
 {% endif %}
     {
         {{ right.getSlotType(sq_slot) }} sq_slot = {{ right.getSlotValueExpression(type2, sq_slot) }};
         {% set rslot_needed = 1 %}
 {% else %}
         // No sequence repeat slot {{ sq_slot }} available for this type.
-        assert({{ type2 }}->tp_as_sequence == NULL || {{ type2 }}->tp_as_sequence->{{ sq_slot }} == NULL);
         {% set rslot_needed = 0 %}
 {% endif %}
 {% if rslot_needed == 1 %}

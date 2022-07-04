@@ -1167,7 +1167,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyString_Type && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
 
@@ -1282,7 +1282,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyString_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -1507,7 +1507,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyString_Type && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
 
@@ -1654,7 +1654,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyString_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -1903,7 +1903,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyString_Type && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
 
@@ -2050,7 +2050,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyString_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -2252,7 +2252,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyString_Type == type2 && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
 
@@ -2367,7 +2367,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyString_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -2545,7 +2545,7 @@ bool RICH_COMPARE_EQ_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyString_Type == type2 && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
 
@@ -2692,7 +2692,7 @@ bool RICH_COMPARE_EQ_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyString_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -2894,7 +2894,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyString_Type == type2 && !0) {
 
         richcmpfunc frich = PyString_Type.tp_richcompare;
 
@@ -3041,7 +3041,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyString_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -3341,7 +3341,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyUnicode_Type && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
 
@@ -3456,7 +3456,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyUnicode_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -3709,7 +3709,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyUnicode_Type && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
 
@@ -3856,7 +3856,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyUnicode_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -4133,7 +4133,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyUnicode_Type && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
 
@@ -4280,7 +4280,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyUnicode_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -4482,7 +4482,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyUnicode_Type == type2 && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
 
@@ -4597,7 +4597,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyUnicode_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -4775,7 +4775,7 @@ bool RICH_COMPARE_EQ_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyUnicode_Type == type2 && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
 
@@ -4922,7 +4922,7 @@ bool RICH_COMPARE_EQ_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyUnicode_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -5124,7 +5124,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyUnicode_Type == type2 && !0) {
 
         richcmpfunc frich = PyUnicode_Type.tp_richcompare;
 
@@ -5271,7 +5271,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyUnicode_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -5542,7 +5542,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyBytes_Type && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
 
@@ -5689,7 +5689,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyBytes_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -5938,7 +5938,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyBytes_Type && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
 
@@ -6085,7 +6085,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyBytes_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -6334,7 +6334,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyBytes_Type == type2 && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
 
@@ -6449,7 +6449,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyBytes_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -6627,7 +6627,7 @@ bool RICH_COMPARE_EQ_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyBytes_Type == type2 && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
 
@@ -6774,7 +6774,7 @@ bool RICH_COMPARE_EQ_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyBytes_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -6976,7 +6976,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyBytes_Type == type2 && !0) {
 
         richcmpfunc frich = PyBytes_Type.tp_richcompare;
 
@@ -7123,7 +7123,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyBytes_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -7351,6 +7351,137 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2
 #endif
 
 #if PYTHON_VERSION < 0x300
+
+static PyObject *COMPARE_EQ_OBJECT_CLONG_LONG(long operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+    bool operand1_is_negative;
+    unsigned long operand1_abs_ival;
+
+    if (operand1 < 0) {
+        operand1_abs_ival = (unsigned long)(-1 - operand1) + 1;
+        operand1_is_negative = true;
+    } else {
+        operand1_abs_ival = (unsigned long)operand1;
+        operand1_is_negative = false;
+    }
+
+    int operand1_digit_count = 0;
+    digit operand1_digits[5]; // Could be more minimal and depend on sizeof(digit)
+    {
+        unsigned long t = operand1_abs_ival;
+
+        while (t != 0) {
+            operand1_digit_count += 1;
+            assert(operand1_digit_count <= (sizeof(operand1_digit_count) / sizeof(digit)));
+
+            operand1_digits[operand1_digit_count] = (digit)(t & PyLong_MASK);
+            t >>= PyLong_SHIFT;
+        }
+    }
+
+    int operand1_size = operand1_is_negative == false ? operand1_digit_count : -operand1_digit_count;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    bool r;
+
+    if (false) {
+        r = true;
+    } else if ((Py_ssize_t)(operand1_size) != Py_SIZE(operand2_long_object)) {
+        r = false;
+    } else {
+        Py_ssize_t i = (Py_ssize_t)(operand1_digit_count);
+        r = true;
+
+        while (--i >= 0) {
+            if (operand1_digits[i] != operand2_long_object->ob_digit[i]) {
+                r = false;
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+}
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+PyObject *RICH_COMPARE_EQ_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
+
+    return COMPARE_EQ_OBJECT_CLONG_LONG(PyInt_AS_LONG(operand1), operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+
+static PyObject *COMPARE_EQ_OBJECT_LONG_CLONG(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    bool operand2_is_negative;
+    unsigned long operand2_abs_ival;
+
+    if (operand2 < 0) {
+        operand2_abs_ival = (unsigned long)(-1 - operand2) + 1;
+        operand2_is_negative = true;
+    } else {
+        operand2_abs_ival = (unsigned long)operand2;
+        operand2_is_negative = false;
+    }
+
+    int operand2_digit_count = 0;
+    digit operand2_digits[5]; // Could be more minimal and depend on sizeof(digit)
+    {
+        unsigned long t = operand2_abs_ival;
+
+        while (t != 0) {
+            operand2_digit_count += 1;
+            assert(operand2_digit_count <= (sizeof(operand2_digit_count) / sizeof(digit)));
+
+            operand2_digits[operand2_digit_count] = (digit)(t & PyLong_MASK);
+            t >>= PyLong_SHIFT;
+        }
+    }
+
+    int operand2_size = operand2_is_negative == false ? operand2_digit_count : -operand2_digit_count;
+
+    bool r;
+
+    if (false) {
+        r = true;
+    } else if (Py_SIZE(operand1_long_object) != (Py_ssize_t)(operand2_size)) {
+        r = false;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        r = true;
+
+        while (--i >= 0) {
+            if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
+                r = false;
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+}
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+PyObject *RICH_COMPARE_EQ_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+
+    return COMPARE_EQ_OBJECT_LONG_CLONG(operand1, PyInt_AS_LONG(operand1));
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
@@ -7373,7 +7504,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyInt_Type && !0) {
 
         richcmpfunc frich = NULL;
 
@@ -7488,7 +7619,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyInt_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -7666,7 +7797,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyInt_Type && !0) {
 
         richcmpfunc frich = NULL;
 
@@ -7813,7 +7944,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyInt_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -8015,7 +8146,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyInt_Type && !0) {
 
         richcmpfunc frich = NULL;
 
@@ -8162,7 +8293,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyInt_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -8364,7 +8495,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyInt_Type == type2 && !0) {
 
         richcmpfunc frich = NULL;
 
@@ -8479,7 +8610,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyInt_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -8657,7 +8788,7 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyInt_Type == type2 && !0) {
 
         richcmpfunc frich = NULL;
 
@@ -8804,7 +8935,7 @@ bool RICH_COMPARE_EQ_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyInt_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -9006,7 +9137,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyInt_Type == type2 && !0) {
 
         richcmpfunc frich = NULL;
 
@@ -9153,7 +9284,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyInt_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -9338,20 +9469,22 @@ static PyObject *COMPARE_EQ_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyLongObject *a = (PyLongObject *)operand1;
-    PyLongObject *b = (PyLongObject *)operand2;
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
     bool r;
 
-    if (a == b) {
+    if (operand1_long_object == operand2_long_object) {
         r = true;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+    } else if (Py_SIZE(operand1_long_object) != Py_SIZE(operand2_long_object)) {
         r = false;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
+
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
+            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
                 r = false;
                 break;
             }
@@ -9375,20 +9508,22 @@ static bool COMPARE_EQ_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyLongObject *a = (PyLongObject *)operand1;
-    PyLongObject *b = (PyLongObject *)operand2;
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
     bool r;
 
-    if (a == b) {
+    if (operand1_long_object == operand2_long_object) {
         r = true;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+    } else if (Py_SIZE(operand1_long_object) != Py_SIZE(operand2_long_object)) {
         r = false;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
+
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
+            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
                 r = false;
                 break;
             }
@@ -9412,20 +9547,22 @@ static nuitka_bool COMPARE_EQ_NBOOL_LONG_LONG(PyObject *operand1, PyObject *oper
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    PyLongObject *a = (PyLongObject *)operand1;
-    PyLongObject *b = (PyLongObject *)operand2;
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
     bool r;
 
-    if (a == b) {
+    if (operand1_long_object == operand2_long_object) {
         r = true;
-    } else if (Py_SIZE(a) != Py_SIZE(b)) {
+    } else if (Py_SIZE(operand1_long_object) != Py_SIZE(operand2_long_object)) {
         r = false;
     } else {
-        Py_ssize_t i = Py_ABS(Py_SIZE(a));
+        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
         r = true;
+
         while (--i >= 0) {
-            if (a->ob_digit[i] != b->ob_digit[i]) {
+            if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
                 r = false;
                 break;
             }
@@ -9465,7 +9602,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyLong_Type && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
 
@@ -9580,7 +9717,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyLong_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -9758,7 +9895,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyLong_Type && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
 
@@ -9905,7 +10042,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyLong_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -10107,7 +10244,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyLong_Type && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
 
@@ -10254,7 +10391,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyLong_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -10456,7 +10593,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyLong_Type == type2 && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
 
@@ -10571,7 +10708,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyLong_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -10749,7 +10886,7 @@ bool RICH_COMPARE_EQ_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyLong_Type == type2 && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
 
@@ -10896,7 +11033,7 @@ bool RICH_COMPARE_EQ_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyLong_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -11098,7 +11235,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyLong_Type == type2 && !0) {
 
         richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
 
@@ -11245,7 +11382,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyLong_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -11513,7 +11650,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyFloat_Type && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
 
@@ -11628,7 +11765,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyFloat_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -11804,7 +11941,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyFloat_Type && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
 
@@ -11951,7 +12088,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyFloat_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -12151,7 +12288,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyFloat_Type && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
 
@@ -12298,7 +12435,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyFloat_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -12498,7 +12635,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyFloat_Type == type2 && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
 
@@ -12613,7 +12750,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyFloat_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -12789,7 +12926,7 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyFloat_Type == type2 && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
 
@@ -12936,7 +13073,7 @@ bool RICH_COMPARE_EQ_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyFloat_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -13136,7 +13273,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyFloat_Type == type2 && !0) {
 
         richcmpfunc frich = PyFloat_Type.tp_richcompare;
 
@@ -13283,7 +13420,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyFloat_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -13651,7 +13788,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyTuple_Type && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
 
@@ -13766,7 +13903,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyTuple_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -13942,7 +14079,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyTuple_Type && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
 
@@ -14089,7 +14226,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyTuple_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -14289,7 +14426,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyTuple_Type && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
 
@@ -14436,7 +14573,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyTuple_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -14636,7 +14773,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyTuple_Type == type2 && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
 
@@ -14751,7 +14888,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyTuple_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -14927,7 +15064,7 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyTuple_Type == type2 && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
 
@@ -15074,7 +15211,7 @@ bool RICH_COMPARE_EQ_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyTuple_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -15274,7 +15411,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyTuple_Type == type2 && !0) {
 
         richcmpfunc frich = PyTuple_Type.tp_richcompare;
 
@@ -15421,7 +15558,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyTuple_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -15789,7 +15926,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyList_Type && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
 
@@ -15904,7 +16041,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyList_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -16080,7 +16217,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyList_Type && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
 
@@ -16227,7 +16364,7 @@ bool RICH_COMPARE_EQ_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyList_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -16427,7 +16564,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (type1 == &PyList_Type && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
 
@@ -16574,7 +16711,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (type1 == &PyList_Type) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -16774,7 +16911,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyList_Type == type2 && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
 
@@ -16889,7 +17026,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyList_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -17065,7 +17202,7 @@ bool RICH_COMPARE_EQ_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyList_Type == type2 && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
 
@@ -17212,7 +17349,7 @@ bool RICH_COMPARE_EQ_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyList_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 
@@ -17412,7 +17549,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
-    if (type1 == type2 && !0) {
+    if (&PyList_Type == type2 && !0) {
 
         richcmpfunc frich = PyList_Type.tp_richcompare;
 
@@ -17559,7 +17696,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     }
 
     if (c >= 2) {
-        if (type1 == type2) {
+        if (&PyList_Type == type2) {
             Py_uintptr_t aa = (Py_uintptr_t)operand1;
             Py_uintptr_t bb = (Py_uintptr_t)operand2;
 

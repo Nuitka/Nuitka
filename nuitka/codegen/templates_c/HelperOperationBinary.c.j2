@@ -56,8 +56,12 @@ exit_binary_exception:
 {% if not left.hasTypeSpecializationCode(right, nb_slot, sq_slot) and left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
 static HEDLEY_NEVER_INLINE {{target.getTypeDecl()}} __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
 {% set props = {"exits": {}} %}
+{% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if right == object_desc %}
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
 
     {{ binary_fallback_operation(props, target, left, right, "type1", "type2") }}
 }
@@ -101,13 +105,14 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
 {% endif %}
 {% elif left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
 {% set props = {"exits": {}} %}
-
+{% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if right == object_desc %}
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
 
     if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
-        assert(type1 == type2);
-
         {{target.getTypeDecl()}} result;
 
         {# There is special code for same types. #}
@@ -127,9 +132,12 @@ static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelper
     return __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
 {% else %}
 {% set props = {"exits": {}} %}
-
+{% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if right == object_desc %}
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
 
     {{ binary_fallback_operation(props, target, left, right, "type1", "type2") }}
 {% endif %}
