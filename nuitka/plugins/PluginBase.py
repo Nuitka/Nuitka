@@ -32,6 +32,8 @@ import inspect
 import sys
 from collections import namedtuple
 
+from ordered_set import OrderedSet
+
 from nuitka import Tracing
 from nuitka.__past__ import getMetaClassBase
 from nuitka.freezer.IncludedDataFiles import (
@@ -99,6 +101,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     # For working with options, user plugins must set this variable to
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
+    used_tags = OrderedSet()
 
     @staticmethod
     def isAlwaysEnabled():
@@ -859,8 +862,7 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    @staticmethod
-    def evaluateControlTags(full_name, control_tags):
+    def evaluateControlTags(self, full_name, control_tags):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
@@ -885,7 +887,9 @@ except ImportError:
             context["before_python" + big + major] = is_lower_version
 
         # We trust the yaml files, pylint: disable=eval-used
-        return eval(control_tags, context)
+        result = eval(control_tags, context)
+        NuitkaPluginBase.used_tags.add(control_tags, result, self.plugin_name)
+        return result
 
     @classmethod
     def warning(cls, message):
