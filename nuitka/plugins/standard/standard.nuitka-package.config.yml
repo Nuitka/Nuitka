@@ -1595,3 +1595,8 @@
         relative_path: "lib"
         prefixes:
           - "xgboost"
+
+- module-name: "connexion"
+  data-files:
+    dirs:
+      - "resources"
