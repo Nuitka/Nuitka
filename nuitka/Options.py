@@ -896,6 +896,12 @@ def getShallNotIncludeDataFilePatterns():
     return options.data_files_inhibited
 
 
+def getShallNotIncludeDllFilePatterns():
+    """*list*, items of ``--noinclude-dlls=``"""
+
+    return options.dll_files_inhibited
+
+
 def shallWarnImplicitRaises():
     """:returns: bool derived from ``--warn-implicit-exceptions``"""
     return options.warn_implicit_exceptions
