@@ -1230,8 +1230,8 @@ branches:
    where my work for develop branch lives first. It is intended for
    testing only and recommended to base any of your own development on.
    When updating it, you very often will get merge conflicts. Simply
-   resolve those by doing ``git reset --hard origin/factory`` and switch
-   to the latest version.
+   resolve those by doing ``git fetch && git reset --hard
+   origin/factory`` and switch to the latest version.
 
 .. note::
 
