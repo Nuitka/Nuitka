@@ -2115,99 +2115,6 @@ bool BINARY_OPERATION_POW_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *oper
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static inline bool _BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyLong_CheckExact(*operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyTypeObject *type1 = &PyLong_Type;
-    PyTypeObject *type2 = &PyInt_Type;
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    // No inplace number slot nb_inplace_power available for this type.
-    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_power == NULL);
-
-    {
-        ternaryfunc slot1 = PyLong_Type.tp_as_number->nb_power;
-        ternaryfunc slot2 = NULL;
-
-        if (!(0)) {
-            assert(type1 != type2);
-            /* Different types, need to consider second value slot. */
-
-            slot2 = PyInt_Type.tp_as_number->nb_power;
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2, Py_None);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2, Py_None);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        // Statically recognized that coercion is not possible with these types
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'int'");
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-
-bool BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_LONG_INT_INPLACE(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _BINARY_OPERATION_POW_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -2297,6 +2204,99 @@ exit_inplace_exception:
 
 bool BINARY_OPERATION_POW_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     return _BINARY_OPERATION_POW_INT_LONG_INPLACE(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+static inline bool _BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyLong_CheckExact(*operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    PyTypeObject *type1 = &PyLong_Type;
+    PyTypeObject *type2 = &PyInt_Type;
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    // No inplace number slot nb_inplace_power available for this type.
+    assert(type1->tp_as_number == NULL || type1->tp_as_number->nb_inplace_power == NULL);
+
+    {
+        ternaryfunc slot1 = PyLong_Type.tp_as_number->nb_power;
+        ternaryfunc slot2 = NULL;
+
+        if (!(0)) {
+            assert(type1 != type2);
+            /* Different types, need to consider second value slot. */
+
+            slot2 = PyInt_Type.tp_as_number->nb_power;
+        }
+
+        if (slot1 != NULL) {
+            PyObject *x = slot1(*operand1, operand2, Py_None);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        if (slot2 != NULL) {
+            PyObject *x = slot2(*operand1, operand2, Py_None);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'int'");
+        goto exit_inplace_exception;
+    }
+
+exit_inplace_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = obj_result;
+
+    return true;
+
+exit_inplace_exception:
+    return false;
+}
+
+bool BINARY_OPERATION_POW_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_LONG_INT_INPLACE(operand1, operand2);
 }
 #endif
 
