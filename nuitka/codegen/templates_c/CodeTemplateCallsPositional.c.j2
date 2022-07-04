@@ -161,6 +161,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 
             return result;
         }
+#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
     } else if (PyCFunction_CheckExact(called)) {
         // Try to be fast about wrapping the arguments.
         int flags = PyCFunction_GET_FLAGS(called) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
@@ -296,6 +297,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 
             return Nuitka_CheckFunctionResult(result);
         }
+#endif
+#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
 {% if args_count == 0 %}
         return _fast_function_noargs(called);
@@ -306,6 +309,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             {{args_count}}
         );
 {% endif %}
+#endif
+#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
         PyTypeObject *type = Py_TYPE(called);
 
@@ -468,6 +473,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% endif %}
             return obj;
         }
+#endif
 #if PYTHON_VERSION < 0x300
     } else if (PyClass_Check(called)) {
         PyObject *obj = PyInstance_NewRaw(called, NULL);
@@ -548,7 +554,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 
         return obj;
 #endif
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
         vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
 

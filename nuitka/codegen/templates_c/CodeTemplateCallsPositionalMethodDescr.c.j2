@@ -25,7 +25,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *c
     CHECK_OBJECT(called);
     {{ CHECK_OBJECTS(args, args_count) }}
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
     assert (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL));
     vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
     assert(func != NULL);
