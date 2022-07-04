@@ -51,8 +51,8 @@ from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 from .PluginBase import (
     NuitkaPluginBase,
     makeTriggerModuleName,
-    postload_trigger_name,
-    preload_trigger_name,
+    post_module_load_trigger_name,
+    pre_module_load_trigger_name,
 )
 
 # Maps plugin name to plugin instances.
@@ -168,7 +168,7 @@ def _loadPluginClassesFromPackage(scan_package):
     scan_path = scan_package.__path__
 
     for item in iter_modules(scan_path):
-        if item.ispkg:
+        if item.ispkg:  # spell-checker: ignore ispkg
             continue
 
         module_loader = item.module_finder.find_module(item.name)
@@ -593,7 +593,7 @@ class Plugins(object):
 
         Args:
             module: the module object (serves as dict key)
-            trigger_name: string ("preload"/"postload")
+            trigger_name: string ("preLoad"/"postLoad")
             code: the code string
 
         Returns
@@ -643,15 +643,15 @@ class Plugins(object):
 
         full_name = module.getFullName()
 
-        def _untangleLoadDesc(descs):
-            if descs and inspect.isgenerator(descs):
-                descs = tuple(descs)
+        def _untangleLoadDescription(description):
+            if description and inspect.isgenerator(description):
+                description = tuple(description)
 
-            if descs:
-                if type(descs[0]) not in (tuple, list):
-                    descs = [descs]
+            if description:
+                if type(description[0]) not in (tuple, list):
+                    description = [description]
 
-                for desc in descs:
+                for desc in description:
                     if desc is None:
                         pass
                     elif len(desc) == 2:
@@ -664,40 +664,44 @@ class Plugins(object):
 
                     yield plugin, code, reason, flags
 
-        def _untangleFakeDesc(descs):
-            if descs and inspect.isgenerator(descs):
-                descs = tuple(descs)
+        def _untangleFakeDesc(description):
+            if description and inspect.isgenerator(description):
+                description = tuple(description)
 
-            if descs:
-                if type(descs[0]) not in (tuple, list):
-                    descs = [descs]
+            if description:
+                if type(description[0]) not in (tuple, list):
+                    description = [description]
 
-                for desc in descs:
+                for desc in description:
                     assert len(desc) == 4, desc
                     yield plugin, desc[0], desc[1], desc[2], desc[3]
 
-        preload_descs = []
-        postload_descs = []
-        fake_descs = []
+        pre_module_load_descriptions = []
+        post_module_load_descriptions = []
+        fake_module_descriptions = []
 
         for plugin in getActivePlugins():
             plugin.onModuleDiscovered(module)
 
-            preload_descs.extend(
-                _untangleLoadDesc(descs=plugin.createPreModuleLoadCode(module))
+            pre_module_load_descriptions.extend(
+                _untangleLoadDescription(
+                    description=plugin.createPreModuleLoadCode(module)
+                )
             )
-            postload_descs.extend(
-                _untangleLoadDesc(descs=plugin.createPostModuleLoadCode(module))
+            post_module_load_descriptions.extend(
+                _untangleLoadDescription(
+                    description=plugin.createPostModuleLoadCode(module)
+                )
             )
-            fake_descs.extend(
-                _untangleFakeDesc(descs=plugin.createFakeModuleDependency(module))
+            fake_module_descriptions.extend(
+                _untangleFakeDesc(description=plugin.createFakeModuleDependency(module))
             )
 
-        if preload_descs:
+        if pre_module_load_descriptions:
             total_code = []
             total_flags = OrderedSet()
 
-            for plugin, pre_code, reason, flags in preload_descs:
+            for plugin, pre_code, reason, flags in pre_module_load_descriptions:
                 if pre_code:
                     plugin.info(
                         "Injecting pre-module load code for module '%s':" % full_name
@@ -713,16 +717,16 @@ class Plugins(object):
 
                 pre_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
-                    trigger_name=preload_trigger_name,
+                    trigger_name=pre_module_load_trigger_name,
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
 
-        if postload_descs:
+        if post_module_load_descriptions:
             total_code = []
             total_flags = OrderedSet()
 
-            for plugin, post_code, reason, flags in postload_descs:
+            for plugin, post_code, reason, flags in post_module_load_descriptions:
                 if post_code:
                     plugin.info(
                         "Injecting post-module load code for module '%s':" % full_name
@@ -738,12 +742,12 @@ class Plugins(object):
 
                 post_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
-                    trigger_name=postload_trigger_name,
+                    trigger_name=post_module_load_trigger_name,
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
 
-        if fake_descs:
+        if fake_module_descriptions:
             fake_modules[full_name] = []
 
             from nuitka.tree.Building import buildModule
@@ -754,7 +758,7 @@ class Plugins(object):
                 source_code,
                 fake_filename,
                 reason,
-            ) in fake_descs:
+            ) in fake_module_descriptions:
                 fake_module, _added = buildModule(
                     module_filename=fake_filename,
                     module_name=fake_module_name,
@@ -926,6 +930,8 @@ class Plugins(object):
             OrderedDict(), where None value indicates no define value,
             i.e. "-Dkey=value" vs. "-Dkey"
         """
+
+        # spell-checker: ignore -Dkey
 
         if cls.preprocessor_symbols is None:
             cls.preprocessor_symbols = OrderedDict()

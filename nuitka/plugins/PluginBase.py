@@ -54,8 +54,8 @@ from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 warned_unused_plugins = set()
 
 # Trigger names for shared use.
-postload_trigger_name = "postLoad"
-preload_trigger_name = "preLoad"
+post_module_load_trigger_name = "postLoad"
+pre_module_load_trigger_name = "preLoad"
 
 
 def makeTriggerModuleName(module_name, trigger_name):
@@ -68,11 +68,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     Derive your plugin from "NuitkaPluginBase" please.
     For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
 
-    Plugins allow to adapt Nuitka's behaviour in a number of ways as explained
+    Plugins allow to adapt Nuitka's behavior in a number of ways as explained
     below at the individual methods.
 
     It is used to deal with special requirements some packages may have (e.g. PyQt
-    and tkinter), data files to be included (e.g. certifi), inserting hidden
+    and tkinter), data files to be included (e.g. "certifi"), inserting hidden
     code, coping with otherwise undetectable needs, or issuing messages in
     certain situations.
 
@@ -292,7 +292,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def hasPreModuleLoadCode(module_name):
         return (
             getModuleInclusionInfoByName(
-                makeTriggerModuleName(module_name, preload_trigger_name)
+                makeTriggerModuleName(module_name, pre_module_load_trigger_name)
             )
             is not None
         )
@@ -301,7 +301,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def hasPostModuleLoadCode(module_name):
         return (
             getModuleInclusionInfoByName(
-                makeTriggerModuleName(module_name, postload_trigger_name)
+                makeTriggerModuleName(module_name, post_module_load_trigger_name)
             )
             is not None
         )
