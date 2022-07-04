@@ -97,7 +97,9 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         if config:
             for entry in config:
                 if entry.get("control_tags"):
-                    if not self.evaluateControlTags(entry.get("control_tags")):
+                    if not self.evaluateControlTags(
+                        full_name, entry.get("control_tags")
+                    ):
                         continue
 
                 dependencies = entry.get("depends")

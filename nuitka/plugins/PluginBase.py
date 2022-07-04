@@ -32,6 +32,7 @@ import inspect
 import sys
 from collections import namedtuple
 
+from nuitka import Tracing
 from nuitka.__past__ import getMetaClassBase
 from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
@@ -859,16 +860,19 @@ except ImportError:
         return ()
 
     @staticmethod
-    def evaluateControlTags(control_tags):
+    def evaluateControlTags(full_name, control_tags):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
-        context = {
-            "macos_only": isMacOS(),
-            "win32_only": isWin32Windows(),
-            "linux_only": isLinux(),
-            "anaconda": isAnacondaPython(),
-        }
+        context = TagContext(full_name)
+        context.update(
+            {
+                "macos_only": isMacOS(),
+                "win32_only": isWin32Windows(),
+                "linux_only": isLinux(),
+                "anaconda": isAnacondaPython(),
+            }
+        )
         versions = getSupportedPythonVersions()
 
         for version in versions:
@@ -910,3 +914,28 @@ def standalone_only(func):
                 return None
 
     return wrapped
+
+
+class TagContext(dict):
+    def __init__(self, full_name, *args, **kwargs):
+        self.full_name = full_name
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        try:
+            dict.__getitem__(self, key)
+
+        except KeyError:
+            if key.startswith("use_"):
+                Tracing.plugins_logger.info(
+                    "Use default 'False' for not existing tag '" + key + "'."
+                )
+                return False
+
+            Tracing.plugins_logger.sysexit(
+                "Tag '"
+                + key
+                + "' in module configuration of '"
+                + self.full_name
+                + "' unknown."
+            )
