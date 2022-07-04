@@ -26,7 +26,9 @@ too.
 
 """
 
-from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet, buildOrderedSet
+
+# spell-checker: ignore clong
 
 
 def parseTypesFromHelper(helper_name):
@@ -68,32 +70,23 @@ def deriveInplaceFromBinaryOperations(operations_set):
     )
 
 
-def buildOrderedSet(*producers):
-    values = []
-
-    for producer in producers:
-        values.extend(producer)
-
-    return OrderedSet(values)
-
-
-def makeTypeOps(op_code, type_name, include_nbool):
+def _makeTypeOps(op_code, type_name, include_nbool):
     yield "BINARY_OPERATION_%s_OBJECT_%s_%s" % (op_code, type_name, type_name)
     yield "BINARY_OPERATION_%s_OBJECT_OBJECT_%s" % (op_code, type_name)
     yield "BINARY_OPERATION_%s_OBJECT_%s_OBJECT" % (op_code, type_name)
 
     if include_nbool:
-        for helper in makeTypeOpsNbool(op_code, type_name):
+        for helper in _makeTypeOpsNbool(op_code, type_name):
             yield helper
 
 
-def makeTypeOpsNbool(op_code, type_name):
+def _makeTypeOpsNbool(op_code, type_name):
     yield "BINARY_OPERATION_%s_NBOOL_%s_%s" % (op_code, type_name, type_name)
     yield "BINARY_OPERATION_%s_NBOOL_OBJECT_%s" % (op_code, type_name)
     yield "BINARY_OPERATION_%s_NBOOL_%s_OBJECT" % (op_code, type_name)
 
 
-def makeFriendOps(op_code, include_nbool, *type_names):
+def _makeFriendOps(op_code, include_nbool, *type_names):
     for type_name1 in type_names:
         for type_name2 in type_names:
             if type_name1 == type_name2:
@@ -115,70 +108,70 @@ def makeFriendOps(op_code, include_nbool, *type_names):
                 )
 
 
-def makeDefaultOps(op_code, include_nbool):
+def _makeDefaultOps(op_code, include_nbool):
     yield "BINARY_OPERATION_%s_OBJECT_OBJECT_OBJECT" % op_code
     if include_nbool:
         yield "BINARY_OPERATION_%s_NBOOL_OBJECT_OBJECT" % op_code
 
 
-def makeNonContainerMathOps(op_code):
+def _makeNonContainerMathOps(op_code):
     for type_name in "TUPLE", "LIST", "DICT", "SET", "FROZENSET":
         if "BIT" in op_code and type_name == "SET":
             continue
         if "SUB" in op_code and type_name == "SET":
             continue
 
-        for value in makeTypeOps(op_code, type_name, include_nbool=True):
+        for value in _makeTypeOps(op_code, type_name, include_nbool=True):
             yield value
 
 
 specialized_add_helpers_set = buildOrderedSet(
-    makeTypeOps("ADD", "INT", include_nbool=True),
-    makeTypeOps("ADD", "LONG", include_nbool=True),
-    makeTypeOps("ADD", "FLOAT", include_nbool=True),
-    makeTypeOps("ADD", "STR", include_nbool=False),
-    makeTypeOps("ADD", "UNICODE", include_nbool=False),
-    makeTypeOps("ADD", "BYTES", include_nbool=False),
-    makeTypeOps("ADD", "TUPLE", include_nbool=False),
-    makeTypeOps("ADD", "LIST", include_nbool=True),
+    _makeTypeOps("ADD", "INT", include_nbool=True),
+    _makeTypeOps("ADD", "LONG", include_nbool=True),
+    _makeTypeOps("ADD", "FLOAT", include_nbool=True),
+    _makeTypeOps("ADD", "STR", include_nbool=False),
+    _makeTypeOps("ADD", "UNICODE", include_nbool=False),
+    _makeTypeOps("ADD", "BYTES", include_nbool=False),
+    _makeTypeOps("ADD", "TUPLE", include_nbool=False),
+    _makeTypeOps("ADD", "LIST", include_nbool=True),
     # These are friends naturally, they all add with another
-    makeFriendOps("ADD", True, "INT", "LONG", "FLOAT"),
+    _makeFriendOps("ADD", True, "INT", "LONG", "FLOAT"),
     # TODO: Make CLONG ready to join above group.
     # makeFriendOps("ADD", True, "INT", "CLONG"),
     # These are friends too.
-    makeFriendOps("ADD", True, "STR", "UNICODE"),
+    _makeFriendOps("ADD", True, "STR", "UNICODE"),
     # Default implementation.
-    makeDefaultOps("ADD", include_nbool=True),
+    _makeDefaultOps("ADD", include_nbool=True),
 )
 
 nonspecialized_add_helpers_set = buildOrderedSet(
-    makeTypeOpsNbool("ADD", "STR"),  # Not really likely to be used.
-    makeTypeOpsNbool("ADD", "UNICODE"),  # Not really likely to be used.
-    makeTypeOpsNbool("ADD", "BYTES"),  # Not really likely to be used.
-    makeTypeOpsNbool("ADD", "TUPLE"),  # Not really likely to be used.
+    _makeTypeOpsNbool("ADD", "STR"),  # Not really likely to be used.
+    _makeTypeOpsNbool("ADD", "UNICODE"),  # Not really likely to be used.
+    _makeTypeOpsNbool("ADD", "BYTES"),  # Not really likely to be used.
+    _makeTypeOpsNbool("ADD", "TUPLE"),  # Not really likely to be used.
 )
 
 specialized_sub_helpers_set = buildOrderedSet(
-    makeTypeOps("SUB", "INT", include_nbool=True),
-    makeTypeOps("SUB", "LONG", include_nbool=True),
-    makeTypeOps("SUB", "FLOAT", include_nbool=True),
+    _makeTypeOps("SUB", "INT", include_nbool=True),
+    _makeTypeOps("SUB", "LONG", include_nbool=True),
+    _makeTypeOps("SUB", "FLOAT", include_nbool=True),
     # These are friends naturally, they all sub with another
-    makeFriendOps("SUB", True, "INT", "LONG", "FLOAT"),
-    makeDefaultOps("SUB", include_nbool=True),
+    _makeFriendOps("SUB", True, "INT", "LONG", "FLOAT"),
+    _makeDefaultOps("SUB", include_nbool=True),
 )
 
 # These made no sense to specialize for, nothing to gain.
 nonspecialized_sub_helpers_set = buildOrderedSet(
-    makeTypeOps("SUB", "STR", include_nbool=True),
-    makeTypeOps("SUB", "UNICODE", include_nbool=True),
-    makeTypeOps("SUB", "BYTES", include_nbool=True),
-    makeNonContainerMathOps("SUB"),
+    _makeTypeOps("SUB", "STR", include_nbool=True),
+    _makeTypeOps("SUB", "UNICODE", include_nbool=True),
+    _makeTypeOps("SUB", "BYTES", include_nbool=True),
+    _makeNonContainerMathOps("SUB"),
 )
 
 specialized_mult_helpers_set = buildOrderedSet(
-    makeTypeOps("MULT", "INT", include_nbool=True),
-    makeTypeOps("MULT", "LONG", include_nbool=True),
-    makeTypeOps("MULT", "FLOAT", include_nbool=True),
+    _makeTypeOps("MULT", "INT", include_nbool=True),
+    _makeTypeOps("MULT", "LONG", include_nbool=True),
+    _makeTypeOps("MULT", "FLOAT", include_nbool=True),
     (
         "BINARY_OPERATION_MULT_OBJECT_CLONG_CLONG",
         "BINARY_OPERATION_MULT_OBJECT_INT_CLONG",
@@ -215,26 +208,26 @@ specialized_mult_helpers_set = buildOrderedSet(
         "BINARY_OPERATION_MULT_OBJECT_BYTES_LONG",
     ),
     # These are friends naturally, they all mul with another
-    makeFriendOps("MULT", True, "INT", "LONG", "FLOAT"),
-    makeDefaultOps("MULT", include_nbool=True),
+    _makeFriendOps("MULT", True, "INT", "LONG", "FLOAT"),
+    _makeDefaultOps("MULT", include_nbool=True),
 )
 
 nonspecialized_mult_helpers_set = None
 
 specialized_truediv_helpers_set = buildOrderedSet(
-    makeTypeOps("TRUEDIV", "INT", include_nbool=True),
-    makeTypeOps("TRUEDIV", "LONG", include_nbool=True),
-    makeTypeOps("TRUEDIV", "FLOAT", include_nbool=True),
+    _makeTypeOps("TRUEDIV", "INT", include_nbool=True),
+    _makeTypeOps("TRUEDIV", "LONG", include_nbool=True),
+    _makeTypeOps("TRUEDIV", "FLOAT", include_nbool=True),
     # These are friends naturally, they div mul with another
-    makeFriendOps("TRUEDIV", True, "INT", "LONG", "FLOAT"),
-    makeDefaultOps("TRUEDIV", include_nbool=True),
+    _makeFriendOps("TRUEDIV", True, "INT", "LONG", "FLOAT"),
+    _makeDefaultOps("TRUEDIV", include_nbool=True),
 )
 
 nonspecialized_truediv_helpers_set = buildOrderedSet(
-    makeTypeOps("TRUEDIV", "UNICODE", include_nbool=True),
-    makeTypeOps("TRUEDIV", "STR", include_nbool=True),
-    makeTypeOps("TRUEDIV", "BYTES", include_nbool=True),
-    makeNonContainerMathOps("TRUEDIV"),
+    _makeTypeOps("TRUEDIV", "UNICODE", include_nbool=True),
+    _makeTypeOps("TRUEDIV", "STR", include_nbool=True),
+    _makeTypeOps("TRUEDIV", "BYTES", include_nbool=True),
+    _makeNonContainerMathOps("TRUEDIV"),
 )
 
 specialized_olddiv_helpers_set = OrderedSet(
@@ -255,11 +248,11 @@ nonspecialized_floordiv_helpers_set = OrderedSet(
 )
 
 specialized_mod_helpers_set = buildOrderedSet(
-    makeTypeOps("MOD", "INT", include_nbool=True),
-    makeTypeOps("MOD", "LONG", include_nbool=True),
-    makeTypeOps("MOD", "FLOAT", include_nbool=True),
+    _makeTypeOps("MOD", "INT", include_nbool=True),
+    _makeTypeOps("MOD", "LONG", include_nbool=True),
+    _makeTypeOps("MOD", "FLOAT", include_nbool=True),
     # These are friends naturally, they mod with another
-    makeFriendOps("MOD", True, "INT", "LONG", "FLOAT"),
+    _makeFriendOps("MOD", True, "INT", "LONG", "FLOAT"),
     (
         # String interpolation with STR:
         "BINARY_OPERATION_MOD_OBJECT_STR_INT",
@@ -301,7 +294,7 @@ specialized_mod_helpers_set = buildOrderedSet(
         # Default implementation.
         "BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT",
     ),
-    makeDefaultOps("MOD", include_nbool=True),
+    _makeDefaultOps("MOD", include_nbool=True),
 )
 
 nonspecialized_mod_helpers_set = buildOrderedSet(
@@ -342,23 +335,23 @@ nonspecialized_imod_helpers_set = deriveInplaceFromBinaryOperations(
 
 
 specialized_bitor_helpers_set = buildOrderedSet(
-    makeTypeOps("BITOR", "LONG", include_nbool=True),
-    makeTypeOps("BITOR", "INT", include_nbool=True),
-    makeFriendOps("BITOR", True, "INT", "LONG"),
+    _makeTypeOps("BITOR", "LONG", include_nbool=True),
+    _makeTypeOps("BITOR", "INT", include_nbool=True),
+    _makeFriendOps("BITOR", True, "INT", "LONG"),
     (
         # Set containers can do this
         "BINARY_OPERATION_BITOR_OBJECT_SET_SET",
         "BINARY_OPERATION_BITOR_OBJECT_OBJECT_SET",
         "BINARY_OPERATION_BITOR_OBJECT_SET_OBJECT",
     ),
-    makeDefaultOps("BITOR", include_nbool=True),
+    _makeDefaultOps("BITOR", include_nbool=True),
 )
 nonspecialized_bitor_helpers_set = buildOrderedSet(
-    makeTypeOps("BITOR", "FLOAT", include_nbool=True),
-    makeNonContainerMathOps("BITOR"),
-    makeTypeOps("BITOR", "UNICODE", include_nbool=True),
-    makeTypeOps("BITOR", "STR", include_nbool=True),
-    makeTypeOps("BITOR", "BYTES", include_nbool=True),
+    _makeTypeOps("BITOR", "FLOAT", include_nbool=True),
+    _makeNonContainerMathOps("BITOR"),
+    _makeTypeOps("BITOR", "UNICODE", include_nbool=True),
+    _makeTypeOps("BITOR", "STR", include_nbool=True),
+    _makeTypeOps("BITOR", "BYTES", include_nbool=True),
 )
 
 specialized_bitand_helpers_set = OrderedSet(
@@ -380,7 +373,8 @@ specialized_lshift_helpers_set = OrderedSet(
     if "_TUPLE" not in helper
 )
 nonspecialized_lshift_helpers_set = buildOrderedSet(
-    makeTypeOps("BITOR", "FLOAT", include_nbool=True), makeNonContainerMathOps("BITOR")
+    _makeTypeOps("BITOR", "FLOAT", include_nbool=True),
+    _makeNonContainerMathOps("BITOR"),
 )
 nonspecialized_lshift_helpers_set = OrderedSet(
     helper.replace("_BITOR_", "_LSHIFT_") for helper in nonspecialized_bitor_helpers_set
@@ -394,63 +388,44 @@ nonspecialized_rshift_helpers_set = OrderedSet(
 )
 
 
-specialized_pow_helpers_set = OrderedSet(
+specialized_pow_helpers_set = buildOrderedSet(
+    # TODO: Disable nbool, makes no sense
+    _makeTypeOps("POW", "FLOAT", include_nbool=True),
+    _makeTypeOps("POW", "LONG", include_nbool=True),
+    _makeTypeOps("POW", "INT", include_nbool=True),
+    _makeFriendOps("POW", True, "INT", "LONG"),
+    _makeDefaultOps("POW", include_nbool=True),
     (
         # Float is used by other types for ** operations.
-        "BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT",
-        "BINARY_OPERATION_POW_NBOOL_FLOAT_FLOAT",
-        "BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT",
-        "BINARY_OPERATION_POW_NBOOL_OBJECT_FLOAT",
-        "BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT",
-        "BINARY_OPERATION_POW_NBOOL_FLOAT_OBJECT",
-        "BINARY_OPERATION_POW_OBJECT_LONG_LONG",
-        "BINARY_OPERATION_POW_NBOOL_LONG_LONG",
-        "BINARY_OPERATION_POW_OBJECT_OBJECT_LONG",
-        "BINARY_OPERATION_POW_NBOOL_OBJECT_LONG",
-        "BINARY_OPERATION_POW_OBJECT_LONG_OBJECT",
-        "BINARY_OPERATION_POW_NBOOL_LONG_OBJECT",
         # TODO: Enable these later.
         #        "BINARY_OPERATION_POW_OBJECT_LONG_FLOAT",
         #        "BINARY_OPERATION_POW_NBOOL_LONG_FLOAT",
-        "BINARY_OPERATION_POW_OBJECT_INT_INT",
-        "BINARY_OPERATION_POW_NBOOL_INT_INT",
-        "BINARY_OPERATION_POW_OBJECT_OBJECT_INT",
-        "BINARY_OPERATION_POW_NBOOL_OBJECT_INT",
-        "BINARY_OPERATION_POW_OBJECT_INT_OBJECT",
-        "BINARY_OPERATION_POW_NBOOL_INT_OBJECT",
-        "BINARY_OPERATION_POW_OBJECT_LONG_INT",
-        "BINARY_OPERATION_POW_NBOOL_LONG_INT",
-        "BINARY_OPERATION_POW_OBJECT_INT_LONG",
-        "BINARY_OPERATION_POW_NBOOL_INT_LONG",
-        # Default implementation.
-        "BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT",
-        "BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT",
-    )
+    ),
 )
 nonspecialized_pow_helpers_set = buildOrderedSet(
-    makeTypeOps("POW", "STR", include_nbool=True),
-    makeTypeOps("POW", "UNICODE", include_nbool=True),
-    makeTypeOps("POW", "BYTES", include_nbool=True),
-    makeNonContainerMathOps("POW"),
+    _makeTypeOps("POW", "STR", include_nbool=True),
+    _makeTypeOps("POW", "UNICODE", include_nbool=True),
+    _makeTypeOps("POW", "BYTES", include_nbool=True),
+    _makeNonContainerMathOps("POW"),
 )
 
 
 specialized_divmod_helpers_set = buildOrderedSet(
-    makeTypeOps("DIVMOD", "INT", include_nbool=False),
-    makeTypeOps("DIVMOD", "LONG", include_nbool=False),
-    makeTypeOps("DIVMOD", "FLOAT", include_nbool=False),
+    _makeTypeOps("DIVMOD", "INT", include_nbool=False),
+    _makeTypeOps("DIVMOD", "LONG", include_nbool=False),
+    _makeTypeOps("DIVMOD", "FLOAT", include_nbool=False),
     # These are friends naturally, they mod with another
     # makeFriendOps("DIVMOD", False, "INT", "LONG", "FLOAT"),
-    makeDefaultOps("DIVMOD", include_nbool=False),
+    _makeDefaultOps("DIVMOD", include_nbool=False),
 )
 nonspecialized_divmod_helpers_set = buildOrderedSet(
-    makeTypeOpsNbool("DIVMOD", "INT"),
-    makeTypeOpsNbool("DIVMOD", "LONG"),
-    makeTypeOpsNbool("DIVMOD", "FLOAT"),
-    makeTypeOps("DIVMOD", "UNICODE", include_nbool=True),
-    makeTypeOps("DIVMOD", "STR", include_nbool=True),
-    makeTypeOps("DIVMOD", "BYTES", include_nbool=True),
-    makeNonContainerMathOps("DIVMOD"),
+    _makeTypeOpsNbool("DIVMOD", "INT"),
+    _makeTypeOpsNbool("DIVMOD", "LONG"),
+    _makeTypeOpsNbool("DIVMOD", "FLOAT"),
+    _makeTypeOps("DIVMOD", "UNICODE", include_nbool=True),
+    _makeTypeOps("DIVMOD", "STR", include_nbool=True),
+    _makeTypeOps("DIVMOD", "BYTES", include_nbool=True),
+    _makeNonContainerMathOps("DIVMOD"),
 )
 
 assert (
@@ -458,19 +433,19 @@ assert (
 )
 
 specialized_matmult_helpers_set = buildOrderedSet(
-    makeTypeOps("MATMULT", "LONG", include_nbool=False),
-    makeTypeOps("MATMULT", "FLOAT", include_nbool=False),
-    makeDefaultOps("MATMULT", include_nbool=False),
+    _makeTypeOps("MATMULT", "LONG", include_nbool=False),
+    _makeTypeOps("MATMULT", "FLOAT", include_nbool=False),
+    _makeDefaultOps("MATMULT", include_nbool=False),
 )
 
 nonspecialized_matmult_helpers_set = buildOrderedSet(
-    makeTypeOpsNbool("MATMULT", "LONG"),
-    makeTypeOpsNbool("MATMULT", "FLOAT"),
-    makeTypeOps("MATMULT", "TUPLE", include_nbool=True),
-    makeTypeOps("MATMULT", "LIST", include_nbool=True),
-    makeTypeOps("MATMULT", "DICT", include_nbool=True),
-    makeTypeOps("MATMULT", "BYTES", include_nbool=True),
-    makeTypeOps("MATMULT", "UNICODE", include_nbool=True),
+    _makeTypeOpsNbool("MATMULT", "LONG"),
+    _makeTypeOpsNbool("MATMULT", "FLOAT"),
+    _makeTypeOps("MATMULT", "TUPLE", include_nbool=True),
+    _makeTypeOps("MATMULT", "LIST", include_nbool=True),
+    _makeTypeOps("MATMULT", "DICT", include_nbool=True),
+    _makeTypeOps("MATMULT", "BYTES", include_nbool=True),
+    _makeTypeOps("MATMULT", "UNICODE", include_nbool=True),
 )
 
 specialized_iadd_helpers_set = buildOrderedSet(

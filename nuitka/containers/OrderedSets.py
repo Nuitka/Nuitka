@@ -3,8 +3,6 @@ Python at all.
 
 """
 
-# Only for re-export, pylint: disable=unused-import
-
 try:
     # spell-checker: ignore orderedset
     from orderedset import OrderedSet
@@ -13,3 +11,13 @@ except ImportError:
         from ordered_set import OrderedSet
     except ImportError:
         from .OrderedSetsFallback import OrderedSet
+
+
+def buildOrderedSet(*producers):
+    """Helper function to merge multiple producers into one OrderedSet value"""
+    values = []
+
+    for producer in producers:
+        values.extend(producer)
+
+    return OrderedSet(values)
