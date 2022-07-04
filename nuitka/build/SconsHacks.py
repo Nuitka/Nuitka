@@ -161,6 +161,9 @@ def myDetect(self, progs):
         if blocked_tool in progs:
             return None
 
+    # Note: Actually, with our inline copy, this is maybe not supposed to
+    # happen at all
+
     return orig_detect(self, progs)
 
 
