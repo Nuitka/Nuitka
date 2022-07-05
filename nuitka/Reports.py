@@ -24,6 +24,7 @@ from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.Standalone import getCopiedDLLInfos
 from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.ModuleRegistry import getDoneModules, getModuleInclusionInfos
+from nuitka.plugins import PluginBase
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
 
@@ -88,6 +89,8 @@ def writeCompilationReport(report_filename):
             dirs=":".join(search_path),
         )
     )
+
+    root.append(TreeXML.Element("used_control_tags", tags=PluginBase.used_tags))
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 

@@ -32,10 +32,9 @@ import inspect
 import sys
 from collections import namedtuple
 
-from ordered_set import OrderedSet
-
 from nuitka import Tracing
 from nuitka.__past__ import getMetaClassBase
+from nuitka.containers.oset import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
     makeIncludedDataFile,
@@ -46,6 +45,7 @@ from nuitka.freezer.IncludedDataFiles import (
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
+from nuitka.plugins import PluginBase
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
@@ -59,6 +59,8 @@ warned_unused_plugins = set()
 # Trigger names for shared use.
 postload_trigger_name = "postLoad"
 preload_trigger_name = "preLoad"
+
+used_tags = OrderedSet()
 
 
 def makeTriggerModuleName(module_name, trigger_name):
@@ -101,7 +103,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     # For working with options, user plugins must set this variable to
     # the script's path (use __file__, __module__ or __name__).
     plugin_name = None
-    used_tags = OrderedSet()
 
     @staticmethod
     def isAlwaysEnabled():
@@ -888,7 +889,7 @@ except ImportError:
 
         # We trust the yaml files, pylint: disable=eval-used
         result = eval(control_tags, context)
-        NuitkaPluginBase.used_tags.add(control_tags, result, self.plugin_name)
+        PluginBase.used_tags.add((control_tags, result, self.plugin_name))
         return result
 
     @classmethod
@@ -923,7 +924,7 @@ def standalone_only(func):
 class TagContext(dict):
     def __init__(self, full_name, *args, **kwargs):
         self.full_name = full_name
-        dict.__init__(*args, **kwargs)
+        dict.__init__(self, *args, **kwargs)
 
     def __getitem__(self, key):
         try:

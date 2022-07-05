@@ -118,7 +118,7 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
             for check in options_config.get("checks"):
                 if check.get("control_tags"):
                     if not self.evaluateControlTags(
-                        full_name, check.get("control_tags")
+                        full_name=full_name, control_tags=check.get("control_tags")
                     ):
                         continue
 
