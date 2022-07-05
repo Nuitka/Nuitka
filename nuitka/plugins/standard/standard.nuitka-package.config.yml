@@ -1600,3 +1600,8 @@
   data-files:
     dirs:
       - "resources"
+
+- module-name: "swagger_ui_bundle"
+  data-files:
+    dirs:
+      - "vendor"
