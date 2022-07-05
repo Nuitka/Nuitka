@@ -45,7 +45,6 @@ from nuitka.freezer.IncludedDataFiles import (
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
 from nuitka.ModuleRegistry import getModuleInclusionInfoByName
 from nuitka.Options import isStandaloneMode
-from nuitka.plugins import PluginBase
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
@@ -889,7 +888,7 @@ except ImportError:
 
         # We trust the yaml files, pylint: disable=eval-used
         result = eval(control_tags, context)
-        PluginBase.used_tags.add((control_tags, result, self.plugin_name))
+        used_tags.add((control_tags, result, self.plugin_name))
         return result
 
     @classmethod
