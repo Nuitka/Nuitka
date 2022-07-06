@@ -132,3 +132,7 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
     @classmethod
     def getExceptionCheckCondition(cls, value_name):
         return "%s == NUITKA_BOOL_EXCEPTION" % value_name
+
+    @classmethod
+    def hasErrorIndicator(cls):
+        return True

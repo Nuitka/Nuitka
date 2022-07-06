@@ -73,6 +73,31 @@ class TypeDescBase(getMetaClassBase("Type")):
     def getTypeValueExpression(cls, operand):
         return "Py_TYPE(%s)" % operand
 
+    def getTypeNameExpression(self, type_name):
+        if self is object_desc:
+            return "%s->tp_name" % type_name
+
+        if self.getTypeName2() == self.getTypeName3():
+            return '"%s"' % self.getTypeName2()
+
+        if self.python_requirement == "PYTHON_VERSION < 0x300":
+            return '"%s"' % self.getTypeName2()
+        elif self.python_requirement == "PYTHON_VERSION >= 0x300":
+            return '"%s"' % self.getTypeName3()
+        elif self.python_requirement is None:
+            return '(PYTHON_VERSION < 0x300 ? "%s" : "%s")' % (
+                self.getTypeName2(),
+                self.getTypeName3(),
+            )
+        else:
+            assert False, self.python_requirement
+
+    def getTypeValueVariableExpression(self, type_name):
+        if self is object_desc:
+            return type_name
+        else:
+            return self.getTypeValueExpression(None)
+
     @abstractmethod
     def getNewStyleNumberTypeCheckExpression(self, operand):
         pass
@@ -272,9 +297,14 @@ class TypeDescBase(getMetaClassBase("Type")):
         else:
             return "0"
 
-    def getTypeNonIdenticalCheckExpression(self, other, operand1, operand2):
+    def getTypeNonIdenticalCheckExpression(self, other, type1, type2):
         if self is object_desc or other is object_desc:
-            return "%s != %s" % (operand1, operand2)
+            return "%s != %s" % (
+                self.getTypeValueExpression(None) if self is not object_desc else type1,
+                other.getTypeValueExpression(None)
+                if other is not object_desc
+                else type2,
+            )
         elif self is other:
             return "0"
         else:
@@ -286,19 +316,18 @@ class TypeDescBase(getMetaClassBase("Type")):
             self.getTypeValueExpression(None) if self is not object_desc else type1,
         )
 
-    @staticmethod
-    def getRealSubTypeCheckCode(right, type2, type1):
-        if right is object_desc:
-            return "PyType_IsSubtype(%s, %s)" % (type2, type1)
+    def getRealSubTypeCheckCode(self, other, type2, type1):
+        # Our concrete types, cannot be subtypes of any other type.
+        if other is object_desc:
+            return "PyType_IsSubtype(%s, %s)" % (
+                type2,
+                self.getTypeValueExpression(None) if self is not object_desc else type1,
+            )
         else:
             return 0
 
     @abstractmethod
     def hasSlot(self, slot):
-        pass
-
-    @abstractmethod
-    def hasSequenceSlots(self):
         pass
 
     def _getSlotValueExpression(self, operand, slot):
@@ -356,6 +385,10 @@ class TypeDescBase(getMetaClassBase("Type")):
     def getSlotValueCheckExpression(self, operand, slot):
         # Virtual method, pylint: disable=unused-argument
         return "true" if self.hasSlot(slot) else "false"
+
+    @abstractmethod
+    def getNoSequenceSlotAccessTestCode(self, type_name):
+        pass
 
     @staticmethod
     def getOperationErrorMessageName(operator):
@@ -896,24 +929,30 @@ assert(%(type_name)s_CheckExact(%(operand)s));""" % {
     def getTakeReferenceStatement(operand):
         return ""
 
-    def hasPreferredSlot(self, right, slot):
+    @staticmethod
+    def hasPreferredSlot(right, slot):
+        # Virtual method, pylint: disable=unused-argument
         return False
-
-    def getNoSequenceSlotAccessTestCode(self, type_name):
-        """Test if type has no sequence slots at all."""
-        return "false" if self.hasSequenceSlots() else "true"
 
 
 class ConcreteNonSequenceTypeBase(ConcreteTypeBase):
-    @staticmethod
-    def hasSequenceSlots():
-        return False
+    """Base class for concrete types that are not sequences."""
+
+    # Base classes can be abstract, pylint: disable=abstract-method
+
+    def getNoSequenceSlotAccessTestCode(self, type_name):
+        """Test if type has no sequence slots at all."""
+        return "true"
 
 
 class ConcreteSequenceTypeBase(ConcreteTypeBase):
-    @staticmethod
-    def hasSequenceSlots():
-        return False
+    """Base class for concrete types that are sequences."""
+
+    # Base classes can be abstract, pylint: disable=abstract-method
+
+    def getNoSequenceSlotAccessTestCode(self, type_name):
+        """Test if type has no sequence slots at all."""
+        return "false"
 
 
 class IntDesc(ConcreteNonSequenceTypeBase):
@@ -1284,7 +1323,7 @@ class LongDesc(ConcreteNonSequenceTypeBase):
         # therefore create code that makes this a conditional expression on the
         # Python version
         if slot == "tp_richcompare":
-            return "(PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(%s))" % operand
+            return "(PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare)"
 
         return ConcreteTypeBase.getSlotValueExpression(self, operand=operand, slot=slot)
 
@@ -1312,10 +1351,6 @@ class ObjectDesc(TypeDescBase):
     type_decl = "PyObject *"
 
     def hasSlot(self, slot):
-        # Don't want to get asked, we cannot know.
-        assert False
-
-    def hasSequenceSlots(self):
         # Don't want to get asked, we cannot know.
         assert False
 
@@ -1352,8 +1387,17 @@ object_desc = ObjectDesc()
 
 
 class ConcreteCTypeBase(TypeDescBase):
-    def hasSequenceSlots(self):
-        assert False
+    """Base class for non-Python (C) concrete types."""
+
+    def hasSlot(self, slot):
+        assert False, self
+
+    def getNoSequenceSlotAccessTestCode(self, type_name):
+        assert False, self
+
+    def getNewStyleNumberTypeCheckExpression(self, operand):
+        # We don't have that.
+        assert False, self
 
 
 class CLongDesc(ConcreteCTypeBase):

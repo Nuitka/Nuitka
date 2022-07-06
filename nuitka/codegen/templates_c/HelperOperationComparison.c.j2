@@ -48,10 +48,10 @@
 #endif
 
 {# TODO: Make these optional too #}
-{% if True or left == object_desc %}
+{% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
 {% endif %}
-{% if True or right == object_desc %}
+{% if right == object_desc %}
     PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
 {% endif %}
 
@@ -174,9 +174,11 @@
     int c;
 
     if ({{left.getInstanceCheckCode("operand1")}}) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = {{left.getSlotValueExpression("type1", "tp_compare")}};
+        c = (*fcmp)(operand1, operand2);
     } else if ({{right.getInstanceCheckCode("operand2")}}) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = {{right.getSlotValueExpression("type2", "tp_compare")}};
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -198,8 +200,8 @@
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t aa = (Py_uintptr_t){{ left.getTypeValueVariableExpression("type1") }};
+                Py_uintptr_t bb = (Py_uintptr_t){{ right.getTypeValueVariableExpression("type2") }};
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -208,8 +210,8 @@
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp({{ left.getTypeNameExpression("type1") }}, {{ right.getTypeNameExpression("type2") }});
 
             if (s < 0) {
                 c = -1;
@@ -217,8 +219,8 @@
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t aa = (Py_uintptr_t){{ left.getTypeValueVariableExpression("type1") }};
+                Py_uintptr_t bb = (Py_uintptr_t){{ right.getTypeValueVariableExpression("type2") }};
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -260,7 +262,7 @@
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if ({{left.getTypeNonIdenticalCheckExpression(right, "type1", "type2")}} && PyType_IsSubtype(type2, type1)) {
+    if ({{left.getTypeNonIdenticalCheckExpression(right, "type1", "type2")}} && {{ left.getTypeSubTypeCheckExpression(right, "type2", "type1") }}) {
         f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
 
         if (f != NULL) {

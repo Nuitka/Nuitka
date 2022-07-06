@@ -340,6 +340,10 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return "%s == NULL" % value_name
 
     @classmethod
+    def hasErrorIndicator(cls):
+        return True
+
+    @classmethod
     def getReleaseCode(cls, value_name, needs_check, emit):
         if needs_check:
             template = template_release_object_unclear

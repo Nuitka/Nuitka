@@ -83,5 +83,9 @@ class CTypeBool(CTypeNotReferenceCountedMixin, CTypeBase):
         assert False
 
     @classmethod
+    def hasErrorIndicator(cls):
+        return False
+
+    @classmethod
     def getTruthCheckCode(cls, value_name):
         return "%s != false" % value_name

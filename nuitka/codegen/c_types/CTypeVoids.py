@@ -96,3 +96,7 @@ class CTypeVoid(CTypeNotReferenceCountedMixin, CTypeBase):
     @classmethod
     def getExceptionCheckCondition(cls, value_name):
         return "%s == NUITKA_VOID_EXCEPTION" % value_name
+
+    @classmethod
+    def hasErrorIndicator(cls):
+        return True
