@@ -18,7 +18,6 @@
 """Data composer, crunch constants into binary blobs to load. """
 
 import binascii
-import ctypes
 import math
 import os
 import re
@@ -42,7 +41,12 @@ from nuitka.constants.Serialization import (
     BuiltinUnionTypeValue,
     ConstantStreamReader,
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    isPythonValidCLongLongValue,
+    isPythonValidCLongValue,
+    python_version,
+    sizeof_clonglong,
+)
 from nuitka.Tracing import datacomposer_logger
 from nuitka.utils.FileOperations import listDir
 
@@ -57,17 +61,6 @@ def scanConstFiles(build_dir):
         result.append((fullpath, filename))
 
     return result
-
-
-sizeof_clong = ctypes.sizeof(ctypes.c_long)
-
-max_signed_long = 2 ** (sizeof_clong * 7) - 1
-min_signed_long = -(2 ** (sizeof_clong * 7))
-
-sizeof_clonglong = ctypes.sizeof(ctypes.c_longlong)
-
-max_signed_longlong = 2 ** (sizeof_clonglong * 8 - 1) - 1
-min_signed_longlong = -(2 ** (sizeof_clonglong * 8 - 1))
 
 
 # TODO: The determination of this should already happen in Building or in a
@@ -146,9 +139,9 @@ def _writeConstantValue(output, constant_value):
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is long:
-        if min_signed_long <= constant_value <= max_signed_long:
+        if isPythonValidCLongValue(constant_value):
             output.write(b"l" + struct.pack("l", constant_value))
-        elif min_signed_longlong <= constant_value <= max_signed_longlong:
+        elif isPythonValidCLongLongValue(constant_value):
             output.write(b"q" + struct.pack("q", constant_value))
         else:
             output.write(b"g")

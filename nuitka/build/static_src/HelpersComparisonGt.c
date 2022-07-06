@@ -209,9 +209,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -243,7 +245,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
+            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, type2->tp_name);
 
             if (s < 0) {
@@ -535,9 +537,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -569,7 +573,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2)
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
+            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, type2->tp_name);
 
             if (s < 0) {
@@ -885,9 +889,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -919,7 +925,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
+            // Banking on C compile to optimize "strcmp".
             int s = strcmp(type1->tp_name, type2->tp_name);
 
             if (s < 0) {
@@ -1137,7 +1143,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyString_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -1203,7 +1208,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyString_Type && 0) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -1248,9 +1253,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -1273,7 +1280,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -1282,8 +1289,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "str");
 
             if (s < 0) {
                 c = -1;
@@ -1292,7 +1299,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -1334,7 +1341,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyString_Type && PyType_IsSubtype(&PyString_Type, type1)) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -1476,7 +1483,6 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyString_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -1550,7 +1556,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyString_Type && 0) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -1619,9 +1625,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -1644,7 +1652,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -1653,8 +1661,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "str");
 
             if (s < 0) {
                 c = -1;
@@ -1663,7 +1671,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -1705,7 +1713,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyString_Type && PyType_IsSubtype(&PyString_Type, type1)) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -1871,7 +1879,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyString_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -1945,7 +1952,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyString_Type && 0) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -2014,9 +2021,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -2039,7 +2048,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -2048,8 +2057,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "str");
 
             if (s < 0) {
                 c = -1;
@@ -2058,7 +2067,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyString_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -2100,7 +2109,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyString_Type && PyType_IsSubtype(&PyString_Type, type1)) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -2219,7 +2228,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     }
 #endif
 
-    PyTypeObject *type1 = &PyString_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -2286,7 +2294,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -2331,9 +2339,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -2355,7 +2365,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -2365,8 +2375,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("str", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -2374,7 +2384,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -2417,7 +2427,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -2512,7 +2522,6 @@ bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 #endif
 
-    PyTypeObject *type1 = &PyString_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -2587,7 +2596,7 @@ bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -2656,9 +2665,11 @@ bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -2680,7 +2691,7 @@ bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -2690,8 +2701,8 @@ bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("str", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -2699,7 +2710,7 @@ bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -2742,7 +2753,7 @@ bool RICH_COMPARE_GT_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -2861,7 +2872,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     }
 #endif
 
-    PyTypeObject *type1 = &PyString_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -2936,7 +2946,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -3005,9 +3015,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -3029,7 +3041,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -3039,8 +3051,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("str", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -3048,7 +3060,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyString_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -3091,7 +3103,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -3258,7 +3270,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyUnicode_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -3324,7 +3335,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyUnicode_Type && 0) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -3369,9 +3380,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyUnicode_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -3394,7 +3407,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -3403,8 +3416,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "unicode" : "str"));
 
             if (s < 0) {
                 c = -1;
@@ -3413,7 +3426,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -3455,7 +3468,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyUnicode_Type && PyType_IsSubtype(&PyUnicode_Type, type1)) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -3579,7 +3592,6 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyUnicode_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -3653,7 +3665,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyUnicode_Type && 0) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -3722,9 +3734,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyUnicode_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -3747,7 +3761,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -3756,8 +3770,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "unicode" : "str"));
 
             if (s < 0) {
                 c = -1;
@@ -3766,7 +3780,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -3808,7 +3822,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyUnicode_Type && PyType_IsSubtype(&PyUnicode_Type, type1)) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -3956,7 +3970,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyUnicode_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -4030,7 +4043,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyUnicode_Type && 0) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -4099,9 +4112,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyUnicode_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -4124,7 +4139,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -4133,8 +4148,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "unicode" : "str"));
 
             if (s < 0) {
                 c = -1;
@@ -4143,7 +4158,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyUnicode_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -4185,7 +4200,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyUnicode_Type && PyType_IsSubtype(&PyUnicode_Type, type1)) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -4304,7 +4319,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     }
 #endif
 
-    PyTypeObject *type1 = &PyUnicode_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -4371,7 +4385,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -4416,9 +4430,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyUnicode_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -4440,7 +4456,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -4450,8 +4466,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp((PYTHON_VERSION < 0x300 ? "unicode" : "str"), type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -4459,7 +4475,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -4502,7 +4518,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -4597,7 +4613,6 @@ bool RICH_COMPARE_GT_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
     }
 #endif
 
-    PyTypeObject *type1 = &PyUnicode_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -4672,7 +4687,7 @@ bool RICH_COMPARE_GT_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -4741,9 +4756,11 @@ bool RICH_COMPARE_GT_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyUnicode_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -4765,7 +4782,7 @@ bool RICH_COMPARE_GT_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -4775,8 +4792,8 @@ bool RICH_COMPARE_GT_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp((PYTHON_VERSION < 0x300 ? "unicode" : "str"), type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -4784,7 +4801,7 @@ bool RICH_COMPARE_GT_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -4827,7 +4844,7 @@ bool RICH_COMPARE_GT_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -4946,7 +4963,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     }
 #endif
 
-    PyTypeObject *type1 = &PyUnicode_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -5021,7 +5037,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -5090,9 +5106,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyUnicode_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -5114,7 +5132,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -5124,8 +5142,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp((PYTHON_VERSION < 0x300 ? "unicode" : "str"), type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -5133,7 +5151,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyUnicode_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -5176,7 +5194,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -5364,7 +5382,6 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyBytes_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -5438,7 +5455,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyBytes_Type && 0) {
         f = PyBytes_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -5507,9 +5524,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -5532,7 +5551,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -5541,8 +5560,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "bytes");
 
             if (s < 0) {
                 c = -1;
@@ -5551,7 +5570,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -5593,7 +5612,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) 
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyBytes_Type && PyType_IsSubtype(&PyBytes_Type, type1)) {
         f = PyBytes_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -5759,7 +5778,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyBytes_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -5833,7 +5851,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyBytes_Type && 0) {
         f = PyBytes_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -5902,9 +5920,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -5927,7 +5947,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -5936,8 +5956,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "bytes");
 
             if (s < 0) {
                 c = -1;
@@ -5946,7 +5966,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyBytes_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -5988,7 +6008,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyBytes_Type && PyType_IsSubtype(&PyBytes_Type, type1)) {
         f = PyBytes_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -6153,7 +6173,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     }
 #endif
 
-    PyTypeObject *type1 = &PyBytes_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -6220,7 +6239,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6265,9 +6284,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -6289,7 +6310,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -6299,8 +6320,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("bytes", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -6308,7 +6329,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -6351,7 +6372,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6446,7 +6467,6 @@ bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
     }
 #endif
 
-    PyTypeObject *type1 = &PyBytes_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -6521,7 +6541,7 @@ bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6590,9 +6610,11 @@ bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -6614,7 +6636,7 @@ bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -6624,8 +6646,8 @@ bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("bytes", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -6633,7 +6655,7 @@ bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -6676,7 +6698,7 @@ bool RICH_COMPARE_GT_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) 
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6795,7 +6817,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     }
 #endif
 
-    PyTypeObject *type1 = &PyBytes_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -6870,7 +6891,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6939,9 +6960,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -6963,7 +6986,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -6973,8 +6996,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("bytes", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -6982,7 +7005,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyBytes_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -7025,7 +7048,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -7326,7 +7349,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -7392,7 +7414,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyInt_Type && 0) {
         f = NULL;
 
         if (f != NULL) {
@@ -7437,9 +7459,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyInt_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -7462,7 +7486,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -7471,8 +7495,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "int");
 
             if (s < 0) {
                 c = -1;
@@ -7481,7 +7505,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -7523,7 +7547,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyInt_Type && PyType_IsSubtype(&PyInt_Type, type1)) {
         f = NULL;
 
         if (f != NULL) {
@@ -7619,7 +7643,6 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -7693,7 +7716,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyInt_Type && 0) {
         f = NULL;
 
         if (f != NULL) {
@@ -7762,9 +7785,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyInt_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -7787,7 +7812,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -7796,8 +7821,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "int");
 
             if (s < 0) {
                 c = -1;
@@ -7806,7 +7831,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -7848,7 +7873,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyInt_Type && PyType_IsSubtype(&PyInt_Type, type1)) {
         f = NULL;
 
         if (f != NULL) {
@@ -7968,7 +7993,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyInt_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -8042,7 +8066,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyInt_Type && 0) {
         f = NULL;
 
         if (f != NULL) {
@@ -8111,9 +8135,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyInt_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -8136,7 +8162,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -8145,8 +8171,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "int");
 
             if (s < 0) {
                 c = -1;
@@ -8155,7 +8181,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyInt_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -8197,7 +8223,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyInt_Type && PyType_IsSubtype(&PyInt_Type, type1)) {
         f = NULL;
 
         if (f != NULL) {
@@ -8316,7 +8342,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     }
 #endif
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -8383,7 +8408,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -8428,9 +8453,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyInt_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -8452,7 +8479,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -8462,8 +8489,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("int", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -8471,7 +8498,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -8514,7 +8541,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -8609,7 +8636,6 @@ bool RICH_COMPARE_GT_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 #endif
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -8684,7 +8710,7 @@ bool RICH_COMPARE_GT_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -8753,9 +8779,11 @@ bool RICH_COMPARE_GT_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyInt_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -8777,7 +8805,7 @@ bool RICH_COMPARE_GT_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -8787,8 +8815,8 @@ bool RICH_COMPARE_GT_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("int", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -8796,7 +8824,7 @@ bool RICH_COMPARE_GT_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -8839,7 +8867,7 @@ bool RICH_COMPARE_GT_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -8958,7 +8986,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     }
 #endif
 
-    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -9033,7 +9060,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -9102,9 +9129,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyInt_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -9126,7 +9155,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -9136,8 +9165,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("int", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -9145,7 +9174,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyInt_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -9188,7 +9217,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -9427,13 +9456,12 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyLong_Type && !0) {
 
-        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_GT);
@@ -9493,8 +9521,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    if (type1 != &PyLong_Type && 0) {
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_LT);
@@ -9522,7 +9550,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
         Py_DECREF(result);
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_LT);
 
@@ -9538,9 +9566,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyLong_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -9563,7 +9593,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -9572,8 +9602,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "long" : "int"));
 
             if (s < 0) {
                 c = -1;
@@ -9582,7 +9612,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -9624,8 +9654,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    if (type1 != &PyLong_Type && PyType_IsSubtype(&PyLong_Type, type1)) {
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -9657,7 +9687,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     }
 
     if (checked_reverse_op == false) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_LT);
@@ -9720,13 +9750,12 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyLong_Type && !0) {
 
-        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_GT);
@@ -9794,8 +9823,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    if (type1 != &PyLong_Type && 0) {
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_LT);
@@ -9839,7 +9868,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
         Py_DECREF(result);
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_LT);
 
@@ -9863,9 +9892,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyLong_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -9888,7 +9919,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -9897,8 +9928,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "long" : "int"));
 
             if (s < 0) {
                 c = -1;
@@ -9907,7 +9938,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -9949,8 +9980,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    if (type1 != &PyLong_Type && PyType_IsSubtype(&PyLong_Type, type1)) {
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -9998,7 +10029,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
     }
 
     if (checked_reverse_op == false) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_LT);
@@ -10069,13 +10100,12 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyLong_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
     if (type1 == &PyLong_Type && !0) {
 
-        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_GT);
@@ -10143,8 +10173,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    if (type1 != &PyLong_Type && 0) {
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_LT);
@@ -10188,7 +10218,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
         Py_DECREF(result);
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
     if (f != NULL) {
         PyObject *result = (*f)(operand2, operand1, Py_LT);
 
@@ -10212,9 +10242,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyLong_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -10237,7 +10269,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -10246,8 +10278,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, (PYTHON_VERSION < 0x300 ? "long" : "int"));
 
             if (s < 0) {
                 c = -1;
@@ -10256,7 +10288,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyLong_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -10298,8 +10330,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+    if (type1 != &PyLong_Type && PyType_IsSubtype(&PyLong_Type, type1)) {
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             checked_reverse_op = true;
@@ -10347,7 +10379,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
     }
 
     if (checked_reverse_op == false) {
-        f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type2));
+        f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
             PyObject *result = (*f)(operand2, operand1, Py_LT);
@@ -10417,14 +10449,13 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     }
 #endif
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
     if (&PyLong_Type == type2 && !0) {
 
-        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_GT);
@@ -10484,7 +10515,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -10500,7 +10531,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_GT);
 
@@ -10529,9 +10560,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyLong_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -10553,7 +10586,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -10563,8 +10596,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp((PYTHON_VERSION < 0x300 ? "long" : "int"), type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -10572,7 +10605,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -10615,7 +10648,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -10633,7 +10666,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
         }
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_GT);
@@ -10710,14 +10743,13 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 #endif
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
     if (&PyLong_Type == type2 && !0) {
 
-        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_GT);
@@ -10785,7 +10817,7 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -10809,7 +10841,7 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
         }
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_GT);
 
@@ -10854,9 +10886,11 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyLong_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -10878,7 +10912,7 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -10888,8 +10922,8 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp((PYTHON_VERSION < 0x300 ? "long" : "int"), type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -10897,7 +10931,7 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -10940,7 +10974,7 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -10966,7 +11000,7 @@ bool RICH_COMPARE_GT_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
         }
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_GT);
@@ -11059,14 +11093,13 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     }
 #endif
 
-    PyTypeObject *type1 = &PyLong_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
     if (&PyLong_Type == type2 && !0) {
 
-        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+        richcmpfunc frich = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (frich != NULL) {
             PyObject *result = (*frich)(operand1, operand2, Py_GT);
@@ -11134,7 +11167,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -11158,7 +11191,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_GT);
 
@@ -11203,9 +11236,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = PyLong_Type.tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -11227,7 +11262,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -11237,8 +11272,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp((PYTHON_VERSION < 0x300 ? "long" : "int"), type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -11246,7 +11281,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyLong_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -11289,7 +11324,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -11315,7 +11350,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
         }
     }
 
-    f = (PYTHON_VERSION < 0x300 ? NULL : RICHCOMPARE(type1));
+    f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
     if (f != NULL) {
         PyObject *result = (*f)(operand1, operand2, Py_GT);
@@ -11475,7 +11510,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -11541,7 +11575,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyFloat_Type && 0) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -11586,9 +11620,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -11611,7 +11647,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -11620,8 +11656,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "float");
 
             if (s < 0) {
                 c = -1;
@@ -11630,7 +11666,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -11672,7 +11708,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyFloat_Type && PyType_IsSubtype(&PyFloat_Type, type1)) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -11766,7 +11802,6 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -11840,7 +11875,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyFloat_Type && 0) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -11909,9 +11944,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -11934,7 +11971,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -11943,8 +11980,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "float");
 
             if (s < 0) {
                 c = -1;
@@ -11953,7 +11990,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -11995,7 +12032,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) 
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyFloat_Type && PyType_IsSubtype(&PyFloat_Type, type1)) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -12113,7 +12150,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyFloat_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -12187,7 +12223,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyFloat_Type && 0) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -12256,9 +12292,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -12281,7 +12319,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -12290,8 +12328,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "float");
 
             if (s < 0) {
                 c = -1;
@@ -12300,7 +12338,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyFloat_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -12342,7 +12380,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyFloat_Type && PyType_IsSubtype(&PyFloat_Type, type1)) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -12459,7 +12497,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     }
 #endif
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -12526,7 +12563,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -12571,9 +12608,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -12595,7 +12634,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -12605,8 +12644,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("float", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -12614,7 +12653,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -12657,7 +12696,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -12750,7 +12789,6 @@ bool RICH_COMPARE_GT_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
     }
 #endif
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -12825,7 +12863,7 @@ bool RICH_COMPARE_GT_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -12894,9 +12932,11 @@ bool RICH_COMPARE_GT_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -12918,7 +12958,7 @@ bool RICH_COMPARE_GT_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -12928,8 +12968,8 @@ bool RICH_COMPARE_GT_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("float", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -12937,7 +12977,7 @@ bool RICH_COMPARE_GT_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -12980,7 +13020,7 @@ bool RICH_COMPARE_GT_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2) 
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -13097,7 +13137,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     }
 #endif
 
-    PyTypeObject *type1 = &PyFloat_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -13172,7 +13211,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -13241,9 +13280,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -13265,7 +13306,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -13275,8 +13316,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("float", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -13284,7 +13325,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyFloat_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -13327,7 +13368,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -13604,7 +13645,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyTuple_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -13670,7 +13710,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyTuple_Type && 0) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -13715,9 +13755,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -13740,7 +13782,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -13749,8 +13791,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "tuple");
 
             if (s < 0) {
                 c = -1;
@@ -13759,7 +13801,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -13801,7 +13843,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyTuple_Type && PyType_IsSubtype(&PyTuple_Type, type1)) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -13895,7 +13937,6 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyTuple_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -13969,7 +14010,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyTuple_Type && 0) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -14038,9 +14079,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -14063,7 +14106,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -14072,8 +14115,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "tuple");
 
             if (s < 0) {
                 c = -1;
@@ -14082,7 +14125,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -14124,7 +14167,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2) 
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyTuple_Type && PyType_IsSubtype(&PyTuple_Type, type1)) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -14242,7 +14285,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyTuple_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -14316,7 +14358,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyTuple_Type && 0) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -14385,9 +14427,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -14410,7 +14454,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -14419,8 +14463,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "tuple");
 
             if (s < 0) {
                 c = -1;
@@ -14429,7 +14473,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyTuple_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -14471,7 +14515,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyTuple_Type && PyType_IsSubtype(&PyTuple_Type, type1)) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -14588,7 +14632,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     }
 #endif
 
-    PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -14655,7 +14698,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -14700,9 +14743,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -14724,7 +14769,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -14734,8 +14779,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("tuple", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -14743,7 +14788,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -14786,7 +14831,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -14879,7 +14924,6 @@ bool RICH_COMPARE_GT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
     }
 #endif
 
-    PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -14954,7 +14998,7 @@ bool RICH_COMPARE_GT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -15023,9 +15067,11 @@ bool RICH_COMPARE_GT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -15047,7 +15093,7 @@ bool RICH_COMPARE_GT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -15057,8 +15103,8 @@ bool RICH_COMPARE_GT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("tuple", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -15066,7 +15112,7 @@ bool RICH_COMPARE_GT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -15109,7 +15155,7 @@ bool RICH_COMPARE_GT_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2) 
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -15226,7 +15272,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     }
 #endif
 
-    PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -15301,7 +15346,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -15370,9 +15415,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -15394,7 +15441,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -15404,8 +15451,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("tuple", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -15413,7 +15460,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyTuple_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -15456,7 +15503,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -15733,7 +15780,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyList_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -15799,7 +15845,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyList_Type && 0) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -15844,9 +15890,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -15869,7 +15917,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -15878,8 +15926,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "list");
 
             if (s < 0) {
                 c = -1;
@@ -15888,7 +15936,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -15930,7 +15978,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyList_Type && PyType_IsSubtype(&PyList_Type, type1)) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -16024,7 +16072,6 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyList_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -16098,7 +16145,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyList_Type && 0) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -16167,9 +16214,11 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -16192,7 +16241,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -16201,8 +16250,8 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "list");
 
             if (s < 0) {
                 c = -1;
@@ -16211,7 +16260,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -16253,7 +16302,7 @@ bool RICH_COMPARE_GT_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyList_Type && PyType_IsSubtype(&PyList_Type, type1)) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -16371,7 +16420,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
 #endif
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = &PyList_Type;
 
 #if PYTHON_VERSION < 0x300
     // If the types are equal, we may get away immediately except for instances.
@@ -16445,7 +16493,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && 0) {
+    if (type1 != &PyList_Type && 0) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -16514,9 +16562,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
     int c;
 
     if (PyInstance_Check(operand1)) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type1->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else if (0) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -16539,7 +16589,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             } else {
@@ -16548,8 +16598,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp(type1->tp_name, "list");
 
             if (s < 0) {
                 c = -1;
@@ -16558,7 +16608,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
             } else {
                 // Same type name need to make a decision based on type address.
                 Py_uintptr_t aa = (Py_uintptr_t)type1;
-                Py_uintptr_t bb = (Py_uintptr_t)type2;
+                Py_uintptr_t bb = (Py_uintptr_t)&PyList_Type;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
             }
@@ -16600,7 +16650,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != &PyList_Type && PyType_IsSubtype(&PyList_Type, type1)) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -16717,7 +16767,6 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     }
 #endif
 
-    PyTypeObject *type1 = &PyList_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -16784,7 +16833,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -16829,9 +16878,11 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -16853,7 +16904,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -16863,8 +16914,8 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("list", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -16872,7 +16923,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -16915,7 +16966,7 @@ PyObject *RICH_COMPARE_GT_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -17008,7 +17059,6 @@ bool RICH_COMPARE_GT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     }
 #endif
 
-    PyTypeObject *type1 = &PyList_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -17083,7 +17133,7 @@ bool RICH_COMPARE_GT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -17152,9 +17202,11 @@ bool RICH_COMPARE_GT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -17176,7 +17228,7 @@ bool RICH_COMPARE_GT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -17186,8 +17238,8 @@ bool RICH_COMPARE_GT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("list", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -17195,7 +17247,7 @@ bool RICH_COMPARE_GT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -17238,7 +17290,7 @@ bool RICH_COMPARE_GT_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2) {
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -17355,7 +17407,6 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     }
 #endif
 
-    PyTypeObject *type1 = &PyList_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -17430,7 +17481,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -17499,9 +17550,11 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     int c;
 
     if (0) {
-        c = (*type1->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = NULL;
+        c = (*fcmp)(operand1, operand2);
     } else if (PyInstance_Check(operand2)) {
-        c = (*type2->tp_compare)(operand1, operand2);
+        cmpfunc fcmp = type2->tp_compare;
+        c = (*fcmp)(operand1, operand2);
     } else {
         c = try_3way_compare(operand1, operand2);
     }
@@ -17523,7 +17576,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
             // others.
             if (PyNumber_Check(operand2)) {
                 // Both numbers, need to make a decision based on types.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -17533,8 +17586,8 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
         } else if (PyNumber_Check(operand2)) {
             c = 1;
         } else {
-            // TODO: Could be hard coded if one is known.
-            int s = strcmp(type1->tp_name, type2->tp_name);
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp("list", type2->tp_name);
 
             if (s < 0) {
                 c = -1;
@@ -17542,7 +17595,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
                 c = 1;
             } else {
                 // Same type name need to make a decision based on type address.
-                Py_uintptr_t aa = (Py_uintptr_t)type1;
+                Py_uintptr_t aa = (Py_uintptr_t)&PyList_Type;
                 Py_uintptr_t bb = (Py_uintptr_t)type2;
 
                 c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
@@ -17585,7 +17638,7 @@ nuitka_bool RICH_COMPARE_GT_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {

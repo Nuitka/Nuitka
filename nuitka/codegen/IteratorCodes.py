@@ -20,7 +20,7 @@
 Next variants and unpacking with related checks.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_int
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -226,10 +226,15 @@ def generateUnpackCheckFromIteratedCode(statement, emit, context):
     getRichComparisonCode(
         to_name=to_name,
         comparator="Gt",
-        left_shape=statement.subnode_iterated_length.getTypeShape(),
-        right_shape=tshape_int,
-        left_name=iteration_length_name,
-        right_name=context.getConstantCode(constant=statement.count),
+        left=statement.subnode_iterated_length,
+        # Creating a temporary node on the fly, knowing it's not used for many
+        # things. TODO: Once we have value shapes, we ought to use those.
+        right=makeConstantRefNode(
+            constant=statement.count,
+            source_ref=statement.source_ref,
+            user_provided=True,
+        ),
+        # We know that cannot fail.
         needs_check=False,
         source_ref=statement.source_ref,
         emit=emit,

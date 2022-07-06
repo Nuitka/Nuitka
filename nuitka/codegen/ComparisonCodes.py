@@ -22,11 +22,29 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 """
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_bool
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    tshape_bool,
+    tshape_int,
+    tshape_long,
+)
+from nuitka.Options import isExperimental
+from nuitka.PythonVersions import (
+    isPythonValidCLongValue,
+    isPythonValidDigitValue,
+    python_version,
+)
 
 from . import OperatorCodes
-from .CodeHelpers import generateExpressionCode, pickCodeHelper
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCode, getReleaseCodes
+from .c_types.CTypeCLongs import CTypeCLong, CTypeCLongDigit
+from .c_types.CTypePyObjectPtrs import CTypePyObjectPtr
+from .CodeHelpers import generateExpressionCode
+from .CodeHelperSelection import selectCodeHelper
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes,
+)
 
 specialized_cmp_helpers_set = OrderedSet(
     (
@@ -115,42 +133,134 @@ specialized_cmp_helpers_set = OrderedSet(
 )
 
 
+def _pickIntIntComparisonShape(expression):
+    # TODO: Enable once DIGIT and CLONG variants exist to mix with LONG and INT.
+    if expression.isCompileTimeConstant() and isExperimental("comparison-c-types"):
+        # On Python2, "INT_CLONG" is very fast as "CLONG" is the internal representation
+        # of it, for Python3, it should be avoided, it usually is around 2**30.
+        if python_version <= 0x300:
+            c_type = CTypeCLong
+        elif isPythonValidDigitValue(expression.getCompileTimeConstant()):
+            c_type = CTypeCLongDigit
+        elif isPythonValidCLongValue(expression.getCompileTimeConstant()):
+            c_type = CTypeCLong
+        else:
+            c_type = CTypePyObjectPtr
+    else:
+        c_type = CTypePyObjectPtr
+
+    return c_type
+
+
 def getRichComparisonCode(
-    to_name,
-    comparator,
-    left_name,
-    right_name,
-    left_shape,
-    right_shape,
-    needs_check,
-    source_ref,
-    emit,
-    context,
+    to_name, comparator, left, right, needs_check, source_ref, emit, context
 ):
-    helper = pickCodeHelper(
+    # TODO: Move the value_name to a context generator, then this will be
+    # a bit less.
+    # This is detail rich stuff, pylint: disable=too-many-locals
+
+    left_shape = left.getTypeShape()
+    right_shape = right.getTypeShape()
+
+    left_c_type = right_c_type = CTypePyObjectPtr
+
+    if left_shape in (tshape_int, tshape_long):
+        if right_shape in (tshape_int, tshape_long):
+            left_c_type = _pickIntIntComparisonShape(right)
+            right_c_type = _pickIntIntComparisonShape(right)
+
+    # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
+    target_type = to_name.getCType()
+
+    helper_type, helper_function = selectCodeHelper(
         prefix="RICH_COMPARE_xx",
-        suffix="",
-        target_type=to_name.getCType(),
+        specialized_helpers_set=specialized_cmp_helpers_set,
+        nonspecialized=None,
+        helper_type=target_type,
         left_shape=left_shape,
         right_shape=right_shape,
-        helpers=specialized_cmp_helpers_set,
-        nonspecialized=(),
+        left_c_type=left_c_type,
+        right_c_type=right_c_type,
         source_ref=source_ref,
     )
 
-    # Lets patch this up here, instead of having one set per comparison operation.
-    helper.helper_name = helper.helper_name.replace(
-        "xx", OperatorCodes.rich_comparison_codes[comparator]
+    if helper_function is None:
+        # Give up and warn about it.
+        left_c_type = CTypePyObjectPtr
+        right_c_type = CTypePyObjectPtr
+
+        helper_type, helper_function = selectCodeHelper(
+            prefix="RICH_COMPARE_xx",
+            specialized_helpers_set=specialized_cmp_helpers_set,
+            nonspecialized=None,
+            helper_type=target_type,
+            left_shape=tshape_unknown,
+            right_shape=tshape_unknown,
+            left_c_type=left_c_type,
+            right_c_type=right_c_type,
+            source_ref=source_ref,
+        )
+
+        assert helper_function is not None
+
+    left_name = context.allocateTempName("cmp_expr_left", type_name=left_c_type.c_type)
+    right_name = context.allocateTempName(
+        "cmp_expr_right", type_name=right_c_type.c_type
     )
 
-    helper.emitHelperCall(
-        to_name=to_name,
-        arg_names=(left_name, right_name),
-        ref_count=1,
-        needs_check=needs_check,
-        emit=emit,
-        context=context,
+    # May not to convert return value now.
+    if helper_type is not target_type:
+        value_name = context.allocateTempName(
+            to_name.code_name + "_" + helper_type.helper_code.lower(),
+            type_name=helper_type.c_type,
+            unique=to_name.code_name == "tmp_unused",
+        )
+    else:
+        value_name = to_name
+
+    generateExpressionCode(
+        to_name=left_name, expression=left, emit=emit, context=context
     )
+    generateExpressionCode(
+        to_name=right_name, expression=right, emit=emit, context=context
+    )
+
+    emit(
+        "%s = %s(%s, %s);"
+        % (
+            value_name,
+            helper_function.replace(
+                "xx", OperatorCodes.rich_comparison_codes[comparator]
+            ),
+            left_name,
+            right_name,
+        )
+    )
+
+    if value_name.getCType().hasErrorIndicator():
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(left_name, right_name),
+            needs_check=needs_check,
+            emit=emit,
+            context=context,
+        )
+    else:
+        getReleaseCodes(
+            release_names=(left_name, right_name), emit=emit, context=context
+        )
+
+    context.addCleanupTempName(value_name)
+
+    if value_name is not to_name:
+        target_type.emitAssignConversionCode(
+            to_name=to_name,
+            value_name=value_name,
+            # TODO: Right now we don't do conversions here that could fail.
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
@@ -213,19 +323,6 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         getReleaseCodes(
             release_names=(left_name, right_name), emit=emit, context=context
         )
-    elif comparator in OperatorCodes.rich_comparison_codes:
-        getRichComparisonCode(
-            to_name=to_name,
-            comparator=comparator,
-            left_shape=left.getTypeShape(),
-            right_shape=right.getTypeShape(),
-            left_name=left_name,
-            right_name=right_name,
-            needs_check=expression.mayRaiseExceptionComparison(),
-            source_ref=expression.source_ref,
-            emit=emit,
-            context=context,
-        )
     elif comparator in ("exception_match", "exception_mismatch"):
         needs_check = expression.mayRaiseExceptionComparison()
 
@@ -249,6 +346,19 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         )
     else:
         assert False, comparator
+
+
+def generateRichComparisonExpressionCode(to_name, expression, emit, context):
+    return getRichComparisonCode(
+        to_name=to_name,
+        comparator=expression.getComparator(),
+        left=expression.subnode_left,
+        right=expression.subnode_right,
+        needs_check=expression.mayRaiseExceptionComparison(),
+        source_ref=expression.source_ref,
+        emit=emit,
+        context=context,
+    )
 
 
 def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
