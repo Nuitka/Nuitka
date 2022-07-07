@@ -20,6 +20,8 @@
 Py_SIZE({{operand}}_long_object) < 0
 {% elif type_desc == c_long_desc %}
 {{operand}}_is_negative
+{% elif type_desc == c_digit_desc %}
+{{operand}} < 0
 {% endif %}
 {% endmacro %}
 {% macro get_long_digit(type_desc, operand, index) %}
@@ -27,6 +29,8 @@ Py_SIZE({{operand}}_long_object) < 0
 {{operand}}_long_object->ob_digit[{{index}}]
 {% elif type_desc == c_long_desc %}
 {{operand}}_digits[{{index}}]
+{% elif type_desc == c_digit_desc %}
+(digit)Py_ABS({{operand}})
 {% endif %}
 {% endmacro %}
 {% macro get_long_digit_count(type_desc, operand) %}
@@ -34,6 +38,8 @@ Py_SIZE({{operand}}_long_object) < 0
 Py_ABS(Py_SIZE({{operand}}_long_object))
 {% elif type_desc == c_long_desc %}
 (Py_ssize_t)({{operand}}_digit_count)
+{% elif type_desc == c_digit_desc %}
+({{operand}} == 0 ? 0 : 1)
 {% endif %}
 {% endmacro %}
 {% macro get_long_size(type_desc, operand) %}
@@ -41,6 +47,8 @@ Py_ABS(Py_SIZE({{operand}}_long_object))
 Py_SIZE({{operand}}_long_object)
 {% elif type_desc == c_long_desc %}
 (Py_ssize_t)({{operand}}_size)
+{% elif type_desc == c_digit_desc %}
+(Py_ssize_t)(({{operand}} == 0) ? 0 : (({{operand}} < 0 ) ? -1 : 1))
 {% endif %}
 {% endmacro %}
 {% macro is_same_long_object(left, right, operand1, operand2) %}
@@ -80,6 +88,8 @@ false
     }
 
     int {{operand}}_size = {{operand}}_is_negative == false ? {{operand}}_digit_count : -{{operand}}_digit_count;
+{% elif type_desc == c_digit_desc %}
+{# Nothing to do really, banking on C compiler to optimize repeated operations. #}
 {% else %}
 # error "Not done for {{type_desc}} yet"
 {% endif %}
@@ -136,7 +146,9 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
         while (--i >= 0) {
             if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
                 r = {{ get_long_digit(left, "operand1", "i") }} < {{ get_long_digit(right, "operand2", "i") }};
-                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
+                if ({{ is_long_digit_negative(left, "operand1") }}) {
+                    r = !r;
+                }
                 break;
             }
         }
@@ -152,7 +164,9 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
         while (--i >= 0) {
             if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
                 r = {{ get_long_digit(left, "operand1", "i") }} > {{ get_long_digit(right, "operand2", "i") }};
-                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
+                if ({{ is_long_digit_negative(left, "operand1") }}) {
+                    r = !r;
+                }
                 break;
             }
         }
@@ -168,7 +182,9 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
         while (--i >= 0) {
             if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
                 r = {{ get_long_digit(left, "operand1", "i") }} < {{ get_long_digit(right, "operand2", "i") }};
-                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
+                if ({{ is_long_digit_negative(left, "operand1") }}) {
+                    r = !r;
+                }
                 break;
             }
         }
@@ -184,7 +200,9 @@ static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()
         while (--i >= 0) {
             if ({{ get_long_digit(left, "operand1", "i") }} != {{ get_long_digit(right, "operand2", "i") }}) {
                 r = {{ get_long_digit(left, "operand1", "i") }} > {{ get_long_digit(right, "operand2", "i") }};
-                if ({{ is_long_digit_negative(left, "operand1") }}) r = !r;
+                if ({{ is_long_digit_negative(left, "operand1") }}) {
+                    r = !r;
+                }
                 break;
             }
         }

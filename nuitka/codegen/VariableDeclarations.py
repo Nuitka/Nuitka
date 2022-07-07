@@ -117,7 +117,7 @@ class VariableDeclaration(object):
             return CTypeModuleDictVariable
         elif c_type == "nuitka_void":
             return CTypeVoid
-        elif c_type == "clong":
+        elif c_type == "long":
             return CTypeCLong
         elif c_type == "digit":
             return CTypeCLongDigit

@@ -332,7 +332,8 @@ def isPythonValidDigitValue(value):
 
     boundary = (2**bits_per_digit) - 1
 
-    return -boundary < value <= boundary
+    # Note:Digits in long objects do not use 2-complement, but a boolean sign.
+    return -boundary <= value <= boundary
 
 
 sizeof_clong = ctypes.sizeof(ctypes.c_long)

@@ -334,6 +334,16 @@ extern PyThreadState *_PyThreadState_Current;
 #define NuitkaType_HasFeatureClass(descr) (1)
 #endif
 
+// The digit types
+#if PYTHON_VERSION < 0x300
+#include <longintrepr.h>
+
+#if PYTHON_VERSION < 0x270
+// Not present in Python2.6 yet
+typedef signed int sdigit;
+#endif
+#endif
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__

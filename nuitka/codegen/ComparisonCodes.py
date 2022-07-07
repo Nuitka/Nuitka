@@ -27,7 +27,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_int,
     tshape_long,
 )
-from nuitka.Options import isExperimental
+from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.PythonVersions import (
     isPythonValidCLongValue,
     isPythonValidDigitValue,
@@ -87,6 +87,26 @@ specialized_cmp_helpers_set = OrderedSet(
         # "RICH_COMPARE_xx_CBOOL_LONG_INT",
         # "RICH_COMPARE_xx_NBOOL_INT_LONG",
         # "RICH_COMPARE_xx_NBOOL_LONG_INT",
+        "RICH_COMPARE_xx_OBJECT_INT_CLONG",
+        "RICH_COMPARE_xx_OBJECT_CLONG_INT",
+        "RICH_COMPARE_xx_CBOOL_INT_CLONG",
+        "RICH_COMPARE_xx_CBOOL_CLONG_INT",
+        "RICH_COMPARE_xx_NBOOL_INT_CLONG",
+        "RICH_COMPARE_xx_NBOOL_CLONG_INT",
+        # TODO: Add CLONG_CLONG once we use that for local variables too.
+        # "RICH_COMPARE_xx_OBJECT_CLONG_CLONG",
+        # "RICH_COMPARE_xx_OBJECT_CLONG_CLONG",
+        # "RICH_COMPARE_xx_CBOOL_CLONG_CLONG",
+        # "RICH_COMPARE_xx_CBOOL_CLONG_CLONG",
+        # "RICH_COMPARE_xx_NBOOL_CLONG_CLONG",
+        # "RICH_COMPARE_xx_NBOOL_CLONG_CLONG",
+        # TODO: Python3 LONG DIGIT
+        "RICH_COMPARE_xx_OBJECT_LONG_DIGIT",
+        "RICH_COMPARE_xx_OBJECT_DIGIT_LONG",
+        "RICH_COMPARE_xx_CBOOL_LONG_DIGIT",
+        "RICH_COMPARE_xx_CBOOL_DIGIT_LONG",
+        "RICH_COMPARE_xx_NBOOL_LONG_DIGIT",
+        "RICH_COMPARE_xx_NBOOL_DIGIT_LONG",
         "RICH_COMPARE_xx_OBJECT_OBJECT_INT",
         "RICH_COMPARE_xx_CBOOL_OBJECT_INT",
         "RICH_COMPARE_xx_NBOOL_OBJECT_INT",
@@ -135,7 +155,7 @@ specialized_cmp_helpers_set = OrderedSet(
 
 def _pickIntIntComparisonShape(expression):
     # TODO: Enable once DIGIT and CLONG variants exist to mix with LONG and INT.
-    if expression.isCompileTimeConstant() and isExperimental("comparison-c-types"):
+    if expression.isCompileTimeConstant():
         # On Python2, "INT_CLONG" is very fast as "CLONG" is the internal representation
         # of it, for Python3, it should be avoided, it usually is around 2**30.
         if python_version <= 0x300:
@@ -166,7 +186,7 @@ def getRichComparisonCode(
 
     if left_shape in (tshape_int, tshape_long):
         if right_shape in (tshape_int, tshape_long):
-            left_c_type = _pickIntIntComparisonShape(right)
+            left_c_type = _pickIntIntComparisonShape(left)
             right_c_type = _pickIntIntComparisonShape(right)
 
     # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
@@ -183,6 +203,8 @@ def getRichComparisonCode(
         right_c_type=right_c_type,
         source_ref=source_ref,
     )
+
+    # print("PICKED", left, right, left_c_type, right_c_type, helper_function)
 
     if helper_function is None:
         # Give up and warn about it.
