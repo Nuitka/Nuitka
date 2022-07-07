@@ -1611,3 +1611,8 @@
         relative_path: "lib"
         prefixes:
           - "xgboost"
+
+- module-name: "text_unidecode"
+  data-files:
+    patterns:
+      - "data.bin"
