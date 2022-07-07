@@ -27,7 +27,7 @@ Build-Depends: debhelper (>= 9),
                ccache,
                strace,
                patchelf,
-               libzstd-dev,
+               libzstd-dev | base-files (<< 8),
                gdb | lldb
 Rules-Requires-Root: no
 Vcs-Git: https://github.com/Nuitka/Nuitka.git
