@@ -23,12 +23,18 @@ from nuitka import TreeXML
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.Standalone import getCopiedDLLInfos
 from nuitka.importing.Importing import getPackageSearchPath
-from nuitka.ModuleRegistry import getDoneModules, getModuleInclusionInfos
+from nuitka.ModuleRegistry import (
+    getDoneModules,
+    getModuleInclusionInfos,
+    getModuleInfluences,
+)
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
 
 
 def writeCompilationReport(report_filename):
+    # Many details to work with, pylint: disable=too-many-locals
+
     active_modules_info = getModuleInclusionInfos()
 
     root = TreeXML.Element("nuitka-compilation-report")
@@ -36,14 +42,30 @@ def writeCompilationReport(report_filename):
     for module in getDoneModules():
         active_module_info = active_modules_info[module]
 
-        root.append(
-            TreeXML.Element(
-                "module",
-                name=module.getFullName(),
-                kind=module.__class__.__name__,
-                reason=active_module_info.reason,
-            )
+        module_xml_node = TreeXML.Element(
+            "module",
+            name=module.getFullName(),
+            kind=module.__class__.__name__,
+            reason=active_module_info.reason,
         )
+
+        for plugin_name, influence, detail in getModuleInfluences(module.getFullName()):
+            influence_xml_node = TreeXML.Element(
+                "plugin-influence", name=plugin_name, influence=influence
+            )
+
+            if influence == "condition-used":
+                condition, condition_tags_used, condition_result = detail
+
+                influence_xml_node.attrib["condition"] = condition
+                influence_xml_node.attrib["tags_used"] = ",".join(condition_tags_used)
+                influence_xml_node.attrib["result"] = str(condition_result).lower()
+            else:
+                assert False, influence
+
+            module_xml_node.append(influence_xml_node)
+
+        root.append(module_xml_node)
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":

@@ -116,8 +116,10 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
 
         if options_config and options_config.get("checks"):
             for check in options_config.get("checks"):
-                if check.get("control_tags"):
-                    if not self.evaluateControlTags(check.get("control_tags")):
+                if check.get("when"):
+                    if not self.evaluateCondition(
+                        full_name=full_name, condition=check.get("when")
+                    ):
                         continue
 
                 if mayDisableConsoleWindow():

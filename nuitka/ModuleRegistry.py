@@ -250,3 +250,20 @@ def getModuleByName(module_name):
             return module
 
     return None
+
+
+module_influencing_plugins = {}
+
+
+def addModuleInfluencingCondition(
+    module_name, plugin_name, condition, control_tags, result
+):
+    if module_name not in module_influencing_plugins:
+        module_influencing_plugins[module_name] = OrderedSet()
+    module_influencing_plugins[module_name].add(
+        (plugin_name, "condition-used", (condition, tuple(control_tags), result))
+    )
+
+
+def getModuleInfluences(module_name):
+    return module_influencing_plugins.get(module_name, ())

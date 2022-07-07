@@ -27,7 +27,7 @@
                             "type": "string"
                         }
                     },
-                    "control_tags": {
+                    "when": {
                         "type": "string"
                     },
                     "empty_dirs": {
@@ -98,7 +98,7 @@
                                 "type": "string"
                             }
                         },
-                        "control_tags": {
+                        "when": {
                             "type": "string"
                         },
                         "replacements": {
@@ -124,7 +124,7 @@
                             "items": {
                                 "type": "string"
                             },
-                            "control_tags": {
+                            "when": {
                                 "type": "string"
                             }
                         }
@@ -183,7 +183,7 @@
                                         }
                                     ]
                                 },
-                                "control_tags": {
+                                "when": {
                                     "type": "string"
                                 }
                             }
