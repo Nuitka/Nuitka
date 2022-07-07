@@ -1605,3 +1605,8 @@
   data-files:
     dirs:
       - "vendor"
+
+- module-name: "text_unidecode"
+  data-files:
+    patterns:
+      - "data.bin"
