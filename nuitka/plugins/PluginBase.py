@@ -33,6 +33,7 @@ import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
     makeIncludedDataFile,
@@ -41,8 +42,11 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedPackageDataFiles,
 )
 from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
-from nuitka.ModuleRegistry import getModuleInclusionInfoByName
-from nuitka.Options import isStandaloneMode
+from nuitka.ModuleRegistry import (
+    addModuleInfluencingCondition,
+    getModuleInclusionInfoByName,
+)
+from nuitka.Options import isStandaloneMode, shallMakeModule
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
@@ -858,17 +862,26 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    @staticmethod
-    def evaluateControlTags(control_tags):
+    def evaluateCondition(self, full_name, condition, control_tags=()):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
-        context = {
-            "macos_only": isMacOS(),
-            "win32_only": isWin32Windows(),
-            "linux_only": isLinux(),
-            "anaconda": isAnacondaPython(),
-        }
+        context = TagContext(logger=self, full_name=full_name)
+        context.update(control_tags)
+
+        context.update(
+            {
+                "macos": isMacOS(),
+                "win32": isWin32Windows(),
+                "linux": isLinux(),
+                "anaconda": isAnacondaPython(),
+                "standalone": isStandaloneMode(),
+                "module_mode": shallMakeModule(),
+                # TODO: Allow to provide this.
+                "deployment": False,
+            }
+        )
+
         versions = getSupportedPythonVersions()
 
         for version in versions:
@@ -881,7 +894,23 @@ except ImportError:
             context["before_python" + big + major] = is_lower_version
 
         # We trust the yaml files, pylint: disable=eval-used
-        return eval(control_tags, context)
+        result = eval(condition, context)
+
+        if type(result) is not bool:
+            self.sysexit(
+                "Error, condition '%s' for module '%s' did not evaluate to boolean result."
+                % (condition, full_name)
+            )
+
+        addModuleInfluencingCondition(
+            module_name=full_name,
+            plugin_name=self.plugin_name,
+            condition=condition,
+            control_tags=context.used_tags,
+            result=result,
+        )
+
+        return result
 
     @classmethod
     def warning(cls, message):
@@ -910,3 +939,27 @@ def standalone_only(func):
                 return None
 
     return wrapped
+
+
+class TagContext(dict):
+    def __init__(self, logger, full_name, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+
+        self.logger = logger
+        self.full_name = full_name
+
+        self.used_tags = OrderedSet()
+
+    def __getitem__(self, key):
+        try:
+            self.used_tags.add(key)
+
+            return dict.__getitem__(self, key)
+        except KeyError:
+            if key.startswith("use_"):
+                return False
+
+            self.logger.sysexit(
+                "Control tag '%s' in module configuration of '%s' is unknown."
+                % (key, self.full_name)
+            )

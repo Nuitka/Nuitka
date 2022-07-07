@@ -345,7 +345,7 @@
       change_function:
         "get_extension": "un-callable"
         "_build": "un-callable"
-      control_tags: "allow_cffi_recompiler"
+      when: "not use_cffi_recompiler"
 
 - module-name: "cffi.api"
   anti-bloat:
@@ -355,7 +355,7 @@
         "emit_c_code": "un-callable"
         "compile": "un-callable"
         "distutils_extension": "un-callable"
-      control_tags: "allow_cffi_recompiler"
+      when: "not use_cffi_recompiler"
 
 - module-name: "sklearn.random_projection"
   anti-bloat:
@@ -400,7 +400,7 @@
     - description: "remove IPython reference"
       change_function:
         "_fix_ipython_backend2gui": "'(lambda cls: None)'"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
 
 - module-name: "matplotlib.pyplot"
   anti-bloat:
@@ -408,14 +408,14 @@
       change_function:
         "install_repl_displayhook": "'(lambda: None)'"
         "uninstall_repl_displayhook": "'(lambda: None)'"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
 
 - module-name: "matplotlib.figure"
   anti-bloat:
     - description: "remove IPython reference"
       change_function:
         "_repr_html_": "un-callable"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
 
 - module-name: "PIL.ImageShow"
   anti-bloat:
@@ -479,6 +479,7 @@
             pass
 
 - module-name: "numpy.core.overrides"
+  # see GitHub #1189, apparently an upstream problem hard to grasp
   anti-bloat:
     - description: "workaround numpy issues with compiled code"
       replacements:
@@ -875,7 +876,7 @@
     - description: "enhanced tk-inter in case of missing tcl"
       context:
         - "import textwrap"
-      control_tags: "deployment"
+      when: "not deployment"
       replacements:
         "self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)": |
           textwrap.indent("""
@@ -912,6 +913,7 @@
   anti-bloat:
     - change_function:
         "ensure_clean": "'(lambda: None)'"
+        # TODO: See pandas._testing._io TODO as well.
         "external_error_raised": "'(lambda: None)'"
         "network": "'(lambda: None)'"
         "round_trip_localpath": "'(lambda: None)'"
@@ -922,10 +924,12 @@
   anti-bloat:
     - change_function:
         "network": "'(lambda: None)'"
+        # TODO: Actually it would be nice to specify "uncallable" rather than wrong signature
         "round_trip_localpath": "'(lambda: None)'"
         "round_trip_pathlib": "'(lambda: None)'"
       description: "remove pytest testing framework"
-
+ # for cases, where the function is not usable afterwards. That will make sure we have
+ # a nice error exit in case, some test code is run an attempts to use it.
 - module-name: "pandas.compat._optional"
   anti-bloat:
     - description: "remove useless distutils usage"
@@ -993,6 +997,7 @@
   anti-bloat:
     - description: "remove useless distutils usage"
       replacements:
+        # TODO: Smells not only like regexp, must be one.
         'LooseVersion("1.17")': "'\"1.17\"'"
         'LooseVersion("1.18")': "'\"1.18\"'"
         'LooseVersion("1.19")': "'\"1.19\"'"
@@ -1028,6 +1033,7 @@
 - module-name: "distributed.scheduler"
   anti-bloat:
     - description: "remove cython support"
+      # TODO: We should replace this with a nuitkarize in Cython maybe.
       replacements:
         "from cython import compiled": "'raise ImportError'"
         "if compiled:": "'if False:'"
@@ -1067,7 +1073,7 @@
       change_function:
         "load_ipython_extension": "'(lambda ipython: None)'"
         "notebook": "'(lambda: None)'"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
 
 - module-name: "persistent._compat"
   anti-bloat:
@@ -1087,7 +1093,7 @@
       change_function:
         "_skip_under_py2": "'(lambda test_method: None)'"
         "_skip_under_py3k": "'(lambda test_method: None)'"
-      control_tags: "allow_unittest"
+      when: "not use_unittest"
 
 - module-name: "eliot._traceback"
   anti-bloat:
@@ -1120,7 +1126,7 @@
         - "import textwrap"
         - "import pkgutil"
         - "from nuitka.utils.Importing import getSharedLibrarySuffix"
-      control_tags: "standalone_mode_only"
+      when: "standalone"
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
         # Before OpenCV 4.6
@@ -1147,7 +1153,7 @@
 - module-name: "tqdm.autonotebook"
   anti-bloat:
     - description: "remove IPython reference"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
       module_code: "from .std import tqdm, trange\n"
 
 - module-name: "tqdm"
@@ -1155,7 +1161,7 @@
     - change_function:
         "tnrange": "'(lambda *args, **kwargs: None)'"
         "tqdm_notebook": "'(lambda *args, **kwargs: None)'"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
       description: "remove IPython reference"
 
 - module-name: "pandas.util"
@@ -1313,10 +1319,10 @@
     checks:
       - description: "wx will crash in console mode during startup"
         console: "yes"
-        control_tags: "macos_only"
+        when: "macos"
       - description: "wx requires program to be in bundle form"
         macos_bundle: "yes"
-        control_tags: "macos_only"
+        when: "macos"
 
 - module-name: "PySide2"
   options:
@@ -1325,7 +1331,7 @@
         console: "recommend"
       - description: "PySide2 cannot be signed unless onefile"
         macos_bundle_as_onefile: "yes"
-        control_tags: "macos_only"
+        when: "macos"
 
 - module-name: "PySide6"
   options:
@@ -1340,10 +1346,10 @@
         console: "recommend"
       - description: "PyQt5 cannot be used without bundle"
         macos_bundle: "yes"
-        control_tags: "macos_only and not anaconda"
+        when: "macos and not anaconda"
       - description: "PyQt5 cannot be signed unless onefile"
         macos_bundle_as_onefile: "yes"
-        control_tags: "macos_only"
+        when: "macos"
 
 - module-name: "PyQt6"
   options:
@@ -1505,7 +1511,7 @@
     - description: "remove IPython reference"
       replacements_plain:
         "__IPYTHON__": "raise NameError"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
 
 - module-name: "numba"
   anti-bloat:
@@ -1542,7 +1548,7 @@
         "import ipywidgets": "raise ImportError"
         # Disable lazy loading implicit imports.
         "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
 
 - module-name: "plotly.graph_objs"
   anti-bloat:
@@ -1552,7 +1558,7 @@
         "import ipywidgets": "raise ImportError"
         # Disable lazy loading implicit imports.
         "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
-      control_tags: "allow_ipython"
+      when: "not use_ipython"
 
 - module-name: "plotly.io"
   anti-bloat:
@@ -1578,7 +1584,7 @@
       replacements_plain:
         "import tornado": "raise ImportError"
         "from tenacity.tornadoweb import TornadoRetrying": "pass"
-      control_tags: "allow_tornado"
+      when: "not use_tornado"
 
 - module-name: "zmq.backend"
   implicit-imports:

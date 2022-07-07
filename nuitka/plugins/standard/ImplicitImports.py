@@ -96,8 +96,10 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         # Checking for config, but also allowing fall through.
         if config:
             for entry in config:
-                if entry.get("control_tags"):
-                    if not self.evaluateControlTags(entry.get("control_tags")):
+                if entry.get("when"):
+                    if not self.evaluateCondition(
+                        full_name=full_name, condition=entry.get("when")
+                    ):
                         continue
 
                 dependencies = entry.get("depends")
