@@ -92,25 +92,25 @@ def _buildMatchAs(provider, variable_name, source_value, source_ref):
     )
 
 
-def _buildMatchValue(provider, against, pattern, source_ref):
+def _buildMatchValue(provider, make_against, pattern, source_ref):
     if type(pattern) is ast.MatchValue:
         right = buildNode(provider, pattern.value, source_ref)
     else:
         right = makeConstantRefNode(constant=pattern.value, source_ref=source_ref)
 
     return _makeMatchComparison(
-        left=against,
+        left=make_against(),
         right=right,
         source_ref=source_ref,
     )
 
 
-def _buildMatchSequence(provider, pattern, against, source_ref):
+def _buildMatchSequence(provider, pattern, make_against, source_ref):
     # Many cases due to recursion, pylint: disable=too-many-locals
 
     conditions = [
         ExpressionMatchTypeCheckSequence(
-            value=against.makeClone(),
+            value=make_against(),
             source_ref=source_ref,
         )
     ]
@@ -135,7 +135,7 @@ def _buildMatchSequence(provider, pattern, against, source_ref):
         conditions.append(
             makeComparisonExpression(
                 left=ExpressionBuiltinLen(
-                    value=against.makeClone(),
+                    value=make_against(),
                     source_ref=source_ref,
                 ),
                 right=makeConstantRefNode(constant=min_length, source_ref=source_ref),
@@ -177,7 +177,7 @@ def _buildMatchSequence(provider, pattern, against, source_ref):
                         variable_name=variable_name,
                         source=ExpressionBuiltinList(
                             ExpressionSubscriptLookup(
-                                expression=against.makeClone(),
+                                expression=make_against(),
                                 subscript=makeConstantRefNode(
                                     constant=slice_value, source_ref=source_ref
                                 ),
@@ -192,8 +192,9 @@ def _buildMatchSequence(provider, pattern, against, source_ref):
             item_conditions, item_assignments = _buildMatch(
                 provider=provider,
                 pattern=seq_pattern,
-                against=ExpressionSubscriptLookup(
-                    expression=against.makeClone(),
+                # It's called before return, pylint: disable=cell-var-from-loop
+                make_against=lambda: ExpressionSubscriptLookup(
+                    expression=make_against(),
                     subscript=makeConstantRefNode(
                         constant=offset, source_ref=source_ref
                     ),
@@ -211,10 +212,10 @@ def _buildMatchSequence(provider, pattern, against, source_ref):
     return conditions, assignments
 
 
-def _buildMatchMapping(provider, pattern, against, source_ref):
+def _buildMatchMapping(provider, pattern, make_against, source_ref):
     conditions = [
         ExpressionMatchTypeCheckMapping(
-            value=against.makeClone(),
+            value=make_against(),
             source_ref=source_ref,
         )
     ]
@@ -228,7 +229,7 @@ def _buildMatchMapping(provider, pattern, against, source_ref):
     for key, kwd_pattern in zip(pattern.keys, pattern.patterns):
         conditions.append(
             ExpressionSubscriptCheck(
-                expression=against.makeClone(),
+                expression=make_against(),
                 subscript=makeConstantRefNode(
                     constant=key.value, source_ref=source_ref
                 ),
@@ -236,15 +237,16 @@ def _buildMatchMapping(provider, pattern, against, source_ref):
             )
         )
 
-        item_against = ExpressionSubscriptLookup(
-            expression=against.makeClone(),
-            subscript=makeConstantRefNode(constant=key.value, source_ref=source_ref),
-            source_ref=source_ref,
-        )
-
+        # It's called before return, pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
-            against=item_against,
+            make_against=lambda: ExpressionSubscriptLookup(
+                expression=make_against(),
+                subscript=makeConstantRefNode(
+                    constant=key.value, source_ref=source_ref
+                ),
+                source_ref=source_ref,
+            ),
             pattern=kwd_pattern,
             source_ref=source_ref,
         )
@@ -258,14 +260,14 @@ def _buildMatchMapping(provider, pattern, against, source_ref):
     return conditions, assignments
 
 
-def _buildMatchClass(provider, pattern, against, source_ref):
+def _buildMatchClass(provider, pattern, make_against, source_ref):
     cls_node = buildNode(provider, pattern.cls, source_ref)
 
     assignments = []
 
     conditions = [
         ExpressionBuiltinIsinstance(
-            instance=against.makeClone(),
+            instance=make_against(),
             classes=cls_node,
             source_ref=source_ref,
         )
@@ -279,11 +281,13 @@ def _buildMatchClass(provider, pattern, against, source_ref):
         # temporary variable handling is a bit of a problem in this so far,
         # we should create an outline function for it, but match value args
         # ought to be global probably, so they can be shared.
+
+        # It's called before return, pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
-            against=ExpressionSubscriptLookup(
+            make_against=lambda: ExpressionSubscriptLookup(
                 expression=ExpressionMatchArgs(
-                    expression=against.makeClone(),
+                    expression=make_against(),
                     max_allowed=len(pattern.patterns),
                     source_ref=source_ref,
                 ),
@@ -303,16 +307,17 @@ def _buildMatchClass(provider, pattern, against, source_ref):
     for key, kwd_pattern in zip(pattern.kwd_attrs, pattern.kwd_patterns):
         conditions.append(
             ExpressionAttributeCheck(
-                expression=against.makeClone(),
+                expression=make_against(),
                 attribute_name=key,
                 source_ref=source_ref,
             )
         )
 
+        # It's called before return, pylint: disable=cell-var-from-loop
         item_conditions, item_assignments = _buildMatch(
             provider=provider,
-            against=makeExpressionAttributeLookup(
-                expression=against.makeClone(),
+            make_against=lambda: makeExpressionAttributeLookup(
+                expression=make_against(),
                 attribute_name=key,
                 source_ref=source_ref,
             ),
@@ -329,14 +334,14 @@ def _buildMatchClass(provider, pattern, against, source_ref):
     return conditions, assignments
 
 
-def _buildMatch(provider, pattern, against, source_ref):
+def _buildMatch(provider, pattern, make_against, source_ref):
     if pattern.__class__ is ast.MatchOr:
         or_condition_list = []
         for or_pattern in pattern.patterns:
             or_conditions, or_assignments = _buildMatch(
                 provider=provider,
                 pattern=or_pattern,
-                against=against,
+                make_against=make_against,
                 source_ref=source_ref,
             )
             assert not or_assignments
@@ -351,13 +356,16 @@ def _buildMatch(provider, pattern, against, source_ref):
 
     elif pattern.__class__ is ast.MatchClass:
         conditions, assignments = _buildMatchClass(
-            provider=provider, pattern=pattern, against=against, source_ref=source_ref
+            provider=provider,
+            pattern=pattern,
+            make_against=make_against,
+            source_ref=source_ref,
         )
     elif pattern.__class__ is ast.MatchMapping:
         conditions, assignments = _buildMatchMapping(
             provider=provider,
             pattern=pattern,
-            against=against,
+            make_against=make_against,
             source_ref=source_ref,
         )
 
@@ -365,7 +373,7 @@ def _buildMatch(provider, pattern, against, source_ref):
         conditions, assignments = _buildMatchSequence(
             provider=provider,
             pattern=pattern,
-            against=against,
+            make_against=make_against,
             source_ref=source_ref,
         )
 
@@ -387,7 +395,7 @@ def _buildMatch(provider, pattern, against, source_ref):
             assignment = _buildMatchAs(
                 provider=provider,
                 variable_name=pattern.name,
-                source_value=against,
+                source_value=make_against(),
                 source_ref=source_ref,
             )
             assignments = (assignment,)
@@ -396,7 +404,7 @@ def _buildMatch(provider, pattern, against, source_ref):
         conditions = [
             _buildMatchValue(
                 provider=provider,
-                against=against,
+                make_against=make_against,
                 pattern=pattern,
                 source_ref=source_ref,
             )
@@ -415,12 +423,14 @@ def _buildCase(provider, case, tmp_subject, source_ref):
 
     pattern = case.pattern
 
-    against = ExpressionTempVariableRef(variable=tmp_subject, source_ref=source_ref)
+    make_against = lambda: ExpressionTempVariableRef(
+        variable=tmp_subject, source_ref=source_ref
+    )
 
     conditions, assignments = _buildMatch(
         provider=provider,
         pattern=pattern,
-        against=against,
+        make_against=make_against,
         source_ref=source_ref,
     )
 
