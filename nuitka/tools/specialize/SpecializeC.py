@@ -112,6 +112,7 @@ types = (
     bytes_desc,
     long_desc,
     c_long_desc,
+    c_digit_desc,
     c_bool_desc,
     n_bool_desc,
     object_desc,
@@ -142,9 +143,14 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
     if key in op_slot_codes:
         return
 
-    if long_desc in (left, right) and c_long_desc in (left, right):
+    int_types_family = (int_desc, c_long_desc)
+    long_types_family = (long_desc, c_long_desc, c_digit_desc)
+
+    if left in int_types_family and right in int_types_family:
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
+    elif left in long_types_family and right in long_types_family:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonLong.c.j2")
-    elif left in (int_desc, c_long_desc):
+    elif left == int_desc:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
     elif left == long_desc:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonLong.c.j2")

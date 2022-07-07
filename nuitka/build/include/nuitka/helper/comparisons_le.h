@@ -174,6 +174,60 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_LONG_INT(PyObject *operand1, PyObject *o
 #endif
 
 #if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern PyObject *RICH_COMPARE_LE_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+extern PyObject *RICH_COMPARE_LE_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern bool RICH_COMPARE_LE_CBOOL_INT_CLONG(PyObject *operand1, long operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+extern bool RICH_COMPARE_LE_CBOOL_CLONG_INT(long operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern nuitka_bool RICH_COMPARE_LE_NBOOL_INT_CLONG(PyObject *operand1, long operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+extern nuitka_bool RICH_COMPARE_LE_NBOOL_CLONG_INT(long operand1, PyObject *operand2);
+#endif
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern PyObject *RICH_COMPARE_LE_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2);
+
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+extern PyObject *RICH_COMPARE_LE_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern bool RICH_COMPARE_LE_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2);
+
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+extern bool RICH_COMPARE_LE_CBOOL_DIGIT_LONG(long operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern nuitka_bool RICH_COMPARE_LE_NBOOL_LONG_DIGIT(PyObject *operand1, long operand2);
+
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+extern nuitka_bool RICH_COMPARE_LE_NBOOL_DIGIT_LONG(long operand1, PyObject *operand2);
+
+#if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operand2);
 #endif

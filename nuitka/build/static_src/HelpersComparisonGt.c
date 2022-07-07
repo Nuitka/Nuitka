@@ -7245,8 +7245,9 @@ static PyObject *COMPARE_GT_OBJECT_CLONG_LONG(long operand1, PyObject *operand2)
         while (--i >= 0) {
             if (operand1_digits[i] != operand2_long_object->ob_digit[i]) {
                 r = operand1_digits[i] > operand2_long_object->ob_digit[i];
-                if (operand1_is_negative)
+                if (operand1_is_negative) {
                     r = !r;
+                }
                 break;
             }
         }
@@ -7311,8 +7312,9 @@ static PyObject *COMPARE_GT_OBJECT_LONG_CLONG(PyObject *operand1, long operand2)
         while (--i >= 0) {
             if (operand1_long_object->ob_digit[i] != operand2_digits[i]) {
                 r = operand1_long_object->ob_digit[i] > operand2_digits[i];
-                if (Py_SIZE(operand1_long_object) < 0)
+                if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
+                }
                 break;
             }
         }
@@ -7329,6 +7331,375 @@ PyObject *RICH_COMPARE_GT_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2
     return COMPARE_GT_OBJECT_LONG_CLONG(operand1, PyInt_AS_LONG(operand1));
 }
 #endif
+
+#if PYTHON_VERSION < 0x300
+static PyObject *COMPARE_GT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = operand2;
+
+    bool r = a > b;
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+}
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+PyObject *RICH_COMPARE_GT_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
+
+    return COMPARE_GT_OBJECT_INT_CLONG(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+static PyObject *COMPARE_GT_OBJECT_CLONG_INT(long operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+    const long a = operand1;
+    const long b = PyInt_AS_LONG(operand2);
+
+    bool r = a > b;
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+}
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+PyObject *RICH_COMPARE_GT_OBJECT_CLONG_INT(long operand1, PyObject *operand2) {
+
+    return COMPARE_GT_OBJECT_CLONG_INT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+static bool COMPARE_GT_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = operand2;
+
+    bool r = a > b;
+
+    // Convert to target type.
+    bool result = r;
+
+    return result;
+}
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+bool RICH_COMPARE_GT_CBOOL_INT_CLONG(PyObject *operand1, long operand2) {
+
+    return COMPARE_GT_CBOOL_INT_CLONG(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+static bool COMPARE_GT_CBOOL_CLONG_INT(long operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+    const long a = operand1;
+    const long b = PyInt_AS_LONG(operand2);
+
+    bool r = a > b;
+
+    // Convert to target type.
+    bool result = r;
+
+    return result;
+}
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+bool RICH_COMPARE_GT_CBOOL_CLONG_INT(long operand1, PyObject *operand2) {
+
+    return COMPARE_GT_CBOOL_CLONG_INT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+static nuitka_bool COMPARE_GT_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = operand2;
+
+    bool r = a > b;
+
+    // Convert to target type.
+    nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+    return result;
+}
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+nuitka_bool RICH_COMPARE_GT_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
+
+    return COMPARE_GT_NBOOL_INT_CLONG(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+static nuitka_bool COMPARE_GT_NBOOL_CLONG_INT(long operand1, PyObject *operand2) {
+
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+    const long a = operand1;
+    const long b = PyInt_AS_LONG(operand2);
+
+    bool r = a > b;
+
+    // Convert to target type.
+    nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+    return result;
+}
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+nuitka_bool RICH_COMPARE_GT_NBOOL_CLONG_INT(long operand1, PyObject *operand2) {
+
+    return COMPARE_GT_NBOOL_CLONG_INT(operand1, operand2);
+}
+#endif
+
+static PyObject *COMPARE_GT_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+    assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
+
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    bool r;
+
+    if (false) {
+        r = false;
+    } else if (Py_SIZE(operand1_long_object) != (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
+        r = Py_SIZE(operand1_long_object) - (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1)) > 0;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        r = false;
+        while (--i >= 0) {
+            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
+                r = operand1_long_object->ob_digit[i] > (digit)Py_ABS(operand2);
+                if (Py_SIZE(operand1_long_object) < 0) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+}
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+PyObject *RICH_COMPARE_GT_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2) {
+
+    return COMPARE_GT_OBJECT_LONG_DIGIT(operand1, operand2);
+}
+
+static PyObject *COMPARE_GT_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2) {
+    assert(Py_ABS(operand1) < (1 << PyLong_SHIFT));
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    bool r;
+
+    if (false) {
+        r = false;
+    } else if ((Py_ssize_t)((operand1 == 0) ? 0 : ((operand1 < 0) ? -1 : 1)) != Py_SIZE(operand2_long_object)) {
+        r = (Py_ssize_t)((operand1 == 0) ? 0 : ((operand1 < 0) ? -1 : 1)) - Py_SIZE(operand2_long_object) > 0;
+    } else {
+        Py_ssize_t i = (operand1 == 0 ? 0 : 1);
+        r = false;
+        while (--i >= 0) {
+            if ((digit)Py_ABS(operand1) != operand2_long_object->ob_digit[i]) {
+                r = (digit)Py_ABS(operand1) > operand2_long_object->ob_digit[i];
+                if (operand1 < 0) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    PyObject *result = BOOL_FROM(r);
+    Py_INCREF(result);
+    return result;
+}
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+PyObject *RICH_COMPARE_GT_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2) {
+
+    return COMPARE_GT_OBJECT_DIGIT_LONG(operand1, operand2);
+}
+
+static bool COMPARE_GT_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+    assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
+
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    bool r;
+
+    if (false) {
+        r = false;
+    } else if (Py_SIZE(operand1_long_object) != (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
+        r = Py_SIZE(operand1_long_object) - (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1)) > 0;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        r = false;
+        while (--i >= 0) {
+            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
+                r = operand1_long_object->ob_digit[i] > (digit)Py_ABS(operand2);
+                if (Py_SIZE(operand1_long_object) < 0) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    bool result = r;
+
+    return result;
+}
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+bool RICH_COMPARE_GT_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
+
+    return COMPARE_GT_CBOOL_LONG_DIGIT(operand1, operand2);
+}
+
+static bool COMPARE_GT_CBOOL_DIGIT_LONG(long operand1, PyObject *operand2) {
+    assert(Py_ABS(operand1) < (1 << PyLong_SHIFT));
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    bool r;
+
+    if (false) {
+        r = false;
+    } else if ((Py_ssize_t)((operand1 == 0) ? 0 : ((operand1 < 0) ? -1 : 1)) != Py_SIZE(operand2_long_object)) {
+        r = (Py_ssize_t)((operand1 == 0) ? 0 : ((operand1 < 0) ? -1 : 1)) - Py_SIZE(operand2_long_object) > 0;
+    } else {
+        Py_ssize_t i = (operand1 == 0 ? 0 : 1);
+        r = false;
+        while (--i >= 0) {
+            if ((digit)Py_ABS(operand1) != operand2_long_object->ob_digit[i]) {
+                r = (digit)Py_ABS(operand1) > operand2_long_object->ob_digit[i];
+                if (operand1 < 0) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    bool result = r;
+
+    return result;
+}
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+bool RICH_COMPARE_GT_CBOOL_DIGIT_LONG(long operand1, PyObject *operand2) {
+
+    return COMPARE_GT_CBOOL_DIGIT_LONG(operand1, operand2);
+}
+
+static nuitka_bool COMPARE_GT_NBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+    assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
+
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    bool r;
+
+    if (false) {
+        r = false;
+    } else if (Py_SIZE(operand1_long_object) != (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1))) {
+        r = Py_SIZE(operand1_long_object) - (Py_ssize_t)((operand2 == 0) ? 0 : ((operand2 < 0) ? -1 : 1)) > 0;
+    } else {
+        Py_ssize_t i = Py_ABS(Py_SIZE(operand1_long_object));
+        r = false;
+        while (--i >= 0) {
+            if (operand1_long_object->ob_digit[i] != (digit)Py_ABS(operand2)) {
+                r = operand1_long_object->ob_digit[i] > (digit)Py_ABS(operand2);
+                if (Py_SIZE(operand1_long_object) < 0) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+    return result;
+}
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+nuitka_bool RICH_COMPARE_GT_NBOOL_LONG_DIGIT(PyObject *operand1, long operand2) {
+
+    return COMPARE_GT_NBOOL_LONG_DIGIT(operand1, operand2);
+}
+
+static nuitka_bool COMPARE_GT_NBOOL_DIGIT_LONG(long operand1, PyObject *operand2) {
+    assert(Py_ABS(operand1) < (1 << PyLong_SHIFT));
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    bool r;
+
+    if (false) {
+        r = false;
+    } else if ((Py_ssize_t)((operand1 == 0) ? 0 : ((operand1 < 0) ? -1 : 1)) != Py_SIZE(operand2_long_object)) {
+        r = (Py_ssize_t)((operand1 == 0) ? 0 : ((operand1 < 0) ? -1 : 1)) - Py_SIZE(operand2_long_object) > 0;
+    } else {
+        Py_ssize_t i = (operand1 == 0 ? 0 : 1);
+        r = false;
+        while (--i >= 0) {
+            if ((digit)Py_ABS(operand1) != operand2_long_object->ob_digit[i]) {
+                r = (digit)Py_ABS(operand1) > operand2_long_object->ob_digit[i];
+                if (operand1 < 0) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+
+    // Convert to target type.
+    nuitka_bool result = r ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+
+    return result;
+}
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+nuitka_bool RICH_COMPARE_GT_NBOOL_DIGIT_LONG(long operand1, PyObject *operand2) {
+
+    return COMPARE_GT_NBOOL_DIGIT_LONG(operand1, operand2);
+}
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
@@ -9340,8 +9711,9 @@ static PyObject *COMPARE_GT_OBJECT_LONG_LONG(PyObject *operand1, PyObject *opera
         while (--i >= 0) {
             if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
                 r = operand1_long_object->ob_digit[i] > operand2_long_object->ob_digit[i];
-                if (Py_SIZE(operand1_long_object) < 0)
+                if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
+                }
                 break;
             }
         }
@@ -9380,8 +9752,9 @@ static bool COMPARE_GT_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2) {
         while (--i >= 0) {
             if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
                 r = operand1_long_object->ob_digit[i] > operand2_long_object->ob_digit[i];
-                if (Py_SIZE(operand1_long_object) < 0)
+                if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
+                }
                 break;
             }
         }
@@ -9420,8 +9793,9 @@ static nuitka_bool COMPARE_GT_NBOOL_LONG_LONG(PyObject *operand1, PyObject *oper
         while (--i >= 0) {
             if (operand1_long_object->ob_digit[i] != operand2_long_object->ob_digit[i]) {
                 r = operand1_long_object->ob_digit[i] > operand2_long_object->ob_digit[i];
-                if (Py_SIZE(operand1_long_object) < 0)
+                if (Py_SIZE(operand1_long_object) < 0) {
                     r = !r;
+                }
                 break;
             }
         }

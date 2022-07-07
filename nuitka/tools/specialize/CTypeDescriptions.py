@@ -1439,11 +1439,11 @@ c_long_desc = CLongDesc()
 class CDigitDesc(CLongDesc):
     type_name = "digit"
     type_desc = "C platform digit value for long Python objects"
-    type_decl = "digit"
+    type_decl = "long"
 
     @classmethod
     def getCheckValueCode(cls, operand):
-        return "assert(Py_ABS(%s) < 2**PyLong_SHIFT);"
+        return "assert(Py_ABS(%s) < (1 << PyLong_SHIFT));" % operand
 
     @staticmethod
     def getAsLongValueExpression(operand):

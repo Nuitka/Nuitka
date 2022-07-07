@@ -58,15 +58,6 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
     return (PyObject *)result;
 }
 
-#if PYTHON_VERSION < 0x300
-#include <longintrepr.h>
-
-#if PYTHON_VERSION < 0x270
-// Not present in Python2.6 yet
-typedef signed int sdigit;
-#endif
-#endif
-
 // Convert single digit to sdigit (int32_t)
 #define MEDIUM_VALUE(x)                                                                                                \
     (Py_SIZE(x) < 0 ? -(sdigit)((PyLongObject *)(x))->ob_digit[0]                                                      \
