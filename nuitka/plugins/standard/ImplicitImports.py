@@ -838,6 +838,21 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
             yield "PIL.XpmImagePlugin"
             yield "PIL.XVThumbImagePlugin"
 
+        # rapidfuzz imports -----------------------------------------------
+        elif full_name == "rapidfuzz":
+            yield "rapidfuzz.utils_cpp"
+            yield "rapidfuzz.fuzz_cpp"
+            yield "rapidfuzz.process_cdist_cpp"
+            yield "rapidfuzz.process_cpp"
+            yield "rapidfuzz.string_metric_cpp"
+
+        elif full_name == "rapidfuzz.distance":
+            yield "rapidfuzz.distance._initialize_cpp"
+            yield "rapidfuzz.distance.Hamming_cpp"
+            yield "rapidfuzz.distance.Indel_cpp"
+            yield "rapidfuzz.distance.LCSseq_cpp"
+            yield "rapidfuzz.distance.Levenshtein_cpp"
+
         # scikit-image imports -----------------------------------------------
         elif full_name == "skimage.draw":
             yield "skimage.draw._draw"
@@ -1016,6 +1031,15 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
             yield "sklearn.utils.weight_vector"
             yield "sklearn.utils._cython_blas"
             yield "sklearn.utils._logistic_sigmoid"
+            yield "sklearn.utils._weight_vector"
+            yield "sklearn.utils._typedefs"
+            yield "sklearn.utils._heap"
+            yield "sklearn.utils._sorting"
+            yield "sklearn.utils._vector_sentinel"
+            yield "sklearn.utils._seq_dataset"
+            yield "sklearn.utils._readonly_array_wrapper"
+            yield "sklearn.utils._openmp_helpers"
+            yield "sklearn.utils._fast_dict"
             yield "sklearn.utils._random"
 
         elif full_name == "sklearn.utils.sparsetools":
