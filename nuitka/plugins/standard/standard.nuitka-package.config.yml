@@ -1611,3 +1611,18 @@
         relative_path: "lib"
         prefixes:
           - "xgboost"
+
+- module-name: "connexion"
+  data-files:
+    dirs:
+      - "resources"
+
+- module-name: "swagger_ui_bundle"
+  data-files:
+    dirs:
+      - "vendor"
+
+- module-name: "text_unidecode"
+  data-files:
+    patterns:
+      - "data.bin"
