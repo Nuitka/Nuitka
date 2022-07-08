@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Shared definitions of what helpers are available.
+""" Shared definitions of what binary operation helpers are available.
 
 These are functions to work with helper names, as well as sets of functions to
 generate specialized code variants for.
@@ -560,13 +560,13 @@ nonspecialized_imatmult_helpers_set = deriveInplaceFromBinaryOperations(
 )
 
 
-def getSpecializedOperations(operator):
+def getSpecializedBinaryOperations(operator):
     return globals()["specialized_%s_helpers_set" % operator.lower()]
 
 
-def getNonSpecializedOperations(operator):
+def getNonSpecializedBinaryOperations(operator):
     return globals()["nonspecialized_%s_helpers_set" % operator.lower()]
 
 
-def getCodeNameForOperation(operator):
+def getCodeNameForBinaryOperation(operator):
     return operator[1:].upper() if operator[0] == "I" else operator.upper()

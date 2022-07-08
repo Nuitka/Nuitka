@@ -28,12 +28,14 @@ nuitka.Options.is_full_compat = False
 
 import os
 
-import nuitka.codegen.ComparisonCodes
-import nuitka.codegen.HelperDefinitions
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
+from nuitka.codegen.BinaryOperationHelperDefinitions import (
+    getSpecializedBinaryOperations,
+    parseTypesFromHelper,
+)
 from nuitka.codegen.CallCodes import (
     getQuickCallCode,
     getQuickMethodCallCode,
@@ -41,6 +43,9 @@ from nuitka.codegen.CallCodes import (
     getQuickMixedCallCode,
     getTemplateCodeDeclaredFunction,
     max_quick_call,
+)
+from nuitka.codegen.ComparisonHelperDefinitions import (
+    getSpecializedComparisonOperations,
 )
 from nuitka.codegen.ImportCodes import getImportModuleHardCodeName
 from nuitka.nodes.ImportNodes import (
@@ -66,6 +71,7 @@ from .CTypeDescriptions import (
     bytes_desc,
     c_bool_desc,
     c_digit_desc,
+    c_float_desc,
     c_long_desc,
     dict_desc,
     float_desc,
@@ -113,6 +119,7 @@ types = (
     long_desc,
     c_long_desc,
     c_digit_desc,
+    c_float_desc,
     c_bool_desc,
     n_bool_desc,
     object_desc,
@@ -139,17 +146,22 @@ reversed_args_compare_op_codes = {
 
 
 def makeCompareSlotCode(operator, op_code, target, left, right, emit):
+    # Many variations to consider, pylint: disable=too-many-branches
+
     key = operator, op_code, target, left, right
     if key in op_slot_codes:
         return
 
     int_types_family = (int_desc, c_long_desc)
-    long_types_family = (long_desc, c_long_desc, c_digit_desc)
+    long_types_family = (int_desc, long_desc, c_long_desc, c_digit_desc)
+    float_types_family = (int_desc, long_desc, c_long_desc, c_float_desc)
 
     if left in int_types_family and right in int_types_family:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
     elif left in long_types_family and right in long_types_family:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonLong.c.j2")
+    elif left in float_types_family and right in float_types_family:
+        template = getDoExtensionUsingTemplateC("HelperOperationComparisonFloat.c.j2")
     elif left == int_desc:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
     elif left == long_desc:
@@ -257,7 +269,7 @@ def _parseTypesFromHelper(helper_name):
         target_code,
         left_code,
         right_code,
-    ) = nuitka.codegen.HelperDefinitions.parseTypesFromHelper(helper_name)
+    ) = parseTypesFromHelper(helper_name)
 
     if target_code is not None:
         target = findTypeFromCodeName(target_code)
@@ -493,9 +505,7 @@ def emitIDE(emit):
 
 
 def makeHelpersComparisonOperation(operand, op_code):
-    specialized_cmp_helpers_set = getattr(
-        nuitka.codegen.ComparisonCodes, "specialized_cmp_helpers_set"
-    )
+    specialized_cmp_helpers_set = getSpecializedComparisonOperations()
 
     template = getDoExtensionUsingTemplateC("HelperOperationComparison.c.j2")
 
@@ -536,9 +546,7 @@ def makeHelpersComparisonOperation(operand, op_code):
 
 
 def makeHelpersBinaryOperation(operand, op_code):
-    specialized_op_helpers_set = getattr(
-        nuitka.codegen.HelperDefinitions, "specialized_%s_helpers_set" % op_code.lower()
-    )
+    specialized_op_helpers_set = getSpecializedBinaryOperations(op_code)
 
     template = getDoExtensionUsingTemplateC("HelperOperationBinary.c.j2")
 
@@ -584,10 +592,7 @@ def makeHelpersBinaryOperation(operand, op_code):
 
 
 def makeHelpersInplaceOperation(operand, op_code):
-    specialized_op_helpers_set = getattr(
-        nuitka.codegen.HelperDefinitions,
-        "specialized_i%s_helpers_set" % op_code.lower(),
-    )
+    specialized_op_helpers_set = getSpecializedBinaryOperations("I" + op_code)
 
     template = getDoExtensionUsingTemplateC("HelperOperationInplace.c.j2")
 

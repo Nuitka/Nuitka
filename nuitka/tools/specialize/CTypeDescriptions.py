@@ -1390,7 +1390,7 @@ class ConcreteCTypeBase(TypeDescBase):
     """Base class for non-Python (C) concrete types."""
 
     def hasSlot(self, slot):
-        assert False, self
+        return False
 
     def getNoSequenceSlotAccessTestCode(self, type_name):
         assert False, self
@@ -1416,9 +1416,6 @@ class CLongDesc(ConcreteCTypeBase):
     @classmethod
     def getNewStyleNumberTypeCheckExpression(cls, operand):
         return "0"
-
-    def hasSlot(self, slot):
-        return False
 
     @staticmethod
     def getAsLongValueExpression(operand):
@@ -1470,9 +1467,6 @@ class CBoolDesc(ConcreteCTypeBase):
     def getNewStyleNumberTypeCheckExpression(cls, operand):
         return "0"
 
-    def hasSlot(self, slot):
-        return False
-
     @staticmethod
     def getAsLongValueExpression(operand):
         return operand
@@ -1517,9 +1511,6 @@ class NBoolDesc(ConcreteCTypeBase):
     @classmethod
     def getNewStyleNumberTypeCheckExpression(cls, operand):
         return "0"
-
-    def hasSlot(self, slot):
-        return False
 
     @staticmethod
     def getAsLongValueExpression(operand):
@@ -1566,9 +1557,6 @@ class NVoidDesc(ConcreteCTypeBase):
     def getNewStyleNumberTypeCheckExpression(cls, operand):
         return "0"
 
-    def hasSlot(self, slot):
-        return False
-
     @staticmethod
     def getAsLongValueExpression(operand):
         assert False
@@ -1601,5 +1589,39 @@ class NVoidDesc(ConcreteCTypeBase):
 
 
 nvoid_desc = NVoidDesc()
+
+
+class CFloatDesc(ConcreteCTypeBase):
+    type_name = "cfloat"
+    type_desc = "C platform float value"
+    type_decl = "double"
+
+    @classmethod
+    def getCheckValueCode(cls, operand):
+        return ""
+
+    @classmethod
+    def getTypeValueExpression(cls, operand):
+        return "NULL"
+
+    @classmethod
+    def getNewStyleNumberTypeCheckExpression(cls, operand):
+        return "0"
+
+    @staticmethod
+    def getAsLongValueExpression(operand):
+        return operand
+
+    @staticmethod
+    def getAsObjectValueExpression(operand):
+        return "PyLong_FromLong(%s)" % operand
+
+    @staticmethod
+    def releaseAsObjectValueStatement(operand):
+        return "Py_DECREF(%s);" % operand
+
+
+c_float_desc = CLongDesc()
+
 
 related_types = {c_long_desc: (int_desc,), int_desc: (c_long_desc,)}

@@ -25,8 +25,8 @@ nuitka.Options.is_full_compat = False
 
 # isort:start
 
+import nuitka.codegen.BinaryOperationHelperDefinitions
 import nuitka.codegen.ComparisonCodes
-import nuitka.codegen.HelperDefinitions
 import nuitka.codegen.Namify
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs

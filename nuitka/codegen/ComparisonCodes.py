@@ -21,7 +21,6 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditions, as well as exception matching.
 """
 
-from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_int,
@@ -39,117 +38,15 @@ from .c_types.CTypeCLongs import CTypeCLong, CTypeCLongDigit
 from .c_types.CTypePyObjectPtrs import CTypePyObjectPtr
 from .CodeHelpers import generateExpressionCode
 from .CodeHelperSelection import selectCodeHelper
+from .ComparisonHelperDefinitions import (
+    getNonSpecializedComparisonOperations,
+    getSpecializedComparisonOperations,
+)
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getReleaseCode,
     getReleaseCodes,
-)
-
-specialized_cmp_helpers_set = OrderedSet(
-    (
-        "RICH_COMPARE_xx_OBJECT_OBJECT_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_OBJECT_STR",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_STR",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_STR",
-        "RICH_COMPARE_xx_OBJECT_STR_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_STR_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_STR_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_STR_STR",
-        "RICH_COMPARE_xx_CBOOL_STR_STR",
-        "RICH_COMPARE_xx_NBOOL_STR_STR",
-        "RICH_COMPARE_xx_OBJECT_OBJECT_UNICODE",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_UNICODE",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_UNICODE",
-        "RICH_COMPARE_xx_OBJECT_UNICODE_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_UNICODE_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_UNICODE_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_UNICODE_UNICODE",
-        "RICH_COMPARE_xx_CBOOL_UNICODE_UNICODE",
-        "RICH_COMPARE_xx_NBOOL_UNICODE_UNICODE",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_BYTES",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_BYTES",
-        "RICH_COMPARE_xx_OBJECT_BYTES_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_BYTES_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_BYTES_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_BYTES_BYTES",
-        "RICH_COMPARE_xx_CBOOL_BYTES_BYTES",
-        "RICH_COMPARE_xx_NBOOL_BYTES_BYTES",
-        "RICH_COMPARE_xx_OBJECT_INT_INT",
-        "RICH_COMPARE_xx_CBOOL_INT_INT",
-        "RICH_COMPARE_xx_NBOOL_INT_INT",
-        "RICH_COMPARE_xx_OBJECT_INT_LONG",
-        "RICH_COMPARE_xx_OBJECT_LONG_INT",
-        # TODO: Make this work.
-        # "RICH_COMPARE_xx_CBOOL_INT_LONG",
-        # "RICH_COMPARE_xx_CBOOL_LONG_INT",
-        # "RICH_COMPARE_xx_NBOOL_INT_LONG",
-        # "RICH_COMPARE_xx_NBOOL_LONG_INT",
-        "RICH_COMPARE_xx_OBJECT_INT_CLONG",
-        "RICH_COMPARE_xx_OBJECT_CLONG_INT",
-        "RICH_COMPARE_xx_CBOOL_INT_CLONG",
-        "RICH_COMPARE_xx_CBOOL_CLONG_INT",
-        "RICH_COMPARE_xx_NBOOL_INT_CLONG",
-        "RICH_COMPARE_xx_NBOOL_CLONG_INT",
-        # TODO: Add CLONG_CLONG once we use that for local variables too.
-        # "RICH_COMPARE_xx_OBJECT_CLONG_CLONG",
-        # "RICH_COMPARE_xx_OBJECT_CLONG_CLONG",
-        # "RICH_COMPARE_xx_CBOOL_CLONG_CLONG",
-        # "RICH_COMPARE_xx_CBOOL_CLONG_CLONG",
-        # "RICH_COMPARE_xx_NBOOL_CLONG_CLONG",
-        # "RICH_COMPARE_xx_NBOOL_CLONG_CLONG",
-        # TODO: Python3 LONG DIGIT
-        "RICH_COMPARE_xx_OBJECT_LONG_DIGIT",
-        "RICH_COMPARE_xx_OBJECT_DIGIT_LONG",
-        "RICH_COMPARE_xx_CBOOL_LONG_DIGIT",
-        "RICH_COMPARE_xx_CBOOL_DIGIT_LONG",
-        "RICH_COMPARE_xx_NBOOL_LONG_DIGIT",
-        "RICH_COMPARE_xx_NBOOL_DIGIT_LONG",
-        "RICH_COMPARE_xx_OBJECT_OBJECT_INT",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_INT",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_INT",
-        "RICH_COMPARE_xx_OBJECT_INT_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_INT_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_INT_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_LONG_LONG",
-        "RICH_COMPARE_xx_CBOOL_LONG_LONG",
-        "RICH_COMPARE_xx_NBOOL_LONG_LONG",
-        "RICH_COMPARE_xx_OBJECT_OBJECT_LONG",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_LONG",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_LONG",
-        "RICH_COMPARE_xx_OBJECT_LONG_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_LONG_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_LONG_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_FLOAT_FLOAT",
-        "RICH_COMPARE_xx_CBOOL_FLOAT_FLOAT",
-        "RICH_COMPARE_xx_NBOOL_FLOAT_FLOAT",
-        "RICH_COMPARE_xx_OBJECT_OBJECT_FLOAT",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_FLOAT",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_FLOAT",
-        "RICH_COMPARE_xx_OBJECT_FLOAT_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_FLOAT_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_FLOAT_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_TUPLE_TUPLE",
-        "RICH_COMPARE_xx_CBOOL_TUPLE_TUPLE",
-        "RICH_COMPARE_xx_NBOOL_TUPLE_TUPLE",
-        "RICH_COMPARE_xx_OBJECT_OBJECT_TUPLE",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_TUPLE",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_TUPLE",
-        "RICH_COMPARE_xx_OBJECT_TUPLE_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_TUPLE_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_TUPLE_OBJECT",
-        "RICH_COMPARE_xx_OBJECT_LIST_LIST",
-        "RICH_COMPARE_xx_CBOOL_LIST_LIST",
-        "RICH_COMPARE_xx_NBOOL_LIST_LIST",
-        "RICH_COMPARE_xx_OBJECT_OBJECT_LIST",
-        "RICH_COMPARE_xx_CBOOL_OBJECT_LIST",
-        "RICH_COMPARE_xx_NBOOL_OBJECT_LIST",
-        "RICH_COMPARE_xx_OBJECT_LIST_OBJECT",
-        "RICH_COMPARE_xx_CBOOL_LIST_OBJECT",
-        "RICH_COMPARE_xx_NBOOL_LIST_OBJECT",
-    )
 )
 
 
@@ -192,10 +89,13 @@ def getRichComparisonCode(
     # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
     target_type = to_name.getCType()
 
+    specialized_helpers_set = getSpecializedComparisonOperations()
+    non_specialized = getNonSpecializedComparisonOperations()
+
     helper_type, helper_function = selectCodeHelper(
         prefix="RICH_COMPARE_xx",
-        specialized_helpers_set=specialized_cmp_helpers_set,
-        nonspecialized=None,
+        specialized_helpers_set=getSpecializedComparisonOperations(),
+        non_specialized_helpers_set=non_specialized,
         helper_type=target_type,
         left_shape=left_shape,
         right_shape=right_shape,
@@ -213,8 +113,8 @@ def getRichComparisonCode(
 
         helper_type, helper_function = selectCodeHelper(
             prefix="RICH_COMPARE_xx",
-            specialized_helpers_set=specialized_cmp_helpers_set,
-            nonspecialized=None,
+            specialized_helpers_set=specialized_helpers_set,
+            non_specialized_helpers_set=non_specialized,
             helper_type=target_type,
             left_shape=tshape_unknown,
             right_shape=tshape_unknown,
