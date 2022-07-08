@@ -168,8 +168,8 @@ def _createNodeTree(filename):
 
         if kind != "absolute":
             inclusion_logger.sysexit(
-                "Error, failed to locate package %r you asked to include."
-                % package_name.asString()
+                "Error, failed to locate package '%s' you asked to include."
+                % package_name
             )
 
         Recursion.checkPluginPath(
@@ -337,10 +337,9 @@ def makeSourceDirectory():
         if "*" in any_case_module or "{" in any_case_module:
             continue
 
-        for module in ModuleRegistry.getDoneModules():
-            if module.getFullName() == any_case_module:
-                break
-        else:
+        if not ModuleRegistry.hasDoneModule(
+            any_case_module
+        ) and not ModuleRegistry.hasRootModule(any_case_module):
             general.warning(
                 "Did not follow import to unused '%s', consider include options."
                 % any_case_module

@@ -85,6 +85,8 @@ def replaceRootModule(old, new):
     for module in root_modules:
         new_root_modules.add(module if module is not old else new)
 
+    assert len(root_modules) == len(new_root_modules)
+
     root_modules = new_root_modules
 
 
@@ -199,6 +201,10 @@ def getDoneModulesCount():
 
 def getDoneModules():
     return sorted(done_modules, key=lambda module: (module.getFullName(), module.kind))
+
+
+def hasDoneModule(module_name):
+    return module_name in done_modules
 
 
 def getModuleInclusionInfos():
