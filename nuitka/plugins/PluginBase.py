@@ -879,6 +879,8 @@ except ImportError:
                 "module_mode": shallMakeModule(),
                 # TODO: Allow to provide this.
                 "deployment": False,
+                # Module dependent
+                "main_module": full_name.getBasename() == "__main__",
             }
         )
 

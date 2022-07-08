@@ -289,6 +289,14 @@ which can and should be a top level package and then one choice, "error",
             source_code += "\n" + append_result
             change_count += 1
 
+        append_plain = anti_bloat_config.get("append_plain", "")
+        if type(append_plain) in (tuple, list):
+            append_plain = "\n".join(append_plain)
+
+        if append_plain:
+            source_code += "\n" + append_plain
+            change_count += 1
+
         if change_count > 0 and self.show_changes:
             self.info(
                 "Handling module '%s' with %d change(s) for: %s."
