@@ -203,7 +203,7 @@ static void writeToFile(FILE_HANDLE target_file, void *chunk, size_t chunk_size)
         fatalErrorTempFiles();
     }
 #else
-    long written = fwrite(chunk, 1, chunk_size, target_file);
+    size_t written = fwrite(chunk, 1, chunk_size, target_file);
 
     if (written != chunk_size) {
         fatalErrorTempFiles();
