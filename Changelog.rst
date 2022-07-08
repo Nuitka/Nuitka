@@ -89,22 +89,169 @@ Bug Fixes
    code execution. Fixed in 0.9.2 already.
 
 -  Python3.9: Fix, could crash on generic aliases with non-hashable
-   values. Fixed in 0.9.9 already.
+   values. Fixed in 0.9.3 already.
 
    .. code:: python
 
       dict[str:any]
 
+-  Python3: Fix, iteration over ``sys.version_info`` falsely optimized
+   into a tuple, which is not always compatible. Fixed in 0.9.3 already.
+
+-  Standalone: Added support for ``xgboost`` package. Fixed in 0.9.3
+   already.
+
+-  Standalone: Added data file for ``text_unidecode`` package. Fixed in
+   0.9.4 already.
+
+-  Standalone: Added data files for ``swagger_ui_bundle`` package. Fixed
+   in 0.9.4 already.
+
+-  Standalone: Added data files for ``connexion`` package. Fixed in
+   0.9.4 already.
+
+-  Standalone: Added implicit dependencies for ``sklearn.utils`` and
+   ``rapidfuzz``. Fixed in 0.9.4 already.
+
+-  Python3.10: Fix, the reformulation of ``match`` statements could
+   create nodes that are used twice, causing code generation to assert.
+   Fixed in 0.9.3 already.
+
+-  macOS: For DLLs also consider ``lib`` directory of Anaconda root
+   environment, some of them are not otherwise visible.
+
+-  Fix, allow ``nonlocal`` and ``global`` for ``__class__`` to be used
+   on the class level.
+
+-  Fix, ``xrange`` with large values didn't work on all platforms. This
+   affected at least Python2 on macOS, but potentially others as well.
+
+New Features
+============
+
+-  Use ``CondaCC`` from environment variables for Linux and macOS, in
+   case it is installed. This can be done with e.g. ``conda install
+   gcc-linux-64`` on Linux or ``conda install clang_osx-64`` on macOS.
+
+-  Added option to disable warnings that use mnemonics, there is
+   currently not that many yet, but it's going to expand. You can use
+   this to acknowledge the ones you accept.
+
+-  Added method for resolving DLL conflicts on macOS too. However, it
+   appears that this is not all that is needed to address remaining
+   issues there.
+
+Optimization
+============
+
+-  More anti-bloat work for popular packages, covering also uses of
+   ``setuptools_scm``, ``nose`` and ``nose2`` package removals and
+   warnings. Also the version of ``tensorflow`` in Anaconda right now
+   has changes to remove ``distutils`` there too.
+
+-  Faster comparison of ``int`` values with constant values, this uses
+   helpers that work with C ``long`` values that represent a single
+   "digit" of a value, or ones that use the full value space of C
+   ``long``.
+
+-  Python2: Comparison of ``int`` and ``long`` now has a specialized
+   helper that avoids converting the ``int`` to a ``long`` through
+   coercion. This takes advantage of there now being code to compare C
+   ``long`` values (which are at the core of Python2 ``int`` objects,
+   with ``long`` objects.
+
+-  For binary operation on mixed types, e.g. ``int * bytes`` the slot of
+   the first function was still considered, and called to give
+   ``Py_NotImplemented`` return value for no good reason. This also
+   applies to mixed operations of ``int``, ``long``, and ``float``
+   types, and for ``str`` and ``unicode`` values on Python2.
+
+-  Added missing helper for ``**`` operation with floats.
+
+-  Added dedicated nodes for ``ctypes.CDLL`` which aims to allow us to
+   detect used DLLs at compile time in the future, and to move closer to
+   support its bindings more efficiently.
+
+-  Added specialized nodes for ``dict.popitem`` as well. With this, now
+   all dictionary methods are specialized.
+
+-  Added specialized nodes for ``str.expandtabs``, ``str.translate``,
+   ``str.ljust``, ``str.rjust``, ``str.center``, ``str.zfill``, and
+   ``str.splitlines``. While these are barely performance relevant, this
+   completes all ``str`` methods, but ``removeprefix`` and
+   ``removesuffix`` that are Python3.9 or higher.
+
 Organisational
 ==============
 
+-  More clear wording in the issue template that ``python -m nuitka
+   --version`` output is really required.
+
 -  UI: Ask user to install the ordered set package that will actually
    work for the specific Python version.
+
+-  Attempt to use Anaconda ``ccache`` if installed on non-Windows.
+
+-  Windows: Avoid byte-compiling the inline copy of Scons that uses
+   Python3 when installing for Python2.
+
+-  Added experimental switches to disable certain optimization in order
+   to try out their impact, e.g. on corruption bugs.
+
+-  Reports: Added included DLLs for standalone mode to compilation
+   report.
+
+-  Plugins: Move options handling to dedicated plugin called
+   ``options-nanny`` that is always enabled.
+
+-  Plugins: Make the ``implicit-imports`` dependency sections a list,
+   for consistency with other blocks.
+
+-  Plugins: Added generic implementation for checking tags such was
+   ``win32`` or ``standalone`` in the package configuration, such that
+   we can now make things dependent on python version (e.g.
+   ``python39_or_higher``, ``before_python39``), usage of Anaconda
+   (``anaconda``) or certain OS (e.g. ``macos``).
+
+-  Quality: Re-enabled string normalization from black, the issues with
+   changes that are breaking to Python2 have been worked around.
+
+Cleanups
+========
+
+-  UI: Avoid changing whitespace in warnings, where we have intended
+   line breaks, e.g. in case of duplicate DLLs. Went over all warnings
+   and made sure to either avoid new-lines or have them, depending on
+   wanted output.
+
+-  Iterator end check code now uses the same code as rich comparison
+   expressions and can benefit from optimization being done there as
+   well.
+
+-  Solved TODO about code generation time C types to specify if they
+   have error checking or not, rather than hard coding it.
+
+-  Production of binary helper function set was cleaned up massively,
+   but still needs more work.
+
+-  Changing spelling of our container package to become more clear.
+
+-  Used ``namedtuple`` objects for storing used DLL information for more
+   clear code.
+
+-  Added spellchecker ignores for all attribute and argument names of
+   generated fixed attribute nodes.
 
 Tests
 =====
 
 -  Added generated test to cover ``bytes`` method operations as well.
+
+-  Enhanced standalone test for ``ctypes`` on Linux to actually have
+   something to test.
+
+-  Added generated test to cover ``bytes`` method. This would have found
+   the issue with ``decode`` potentially.
 
 Summary
 =======
@@ -215,12 +362,6 @@ New Features
    of the Qt bindings from being included in a compilation.
 
 -  Include module search path in compilation report.
-
-Tests
-=====
-
--  The reflected test was adapted to preserve ``PYTHONPATH`` now that
-   module presence influences optimization.
 
 Optimization
 ============
@@ -352,6 +493,12 @@ Organisational
 -  Quality: The auto-format now floats imports to the top for
    consistency. With few exceptions, it was already done like this. But
    it makes things easier for generated code.
+
+Tests
+=====
+
+-  The reflected test was adapted to preserve ``PYTHONPATH`` now that
+   module presence influences optimization.
 
 Summary
 =======
