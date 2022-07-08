@@ -265,6 +265,28 @@
         prefixes:
           - "_audio_microfrontend_op"
 
+# TODO: Maybe not really necessary, this should be avoided by itself instead.
+- module-name: "tensorflow.python.distribute.multi_process_runner"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from . import test": "test = None"
+
+- module-name: "tensorflow._api.v2.compat.v2.__internal__.distribute"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from . import multi_process_runner": "multi_process_runner = None"
+
+- module-name: "tensorflow.python.distribute.strategy_combinations"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from tensorflow.python.distribute import test_util": "test_util = None"
+        "from tensorflow.python.framework import test_util as framework_test_util": "framework_test_util = None"
+        "from tensorflow.python.distribute import multi_process_runner": "multi_process_runner = None"
+        "from tensorflow.python.distribute import multi_worker_test_base": "multi_worker_test_base = None"
+
 - module-name: "sklearn._distributor_init"
   dlls:
     - from_filenames:
@@ -289,12 +311,14 @@
         prefixes:
           - "_cpu_feature_guard"
   anti-bloat:
-    - description: "remove useless distutils usage"
-      replacements:
-        "import distutils as _distutils": "'_distutils = None'"
-        "import site as _site": "'_site = None'"
-        "if _running_from_pip_package()": "'if False'"
-        "_site.ENABLE_USER_SITE": "'False'"
+    - description: "remove useless distutils and test framework usage"
+      replacements_plain:
+        "import distutils as _distutils": "_distutils = None"
+        "import site as _site": "_site = None"
+        "if _running_from_pip_package()": "if False"
+        "_site.ENABLE_USER_SITE": "False"
+        # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
+        "from ._api.v2 import test": "test = None"
 
 - module-name: "tensorflow_core"
   anti-bloat:
@@ -303,6 +327,38 @@
         "import distutils as _distutils": "'_distutils = None'"
         "import site as _site": "'_site = None'"
         "if _running_from_pip_package()": "'if False'"
+
+- module-name: "tensorflow._api.v2.compat.v2"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from . import test": "test = None"
+
+- module-name: "tensorflow._api.v2.compat.v2.compat.v2"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from tensorflow._api.v2.compat.v2 import test": "test = None"
+
+- module-name: "tensorflow._api.v2.compat.v2.compat.v1"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from tensorflow._api.v2.compat.v1 import test": "test = None"
+
+- module-name: "tensorflow._api.v2.compat.v2.__internal__"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from . import test": "test = None"
+
+- module-name: "tensorflow.python.distribute.multi_worker_test_base"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "import unittest": "test = None"
+        "from tensorflow.python.framework import test_util": "test_util = None"
+        "from tensorflow.python.platform import test": "test = None"
 
 - module-name: "clr"
   dlls:
@@ -564,6 +620,13 @@
     - description: "remove useless no-source warning"
       replacements_plain:
         "ag_logging.warning(": "if False: ag_logging.warning("
+
+- module-name: "tensorflow.python.autograph.impl.conversion"
+  anti-bloat:
+    - description: "remove unitest usage"
+      replacements_plain:
+        "import unittest": ""
+        "issubclass(owner_class, unittest.TestCase)": "False"
 
 - module-name: "gevent._util"
   anti-bloat:
@@ -1638,3 +1701,26 @@
     - description: "remove dipy and numpy testing framework"
       replacements_plain:
         "from .testing import setup_test": ""
+
+- module-name: "mmcv.utils"
+  anti-bloat:
+    - description: "remove mmcv testing framework"
+      replacements_plain:
+        "from .testing import": "if False: from .testing import"
+      append_plain: "__all__ = [_name for _name in __all__ if _name in globals()]"
+
+- module-name: "mmcv.utils.parrots_wrapper"
+  anti-bloat:
+    - description: "remove torch.utils.cpp_extension usage"
+      change_function:
+        "_get_extension": "'(lambda: None, None, None)'"
+        "is_rocm_pytorch": "'(lambda: False)'"
+        "_get_cuda_home": "un-callable"
+
+- module-name: "tifffile.tifffile"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "un-callable"
+      # Using tags, to still make it possible to compile in case of main module.
+      when: "not main_module"
