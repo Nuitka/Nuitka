@@ -31,7 +31,7 @@ from .Reports import onMissingHelper
 def selectCodeHelper(
     prefix,
     specialized_helpers_set,
-    nonspecialized,
+    non_specialized_helpers_set,
     helper_type,
     left_shape,
     right_shape,
@@ -65,7 +65,8 @@ def selectCodeHelper(
             helper_type = CTypeNuitkaBoolEnum
         else:
             if Options.is_report_missing and (
-                not nonspecialized or helper_function not in nonspecialized
+                not non_specialized_helpers_set
+                or helper_function not in non_specialized_helpers_set
             ):
                 onMissingHelper(helper_function, source_ref)
 

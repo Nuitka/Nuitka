@@ -22,7 +22,12 @@ of course types could play into it. Then there is also the added difficulty of
 in-place assignments, which have other operation variants.
 """
 
-from . import HelperDefinitions, OperatorCodes
+from . import OperatorCodes
+from .BinaryOperationHelperDefinitions import (
+    getCodeNameForBinaryOperation,
+    getNonSpecializedBinaryOperations,
+    getSpecializedBinaryOperations,
+)
 from .CodeHelpers import (
     generateChildExpressionsCode,
     pickCodeHelper,
@@ -101,14 +106,13 @@ def _getBinaryOperationCode(
     needs_check = expression.mayRaiseExceptionOperation()
 
     helper = pickCodeHelper(
-        prefix="BINARY_OPERATION_%s"
-        % HelperDefinitions.getCodeNameForOperation(operator),
+        prefix="BINARY_OPERATION_%s" % getCodeNameForBinaryOperation(operator),
         suffix="INPLACE" if operator[0] == "I" else "",
         target_type=None if operator[0] == "I" else to_name.getCType(),
         left_shape=left.getTypeShape(),
         right_shape=expression.subnode_right.getTypeShape(),
-        helpers=HelperDefinitions.getSpecializedOperations(operator),
-        nonspecialized=HelperDefinitions.getNonSpecializedOperations(operator),
+        helpers=getSpecializedBinaryOperations(operator),
+        nonspecialized=getNonSpecializedBinaryOperations(operator),
         source_ref=expression.source_ref,
     )
 
