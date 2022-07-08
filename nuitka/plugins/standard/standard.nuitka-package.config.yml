@@ -1632,3 +1632,9 @@
   data-files:
     patterns:
       - "data.bin"
+
+- module-name: "dipy"
+  anti-bloat:
+    - description: "remove dipy and numpy testing framework"
+      replacements_plain:
+        "from .testing import setup_test": ""
