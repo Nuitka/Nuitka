@@ -18,7 +18,7 @@
 from __future__ import print_function
 
 
-def lamdaContainer(x):
+def lambdaContainer(x):
     f = lambda c: c
     g = lambda c: c if x else c * c
     # h = lambda c: 'a' <= c <= 'z'
@@ -43,12 +43,12 @@ def lamdaContainer(x):
     if "a" <= ("1" if x else "2") > "z" > undefined_global:
         print("Yes3")
 
-    z = lambda huhu=y: huhu
+    z = lambda foo=y: foo
 
     print("Lambda defaulted gives", z())
 
 
-lamdaContainer("b")
+lambdaContainer("b")
 
 
 def lambdaGenerator():
