@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.codegen.c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
+from nuitka.codegen.c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from nuitka.codegen.c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from nuitka.codegen.Reports import onMissingOperation
 from nuitka.Constants import the_empty_unicode

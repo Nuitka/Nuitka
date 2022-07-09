@@ -39,6 +39,6 @@ class CTypeCLong(CTypeCLongMixin, CTypeBase):
 
 
 class CTypeCLongDigit(CTypeCLongMixin, CTypeBase):
-    c_type = "digit"
+    c_type = "nuitka_digit"
 
     helper_code = "DIGIT"

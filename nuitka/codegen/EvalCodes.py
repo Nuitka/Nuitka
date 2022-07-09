@@ -68,7 +68,7 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
                 variable_trace=variable_trace,
                 tmp_name=value_name,
                 needs_release=None,  # TODO: Could be known maybe.
-                in_place=False,
+                inplace=False,
                 emit=emit,
                 context=context,
             )

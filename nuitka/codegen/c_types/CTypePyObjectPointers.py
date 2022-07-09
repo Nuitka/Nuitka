@@ -51,9 +51,9 @@ from .CTypeBases import CTypeBase
 class CPythonPyObjectPtrBase(CTypeBase):
     @classmethod
     def emitVariableAssignCode(
-        cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
+        cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
-        if in_place:
+        if inplace:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
             # replacement/release.
@@ -110,11 +110,37 @@ class CPythonPyObjectPtrBase(CTypeBase):
         emit(template % {"identifier": value_name})
 
     @classmethod
-    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        emit(
-            "%(to_name)s = (%(condition)s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
-            % {"to_name": to_name, "condition": condition}
-        )
+    def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
+        # Half way, virtual method: pylint: disable=unused-argument
+
+        update_code = "%(to_name)s = (%(truth_check)s) ? Py_False : Py_True" % {
+            "truth_check": cls.getTruthCheckCode(to_name),
+            "to_name": to_name,
+        }
+
+        if context.needsCleanup(to_name):
+            # The release here can only work for this class, needs more work to be able
+            # to deal with CTypePyObjectPtrPtr and CTypeCellObject.
+
+            assert cls is CTypePyObjectPtr
+
+            emit(
+                """\
+{
+    %(tmp_decl)s = %(to_name)s;
+    %(update_code)s;
+    Py_INCREF(%(to_name)s);
+    Py_DECREF(old);
+}
+"""
+                % {
+                    "tmp_decl": cls.getVariableArgDeclarationCode("old"),
+                    "update_code": update_code,
+                    "to_name": to_name,
+                }
+            )
+        else:
+            emit("%s;" % update_code)
 
     @classmethod
     def emitAssignmentCodeToNuitkaBool(
@@ -319,10 +345,11 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
-        # Nothing done for this type yet, pylint: disable=unused-argument
         if value_name.c_type == cls.c_type:
             emit("%s = %s;" % (to_name, value_name))
-        elif value_name.c_type == "nuitka_bool":
+
+            context.transferCleanupTempName(value_name, to_name)
+        elif value_name.c_type in ("nuitka_bool", "bool"):
             cls.emitAssignmentCodeFromBoolCondition(
                 condition=value_name.getCType().getTruthCheckCode(value_name),
                 to_name=to_name,
@@ -332,6 +359,8 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
             emit("ENFORCE_ILONG_OBJECT_VALUE(&%s);" % value_name)
 
             emit("%s = %s.ilong_object;" % (to_name, value_name))
+
+            context.transferCleanupTempName(value_name, to_name)
         else:
             assert False, to_name.c_type
 
@@ -414,9 +443,9 @@ class CTypeCellObject(CTypeBase):
 
     @classmethod
     def emitVariableAssignCode(
-        cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
+        cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
-        if in_place:
+        if inplace:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
             # replacement/release.

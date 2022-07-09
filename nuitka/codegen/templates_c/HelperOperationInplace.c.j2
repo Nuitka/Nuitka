@@ -76,7 +76,7 @@ exit_inplace_exception:
 {% endif %}
 {% endmacro %}
 {% if not left.hasTypeSpecializationCode(right, nb_slot, sq_slot) and left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
-static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
 {% set props = {"exits": {}} %}
 {% if left == object_desc %}
     PyTypeObject *type1 = {{ left.getTypeValueExpression("*operand1") }};
@@ -88,7 +88,7 @@ static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_{{op_code}}_{{left.getHelperC
     {{ inplace_fallback_operation(props, left, right, "type1", "type2") }}
 }
 {% endif %}
-static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
+static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
     assert(operand1); // Pointer must be non-null.
 
     {{ left.getCheckValueCode("*operand1") }}
@@ -147,13 +147,13 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
     if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
 {% if float_desc.hasTypeSpecializationCode(float_desc, nb_slot, sq_slot) %}
         if ({{left.getFloatCheckExpression("operand2")}}) {
-            return _BINARY_OPERATION_{{op_code}}_{{float_desc.getHelperCodeName()}}_{{float_desc.getHelperCodeName()}}_INPLACE(operand1, operand2);
+            return _INPLACE_OPERATION_{{op_code}}_{{float_desc.getHelperCodeName()}}_{{float_desc.getHelperCodeName()}}(operand1, operand2);
         }
 {% endif %}
 {% if long_desc.hasTypeSpecializationCode(long_desc, nb_slot, sq_slot) %}
 #if PYTHON_VERSION >= 0x300
         if ({{left.getLongCheckExpression("operand2")}}) {
-            return _BINARY_OPERATION_{{op_code}}_{{long_desc.getHelperCodeName()}}_{{long_desc.getHelperCodeName()}}_INPLACE(operand1, operand2);
+            return _INPLACE_OPERATION_{{op_code}}_{{long_desc.getHelperCodeName()}}_{{long_desc.getHelperCodeName()}}(operand1, operand2);
         }
 #endif
 {% endif %}
@@ -250,7 +250,7 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
     }
 
-    return __BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE(operand1, operand2);
+    return __INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
 {% else %}
 {% set props = {"exits": {}} %}
 {% if left == object_desc %}
@@ -264,6 +264,6 @@ static inline bool _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{
 {% endif %}
 }
 
-bool BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    return _BINARY_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("*operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    return _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
 }

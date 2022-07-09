@@ -39,8 +39,7 @@ class CTypeBool(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
-        # Conversion cannot fail, pylint: disable=unused-argument
-
+        # Conversion cannot fail really.
         if value_name.c_type == cls.c_type:
             emit("%s = %s;" % (to_name, value_name))
         else:
@@ -74,8 +73,20 @@ class CTypeBool(CTypeNotReferenceCountedMixin, CTypeBase):
         assert False
 
     @classmethod
+    def emitAssignmentCodeToNuitkaBool(
+        cls, to_name, value_name, needs_check, emit, context
+    ):
+        # Half way, virtual method: pylint: disable=unused-argument
+        emit("%s = %s ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % (to_name, value_name))
+
+    @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         emit("%s = (%s) ? true : false;" % (to_name, condition))
+
+    @classmethod
+    def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
+        # Half way, virtual method: pylint: disable=unused-argument
+        emit("%s = !%s;" % (to_name, to_name))
 
     @classmethod
     def getExceptionCheckCondition(cls, value_name):

@@ -26,35 +26,35 @@
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_MATMULT_LONG_LONG(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-extern bool BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_MATMULT_OBJECT_LONG(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-extern bool BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_MATMULT_LONG_OBJECT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-extern bool BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_MATMULT_FLOAT_FLOAT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-extern bool BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-extern bool BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_MATMULT_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-extern bool BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2);
 #endif

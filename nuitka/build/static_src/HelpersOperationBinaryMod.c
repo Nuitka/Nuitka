@@ -2938,292 +2938,12 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject
     return _BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT(operand1, operand2);
 }
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    // Slot1 ignored on purpose, type2 takes precedence.
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        // Different types, need to consider second value slot.
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    return obj_result;
-
-exit_binary_exception:
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_OBJECT_INT_LONG(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    return obj_result;
-
-exit_binary_exception:
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_OBJECT_LONG_INT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    // Slot1 ignored on purpose, type2 takes precedence.
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        // Different types, need to consider second value slot.
-
-        slot2 = PyLong_Type.tp_as_number->nb_remainder;
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(obj_result);
-        return r;
-    }
-
-exit_binary_exception:
-    return NUITKA_BOOL_EXCEPTION;
-}
-
-nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_NBOOL_INT_LONG(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(obj_result);
-        return r;
-    }
-
-exit_binary_exception:
-    return NUITKA_BOOL_EXCEPTION;
-}
-
-nuitka_bool BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_NBOOL_LONG_INT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    // Slot1 ignored on purpose, type2 takes precedence.
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        // Different types, need to consider second value slot.
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    return obj_result;
-
-exit_binary_exception:
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
+static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
+    assert(PyLong_CheckExact(operand2));
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -3251,7 +2971,11 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
 
     // Statically recognized that coercion is not possible with these types
 
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
+#else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
+#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -3261,130 +2985,9 @@ exit_binary_exception:
     return NULL;
 }
 
-PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(operand1, operand2);
+PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(operand1, operand2);
 }
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    // Slot1 ignored on purpose, type2 takes precedence.
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        // Different types, need to consider second value slot.
-
-        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(obj_result);
-        return r;
-    }
-
-exit_binary_exception:
-    return NUITKA_BOOL_EXCEPTION;
-}
-
-nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(obj_result);
-        return r;
-    }
-
-exit_binary_exception:
-    return NUITKA_BOOL_EXCEPTION;
-}
-
-nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(operand1, operand2);
-}
-#endif
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
 static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
@@ -3444,7 +3047,7 @@ PyObject *BINARY_OPERATION_MOD_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *o
 }
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
@@ -3484,14 +3087,22 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyO
     goto exit_binary_exception;
 
 exit_binary_result_object:
-    return obj_result;
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
 
 exit_binary_exception:
-    return NULL;
+    return NUITKA_BOOL_EXCEPTION;
 }
 
-PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_OBJECT_FLOAT_LONG(operand1, operand2);
+nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
@@ -3559,12 +3170,13 @@ nuitka_bool BINARY_OPERATION_MOD_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *
     return _BINARY_OPERATION_MOD_NBOOL_LONG_FLOAT(operand1, operand2);
 }
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
+    assert(PyInt_CheckExact(operand2));
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -3592,11 +3204,111 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, Py
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'long'");
-#else
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_OBJECT_FLOAT_INT(operand1, operand2);
+}
 #endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    // Slot1 ignored on purpose, type2 takes precedence.
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        // Different types, need to consider second value slot.
+
+        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_OBJECT_INT_FLOAT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyFloat_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    binaryfunc slot1 = PyFloat_Type.tp_as_number->nb_remainder;
+    // Slot2 ignored on purpose, type1 takes precedence.
+
+    if (slot1 != NULL) {
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'float' and 'int'");
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -3614,9 +3326,297 @@ exit_binary_exception:
     return NUITKA_BOOL_EXCEPTION;
 }
 
-nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MOD_NBOOL_FLOAT_LONG(operand1, operand2);
+nuitka_bool BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_NBOOL_FLOAT_INT(operand1, operand2);
 }
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    // Slot1 ignored on purpose, type2 takes precedence.
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        // Different types, need to consider second value slot.
+
+        slot2 = PyFloat_Type.tp_as_number->nb_remainder;
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'float'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
+
+exit_binary_exception:
+    return NUITKA_BOOL_EXCEPTION;
+}
+
+nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_NBOOL_INT_FLOAT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
+    // Slot2 ignored on purpose, type1 takes precedence.
+
+    if (slot1 != NULL) {
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MOD_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_OBJECT_LONG_INT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+static PyObject *_BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    // Slot1 ignored on purpose, type2 takes precedence.
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        // Different types, need to consider second value slot.
+
+        slot2 = PyLong_Type.tp_as_number->nb_remainder;
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_MOD_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_OBJECT_INT_LONG(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_remainder;
+    // Slot2 ignored on purpose, type1 takes precedence.
+
+    if (slot1 != NULL) {
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'long' and 'int'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
+
+exit_binary_exception:
+    return NUITKA_BOOL_EXCEPTION;
+}
+
+nuitka_bool BINARY_OPERATION_MOD_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_NBOOL_LONG_INT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    // Slot1 ignored on purpose, type2 takes precedence.
+    binaryfunc slot2 = NULL;
+
+    if (!(0)) {
+        // Different types, need to consider second value slot.
+
+        slot2 = PyLong_Type.tp_as_number->nb_remainder;
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: 'int' and 'long'");
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return NUITKA_BOOL_EXCEPTION;
+    }
+
+    {
+        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+        Py_DECREF(obj_result);
+        return r;
+    }
+
+exit_binary_exception:
+    return NUITKA_BOOL_EXCEPTION;
+}
+
+nuitka_bool BINARY_OPERATION_MOD_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_MOD_NBOOL_INT_LONG(operand1, operand2);
+}
+#endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */

@@ -25,7 +25,7 @@
 /* C helpers for type in-place "&" (BITAND) operations */
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static inline bool _BINARY_OPERATION_BITAND_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_LONG_LONG(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -63,12 +63,12 @@ exit_result_exception:
     return false;
 }
 
-bool BINARY_OPERATION_BITAND_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_LONG_LONG_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_LONG_LONG(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_LONG_LONG(operand1, operand2);
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITAND_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
 #ifdef _MSC_VER
@@ -231,7 +231,7 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
-static inline bool _BINARY_OPERATION_BITAND_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -273,15 +273,15 @@ static inline bool _BINARY_OPERATION_BITAND_OBJECT_LONG_INPLACE(PyObject **opera
         return false;
     }
 
-    return __BINARY_OPERATION_BITAND_OBJECT_LONG_INPLACE(operand1, operand2);
+    return __INPLACE_OPERATION_BITAND_OBJECT_LONG(operand1, operand2);
 }
 
-bool BINARY_OPERATION_BITAND_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_OBJECT_LONG_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_OBJECT_LONG(operand1, operand2);
 }
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITAND_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -445,7 +445,7 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
-static inline bool _BINARY_OPERATION_BITAND_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -487,16 +487,16 @@ static inline bool _BINARY_OPERATION_BITAND_LONG_OBJECT_INPLACE(PyObject **opera
         return false;
     }
 
-    return __BINARY_OPERATION_BITAND_LONG_OBJECT_INPLACE(operand1, operand2);
+    return __INPLACE_OPERATION_BITAND_LONG_OBJECT(operand1, operand2);
 }
 
-bool BINARY_OPERATION_BITAND_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_LONG_OBJECT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_LONG_OBJECT(operand1, operand2);
 }
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-static inline bool _BINARY_OPERATION_BITAND_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_INT_INT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -549,14 +549,14 @@ exit_result_ok:
     return true;
 }
 
-bool BINARY_OPERATION_BITAND_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_INT_INT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_INT_INT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_INT_INT(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITAND_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
 #ifdef _MSC_VER
@@ -715,7 +715,7 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
-static inline bool _BINARY_OPERATION_BITAND_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -772,17 +772,17 @@ static inline bool _BINARY_OPERATION_BITAND_OBJECT_INT_INPLACE(PyObject **operan
         return true;
     }
 
-    return __BINARY_OPERATION_BITAND_OBJECT_INT_INPLACE(operand1, operand2);
+    return __INPLACE_OPERATION_BITAND_OBJECT_INT(operand1, operand2);
 }
 
-bool BINARY_OPERATION_BITAND_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_OBJECT_INT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_OBJECT_INT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_OBJECT_INT(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITAND_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -942,7 +942,7 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
-static inline bool _BINARY_OPERATION_BITAND_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -999,17 +999,144 @@ static inline bool _BINARY_OPERATION_BITAND_INT_OBJECT_INPLACE(PyObject **operan
         return true;
     }
 
-    return __BINARY_OPERATION_BITAND_INT_OBJECT_INPLACE(operand1, operand2);
+    return __INPLACE_OPERATION_BITAND_INT_OBJECT(operand1, operand2);
 }
 
-bool BINARY_OPERATION_BITAND_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_INT_OBJECT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_INT_OBJECT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_INT_OBJECT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+static inline bool _INPLACE_OPERATION_BITAND_INT_CLONG(PyObject **operand1, long operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+
+    const long a = PyInt_AS_LONG(*operand1);
+    const long b = operand2;
+
+    const long r = a & b;
+
+    clong_result = r;
+    goto exit_result_ok_clong;
+
+exit_result_ok_clong:
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = PyInt_FromLong(clong_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+}
+
+bool INPLACE_OPERATION_BITAND_INT_CLONG(PyObject **operand1, long operand2) {
+    return _INPLACE_OPERATION_BITAND_INT_CLONG(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+static inline bool _INPLACE_OPERATION_BITAND_LONG_INT(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyLong_CheckExact(*operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(operand2));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    // No inplace number slot nb_inplace_and available for this type.
+
+    {
+        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_and;
+        // Slot2 ignored on purpose, type1 takes precedence.
+
+        if (slot1 != NULL) {
+            PyObject *x = slot1(*operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                obj_result = x;
+                goto exit_inplace_result_object;
+            }
+
+            Py_DECREF(x);
+        }
+
+        // Statically recognized that coercion is not possible with these types
+
+        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'long' and 'int'");
+        goto exit_inplace_exception;
+    }
+
+exit_inplace_result_object:
+    if (unlikely(obj_result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = obj_result;
+
+    return true;
+
+exit_inplace_exception:
+    return false;
+}
+
+bool INPLACE_OPERATION_BITAND_LONG_INT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_LONG_INT(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static inline bool _BINARY_OPERATION_BITAND_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_INT_LONG(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1079,84 +1206,13 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_BITAND_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_INT_LONG_INPLACE(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static inline bool _BINARY_OPERATION_BITAND_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyLong_CheckExact(*operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyInt_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    // No inplace number slot nb_inplace_and available for this type.
-
-    {
-        binaryfunc slot1 = PyLong_Type.tp_as_number->nb_and;
-        // Slot2 ignored on purpose, type1 takes precedence.
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        // Statically recognized that coercion is not possible with these types
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for &: 'long' and 'int'");
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-
-bool BINARY_OPERATION_BITAND_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_LONG_INT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_INT_LONG(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_INT_LONG(operand1, operand2);
 }
 #endif
 
 /* Code referring to "SET" corresponds to Python 'set' and "SET" to Python 'set'. */
-static inline bool _BINARY_OPERATION_BITAND_SET_SET_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_SET_SET(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1196,12 +1252,12 @@ exit_result_exception:
     return false;
 }
 
-bool BINARY_OPERATION_BITAND_SET_SET_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_SET_SET_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_SET_SET(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_SET_SET(operand1, operand2);
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "SET" to Python 'set'. */
-static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITAND_OBJECT_SET_INPLACE(PyObject **operand1, PyObject *operand2) {
+static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_OBJECT_SET(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
 #ifdef _MSC_VER
@@ -1326,7 +1382,7 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
-static inline bool _BINARY_OPERATION_BITAND_OBJECT_SET_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_OBJECT_SET(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1370,15 +1426,15 @@ static inline bool _BINARY_OPERATION_BITAND_OBJECT_SET_INPLACE(PyObject **operan
         return false;
     }
 
-    return __BINARY_OPERATION_BITAND_OBJECT_SET_INPLACE(operand1, operand2);
+    return __INPLACE_OPERATION_BITAND_OBJECT_SET(operand1, operand2);
 }
 
-bool BINARY_OPERATION_BITAND_OBJECT_SET_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_OBJECT_SET_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_OBJECT_SET(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_OBJECT_SET(operand1, operand2);
 }
 
 /* Code referring to "SET" corresponds to Python 'set' and "OBJECT" to any Python object. */
-static HEDLEY_NEVER_INLINE bool __BINARY_OPERATION_BITAND_SET_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_BITAND_SET_OBJECT(PyObject **operand1, PyObject *operand2) {
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -1515,7 +1571,7 @@ exit_inplace_result_object:
 exit_inplace_exception:
     return false;
 }
-static inline bool _BINARY_OPERATION_BITAND_SET_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_SET_OBJECT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1559,15 +1615,15 @@ static inline bool _BINARY_OPERATION_BITAND_SET_OBJECT_INPLACE(PyObject **operan
         return false;
     }
 
-    return __BINARY_OPERATION_BITAND_SET_OBJECT_INPLACE(operand1, operand2);
+    return __INPLACE_OPERATION_BITAND_SET_OBJECT(operand1, operand2);
 }
 
-bool BINARY_OPERATION_BITAND_SET_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_SET_OBJECT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_SET_OBJECT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_SET_OBJECT(operand1, operand2);
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_BITAND_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_BITAND_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -1625,7 +1681,7 @@ static inline bool _BINARY_OPERATION_BITAND_OBJECT_OBJECT_INPLACE(PyObject **ope
     if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
 #if PYTHON_VERSION >= 0x300
         if (PyLong_CheckExact(operand2)) {
-            return _BINARY_OPERATION_BITAND_LONG_LONG_INPLACE(operand1, operand2);
+            return _INPLACE_OPERATION_BITAND_LONG_LONG(operand1, operand2);
         }
 #endif
     }
@@ -1806,6 +1862,6 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_BITAND_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITAND_OBJECT_OBJECT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_BITAND_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_BITAND_OBJECT_OBJECT(operand1, operand2);
 }

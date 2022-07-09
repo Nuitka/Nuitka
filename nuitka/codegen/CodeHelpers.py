@@ -24,7 +24,6 @@ typical support functions to building parts.
 
 from contextlib import contextmanager
 
-from nuitka import Options
 from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
 from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
@@ -32,7 +31,6 @@ from nuitka.Tracing import printError
 
 from .Emission import withSubCollector
 from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
-from .Reports import onMissingHelper
 
 expression_dispatch_dict = {}
 
@@ -201,7 +199,7 @@ def generateStatementCode(statement, emit, context):
         )
 
         # Complain if any temporary was not dealt with yet.
-        assert not context.getCleanupTempnames(), context.getCleanupTempnames()
+        assert not context.getCleanupTempNames(), context.getCleanupTempNames()
     except Exception:
         printError(
             "Problem with %r at %s"
@@ -279,6 +277,7 @@ def withObjectCodeTemporaryAssignment2(
     yield value_name
 
     if to_name is not value_name:
+        # This is also tasked to release value_name.
         to_name.getCType().emitAssignConversionCode(
             to_name=to_name,
             value_name=value_name,
@@ -286,10 +285,6 @@ def withObjectCodeTemporaryAssignment2(
             emit=emit,
             context=context,
         )
-
-        from .ErrorCodes import getReleaseCode
-
-        getReleaseCode(value_name, emit, context)
 
 
 @contextmanager
@@ -425,87 +420,6 @@ class HelperCallHandle(object):
                     self.target_type.helper_code,
                     self.helper_target.helper_code,
                 )
-
-
-def pickCodeHelper(
-    prefix,
-    suffix,
-    target_type,
-    left_shape,
-    right_shape,
-    helpers,
-    nonspecialized,
-    source_ref,
-):
-    # Lots of details to deal with, pylint: disable=too-many-locals
-
-    left_part = left_shape.helper_code
-    right_part = right_shape.helper_code
-
-    assert left_part != "INVALID", left_shape
-    assert right_part != "INVALID", right_shape
-
-    if target_type is None:
-        target_part = None
-    else:
-        target_part = target_type.helper_code
-
-        assert target_part != "INVALID", target_type
-
-    # Special hack for "NVOID", lets go to "NBOOL more automatically"
-
-    ideal_helper = "_".join(
-        p for p in (prefix, target_part, left_part, right_part, suffix) if p
-    )
-
-    if target_part == "NVOID" and ideal_helper not in helpers:
-        target_part = "NBOOL"
-
-        ideal_helper = "_".join(
-            p for p in (prefix, target_part, left_part, right_part, suffix) if p
-        )
-
-        from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
-
-        helper_target = CTypeNuitkaBoolEnum
-    else:
-        helper_target = target_type
-
-    if ideal_helper in helpers:
-        return HelperCallHandle(
-            helper_name=ideal_helper,
-            target_type=target_type,
-            helper_target=helper_target,
-            left_shape=left_shape,
-            helper_left=left_shape,
-            right_shape=right_shape,
-            helper_right=right_shape,
-        )
-
-    if Options.is_report_missing and (
-        not nonspecialized or ideal_helper not in nonspecialized
-    ):
-        onMissingHelper(ideal_helper, source_ref)
-
-    fallback_helper = "%s_%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", "OBJECT", suffix)
-
-    fallback_helper = "_".join(
-        p
-        for p in (prefix, "OBJECT" if target_part else "", "OBJECT", "OBJECT", suffix)
-        if p
-    )
-
-    from .c_types.CTypePyObjectPtrs import CTypePyObjectPtr
-
-    return HelperCallHandle(
-        helper_name=fallback_helper,
-        target_type=target_type,
-        helper_target=CTypePyObjectPtr,
-        left_shape=left_shape,
-        helper_left=CTypePyObjectPtr,
-        right_shape=right_shape,
-        helper_right=CTypePyObjectPtr,
-    )
 
 
 @contextmanager
