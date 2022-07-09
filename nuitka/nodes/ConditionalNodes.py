@@ -778,7 +778,7 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
 def makeNotExpression(expression):
     # These are invertible with bool type shape.
     if expression.isExpressionComparison() and expression.getTypeShape() is tshape_bool:
-        return expression.makeInverseComparision()
+        return expression.makeInverseComparison()
     else:
         return ExpressionOperationNot(
             operand=expression, source_ref=expression.getSourceReference()

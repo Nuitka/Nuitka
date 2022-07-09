@@ -23,7 +23,7 @@
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
-from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
+from .c_types.CTypePyObjectPointers import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,

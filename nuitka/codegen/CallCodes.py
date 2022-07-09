@@ -1111,6 +1111,10 @@ def getTemplateCodeDeclaredFunction(code):
         "__BINARY", "BINARY"
     ).replace(
         "_BINARY", "BINARY"
+    ).replace(
+        "__INPLACE", "INPLACE"
+    ).replace(
+        "_INPLACE", "INPLACE"
     )
 
 

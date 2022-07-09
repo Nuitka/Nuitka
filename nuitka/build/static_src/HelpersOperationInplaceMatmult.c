@@ -26,7 +26,7 @@
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static inline bool _BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_MATMULT_LONG_LONG(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -67,14 +67,14 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MATMULT_LONG_LONG_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_MATMULT_LONG_LONG(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MATMULT_LONG_LONG(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-static inline bool _BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -157,14 +157,14 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MATMULT_OBJECT_LONG_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_MATMULT_OBJECT_LONG(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MATMULT_OBJECT_LONG(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_MATMULT_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -240,14 +240,14 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MATMULT_LONG_OBJECT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_MATMULT_LONG_OBJECT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MATMULT_LONG_OBJECT(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-static inline bool _BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_MATMULT_FLOAT_FLOAT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -284,14 +284,14 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MATMULT_FLOAT_FLOAT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_MATMULT_FLOAT_FLOAT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MATMULT_FLOAT_FLOAT(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-static inline bool _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -370,14 +370,14 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MATMULT_OBJECT_FLOAT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_MATMULT_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -449,14 +449,14 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MATMULT_FLOAT_OBJECT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_MATMULT_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MATMULT_FLOAT_OBJECT(operand1, operand2);
 }
 #endif
 
 #if PYTHON_VERSION >= 0x350
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-static inline bool _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
 
     CHECK_OBJECT(*operand1);
@@ -631,7 +631,7 @@ exit_inplace_exception:
     return false;
 }
 
-bool BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_MATMULT_OBJECT_OBJECT_INPLACE(operand1, operand2);
+bool INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(operand1, operand2);
 }
 #endif
