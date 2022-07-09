@@ -21,26 +21,24 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditions, as well as exception matching.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    tshape_bool,
-    tshape_int,
-    tshape_long,
-)
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_bool
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
-from nuitka.PythonVersions import (
-    isPythonValidCLongValue,
-    isPythonValidDigitValue,
-    python_version,
+from nuitka.PythonOperators import (
+    comparison_inversions,
+    rich_comparison_arg_swaps,
 )
 
-from . import OperatorCodes
-from .c_types.CTypeCLongs import CTypeCLong, CTypeCLongDigit
-from .c_types.CTypePyObjectPtrs import CTypePyObjectPtr
+from .c_types.CTypeBooleans import CTypeBool
+from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
+from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
+from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .CodeHelpers import generateExpressionCode
 from .CodeHelperSelection import selectCodeHelper
 from .ComparisonHelperDefinitions import (
     getNonSpecializedComparisonOperations,
     getSpecializedComparisonOperations,
+    rich_comparison_codes,
+    rich_comparison_subset_codes,
 )
 from .ErrorCodes import (
     getErrorExitBoolCode,
@@ -48,61 +46,113 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes,
 )
+from .ExpressionCTypeSelectionHelpers import decideExpressionCTypes
 
 
-def _pickIntIntComparisonShape(expression):
-    # TODO: Enable once DIGIT and CLONG variants exist to mix with LONG and INT.
-    if expression.isCompileTimeConstant():
-        # On Python2, "INT_CLONG" is very fast as "CLONG" is the internal representation
-        # of it, for Python3, it should be avoided, it usually is around 2**30.
-        if python_version <= 0x300:
-            c_type = CTypeCLong
-        elif isPythonValidDigitValue(expression.getCompileTimeConstant()):
-            c_type = CTypeCLongDigit
-        elif isPythonValidCLongValue(expression.getCompileTimeConstant()):
-            c_type = CTypeCLong
-        else:
-            c_type = CTypePyObjectPtr
+def _handleArgumentSwapAndInversion(
+    comparator, needs_argument_swap, left_c_type, right_c_type
+):
+    needs_result_inversion = False
+    if needs_argument_swap:
+        comparator, needs_result_inversion = rich_comparison_arg_swaps[comparator]
     else:
-        c_type = CTypePyObjectPtr
+        # Same types, we can swap too, but this time to avoid the comparator variety.
+        if (
+            left_c_type is right_c_type
+            and comparator not in rich_comparison_subset_codes
+        ):
+            needs_result_inversion = True
+            comparator = comparison_inversions[comparator]
 
-    return c_type
+    return comparator, needs_result_inversion
 
 
 def getRichComparisonCode(
     to_name, comparator, left, right, needs_check, source_ref, emit, context
 ):
+    # This is detail rich stuff, encoding the complexity of what helpers are
+    # available, and can be used as a fallback.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
     # TODO: Move the value_name to a context generator, then this will be
-    # a bit less.
-    # This is detail rich stuff, pylint: disable=too-many-locals
+    # a bit less complex.
+    (
+        unknown_types,
+        needs_argument_swap,
+        left_shape,
+        right_shape,
+        left_c_type,
+        right_c_type,
+    ) = decideExpressionCTypes(left=left, right=right, may_swap_arguments="always")
 
-    left_shape = left.getTypeShape()
-    right_shape = right.getTypeShape()
-
-    left_c_type = right_c_type = CTypePyObjectPtr
-
-    if left_shape in (tshape_int, tshape_long):
-        if right_shape in (tshape_int, tshape_long):
-            left_c_type = _pickIntIntComparisonShape(left)
-            right_c_type = _pickIntIntComparisonShape(right)
+    if unknown_types:
+        assert not needs_argument_swap
+        needs_result_inversion = False
+    else:
+        # Same types, we can swap too, but this time to avoid the comparator variety.
+        comparator, needs_result_inversion = _handleArgumentSwapAndInversion(
+            comparator, needs_argument_swap, left_c_type, right_c_type
+        )
 
     # If a more specific C type was picked that "PyObject *" then we can use that to have the helper.
-    target_type = to_name.getCType()
+    helper_type = target_type = to_name.getCType()
+
+    if needs_check:
+        # If an exception may occur, we do not have the "NVOID" helpers though, we
+        # instead can use the CTypeNuitkaBoolEnum that will easily convert to
+        # it.
+        if helper_type is CTypeNuitkaVoidEnum:
+            helper_type = CTypeNuitkaBoolEnum
+
+        # Need to represent the intermediate exception, so we cannot have that.
+        if helper_type is CTypeBool:
+            helper_type = CTypeNuitkaBoolEnum
+
+        report_missing = True
+    else:
+        # If no exception can occur, do not require a helper that can indicate
+        # it, but use the one that produces simpler code, this means we can
+        # avoid the CTypeNuitkaBoolEnum (NBOOL) helpers except for things that
+        # can really raise. Once we have expression for types depending on the
+        # value to raise or not, this will get us into trouble, due to using a
+        # fallback
+        helper_type = CTypeBool
+        report_missing = False
 
     specialized_helpers_set = getSpecializedComparisonOperations()
-    non_specialized = getNonSpecializedComparisonOperations()
+    non_specialized_helpers_set = getNonSpecializedComparisonOperations()
+
+    prefix = "RICH_COMPARE_" + rich_comparison_codes[comparator]
 
     helper_type, helper_function = selectCodeHelper(
-        prefix="RICH_COMPARE_xx",
-        specialized_helpers_set=getSpecializedComparisonOperations(),
-        non_specialized_helpers_set=non_specialized,
-        helper_type=target_type,
+        prefix=prefix,
+        specialized_helpers_set=specialized_helpers_set,
+        non_specialized_helpers_set=non_specialized_helpers_set,
+        result_type=helper_type,
         left_shape=left_shape,
         right_shape=right_shape,
         left_c_type=left_c_type,
         right_c_type=right_c_type,
+        argument_swap=needs_argument_swap,
+        report_missing=report_missing,
         source_ref=source_ref,
     )
+
+    # If we failed to find CTypeBool, that should be OK.
+    if helper_function is None and not report_missing:
+        helper_type, helper_function = selectCodeHelper(
+            prefix=prefix,
+            specialized_helpers_set=specialized_helpers_set,
+            non_specialized_helpers_set=non_specialized_helpers_set,
+            result_type=CTypeNuitkaBoolEnum,
+            left_shape=left_shape,
+            right_shape=right_shape,
+            left_c_type=left_c_type,
+            right_c_type=right_c_type,
+            argument_swap=needs_argument_swap,
+            report_missing=True,
+            source_ref=source_ref,
+        )
 
     # print("PICKED", left, right, left_c_type, right_c_type, helper_function)
 
@@ -112,25 +162,41 @@ def getRichComparisonCode(
         right_c_type = CTypePyObjectPtr
 
         helper_type, helper_function = selectCodeHelper(
-            prefix="RICH_COMPARE_xx",
+            prefix=prefix,
             specialized_helpers_set=specialized_helpers_set,
-            non_specialized_helpers_set=non_specialized,
-            helper_type=target_type,
+            non_specialized_helpers_set=non_specialized_helpers_set,
+            result_type=helper_type,
             left_shape=tshape_unknown,
             right_shape=tshape_unknown,
             left_c_type=left_c_type,
             right_c_type=right_c_type,
+            argument_swap=needs_argument_swap,
+            report_missing=True,
             source_ref=source_ref,
         )
 
-        assert helper_function is not None
+        assert helper_function is not None, (to_name, left_shape, right_shape)
 
     left_name = context.allocateTempName("cmp_expr_left", type_name=left_c_type.c_type)
     right_name = context.allocateTempName(
         "cmp_expr_right", type_name=right_c_type.c_type
     )
 
-    # May not to convert return value now.
+    generateExpressionCode(
+        to_name=left_name, expression=left, emit=emit, context=context
+    )
+    generateExpressionCode(
+        to_name=right_name, expression=right, emit=emit, context=context
+    )
+
+    if needs_argument_swap:
+        arg1_name = right_name
+        arg2_name = left_name
+    else:
+        arg1_name = left_name
+        arg2_name = right_name
+
+    # May need to convert return value.
     if helper_type is not target_type:
         value_name = context.allocateTempName(
             to_name.code_name + "_" + helper_type.helper_code.lower(),
@@ -140,22 +206,13 @@ def getRichComparisonCode(
     else:
         value_name = to_name
 
-    generateExpressionCode(
-        to_name=left_name, expression=left, emit=emit, context=context
-    )
-    generateExpressionCode(
-        to_name=right_name, expression=right, emit=emit, context=context
-    )
-
     emit(
         "%s = %s(%s, %s);"
         % (
             value_name,
-            helper_function.replace(
-                "xx", OperatorCodes.rich_comparison_codes[comparator]
-            ),
-            left_name,
-            right_name,
+            helper_function,
+            arg1_name,
+            arg2_name,
         )
     )
 
@@ -168,17 +225,42 @@ def getRichComparisonCode(
             context=context,
         )
     else:
+        # Otherwise we picked the wrong kind of helper.
+        assert not needs_check, (
+            to_name,
+            left_shape,
+            right_shape,
+            helper_function,
+            value_name.getCType(),
+        )
+
         getReleaseCodes(
             release_names=(left_name, right_name), emit=emit, context=context
         )
 
-    context.addCleanupTempName(value_name)
+    # TODO: Depending on operation, we could not produce a reference, if result *must*
+    # be boolean, but then we would have some helpers that do it, and some that do not
+    # do it.
+    if helper_type is CTypePyObjectPtr:
+        context.addCleanupTempName(value_name)
 
     if value_name is not to_name:
         target_type.emitAssignConversionCode(
             to_name=to_name,
             value_name=value_name,
             # TODO: Right now we don't do conversions here that could fail.
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+    # When this is done on freshly assigned "Py_True" and "Py_False", the C
+    # compiler should be able to optimize it away by inlining "CHECK_IF_TRUE"
+    # branches on these two values.
+    if needs_result_inversion:
+        target_type.emitAssignInplaceNegatedValueCode(
+            to_name=to_name,
+            # We only do get here, target_type doesn't cause issues.
             needs_check=False,
             emit=emit,
             context=context,
@@ -206,7 +288,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         to_name=right_name, expression=right, emit=emit, context=context
     )
 
-    if comparator in OperatorCodes.containing_comparison_codes:
+    if comparator in ("In", "NotIn"):
         needs_check = right.mayRaiseExceptionIn(BaseException, expression.subnode_left)
 
         res_name = context.getIntResName()

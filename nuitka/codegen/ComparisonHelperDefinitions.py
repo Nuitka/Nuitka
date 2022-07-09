@@ -28,46 +28,93 @@ too.
 
 from nuitka.containers.OrderedSets import buildOrderedSet
 
+# Mapping of rich comparison Python level name, to C level name of helpers.
+rich_comparison_codes = {
+    "Lt": "LT",
+    "LtE": "LE",
+    "Eq": "EQ",
+    "NotEq": "NE",
+    "Gt": "GT",
+    "GtE": "GE",
+}
+
+# Subset of comparisons which will be used for identical types.
+rich_comparison_subset_codes = {
+    "Lt": "LT",
+    "LtE": "LE",
+    "Eq": "EQ",
+}
+
 
 def _makeDefaultOps():
-    yield "RICH_COMPARE_xx_OBJECT_OBJECT_OBJECT"
-    yield "RICH_COMPARE_xx_CBOOL_OBJECT_OBJECT"
-    yield "RICH_COMPARE_xx_NBOOL_OBJECT_OBJECT"
+    for comparator in rich_comparison_codes.values():
+        yield "RICH_COMPARE_%s_OBJECT_OBJECT_OBJECT" % comparator
+        yield "RICH_COMPARE_%s_NBOOL_OBJECT_OBJECT" % comparator
 
 
-def _makeTypeOps(type_name):
+def _makeTypeOps(type_name, may_raise_same_type, shortcut=False):
     for result_part in "OBJECT", "CBOOL", "NBOOL":
-        yield "RICH_COMPARE_xx_%s_OBJECT_%s" % (result_part, type_name)
-        yield "RICH_COMPARE_xx_%s_%s_OBJECT" % (result_part, type_name)
-        yield "RICH_COMPARE_xx_%s_%s_%s" % (result_part, type_name, type_name)
-
-
-def _makeFriendOps(*type_names):
-    for type_name1 in type_names:
-        for type_name2 in type_names:
-            if type_name1 == type_name2:
+        for comparator in rich_comparison_codes.values():
+            if result_part == "CBOOL":
                 continue
 
-            for result_part in "OBJECT", "CBOOL", "NBOOL":
-                yield "RICH_COMPARE_xx_%s_%s_%s" % (result_part, type_name1, type_name2)
-                yield "RICH_COMPARE_xx_%s_%s_%s" % (result_part, type_name2, type_name1)
+            yield "RICH_COMPARE_%s_%s_OBJECT_%s" % (comparator, result_part, type_name)
+            yield "RICH_COMPARE_%s_%s_%s_OBJECT" % (comparator, result_part, type_name)
+
+        if may_raise_same_type and result_part == "CBOOL":
+            continue
+        if not may_raise_same_type and result_part == "NBOOL":
+            continue
+
+        for comparator in (
+            rich_comparison_codes.values()
+            if not shortcut
+            else rich_comparison_subset_codes.values()
+        ):
+            yield "RICH_COMPARE_%s_%s_%s_%s" % (
+                comparator,
+                result_part,
+                type_name,
+                type_name,
+            )
+
+
+def _makeFriendOps(type_name1, type_name2, may_raise):
+    assert type_name1 != type_name2
+
+    for result_part in "OBJECT", "CBOOL", "NBOOL":
+        if not may_raise:
+            if result_part == "NBOOL":
+                continue
+
+        for comparator in rich_comparison_codes.values():
+            yield "RICH_COMPARE_%s_%s_%s_%s" % (
+                comparator,
+                result_part,
+                type_name1,
+                type_name2,
+            )
 
 
 specialized_cmp_helpers_set = buildOrderedSet(
     # Default implementation.
     _makeDefaultOps(),
-    _makeTypeOps("STR"),
-    _makeTypeOps("UNICODE"),
-    _makeTypeOps("BYTES"),
-    _makeTypeOps("INT"),
-    _makeTypeOps("LONG"),
-    _makeTypeOps("FLOAT"),
-    _makeTypeOps("TUPLE"),
-    _makeTypeOps("LIST"),
-    _makeFriendOps("INT", "CLONG"),
-    _makeFriendOps("INT", "LONG"),
-    _makeFriendOps("LONG", "DIGIT"),
-    _makeFriendOps("INT", "LONG"),
+    # Pure types:
+    _makeTypeOps("STR", may_raise_same_type=False, shortcut=True),
+    _makeTypeOps("UNICODE", may_raise_same_type=False, shortcut=True),
+    _makeTypeOps("BYTES", may_raise_same_type=False, shortcut=True),
+    _makeTypeOps("INT", may_raise_same_type=False, shortcut=True),
+    _makeTypeOps("LONG", may_raise_same_type=False, shortcut=True),
+    _makeTypeOps("FLOAT", may_raise_same_type=False, shortcut=True),
+    # TODO: What would shortcut mean, how do tuples compare their elements then?
+    _makeTypeOps("TUPLE", may_raise_same_type=True),
+    _makeTypeOps("LIST", may_raise_same_type=True),
+    # Mixed Python types:
+    _makeFriendOps("LONG", "INT", may_raise=False),
+    # Partial Python with C types
+    _makeFriendOps("INT", "CLONG", may_raise=False),
+    _makeFriendOps("LONG", "DIGIT", may_raise=False),
+    _makeFriendOps("FLOAT", "CFLOAT", may_raise=False),
     # TODO: Add "CLONG_CLONG" type ops once we use that for local variables too.
 )
 

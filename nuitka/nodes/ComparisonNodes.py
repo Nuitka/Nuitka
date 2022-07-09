@@ -62,7 +62,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
     def getSimulator(self):
         return PythonOperators.all_comparison_functions[self.comparator]
 
-    def _computeCompileTimeConstantComparision(self, trace_collection):
+    def _computeCompileTimeConstantComparison(self, trace_collection):
         left_value = self.subnode_left.getCompileTimeConstant()
         right_value = self.subnode_right.getCompileTimeConstant()
 
@@ -72,7 +72,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             description="Comparison of constant arguments.",
         )
 
-    def makeInverseComparision(self):
+    def makeInverseComparison(self):
         # Making this accessing for tree building phase as well.
         return makeComparisonExpression(
             left=self.subnode_left,
@@ -83,7 +83,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
         if self.getTypeShape() is tshape_bool:
-            result = self.makeInverseComparision()
+            result = self.makeInverseComparison()
 
             result.copyTraceStateFrom(self)
 

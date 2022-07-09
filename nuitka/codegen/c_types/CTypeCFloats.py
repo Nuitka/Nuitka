@@ -15,27 +15,22 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Operator code tables
-
-These are mostly used to look up the Python C/API from operations or a wrapper used.
+""" CType classes for C "float" (double), (used in conjunction with PyFloatObject *)
 
 """
 
-unary_operator_codes = {
-    "UAdd": ("PyNumber_Positive", 1),
-    "USub": ("PyNumber_Negative", 1),
-    "Invert": ("PyNumber_Invert", 1),
-    "Repr": ("PyObject_Repr", 1),
-    "Not": ("UNARY_NOT", 0),
-}
 
-rich_comparison_codes = {
-    "Lt": "LT",
-    "LtE": "LE",
-    "Eq": "EQ",
-    "NotEq": "NE",
-    "Gt": "GT",
-    "GtE": "GE",
-}
+from .CTypeBases import CTypeBase
 
-containing_comparison_codes = ("In", "NotIn")
+
+class CTypeCFloat(CTypeBase):
+    c_type = "double"
+
+    helper_code = "CFLOAT"
+
+    @classmethod
+    def emitAssignmentCodeFromConstant(
+        cls, to_name, constant, may_escape, emit, context
+    ):
+        # No context needed, pylint: disable=unused-argument
+        emit("%s = %s;" % (to_name, constant))

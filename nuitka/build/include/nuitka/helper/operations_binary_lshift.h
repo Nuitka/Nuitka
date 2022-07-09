@@ -73,23 +73,23 @@ extern nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_INT_OBJECT(PyObject *operand1, 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern PyObject *BINARY_OPERATION_LSHIFT_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_LSHIFT_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern nuitka_bool BINARY_OPERATION_LSHIFT_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */

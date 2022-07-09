@@ -326,7 +326,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
             variable=tried_statement.getVariable(),
             variable_trace=tried_statement.getVariableTrace(),
             needs_release=None,
-            in_place=False,
+            inplace=False,
             emit=emit,
             context=context,
         )

@@ -43,7 +43,7 @@ from .templates.CodeTemplatesExceptions import (
 
 def getErrorExitReleaseCode(context):
     temp_release = "\n".join(
-        "Py_DECREF(%s);" % tmp_name for tmp_name in context.getCleanupTempnames()
+        "Py_DECREF(%s);" % tmp_name for tmp_name in context.getCleanupTempNames()
     )
 
     keeper_variables = context.getExceptionKeeperVariables()

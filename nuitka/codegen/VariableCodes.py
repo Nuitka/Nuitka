@@ -25,8 +25,8 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 )
 from nuitka.PythonVersions import python_version
 
-from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
-from .c_types.CTypePyObjectPtrs import (
+from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
+from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr,
@@ -81,7 +81,7 @@ def generateAssignmentVariableCode(statement, emit, context):
         variable=variable,
         variable_trace=variable_trace,
         needs_release=statement.needsReleasePreviousValue(),
-        in_place=statement.isInplaceSuspect(),
+        inplace=statement.isInplaceSuspect(),
         emit=emit,
         context=context,
     )
@@ -221,8 +221,7 @@ def getPickedCType(variable, context):
                 # Avoiding this for now, but we will have to use our enum
                 # based code variants, either generated or hard coded in
                 # the future.
-                if len(shapes) > 1:
-                    return CTypePyObjectPtr
+                return CTypePyObjectPtr
 
             r = shapes.pop().getCType()
             return r
@@ -342,7 +341,7 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
 
 
 def getVariableAssignmentCode(
-    context, emit, variable, variable_trace, tmp_name, needs_release, in_place
+    context, emit, variable, variable_trace, tmp_name, needs_release, inplace
 ):
     # For transfer of ownership.
     if context.needsCleanup(tmp_name):
@@ -369,7 +368,7 @@ def getVariableAssignmentCode(
         needs_release=needs_release,
         tmp_name=tmp_name,
         ref_count=ref_count,
-        in_place=in_place,
+        inplace=inplace,
         emit=emit,
         context=context,
     )
