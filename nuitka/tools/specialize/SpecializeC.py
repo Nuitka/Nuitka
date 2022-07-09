@@ -154,7 +154,7 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
 
     int_types_family = (int_desc, c_long_desc)
     long_types_family = (int_desc, long_desc, c_long_desc, c_digit_desc)
-    float_types_family = (int_desc, long_desc, c_long_desc, c_float_desc)
+    float_types_family = (int_desc, long_desc, float_desc, c_long_desc, c_float_desc)
 
     if left in int_types_family and right in int_types_family:
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonInt.c.j2")
@@ -182,6 +182,8 @@ def makeCompareSlotCode(operator, op_code, target, left, right, emit):
         template = getDoExtensionUsingTemplateC("HelperOperationComparisonUnicode.c.j2")
     else:
         return
+
+    assert left is not int_desc or right is not int_desc or target is not n_bool_desc
 
     code = template.render(
         operand=operator,  # TODO: rename
@@ -318,19 +320,11 @@ def makeHelperOperations(
     emit()
 
     for helper_name in helpers_set:
-        assert helper_name.split("_")[:3] == ["BINARY", "OPERATION", op_code], (
-            op_code,
-            helper_name,
-        )
-
         target_code, target, left, right = _parseTypesFromHelper(helper_name)
 
-        assert target is None or not inplace
+        assert target is None or not inplace, helper_name
 
         if target is None and not inplace:
-            if target_code == "NILONG":
-                continue
-
             assert False, target_code
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
@@ -401,7 +395,7 @@ def makeHelperComparisons(
     )
     emit()
 
-    for target in (object_desc, c_bool_desc, n_bool_desc):
+    for target in (object_desc, c_bool_desc):
         python_requirement = _parseRequirements(
             op_code, target, int_desc, int_desc, emit_c
         )
@@ -412,20 +406,23 @@ def makeHelperComparisons(
             emit_c("#endif")
 
     for helper_name in helpers_set:
-        assert helper_name.split("_")[:3] == ["RICH", "COMPARE", "xx"], (helper_name,)
+        assert helper_name.split("_")[:2] == ["RICH", "COMPARE"], (helper_name,)
 
-        target_code, target, left, right = _parseTypesFromHelper(helper_name)
+        # Filter for the operation.
+        if helper_name.split("_")[2] != op_code:
+            continue
 
-        if target is None:
-            if target_code == "NILONG":
-                continue
+        _target_code, target, left, right = _parseTypesFromHelper(helper_name)
 
-            assert False, target_code
+        assert target is not None, helper_name
+        assert left is not None, helper_name
+        assert right is not None, helper_name
 
         python_requirement = _parseRequirements(op_code, target, left, right, emit)
 
         (
             code,
+            helper_target,
             type_desc1,
             type_desc2,
             _operand1,
@@ -440,7 +437,7 @@ def makeHelperComparisons(
 
         if code:
             makeCompareSlotCode(
-                operator, op_code, target, type_desc1, type_desc2, emit_c
+                operator, op_code, helper_target, type_desc1, type_desc2, emit_c
             )
 
         emit(
@@ -475,6 +472,7 @@ def makeHelperComparisons(
             is_py3_only=is_py3_only,
             is_py2_only=is_py2_only,
             object_desc=object_desc,
+            int_desc=int_desc,
         )
 
         emit_c(code)

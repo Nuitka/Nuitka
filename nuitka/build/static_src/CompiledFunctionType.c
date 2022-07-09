@@ -1193,6 +1193,27 @@ static inline bool checkKeywordType(PyObject *arg_name) {
 #endif
 }
 
+static inline bool RICH_COMPARE_EQ_CBOOL_ARG_NAMES(PyObject *operand1, PyObject *operand2) {
+    // Compare with argument name. We know our type, but from the outside, it
+    // can be a derived type, or in case of Python2, a unicode value to compare
+    // with a string. These half sided comparisons will make the switch to the
+    // special one immediately if possible though.
+
+#if PYTHON_VERSION < 0x300
+    nuitka_bool result = RICH_COMPARE_EQ_NBOOL_STR_OBJECT(operand1, operand2);
+#else
+    nuitka_bool result = RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(operand1, operand2);
+#endif
+
+    // Should be close to impossible, we will have to ignore it though.
+    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
+        DROP_ERROR_OCCURRED();
+        return false;
+    }
+
+    return result == NUITKA_BOOL_TRUE;
+}
+
 #if PYTHON_VERSION < 0x300
 static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw)
 #else
@@ -1249,7 +1270,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1271,7 +1292,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -1364,7 +1385,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
                 // TODO: Could do better here, STR/UNICODE key knowledge being there.
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1386,7 +1407,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -2434,7 +2455,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = kw_values[pos];
                     Py_INCREF(python_pars[i]);
@@ -2455,7 +2476,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }

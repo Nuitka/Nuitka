@@ -106,6 +106,17 @@ comparison_inversions = {
     "exception_mismatch": "exception_match",
 }
 
+# Comparator change when swapping arguments of comparisons.
+rich_comparison_arg_swaps = {
+    "Lt": "GtE",
+    "GtE": "Lt",
+    "Eq": "Eq",
+    "NotEq": "NotEq",
+    "Gt": "LtE",
+    "LtE": "Gt",
+}
+
+
 all_comparison_functions = dict(rich_comparison_functions)
 all_comparison_functions.update(other_comparison_functions)
 

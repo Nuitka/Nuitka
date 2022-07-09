@@ -344,6 +344,9 @@ typedef signed int sdigit;
 #endif
 #endif
 
+// A long value that represents a signed digit on the helper interface.
+typedef long nuitka_digit;
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__

@@ -28,9 +28,6 @@
 extern PyObject *RICH_COMPARE_LE_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
 
 #if PYTHON_VERSION < 0x300
@@ -49,16 +46,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_STR_STR(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_STR(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 extern bool RICH_COMPARE_LE_CBOOL_STR_STR(PyObject *operand1, PyObject *operand2);
 #endif
@@ -73,11 +60,6 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_STR(PyObject *operand1, PyObject
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_STR_STR(PyObject *operand1, PyObject *operand2);
-#endif
-
 /* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2);
 
@@ -88,12 +70,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObj
  * Python3 'str'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2);
 
-/* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2);
-
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
  * Python3 'str'. */
 extern bool RICH_COMPARE_LE_CBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2);
@@ -103,10 +79,6 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyOb
 
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "UNICODE" to Python2 'unicode',
- * Python3 'str'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2);
 
 #if PYTHON_VERSION >= 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
@@ -124,16 +96,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_BYTES_BYTES(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
 extern bool RICH_COMPARE_LE_CBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
 #endif
@@ -146,11 +108,6 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObje
 #if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_BYTES_BYTES(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -169,16 +126,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_INT_INT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
 extern bool RICH_COMPARE_LE_CBOOL_INT_INT(PyObject *operand1, PyObject *operand2);
 #endif
@@ -193,11 +140,6 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_INT(PyObject *operand1, PyObject
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
 
@@ -206,12 +148,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool RICH_COMPARE_LE_CBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2);
@@ -222,9 +158,6 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_LONG(PyObject *operand1, PyObjec
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2);
-
 /* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2);
 
@@ -233,12 +166,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObjec
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
 extern bool RICH_COMPARE_LE_CBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
@@ -249,9 +176,6 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObje
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
 
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
-
 /* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
 
@@ -260,15 +184,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObjec
 
 /* Code referring to "TUPLE" corresponds to Python 'tuple' and "TUPLE" to Python 'tuple'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "TUPLE" corresponds to Python 'tuple' and "TUPLE" to Python 'tuple'. */
-extern bool RICH_COMPARE_LE_CBOOL_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *operand2);
@@ -289,15 +204,6 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject
 extern PyObject *RICH_COMPARE_LE_OBJECT_LIST_LIST(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
-extern bool RICH_COMPARE_LE_CBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
-extern bool RICH_COMPARE_LE_CBOOL_LIST_OBJECT(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "LIST" corresponds to Python 'list' and "LIST" to Python 'list'. */
-extern bool RICH_COMPARE_LE_CBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2);
-
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *operand2);
 
 /* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
@@ -307,18 +213,8 @@ extern nuitka_bool RICH_COMPARE_LE_NBOOL_LIST_OBJECT(PyObject *operand1, PyObjec
 extern nuitka_bool RICH_COMPARE_LE_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operand2);
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *RICH_COMPARE_LE_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool RICH_COMPARE_LE_CBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -327,23 +223,8 @@ extern bool RICH_COMPARE_LE_CBOOL_LONG_INT(PyObject *operand1, PyObject *operand
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
-extern PyObject *RICH_COMPARE_LE_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -351,41 +232,16 @@ extern PyObject *RICH_COMPARE_LE_OBJECT_CLONG_INT(long operand1, PyObject *opera
 extern bool RICH_COMPARE_LE_CBOOL_INT_CLONG(PyObject *operand1, long operand2);
 #endif
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
-extern bool RICH_COMPARE_LE_CBOOL_CLONG_INT(long operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_INT_CLONG(PyObject *operand1, long operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_CLONG_INT(long operand1, PyObject *operand2);
-#endif
-
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
  * Python objects. */
 extern PyObject *RICH_COMPARE_LE_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2);
-
-/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
- * Python3 'int'. */
-extern PyObject *RICH_COMPARE_LE_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2);
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
  * Python objects. */
 extern bool RICH_COMPARE_LE_CBOOL_LONG_DIGIT(PyObject *operand1, long operand2);
 
-/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
- * Python3 'int'. */
-extern bool RICH_COMPARE_LE_CBOOL_DIGIT_LONG(long operand1, PyObject *operand2);
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern PyObject *RICH_COMPARE_LE_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
- * Python objects. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_LONG_DIGIT(PyObject *operand1, long operand2);
-
-/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
- * Python3 'int'. */
-extern nuitka_bool RICH_COMPARE_LE_NBOOL_DIGIT_LONG(long operand1, PyObject *operand2);
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern bool RICH_COMPARE_LE_CBOOL_FLOAT_CFLOAT(PyObject *operand1, double operand2);

@@ -587,7 +587,7 @@ return %(return_value)s;""" % {
         cand2 = other if other is not object_desc else self
 
         if cand1 is object_desc:
-            return "", None, None, None, None
+            return "", None, None, None, None, None
 
         if long_desc in (cand1, cand2) and int_desc in (cand1, cand2):
             if cand1 == int_desc:
@@ -599,6 +599,13 @@ return %(return_value)s;""" % {
             else:
                 assert False
 
+        if (
+            target is n_bool_desc
+            and cand1 is cand2
+            and cand1 not in (tuple_desc, list_desc)
+        ):
+            target = c_bool_desc
+
         return (
             "COMPARE_%s_%s_%s_%s"
             % (
@@ -607,6 +614,7 @@ return %(return_value)s;""" % {
                 cand1.getHelperCodeName(),
                 cand2.getHelperCodeName(),
             ),
+            target,
             cand1,
             cand2,
             operand1,
@@ -616,8 +624,18 @@ return %(return_value)s;""" % {
     def getTypeComparisonSpecializationCode(
         self, other, op_code, target, operand1, operand2
     ):
+        if (
+            target is n_bool_desc
+            and self not in (tuple_desc, list_desc)
+            and other not in (tuple_desc, list_desc)
+        ):
+            helper_target = c_bool_desc
+        else:
+            helper_target = target
+
         (
             helper_name,
+            _helper_target,
             _type_desc1,
             _type_desc2,
             operand1,
@@ -625,7 +643,7 @@ return %(return_value)s;""" % {
         ) = self.getTypeComparisonSpecializationHelper(
             other=other,
             op_code=op_code,
-            target=target,
+            target=helper_target,
             operand1=operand1,
             operand2=operand2,
         )
@@ -633,11 +651,20 @@ return %(return_value)s;""" % {
         if not helper_name:
             return ""
 
-        return "return %s(%s, %s);" % (
-            helper_name,
-            operand1,
-            operand2,
-        )
+        assert helper_name != "COMPARE_GE_NBOOL_INT_INT"
+
+        if helper_target is target:
+            return "return %s(%s, %s);" % (
+                helper_name,
+                operand1,
+                operand2,
+            )
+        else:
+            return "return %s(%s, %s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % (
+                helper_name,
+                operand1,
+                operand2,
+            )
 
     @staticmethod
     def getTakeReferenceStatement(operand):
@@ -1341,6 +1368,22 @@ class LongDesc(ConcreteNonSequenceTypeBase):
 
         return False
 
+    @staticmethod
+    def getLongValueSizeExpression(operand):
+        return "Py_SIZE(%s_long_object)" % operand
+
+    @staticmethod
+    def getLongValueIsNegativeTestExpression(operand):
+        return "Py_SIZE(%s_long_object) < 0" % operand
+
+    @staticmethod
+    def getLongValueDigitCountExpression(operand):
+        return "Py_ABS(Py_SIZE(%s_long_object))" % operand
+
+    @staticmethod
+    def getLongValueDigitExpression(operand, index):
+        return "%s_long_object->ob_digit[%s]" % (operand, index)
+
 
 long_desc = LongDesc()
 
@@ -1429,6 +1472,22 @@ class CLongDesc(ConcreteCTypeBase):
     def releaseAsObjectValueStatement(operand):
         return "Py_DECREF(%s);" % operand
 
+    @staticmethod
+    def getLongValueSizeExpression(operand):
+        return "%s_size" % operand
+
+    @staticmethod
+    def getLongValueIsNegativeTestExpression(operand):
+        return "%s_is_negative" % operand
+
+    @staticmethod
+    def getLongValueDigitCountExpression(operand):
+        return "%s_digit_count" % operand
+
+    @staticmethod
+    def getLongValueDigitExpression(operand, index):
+        return "%s_digits[%s]" % (operand, index)
+
 
 c_long_desc = CLongDesc()
 
@@ -1445,6 +1504,22 @@ class CDigitDesc(CLongDesc):
     @staticmethod
     def getAsLongValueExpression(operand):
         return "(long)(%s)" % operand
+
+    @staticmethod
+    def getLongValueDigitCountExpression(operand):
+        # Can be 0 or 1.
+        return "(%s == 0 ? 0 : 1)" % operand
+
+    @staticmethod
+    def getLongValueSizeExpression(operand):
+        return (
+            "(Py_ssize_t)((%(operand)s == 0) ? 0 : ((%(operand)s < 0 ) ? -1 : 1))"
+            % {"operand": operand}
+        )
+
+    @staticmethod
+    def getLongValueDigitExpression(operand, index):
+        return "(digit)Py_ABS(%s)" % operand
 
 
 c_digit_desc = CDigitDesc()
@@ -1613,15 +1688,19 @@ class CFloatDesc(ConcreteCTypeBase):
         return operand
 
     @staticmethod
+    def getAsDoubleValueExpression(operand):
+        return operand
+
+    @staticmethod
     def getAsObjectValueExpression(operand):
-        return "PyLong_FromLong(%s)" % operand
+        return "PyFloat_FromDouble(%s)" % operand
 
     @staticmethod
     def releaseAsObjectValueStatement(operand):
         return "Py_DECREF(%s);" % operand
 
 
-c_float_desc = CLongDesc()
+c_float_desc = CFloatDesc()
 
 
 related_types = {c_long_desc: (int_desc,), int_desc: (c_long_desc,)}

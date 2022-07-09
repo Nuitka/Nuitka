@@ -258,7 +258,7 @@ class TempMixin(object):
     def setFalseBranchTarget(self, label):
         self.false_target = label
 
-    def getCleanupTempnames(self):
+    def getCleanupTempNames(self):
         return self.cleanup_names[-1]
 
     def addCleanupTempName(self, tmp_name):
@@ -272,6 +272,11 @@ class TempMixin(object):
     def removeCleanupTempName(self, tmp_name):
         assert tmp_name in self.cleanup_names[-1], tmp_name
         self.cleanup_names[-1].remove(tmp_name)
+
+    def transferCleanupTempName(self, tmp_source, tmp_dest):
+        if self.needsCleanup(tmp_source):
+            self.addCleanupTempName(tmp_dest)
+            self.removeCleanupTempName(tmp_source)
 
     def needsCleanup(self, tmp_name):
         return tmp_name in self.cleanup_names[-1]
@@ -499,7 +504,7 @@ class PythonContextBase(getMetaClassBase("Context")):
         pass
 
     @abstractmethod
-    def getCleanupTempnames(self):
+    def getCleanupTempNames(self):
         pass
 
     @abstractmethod
@@ -978,11 +983,15 @@ class PythonFunctionOutlineContext(
     def hasTempName(self, base_name):
         return self.parent.hasTempName(base_name)
 
-    def getCleanupTempnames(self):
-        return self.parent.getCleanupTempnames()
+    def getCleanupTempNames(self):
+        return self.parent.getCleanupTempNames()
 
+    # TODO: Make this work on shared data instead.
     def addCleanupTempName(self, tmp_name):
         self.parent.addCleanupTempName(tmp_name)
+
+    def transferCleanupTempName(self, tmp_source, tmp_dest):
+        self.parent.transferCleanupTempName(tmp_source, tmp_dest)
 
     def removeCleanupTempName(self, tmp_name):
         self.parent.removeCleanupTempName(tmp_name)

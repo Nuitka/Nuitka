@@ -1850,13 +1850,63 @@ PyObject *BINARY_OPERATION_POW_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *o
 }
 #endif
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
+static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
+    assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    ternaryfunc slot1 = PyFloat_Type.tp_as_number->nb_power;
+    // Slot2 ignored on purpose, type1 takes precedence.
+
+    if (slot1 != NULL) {
+        PyObject *x = slot1(operand1, operand2, Py_None);
+
+        if (x != Py_NotImplemented) {
+            obj_result = x;
+            goto exit_binary_result_object;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Statically recognized that coercion is not possible with these types
+
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'long'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'int'");
+#endif
+    goto exit_binary_exception;
+
+exit_binary_result_object:
+    return obj_result;
+
+exit_binary_exception:
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_POW_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_OBJECT_FLOAT_LONG(operand1, operand2);
+}
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(operand2));
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1874,7 +1924,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObj
     if (!(0)) {
         // Different types, need to consider second value slot.
 
-        slot2 = PyLong_Type.tp_as_number->nb_power;
+        slot2 = PyFloat_Type.tp_as_number->nb_power;
     }
 
     if (slot2 != NULL) {
@@ -1890,7 +1940,11 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObj
 
     // Statically recognized that coercion is not possible with these types
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and 'long'");
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'float'");
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and 'float'");
+#endif
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -1900,16 +1954,15 @@ exit_binary_exception:
     return NULL;
 }
 
-PyObject *BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_OBJECT_INT_LONG(operand1, operand2);
+PyObject *BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(operand1, operand2);
 }
-#endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
+    assert(PyFloat_CheckExact(operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
@@ -1923,7 +1976,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObj
 #pragma warning(pop)
 #endif
 
-    ternaryfunc slot1 = PyLong_Type.tp_as_number->nb_power;
+    ternaryfunc slot1 = PyFloat_Type.tp_as_number->nb_power;
     // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
@@ -1939,7 +1992,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObj
 
     // Statically recognized that coercion is not possible with these types
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'int'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'int'");
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -1949,8 +2002,8 @@ exit_binary_exception:
     return NULL;
 }
 
-PyObject *BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_OBJECT_LONG_INT(operand1, operand2);
+PyObject *BINARY_OPERATION_POW_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_OBJECT_FLOAT_INT(operand1, operand2);
 }
 #endif
 
@@ -2010,10 +2063,10 @@ PyObject *BINARY_OPERATION_POW_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *op
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
+    assert(PyLong_CheckExact(operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
@@ -2027,7 +2080,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    ternaryfunc slot1 = PyFloat_Type.tp_as_number->nb_power;
+    ternaryfunc slot1 = PyLong_Type.tp_as_number->nb_power;
     // Slot2 ignored on purpose, type1 takes precedence.
 
     if (slot1 != NULL) {
@@ -2043,7 +2096,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_INT(PyObject *operand1, PyOb
 
     // Statically recognized that coercion is not possible with these types
 
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'int'");
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'int'");
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2053,17 +2106,18 @@ exit_binary_exception:
     return NULL;
 }
 
-PyObject *BINARY_OPERATION_POW_OBJECT_FLOAT_INT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_OBJECT_FLOAT_INT(operand1, operand2);
+PyObject *BINARY_OPERATION_POW_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_OBJECT_LONG_INT(operand1, operand2);
 }
 #endif
 
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
-    assert(PyLong_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand1));
     CHECK_OBJECT(operand2);
-    assert(PyFloat_CheckExact(operand2));
+    assert(PyLong_CheckExact(operand2));
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2081,7 +2135,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
     if (!(0)) {
         // Different types, need to consider second value slot.
 
-        slot2 = PyFloat_Type.tp_as_number->nb_power;
+        slot2 = PyLong_Type.tp_as_number->nb_power;
     }
 
     if (slot2 != NULL) {
@@ -2097,11 +2151,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(PyObject *operand1, PyO
 
     // Statically recognized that coercion is not possible with these types
 
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'long' and 'float'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and 'float'");
-#endif
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'int' and 'long'");
     goto exit_binary_exception;
 
 exit_binary_result_object:
@@ -2111,60 +2161,10 @@ exit_binary_exception:
     return NULL;
 }
 
-PyObject *BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_OBJECT_LONG_FLOAT(operand1, operand2);
+PyObject *BINARY_OPERATION_POW_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_POW_OBJECT_INT_LONG(operand1, operand2);
 }
-
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyFloat_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
 #endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    ternaryfunc slot1 = PyFloat_Type.tp_as_number->nb_power;
-    // Slot2 ignored on purpose, type1 takes precedence.
-
-    if (slot1 != NULL) {
-        PyObject *x = slot1(operand1, operand2, Py_None);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-#if PYTHON_VERSION < 0x300
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'long'");
-#else
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for ** or pow(): 'float' and 'int'");
-#endif
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    return obj_result;
-
-exit_binary_exception:
-    return NULL;
-}
-
-PyObject *BINARY_OPERATION_POW_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_POW_OBJECT_FLOAT_LONG(operand1, operand2);
-}
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {

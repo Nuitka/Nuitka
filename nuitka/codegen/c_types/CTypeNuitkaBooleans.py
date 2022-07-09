@@ -31,10 +31,9 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
 
     @classmethod
     def emitVariableAssignCode(
-        cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
+        cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
-
-        assert not in_place
+        assert not inplace
 
         if tmp_name.c_type == "nuitka_bool":
             emit("%s = %s;" % (value_name, tmp_name))
@@ -84,6 +83,8 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
                 context=context,
             )
 
+            getReleaseCode(value_name, emit, context)
+
     @classmethod
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
@@ -127,6 +128,16 @@ class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
         emit(
             "%(to_name)s = (%(condition)s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
             % {"to_name": to_name, "condition": condition}
+        )
+
+    @classmethod
+    def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
+        # Half way, virtual method: pylint: disable=unused-argument
+        cls.emitValueAssertionCode(to_name, emit=emit)
+        emit("assert(%s != NUITKA_BOOL_EXCEPTION);" % to_name)
+
+        cls.emitAssignmentCodeFromBoolCondition(
+            to_name=to_name, condition="%s == NUITKA_BOOL_FALSE" % to_name, emit=emit
         )
 
     @classmethod

@@ -22,7 +22,7 @@
 {% if left.type_name == "object" == right.type_name %}
 #if PYTHON_VERSION < 0x300
     if ({{left.getIntCheckExpression("operand1")}} && {{right.getIntCheckExpression("operand2")}}) {
-        return COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_INT_INT(operand1, operand2);
+        {{int_desc.getTypeComparisonSpecializationCode(int_desc, op_code, target, "operand1", "operand2")}}
     }
 #endif
 {% endif %}

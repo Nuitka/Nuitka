@@ -22,9 +22,7 @@ This aims at being general, but right now is only used for comparison code helpe
 
 from nuitka import Options
 
-from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
-from .c_types.CTypePyObjectPtrs import CTypePyObjectPtr
-from .c_types.CTypeVoids import CTypeVoid
+from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from .Reports import onMissingHelper
 
 
@@ -32,13 +30,19 @@ def selectCodeHelper(
     prefix,
     specialized_helpers_set,
     non_specialized_helpers_set,
-    helper_type,
+    result_type,
     left_shape,
     right_shape,
     left_c_type,
     right_c_type,
+    argument_swap,
+    report_missing,
     source_ref,
 ):
+    if argument_swap:
+        left_shape, right_shape = right_shape, left_shape
+        left_c_type, right_c_type = right_c_type, left_c_type
+
     left_helper = (
         left_shape.helper_code
         if left_c_type is CTypePyObjectPtr
@@ -50,26 +54,26 @@ def selectCodeHelper(
         else right_c_type.helper_code
     )
 
-    while 1:
-        helper_function = "%s_%s_%s_%s" % (
-            prefix,
-            helper_type.helper_code,
-            left_helper,
-            right_helper,
-        )
-        if helper_function in specialized_helpers_set:
-            break
+    helper_function = "%s_%s%s_%s" % (
+        prefix,
+        ("%s_" % result_type.helper_code) if result_type is not None else "",
+        left_helper,
+        right_helper,
+    )
 
-        # Special hack for "void", use the "NBOOL" more automatically"
-        if helper_type is CTypeVoid:
-            helper_type = CTypeNuitkaBoolEnum
-        else:
-            if Options.is_report_missing and (
+    if helper_function not in specialized_helpers_set:
+        if (
+            report_missing
+            and Options.is_report_missing
+            and (
                 not non_specialized_helpers_set
                 or helper_function not in non_specialized_helpers_set
-            ):
-                onMissingHelper(helper_function, source_ref)
+            )
+        ):
+            onMissingHelper(helper_function, source_ref)
 
-            return None, None
+        # print(helper_function, source_ref, len(specialized_helpers_set))
 
-    return helper_type, helper_function
+        helper_function = None
+
+    return result_type, helper_function
