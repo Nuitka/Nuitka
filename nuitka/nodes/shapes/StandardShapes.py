@@ -20,7 +20,7 @@
 from abc import abstractmethod
 
 from nuitka.__past__ import getMetaClassBase
-from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
+from nuitka.codegen.c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from nuitka.codegen.Reports import onMissingOperation
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape

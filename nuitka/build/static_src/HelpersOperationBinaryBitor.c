@@ -1758,57 +1758,92 @@ nuitka_bool BINARY_OPERATION_BITOR_NBOOL_INT_OBJECT(PyObject *operand1, PyObject
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static PyObject *_BINARY_OPERATION_BITOR_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+static PyObject *_BINARY_OPERATION_BITOR_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyInt_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
 
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
 #endif
     NUITKA_MAY_BE_UNUSED bool cbool_result;
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-    // Slot1 ignored on purpose, type2 takes precedence.
-    binaryfunc slot2 = NULL;
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
 
-    if (!(0)) {
-        // Different types, need to consider second value slot.
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = operand2;
 
-        slot2 = PyLong_Type.tp_as_number->nb_or;
-    }
+    const long r = a | b;
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
+    clong_result = r;
+    goto exit_result_ok_clong;
 
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
+exit_result_ok_clong:
+    result = PyInt_FromLong(clong_result);
+    goto exit_result_ok;
 
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for |: 'int' and 'long'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    return obj_result;
-
-exit_binary_exception:
-    return NULL;
+exit_result_ok:
+    return result;
 }
 
-PyObject *BINARY_OPERATION_BITOR_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITOR_OBJECT_INT_LONG(operand1, operand2);
+PyObject *BINARY_OPERATION_BITOR_OBJECT_INT_CLONG(PyObject *operand1, long operand2) {
+    return _BINARY_OPERATION_BITOR_OBJECT_INT_CLONG(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+static nuitka_bool _BINARY_OPERATION_BITOR_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+
+    nuitka_bool result;
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(operand1);
+    assert(PyInt_CheckExact(operand1));
+
+    const long a = PyInt_AS_LONG(operand1);
+    const long b = operand2;
+
+    const long r = a | b;
+
+    clong_result = r;
+    goto exit_result_ok_clong;
+
+exit_result_ok_clong:
+    result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+}
+
+nuitka_bool BINARY_OPERATION_BITOR_NBOOL_INT_CLONG(PyObject *operand1, long operand2) {
+    return _BINARY_OPERATION_BITOR_NBOOL_INT_CLONG(operand1, operand2);
 }
 #endif
 
@@ -1858,69 +1893,6 @@ exit_binary_exception:
 
 PyObject *BINARY_OPERATION_BITOR_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2) {
     return _BINARY_OPERATION_BITOR_OBJECT_LONG_INT(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-static nuitka_bool _BINARY_OPERATION_BITOR_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    CHECK_OBJECT(operand1);
-    assert(PyInt_CheckExact(operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    // Slot1 ignored on purpose, type2 takes precedence.
-    binaryfunc slot2 = NULL;
-
-    if (!(0)) {
-        // Different types, need to consider second value slot.
-
-        slot2 = PyLong_Type.tp_as_number->nb_or;
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_binary_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // Statically recognized that coercion is not possible with these types
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for |: 'int' and 'long'");
-    goto exit_binary_exception;
-
-exit_binary_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return NUITKA_BOOL_EXCEPTION;
-    }
-
-    {
-        nuitka_bool r = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        Py_DECREF(obj_result);
-        return r;
-    }
-
-exit_binary_exception:
-    return NUITKA_BOOL_EXCEPTION;
-}
-
-nuitka_bool BINARY_OPERATION_BITOR_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2) {
-    return _BINARY_OPERATION_BITOR_NBOOL_INT_LONG(operand1, operand2);
 }
 #endif
 
