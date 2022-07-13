@@ -177,6 +177,16 @@ def isDebianPackagePython():
                 return True
 
 
+def isFedoraPackagePython():
+    """Is the Python from a Fedora package."""
+    if not isLinux():
+        return False
+
+    system_prefix_path = getSystemPrefixPath()
+
+    return system_prefix_path == "/usr"
+
+
 def isCPythonOfficialPackage():
     """Official CPython download, kind of hard to detect since self-compiled doesn't change much."""
 

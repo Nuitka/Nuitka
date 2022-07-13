@@ -25,7 +25,7 @@ import re
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import openTextFile, putTextFileContents
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import isFedoraBasedLinux, isMacOS, isWin32Windows
 
 from .DataComposerInterface import getConstantBlobFilename
 from .SconsHacks import myDetectVersion
@@ -644,6 +644,10 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
     # For shell API usage to lookup app folders we need this.
     if env.msvc_mode:
         env.Append(LIBS=["Shell32"])
+
+    # Since Fedora 36, the system Python will not link otherwise.
+    if isFedoraBasedLinux():
+        env.Append(CCFLAGS=["-fPIE"])
 
 
 def _enablePgoSettings(env, pgo_mode):
