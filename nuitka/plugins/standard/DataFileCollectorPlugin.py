@@ -20,10 +20,12 @@
 """
 
 import os
+import pkgutil
 
 from nuitka import Options
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonFlavors import isDebianPackagePython
 from nuitka.utils.FileOperations import (
     getFileList,
     resolveShellPatternToFilenames,
@@ -136,12 +138,43 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     )
 
     def considerDataFiles(self, module):
-        config = self.config.get(module.getFullName(), section="data-files")
+        full_name = module.getFullName()
+
+        config = self.config.get(full_name, section="data-files")
+
         if config:
-            for included_data_file in self._considerDataFiles(
-                module=module, data_file_config=config
-            ):
-                yield included_data_file
+            # TODO: Ought to become a list universally.
+            if type(config) is dict:
+                config = [config]
+
+            for entry in config:
+                if entry.get("when"):
+                    if not self.evaluateCondition(
+                        full_name=full_name, condition=entry.get("when")
+                    ):
+                        continue
+
+                for included_data_file in self._considerDataFiles(
+                    module=module, data_file_config=entry
+                ):
+                    yield included_data_file
+
+        # TODO: Until the data files are a list and support features to do similar, namely
+        # to look up via package data files.
+        if full_name == "lib2to3.pygram" and isDebianPackagePython():
+            yield self.makeIncludedGeneratedDataFile(
+                data=pkgutil.get_data("lib2to3", "Grammar.txt"),
+                dest_path="lib2to3/Grammar.txt",
+                reason="package data for '%s'" % full_name,
+                tags="config",
+            )
+
+            yield self.makeIncludedGeneratedDataFile(
+                data=pkgutil.get_data("lib2to3", "PatternGrammar.txt"),
+                dest_path="lib2to3/PatternGrammar.txt",
+                reason="package data for '%s'" % full_name,
+                tags="config",
+            )
 
     def _getSubDirectoryFolders(self, module, sub_dirs):
         """Get dirnames in given subdirectories of the module.

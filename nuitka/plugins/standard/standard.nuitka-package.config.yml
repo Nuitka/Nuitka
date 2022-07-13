@@ -98,6 +98,7 @@
     dest_path: "lib2to3"
     patterns:
       - "../*.pickle"
+    when: "not debian_python"
 
 - module-name: "eel"
   data-files:

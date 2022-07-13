@@ -47,7 +47,7 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
 )
 from nuitka.Options import isStandaloneMode, shallMakeModule
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
@@ -875,6 +875,7 @@ except ImportError:
                 "win32": isWin32Windows(),
                 "linux": isLinux(),
                 "anaconda": isAnacondaPython(),
+                "debian_python": isDebianPackagePython(),
                 "standalone": isStandaloneMode(),
                 "module_mode": shallMakeModule(),
                 # TODO: Allow to provide this.
