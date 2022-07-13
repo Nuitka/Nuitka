@@ -486,7 +486,7 @@ int removeDirectory(char const *path) {
             }
 
             len = path_len + strlen(p->d_name) + 2;
-            char *buf = malloc(len);
+            char *buf = (char *)malloc(len);
 
             if (buf == NULL) {
                 fatalErrorMemory();
@@ -1036,11 +1036,11 @@ int main(int argc, char **argv) {
         if (contained_file_checksum == existing_file_checksum) {
             needs_write = false;
 
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
             printf(stderr, "CACHE HIT for '" FILENAME_FORMAT_STR "'.", target_path);
 #endif
         } else {
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
             printf(stderr, "CACHE HIT for '" FILENAME_FORMAT_STR "'.", target_path);
 #endif
         }
