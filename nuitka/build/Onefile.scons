@@ -101,9 +101,6 @@ source_dir = getArgumentRequired("source_dir")
 nuitka_src = getArgumentRequired("nuitka_src")
 static_src = os.path.join(source_dir, "static")
 
-# The name of executable or extension module that we produce.
-result_basepath = getArgumentRequired("result_name")
-
 # The name of executable that we produce
 result_exe = getArgumentDefaulted("result_exe", None)
 
@@ -317,6 +314,7 @@ env.clangcl_mode = clangcl_mode
 # for Onefile.
 env.nuitka_python = False
 env.debian_python = False
+env.fedora_python = False
 env.msys2_mingw_python = False
 env.static_libpython = None
 

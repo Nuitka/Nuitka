@@ -156,6 +156,9 @@ nuitka_python = getArgumentBool("nuitka_python", False)
 # The Debian Python, for which we know that some optimization can be done.
 debian_python = getArgumentBool("debian_python", False)
 
+# The Fedora Python, for which we know that some optimization can be done.
+fedora_python = getArgumentBool("fedora_python", False)
+
 # For the msys2 python, we can know a few things, it's not Win32 entirely.
 msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
 
@@ -397,8 +400,10 @@ env.clangcl_mode = clangcl_mode
 # Python specific modes have to influence some decisions
 env.nuitka_python = nuitka_python
 env.debian_python = debian_python
+env.fedora_python = fedora_python
 env.msys2_mingw_python = msys2_mingw_python
 env.static_libpython = static_libpython
+env.python_version = python_version
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
@@ -552,13 +557,13 @@ if static_libpython:
     env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
 
-def detectHostMultiarch():
+def detectHostMultiArch():
     stdout = check_output("dpkg-architecture")
 
     for line in stdout.splitlines():
         line = line.strip()
 
-        if line.startswith(b"DEB_HOST_MULTIARCH="):
+        if line.startswith(b"DEB_HOST_MULTI_ARCH="):
             return line.split("=", 1)[1].decode("utf8")
 
     return None
@@ -568,14 +573,14 @@ if env.gcc_mode and debian_python:
     # TODO: Seems rather meaningless nowadays and hard codes this to not be
     # self compiled or so.
     if python_version == (3, 3):
-        host_multiarch = detectHostMultiarch()
+        host_multi_arch = detectHostMultiArch()
 
-        if host_multiarch is not None:
+        if host_multi_arch is not None:
             env.Append(
                 CCFLAGS=[
                     "-I"
                     + os.path.join(
-                        "/usr/include/", host_multiarch, "python" + python_abi_version
+                        "/usr/include/", host_multi_arch, "python" + python_abi_version
                     )
                 ]
             )
@@ -620,7 +625,7 @@ def _detectPythonHeaderPath():
 
     if win_target:
         scons_logger.sysexit(
-            """Error, you seem to be using the unsupported embedable CPython distribution."""
+            """Error, you seem to be using the unsupported embeddable CPython distribution."""
         )
     else:
         scons_logger.sysexit(

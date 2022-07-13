@@ -37,6 +37,7 @@ from nuitka.PythonFlavors import (
     isApplePython,
     isCPythonOfficialPackage,
     isDebianPackagePython,
+    isFedoraPackagePython,
     isHomebrewPython,
     isMSYS2MingwPython,
     isNuitkaPython,
@@ -76,6 +77,8 @@ def _getPythonFlavor():
         return "WinPython"
     elif isDebianPackagePython():
         return "Debian Python"
+    elif isFedoraPackagePython():
+        return "Fedora Python"
     elif isHomebrewPython():
         return "Homebrew Python"
     elif isApplePython():
