@@ -113,6 +113,9 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
      * updated in line with this: LOOKUP_ATTRIBUTE_[DICT|CLASS]_SLOT
      */
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_GetAttr(source, attr_name);
+#else
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
@@ -229,11 +232,15 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 
         return NULL;
     }
+#endif
 }
 
 PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
     CHECK_OBJECT(source);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_GetAttr(source, const_str_plain___dict__);
+#else
     PyTypeObject *type = Py_TYPE(source);
 
     if (type->tp_getattro == PyObject_GenericGetAttr) {
@@ -342,11 +349,15 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
         return NULL;
     }
+#endif
 }
 
 PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
     CHECK_OBJECT(source);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_GetAttr(source, const_str_plain___class__);
+#else
     PyTypeObject *type = Py_TYPE(source);
 
     if (type->tp_getattro == PyObject_GenericGetAttr) {
@@ -456,6 +467,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
         return NULL;
     }
+#endif
 }
 
 int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
@@ -508,6 +520,9 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_HasAttr(source, attr_name);
+#else
     PyTypeObject *type = Py_TYPE(source);
 
     if (type->tp_getattro == PyObject_GenericGetAttr) {
@@ -653,6 +668,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
     } else {
         return false;
     }
+#endif
 }
 
 #if PYTHON_VERSION < 0x300
@@ -800,6 +816,10 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
     CHECK_OBJECT(attr_name);
     CHECK_OBJECT(value);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    int res = PyObject_SetAttr(target, attr_name, value);
+    return res == 0;
+#else
     PyTypeObject *type = Py_TYPE(target);
 
 #if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
@@ -843,6 +863,7 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
 
         return false;
     }
+#endif
 }
 
 bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
