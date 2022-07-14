@@ -57,7 +57,7 @@ from nuitka.tools.testing.Common import (
     test_logger,
 )
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isLinux, isMacOS
 
 
 def displayError(dirname, filename):
@@ -72,7 +72,7 @@ def main():
 
     search_mode = createSearchMode()
 
-    if getOS() == "Linux":
+    if isLinux():
         addExtendedExtraOptions(
             "--linux-onefile-icon=../../doc/Logo/Nuitka-Logo-Symbol.svg"
         )
@@ -104,7 +104,7 @@ def main():
         ]
 
         if filename == "KeyboardInterruptTest.py":
-            if getOS() == "Darwin":
+            if isMacOS():
                 reportSkip(
                     "Exit code from KeyboardInterrupt on macOS is not yet good.",
                     ".",
