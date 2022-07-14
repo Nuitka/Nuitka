@@ -1129,7 +1129,15 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_LONG(PyObject *operand1, PyOb
     PyObject *result;
 
     // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     PyObject *x = PyLong_Type.tp_as_number->nb_remainder(operand1, operand2);
     assert(x != Py_NotImplemented);
@@ -1305,7 +1313,15 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         // return _BINARY_OPERATION_MOD_OBJECT_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyObject *x = PyLong_Type.tp_as_number->nb_remainder(operand1, operand2);
         assert(x != Py_NotImplemented);
@@ -1498,7 +1514,15 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         // return _BINARY_OPERATION_MOD_OBJECT_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyObject *x = PyLong_Type.tp_as_number->nb_remainder(operand1, operand2);
         assert(x != Py_NotImplemented);
@@ -1537,7 +1561,15 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(PyObject *operand1, PyO
     nuitka_bool result;
 
     // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     PyObject *x = PyLong_Type.tp_as_number->nb_remainder(operand1, operand2);
     assert(x != Py_NotImplemented);
@@ -1723,7 +1755,15 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         // return _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyObject *x = PyLong_Type.tp_as_number->nb_remainder(operand1, operand2);
         assert(x != Py_NotImplemented);
@@ -1926,7 +1966,15 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         // return _BINARY_OPERATION_MOD_NBOOL_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyObject *x = PyLong_Type.tp_as_number->nb_remainder(operand1, operand2);
         assert(x != Py_NotImplemented);

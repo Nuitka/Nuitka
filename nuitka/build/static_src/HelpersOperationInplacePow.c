@@ -901,7 +901,15 @@ static inline bool _INPLACE_OPERATION_POW_LONG_LONG(PyObject **operand1, PyObjec
     }
 
     // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     PyObject *x = PyLong_Type.tp_as_number->nb_power(*operand1, operand2, Py_None);
     assert(x != Py_NotImplemented);
@@ -1111,7 +1119,15 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_LONG(PyObject **operand1, PyObj
         // return _BINARY_OPERATION_POW_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyObject *x = PyLong_Type.tp_as_number->nb_power(*operand1, operand2, Py_None);
         assert(x != Py_NotImplemented);
@@ -1326,7 +1342,15 @@ static inline bool _INPLACE_OPERATION_POW_LONG_OBJECT(PyObject **operand1, PyObj
         // return _BINARY_OPERATION_POW_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyObject *x = PyLong_Type.tp_as_number->nb_power(*operand1, operand2, Py_None);
         assert(x != Py_NotImplemented);

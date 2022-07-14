@@ -327,7 +327,7 @@ exit_result_ok_cbool:
 {% if "exit_result_ok_clong" in props["exits"] %}
 exit_result_ok_clong:
 {% if target %}
-    {{ target.getAssignFromLongExpressionCode(result, "clong_result") }}
+    {{ (target if target != object_desc else int_desc).getAssignFromLongExpressionCode(result, "clong_result") }}
 {% else %}
     {# TODO: Check the reference we were handed down. #}
 

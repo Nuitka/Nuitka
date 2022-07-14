@@ -19,21 +19,34 @@
 {% from 'HelperLongTools.c.j2' import declare_long_access with context %}
 {% macro long_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
     // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 {% if operator == "+" %}
     {{ declare_long_access(left, operand1) }}
     {{ declare_long_access(right, operand2) }}
 
     if ({{ left.getLongValueDigitCountExpression("operand1")}} <= 1 && {{ right.getLongValueDigitCountExpression("operand2")}} <= 1) {
-{% if target == None %}
+        long r = MEDIUM_VALUE({{ operand1 }}) + MEDIUM_VALUE({{ operand2 }});
+
+{% if target == None and left.hasReferenceCounting() %}
         if (Py_REFCNT({{operand1}}) == 1) {
-            Nuitka_LongUpdateFromCLong(&{{operand1}}, MEDIUM_VALUE({{ operand1 }}) + MEDIUM_VALUE({{ operand2 }}));
+            Nuitka_LongUpdateFromCLong(&{{operand1}}, r);
             {{ goto_exit(props, "exit_result_ok") }}
+        } else {
+            PyObject *obj = Nuitka_LongFromCLong(r);
+
+            {{ goto_exit(props, "exit_result_object", "obj") }}
         }
 {% endif %}
-        PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE({{ operand1 }}) + MEDIUM_VALUE({{ operand2 }}));
-        {{ goto_exit(props, "exit_result_object", "r") }}
+        {{ goto_exit(props, "exit_result_ok_clong", "r") }}
     }
 
 {% if target == None %}
@@ -185,6 +198,23 @@ exit_result_object:
     {{ operand1 }} = obj_result;
 {% endif %}
     {{ goto_exit(props, exit_result_ok) }}
+
+{% if "exit_result_ok_clong" in props["exits"] %}
+exit_result_ok_clong:
+{% if target %}
+    {{ (target if target != object_desc else long_desc).getAssignFromLongExpressionCode(result, "clong_result") }}
+{% else %}
+    {# TODO: Check the reference we were handed down. #}
+
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    {{ operand1 }} = PyLong_FromLong(clong_result);
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
 
 {% if "exit_result_ok_const_long_0" in props["exits"] %}
 {{ constant_long_exit_target(props, target, result, left, operand1, "exit_result_ok_const_long_0", 0, exit_result_ok) }}
