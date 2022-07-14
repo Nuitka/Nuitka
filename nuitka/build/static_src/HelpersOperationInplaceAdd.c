@@ -648,20 +648,34 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
     }
 
     // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
 
     PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
     if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+        long r = MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2);
+
         if (Py_REFCNT(*operand1) == 1) {
-            Nuitka_LongUpdateFromCLong(&*operand1, MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
+            Nuitka_LongUpdateFromCLong(&*operand1, r);
             goto exit_result_ok;
+        } else {
+            PyObject *obj = Nuitka_LongFromCLong(r);
+
+            obj_result = obj;
+            goto exit_result_object;
         }
-        PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
-        obj_result = r;
-        goto exit_result_object;
+        clong_result = r;
+        goto exit_result_ok_clong;
     }
 
     if (Py_REFCNT(*operand1) == 1) {
@@ -728,6 +742,16 @@ exit_result_object:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
     *operand1 = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok_clong:
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = PyLong_FromLong(clong_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -938,20 +962,34 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
         // return _BINARY_OPERATION_ADD_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
 
         PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
         if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+            long r = MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2);
+
             if (Py_REFCNT(*operand1) == 1) {
-                Nuitka_LongUpdateFromCLong(&*operand1, MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
+                Nuitka_LongUpdateFromCLong(&*operand1, r);
                 goto exit_result_ok;
+            } else {
+                PyObject *obj = Nuitka_LongFromCLong(r);
+
+                obj_result = obj;
+                goto exit_result_object;
             }
-            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
-            obj_result = r;
-            goto exit_result_object;
+            clong_result = r;
+            goto exit_result_ok_clong;
         }
 
         if (Py_REFCNT(*operand1) == 1) {
@@ -1018,6 +1056,16 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok_clong:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = PyLong_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1222,20 +1270,34 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
         // return _BINARY_OPERATION_ADD_LONG_LONG_INPLACE(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
 
         PyLongObject *operand2_long_object = (PyLongObject *)operand2;
 
         if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+            long r = MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2);
+
             if (Py_REFCNT(*operand1) == 1) {
-                Nuitka_LongUpdateFromCLong(&*operand1, MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
+                Nuitka_LongUpdateFromCLong(&*operand1, r);
                 goto exit_result_ok;
+            } else {
+                PyObject *obj = Nuitka_LongFromCLong(r);
+
+                obj_result = obj;
+                goto exit_result_object;
             }
-            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
-            obj_result = r;
-            goto exit_result_object;
+            clong_result = r;
+            goto exit_result_ok_clong;
         }
 
         if (Py_REFCNT(*operand1) == 1) {
@@ -1302,6 +1364,16 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
         *operand1 = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok_clong:
+
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        // That's our return value then. As we use a dedicated variable, it's
+        // OK that way.
+        *operand1 = PyLong_FromLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok:
