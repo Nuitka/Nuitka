@@ -1472,7 +1472,7 @@ def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
             )
 
     # Remove or update rpath settings.
-    if Utils.getOS() == "Linux":
+    if Utils.isLinux():
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
         for standalone_entry_point in standalone_entry_points[1:]:
