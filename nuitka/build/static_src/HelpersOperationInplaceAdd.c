@@ -650,7 +650,11 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    if (Py_ABS(Py_SIZE(*operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+    PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
         if (Py_REFCNT(*operand1) == 1) {
             Nuitka_LongUpdateFromCLong(&*operand1, MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
             goto exit_result_ok;
@@ -936,7 +940,11 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        if (Py_ABS(Py_SIZE(*operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+        PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
             if (Py_REFCNT(*operand1) == 1) {
                 Nuitka_LongUpdateFromCLong(&*operand1, MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
                 goto exit_result_ok;
@@ -1216,7 +1224,11 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        if (Py_ABS(Py_SIZE(*operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+        PyLongObject *operand1_long_object = (PyLongObject *)*operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
             if (Py_REFCNT(*operand1) == 1) {
                 Nuitka_LongUpdateFromCLong(&*operand1, MEDIUM_VALUE(*operand1) + MEDIUM_VALUE(operand2));
                 goto exit_result_ok;

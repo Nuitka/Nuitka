@@ -1,0 +1,53 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% macro declare_long_access(type_desc, operand) %}
+{% if type_desc == long_desc %}
+    PyLongObject *{{operand.lstrip("*")}}_long_object = (PyLongObject *){{operand}};
+{% elif type_desc == c_long_desc %}
+    bool {{operand}}_is_negative;
+    unsigned long {{operand}}_abs_ival;
+
+    if ({{operand}} < 0) {
+        {{operand}}_abs_ival = (unsigned long)(-1-{{operand}}) + 1;
+        {{operand}}_is_negative = true;
+    } else {
+        {{operand}}_abs_ival = (unsigned long){{operand}};
+        {{operand}}_is_negative = false;
+    }
+
+    Py_ssize_t {{operand}}_digit_count = 0;
+    digit {{operand}}_digits[5]; // Could be more minimal and depend on sizeof(digit)
+    {
+        unsigned long t = {{operand}}_abs_ival;
+
+        while (t != 0) {
+            {{operand}}_digit_count += 1;
+            assert({{operand}}_digit_count <= (Py_ssize_t)(sizeof({{operand}}_digit_count) / sizeof(digit)));
+
+            {{operand}}_digits[{{operand}}_digit_count] = (digit)(t & PyLong_MASK);
+            t >>= PyLong_SHIFT;
+        }
+    }
+
+    Py_ssize_t {{operand}}_size = {{operand}}_is_negative == false ? {{operand}}_digit_count : -{{operand}}_digit_count;
+{% elif type_desc == c_digit_desc %}
+{# Nothing to do really, banking on C compiler to optimize repeated operations. #}
+{% else %}
+# error "Not done for {{type_desc}} yet"
+{% endif %}
+{% endmacro %}

@@ -1033,7 +1033,11 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_LONG(PyObject *operand1, PyOb
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
         PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) + MEDIUM_VALUE(operand2));
         obj_result = r;
         goto exit_result_object;
@@ -1249,7 +1253,11 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) + MEDIUM_VALUE(operand2));
             obj_result = r;
             goto exit_result_object;
@@ -1473,7 +1481,11 @@ static PyObject *_BINARY_OPERATION_ADD_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) + MEDIUM_VALUE(operand2));
             obj_result = r;
             goto exit_result_object;
@@ -1540,7 +1552,11 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_LONG(PyObject *operand1, PyO
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-    if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
         PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) + MEDIUM_VALUE(operand2));
         obj_result = r;
         goto exit_result_object;
@@ -1766,7 +1782,11 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_OBJECT_LONG(PyObject *operand1, P
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) + MEDIUM_VALUE(operand2));
             obj_result = r;
             goto exit_result_object;
@@ -2000,7 +2020,11 @@ static nuitka_bool _BINARY_OPERATION_ADD_NBOOL_LONG_OBJECT(PyObject *operand1, P
         // Not every code path will make use of all possible results.
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) + MEDIUM_VALUE(operand2));
             obj_result = r;
             goto exit_result_object;

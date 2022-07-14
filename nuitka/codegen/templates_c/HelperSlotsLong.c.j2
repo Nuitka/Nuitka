@@ -16,13 +16,16 @@
 {#     limitations under the License.                                           #}
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit, constant_long_exit_target, constant_int_exit_target %}
-
+{% from 'HelperLongTools.c.j2' import declare_long_access with context %}
 {% macro long_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
 {% if operator == "+" %}
-    if (Py_ABS(Py_SIZE({{ operand1 }})) <= 1 && Py_ABS(Py_SIZE({{ operand2 }})) <= 1) {
+    {{ declare_long_access(left, operand1) }}
+    {{ declare_long_access(right, operand2) }}
+
+    if ({{ left.getLongValueDigitCountExpression("operand1")}} <= 1 && {{ right.getLongValueDigitCountExpression("operand2")}} <= 1) {
 {% if target == None %}
         if (Py_REFCNT({{operand1}}) == 1) {
             Nuitka_LongUpdateFromCLong(&{{operand1}}, MEDIUM_VALUE({{ operand1 }}) + MEDIUM_VALUE({{ operand2 }}));
