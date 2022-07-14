@@ -373,6 +373,8 @@ def makeHelperOperations(
             str_desc=str_desc,
             unicode_desc=unicode_desc,
             bytes_desc=bytes_desc,
+            c_long_desc=c_long_desc,
+            c_digit_desc=c_digit_desc,
         )
 
         emit_c(code)

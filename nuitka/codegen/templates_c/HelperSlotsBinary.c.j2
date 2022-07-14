@@ -17,7 +17,7 @@
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 {% from 'HelperSlotsInt.c.j2' import int_slot %}
-{% from 'HelperSlotsLong.c.j2' import long_slot %}
+{% from 'HelperSlotsLong.c.j2' import long_slot with context %}
 {% from 'HelperSlotsFloat.c.j2' import float_slot %}
 {% from 'HelperSlotsStr.c.j2' import str_slot %}
 {% from 'HelperSlotsUnicode.c.j2' import unicode_slot %}
