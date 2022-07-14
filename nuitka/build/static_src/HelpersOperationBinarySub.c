@@ -998,7 +998,15 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyOb
     PyObject *result;
 
     // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
         PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
@@ -1201,7 +1209,15 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, Py
         // return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
@@ -1420,7 +1436,15 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, Py
         // return _BINARY_OPERATION_SUB_OBJECT_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
@@ -1486,7 +1510,15 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(PyObject *operand1, PyO
     nuitka_bool result;
 
     // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
     if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
         PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
@@ -1699,7 +1731,15 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, P
         // return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
@@ -1928,7 +1968,15 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, P
         // return _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(operand1, operand2);
 
         // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
         NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+        NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
         if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
             PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
