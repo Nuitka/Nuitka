@@ -25,7 +25,7 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getOS, isLinux, isMacOS
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 # spell-checker: ignore glfw,opengl,osmesa,pyglfw,xwayland
 
@@ -78,7 +78,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
                     plugin_name_part = plugin_name_part[: plugin_name_part.rfind(".")]
 
                     if os_part == "nt":
-                        if getOS() == "Windows":
+                        if isWin32Windows():
                             yield plugin_name_part
                     elif os_part.startswith("linux"):
                         if isLinux():
@@ -89,7 +89,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
                     elif os_part.startswith(
                         ("posix", "osmesa", "egl", "x11", "wayland", "xwayland")
                     ):
-                        if getOS() != "Windows" and not isMacOS():
+                        if not isWin32Windows() and not isMacOS():
                             yield plugin_name_part
                     else:
                         self.sysexit(

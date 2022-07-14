@@ -59,7 +59,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 
 def displayError(dirname, filename):
@@ -143,11 +143,11 @@ def main():
                 continue
 
         if filename == "TkInterUsing.py":
-            if getOS() == "Darwin":
+            if isMacOS():
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
-            if getOS() == "Windows":
+            if isWin32Windows() == "Windows":
                 reportSkip("Can hang on Windows CI.", ".", filename)
                 continue
 
