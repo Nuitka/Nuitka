@@ -582,6 +582,7 @@ void _initCompiledFrameType(void) {
 static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *module, bool is_module,
                                              Py_ssize_t locals_size) {
     assertCodeObject(code);
+    CHECK_OBJECT(module);
 
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Frame_Type += 1;
@@ -589,6 +590,8 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
 #endif
 
     PyObject *globals = ((PyModuleObject *)module)->md_dict;
+    CHECK_OBJECT(globals);
+
     assert(PyDict_Check(globals));
 
     struct Nuitka_FrameObject *result;
