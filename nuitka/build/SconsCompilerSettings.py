@@ -647,7 +647,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
 
     # Since Fedora 36, the system Python will not link otherwise.
     if isFedoraBasedLinux():
-        env.Append(CCFLAGS=["-fPIE"])
+        env.Append(CCFLAGS=["-fPIC"])
 
 
 def _enablePgoSettings(env, pgo_mode):
