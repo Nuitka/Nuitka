@@ -98,7 +98,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
     {# CPython2 treats integer values with fast path. #}
 #if PYTHON_VERSION < 0x300
     if ({{ left.getIntCheckExpression("*operand1") }} && {{ right.getIntCheckExpression("operand2") }}) {
-        {% from 'HelperSlotsInt.c.j2' import int_slot %}
+        {% from 'HelperSlotsInt.c.j2' import int_slot with context %}
 
         {% set props = {"exits": {}} %}
         {{ int_slot(props, operator, nb_slot, None, int_desc, int_desc, "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}

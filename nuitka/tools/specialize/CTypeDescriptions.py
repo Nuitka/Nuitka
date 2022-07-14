@@ -671,6 +671,10 @@ return %(return_value)s;""" % {
         return "Py_INCREF(%s);" % operand
 
     @classmethod
+    def hasReferenceCounting(cls):
+        return True
+
+    @classmethod
     def getReturnFromObjectExpressionCode(
         cls, operand, take_ref=False, check_exception=True
     ):
@@ -729,8 +733,9 @@ return %(return_value)s;""" % {
     @classmethod
     def getReturnFromLongExpressionCode(cls, operand):
         if cls.type_name == "object":
-            # TODO: Python3?
-            return "return PyInt_FromLong(%s);" % operand
+            # Pick one specific.
+            # return "return PyInt_FromLong(%s);" % operand
+            assert False
         elif cls.type_name == "nbool":
             return "return %s;" % cls.getToValueFromBoolExpression("%s != 0" % operand)
         else:
@@ -739,8 +744,12 @@ return %(return_value)s;""" % {
     @classmethod
     def getAssignFromLongExpressionCode(cls, result, operand):
         if cls.type_name == "object":
-            # TODO: Python3?
+            # Need to not use that, but pick one.
+            assert False
+        elif cls.type_name == "int":
             return "%s = PyInt_FromLong(%s);" % (result, operand)
+        elif cls.type_name == "long":
+            return "%s = Nuitka_LongFromCLong(%s);" % (result, operand)
         elif cls.type_name == "nbool":
             return "%s = %s;" % (
                 result,
@@ -1441,6 +1450,10 @@ class ConcreteCTypeBase(TypeDescBase):
     def getNewStyleNumberTypeCheckExpression(self, operand):
         # We don't have that.
         assert False, self
+
+    @classmethod
+    def hasReferenceCounting(cls):
+        return False
 
 
 class CLongDesc(ConcreteCTypeBase):
