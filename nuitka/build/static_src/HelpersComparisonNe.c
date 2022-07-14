@@ -11663,7 +11663,6 @@ nuitka_bool RICH_COMPARE_NE_NBOOL_LIST_LIST(PyObject *operand1, PyObject *operan
 }
 
 #if PYTHON_VERSION < 0x300
-
 static PyObject *COMPARE_NE_OBJECT_LONG_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));
@@ -11725,7 +11724,6 @@ PyObject *RICH_COMPARE_NE_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2
 #endif
 
 #if PYTHON_VERSION < 0x300
-
 static bool COMPARE_NE_CBOOL_LONG_CLONG(PyObject *operand1, long operand2) {
     CHECK_OBJECT(operand1);
     assert(PyLong_CheckExact(operand1));

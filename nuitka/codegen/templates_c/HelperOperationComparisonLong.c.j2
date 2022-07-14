@@ -15,49 +15,13 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-{% macro declare_long_access(type_desc, operand) %}
-{% if type_desc == long_desc %}
-    PyLongObject *{{operand}}_long_object = (PyLongObject *){{operand}};
-{% elif type_desc == c_long_desc %}
-    bool {{operand}}_is_negative;
-    unsigned long {{operand}}_abs_ival;
-
-    if ({{operand}} < 0) {
-        {{operand}}_abs_ival = (unsigned long)(-1-{{operand}}) + 1;
-        {{operand}}_is_negative = true;
-    } else {
-        {{operand}}_abs_ival = (unsigned long){{operand}};
-        {{operand}}_is_negative = false;
-    }
-
-    Py_ssize_t {{operand}}_digit_count = 0;
-    digit {{operand}}_digits[5]; // Could be more minimal and depend on sizeof(digit)
-    {
-        unsigned long t = {{operand}}_abs_ival;
-
-        while (t != 0) {
-            {{operand}}_digit_count += 1;
-            assert({{operand}}_digit_count <= (Py_ssize_t)(sizeof({{operand}}_digit_count) / sizeof(digit)));
-
-            {{operand}}_digits[{{operand}}_digit_count] = (digit)(t & PyLong_MASK);
-            t >>= PyLong_SHIFT;
-        }
-    }
-
-    Py_ssize_t {{operand}}_size = {{operand}}_is_negative == false ? {{operand}}_digit_count : -{{operand}}_digit_count;
-{% elif type_desc == c_digit_desc %}
-{# Nothing to do really, banking on C compiler to optimize repeated operations. #}
-{% else %}
-# error "Not done for {{type_desc}} yet"
-{% endif %}
-{% endmacro %}
-
+{% from 'HelperLongTools.c.j2' import declare_long_access with context %}
 static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    {{left.getCheckValueCode("operand1")}}
-    {{right.getCheckValueCode("operand2")}}
+    {{ left.getCheckValueCode("operand1") }}
+    {{ right.getCheckValueCode("operand2") }}
 
-    {{declare_long_access(left, "operand1")}}
-    {{declare_long_access(right, "operand2")}}
+    {{ declare_long_access(left, "operand1") }}
+    {{ declare_long_access(right, "operand2") }}
 
     bool r;
 
