@@ -272,6 +272,9 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
     def isTraceThatNeedsEscape():
         return False
 
+    def dump(self, indent):
+        print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
+
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
     """Trace caused by a deletion."""
@@ -584,6 +587,12 @@ class ValueTraceMergeBase(ValueTraceBase):
         self.addUsage()
         self.merge_usage_count += 1
 
+    def dump(self, indent):
+        print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
+
+        for trace in self.previous:
+            trace.dump(indent + "  ")
+
 
 class ValueTraceMerge(ValueTraceMergeBase):
     """Merge of two or more traces.
@@ -596,6 +605,23 @@ class ValueTraceMerge(ValueTraceMergeBase):
     __slots__ = ()
 
     def __init__(self, traces):
+        shorted = []
+
+        for trace in traces:
+            if type(trace) is ValueTraceMerge:
+                for trace2 in trace.previous:
+                    if trace2 not in shorted:
+                        shorted.append(trace2)
+            else:
+                if trace not in shorted:
+                    shorted.append(trace)
+
+        traces = tuple(shorted)
+
+        assert len(traces) > 1
+
+        # assert len(set(traces)) == len(traces), [(v) for v in traces]
+
         ValueTraceMergeBase.__init__(self, owner=traces[0].owner, previous=traces)
 
     def __repr__(self):
