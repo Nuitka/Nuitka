@@ -64,7 +64,7 @@ def updateSconsProgressBar():
         closeSconsProgressBar()
 
         scons_logger.info(
-            "%s linking program with %d modules (no progress information available)."
+            "%s linking program with %d files (no progress information available)."
             % (_stage, _total)
         )
 
