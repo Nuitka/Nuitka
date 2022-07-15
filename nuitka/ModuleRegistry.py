@@ -204,7 +204,7 @@ def getDoneModules():
 
 
 def hasDoneModule(module_name):
-    return module_name in done_modules
+    return any(module.getFullName() == module_name for module in done_modules)
 
 
 def getModuleInclusionInfos():
