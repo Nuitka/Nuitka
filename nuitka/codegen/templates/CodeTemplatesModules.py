@@ -470,6 +470,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // Report to PGO about leaving the module without error.
     PGO_onModuleExit("%(module_name)s", false);
 
+    Py_INCREF(module_%(module_identifier)s);
     return module_%(module_identifier)s;
 %(module_exit)s
 """
