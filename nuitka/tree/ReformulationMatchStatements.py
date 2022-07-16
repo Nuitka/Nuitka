@@ -44,9 +44,9 @@ from nuitka.nodes.TypeMatchNodes import (
 )
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationBooleanExpressions import makeAndNode, makeOrNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -545,7 +545,7 @@ def buildMatchNode(provider, node, source_ref):
             makeTryFinallyStatement(
                 provider=provider,
                 tried=case_statements,
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=tmp_indicator_variable, source_ref=source_ref
                 ),
                 source_ref=source_ref,
