@@ -108,6 +108,7 @@ def _isCommutativeType(type_name):
 _type_order = (
     "CLONG",
     "INT",
+    "DIGIT",
     "LONG",
     "FLOAT",
     "STR",
@@ -116,6 +117,8 @@ _type_order = (
     "TUPLE",
     "LIST",
 )
+
+_no_inplace_target_types = ("CLONG", "DIGIT", "CFLOAT")
 
 
 def _makeFriendOps(op_code, include_nbool, in_place, *type_names):
@@ -138,7 +141,7 @@ def _makeFriendOps(op_code, include_nbool, in_place, *type_names):
             )
 
             if in_place:
-                if type_name1 != "CLONG":
+                if type_name1 not in _no_inplace_target_types:
                     yield "INPLACE_OPERATION_%s_%s_%s" % (
                         op_code,
                         type_name1,
@@ -153,7 +156,7 @@ def _makeFriendOps(op_code, include_nbool, in_place, *type_names):
 
             if not arg_swap:
                 if in_place:
-                    if type_name2 != "CLONG":
+                    if type_name2 not in _no_inplace_target_types:
                         yield "INPLACE_OPERATION_%s_%s_%s" % (
                             op_code,
                             type_name2,
@@ -217,6 +220,7 @@ def _makeAddOps(in_place):
         _makeFriendOps("ADD", True, in_place, "INT", "LONG", "FLOAT"),
         # TODO: Make CLONG ready to join above group.
         _makeFriendOps("ADD", False, in_place, "INT", "CLONG"),
+        _makeFriendOps("ADD", False, in_place, "LONG", "DIGIT"),
         # These are friends too.
         _makeFriendOps("ADD", True, in_place, "STR", "UNICODE"),
         # Default implementation.
@@ -241,7 +245,9 @@ def makeSubOps(in_place):
         _makeTypeOps("SUB", "FLOAT", include_nbool=True, in_place=in_place),
         # These are friends naturally, they all sub with another
         _makeFriendOps("SUB", True, in_place, "INT", "LONG", "FLOAT"),
+        # TODO: Make CLONG ready to join above group.
         _makeFriendOps("SUB", False, in_place, "INT", "CLONG"),
+        _makeFriendOps("SUB", False, in_place, "LONG", "DIGIT"),
         _makeDefaultOps("SUB", include_nbool=True, in_place=in_place),
     )
 

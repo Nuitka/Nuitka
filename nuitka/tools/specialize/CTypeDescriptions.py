@@ -330,6 +330,11 @@ class TypeDescBase(getMetaClassBase("Type")):
     def hasSlot(self, slot):
         pass
 
+    @staticmethod
+    def hasPreferredSlot(right, slot):
+        # Virtual method, pylint: disable=unused-argument
+        return False
+
     def _getSlotValueExpression(self, operand, slot):
         if slot.startswith("nb_"):
             return "(%s) ? %s : NULL" % (
@@ -965,11 +970,6 @@ assert(%(type_name)s_CheckExact(%(operand)s));""" % {
     def getTakeReferenceStatement(operand):
         return ""
 
-    @staticmethod
-    def hasPreferredSlot(right, slot):
-        # Virtual method, pylint: disable=unused-argument
-        return False
-
 
 class ConcreteNonSequenceTypeBase(ConcreteTypeBase):
     """Base class for concrete types that are not sequences."""
@@ -1393,6 +1393,14 @@ class LongDesc(ConcreteNonSequenceTypeBase):
     def getLongValueDigitExpression(operand, index):
         return "%s_long_object->ob_digit[%s]" % (operand, index)
 
+    @staticmethod
+    def getLongValueDigitsPointerExpression(operand):
+        return "%s_long_object->ob_digit" % operand
+
+    @staticmethod
+    def getLongValueMediumValueExpression(operand):
+        return "MEDIUM_VALUE(%s_long_object)" % (operand)
+
 
 long_desc = LongDesc()
 
@@ -1455,6 +1463,10 @@ class ConcreteCTypeBase(TypeDescBase):
     def hasReferenceCounting(cls):
         return False
 
+    @staticmethod
+    def hasPreferredSlot(right, slot):
+        return False
+
 
 class CLongDesc(ConcreteCTypeBase):
     type_name = "clong"
@@ -1501,6 +1513,14 @@ class CLongDesc(ConcreteCTypeBase):
     def getLongValueDigitExpression(operand, index):
         return "%s_digits[%s]" % (operand, index)
 
+    @staticmethod
+    def getLongValueDigitsPointerExpression(operand):
+        return "%s_digits" % operand
+
+    @staticmethod
+    def getLongValueMediumValueExpression(operand):
+        return "(sdigit)%s" % (operand)
+
 
 c_long_desc = CLongDesc()
 
@@ -1531,8 +1551,16 @@ class CDigitDesc(CLongDesc):
         )
 
     @staticmethod
+    def getLongValueIsNegativeTestExpression(operand):
+        return "%s < 0" % operand
+
+    @staticmethod
     def getLongValueDigitExpression(operand, index):
         return "(digit)Py_ABS(%s)" % operand
+
+    @staticmethod
+    def getLongValueDigitsPointerExpression(operand):
+        return "(digit *)&%s" % operand
 
 
 c_digit_desc = CDigitDesc()
@@ -1717,4 +1745,9 @@ class CFloatDesc(ConcreteCTypeBase):
 c_float_desc = CFloatDesc()
 
 
-related_types = {c_long_desc: (int_desc,), int_desc: (c_long_desc,)}
+related_types = {
+    c_long_desc: (int_desc,),
+    int_desc: (c_long_desc,),
+    long_desc: (c_digit_desc,),
+    c_digit_desc: (long_desc,),
+}
