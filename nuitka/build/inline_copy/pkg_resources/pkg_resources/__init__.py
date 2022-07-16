@@ -93,7 +93,8 @@ from . import py31compat
 __metaclass__ = type
 
 
-if (3, 0) < sys.version_info < (3, 4):
+# Nuitka: For our Jinja2 purposes, 3.3 seems to work just fine.
+if (3, 0) < sys.version_info < (3, 3):
     raise RuntimeError("Python 3.4 or later is required")
 
 if str is bytes:
