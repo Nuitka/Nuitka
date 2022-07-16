@@ -50,12 +50,12 @@ from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3
@@ -221,7 +221,7 @@ def buildClassNode2(provider, node, source_ref):
                     return_handler=None,
                     source_ref=source_ref,
                 ),
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=tmp_base, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -369,10 +369,10 @@ def buildClassNode2(provider, node, source_ref):
     )
 
     final = (
-        StatementReleaseVariable(variable=tmp_class, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_bases, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_class_dict, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_metaclass, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_class, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_bases, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_class_dict, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_metaclass, source_ref=source_ref),
     )
 
     return makeTryFinallyStatement(
