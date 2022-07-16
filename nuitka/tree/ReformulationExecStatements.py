@@ -37,8 +37,8 @@ from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -89,10 +89,10 @@ def wrapEvalGlobalsAndLocals(
         )
 
     post_statements += (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=globals_keeper_variable, source_ref=source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=locals_keeper_variable, source_ref=source_ref
         ),
     )
@@ -368,14 +368,14 @@ exec: arg 1 must be a string, file, or code object""",
     )
 
     final = (
-        StatementReleaseVariable(variable=source_variable, source_ref=source_ref),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(variable=source_variable, source_ref=source_ref),
+        makeStatementReleaseVariable(
             variable=globals_keeper_variable, source_ref=source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=locals_keeper_variable, source_ref=source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=plain_indicator_variable, source_ref=source_ref
         ),
     )

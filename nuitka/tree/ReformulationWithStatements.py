@@ -49,8 +49,8 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version
 
@@ -305,13 +305,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         provider=provider,
         tried=statements,
         final=(
-            StatementReleaseVariable(
+            makeStatementReleaseVariable(
                 variable=tmp_source_variable, source_ref=with_exit_source_ref
             ),
-            StatementReleaseVariable(
+            makeStatementReleaseVariable(
                 variable=tmp_enter_variable, source_ref=with_exit_source_ref
             ),
-            StatementReleaseVariable(
+            makeStatementReleaseVariable(
                 variable=tmp_exit_variable, source_ref=with_exit_source_ref
             ),
         ),
