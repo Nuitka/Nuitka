@@ -19,14 +19,25 @@ import sys
 import types
 
 
-class VFModule(types.ModuleType):
-    vf = {"valid": "valid_value"}
+class OurModule(types.ModuleType):
+    attribute_dict = {
+        "valid": "valid_value",
+        # Import mechanics use these.
+        "__package__": __package__,
+        "__name__": __name__,
+    }
+
+    if "__loader__" in globals():
+        attribute_dict["__loader__"] = __loader__
 
     def __init__(self, name):
-        super(VFModule, self).__init__(name)
+        super(OurModule, self).__init__(name)
 
     def __getattr__(self, attr):
-        return self.vf[attr]
+        try:
+            return self.attribute_dict[attr]
+        except KeyError:
+            raise AttributeError(attr)
 
 
-sys.modules[__name__] = VFModule(__name__)
+sys.modules[__name__] = OurModule(__name__)
