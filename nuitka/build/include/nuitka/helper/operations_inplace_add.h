@@ -146,6 +146,10 @@ extern bool INPLACE_OPERATION_ADD_INT_LONG(PyObject **operand1, PyObject *operan
 extern bool INPLACE_OPERATION_ADD_INT_CLONG(PyObject **operand1, long operand2);
 #endif
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern bool INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long operand2);
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
 extern bool INPLACE_OPERATION_ADD_UNICODE_STR(PyObject **operand1, PyObject *operand2);
