@@ -152,6 +152,14 @@ extern PyObject *BINARY_OPERATION_SUB_OBJECT_INT_CLONG(PyObject *operand1, long 
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
 #endif
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2);
+
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+extern PyObject *BINARY_OPERATION_SUB_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2);
+
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_SUB_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
 

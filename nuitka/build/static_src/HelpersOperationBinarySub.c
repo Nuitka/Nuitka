@@ -1008,32 +1008,40 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_LONG(PyObject *operand1, PyOb
 #pragma warning(pop)
 #endif
 
-    if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
-        PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
-        obj_result = r;
-        goto exit_result_object;
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+        long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+
+        clong_result = r;
+        goto exit_result_ok_clong;
     }
+
     {
         PyLongObject *z;
 
-        digit const *a = Nuitka_LongGetDigitPointer(operand1);
-        Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
-        digit const *b = Nuitka_LongGetDigitPointer(operand2);
-        Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+        digit const *a_digits = operand1_long_object->ob_digit;
+        Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
+        bool a_negative = Py_SIZE(operand1_long_object) < 0;
+        digit const *b_digits = operand2_long_object->ob_digit;
+        Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
+        bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
-        if (Py_SIZE(operand1) < 0) {
-            if (Py_SIZE(operand2) < 0) {
-                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+        if (a_negative) {
+            if (b_negative) {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             } else {
-                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
 
             Py_SIZE(z) = -(Py_SIZE(z));
         } else {
-            if (Py_SIZE(operand2) < 0) {
-                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+            if (b_negative) {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             } else {
-                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
         }
 
@@ -1046,6 +1054,10 @@ exit_result_object:
         goto exit_result_exception;
     }
     result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok_clong:
+    result = Nuitka_LongFromCLong(clong_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -1219,32 +1231,40 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
-            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
-            obj_result = r;
-            goto exit_result_object;
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
         }
+
         {
             PyLongObject *z;
 
-            digit const *a = Nuitka_LongGetDigitPointer(operand1);
-            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
-            digit const *b = Nuitka_LongGetDigitPointer(operand2);
-            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+            digit const *a_digits = operand1_long_object->ob_digit;
+            Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
+            bool a_negative = Py_SIZE(operand1_long_object) < 0;
+            digit const *b_digits = operand2_long_object->ob_digit;
+            Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
+            bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
-            if (Py_SIZE(operand1) < 0) {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            if (a_negative) {
+                if (b_negative) {
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
 
                 Py_SIZE(z) = -(Py_SIZE(z));
             } else {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                if (b_negative) {
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
             }
 
@@ -1257,6 +1277,10 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_LONG(PyObject *operand1, Py
             goto exit_result_exception;
         }
         result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok_clong:
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1446,32 +1470,40 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, Py
 #pragma warning(pop)
 #endif
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
-            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
-            obj_result = r;
-            goto exit_result_object;
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
         }
+
         {
             PyLongObject *z;
 
-            digit const *a = Nuitka_LongGetDigitPointer(operand1);
-            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
-            digit const *b = Nuitka_LongGetDigitPointer(operand2);
-            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+            digit const *a_digits = operand1_long_object->ob_digit;
+            Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
+            bool a_negative = Py_SIZE(operand1_long_object) < 0;
+            digit const *b_digits = operand2_long_object->ob_digit;
+            Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
+            bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
-            if (Py_SIZE(operand1) < 0) {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            if (a_negative) {
+                if (b_negative) {
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
 
                 Py_SIZE(z) = -(Py_SIZE(z));
             } else {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                if (b_negative) {
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
             }
 
@@ -1484,6 +1516,10 @@ static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_OBJECT(PyObject *operand1, Py
             goto exit_result_exception;
         }
         result = obj_result;
+        goto exit_result_ok;
+
+    exit_result_ok_clong:
+        result = Nuitka_LongFromCLong(clong_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1520,32 +1556,40 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_LONG(PyObject *operand1, PyO
 #pragma warning(pop)
 #endif
 
-    if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
-        PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
-        obj_result = r;
-        goto exit_result_object;
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+        long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+
+        clong_result = r;
+        goto exit_result_ok_clong;
     }
+
     {
         PyLongObject *z;
 
-        digit const *a = Nuitka_LongGetDigitPointer(operand1);
-        Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
-        digit const *b = Nuitka_LongGetDigitPointer(operand2);
-        Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+        digit const *a_digits = operand1_long_object->ob_digit;
+        Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
+        bool a_negative = Py_SIZE(operand1_long_object) < 0;
+        digit const *b_digits = operand2_long_object->ob_digit;
+        Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
+        bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
-        if (Py_SIZE(operand1) < 0) {
-            if (Py_SIZE(operand2) < 0) {
-                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+        if (a_negative) {
+            if (b_negative) {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             } else {
-                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
 
             Py_SIZE(z) = -(Py_SIZE(z));
         } else {
-            if (Py_SIZE(operand2) < 0) {
-                z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+            if (b_negative) {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             } else {
-                z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
         }
 
@@ -1559,6 +1603,10 @@ exit_result_object:
     }
     result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
     Py_DECREF(obj_result);
+    goto exit_result_ok;
+
+exit_result_ok_clong:
+    result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
     goto exit_result_ok;
 
 exit_result_ok:
@@ -1741,32 +1789,40 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
-            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
-            obj_result = r;
-            goto exit_result_object;
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
         }
+
         {
             PyLongObject *z;
 
-            digit const *a = Nuitka_LongGetDigitPointer(operand1);
-            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
-            digit const *b = Nuitka_LongGetDigitPointer(operand2);
-            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+            digit const *a_digits = operand1_long_object->ob_digit;
+            Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
+            bool a_negative = Py_SIZE(operand1_long_object) < 0;
+            digit const *b_digits = operand2_long_object->ob_digit;
+            Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
+            bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
-            if (Py_SIZE(operand1) < 0) {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            if (a_negative) {
+                if (b_negative) {
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
 
                 Py_SIZE(z) = -(Py_SIZE(z));
             } else {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                if (b_negative) {
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
             }
 
@@ -1780,6 +1836,10 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_OBJECT_LONG(PyObject *operand1, P
         }
         result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok_clong:
+        result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1978,32 +2038,40 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, P
 #pragma warning(pop)
 #endif
 
-        if (Py_ABS(Py_SIZE(operand1)) <= 1 && Py_ABS(Py_SIZE(operand2)) <= 1) {
-            PyObject *r = Nuitka_LongFromCLong(MEDIUM_VALUE(operand1) - MEDIUM_VALUE(operand2));
-            obj_result = r;
-            goto exit_result_object;
+        PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+        PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+        if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+            long r = MEDIUM_VALUE(operand1_long_object) - MEDIUM_VALUE(operand2_long_object);
+
+            clong_result = r;
+            goto exit_result_ok_clong;
         }
+
         {
             PyLongObject *z;
 
-            digit const *a = Nuitka_LongGetDigitPointer(operand1);
-            Py_ssize_t size_a = Nuitka_LongGetDigitSize(operand1);
-            digit const *b = Nuitka_LongGetDigitPointer(operand2);
-            Py_ssize_t size_b = Nuitka_LongGetDigitSize(operand2);
+            digit const *a_digits = operand1_long_object->ob_digit;
+            Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
+            bool a_negative = Py_SIZE(operand1_long_object) < 0;
+            digit const *b_digits = operand2_long_object->ob_digit;
+            Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
+            bool b_negative = Py_SIZE(operand2_long_object) < 0;
 
-            if (Py_SIZE(operand1) < 0) {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+            if (a_negative) {
+                if (b_negative) {
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
 
                 Py_SIZE(z) = -(Py_SIZE(z));
             } else {
-                if (Py_SIZE(operand2) < 0) {
-                    z = _Nuitka_LongAddDigits(a, size_a, b, size_b);
+                if (b_negative) {
+                    z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 } else {
-                    z = _Nuitka_LongSubDigits(a, size_a, b, size_b);
+                    z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
                 }
             }
 
@@ -2017,6 +2085,10 @@ static nuitka_bool _BINARY_OPERATION_SUB_NBOOL_LONG_OBJECT(PyObject *operand1, P
         }
         result = CHECK_IF_TRUE(obj_result) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         Py_DECREF(obj_result);
+        goto exit_result_ok;
+
+    exit_result_ok_clong:
+        result = clong_result != 0 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         goto exit_result_ok;
 
     exit_result_ok:
@@ -3729,6 +3801,168 @@ PyObject *BINARY_OPERATION_SUB_OBJECT_CLONG_INT(long operand1, PyObject *operand
     return _BINARY_OPERATION_SUB_OBJECT_CLONG_INT(operand1, operand2);
 }
 #endif
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2) {
+    CHECK_OBJECT(operand1);
+    assert(PyLong_CheckExact(operand1));
+    assert(Py_ABS(operand2) < (1 << PyLong_SHIFT));
+
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    PyLongObject *operand1_long_object = (PyLongObject *)operand1;
+
+    if (Py_ABS(Py_SIZE(operand1_long_object)) <= 1 && (operand2 == 0 ? 0 : 1) <= 1) {
+        long r = MEDIUM_VALUE(operand1_long_object) - (sdigit)operand2;
+
+        clong_result = r;
+        goto exit_result_ok_clong;
+    }
+
+    {
+        PyLongObject *z;
+
+        digit const *a_digits = operand1_long_object->ob_digit;
+        Py_ssize_t a_digit_count = Py_ABS(Py_SIZE(operand1_long_object));
+        bool a_negative = Py_SIZE(operand1_long_object) < 0;
+        digit const *b_digits = (digit *)&operand2;
+        Py_ssize_t b_digit_count = (operand2 == 0 ? 0 : 1);
+        bool b_negative = operand2 < 0;
+
+        if (a_negative) {
+            if (b_negative) {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            } else {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            }
+
+            Py_SIZE(z) = -(Py_SIZE(z));
+        } else {
+            if (b_negative) {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            } else {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            }
+        }
+
+        obj_result = (PyObject *)z;
+        goto exit_result_object;
+    }
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok_clong:
+    result = Nuitka_LongFromCLong(clong_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_SUB_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2) {
+    return _BINARY_OPERATION_SUB_OBJECT_LONG_DIGIT(operand1, operand2);
+}
+
+/* Code referring to "DIGIT" corresponds to C platform digit value for long Python objects and "LONG" to Python2 'long',
+ * Python3 'int'. */
+static PyObject *_BINARY_OPERATION_SUB_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2) {
+    assert(Py_ABS(operand1) < (1 << PyLong_SHIFT));
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+    PyObject *result;
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    PyLongObject *operand2_long_object = (PyLongObject *)operand2;
+
+    if ((operand1 == 0 ? 0 : 1) <= 1 && Py_ABS(Py_SIZE(operand2_long_object)) <= 1) {
+        long r = (sdigit)operand1 - MEDIUM_VALUE(operand2_long_object);
+
+        clong_result = r;
+        goto exit_result_ok_clong;
+    }
+
+    {
+        PyLongObject *z;
+
+        digit const *a_digits = (digit *)&operand1;
+        Py_ssize_t a_digit_count = (operand1 == 0 ? 0 : 1);
+        bool a_negative = operand1 < 0;
+        digit const *b_digits = operand2_long_object->ob_digit;
+        Py_ssize_t b_digit_count = Py_ABS(Py_SIZE(operand2_long_object));
+        bool b_negative = Py_SIZE(operand2_long_object) < 0;
+
+        if (a_negative) {
+            if (b_negative) {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            } else {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            }
+
+            Py_SIZE(z) = -(Py_SIZE(z));
+        } else {
+            if (b_negative) {
+                z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            } else {
+                z = _Nuitka_LongSubDigits(a_digits, a_digit_count, b_digits, b_digit_count);
+            }
+        }
+
+        obj_result = (PyObject *)z;
+        goto exit_result_object;
+    }
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    result = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok_clong:
+    result = Nuitka_LongFromCLong(clong_result);
+    goto exit_result_ok;
+
+exit_result_ok:
+    return result;
+
+exit_result_exception:
+    return NULL;
+}
+
+PyObject *BINARY_OPERATION_SUB_OBJECT_DIGIT_LONG(long operand1, PyObject *operand2) {
+    return _BINARY_OPERATION_SUB_OBJECT_DIGIT_LONG(operand1, operand2);
+}
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static PyObject *_BINARY_OPERATION_SUB_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
