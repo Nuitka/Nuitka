@@ -88,5 +88,9 @@ extern bool INPLACE_OPERATION_SUB_INT_LONG(PyObject **operand1, PyObject *operan
 extern bool INPLACE_OPERATION_SUB_INT_CLONG(PyObject **operand1, long operand2);
 #endif
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern bool INPLACE_OPERATION_SUB_LONG_DIGIT(PyObject **operand1, long operand2);
+
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2);

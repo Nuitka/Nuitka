@@ -188,6 +188,10 @@ extern nuitka_bool BINARY_OPERATION_ADD_NBOOL_LONG_INT(PyObject *operand1, PyObj
 extern PyObject *BINARY_OPERATION_ADD_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
 #endif
 
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern PyObject *BINARY_OPERATION_ADD_OBJECT_LONG_DIGIT(PyObject *operand1, long operand2);
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */
 extern PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE_STR(PyObject *operand1, PyObject *operand2);
