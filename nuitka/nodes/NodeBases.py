@@ -350,6 +350,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isStatementReleaseVariable():
+        return False
+
+    @staticmethod
     def isExpressionConstantRef():
         return False
 

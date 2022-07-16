@@ -66,8 +66,8 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
     ExpressionYieldFromWaitable,
@@ -309,7 +309,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 ),
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=iter_tmp, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -567,7 +567,7 @@ def _buildContractionBodyNode(
 
         if tmp_iter_variable is not None:
             nested_statements.append(
-                StatementReleaseVariable(
+                makeStatementReleaseVariable(
                     variable=tmp_iter_variable, source_ref=source_ref
                 )
             )
@@ -580,7 +580,7 @@ def _buildContractionBodyNode(
     statements = mergeStatements(statements)
 
     release_statements = [
-        StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
+        makeStatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
         for tmp_variable in tmp_variables
     ]
 
