@@ -43,6 +43,9 @@ BuildRequires:  python3-markupsafe
 %endif
 %if 0%{?suse_version} >= 1500
 BuildRequires:  python3-MarkupSafe
+%if 0{?sles_version} == 0
+BuildRequires:  openSUSE-release
+%endif
 %endif
 %if 0%{?fedora} >= 27
 BuildRequires:  python3-tools
@@ -73,6 +76,9 @@ Requires:       python3-markupsafe
 %endif
 %if 0%{?suse_version} >= 1500
 Requires:       python3-MarkupSafe
+%if 0{?sles_version} == 0
+Requires:       openSUSE-release
+%endif
 %endif
 Requires:       gcc-c++
 Requires:       strace
