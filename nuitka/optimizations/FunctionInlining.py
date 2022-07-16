@@ -23,7 +23,7 @@ from the in-lined function.
 
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,
@@ -98,7 +98,9 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
     # TODO: Not possible to auto release with outline bodies too?
     if auto_releases:
         releases = [
-            StatementReleaseVariable(variable=variable, source_ref=function_source_ref)
+            makeStatementReleaseVariable(
+                variable=variable, source_ref=function_source_ref
+            )
             for variable in auto_releases
         ]
 

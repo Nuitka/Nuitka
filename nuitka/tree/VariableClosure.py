@@ -37,14 +37,12 @@ from nuitka.nodes.NodeMakingHelpers import (
 )
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import (
-    StatementReleaseVariable,
-    makeStatementDelVariable,
-)
+from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     makeExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version,
@@ -200,7 +198,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                         source_ref=node.source_ref,
                                     ),
                                 ),
-                                final=StatementReleaseVariable(
+                                final=makeStatementReleaseVariable(
                                     variable=tmp_variable, source_ref=node.source_ref
                                 ),
                                 source_ref=node.source_ref,

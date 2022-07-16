@@ -28,8 +28,8 @@ from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -98,7 +98,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
         )
 
     def makeReleaseStatement(count):
-        return StatementReleaseVariable(
+        return makeStatementReleaseVariable(
             variable=variables[count], source_ref=source_ref
         )
 
@@ -163,7 +163,9 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                 )
             )
             final.append(
-                StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
+                makeStatementReleaseVariable(
+                    variable=tmp_variable, source_ref=source_ref
+                )
             )
 
     outline_body.setChild(

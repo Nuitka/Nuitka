@@ -34,9 +34,9 @@ from nuitka.nodes.ImportNodes import (
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -271,7 +271,7 @@ def buildImportFromNode(provider, node, source_ref):
                     provider=provider,
                     tried=import_statements,
                     final=(
-                        StatementReleaseVariable(
+                        makeStatementReleaseVariable(
                             variable=tmp_import_from, source_ref=source_ref
                         ),
                     ),
