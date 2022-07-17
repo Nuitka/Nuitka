@@ -57,10 +57,39 @@ extern bool INPLACE_OPERATION_MULT_OBJECT_FLOAT(PyObject **operand1, PyObject *o
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MULT_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2);
 
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
+extern bool INPLACE_OPERATION_MULT_FLOAT_LONG(PyObject **operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+extern bool INPLACE_OPERATION_MULT_LONG_FLOAT(PyObject **operand1, PyObject *operand2);
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+extern bool INPLACE_OPERATION_MULT_FLOAT_INT(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+extern bool INPLACE_OPERATION_MULT_INT_FLOAT(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern bool INPLACE_OPERATION_MULT_LONG_INT(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern bool INPLACE_OPERATION_MULT_INT_LONG(PyObject **operand1, PyObject *operand2);
+#endif
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
 extern bool INPLACE_OPERATION_MULT_INT_CLONG(PyObject **operand1, long operand2);
 #endif
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern bool INPLACE_OPERATION_MULT_FLOAT_CFLOAT(PyObject **operand1, double operand2);
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
@@ -150,32 +179,6 @@ extern bool INPLACE_OPERATION_MULT_TUPLE_OBJECT(PyObject **operand1, PyObject *o
 
 /* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MULT_LIST_OBJECT(PyObject **operand1, PyObject *operand2);
-
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool INPLACE_OPERATION_MULT_FLOAT_LONG(PyObject **operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern bool INPLACE_OPERATION_MULT_LONG_FLOAT(PyObject **operand1, PyObject *operand2);
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-extern bool INPLACE_OPERATION_MULT_FLOAT_INT(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-extern bool INPLACE_OPERATION_MULT_INT_FLOAT(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern bool INPLACE_OPERATION_MULT_LONG_INT(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool INPLACE_OPERATION_MULT_INT_LONG(PyObject **operand1, PyObject *operand2);
-#endif
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_MULT_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2);

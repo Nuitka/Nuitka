@@ -102,13 +102,14 @@ def _isCommutativeOperation(op_code):
 
 
 def _isCommutativeType(type_name):
-    return type_name in ("CLONG", "INT", "LONG", "FLOAT", "DIGIT")
+    return type_name in ("INT", "LONG", "FLOAT", "CLONG", "DIGIT", "CFLOAT")
 
 
 _type_order = (
     "CLONG",
     "INT",
     "DIGIT",
+    "CFLOAT",
     "LONG",
     "FLOAT",
     "STR",
@@ -206,21 +207,30 @@ def _makeNonContainerMathOps(op_code):
             yield value
 
 
+def _makeNumberOps(op_code, include_nbool, in_place):
+    return buildOrderedSet(
+        _makeTypeOps(op_code, "INT", include_nbool=include_nbool, in_place=in_place),
+        _makeTypeOps(op_code, "LONG", include_nbool=include_nbool, in_place=in_place),
+        _makeTypeOps(op_code, "FLOAT", include_nbool=include_nbool, in_place=in_place),
+        # These are friends naturally, they all add with another.
+        _makeFriendOps(op_code, include_nbool, in_place, "INT", "LONG", "FLOAT"),
+        # Special operations, currently used with constant values mostly.
+        _makeFriendOps(op_code, include_nbool, in_place, "INT", "CLONG"),
+        _makeFriendOps(op_code, include_nbool, in_place, "LONG", "DIGIT")
+        if op_code in ("ADD", "SUB")  # TODO: Add more
+        else (),
+        _makeFriendOps(op_code, include_nbool, in_place, "FLOAT", "CFLOAT"),
+    )
+
+
 def _makeAddOps(in_place):
     return buildOrderedSet(
-        _makeTypeOps("ADD", "INT", include_nbool=True, in_place=in_place),
-        _makeTypeOps("ADD", "LONG", include_nbool=True, in_place=in_place),
-        _makeTypeOps("ADD", "FLOAT", include_nbool=True, in_place=in_place),
+        _makeNumberOps("ADD", include_nbool=True, in_place=in_place),
         _makeTypeOps("ADD", "STR", include_nbool=False, in_place=in_place),
         _makeTypeOps("ADD", "UNICODE", include_nbool=False, in_place=in_place),
         _makeTypeOps("ADD", "BYTES", include_nbool=False, in_place=in_place),
         _makeTypeOps("ADD", "TUPLE", include_nbool=False, in_place=in_place),
         _makeTypeOps("ADD", "LIST", include_nbool=True, in_place=in_place),
-        # These are friends naturally, they all add with another
-        _makeFriendOps("ADD", True, in_place, "INT", "LONG", "FLOAT"),
-        # TODO: Make CLONG ready to join above group.
-        _makeFriendOps("ADD", False, in_place, "INT", "CLONG"),
-        _makeFriendOps("ADD", False, in_place, "LONG", "DIGIT"),
         # These are friends too.
         _makeFriendOps("ADD", True, in_place, "STR", "UNICODE"),
         # Default implementation.
@@ -240,15 +250,8 @@ nonspecialized_add_helpers_set = buildOrderedSet(
 
 def makeSubOps(in_place):
     return buildOrderedSet(
-        _makeTypeOps("SUB", "INT", include_nbool=True, in_place=in_place),
-        _makeTypeOps("SUB", "LONG", include_nbool=True, in_place=in_place),
-        _makeTypeOps("SUB", "FLOAT", include_nbool=True, in_place=in_place),
-        # These are friends naturally, they all sub with another
-        _makeFriendOps("SUB", True, in_place, "INT", "LONG", "FLOAT"),
-        # TODO: Make CLONG ready to join above group.
-        _makeFriendOps("SUB", False, in_place, "INT", "CLONG"),
-        _makeFriendOps("SUB", False, in_place, "LONG", "DIGIT"),
-        _makeDefaultOps("SUB", include_nbool=True, in_place=in_place),
+        _makeNumberOps("SUB", include_nbool=False, in_place=in_place),
+        _makeDefaultOps("SUB", include_nbool=False, in_place=in_place),
     )
 
 
@@ -265,10 +268,7 @@ nonspecialized_sub_helpers_set = buildOrderedSet(
 
 def _makeMultOps(in_place):
     return buildOrderedSet(
-        _makeTypeOps("MULT", "INT", include_nbool=True, in_place=in_place),
-        _makeTypeOps("MULT", "LONG", include_nbool=True, in_place=in_place),
-        _makeTypeOps("MULT", "FLOAT", include_nbool=True, in_place=in_place),
-        _makeFriendOps("MULT", False, in_place, "INT", "CLONG"),
+        _makeNumberOps("MULT", include_nbool=True, in_place=in_place),
         _makeFriendOps("MULT", False, in_place, "INT", "STR"),
         _makeFriendOps("MULT", False, in_place, "INT", "UNICODE"),
         _makeFriendOps("MULT", False, in_place, "INT", "TUPLE"),
@@ -283,7 +283,6 @@ def _makeMultOps(in_place):
         _makeTypeSemiOps("MULT", "TUPLE", in_place=in_place),
         _makeTypeSemiOps("MULT", "LIST", in_place=in_place),
         # These are friends naturally, they all mul with another
-        _makeFriendOps("MULT", True, in_place, "INT", "LONG", "FLOAT"),
         _makeDefaultOps("MULT", include_nbool=True, in_place=in_place),
     )
 
@@ -296,12 +295,7 @@ nonspecialized_mult_helpers_set = None
 
 def _makeDivOps(op_code, in_place):
     return buildOrderedSet(
-        _makeTypeOps(op_code, "INT", include_nbool=False, in_place=in_place),
-        _makeTypeOps(op_code, "LONG", include_nbool=False, in_place=in_place),
-        _makeTypeOps(op_code, "FLOAT", include_nbool=False, in_place=in_place),
-        # These are friends naturally, they div mul with another
-        _makeFriendOps(op_code, False, in_place, "INT", "CLONG"),
-        _makeFriendOps(op_code, False, in_place, "INT", "LONG", "FLOAT"),
+        _makeNumberOps(op_code, include_nbool=False, in_place=in_place),
         _makeDefaultOps(op_code, include_nbool=False, in_place=in_place),
     )
 
@@ -328,55 +322,51 @@ nonspecialized_floordiv_helpers_set = OrderedSet(
     for helper in nonspecialized_truediv_helpers_set
 )
 
-specialized_mod_helpers_set = buildOrderedSet(
-    _makeTypeOps("MOD", "INT", include_nbool=True),
-    _makeTypeOps("MOD", "LONG", include_nbool=True),
-    _makeTypeOps("MOD", "FLOAT", include_nbool=True),
-    # These are friends naturally, they mod with another
-    _makeFriendOps("MOD", True, False, "INT", "LONG", "FLOAT"),
-    (
-        # String interpolation with STR:
-        "BINARY_OPERATION_MOD_OBJECT_STR_INT",
-        "BINARY_OPERATION_MOD_OBJECT_STR_LONG",
-        "BINARY_OPERATION_MOD_OBJECT_STR_FLOAT",
-        "BINARY_OPERATION_MOD_OBJECT_STR_STR",
-        "BINARY_OPERATION_MOD_OBJECT_STR_UNICODE",
-        "BINARY_OPERATION_MOD_OBJECT_STR_TUPLE",
-        "BINARY_OPERATION_MOD_OBJECT_STR_LIST",
-        "BINARY_OPERATION_MOD_OBJECT_STR_DICT",
-        "BINARY_OPERATION_MOD_OBJECT_STR_OBJECT",
-        # String formatting with UNICODE:
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_INT",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_LONG",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_FLOAT",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_STR",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_BYTES",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_UNICODE",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_TUPLE",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_LIST",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_DICT",
-        "BINARY_OPERATION_MOD_OBJECT_UNICODE_OBJECT",
-        # String formatting with BYTES:
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_BYTES",
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_LONG",
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_FLOAT",
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_UNICODE",
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_TUPLE",
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_LIST",
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_DICT",
-        "BINARY_OPERATION_MOD_OBJECT_BYTES_OBJECT",
-        # String formatting with OBJECT:
-        "BINARY_OPERATION_MOD_OBJECT_OBJECT_STR",
-        "BINARY_OPERATION_MOD_OBJECT_OBJECT_BYTES",
-        "BINARY_OPERATION_MOD_OBJECT_OBJECT_UNICODE",
-        "BINARY_OPERATION_MOD_OBJECT_OBJECT_TUPLE",
-        "BINARY_OPERATION_MOD_OBJECT_OBJECT_LIST",
-        "BINARY_OPERATION_MOD_OBJECT_OBJECT_DICT",
-        # Default implementation.
-        "BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT",
-    ),
-    _makeDefaultOps("MOD", include_nbool=True),
-)
+
+def _makeModOps(in_place):
+    def _makeFormatOps(str_type_name):
+        for formatted_type_name in (
+            "INT",
+            "LONG",
+            "FLOAT",
+            "STR",
+            "BYTES",
+            "UNICODE",
+            "TUPLE",
+            "LIST",
+            "DICT",
+            "OBJECT",
+        ):
+
+            if str_type_name == "STR" and formatted_type_name == "BYTES":
+                continue
+            if str_type_name == "BYTES" and formatted_type_name in ("STR", "INT"):
+                continue
+
+            if in_place:
+                yield "INPLACE_OPERATION_MOD_%s_%s" % (
+                    str_type_name,
+                    formatted_type_name,
+                )
+            else:
+                yield "BINARY_OPERATION_MOD_OBJECT_%s_%s" % (
+                    str_type_name,
+                    formatted_type_name,
+                )
+
+    return buildOrderedSet(
+        _makeNumberOps("MOD", include_nbool=True, in_place=in_place),
+        # These are friends naturally, they mod with another
+        _makeFriendOps("MOD", True, in_place, "INT", "LONG", "FLOAT"),
+        # String interpolation:
+        _makeFormatOps(str_type_name="STR"),
+        _makeFormatOps(str_type_name="UNICODE"),
+        _makeFormatOps(str_type_name="BYTES"),
+        _makeDefaultOps("MOD", include_nbool=True, in_place=in_place),
+    )
+
+
+specialized_mod_helpers_set = _makeModOps(in_place=False)
 
 nonspecialized_mod_helpers_set = buildOrderedSet(
     (
@@ -406,9 +396,7 @@ nonspecialized_mod_helpers_set = buildOrderedSet(
     )
 )
 
-specialized_imod_helpers_set = deriveInplaceFromBinaryOperations(
-    specialized_mod_helpers_set
-)
+specialized_imod_helpers_set = _makeModOps(in_place=True)
 
 nonspecialized_imod_helpers_set = deriveInplaceFromBinaryOperations(
     nonspecialized_mod_helpers_set
