@@ -1745,9 +1745,14 @@ class CFloatDesc(ConcreteCTypeBase):
 c_float_desc = CFloatDesc()
 
 
-related_types = {
-    c_long_desc: (int_desc,),
-    int_desc: (c_long_desc,),
-    long_desc: (c_digit_desc,),
-    c_digit_desc: (long_desc,),
-}
+related_types = {}
+
+
+def _addRelatedTypes(type_desc_1, type_desc_2):
+    related_types[type_desc_1] = (type_desc_2,)
+    related_types[type_desc_2] = (type_desc_1,)
+
+
+_addRelatedTypes(int_desc, c_long_desc)
+_addRelatedTypes(long_desc, c_digit_desc)
+_addRelatedTypes(float_desc, c_float_desc)

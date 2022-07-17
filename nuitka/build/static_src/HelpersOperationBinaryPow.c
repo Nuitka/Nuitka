@@ -52,7 +52,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
     assert(PyFloat_CheckExact(operand2));
 
     double a = PyFloat_AS_DOUBLE(operand1);
-    double b = PyFloat_AS_DOUBLE(operand2);
+    const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (b == 0) {
         goto exit_result_ok_const_float_1_0;
@@ -351,7 +351,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
         assert(PyFloat_CheckExact(operand2));
 
         double a = PyFloat_AS_DOUBLE(operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (b == 0) {
             goto exit_result_ok_const_float_1_0;
@@ -666,7 +666,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
         assert(PyFloat_CheckExact(operand2));
 
         double a = PyFloat_AS_DOUBLE(operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (b == 0) {
             goto exit_result_ok_const_float_1_0;
