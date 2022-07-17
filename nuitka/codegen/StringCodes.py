@@ -278,13 +278,16 @@ def generateStrFormatMethodCode(to_name, expression, emit, context):
     else:
         called_name = "unicode_builtin_format"
 
-    getCallCodePosVariableKeywordVariableArgs(
-        to_name=to_name,
-        expression=expression,
-        called_name=called_name,
-        call_args=(expression.subnode_str_arg,) + expression.subnode_args,
-        pairs=expression.subnode_pairs,
-        needs_check=expression.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
+    with withObjectCodeTemporaryAssignment(
+        to_name, "format_result", expression, emit, context
+    ) as result_name:
+        getCallCodePosVariableKeywordVariableArgs(
+            to_name=result_name,
+            expression=expression,
+            called_name=called_name,
+            call_args=(expression.subnode_str_arg,) + expression.subnode_args,
+            pairs=expression.subnode_pairs,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
