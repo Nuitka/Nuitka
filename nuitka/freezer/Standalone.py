@@ -720,8 +720,11 @@ def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         filename = os.path.normpath(filename)
 
         # If we encounter a valid relative path, resolve it to an absolute one.
-        if not os.path.isabs(filename) and os.path.isfile(filename):
-            filename = os.path.abspath(filename)
+        if not os.path.isabs(filename):
+            inclusion_logger.sysexit(
+                "Error: Found a dependency with a relative path. Was a dependency copied to dist early? "
+                + filename
+            )
 
         # Do not include kernel DLLs on the ignore list.
         filename_base = os.path.basename(filename)

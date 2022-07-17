@@ -322,12 +322,6 @@ mingw_mode = prepareEnvironment(
     mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
 )
 
-if not win_target and nuitka_python:
-    scons_details_logger.info("Overriding environment CC to match python build CC.")
-    import sysconfig
-
-    os.environ["CC"] = sysconfig.get_config_var("CC").split()[0]
-    os.environ["CXX"] = sysconfig.get_config_var("CXX").split()[0]
 
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
