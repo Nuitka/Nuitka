@@ -350,7 +350,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subsc
     CHECK_OBJECT(subscript);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
-    PyObject *item = PyObject_GetItem(source, const_subscript);
+    PyObject *item = PyObject_GetItem(source, subscript);
 
     if (item) {
         Py_DECREF(item);
