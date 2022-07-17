@@ -1373,8 +1373,8 @@ static inline bool _INPLACE_OPERATION_SUB_FLOAT_FLOAT(PyObject **operand1, PyObj
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    double a = PyFloat_AS_DOUBLE(*operand1);
-    double b = PyFloat_AS_DOUBLE(operand2);
+    const double a = PyFloat_AS_DOUBLE(*operand1);
+    const double b = PyFloat_AS_DOUBLE(operand2);
 
     double r = a - b;
 
@@ -1594,8 +1594,8 @@ static inline bool _INPLACE_OPERATION_SUB_OBJECT_FLOAT(PyObject **operand1, PyOb
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
 
-        double a = PyFloat_AS_DOUBLE(*operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double a = PyFloat_AS_DOUBLE(*operand1);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         double r = a - b;
 
@@ -1820,8 +1820,8 @@ static inline bool _INPLACE_OPERATION_SUB_FLOAT_OBJECT(PyObject **operand1, PyOb
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
 
-        double a = PyFloat_AS_DOUBLE(*operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double a = PyFloat_AS_DOUBLE(*operand1);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         double r = a - b;
 
@@ -2506,6 +2506,60 @@ exit_result_exception:
 
 bool INPLACE_OPERATION_SUB_LONG_DIGIT(PyObject **operand1, long operand2) {
     return _INPLACE_OPERATION_SUB_LONG_DIGIT(operand1, operand2);
+}
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+static inline bool _INPLACE_OPERATION_SUB_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+
+    const double a = PyFloat_AS_DOUBLE(*operand1);
+    const double b = operand2;
+
+    double r = a - b;
+
+    cfloat_result = r;
+    goto exit_result_ok_cfloat;
+
+exit_result_ok_cfloat:
+    if (Py_REFCNT(*operand1) == 1) {
+        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+    } else {
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = PyFloat_FromDouble(cfloat_result);
+    }
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+}
+
+bool INPLACE_OPERATION_SUB_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
+    return _INPLACE_OPERATION_SUB_FLOAT_CFLOAT(operand1, operand2);
 }
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */

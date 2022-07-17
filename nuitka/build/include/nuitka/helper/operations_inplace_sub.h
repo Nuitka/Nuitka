@@ -92,5 +92,8 @@ extern bool INPLACE_OPERATION_SUB_INT_CLONG(PyObject **operand1, long operand2);
  * Python objects. */
 extern bool INPLACE_OPERATION_SUB_LONG_DIGIT(PyObject **operand1, long operand2);
 
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern bool INPLACE_OPERATION_SUB_FLOAT_CFLOAT(PyObject **operand1, double operand2);
+
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_SUB_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2);

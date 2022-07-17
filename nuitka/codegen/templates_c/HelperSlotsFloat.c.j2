@@ -21,14 +21,18 @@
     {{ left.getCheckValueCode(operand1) }}
     {{ right.getCheckValueCode(operand2) }}
 
-    double a = PyFloat_AS_DOUBLE({{ operand1 }});
-    double b = PyFloat_AS_DOUBLE({{ operand2 }});
 
 {% if operator in "+-*" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
     double r = a {{operator}} b;
 
     {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
 {% elif operator == "//" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
     if (unlikely(b == 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
         {{ goto_exit(props, exit_result_exception) }}
@@ -57,6 +61,9 @@
         {{ goto_exit(props, exit_result_ok_cfloat, "floordiv") }}
     }
 {% elif operator == "/" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
     if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
         {{ goto_exit(props, exit_result_exception) }}
@@ -68,6 +75,9 @@
         {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
     }
 {% elif operator == "%" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
     if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         {{ goto_exit(props, exit_result_exception) }}
@@ -86,6 +96,9 @@
         {{ goto_exit(props, exit_result_ok_cfloat, "mod") }}
     }
 {% elif operator == "divmod" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
     if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
         {{ goto_exit(props, exit_result_exception) }}
@@ -119,6 +132,9 @@
         {{ goto_exit(props, exit_result_object, "r") }}
     }
 {% elif operator == "**" %}
+    double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
     if (b == 0) {
         {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
     }

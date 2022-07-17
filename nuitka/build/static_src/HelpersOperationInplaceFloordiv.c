@@ -1192,8 +1192,8 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_FLOAT(PyObject **operand1, 
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    double a = PyFloat_AS_DOUBLE(*operand1);
-    double b = PyFloat_AS_DOUBLE(operand2);
+    const double a = PyFloat_AS_DOUBLE(*operand1);
+    const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (unlikely(b == 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
@@ -1441,8 +1441,8 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_OBJECT_FLOAT(PyObject **operand1,
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
 
-        double a = PyFloat_AS_DOUBLE(*operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double a = PyFloat_AS_DOUBLE(*operand1);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
@@ -1694,8 +1694,8 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_OBJECT(PyObject **operand1,
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
 
-        double a = PyFloat_AS_DOUBLE(*operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double a = PyFloat_AS_DOUBLE(*operand1);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
@@ -1750,106 +1750,6 @@ static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_OBJECT(PyObject **operand1,
 bool INPLACE_OPERATION_FLOORDIV_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2) {
     return _INPLACE_OPERATION_FLOORDIV_FLOAT_OBJECT(operand1, operand2);
 }
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-static inline bool _INPLACE_OPERATION_FLOORDIV_INT_CLONG(PyObject **operand1, long operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyInt_CheckExact(*operand1));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    // Not every code path will make use of all possible results.
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-    NUITKA_MAY_BE_UNUSED long clong_result;
-    NUITKA_MAY_BE_UNUSED double cfloat_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    CHECK_OBJECT(*operand1);
-    assert(PyInt_CheckExact(*operand1));
-
-    const long a = PyInt_AS_LONG(*operand1);
-    const long b = operand2;
-
-    if (unlikely(b == 0)) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
-        goto exit_result_exception;
-    }
-
-    /* TODO: Isn't this a very specific value only, of which we could
-     * hardcode the constant result. Not sure how well the C compiler
-     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
-     * -1 has to be rare anyway.
-     */
-
-    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
-        long a_div_b = a / b;
-        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
-
-        if (a_mod_b && (b ^ a_mod_b) < 0) {
-            a_mod_b += b;
-            a_div_b -= 1;
-        }
-
-        clong_result = a_div_b;
-        goto exit_result_ok_clong;
-    }
-    {
-        PyObject *operand1_object = *operand1;
-        PyObject *operand2_object = PyLong_FromLong(operand2);
-
-        PyObject *r = PyLong_Type.tp_as_number->nb_floor_divide(operand1_object, operand2_object);
-        assert(r != Py_NotImplemented);
-
-        Py_DECREF(operand2_object);
-
-        obj_result = r;
-        goto exit_result_object;
-    }
-
-exit_result_ok_clong:
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = PyInt_FromLong(clong_result);
-    goto exit_result_ok;
-
-exit_result_object:
-    if (unlikely(obj_result == NULL)) {
-        goto exit_result_exception;
-    }
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    *operand1 = obj_result;
-    goto exit_result_ok;
-
-exit_result_ok:
-    return true;
-
-exit_result_exception:
-    return false;
-}
-
-bool INPLACE_OPERATION_FLOORDIV_INT_CLONG(PyObject **operand1, long operand2) {
-    return _INPLACE_OPERATION_FLOORDIV_INT_CLONG(operand1, operand2);
-}
-#endif
 
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_LONG(PyObject **operand1, PyObject *operand2) {
@@ -2298,6 +2198,187 @@ bool INPLACE_OPERATION_FLOORDIV_INT_LONG(PyObject **operand1, PyObject *operand2
     return _INPLACE_OPERATION_FLOORDIV_INT_LONG(operand1, operand2);
 }
 #endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+static inline bool _INPLACE_OPERATION_FLOORDIV_INT_CLONG(PyObject **operand1, long operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+
+    const long a = PyInt_AS_LONG(*operand1);
+    const long b = operand2;
+
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        goto exit_result_exception;
+    }
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
+
+        clong_result = a_div_b;
+        goto exit_result_ok_clong;
+    }
+    {
+        PyObject *operand1_object = *operand1;
+        PyObject *operand2_object = PyLong_FromLong(operand2);
+
+        PyObject *r = PyLong_Type.tp_as_number->nb_floor_divide(operand1_object, operand2_object);
+        assert(r != Py_NotImplemented);
+
+        Py_DECREF(operand2_object);
+
+        obj_result = r;
+        goto exit_result_object;
+    }
+
+exit_result_ok_clong:
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = PyInt_FromLong(clong_result);
+    goto exit_result_ok;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    *operand1 = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+
+exit_result_exception:
+    return false;
+}
+
+bool INPLACE_OPERATION_FLOORDIV_INT_CLONG(PyObject **operand1, long operand2) {
+    return _INPLACE_OPERATION_FLOORDIV_INT_CLONG(operand1, operand2);
+}
+#endif
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+static inline bool _INPLACE_OPERATION_FLOORDIV_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+
+    const double a = PyFloat_AS_DOUBLE(*operand1);
+    const double b = operand2;
+
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        goto exit_result_exception;
+    }
+
+    {
+        double mod = fmod(a, b);
+        double div = (a - mod) / b;
+
+        if (mod) {
+            if ((a < 0) != (mod < 0)) {
+                div -= 1.0;
+            }
+        }
+
+        double floordiv;
+        if (div) {
+            floordiv = floor(div);
+            if (div - floordiv > 0.5) {
+                floordiv += 1.0;
+            }
+        } else {
+            floordiv = copysign(0.0, a / b);
+        }
+
+        cfloat_result = floordiv;
+        goto exit_result_ok_cfloat;
+    }
+
+exit_result_ok_cfloat:
+    if (Py_REFCNT(*operand1) == 1) {
+        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+    } else {
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = PyFloat_FromDouble(cfloat_result);
+    }
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+
+exit_result_exception:
+    return false;
+}
+
+bool INPLACE_OPERATION_FLOORDIV_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
+    return _INPLACE_OPERATION_FLOORDIV_FLOAT_CFLOAT(operand1, operand2);
+}
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_FLOORDIV_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
