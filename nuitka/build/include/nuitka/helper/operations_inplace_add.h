@@ -57,6 +57,44 @@ extern bool INPLACE_OPERATION_ADD_OBJECT_FLOAT(PyObject **operand1, PyObject *op
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_ADD_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2);
 
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
+extern bool INPLACE_OPERATION_ADD_FLOAT_LONG(PyObject **operand1, PyObject *operand2);
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+extern bool INPLACE_OPERATION_ADD_LONG_FLOAT(PyObject **operand1, PyObject *operand2);
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
+extern bool INPLACE_OPERATION_ADD_FLOAT_INT(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
+extern bool INPLACE_OPERATION_ADD_INT_FLOAT(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern bool INPLACE_OPERATION_ADD_LONG_INT(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern bool INPLACE_OPERATION_ADD_INT_LONG(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern bool INPLACE_OPERATION_ADD_INT_CLONG(PyObject **operand1, long operand2);
+#endif
+
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
+ * Python objects. */
+extern bool INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long operand2);
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern bool INPLACE_OPERATION_ADD_FLOAT_CFLOAT(PyObject **operand1, double operand2);
+
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "STR" to Python2 'str'. */
 extern bool INPLACE_OPERATION_ADD_STR_STR(PyObject **operand1, PyObject *operand2);
@@ -114,41 +152,6 @@ extern bool INPLACE_OPERATION_ADD_OBJECT_LIST(PyObject **operand1, PyObject *ope
 
 /* Code referring to "LIST" corresponds to Python 'list' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_ADD_LIST_OBJECT(PyObject **operand1, PyObject *operand2);
-
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool INPLACE_OPERATION_ADD_FLOAT_LONG(PyObject **operand1, PyObject *operand2);
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern bool INPLACE_OPERATION_ADD_LONG_FLOAT(PyObject **operand1, PyObject *operand2);
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-extern bool INPLACE_OPERATION_ADD_FLOAT_INT(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-extern bool INPLACE_OPERATION_ADD_INT_FLOAT(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern bool INPLACE_OPERATION_ADD_LONG_INT(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool INPLACE_OPERATION_ADD_INT_LONG(PyObject **operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern bool INPLACE_OPERATION_ADD_INT_CLONG(PyObject **operand1, long operand2);
-#endif
-
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "DIGIT" to C platform digit value for long
- * Python objects. */
-extern bool INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long operand2);
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "UNICODE" corresponds to Python2 'unicode', Python3 'str' and "STR" to Python2 'str'. */

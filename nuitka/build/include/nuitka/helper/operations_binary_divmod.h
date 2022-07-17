@@ -57,16 +57,6 @@ extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_FLOAT(PyObject *operand1,
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
-#endif
-
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
 
@@ -92,6 +82,22 @@ extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_LONG_INT(PyObject *operand1, PyO
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
+#endif
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);

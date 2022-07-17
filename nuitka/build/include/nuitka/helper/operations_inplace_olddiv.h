@@ -70,11 +70,6 @@ extern bool INPLACE_OPERATION_OLDDIV_FLOAT_OBJECT(PyObject **operand1, PyObject 
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern bool INPLACE_OPERATION_OLDDIV_INT_CLONG(PyObject **operand1, long operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_OLDDIV_FLOAT_LONG(PyObject **operand1, PyObject *operand2);
 #endif
@@ -102,6 +97,16 @@ extern bool INPLACE_OPERATION_OLDDIV_LONG_INT(PyObject **operand1, PyObject *ope
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_OLDDIV_INT_LONG(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern bool INPLACE_OPERATION_OLDDIV_INT_CLONG(PyObject **operand1, long operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern bool INPLACE_OPERATION_OLDDIV_FLOAT_CFLOAT(PyObject **operand1, double operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300

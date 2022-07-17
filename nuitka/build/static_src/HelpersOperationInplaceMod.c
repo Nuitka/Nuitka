@@ -1174,8 +1174,8 @@ static inline bool _INPLACE_OPERATION_MOD_FLOAT_FLOAT(PyObject **operand1, PyObj
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    double a = PyFloat_AS_DOUBLE(*operand1);
-    double b = PyFloat_AS_DOUBLE(operand2);
+    const double a = PyFloat_AS_DOUBLE(*operand1);
+    const double b = PyFloat_AS_DOUBLE(operand2);
 
     if (unlikely(b == 0.0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
@@ -1413,8 +1413,8 @@ static inline bool _INPLACE_OPERATION_MOD_OBJECT_FLOAT(PyObject **operand1, PyOb
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
 
-        double a = PyFloat_AS_DOUBLE(*operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double a = PyFloat_AS_DOUBLE(*operand1);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
@@ -1656,8 +1656,8 @@ static inline bool _INPLACE_OPERATION_MOD_FLOAT_OBJECT(PyObject **operand1, PyOb
         CHECK_OBJECT(operand2);
         assert(PyFloat_CheckExact(operand2));
 
-        double a = PyFloat_AS_DOUBLE(*operand1);
-        double b = PyFloat_AS_DOUBLE(operand2);
+        const double a = PyFloat_AS_DOUBLE(*operand1);
+        const double b = PyFloat_AS_DOUBLE(operand2);
 
         if (unlikely(b == 0.0)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
@@ -2150,6 +2150,171 @@ bool INPLACE_OPERATION_MOD_INT_LONG(PyObject **operand1, PyObject *operand2) {
     return _INPLACE_OPERATION_MOD_INT_LONG(operand1, operand2);
 }
 #endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+static inline bool _INPLACE_OPERATION_MOD_INT_CLONG(PyObject **operand1, long operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(*operand1);
+    assert(PyInt_CheckExact(*operand1));
+
+    const long a = PyInt_AS_LONG(*operand1);
+    const long b = operand2;
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long r = a % b;
+
+        // Sign handling.
+        if (r != 0 && ((b ^ r) < 0)) {
+            r += b;
+        }
+
+        clong_result = r;
+        goto exit_result_ok_clong;
+    }
+    {
+        PyObject *operand1_object = *operand1;
+        PyObject *operand2_object = PyLong_FromLong(operand2);
+
+        PyObject *r = PyLong_Type.tp_as_number->nb_remainder(operand1_object, operand2_object);
+        assert(r != Py_NotImplemented);
+
+        Py_DECREF(operand2_object);
+
+        obj_result = r;
+        goto exit_result_object;
+    }
+
+exit_result_ok_clong:
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = PyInt_FromLong(clong_result);
+    goto exit_result_ok;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    *operand1 = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+
+exit_result_exception:
+    return false;
+}
+
+bool INPLACE_OPERATION_MOD_INT_CLONG(PyObject **operand1, long operand2) {
+    return _INPLACE_OPERATION_MOD_INT_CLONG(operand1, operand2);
+}
+#endif
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+static inline bool _INPLACE_OPERATION_MOD_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    CHECK_OBJECT(*operand1);
+    assert(PyFloat_CheckExact(*operand1));
+
+    const double a = PyFloat_AS_DOUBLE(*operand1);
+    const double b = operand2;
+
+    if (unlikely(b == 0.0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        goto exit_result_exception;
+    }
+
+    {
+        double mod = fmod(a, b);
+        if (mod) {
+            if ((b < 0) != (mod < 0)) {
+                mod += b;
+            }
+        } else {
+            mod = copysign(0.0, b);
+        }
+
+        cfloat_result = mod;
+        goto exit_result_ok_cfloat;
+    }
+
+exit_result_ok_cfloat:
+    if (Py_REFCNT(*operand1) == 1) {
+        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+    } else {
+        // We got an object handed, that we have to release.
+        Py_DECREF(*operand1);
+
+        *operand1 = PyFloat_FromDouble(cfloat_result);
+    }
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+
+exit_result_exception:
+    return false;
+}
+
+bool INPLACE_OPERATION_MOD_FLOAT_CFLOAT(PyObject **operand1, double operand2) {
+    return _INPLACE_OPERATION_MOD_FLOAT_CFLOAT(operand1, operand2);
+}
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "STR" corresponds to Python2 'str' and "INT" to Python2 'int'. */
@@ -3824,52 +3989,6 @@ bool INPLACE_OPERATION_MOD_UNICODE_OBJECT(PyObject **operand1, PyObject *operand
 }
 
 #if PYTHON_VERSION >= 0x300
-/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
-static inline bool _INPLACE_OPERATION_MOD_BYTES_BYTES(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    assert(PyBytes_CheckExact(*operand1));
-    CHECK_OBJECT(operand2);
-    assert(PyBytes_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    // Not every code path will make use of all possible results.
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-    PyObject *x = PyBytes_Type.tp_as_number->nb_remainder(*operand1, operand2);
-    assert(x != Py_NotImplemented);
-
-    obj_result = x;
-    goto exit_result_object;
-
-exit_result_object:
-    if (unlikely(obj_result == NULL)) {
-        goto exit_result_exception;
-    }
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    *operand1 = obj_result;
-    goto exit_result_ok;
-
-exit_result_ok:
-    return true;
-
-exit_result_exception:
-    return false;
-}
-
-bool INPLACE_OPERATION_MOD_BYTES_BYTES(PyObject **operand1, PyObject *operand2) {
-    return _INPLACE_OPERATION_MOD_BYTES_BYTES(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION >= 0x300
 /* Code referring to "BYTES" corresponds to Python3 'bytes' and "LONG" to Python2 'long', Python3 'int'. */
 static inline bool _INPLACE_OPERATION_MOD_BYTES_LONG(PyObject **operand1, PyObject *operand2) {
     assert(operand1); // Pointer must be non-null.
@@ -4042,6 +4161,52 @@ exit_inplace_exception:
 
 bool INPLACE_OPERATION_MOD_BYTES_FLOAT(PyObject **operand1, PyObject *operand2) {
     return _INPLACE_OPERATION_MOD_BYTES_FLOAT(operand1, operand2);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x300
+/* Code referring to "BYTES" corresponds to Python3 'bytes' and "BYTES" to Python3 'bytes'. */
+static inline bool _INPLACE_OPERATION_MOD_BYTES_BYTES(PyObject **operand1, PyObject *operand2) {
+    assert(operand1); // Pointer must be non-null.
+
+    CHECK_OBJECT(*operand1);
+    assert(PyBytes_CheckExact(*operand1));
+    CHECK_OBJECT(operand2);
+    assert(PyBytes_CheckExact(operand2));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+    }
+
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+
+    PyObject *x = PyBytes_Type.tp_as_number->nb_remainder(*operand1, operand2);
+    assert(x != Py_NotImplemented);
+
+    obj_result = x;
+    goto exit_result_object;
+
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        goto exit_result_exception;
+    }
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    *operand1 = obj_result;
+    goto exit_result_ok;
+
+exit_result_ok:
+    return true;
+
+exit_result_exception:
+    return false;
+}
+
+bool INPLACE_OPERATION_MOD_BYTES_BYTES(PyObject **operand1, PyObject *operand2) {
+    return _INPLACE_OPERATION_MOD_BYTES_BYTES(operand1, operand2);
 }
 #endif
 
@@ -4522,906 +4687,6 @@ bool INPLACE_OPERATION_MOD_BYTES_OBJECT(PyObject **operand1, PyObject *operand2)
     return _INPLACE_OPERATION_MOD_BYTES_OBJECT(operand1, operand2);
 }
 #endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "STR" to Python2 'str'. */
-static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_OBJECT_STR(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc islot = (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1))
-                           ? type1->tp_as_number->nb_inplace_remainder
-                           : NULL;
-
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    {
-        binaryfunc slot1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-        binaryfunc slot2 = NULL;
-
-        if (!(type1 == &PyString_Type)) {
-            // Different types, need to consider second value slot.
-
-            slot2 = PyString_Type.tp_as_number->nb_remainder;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-            coercion c1 =
-                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-            if (c1 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c1(&coerced1, &coerced2);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'str'", type1->tp_name);
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-static inline bool _INPLACE_OPERATION_MOD_OBJECT_STR(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyString_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-    if (type1 == &PyString_Type) {
-        // return _BINARY_OPERATION_MOD_STR_STR_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-        PyObject *x = PyString_Format(*operand1, operand2);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
-    }
-
-    return __INPLACE_OPERATION_MOD_OBJECT_STR(operand1, operand2);
-}
-
-bool INPLACE_OPERATION_MOD_OBJECT_STR(PyObject **operand1, PyObject *operand2) {
-    return _INPLACE_OPERATION_MOD_OBJECT_STR(operand1, operand2);
-}
-#endif
-
-#if PYTHON_VERSION >= 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "BYTES" to Python3 'bytes'. */
-static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_OBJECT_BYTES(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc islot = (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1))
-                           ? type1->tp_as_number->nb_inplace_remainder
-                           : NULL;
-
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    {
-        binaryfunc slot1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-        binaryfunc slot2 = NULL;
-
-        if (!(type1 == &PyBytes_Type)) {
-            // Different types, need to consider second value slot.
-
-            slot2 = PyBytes_Type.tp_as_number->nb_remainder;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-            coercion c1 =
-                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-            if (c1 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c1(&coerced1, &coerced2);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'bytes'", type1->tp_name);
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-static inline bool _INPLACE_OPERATION_MOD_OBJECT_BYTES(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyBytes_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-    if (type1 == &PyBytes_Type) {
-        // return _BINARY_OPERATION_MOD_BYTES_BYTES_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-        PyObject *x = PyBytes_Type.tp_as_number->nb_remainder(*operand1, operand2);
-        assert(x != Py_NotImplemented);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
-    }
-
-    return __INPLACE_OPERATION_MOD_OBJECT_BYTES(operand1, operand2);
-}
-
-bool INPLACE_OPERATION_MOD_OBJECT_BYTES(PyObject **operand1, PyObject *operand2) {
-    return _INPLACE_OPERATION_MOD_OBJECT_BYTES(operand1, operand2);
-}
-#endif
-
-/* Code referring to "OBJECT" corresponds to any Python object and "UNICODE" to Python2 'unicode', Python3 'str'. */
-static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_MOD_OBJECT_UNICODE(PyObject **operand1, PyObject *operand2) {
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc islot = (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1))
-                           ? type1->tp_as_number->nb_inplace_remainder
-                           : NULL;
-
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    {
-        binaryfunc slot1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-        binaryfunc slot2 = NULL;
-
-        if (!(type1 == &PyUnicode_Type)) {
-            // Different types, need to consider second value slot.
-
-            slot2 = PyUnicode_Type.tp_as_number->nb_remainder;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-        if (slot2 != NULL) {
-            PyObject *x = slot2(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!NEW_STYLE_NUMBER_TYPE(type1) || !1) {
-            coercion c1 =
-                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-            if (c1 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c1(&coerced1, &coerced2);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
-
-#if PYTHON_VERSION < 0x300
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'unicode'", type1->tp_name);
-#else
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'str'", type1->tp_name);
-#endif
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-static inline bool _INPLACE_OPERATION_MOD_OBJECT_UNICODE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyUnicode_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-    if (type1 == &PyUnicode_Type) {
-        // return _BINARY_OPERATION_MOD_UNICODE_UNICODE_INPLACE(operand1, operand2);
-
-        // Not every code path will make use of all possible results.
-        NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-
-        PyObject *x = PyUnicode_Format(*operand1, operand2);
-
-        obj_result = x;
-        goto exit_result_object;
-
-    exit_result_object:
-        if (unlikely(obj_result == NULL)) {
-            goto exit_result_exception;
-        }
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = obj_result;
-        goto exit_result_ok;
-
-    exit_result_ok:
-        return true;
-
-    exit_result_exception:
-        return false;
-    }
-
-    return __INPLACE_OPERATION_MOD_OBJECT_UNICODE(operand1, operand2);
-}
-
-bool INPLACE_OPERATION_MOD_OBJECT_UNICODE(PyObject **operand1, PyObject *operand2) {
-    return _INPLACE_OPERATION_MOD_OBJECT_UNICODE(operand1, operand2);
-}
-
-/* Code referring to "OBJECT" corresponds to any Python object and "TUPLE" to Python 'tuple'. */
-static inline bool _INPLACE_OPERATION_MOD_OBJECT_TUPLE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyTuple_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc islot = (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1))
-                           ? type1->tp_as_number->nb_inplace_remainder
-                           : NULL;
-
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    {
-        binaryfunc slot1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-            coercion c1 =
-                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-            if (c1 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c1(&coerced1, &coerced2);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'tuple'", type1->tp_name);
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-
-bool INPLACE_OPERATION_MOD_OBJECT_TUPLE(PyObject **operand1, PyObject *operand2) {
-    return _INPLACE_OPERATION_MOD_OBJECT_TUPLE(operand1, operand2);
-}
-
-/* Code referring to "OBJECT" corresponds to any Python object and "LIST" to Python 'list'. */
-static inline bool _INPLACE_OPERATION_MOD_OBJECT_LIST(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyList_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc islot = (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1))
-                           ? type1->tp_as_number->nb_inplace_remainder
-                           : NULL;
-
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    {
-        binaryfunc slot1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-            coercion c1 =
-                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-            if (c1 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c1(&coerced1, &coerced2);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'list'", type1->tp_name);
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-
-bool INPLACE_OPERATION_MOD_OBJECT_LIST(PyObject **operand1, PyObject *operand2) {
-    return _INPLACE_OPERATION_MOD_OBJECT_LIST(operand1, operand2);
-}
-
-/* Code referring to "OBJECT" corresponds to any Python object and "DICT" to Python 'dict'. */
-static inline bool _INPLACE_OPERATION_MOD_OBJECT_DICT(PyObject **operand1, PyObject *operand2) {
-    assert(operand1); // Pointer must be non-null.
-
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyDict_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
-    PyTypeObject *type1 = Py_TYPE(*operand1);
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4101)
-#endif
-    NUITKA_MAY_BE_UNUSED bool cbool_result;
-    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-    binaryfunc islot = (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1))
-                           ? type1->tp_as_number->nb_inplace_remainder
-                           : NULL;
-
-    if (islot != NULL) {
-        PyObject *x = islot(*operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            obj_result = x;
-            goto exit_inplace_result_object;
-        }
-
-        Py_DECREF(x);
-    }
-
-    {
-        binaryfunc slot1 =
-            (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_remainder : NULL;
-
-        if (slot1 != NULL) {
-            PyObject *x = slot1(*operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                obj_result = x;
-                goto exit_inplace_result_object;
-            }
-
-            Py_DECREF(x);
-        }
-
-#if PYTHON_VERSION < 0x300
-        if (!NEW_STYLE_NUMBER_TYPE(type1) || !0) {
-            coercion c1 =
-                (type1->tp_as_number != NULL && NEW_STYLE_NUMBER_TYPE(type1)) ? type1->tp_as_number->nb_coerce : NULL;
-
-            if (c1 != NULL) {
-                PyObject *coerced1 = *operand1;
-                PyObject *coerced2 = operand2;
-
-                int err = c1(&coerced1, &coerced2);
-
-                if (unlikely(err < 0)) {
-                    goto exit_inplace_exception;
-                }
-
-                if (err == 0) {
-                    PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
-
-                    if (likely(mv == NULL)) {
-                        binaryfunc slot = mv->nb_remainder;
-
-                        if (likely(slot != NULL)) {
-                            PyObject *x = slot(coerced1, coerced2);
-
-                            Py_DECREF(coerced1);
-                            Py_DECREF(coerced2);
-
-                            obj_result = x;
-                            goto exit_inplace_result_object;
-                        }
-                    }
-
-                    // nb_coerce took a reference.
-                    Py_DECREF(coerced1);
-                    Py_DECREF(coerced2);
-                }
-            }
-        }
-#endif
-
-        PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for %%: '%s' and 'dict'", type1->tp_name);
-        goto exit_inplace_exception;
-    }
-
-exit_inplace_result_object:
-    if (unlikely(obj_result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = obj_result;
-
-    return true;
-
-exit_inplace_exception:
-    return false;
-}
-
-bool INPLACE_OPERATION_MOD_OBJECT_DICT(PyObject **operand1, PyObject *operand2) {
-    return _INPLACE_OPERATION_MOD_OBJECT_DICT(operand1, operand2);
-}
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 static inline bool _INPLACE_OPERATION_MOD_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2) {
