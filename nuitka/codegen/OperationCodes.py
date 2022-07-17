@@ -217,9 +217,11 @@ def _getBinaryOperationCode(
 
         assert helper_function is not None, (left, right)
 
-    left_name = context.allocateTempName("cmp_expr_left", type_name=left_c_type.c_type)
+    left_name = context.allocateTempName(
+        "%s_expr_left" % operator.lower(), type_name=left_c_type.c_type
+    )
     right_name = context.allocateTempName(
-        "cmp_expr_right", type_name=right_c_type.c_type
+        "%s_expr_right" % operator.lower(), type_name=right_c_type.c_type
     )
 
     generateExpressionCode(

@@ -16,11 +16,11 @@
 {#     limitations under the License.                                           #}
 {#                                                                              #}
 static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
-    {{left.getCheckValueCode("operand1")}}
-    {{right.getCheckValueCode("operand2")}}
+    {{ left.getCheckValueCode("operand1") }}
+    {{ right.getCheckValueCode("operand2") }}
 
-    const double a = {{left.getAsDoubleValueExpression("operand1")}};
-    const double b = {{right.getAsDoubleValueExpression("operand2")}};
+    const double a = {{ left.getAsDoubleValueExpression("operand1") }};
+    const double b = {{ right.getAsDoubleValueExpression("operand2") }};
 
     bool r = a {{operand}} b;
 

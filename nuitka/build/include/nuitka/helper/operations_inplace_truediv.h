@@ -57,11 +57,6 @@ extern bool INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject **operand1, PyObject
 /* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject **operand1, PyObject *operand2);
 
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern bool INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, long operand2);
-#endif
-
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_TRUEDIV_FLOAT_LONG(PyObject **operand1, PyObject *operand2);
 
@@ -87,6 +82,14 @@ extern bool INPLACE_OPERATION_TRUEDIV_LONG_INT(PyObject **operand1, PyObject *op
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern bool INPLACE_OPERATION_TRUEDIV_INT_LONG(PyObject **operand1, PyObject *operand2);
 #endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern bool INPLACE_OPERATION_TRUEDIV_INT_CLONG(PyObject **operand1, long operand2);
+#endif
+
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern bool INPLACE_OPERATION_TRUEDIV_FLOAT_CFLOAT(PyObject **operand1, double operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern bool INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2);

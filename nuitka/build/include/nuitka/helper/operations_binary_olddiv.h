@@ -70,16 +70,6 @@ extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1,
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
-extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
@@ -107,6 +97,26 @@ extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_LONG_INT(PyObject *operand1, PyO
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
