@@ -842,7 +842,9 @@ def reportSkip(reason, dirname, filename):
     my_print("Skipped, %s (%s)." % (case, reason))
 
 
-def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr, explain=False):
+def executeReferenceChecked(
+    prefix, names, tests_skipped=(), tests_stderr=(), explain=False
+):
     gc.disable()
 
     extract_number = lambda name: int(name.replace(prefix, ""))
