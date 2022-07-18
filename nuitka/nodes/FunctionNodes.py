@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,10 +49,12 @@ from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
 from .Checkers import checkStatementsSequenceOrNone
 from .CodeObjectSpecs import CodeObjectSpec
+from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
+    ExpressionNoSideEffectsMixin,
 )
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import (
@@ -70,8 +72,6 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import tshape_function
-
-_is_verbose = Options.isVerbose()
 
 
 class MaybeLocalVariableUsage(Exception):
@@ -200,13 +200,6 @@ class ExpressionFunctionBodyBase(
     def getLocalVariables(self):
         return [
             variable
-            for variable in self.getProvidedVariables()
-            if variable.isLocalVariable()
-        ]
-
-    def getLocalVariableNames(self):
-        return [
-            variable.getName()
             for variable in self.getProvidedVariables()
             if variable.isLocalVariable()
         ]
@@ -569,7 +562,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
 
 class ExpressionFunctionBody(
-    MarkUnoptimizedFunctionIndicatorMixin, ExpressionFunctionEntryPointBase
+    ExpressionNoSideEffectsMixin,
+    MarkUnoptimizedFunctionIndicatorMixin,
+    ExpressionFunctionEntryPointBase,
 ):
     kind = "EXPRESSION_FUNCTION_BODY"
 
@@ -746,12 +741,8 @@ class ExpressionFunctionBody(
         # would require extra effort.
         return False
 
-    @staticmethod
-    def mayHaveSideEffects():
-        # The function definition has no side effects, calculating the defaults
-        # would be, but that is done outside of this.
-        return False
-
+    # TODO: This is an overload that contradicts no side effects, this might be
+    # used by outside code, not removed, but we should investigate this.
     def mayRaiseException(self, exception_type):
         body = self.subnode_body
 
@@ -823,12 +814,14 @@ class ExpressionFunctionPureBody(ExpressionFunctionBody):
             for function_body in self.trace_collection.getUsedFunctions():
                 trace_collection.onUsedFunction(function_body)
 
+            return
+
         def mySignal(tag, source_ref, change_desc):
-            if _is_verbose:
+            if Options.is_verbose:
                 optimization_logger.info(
                     "{source_ref} : {tags} : {message}".format(
                         source_ref=source_ref.getAsString(),
-                        tags=tags,
+                        tags=tag,
                         message=change_desc()
                         if inspect.isfunction(change_desc)
                         else change_desc,
@@ -998,8 +991,9 @@ class ExpressionFunctionCreation(
                 kw_only_args=call_spec.getKwOnlyParameterNames(),
                 star_list_arg=call_spec.getStarListArgumentName(),
                 star_dict_arg=call_spec.getStarDictArgumentName(),
+                star_list_single_arg=False,
                 num_defaults=call_spec.getDefaultCount(),
-                num_posonly=call_spec.getPosOnlyParameterCount(),
+                num_pos_only=call_spec.getPosOnlyParameterCount(),
                 positional=args_tuple,
                 pairs=(),
             )
@@ -1012,7 +1006,7 @@ class ExpressionFunctionCreation(
 
             # TODO: This is probably something that the matchCall ought to do
             # for us, but that will need cleanups. Also these functions and
-            # nodes ought to work with # ordered dictionaries maybe.
+            # nodes ought to work with ordered dictionaries maybe.
             if call_spec.getStarDictArgumentName():
                 values[-1] = makeDictCreationOrConstant2(
                     keys=[value[0] for value in values[-1]],
@@ -1020,8 +1014,21 @@ class ExpressionFunctionCreation(
                     source_ref=call_node.source_ref,
                 )
 
+                star_list_offset = -2
+            else:
+                star_list_offset = -1
+
+            if call_spec.getStarListArgumentName():
+                values[star_list_offset] = makeExpressionMakeTupleOrConstant(
+                    elements=values[star_list_offset],
+                    user_provided=False,
+                    source_ref=call_node.source_ref,
+                )
+
             result = ExpressionFunctionCall(
-                function=self, values=values, source_ref=call_node.source_ref
+                function=self.makeClone(),
+                values=values,
+                source_ref=call_node.source_ref,
             )
 
             return (
@@ -1054,7 +1061,7 @@ error"""
         return self.variable_closure_traces
 
 
-class ExpressionFunctionRef(ExpressionBase):
+class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
     kind = "EXPRESSION_FUNCTION_REF"
 
     __slots__ = "function_body", "code_name"
@@ -1098,15 +1105,6 @@ class ExpressionFunctionRef(ExpressionBase):
 
         # TODO: Function after collection may now know something.
         return self, None, None
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # Using a function has no side effects, the use might, but this is not it.
-        return False
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
 
 
 class ExpressionFunctionCall(ExpressionChildrenHavingBase):

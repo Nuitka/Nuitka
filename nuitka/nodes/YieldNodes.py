@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,8 +21,8 @@ The yield node returns to the caller of the generator and therefore may execute
 absolutely arbitrary code, from the point of view of this code. It then returns
 something, which may often be 'None', but doesn't have to be.
 
-Often it will be used as a statement, which should also be reflected in a
-dedicated node.
+TODO: Often it will be used as a statement, which may also be reflected in a
+dedicated node to save a bit of memory.
 """
 
 from nuitka.PythonVersions import python_version

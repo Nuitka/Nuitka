@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -105,6 +105,17 @@ comparison_inversions = {
     "exception_match": "exception_mismatch",
     "exception_mismatch": "exception_match",
 }
+
+# Comparator change when swapping arguments of comparisons.
+rich_comparison_arg_swaps = {
+    "Lt": "GtE",
+    "GtE": "Lt",
+    "Eq": "Eq",
+    "NotEq": "NotEq",
+    "Gt": "LtE",
+    "LtE": "Gt",
+}
+
 
 all_comparison_functions = dict(rich_comparison_functions)
 all_comparison_functions.update(other_comparison_functions)

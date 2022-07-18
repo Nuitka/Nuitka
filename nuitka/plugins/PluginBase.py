@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,7 +18,7 @@
 """
 Plugins: Welcome to Nuitka! This is your shortest way to become part of it.
 
-This is to provide the base class for all plug-ins. Some of which are part of
+This is to provide the base class for all plugins. Some of which are part of
 proper Nuitka, and some of which are waiting to be created and submitted for
 inclusion by you.
 
@@ -26,45 +26,62 @@ The base class will serve as documentation. And it will point to examples of
 it being used.
 """
 
-import os
-import pkgutil
-import shutil
+import ast
+import functools
+import inspect
 import sys
 from collections import namedtuple
 
-from nuitka import Options, OutputDirectories
 from nuitka.__past__ import getMetaClassBase
-from nuitka.containers.oset import OrderedSet
-from nuitka.SourceCodeReferences import fromFilename
+from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.freezer.IncludedDataFiles import (
+    makeIncludedDataDirectory,
+    makeIncludedDataFile,
+    makeIncludedEmptyDirectories,
+    makeIncludedGeneratedDataFile,
+    makeIncludedPackageDataFiles,
+)
+from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.ModuleRegistry import (
+    addModuleInfluencingCondition,
+    getModuleInclusionInfoByName,
+)
+from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
+from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
-from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import makePath, putTextFileContents
+from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.ModuleNames import ModuleName
-
-pre_modules = {}
-post_modules = {}
+from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 warned_unused_plugins = set()
 
-registered_pkgutil_getdata_callbacks = OrderedSet()
+# Trigger names for shared use.
+post_module_load_trigger_name = "postLoad"
+pre_module_load_trigger_name = "preLoad"
+
+
+def makeTriggerModuleName(module_name, trigger_name):
+    return ModuleName(module_name + "-" + trigger_name)
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
-    """Nuitka base class for all plug-ins.
+    """Nuitka base class for all plugins.
 
     Derive your plugin from "NuitkaPluginBase" please.
     For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
 
-    Plugins allow to adapt Nuitka's behaviour in a number of ways as explained
+    Plugins allow to adapt Nuitka's behavior in a number of ways as explained
     below at the individual methods.
 
     It is used to deal with special requirements some packages may have (e.g. PyQt
-    and tkinter), data files to be included (e.g. certifi), inserting hidden
+    and tkinter), data files to be included (e.g. "certifi"), inserting hidden
     code, coping with otherwise undetectable needs, or issuing messages in
     certain situations.
 
     A plugin in general must be enabled to be used by Nuitka. This happens by
-    specifying "--plugin-enable" (standard plugins) or by "--user-plugin" (user
+    specifying "--enable-plugin" (standard plugins) or by "--user-plugin" (user
     plugins) in the Nuitka command line. However, some plugins are always enabled
     and invisible to the user.
 
@@ -169,19 +186,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    # Provide fall-back for failed imports here.
-    module_aliases = {}
-
-    def considerFailedImportReferrals(self, module_name):
-        """Provide a dictionary of fallback imports for modules that failed to import.
-
-        Args:
-            module_name: name of module
-        Returns:
-            dict
-        """
-        return self.module_aliases.get(module_name)
-
     def onModuleSourceCode(self, module_name, source_code):
         """Inspect or modify source code.
 
@@ -236,60 +240,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         return bytecode
 
     @staticmethod
-    def _createTriggerLoadedModule(module, trigger_name, code, flags):
-        """Create a "trigger" for a module to be imported.
-
-        Notes:
-            The trigger will incorpaorate the code to be prepended / appended.
-            Called by @onModuleDiscovered.
-
-        Args:
-            module: the module object (serves as dict key)
-            trigger_name: string ("-preload"/"-postload")
-            code: the code string
-
-        Returns
-            trigger_module
-        """
-        from nuitka.nodes.ModuleNodes import CompiledPythonModule
-        from nuitka.tree.Building import createModuleTree
-
-        from .Plugins import Plugins
-
-        module_name = ModuleName(module.getFullName() + trigger_name)
-        source_ref = fromFilename(module.getCompileTimeFilename() + trigger_name)
-
-        mode = Plugins.decideCompilation(module_name, source_ref)
-
-        trigger_module = CompiledPythonModule(
-            module_name=module_name,
-            is_top=False,
-            mode=mode,
-            future_spec=None,
-            source_ref=source_ref,
-        )
-
-        createModuleTree(
-            module=trigger_module,
-            source_ref=module.getSourceReference(),
-            source_code=code,
-            is_main=False,
-        )
-
-        if mode == "bytecode":
-            trigger_module.setSourceCode(code)
-
-        # In debug mode, put the files in the build folder, so they can be looked up easily.
-        if Options.is_debug and "HIDE_SOURCE" not in flags:
-            source_path = os.path.join(
-                OutputDirectories.getSourceDirectoryPath(), module_name + ".py"
-            )
-
-            putTextFileContents(filename=source_path, contents=code)
-
-        return trigger_module
-
-    @staticmethod
     def createPreModuleLoadCode(module):
         """Create code to execute before importing a module.
 
@@ -324,6 +274,42 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=unused-argument
         return None
 
+    @staticmethod
+    def createFakeModuleDependency(module):
+        """Create module to depend on.
+
+        Notes:
+            Called by @onModuleDiscovered.
+
+        Args:
+            module: the module object
+
+        Returns:
+            None (does not apply, default)
+            tuple (code, reason)
+            tuple (code, reason, flags)
+        """
+        # Virtual method, pylint: disable=unused-argument
+        return None
+
+    @staticmethod
+    def hasPreModuleLoadCode(module_name):
+        return (
+            getModuleInclusionInfoByName(
+                makeTriggerModuleName(module_name, pre_module_load_trigger_name)
+            )
+            is not None
+        )
+
+    @staticmethod
+    def hasPostModuleLoadCode(module_name):
+        return (
+            getModuleInclusionInfoByName(
+                makeTriggerModuleName(module_name, post_module_load_trigger_name)
+            )
+            is not None
+        )
+
     def onModuleDiscovered(self, module):
         """Called with a module to be loaded.
 
@@ -338,73 +324,32 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             None
         """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
-        full_name = module.getFullName()
-
-        preload_desc = self.createPreModuleLoadCode(module)
-
-        if preload_desc:
-            if len(preload_desc) == 2:
-                pre_code, reason = preload_desc
-                flags = ()
-            else:
-                pre_code, reason, flags = preload_desc
-
-            if pre_code:
-                # Note: We could find a way to handle this if needed.
-                if full_name in pre_modules:
-                    plugins_logger.sysexit(
-                        "Error, conflicting pre module code from plug-ins for %s"
-                        % full_name
-                    )
-
-                self.info("Injecting pre-module load code for module '%s':" % full_name)
-                for line in reason.split("\n"):
-                    self.info("    " + line)
-
-                pre_modules[full_name] = self._createTriggerLoadedModule(
-                    module=module, trigger_name="-preLoad", code=pre_code, flags=flags
-                )
-
-        post_desc = self.createPostModuleLoadCode(module)
-
-        if post_desc:
-            if len(post_desc) == 2:
-                post_code, reason = post_desc
-                flags = ()
-            else:
-                post_code, reason, flags = post_desc
-
-            if post_code:
-                # Note: We could find a way to handle this if needed.
-                if full_name is post_modules:
-                    plugins_logger.sysexit(
-                        "Error, conflicting post module code from plug-ins for %s"
-                        % full_name
-                    )
-
-                self.info(
-                    "Injecting post-module load code for module '%s':" % full_name
-                )
-                for line in reason.split("\n"):
-                    self.info("    " + line)
-
-                post_modules[full_name] = self._createTriggerLoadedModule(
-                    module=module, trigger_name="-postLoad", code=post_code, flags=flags
-                )
-
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         """Help decide whether to include a module.
 
         Args:
-            module_filename: filename
             module_name: full module name
-            module_kind: one of "py", "shlib" (shared library)
+            module_filename: filename
+            module_kind: one of "py", "extension" (shared library)
         Returns:
             True or False
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
+
+    def onModuleRecursion(self, module_name, module_filename, module_kind):
+        """React to recursion to a module coming up.
+
+        Args:
+            module_name: full module name
+            module_filename: filename
+            module_kind: one of "py", "extension" (shared library)
+        Returns:
+            None
+        """
 
     def onModuleInitialSet(self):
         """Provide extra modules to the initial root module set.
@@ -417,8 +362,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use
         return ()
 
+    def onModuleCompleteSet(self, module_set):
+        """Provide extra modules to the initial root module set.
+
+        Args:
+            module_set - tuple of module objects
+        Returns:
+            None
+        Notes:
+            You must not change anything, this is purely for warning
+            and error checking, and potentially for later stages to
+            prepare.
+        """
+
     @staticmethod
-    def locateModule(importing, module_name):
+    def locateModule(module_name):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
@@ -427,63 +385,60 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             filename for module
         """
-        from nuitka.importing import Importing
 
-        _module_package, module_filename, _finding = Importing.findModule(
-            importing=importing,
-            module_name=ModuleName(module_name),
-            parent_package=None,
-            level=-1,
-            warn=False,
+        from nuitka.importing.Importing import locateModule
+
+        _module_name, module_filename, _finding = locateModule(
+            module_name=ModuleName(module_name), parent_package=None, level=0
         )
 
         return module_filename
 
-    def locateModules(self, importing, module_name):
+    @staticmethod
+    def locateModules(module_name):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
-            warn: (bool) True if required module
         Returns:
             list of ModuleName
         """
-        module_path = self.locateModule(importing, module_name)
 
-        result = []
+        from nuitka.importing.Importing import locateModules
 
-        def _scanModules(path, prefix):
-            for module_info in pkgutil.walk_packages((path,), prefix=prefix + "."):
-                result.append(ModuleName(module_info[1]))
+        return locateModules(module_name)
 
-                if module_info[2]:
-                    _scanModules(module_info[1], module_name + module_info[1])
+    @classmethod
+    def locateDLL(cls, dll_name):
+        """Locate a DLL by name."""
+        return locateDLL(dll_name)
 
-        _scanModules(module_path, module_name)
+    @classmethod
+    def locateDLLsInDirectory(cls, directory):
+        """Locate all DLLs in a folder
 
-        return result
-
-    def considerExtraDlls(self, dist_dir, module):
-        """Provide a tuple of names of binaries to be included.
-
-        Args:
-            dist_dir: the distribution folder
-            module: the module object needing the binaries
         Returns:
-            tuple
+            list of (filename, filename_relative, dll_extension)
         """
-        # TODO: This should no longer be here, as this API is obsolete, pylint: disable=unused-argument
+        return locateDLLsInDirectory(directory)
 
-        for included_entry_point in self.getExtraDlls(module):
-            # Copy to the dist directory, which normally should not be our task, but is for now.
-            makePath(os.path.dirname(included_entry_point.dest_path))
+    @classmethod
+    def makeDllEntryPoint(cls, source_path, dest_path, package_name):
+        """Create an entry point, as expected to be provided by getExtraDlls."""
+        return makeDllEntryPoint(
+            source_path=source_path, dest_path=dest_path, package_name=package_name
+        )
 
-            shutil.copyfile(
-                included_entry_point.source_path, included_entry_point.dest_path
+    def reportFileCount(self, module_name, count, section=None):
+        if count:
+            msg = "Found %d %s DLLs from %s%s installation." % (
+                count,
+                "file" if count < 2 else "files",
+                "" if not section else (" '%s' " % section),
+                module_name.asString(),
             )
 
-            yield included_entry_point
+            self.info(msg)
 
     def getExtraDlls(self, module):
         """Provide IncludedEntryPoint named tuples describing extra needs of the module.
@@ -496,6 +451,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    def onCopiedDLL(self, dll_filename):
+        """Chance for a plugin to modify DLLs after copy, e.g. to compress it, remove attributes, etc.
+
+        Args:
+            dll_filename: the filename of the DLL
+
+        Notes:
+            Do not remove or add any files in this method, this will not work well, there
+            is e.g. getExtraDLLs API to add things. This is only for post processing as
+            described above.
+
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     def getModuleSpecificDllPaths(self, module_name):
         """Provide a list of directories, where DLLs should be searched for this package (or module).
@@ -533,6 +503,75 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def makeIncludedDataFile(self, source_path, dest_path, reason, tags=""):
+        return makeIncludedDataFile(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedGeneratedDataFile(self, data, dest_path, reason, tags=""):
+        return makeIncludedGeneratedDataFile(
+            data=data, dest_path=dest_path, reason=reason, tracer=self, tags=tags
+        )
+
+    def makeIncludedDataDirectory(
+        self,
+        source_path,
+        dest_path,
+        reason,
+        tags="",
+        ignore_dirs=(),
+        ignore_filenames=(),
+        ignore_suffixes=(),
+        only_suffixes=(),
+        normalize=True,
+    ):
+        return makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+            ignore_dirs=ignore_dirs,
+            ignore_filenames=ignore_filenames,
+            ignore_suffixes=ignore_suffixes,
+            only_suffixes=only_suffixes,
+            normalize=normalize,
+        )
+
+    def makeIncludedEmptyDirectories(self, source_path, dest_paths, reason, tags):
+        return makeIncludedEmptyDirectories(
+            source_path=source_path,
+            dest_paths=dest_paths,
+            reason=reason,
+            tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedPackageDataFiles(
+        self, package_name, package_directory, pattern, reason, tags
+    ):
+        return makeIncludedPackageDataFiles(
+            tracer=self,
+            package_name=ModuleName(package_name),
+            package_directory=package_directory,
+            pattern=pattern,
+            reason=reason,
+            tags=tags,
+        )
+
+    def updateDataFileTags(self, included_datafile):
+        """Add or remove data file tags."""
+
+    def onDataFileTags(self, included_datafile):
+        """Action on data file tags."""
+
+    def onBeforeCodeParsing(self):
+        """Prepare for code parsing, normally not needed."""
+
     def onStandaloneDistributionFinished(self, dist_dir):
         """Called after successfully creating a standalone distribution.
 
@@ -562,6 +601,18 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
         Args:
             filename: the created onefile executable
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onBootstrapBinary(self, filename):
+        """Called after successfully creating a bootstrap binary, but without payload.
+
+        Args:
+            filename: the created bootstrap binary, will be modified later
 
         Returns:
             None
@@ -599,7 +650,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         """Decide whether to compile a module (or just use its bytecode).
 
         Notes:
@@ -609,10 +660,9 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
         Args:
             module_name: name of module
-            source_ref: ???
 
         Returns:
-            "compiled" or "bytecode" or None (default)
+            "compiled" or "bytecode" or None (no opinion, use by default)
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
@@ -627,6 +677,16 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             None for no defines, otherwise dictionary of key to be
             defined, and non-None values if any, i.e. no "-Dkey" only
+        """
+
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
+    def getExtraIncludeDirectories(self):
+        """Decide which extra directories to use for C includes in compilation.
+
+        Returns:
+            List of directories or None by default
         """
 
         # Virtual method, pylint: disable=no-self-use
@@ -662,6 +722,21 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use
         return None
 
+    def getExtraLinkDirectories(self):
+        """Decide which link directories should be added.
+
+        Notes:
+            Directories provided multiple times, e.g. by multiple plugins are
+            only added once.
+
+        Returns:
+            None for no extra link directory, otherwise the name as a **str**
+            or an iterable of names of link directories.
+        """
+
+        # Virtual method, pylint: disable=no-self-use
+        return None
+
     def warnUnusedPlugin(self, message):
         """An inactive plugin may issue a warning if it believes this may be wrong.
 
@@ -672,8 +747,17 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             warned_unused_plugins.add(self.plugin_name)
 
             plugins_logger.warning(
-                "Use '--plugin-enable=%s' for: %s" % (self.plugin_name, message)
+                "Use '--enable-plugin=%s' for: %s" % (self.plugin_name, message)
             )
+
+    def onDataComposerRun(self):
+        """Internal use only.
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use
+        return None
 
     def onDataComposerResult(self, blob_filename):
         """Internal use only.
@@ -696,6 +780,8 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     _runtime_information_cache = {}
 
     def queryRuntimeInformationMultiple(self, info_name, setup_codes, values):
+        info_name = self.plugin_name.replace("-", "_") + "_" + info_name
+
         if info_name in self._runtime_information_cache:
             return self._runtime_information_cache[info_name]
 
@@ -709,20 +795,29 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             query_codes.append('print("-" * 27)')
 
         if type(setup_codes) is str:
-            setup_codes = [setup_codes]
+            setup_codes = setup_codes.split("\n")
 
         cmd = r"""\
 from __future__ import print_function
 from __future__ import absolute_import
 
-%(setup_codes)s
+try:
+    %(setup_codes)s
+except ImportError:
+    import sys
+    sys.exit(38)
 %(query_codes)s
 """ % {
-            "setup_codes": "\n".join(setup_codes),
+            "setup_codes": "\n   ".join(setup_codes),
             "query_codes": "\n".join(query_codes),
         }
 
-        feedback = check_output([sys.executable, "-c", cmd])
+        try:
+            feedback = check_output([sys.executable, "-c", cmd])
+        except NuitkaCalledProcessError as e:
+            if e.returncode == 38:
+                return None
+            raise
 
         if str is not bytes:  # We want to work with strings, that's hopefully OK.
             feedback = feedback.decode("utf8")
@@ -739,9 +834,8 @@ from __future__ import absolute_import
 
         NamedTupleResult = namedtuple(info_name, keys)
 
-        # We are being lazy here, the code is trusted, pylint: disable=eval-used
         self._runtime_information_cache[info_name] = NamedTupleResult(
-            *(eval(value) for value in feedback)
+            *(ast.literal_eval(value) for value in feedback)
         )
 
         return self._runtime_information_cache[info_name]
@@ -753,10 +847,73 @@ from __future__ import absolute_import
             values=(("key", value),),
         ).key
 
-    @staticmethod
-    def registerPkgutilGetDataCallback(callback):
-        """Allow a plugin to register for that node type."""
-        registered_pkgutil_getdata_callbacks.add(callback)
+    def onFunctionBodyParsing(self, module_name, function_name, body):
+        """Provide a different function body for the function of that module."""
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def getCacheContributionValues(self, module_name):
+        """Provide values that represent the include of a plugin on the compilation.
+
+        This must be used to invalidate cache results, e.g. when using the
+        onFunctionBodyParsing function, and other things, that do not directly
+        affect the source code.
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
+    def evaluateCondition(self, full_name, condition, control_tags=()):
+        # Note: Caching makes no sense yet, this should all be very fast and
+        # cache themselves. TODO: Allow plugins to contribute their own control
+        # tag values during creation and during certain actions.
+        context = TagContext(logger=self, full_name=full_name)
+        context.update(control_tags)
+
+        context.update(
+            {
+                "macos": isMacOS(),
+                "win32": isWin32Windows(),
+                "linux": isLinux(),
+                "anaconda": isAnacondaPython(),
+                "debian_python": isDebianPackagePython(),
+                "standalone": isStandaloneMode(),
+                "module_mode": shallMakeModule(),
+                # TODO: Allow to provide this.
+                "deployment": False,
+                # Module dependent
+                "main_module": full_name.getBasename() == "__main__",
+            }
+        )
+
+        versions = getSupportedPythonVersions()
+
+        for version in versions:
+            big, major = version.split(".")
+            numeric_version = int(big) * 256 + int(major) * 16
+            is_same_or_higher_version = numeric_version >= python_version
+            is_lower_version = numeric_version >= python_version
+
+            context["python" + big + major + "_or_higher"] = is_same_or_higher_version
+            context["before_python" + big + major] = is_lower_version
+
+        # We trust the yaml files, pylint: disable=eval-used
+        result = eval(condition, context)
+
+        if type(result) is not bool:
+            self.sysexit(
+                "Error, condition '%s' for module '%s' did not evaluate to boolean result."
+                % (condition, full_name)
+            )
+
+        addModuleInfluencingCondition(
+            module_name=full_name,
+            plugin_name=self.plugin_name,
+            condition=condition,
+            control_tags=context.used_tags,
+            result=result,
+        )
+
+        return result
 
     @classmethod
     def warning(cls, message):
@@ -771,25 +928,41 @@ from __future__ import absolute_import
         plugins_logger.sysexit(cls.plugin_name + ": " + message)
 
 
-def isTriggerModule(module):
-    return module in pre_modules.values() or module in post_modules.values()
+def standalone_only(func):
+    """For plugins that have functionality that should be done in standalone mode only."""
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        if isStandaloneMode():
+            return func(*args, **kwargs)
+        else:
+            if inspect.isgeneratorfunction(func):
+                return ()
+            else:
+                return None
+
+    return wrapped
 
 
-def replaceTriggerModule(old, new):
-    found = None
-    for key, value in pre_modules.items():
-        if value is old:
-            found = key
-            break
+class TagContext(dict):
+    def __init__(self, logger, full_name, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
 
-    if found is not None:
-        pre_modules[found] = new
+        self.logger = logger
+        self.full_name = full_name
 
-    found = None
-    for key, value in post_modules.items():
-        if value is old:
-            found = key
-            break
+        self.used_tags = OrderedSet()
 
-    if found is not None:
-        post_modules[found] = new
+    def __getitem__(self, key):
+        try:
+            self.used_tags.add(key)
+
+            return dict.__getitem__(self, key)
+        except KeyError:
+            if key.startswith("use_"):
+                return False
+
+            self.logger.sysexit(
+                "Control tag '%s' in module configuration of '%s' is unknown."
+                % (key, self.full_name)
+            )

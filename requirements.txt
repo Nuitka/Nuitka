@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,19 +17,22 @@
 #
 
 # Folders to use for cache files.
-appdirs == 1.4.4
-
-# Scons is the backend building tool to turn C files to binaries.
-scons == 3.1.2
+appdirs
 
 # For the progress bar to look nicely.
-tqdm == 4.60.0
+tqdm; python_version == '2.7' or python_version >= '3.4'
 
 # Faster OrderedSet
-orderedset == 2.0.3
+ordered-set; python_version >= "3.10"
+orderedset; python_version >= '3.6' or os.name != "nt"
 
 # More capable subprocess.
-subprocess32==3.5.4 ; python_version == '2.7'
+subprocess32; python_version == '2.7'
 
 # Onefile compression
 zstandard; python_version >= '3.5'
+
+# Plugins need that, but there is an inline copy for old versions too.
+pyyaml; python_version == '2.7' or python_version >= '3.6'
+
+Jinja2 >= 2.10.2

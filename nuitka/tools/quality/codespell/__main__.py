@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,10 +27,22 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.auto_format.AutoFormat import cleanupWindowsNewlines
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import withEnvironmentPathAdded
-from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getFileContents,
+    putTextFileContents,
+    resolveShellPatternToFilenames,
+)
+
+replacements = [
+    ("organizational", "organisational"),
+    ("developer manual", "Developer Manual"),
+    ("user manual", "User Manual"),
+]
 
 
 def runCodespell(filenames, verbose, write):
@@ -61,6 +73,22 @@ def runCodespell(filenames, verbose, write):
 
     with withEnvironmentPathAdded("PATH", extra_path):
         result = subprocess.call(command)
+
+    if result == 0:
+        for filename in filenames:
+            if areSamePaths(__file__, filename):
+                continue
+
+            contents = getFileContents(filename)
+            old_contents = contents
+
+            for word, replacement in replacements:
+                contents = contents.replace(word, replacement)
+                contents = contents.replace(word.title(), replacement.title())
+
+            if old_contents != contents:
+                putTextFileContents(filename, contents)
+                cleanupWindowsNewlines(filename)
 
     if verbose:
         if result != 0:

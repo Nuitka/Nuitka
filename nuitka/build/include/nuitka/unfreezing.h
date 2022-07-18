@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */
 #define NUITKA_COMPILED_MODULE 0
-#define NUITKA_SHLIB_FLAG 1
+#define NUITKA_EXTENSION_MODULE_FLAG 1
 #define NUITKA_PACKAGE_FLAG 2
 #define NUITKA_BYTECODE_FLAG 4
 
@@ -31,21 +31,36 @@
 
 struct Nuitka_MetaPathBasedLoaderEntry;
 
-typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry);
+typedef PyObject *(*module_initfunc)(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry);
+
+#if PYTHON_VERSION >= 0x370 && defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE)
+#define _NUITKA_FREEZER_HAS_FILE_PATH
+#endif
 
 struct Nuitka_MetaPathBasedLoaderEntry {
-    /* Full module name, including package name. */
+    // Full module name, including package name.
     char const *name;
 
-    /* Entry function if compiled module, otherwise NULL. */
+    // Entry function if compiled module, otherwise NULL.
     module_initfunc python_initfunc;
 
-    /* For bytecode modules, start and size inside the constants blob. */
+    // For bytecode modules, start and size inside the constants blob.
     int bytecode_index;
     int bytecode_size;
 
-    /* Flags: Indicators if this is compiled, bytecode or shared library. */
+    // Flags: Indicators if this is compiled, bytecode or shared library.
     int flags;
+
+    // For accelerated mode, we need to be able to tell where the module "__file__"
+    // lives, so we can resolve resource reader paths, not relative to the binary
+    // but to code location without loading it.
+#if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
+#if defined _WIN32
+    wchar_t const *file_path;
+#else
+    char const *file_path;
+#endif
+#endif
 };
 
 /* For embedded modules, register the meta path based loader. Used by main

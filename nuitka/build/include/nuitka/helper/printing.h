@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -25,12 +25,11 @@ extern bool PRINT_NEW_LINE(void);
 extern bool PRINT_ITEM(PyObject *object);
 extern bool PRINT_STRING(char const *str);
 extern bool PRINT_FORMAT(char const *fmt, ...);
-
 extern bool PRINT_ITEM_TO(PyObject *file, PyObject *object);
 extern bool PRINT_NEW_LINE_TO(PyObject *file);
 
-extern PyObject *GET_STDOUT();
-extern PyObject *GET_STDERR();
+extern PyObject *GET_STDOUT(void);
+extern PyObject *GET_STDERR(void);
 
 // -----------------------------------------------------------------------
 // Helper functions to debug the run time operation of the compiled binary
@@ -62,5 +61,7 @@ extern bool PRINT_REPR(PyObject *object);
 
 // Print the word <NULL>, as an alternative to pointers.
 extern bool PRINT_NULL(void);
+
+extern bool PRINT_TYPE(PyObject *object);
 
 #endif

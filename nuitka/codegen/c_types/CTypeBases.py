@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -54,7 +54,7 @@ class CTypeBase(object):
 
     @classmethod
     def emitVariableAssignCode(
-        cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
+        cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
         """Get code to assign local variable."""
 
@@ -142,6 +142,11 @@ class CTypeBase(object):
     def emitReleaseAssertionCode(cls, value_name, emit):
         """Assert that the container of the value is not released already of unassigned."""
         cls.emitValueAssertionCode(value_name, emit)
+
+    @classmethod
+    def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, cls.c_type
 
 
 class CTypeNotReferenceCountedMixin(object):

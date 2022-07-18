@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,7 @@ with one argument, use slots, "__int__" and "__long__", so what they do does
 largely depend on the arguments slot.
 """
 
-from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import long
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
@@ -34,10 +34,12 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
 )
+from .ExpressionShapeMixins import (
+    ExpressionIntOrLongExactMixin,
+    ExpressionLongShapeExactMixin,
+)
 from .shapes.BuiltinTypeShapes import (
-    tshape_int_or_long,
     tshape_int_or_long_derived,
-    tshape_long,
     tshape_long_derived,
 )
 
@@ -114,15 +116,13 @@ class ExpressionBuiltinIntLong2Base(
         )
 
 
-class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
+class ExpressionBuiltinInt2(
+    ExpressionIntOrLongExactMixin, ExpressionBuiltinIntLong2Base
+):
     kind = "EXPRESSION_BUILTIN_INT2"
 
     builtin_spec = BuiltinParameterSpecs.builtin_int_spec
     builtin = int
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_int_or_long
 
 
 if python_version < 0x300:
@@ -148,12 +148,10 @@ if python_version < 0x300:
         def mayRaiseException(self, exception_type):
             return self.subnode_value.mayRaiseExceptionLong(exception_type)
 
-    class ExpressionBuiltinLong2(ExpressionBuiltinIntLong2Base):
+    class ExpressionBuiltinLong2(
+        ExpressionLongShapeExactMixin, ExpressionBuiltinIntLong2Base
+    ):
         kind = "EXPRESSION_BUILTIN_LONG2"
 
         builtin_spec = BuiltinParameterSpecs.builtin_long_spec
         builtin = long
-
-        @staticmethod
-        def getTypeShape():
-            return tshape_long

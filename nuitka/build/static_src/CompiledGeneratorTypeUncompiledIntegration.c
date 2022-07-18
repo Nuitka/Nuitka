@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -82,19 +82,67 @@ static inline void Nuitka_PyGen_exc_state_clear(_PyErr_StackItem *exc_state) {
 
 #if PYTHON_VERSION >= 0x300
 
+static inline bool Nuitka_PyFrameHasCompleted(PyFrameObject *const frame) {
+#if PYTHON_VERSION < 0x3a0
+    return frame->f_stacktop == NULL;
+#else
+    return frame->f_state > FRAME_EXECUTING;
+#endif
+}
+
+static inline bool Nuitka_PyGeneratorIsExecuting(PyGenObject const *gen) {
+#if PYTHON_VERSION < 0x3a0
+    return gen->gi_running == 1;
+#else
+    PyFrameObject *frame = gen->gi_frame;
+    return frame->f_state == FRAME_EXECUTING;
+#endif
+}
+
 // This is for CPython iterator objects, the respective code is not exported as
 // API, so we need to redo it. This is an re-implementation that closely follows
 // what it does. It's unrelated to compiled generators, and used from coroutines
 // and asyncgen to interact with them.
 static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
+#if PYTHON_VERSION >= 0x3a0
+    PyObject *result;
+
+    PySendResult res = PyIter_Send((PyObject *)gen, arg, &result);
+
+    switch (res) {
+    case PYGEN_RETURN:
+        if (result == NULL) {
+            SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
+        } else {
+            if (result != Py_None) {
+                Nuitka_SetStopIterationValue(result);
+            }
+
+            Py_DECREF(result);
+        }
+
+        return NULL;
+    case PYGEN_NEXT:
+        return result;
+    case PYGEN_ERROR:
+        return NULL;
+    default:
+        NUITKA_CANNOT_GET_HERE("invalid PYGEN_ result");
+    }
+#else
+
+    PyFrameObject *f = gen->gi_frame;
+
+#if PYTHON_VERSION >= 0x3a0
+    if (f != NULL && _PyFrame_IsExecuting(f)) {
+#else
     if (unlikely(gen->gi_running)) {
+#endif
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "generator already executing");
         return NULL;
     }
 
-    PyFrameObject *f = gen->gi_frame;
-
-    if (f == NULL || f->f_stacktop == NULL) {
+    if (f == NULL || Nuitka_PyFrameHasCompleted(f)) {
         // Set exception if called from send()
         if (arg != NULL) {
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
@@ -103,6 +151,7 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
         return NULL;
     }
 
+#if PYTHON_VERSION < 0x3a0
     if (f->f_lasti == -1) {
         if (unlikely(arg && arg != Py_None)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started generator");
@@ -116,6 +165,16 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
         Py_INCREF(tmp);
         *(f->f_stacktop++) = tmp;
     }
+#else
+    // CPython assertions, check them
+    assert(_PyFrame_IsRunnable(f));
+    assert(f->f_lasti >= 0 || ((unsigned char *)PyBytes_AS_STRING(f->f_code->co_code))[0] == 129);
+
+    PyObject *gen_result = arg ? arg : Py_None;
+    Py_INCREF(gen_result);
+    gen->gi_frame->f_valuestack[gen->gi_frame->f_stackdepth] = gen_result;
+    gen->gi_frame->f_stackdepth++;
+#endif
 
     // Generators always return to their most recent caller, not necessarily
     // their creator.
@@ -124,17 +183,27 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 
     f->f_back = tstate->frame;
 
+#if PYTHON_VERSION < 0x3a0
     gen->gi_running = 1;
+#endif
 #if PYTHON_VERSION >= 0x370
     gen->gi_exc_state.previous_item = tstate->exc_info;
     tstate->exc_info = &gen->gi_exc_state;
 #endif
+
+#if PYTHON_VERSION < 0x390
     PyObject *result = PyEval_EvalFrameEx(f, 0);
+#else
+    PyObject *result = _PyEval_EvalFrame(tstate, f, 0);
+#endif
+
 #if PYTHON_VERSION >= 0x370
     tstate->exc_info = gen->gi_exc_state.previous_item;
     gen->gi_exc_state.previous_item = NULL;
 #endif
+#if PYTHON_VERSION < 0x3a0
     gen->gi_running = 0;
+#endif
 
     // Don't keep the reference to f_back any longer than necessary.  It
     // may keep a chain of frames alive or it could create a reference
@@ -143,6 +212,7 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 
     // If the generator just returned (as opposed to yielding), signal that the
     // generator is exhausted.
+#if PYTHON_VERSION < 0x3a0
     if (result && f->f_stacktop == NULL) {
         if (result == Py_None) {
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
@@ -181,8 +251,48 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
         gen->gi_frame = NULL;
         Py_DECREF(f);
     }
+#else
+    if (result) {
+        if (!_PyFrameHasCompleted(f)) {
+            return result;
+        }
+        assert(result == Py_None || !PyAsyncGen_CheckExact(gen));
+
+        if (result == Py_None && !PyAsyncGen_CheckExact(gen)) {
+            Py_DECREF(result);
+            result = NULL;
+        }
+    } else {
+        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
+            const char *msg = "generator raised StopIteration";
+            if (PyCoro_CheckExact(gen)) {
+                msg = "coroutine raised StopIteration";
+            } else if (PyAsyncGen_CheckExact(gen)) {
+                msg = "async generator raised StopIteration";
+            }
+            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
+        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
+            /* code in `gen` raised a StopAsyncIteration error:
+               raise a RuntimeError.
+            */
+            const char *msg = "async generator raised StopAsyncIteration";
+            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
+        }
+
+        result = NULL;
+    }
+
+    /* generator can't be rerun, so release the frame */
+    /* first clean reference cycle through stored exception traceback */
+    Nuitka_PyGen_exc_state_clear(&gen->gi_exc_state);
+    gen->gi_frame->f_gen = NULL;
+    gen->gi_frame = NULL;
+    Py_DECREF(f);
+
+#endif
 
     return result;
+#endif
 }
 
 #endif
@@ -199,7 +309,11 @@ static PyObject *Nuitka_PyGen_gen_close(PyGenObject *gen, PyObject *args);
 static PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {
     PyFrameObject *f = gen->gi_frame;
 
+#if PYTHON_VERSION < 0x3a0
     if (f && f->f_stacktop) {
+#else
+    if (f) {
+#endif
         PyObject *bytecode = f->f_code->co_code;
         unsigned char *code = (unsigned char *)PyBytes_AS_STRING(bytecode);
 
@@ -209,16 +323,22 @@ static PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {
 
 #if PYTHON_VERSION < 0x360
         if (code[f->f_lasti + 1] != YIELD_FROM)
-#else
+#elif PYTHON_VERSION < 0x3a0
         if (code[f->f_lasti + sizeof(_Py_CODEUNIT)] != YIELD_FROM)
+#else
+    if (code[(f->f_lasti + 1) * sizeof(_Py_CODEUNIT)] != YIELD_FROM)
 #endif
         {
             return NULL;
         }
 
+#if PYTHON_VERSION < 0x3a0
         PyObject *yf = f->f_stacktop[-1];
+#else
+        assert(f->f_stackdepth > 0);
+        PyObject *yf = f->f_valuestack[f->f_stackdepth - 1];
+#endif
         Py_INCREF(yf);
-
         return yf;
     } else {
         return NULL;
@@ -230,7 +350,11 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyGenObject *gen, PyObject *arg, int e
     PyFrameObject *f = gen->gi_frame;
     PyObject *result;
 
+#if PYTHON_VERSION >= 0x3a0
+    if (f != NULL && unlikely(_PyFrame_IsExecuting(f))) {
+#else
     if (unlikely(gen->gi_running)) {
+#endif
         char const *msg = "generator already executing";
 
 #if PYTHON_VERSION >= 0x350
@@ -248,7 +372,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyGenObject *gen, PyObject *arg, int e
         return NULL;
     }
 
-    if (f == NULL || f->f_stacktop == NULL) {
+    if (f == NULL || Nuitka_PyFrameHasCompleted(f)) {
 #if PYTHON_VERSION >= 0x350
         if (PyCoro_CheckExact(gen) && !closing) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot reuse already awaited coroutine");
@@ -267,6 +391,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyGenObject *gen, PyObject *arg, int e
         return NULL;
     }
 
+#if PYTHON_VERSION < 0x3a0
     if (f->f_lasti == -1) {
         if (unlikely(arg != NULL && arg != Py_None)) {
             char const *msg = "can't send non-None value to a just-started generator";
@@ -290,24 +415,43 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyGenObject *gen, PyObject *arg, int e
         Py_INCREF(result);
         *(f->f_stacktop++) = result;
     }
+#else
+    // CPython assertions, check them
+    assert(_PyFrame_IsRunnable(f));
+    assert(f->f_lasti >= 0 || ((unsigned char *)PyBytes_AS_STRING(f->f_code->co_code))[0] == GEN_START);
+
+    result = arg ? arg : Py_None;
+    Py_INCREF(result);
+    gen->gi_frame->f_valuestack[gen->gi_frame->f_stackdepth] = result;
+    gen->gi_frame->f_stackdepth++;
+#endif
 
     Py_XINCREF(tstate->frame);
     f->f_back = tstate->frame;
 
+#if PYTHON_VERSION < 0x3a0
     gen->gi_running = 1;
+#endif
 #if PYTHON_VERSION >= 0x370
     gen->gi_exc_state.previous_item = tstate->exc_info;
     tstate->exc_info = &gen->gi_exc_state;
 #endif
+#if PYTHON_VERSION < 0x390
     result = PyEval_EvalFrameEx(f, exc);
+#else
+    result = _PyEval_EvalFrame(tstate, f, exc);
+#endif
 #if PYTHON_VERSION >= 0x370
     tstate->exc_info = gen->gi_exc_state.previous_item;
     gen->gi_exc_state.previous_item = NULL;
 #endif
+#if PYTHON_VERSION < 0x3a0
     gen->gi_running = 0;
+#endif
 
     Py_CLEAR(f->f_back);
 
+#if PYTHON_VERSION < 0x3a0
     if (result && f->f_stacktop == NULL) {
         if (result == Py_None) {
 #if PYTHON_VERSION >= 0x360
@@ -382,7 +526,41 @@ static PyObject *Nuitka_PyGen_gen_send_ex(PyGenObject *gen, PyObject *arg, int e
         gen->gi_frame = NULL;
         Py_DECREF(f);
     }
+#else
+    if (result) {
+        if (!_PyFrameHasCompleted(f)) {
+            return result;
+        }
+        assert(result == Py_None || !PyAsyncGen_CheckExact(gen));
+        if (result == Py_None && !PyAsyncGen_CheckExact(gen) && !arg) {
+            /* Return NULL if called by gen_iternext() */
+            Py_CLEAR(result);
+        }
+    } else {
+        if (PyErr_ExceptionMatches(PyExc_StopIteration)) {
+            const char *msg = "generator raised StopIteration";
+            if (PyCoro_CheckExact(gen)) {
+                msg = "coroutine raised StopIteration";
+            } else if (PyAsyncGen_CheckExact(gen)) {
+                msg = "async generator raised StopIteration";
+            }
+            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
+        } else if (PyAsyncGen_CheckExact(gen) && PyErr_ExceptionMatches(PyExc_StopAsyncIteration)) {
+            /* code in `gen` raised a StopAsyncIteration error:
+               raise a RuntimeError.
+            */
+            const char *msg = "async generator raised StopAsyncIteration";
+            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
+        }
+    }
 
+    /* generator can't be rerun, so release the frame */
+    /* first clean reference cycle through stored exception traceback */
+    Nuitka_PyGen_exc_state_clear(&gen->gi_exc_state);
+    gen->gi_frame->f_gen = NULL;
+    gen->gi_frame = NULL;
+    Py_DECREF(f);
+#endif
     return result;
 }
 
@@ -428,10 +606,19 @@ static PyObject *Nuitka_PyGen_gen_close(PyGenObject *gen, PyObject *args) {
     int err = 0;
 
     if (yf != NULL) {
+#if PYTHON_VERSION >= 0x3a0
+        PyFrameState state = gen->gi_frame->f_state;
+        gen->gi_frame->f_state = FRAME_EXECUTING;
+#else
         gen->gi_running = 1;
+#endif
         err = Nuitka_PyGen_gen_close_iter(yf);
-        gen->gi_running = 0;
 
+#if PYTHON_VERSION >= 0x3a0
+        gen->gi_frame->f_state = state;
+#else
+        gen->gi_running = 0;
+#endif
         Py_DECREF(yf);
     }
 
@@ -490,11 +677,20 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on
     PyObject *yf = Nuitka_PyGen_yf(gen);
 
     if (yf != NULL) {
-        if (close_on_genexit && PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+        if (close_on_genexit && EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
+#if PYTHON_VERSION < 0x3a0
             gen->gi_running = 1;
-            int err = Nuitka_PyGen_gen_close_iter(yf);
-            gen->gi_running = 0;
+#else
+            PyFrameState state = gen->gi_frame->f_state;
+            gen->gi_frame->f_state = FRAME_EXECUTING;
+#endif
 
+            int err = Nuitka_PyGen_gen_close_iter(yf);
+#if PYTHON_VERSION < 0x3a0
+            gen->gi_running = 0;
+#else
+            gen->gi_frame->f_state = state;
+#endif
             Py_DECREF(yf);
 
             if (err < 0) {
@@ -518,13 +714,22 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on
             || PyCoro_CheckExact(yf)
 #endif
         ) {
+#if PYTHON_VERSION < 0x3a0
             gen->gi_running = 1;
+#else
+            PyFrameState state = gen->gi_frame->f_state;
+            gen->gi_frame->f_state = FRAME_EXECUTING;
+#endif
 
             // Handing exception ownership to "Nuitka_UncompiledGenerator_throw".
             ret = Nuitka_UncompiledGenerator_throw((PyGenObject *)yf, close_on_genexit, exception_type, exception_value,
                                                    exception_tb);
 
+#if PYTHON_VERSION < 0x3a0
             gen->gi_running = 0;
+#else
+            gen->gi_frame->f_state = state;
+#endif
         } else {
 #if 0
             // TODO: Add slow mode traces.
@@ -553,9 +758,18 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on
                 goto throw_here;
             }
 
+#if PYTHON_VERSION < 0x3a0
             gen->gi_running = 1;
+#else
+            PyFrameState state = gen->gi_frame->f_state;
+            gen->gi_frame->f_state = FRAME_EXECUTING;
+#endif
             ret = PyObject_CallFunctionObjArgs(meth, exception_type, exception_value, exception_tb, NULL);
+#if PYTHON_VERSION < 0x3a0
             gen->gi_running = 0;
+#else
+            gen->gi_frame->f_state = state;
+#endif
 
             // Releasing exception, we are done with it.
             Py_DECREF(exception_type);
@@ -568,7 +782,13 @@ static PyObject *Nuitka_UncompiledGenerator_throw(PyGenObject *gen, int close_on
         Py_DECREF(yf);
 
         if (ret == NULL) {
+#if PYTHON_VERSION < 0x3a0
             ret = *(--gen->gi_frame->f_stacktop);
+#else
+            assert(gen->gi_frame->f_stackdepth > 0);
+            gen->gi_frame->f_stackdepth--;
+            ret = gen->gi_frame->f_valuestack[gen->gi_frame->f_stackdepth];
+#endif
             Py_DECREF(ret);
 
 #if PYTHON_VERSION >= 0x360

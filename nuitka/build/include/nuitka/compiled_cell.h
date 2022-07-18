@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -28,10 +28,10 @@ static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) 
 
 struct Nuitka_CellObject {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    /* Content of the cell or NULL when empty */
-    PyObject *ob_ref;
+        /* Content of the cell or NULL when empty */
+        PyObject *ob_ref;
 };
 
 // Create cell with out value, and with or without reference given.

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,6 @@
 
 import marshal
 
-from nuitka import Options
 from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.Caching import writeImportedModulesNamesToCache
 from nuitka.importing.ImportCache import (
@@ -30,7 +29,12 @@ from nuitka.importing.ImportCache import (
 )
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
-from nuitka.plugins.Plugins import Plugins
+from nuitka.Options import isShowProgress, isStandaloneMode
+from nuitka.plugins.Plugins import (
+    Plugins,
+    isTriggerModule,
+    replaceTriggerModule,
+)
 from nuitka.Tracing import inclusion_logger
 
 
@@ -40,6 +44,9 @@ def demoteSourceCodeToBytecode(module_name, source_code, filename):
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name=module_name, is_package=False, source_code=source_code
     )
+
+    if isStandaloneMode():
+        filename = module_name.asPath() + ".py"
 
     bytecode = compileSourceToBytecode(source_code, filename)
 
@@ -56,7 +63,7 @@ def demoteCompiledModuleToBytecode(module):
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()
 
-    if Options.isShowProgress():
+    if isShowProgress():
         inclusion_logger.info(
             "Demoting module %r to bytecode from %r." % (full_name.asString(), filename)
         )
@@ -83,8 +90,6 @@ def demoteCompiledModuleToBytecode(module):
     if isImportedModuleByName(full_name):
         replaceImportedModule(old=module, new=uncompiled_module)
     replaceRootModule(old=module, new=uncompiled_module)
-
-    from nuitka.plugins.PluginBase import isTriggerModule, replaceTriggerModule
 
     if isTriggerModule(module):
         replaceTriggerModule(old=module, new=uncompiled_module)

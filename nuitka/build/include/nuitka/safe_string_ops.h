@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -32,5 +32,6 @@ extern void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t bu
 
 /* Expand symbolic paths, containing %TEMP%, %PID% without overflowing. */
 extern bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size);
+extern bool expandTemplatePath(char *target, char const *source, size_t buffer_size);
 
 #endif

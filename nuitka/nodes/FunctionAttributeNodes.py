@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -78,11 +78,11 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
 class ExpressionFunctionErrorStr(
     SideEffectsFromChildrenMixin, ExpressionChildHavingBase
 ):
-    """Node for value _PyObject_FunctionStr of function or callable in general.
+    """Node for value "_PyObject_FunctionStr" C-API of function or callable in general.
 
     Notes:
         This is for Python 3.9 and higher only, where functions have their module
-        added to the __qualname__ value at runtime.
+        added to the "__qualname__" value at runtime.
     """
 
     kind = "EXPRESSION_FUNCTION_ERROR_STR"

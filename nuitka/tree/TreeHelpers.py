@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,14 +24,12 @@ import __future__
 import ast
 
 from nuitka import Constants, Options
+from nuitka.Errors import CodeTooComplexCode
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from nuitka.nodes.DictionaryNodes import (
-    ExpressionKeyValuePair,
-    makeExpressionMakeDict,
-)
+from nuitka.nodes.DictionaryNodes import makeExpressionMakeDict
 from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
@@ -39,6 +37,9 @@ from nuitka.nodes.FrameNodes import (
     StatementsFrameFunction,
     StatementsFrameGenerator,
     StatementsFrameModule,
+)
+from nuitka.nodes.KeyValuePairNodes import (
+    makeKeyValuePairExpressionsFromKwArgs,
 )
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
@@ -59,7 +60,7 @@ def extractDocFromBody(node):
     body = node.body
     doc = None
 
-    # Work around ast.get_docstring breakage.
+    # Work around "ast.get_docstring" breakage.
     if body and getKind(body[0]) == "Expr":
         if getKind(body[0].value) == "Str":  # python3.7 or earlier
             doc = body[0].value.s
@@ -71,19 +72,26 @@ def extractDocFromBody(node):
                 doc = body[0].value.value
             body = body[1:]
 
-        if "no_docstrings" in Options.getPythonFlags():
+        if Options.hasPythonFlagNoDocstrings():
             doc = None
 
     return body, doc
 
 
-def parseSourceCodeToAst(source_code, filename, line_offset):
+def parseSourceCodeToAst(source_code, module_name, filename, line_offset):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
     if not source_code.endswith("\n"):
         source_code = source_code + "\n"
 
-    body = ast.parse(source_code, filename)
+    try:
+        body = ast.parse(source_code, filename)
+    except RuntimeError as e:
+        if "maximum recursion depth" in e.args[0]:
+            raise CodeTooComplexCode(module_name, filename)
+
+        raise
+
     assert getKind(body) == "Module"
 
     if line_offset > 0:
@@ -327,9 +335,14 @@ def buildNode(provider, node, source_ref, allow_none=False):
         # Very likely the stack overflow, which we will turn into too complex
         # code exception, don't warn about it with a code dump then.
         raise
+    except KeyboardInterrupt:
+        # User interrupting is not a problem with the source, but tell where
+        # we got interrupted.
+        optimization_logger.info("Interrupted at '%s'." % source_ref)
+        raise
     except:
         optimization_logger.warning(
-            "Problem at '%s' with %s." % (source_ref, ast.dump(node))
+            "Problem at '%s' with %s." % (source_ref.getAsString(), ast.dump(node))
         )
         raise
 
@@ -400,7 +413,7 @@ def buildAnnotationNode(provider, node, source_ref):
 def makeModuleFrame(module, statements, source_ref):
     assert module.isCompiledPythonModule()
 
-    if Options.is_fullcompat:
+    if Options.is_full_compat:
         code_name = "<module>"
     else:
         if module.isMainModule():
@@ -510,7 +523,8 @@ def makeStatementsSequence(statements, allow_none, source_ref):
 
     if statements:
         return StatementsSequence(
-            statements=mergeStatements(statements), source_ref=source_ref
+            statements=mergeStatements(statements, allow_none=allow_none),
+            source_ref=source_ref,
         )
     else:
         return None
@@ -561,18 +575,7 @@ def makeDictCreationOrConstant2(keys, values, source_ref):
         )
     else:
         result = makeExpressionMakeDict(
-            pairs=[
-                ExpressionKeyValuePair(
-                    key=makeConstantRefNode(
-                        constant=key,
-                        source_ref=value.getSourceReference(),
-                        user_provided=True,
-                    ),
-                    value=value,
-                    source_ref=value.getSourceReference(),
-                )
-                for key, value in zip(keys, values)
-            ],
+            pairs=makeKeyValuePairExpressionsFromKwArgs(zip(keys, values)),
             source_ref=source_ref,
         )
 

@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -53,7 +53,7 @@ NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(void) {
 
 // Clear error, which is not likely set. This is about bugs from CPython,
 // use CLEAR_ERROR_OCCURRED is not sure.
-NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED(void) {
+NUITKA_MAY_BE_UNUSED static inline bool DROP_ERROR_OCCURRED(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     if (unlikely(tstate->curexc_type != NULL)) {
@@ -68,7 +68,11 @@ NUITKA_MAY_BE_UNUSED static inline void DROP_ERROR_OCCURRED(void) {
         Py_DECREF(old_type);
         Py_XDECREF(old_value);
         Py_XDECREF(old_tb);
+
+        return true;
     }
+
+    return false;
 }
 
 // Fetch the current error into object variables.
@@ -194,6 +198,10 @@ NUITKA_MAY_BE_UNUSED inline static void GET_CURRENT_EXCEPTION(PyObject **excepti
     Py_XINCREF(*exception_tb);
 };
 
+#if PYTHON_VERSION < 0x300 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_SYS_EXC_VARS)
+#define _NUITKA_MAINTAIN_SYS_EXC_VARS 1
+#endif
+
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exception_type, PyObject *exception_value,
@@ -225,7 +233,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(PyObject *exceptio
     Py_XDECREF(old_value);
     Py_XDECREF(old_tb);
 
-#if PYTHON_VERSION < 0x300
+#if _NUITKA_MAINTAIN_SYS_EXC_VARS
     // Set sys attributes in the fastest possible way.
     PyObject *sys_dict = thread_state->interp->sysdict;
     CHECK_OBJECT(sys_dict);
@@ -268,6 +276,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyObject *ex
     Py_XDECREF(old_exception_traceback);
 }
 
+// Same as PyErr_SetObject CPython API, use this instead.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyObject *exception_type,
                                                                            PyObject *exception_value) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -316,6 +325,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObj
 }
 
 // Helper that sets the current thread exception, and has no reference passed.
+// Same as CPython API PyErr_SetString
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject *exception_type, char const *value) {
     PyObject *exception_value = Nuitka_String_FromString(value);
 
@@ -326,6 +336,8 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_STR(PyObject
 extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyObject *exception_type, char const *format, char const *value);
 extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT2(PyObject *exception_type, char const *format, char const *value1,
                                                 char const *value2);
+extern void SET_CURRENT_EXCEPTION_TYPE0_FORMAT3(PyObject *exception_type, char const *format, char const *value1,
+                                                char const *value2, char const *value3);
 
 extern void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(char const *format, PyObject *mistyped);
 extern void SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE(char const *format, PyObject *mistyped);
@@ -613,6 +625,31 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_KEY_ERROR_OCCURRED(void) {
     if (tstate->curexc_type == NULL) {
         return true;
     } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_KeyError)) {
+        // Clear the exception first, we know it doesn't have side effects.
+        Py_DECREF(tstate->curexc_type);
+        tstate->curexc_type = NULL;
+
+        PyObject *old_value = tstate->curexc_value;
+        PyObject *old_tb = tstate->curexc_traceback;
+
+        tstate->curexc_value = NULL;
+        tstate->curexc_traceback = NULL;
+
+        Py_XDECREF(old_value);
+        Py_XDECREF(old_tb);
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED(void) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    if (tstate->curexc_type == NULL) {
+        return true;
+    } else if (EXCEPTION_MATCH_BOOL_SINGLE(tstate->curexc_type, PyExc_AttributeError)) {
         // Clear the exception first, we know it doesn't have side effects.
         Py_DECREF(tstate->curexc_type);
         tstate->curexc_type = NULL;

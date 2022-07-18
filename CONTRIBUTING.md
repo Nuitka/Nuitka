@@ -5,19 +5,19 @@ to answer commonly asked questions regarding that, and to provide some insight
 
 * If you plan on submitting an issue
 
-  Please follow this [template](https://github.com/kayhayen/Nuitka/blob/master/.github/ISSUE_TEMPLATE.md).
+  Please follow this [template](https://github.com/kayhayen/Nuitka/blob/develop/.github/ISSUE_TEMPLATE.md).
 
 * If you want to open a pull request
 
   Make sure to read the information on this page but also have a look at our
-  [pull request template](https://github.com/kayhayen/Nuitka/blob/master/.github/PULL_REQUEST_TEMPLATE.md).
+  [pull request template](https://github.com/kayhayen/Nuitka/blob/develop/.github/PULL_REQUEST_TEMPLATE.md).
 
 ## Getting Started
 
 * Read the [Nuitka User Manual](https://nuitka.net/doc/user-manual.html)
 * Read the [Nuitka Developer Manual](https://nuitka.net/doc/developer-manual.html)
 * Checkout the git repo of Nuitka additional docs and sources
-* Join the [Gitter chat](https://gitter.im/Nuitka-chat/community)
+* Join the Discord Server(https://discord.gg/nZ9hr9tUck)
 
 ## Submitting a Pull Request
 
@@ -60,7 +60,7 @@ and first of all..
 
 * Search for existing issues
 
-  Consider [Github issues tagged as "question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
+  Consider [GitHub issues tagged as "question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
 
 * If not asked yet, ask it there.
 

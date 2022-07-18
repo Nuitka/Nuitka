@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -187,6 +187,10 @@ class Variable(getMetaClassBase("Variable")):
     def removeTrace(self, variable_trace):
         self.traces.remove(variable_trace)
 
+    def getTraces(self):
+        """For debugging only"""
+        return self.traces
+
     def updateUsageState(self):
         writers = set()
         users = set()
@@ -213,12 +217,32 @@ class Variable(getMetaClassBase("Variable")):
         else:
             return bool(self.users)
 
+    def hasWritersOutsideOf(self, provider):
+        if not self.owner.locals_scope.complete:
+            return None
+        elif self.writers is None:
+            return False
+        elif provider in self.writers:
+            return len(self.writers) > 1
+        else:
+            return bool(self.writers)
+
     def getMatchingAssignTrace(self, assign_node):
         for trace in self.traces:
             if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
                 return trace
 
         return None
+
+    def getMatchingUnescapedAssignTrace(self, assign_node):
+        found = None
+        for trace in self.traces:
+            if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
+                found = trace
+            if trace.isEscapeTrace():
+                return None
+
+        return found
 
     def getMatchingDelTrace(self, del_node):
         for trace in self.traces:
@@ -234,6 +258,8 @@ class Variable(getMetaClassBase("Variable")):
             if trace.isAssignTrace():
                 result.add(trace.getAssignNode().getTypeShape())
             elif trace.isUnknownTrace():
+                result.add(tshape_unknown)
+            elif trace.isEscapeTrace():
                 result.add(tshape_unknown)
             elif trace.isInitTrace():
                 result.add(tshape_unknown)

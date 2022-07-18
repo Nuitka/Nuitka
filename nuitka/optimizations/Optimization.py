@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,8 +26,7 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry, Options, Variables
-from nuitka.Errors import NuitkaForbiddenImportEncounter
-from nuitka.importing import ImportCache
+from nuitka.importing.Recursion import considerUsedModules
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Progress import (
     closeProgressBar,
@@ -39,7 +38,6 @@ from nuitka.Tracing import (
     memory_logger,
     optimization_logger,
     progress_logger,
-    recursion_logger,
 )
 from nuitka.utils.MemoryUsage import (
     MemoryWatch,
@@ -51,24 +49,6 @@ from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 from .TraceCollections import withChangeIndicationsTo
 
-_progress = Options.isShowProgress()
-_is_verbose = Options.isVerbose()
-
-
-def _attemptRecursion(module):
-    new_modules = module.attemptRecursion()
-
-    if Options.isShowInclusion():
-        for new_module in new_modules:
-            recursion_logger.info(
-                "{source_ref} : {tags} : {message}".format(
-                    source_ref=new_module.getSourceReference().getAsString(),
-                    tags="new_code",
-                    message="Recursed to module package.",
-                )
-            )
-
-
 tag_set = None
 
 
@@ -77,7 +57,7 @@ def signalChange(tags, source_ref, message):
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
-        if _is_verbose:
+        if Options.is_verbose:
             optimization_logger.info(
                 "{source_ref} : {tags} : {message}".format(
                     source_ref=source_ref.getAsString(),
@@ -101,7 +81,7 @@ def optimizeCompiledPythonModule(module):
 
     touched = False
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch = MemoryWatch()
 
     # Temporary workaround, since we do some optimization based on the last pass results
@@ -116,8 +96,8 @@ def optimizeCompiledPythonModule(module):
             # print("Compute module")
             with withChangeIndicationsTo(signalChange):
                 scopes_were_incomplete = module.computeModule()
-        except NuitkaForbiddenImportEncounter as e:
-            optimization_logger.sysexit("Error, forbidden import '%s' encountered." % e)
+        except SystemExit:
+            raise
         except BaseException:
             general.info("Interrupted while working on '%s'." % module)
             raise
@@ -137,7 +117,7 @@ def optimizeCompiledPythonModule(module):
 
             if unchanged_count == 1 and pass_count == 1:
                 optimization_logger.info_fileoutput(
-                    "No changed, but retrying one more time.",
+                    "Not changed, but retrying one more time.",
                     other_logger=progress_logger,
                 )
                 continue
@@ -158,7 +138,7 @@ def optimizeCompiledPythonModule(module):
         # Otherwise we did stuff, so note that for return value.
         touched = True
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch.finish()
 
         memory_logger.info(
@@ -166,7 +146,7 @@ def optimizeCompiledPythonModule(module):
             % (module.getFullName(), memory_watch.asStr())
         )
 
-    Plugins.considerImplicitImports(module=module, signal_change=signalChange)
+    considerUsedModules(module=module, signal_change=signalChange)
 
     return touched
 
@@ -179,30 +159,17 @@ def optimizeUncompiledPythonModule(module):
         )
     )
 
-    for used_module_name, used_module_path in module.getUsedModules():
-        used_module = ImportCache.getImportedModuleByNameAndPath(
-            used_module_name, used_module_path
-        )
-        ModuleRegistry.addUsedModule(used_module)
+    # Pick up parent package if any.
+    module.attemptRecursion()
 
-    package_name = full_name.getPackageName()
-
-    if package_name is not None:
-        # TODO: It's unclear why, but some standard library modules on older Python3
-        # seem to not have parent packages after the scan.
-        try:
-            used_module = ImportCache.getImportedModuleByName(package_name)
-        except KeyError:
-            pass
-        else:
-            ModuleRegistry.addUsedModule(used_module)
+    considerUsedModules(module=module, signal_change=signalChange)
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
 
-def optimizeShlibModule(module):
+def optimizeExtensionModule(module):
     # Pick up parent package if any.
-    _attemptRecursion(module)
+    module.attemptRecursion()
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
@@ -213,8 +180,8 @@ def optimizeModule(module):
     global tag_set
     tag_set = TagSet()
 
-    if module.isPythonShlibModule():
-        optimizeShlibModule(module)
+    if module.isPythonExtensionModule():
+        optimizeExtensionModule(module)
         changed = False
     elif module.isCompiledPythonModule():
         changed = optimizeCompiledPythonModule(module)
@@ -230,7 +197,7 @@ last_total = 0
 
 
 def _restartProgress():
-    global pass_count, last_total  # Singleton, pylint: disable=global-statement
+    global pass_count  # Singleton, pylint: disable=global-statement
 
     closeProgressBar()
     pass_count += 1
@@ -239,13 +206,14 @@ def _restartProgress():
         "PASS %d:" % pass_count, other_logger=progress_logger
     )
 
-    setupProgressBar(
-        stage="PASS %d" % pass_count,
-        unit="module",
-        total=ModuleRegistry.getRemainingModulesCount()
-        + ModuleRegistry.getDoneModulesCount(),
-        min_total=last_total,
-    )
+    if not Options.is_verbose or optimization_logger.isFileOutput():
+        setupProgressBar(
+            stage="PASS %d" % pass_count,
+            unit="module",
+            total=ModuleRegistry.getRemainingModulesCount()
+            + ModuleRegistry.getDoneModulesCount(),
+            min_total=last_total,
+        )
 
 
 def _traceProgressModuleStart(current_module):
@@ -259,16 +227,14 @@ after that.""".format(
         other_logger=progress_logger,
     )
 
-    # Progress bar and spammy tracing don't go along.
-    if not _is_verbose:
-        reportProgressBar(
-            item=current_module.getFullName(),
-            total=ModuleRegistry.getRemainingModulesCount()
-            + ModuleRegistry.getDoneModulesCount(),
-            update=False,
-        )
+    reportProgressBar(
+        item=current_module.getFullName(),
+        total=ModuleRegistry.getRemainingModulesCount()
+        + ModuleRegistry.getDoneModulesCount(),
+        update=False,
+    )
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         output = "Memory usage {memory}:".format(
             memory=getHumanReadableProcessMemoryUsage()
         )
@@ -342,6 +308,7 @@ def makeOptimizationPass():
                 )
 
                 unused_function.trace_collection = None
+                unused_function.finalize()
 
             used_functions = tuple(
                 function
@@ -356,7 +323,7 @@ def makeOptimizationPass():
     return finished
 
 
-def optimize(output_filename):
+def optimizeModules(output_filename):
     Graphs.startGraph()
 
     finished = makeOptimizationPass()
@@ -369,8 +336,6 @@ def optimize(output_filename):
             and module.getCompilationMode() == "bytecode"
         ):
             demoteCompiledModuleToBytecode(module)
-
-    global pass_count  # Singleton, pylint: disable=global-statement
 
     # Second, "endless" pass.
     while not finished:

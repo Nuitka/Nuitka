@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -158,7 +158,7 @@ def swapVariables():
     print(a, b)
 
 
-def interuptedUnpack():
+def InterruptedUnpack():
     a = 1
     b = 2
 
@@ -274,7 +274,7 @@ varargsFunction(1, 2, 3, 4)
 otherFunction()
 anotherFunction()
 swapVariables()
-interuptedUnpack()
+InterruptedUnpack()
 multiTargetInterrupt()
 optimizeableTargets()
 complexDel()

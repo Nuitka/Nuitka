@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -58,6 +58,7 @@ class ParameterSpec(object):
         "normal_args",
         "normal_variables",
         "list_star_arg",
+        "is_list_star_arg_single",
         "dict_star_arg",
         "list_star_variable",
         "dict_star_variable",
@@ -78,6 +79,7 @@ class ParameterSpec(object):
         ps_list_star_arg,
         ps_dict_star_arg,
         ps_default_count,
+        ps_is_list_star_arg_single=False,
     ):
         if type(ps_normal_args) is str:
             if ps_normal_args == "":
@@ -106,7 +108,10 @@ class ParameterSpec(object):
             ps_dict_star_arg is None or type(ps_dict_star_arg) is str
         ), ps_dict_star_arg
 
+        assert type(ps_is_list_star_arg_single) is bool, ps_is_list_star_arg_single
+
         self.list_star_arg = ps_list_star_arg if ps_list_star_arg else None
+        self.is_list_star_arg_single = ps_is_list_star_arg_single
         self.dict_star_arg = ps_dict_star_arg if ps_dict_star_arg else None
 
         self.list_star_variable = None
@@ -256,6 +261,9 @@ class ParameterSpec(object):
     def getStarListArgumentName(self):
         return self.list_star_arg
 
+    def isStarListSingleArg(self):
+        return self.is_list_star_arg_single
+
     def getListStarArgVariable(self):
         return self.list_star_variable
 
@@ -296,9 +304,10 @@ def matchCall(
     args,
     kw_only_args,
     star_list_arg,
+    star_list_single_arg,
     star_dict_arg,
     num_defaults,
-    num_posonly,
+    num_pos_only,
     positional,
     pairs,
     improved=False,
@@ -312,7 +321,7 @@ def matchCall(
         star_list_arg - name of star list argument if any
         star_dict_arg - name of star dict argument if any
         num_defaults - amount of arguments that have default values
-        num_posonly - amount of arguments that must be given by position
+        num_pos_only - amount of arguments that must be given by position
         positional - tuple of argument values given for simulated call
         pairs - tuple of pairs arg argument name and argument values
         improved - (bool) should we give better errors than CPython or not.
@@ -400,7 +409,7 @@ def matchCall(
 
                 raise TooManyArguments(TypeError(message))
             else:
-                if arg_index < num_posonly:
+                if arg_index < num_pos_only:
                     message = "'%s' is an invalid keyword argument for %s()" % (
                         pair[0],
                         func_name,
@@ -410,7 +419,17 @@ def matchCall(
 
     if star_list_arg:
         if num_pos > num_args:
-            assign(star_list_arg, positional[-(num_pos - num_args) :])
+            value = positional[-(num_pos - num_args) :]
+            assign(star_list_arg, value)
+
+            if star_list_single_arg:
+                if len(value) > 1:
+                    raise TooManyArguments(
+                        TypeError(
+                            "%s expected at most 1 arguments, got %d"
+                            % (func_name, len(value))
+                        )
+                    )
         else:
             assign(star_list_arg, ())
     elif 0 < num_args < num_total:

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,8 +48,8 @@ special attribute lookups for "__enter__" and "__exit__", calls of them,
 catching and passing in exceptions raised.
 
 """
+import marshal
 import os
-import sys
 
 from nuitka import (
     ModuleRegistry,
@@ -57,23 +57,21 @@ from nuitka import (
     OutputDirectories,
     SourceCodeReferences,
 )
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    long,
-    unicode,
-)
+from nuitka.__past__ import long, unicode
 from nuitka.Caching import (
     getCachedImportedModulesNames,
     hasCachedImportedModulesNames,
 )
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Errors import CodeTooComplexCode
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
-from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
+from nuitka.importing.StandardLibrary import isStandardLibraryPath
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     StatementAssignmentAttribute,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
@@ -95,8 +93,12 @@ from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException,
     StatementReraiseException,
 )
+from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import makeExpressionAbsoluteImportNode
+from nuitka.nodes.ImportNodes import (
+    isHardModuleWithoutSideEffect,
+    makeExpressionImportModuleFixed,
+)
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import (
     ExpressionModuleAttributeFileRef,
@@ -105,9 +107,12 @@ from nuitka.nodes.ModuleAttributeNodes import (
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
+    PythonExtensionModule,
     PythonMainModule,
-    PythonShlibModule,
-    UncompiledPythonModule,
+    makeUncompiledPythonModule,
+)
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionStatementFromInstance,
 )
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.OperatorNodesUnary import makeExpressionOperationUnary
@@ -115,20 +120,25 @@ from nuitka.nodes.ReturnNodes import makeStatementReturn
 from nuitka.nodes.SliceNodes import makeExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
-from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.optimizations.BytecodeDemotion import demoteSourceCodeToBytecode
 from nuitka.Options import shallWarnUnusualCode
+from nuitka.pgo.PGO import decideCompilationFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
+    general,
     memory_logger,
     optimization_logger,
     plugins_logger,
+    recursion_logger,
     unusual_logger,
 )
 from nuitka.utils import MemoryUsage
-from nuitka.utils.FileOperations import splitPath
 from nuitka.utils.ModuleNames import ModuleName
 
 from . import SyntaxErrors
@@ -169,6 +179,7 @@ from .ReformulationImportStatements import (
     pushFutureSpec,
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
+from .ReformulationMatchStatements import buildMatchNode
 from .ReformulationNamespacePackages import (
     createImporterCacheAssignment,
     createNamespacePackage,
@@ -221,7 +232,6 @@ if str is not bytes:
             variable_name=mangleName(node.id, provider),
             source_ref=source_ref,
         )
-
 
 else:
 
@@ -411,14 +421,21 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
         assert closure_variable.isModuleVariable()
 
+        # Special case, since Python 3.5 it is allowed to use global on the "__class__"
+        # variable as well, but it's not changing visibility of implicit "__class__" of
+        # functions, and as such it will just not be registered.
         if (
-            python_version < 0x340
-            and provider.isExpressionClassBody()
+            provider.isExpressionClassBody()
             and closure_variable.getName() == "__class__"
         ):
-            SyntaxErrors.raiseSyntaxError("cannot make __class__ global", source_ref)
-
-        provider.getLocalsScope().registerClosureVariable(variable=closure_variable)
+            if python_version < 0x340:
+                SyntaxErrors.raiseSyntaxError(
+                    "cannot make __class__ global", source_ref
+                )
+        else:
+            provider.getLocalsScope().registerClosureVariable(
+                variable=closure_variable,
+            )
 
     # Drop this, not really part of our tree.
     return None
@@ -505,7 +522,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
 
 
 def buildAttributeNode(provider, node, source_ref):
-    return ExpressionAttributeLookup(
+    return makeExpressionAttributeLookup(
         expression=buildNode(provider, node.value, source_ref),
         attribute_name=mangleName(node.attr, provider),
         source_ref=source_ref,
@@ -722,6 +739,7 @@ setBuildingDispatchers(
         "FormattedValue": buildFormattedValueNode,
         "NamedExpr": buildNamedExprNode,
         "Slice": buildSliceNode,
+        "Match": buildMatchNode,
     },
     path_args2={
         "Constant": buildNamedConstantNode,  # Python3.8
@@ -735,21 +753,17 @@ setBuildingDispatchers(
 )
 
 
-def buildParseTree(provider, source_code, source_ref, is_module, is_main):
+def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables. pylint: disable=too-many-branches
 
+    # Maybe one day, we do exec inlining again, that is what this is for,
+    # then is_module won't be True, for now it always is.
     pushFutureSpec()
     if is_module:
         provider.setFutureSpec(getFutureSpec())
 
-    body = parseSourceCodeToAst(
-        source_code=source_code,
-        filename=source_ref.getFilename(),
-        line_offset=source_ref.getLineNumber() - 1,
-    )
-
-    body, doc = extractDocFromBody(body)
+    body, doc = extractDocFromBody(ast_tree)
 
     if is_module and is_main and python_version >= 0x360:
         provider.markAsNeedsAnnotationsDictionary()
@@ -768,24 +782,27 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Add import of "site" module of main programs visibly in the node tree,
         # so recursion and optimization can pick it up, checking its effects.
         if is_main and not Options.hasPythonFlagNoSite():
-            for path_imported_name in getPthImportedPackages():
-                statements.append(
-                    StatementExpressionOnly(
-                        expression=makeExpressionAbsoluteImportNode(
-                            module_name=path_imported_name, source_ref=source_ref
-                        ),
-                        source_ref=source_ref,
-                    )
-                )
-
             statements.append(
                 StatementExpressionOnly(
-                    expression=makeExpressionAbsoluteImportNode(
+                    expression=makeExpressionImportModuleFixed(
                         module_name="site", source_ref=source_ref
                     ),
                     source_ref=source_ref,
                 )
             )
+
+            for path_imported_name in getPthImportedPackages():
+                if isHardModuleWithoutSideEffect(path_imported_name):
+                    continue
+
+                statements.append(
+                    StatementExpressionOnly(
+                        expression=makeExpressionImportModuleFixed(
+                            module_name=path_imported_name, source_ref=source_ref
+                        ),
+                        source_ref=source_ref,
+                    )
+                )
 
         statements.append(
             StatementAssignmentVariableName(
@@ -928,215 +945,173 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         assert False
 
 
-def decideCompilationMode(is_top, module_name, source_ref):
-    result = Plugins.decideCompilation(module_name, source_ref)
+def decideCompilationMode(is_top, module_name, for_pgo):
+    """Decide the compilation mode for a module.
 
+    module_name - The module to decide compilation mode for.
+    for_pgo - consider PGO information or not
+    """
+
+    result = Plugins.decideCompilation(module_name)
+
+    # Cannot change mode of __main__ to bytecode, that is not going
+    # to work currently.
     if result == "bytecode" and is_top:
         plugins_logger.warning(
             """\
-Ignoring plugin decision to compile top level package '%s'
-as bytecode, the extension module entry point is technically
+Ignoring plugin decision to compile top level package '%s' \
+as bytecode, the extension module entry point is technically \
 required to compiled."""
             % module_name
         )
         result = "compiled"
 
+    # Include all of standard library as bytecode, for now. We need to identify
+    # which ones really need that.
+    if not is_top:
+        module_filename = Importing.locateModule(
+            module_name=module_name, parent_package=None, level=0
+        )[1]
+
+        if module_filename is not None and isStandardLibraryPath(module_filename):
+            result = "bytecode"
+
+    # Plugins need to win over PGO, as they might know it better
+    if result is None and not for_pgo:
+        result = decideCompilationFromPGO(module_name=module_name)
+
+    # Default if neither plugins nor PGO have expressed an opinion
+    if result is None:
+        result = "compiled"
+
     return result
 
 
-def decideModuleTree(filename, package, is_shlib, is_top, is_main):
-    # Many variables, branches, due to the many cases
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_ref):
+    result = makeUncompiledPythonModule(
+        module_name=module_name,
+        filename=source_ref.getFilename(),
+        bytecode=demoteSourceCodeToBytecode(
+            module_name=module_name,
+            source_code=source_code,
+            filename=source_ref.getFilename(),
+        ),
+        user_provided=False,
+        technical=False,
+        is_package=is_package,
+    )
 
-    assert package is None or type(package) is ModuleName
-    assert filename is not None
+    used_modules = OrderedSet()
 
-    if is_main and os.path.isdir(filename):
-        source_filename = os.path.join(filename, "__main__.py")
+    for used_module_name, line_number in getCachedImportedModulesNames(
+        module_name=module_name, source_code=source_code
+    ):
+        _module_name, module_filename, finding = Importing.locateModule(
+            module_name=used_module_name,
+            parent_package=None,
+            level=0,
+        )
 
-        if not os.path.isfile(source_filename):
-            sys.stderr.write(
-                "%s: can't find '__main__' module in '%s'\n"
-                % (os.path.basename(sys.argv[0]), filename)
+        assert _module_name == used_module_name
+
+        used_modules.add(
+            (
+                used_module_name,
+                module_filename,
+                finding,
+                0,
+                source_ref.atLineNumber(line_number),
             )
-            sys.exit(2)
+        )
 
-        filename = source_filename
+    # assert not is_package, (module_name, used_modules, result, result.getCompileTimeFilename())
 
-        main_added = True
+    result.setUsedModules(used_modules)
+
+    return result
+
+
+def _createModule(
+    module_name,
+    source_code,
+    source_ref,
+    is_extension,
+    is_namespace,
+    is_package,
+    is_top,
+    is_main,
+    main_added,
+):
+    if is_extension:
+        result = PythonExtensionModule(
+            module_name=module_name, technical=False, source_ref=source_ref
+        )
+    elif is_main:
+        result = PythonMainModule(
+            main_added=main_added,
+            module_name=module_name,
+            mode=decideCompilationMode(
+                is_top=is_top, module_name=module_name, for_pgo=False
+            ),
+            future_spec=None,
+            source_ref=source_ref,
+        )
+
+        checkPythonVersionFromCode(source_code)
+    elif is_namespace:
+        result = createNamespacePackage(module_name, is_top, source_ref)
     else:
-        main_added = False
+        mode = decideCompilationMode(
+            is_top=is_top, module_name=module_name, for_pgo=False
+        )
 
-    if os.path.isfile(filename):
-        source_filename = filename
+        if (
+            mode == "bytecode"
+            and not is_top
+            and not Options.shallDisableBytecodeCacheUsage()
+            and hasCachedImportedModulesNames(module_name, source_code)
+        ):
+            result = _loadUncompiledModuleFromCache(
+                module_name=module_name,
+                is_package=is_package,
+                source_code=source_code,
+                source_ref=source_ref,
+            )
 
-        source_ref = SourceCodeReferences.fromFilename(filename=filename)
-
-        if is_main:
-            module_name = ModuleName("__main__")
-        else:
-            # Derive module name from filename.
-            module_name = os.path.basename(filename)
-            if is_shlib:
-                module_name = module_name.split(".")[0]
-            elif module_name.endswith(".py"):
-                module_name = module_name[:-3]
-
-            if "." in module_name:
-                sys.stderr.write(
-                    "Error, '%s' is not a proper python module name.\n" % (module_name)
-                )
-
-                sys.exit(2)
-
-            module_name = ModuleName.makeModuleNameInPackage(module_name, package)
-
-        if is_shlib:
-            result = PythonShlibModule(module_name=module_name, source_ref=source_ref)
+            # Not used anymore
             source_code = None
         else:
-            source_code = readSourceCodeFromFilename(
-                module_name=module_name, source_filename=source_filename
-            )
-
-            if is_main:
-                result = PythonMainModule(
-                    main_added=main_added,
-                    mode=decideCompilationMode(False, module_name, source_ref),
+            if is_package:
+                result = CompiledPythonPackage(
+                    module_name=module_name,
+                    is_top=is_top,
+                    mode=mode,
+                    future_spec=None,
+                    source_ref=source_ref,
+                )
+            else:
+                result = CompiledPythonModule(
+                    module_name=module_name,
+                    is_top=is_top,
+                    mode=mode,
                     future_spec=None,
                     source_ref=source_ref,
                 )
 
-                checkPythonVersionFromCode(source_code)
-            else:
-                mode = decideCompilationMode(is_top, module_name, source_ref)
-
-                if (
-                    mode == "bytecode"
-                    and not is_top
-                    and hasCachedImportedModulesNames(module_name, source_code)
-                ):
-
-                    optimization_logger.info(
-                        "%r is included as bytecode." % (module_name.asString())
-                    )
-                    result = UncompiledPythonModule(
-                        module_name=module_name,
-                        filename=filename,
-                        bytecode=demoteSourceCodeToBytecode(
-                            module_name=module_name,
-                            source_code=source_code,
-                            filename=filename,
-                        ),
-                        source_ref=source_ref,
-                        user_provided=False,
-                        technical=False,
-                    )
-
-                    used_modules = OrderedSet()
-
-                    for used_module_name in getCachedImportedModulesNames(
-                        module_name=module_name, source_code=source_code
-                    ):
-                        (
-                            _module_package,
-                            module_filename,
-                            _finding,
-                        ) = Importing.findModule(
-                            importing=result,
-                            module_name=used_module_name,
-                            parent_package=None,
-                            level=-1,
-                            warn=False,
-                        )
-
-                        used_modules.add(
-                            (used_module_name, os.path.relpath(module_filename))
-                        )
-
-                    result.setUsedModules(used_modules)
-
-                    # Not used anymore
-                    source_code = None
-                else:
-                    result = CompiledPythonModule(
-                        module_name=module_name,
-                        is_top=is_top,
-                        mode=mode,
-                        future_spec=None,
-                        source_ref=source_ref,
-                    )
-
-    elif Importing.isPackageDir(filename):
-        if is_top:
-            module_name = splitPath(filename)[-1]
-        else:
-            module_name = os.path.basename(filename)
-
-        module_name = ModuleName.makeModuleNameInPackage(module_name, package)
-
-        source_filename = os.path.join(filename, "__init__.py")
-
-        if not os.path.isfile(source_filename):
-            source_ref, result = createNamespacePackage(
-                module_name=module_name, is_top=is_top, module_relpath=filename
-            )
-            source_filename = None
-            source_code = None
-        else:
-            source_ref = SourceCodeReferences.fromFilename(
-                filename=os.path.abspath(source_filename)
-            )
-
-            result = CompiledPythonPackage(
-                module_name=module_name,
-                is_top=is_top,
-                mode=decideCompilationMode(is_top, module_name, source_ref),
-                future_spec=None,
-                source_ref=source_ref,
-            )
-
-            source_code = readSourceCodeFromFilename(
-                module_name=module_name, source_filename=source_filename
-            )
-    else:
-        sys.stderr.write(
-            "%s: can't open file '%s'.\n" % (os.path.basename(sys.argv[0]), filename)
-        )
-        sys.exit(2)
-
-    return result, source_ref, source_code
+    return result
 
 
-class CodeTooComplexCode(Exception):
-    """The code of the module is too complex.
-
-    It cannot be compiled, with recursive code, and therefore the bytecode
-    should be used instead.
-
-    Example of this is "idnadata".
-    """
-
-
-def createModuleTree(module, source_ref, source_code, is_main):
+def createModuleTree(module, source_ref, ast_tree, is_main):
     if Options.isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 
-    try:
-        module_body = buildParseTree(
-            provider=module,
-            source_code=source_code,
-            source_ref=source_ref,
-            is_module=True,
-            is_main=is_main,
-        )
-    except RuntimeError as e:
-        if "maximum recursion depth" in e.args[0]:
-            raise CodeTooComplexCode(
-                module.getFullName(), module.getCompileTimeFilename()
-            )
-
-        raise
+    module_body = buildParseTree(
+        provider=module,
+        ast_tree=ast_tree,
+        source_ref=source_ref,
+        is_module=True,
+        is_main=is_main,
+    )
 
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(statement=module_body)
@@ -1154,35 +1129,34 @@ def createModuleTree(module, source_ref, source_code, is_main):
         )
 
 
-def buildModuleTree(filename, package, is_top, is_main):
-    module, source_ref, source_code = decideModuleTree(
-        filename=filename,
-        package=package,
-        is_top=is_top,
+def buildMainModuleTree(filename, is_main):
+    # Detect to be frozen modules if any, so we can consider to not follow
+    # to them.
+
+    Plugins.onBeforeCodeParsing()
+
+    if is_main:
+        # TODO: Doesn't work for deeply nested packages at all.
+        if Options.hasPythonFlagPackageMode():
+            module_name = ModuleName(os.path.basename(filename) + ".__main__")
+        else:
+            module_name = ModuleName("__main__")
+    else:
+        module_name = Importing.getModuleNameAndKindFromFilename(filename)[0]
+
+    module, _added = buildModule(
+        module_name=module_name,
+        module_filename=filename,
+        source_code=None,
+        is_top=True,
         is_main=is_main,
-        is_shlib=False,
+        is_extension=False,
+        is_fake=False,
+        hide_syntax_error=False,
     )
 
-    if is_top:
-        ModuleRegistry.addRootModule(module)
-
-        OutputDirectories.setMainModule(module)
-
-        # Detect to be frozen modules if any, so we can consider to not recurse
-        # to them.
-        if Options.isStandaloneMode():
-            module.setEarlyModules(detectEarlyImports())
-
-    # If there is source code associated (not the case for namespace packages of
-    # Python3), then read it.
-    if source_code is not None:
-        # Read source code.
-        createModuleTree(
-            module=module,
-            source_ref=source_ref,
-            source_code=source_code,
-            is_main=is_main,
-        )
+    if is_main and Options.isStandaloneMode():
+        module.setEarlyModules(detectEarlyImports())
 
     # Main modules do not get added to the import cache, but plugins get to see it.
     if module.isMainModule():
@@ -1191,3 +1165,184 @@ def buildModuleTree(filename, package, is_top, is_main):
         addImportedModule(imported_module=module)
 
     return module
+
+
+def _makeModuleBodyFromSyntaxError(exc, module_name, module_filename):
+    if module_filename not in Importing.warned_about:
+        Importing.warned_about.add(module_filename)
+
+        recursion_logger.warning(
+            """\
+Cannot follow import to module '%s' because of %r."""
+            % (module_name, exc.__class__.__name__)
+        )
+
+    source_ref = SourceCodeReferences.fromFilename(filename=module_filename)
+
+    module = CompiledPythonModule(
+        module_name=module_name,
+        is_top=False,
+        mode="compiled",
+        future_spec=FutureSpec(),
+        source_ref=source_ref,
+    )
+
+    module_body = makeModuleFrame(
+        module=module,
+        statements=(
+            makeRaiseExceptionStatementFromInstance(
+                source_ref=source_ref, exception=exc
+            ),
+        ),
+        source_ref=source_ref,
+    )
+
+    module_body = makeStatementsSequenceFromStatement(statement=module_body)
+    module.setChild("body", module_body)
+
+    return module
+
+
+def _makeModuleBodyTooComplex(module_name, module_filename, source_code, is_package):
+    if module_filename not in Importing.warned_about:
+        Importing.warned_about.add(module_filename)
+
+        recursion_logger.warning(
+            """\
+Cannot follow import to import module '%r' ('%r') because code is too complex."""
+            % (
+                module_name,
+                module_filename,
+            )
+        )
+
+    module = makeUncompiledPythonModule(
+        module_name=module_name,
+        filename=module_filename,
+        bytecode=marshal.dumps(
+            compile(source_code, module_filename, "exec", dont_inherit=True)
+        ),
+        is_package=is_package,
+        user_provided=True,
+        technical=False,
+    )
+
+    ModuleRegistry.addUncompiledModule(module)
+
+
+def buildModule(
+    module_name,
+    module_filename,
+    source_code,
+    is_top,
+    is_main,
+    is_extension,
+    is_fake,
+    hide_syntax_error,
+):
+    # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
+    (
+        main_added,
+        is_package,
+        is_namespace,
+        source_ref,
+        source_filename,
+    ) = Importing.decideModuleSourceRef(
+        filename=module_filename,
+        module_name=module_name,
+        is_main=is_main,
+        is_fake=is_fake,
+        logger=general,
+    )
+
+    if Options.hasPythonFlagPackageMode():
+        if is_top and Options.shallMakeModule():
+            optimization_logger.warning(
+                "Python flag -m (package_mode) has no effect in module mode, it's only for executables."
+            )
+        elif is_main and not main_added:
+            optimization_logger.warning(
+                "Python flag -m (package_mode) only works on packages with '__main__.py'."
+            )
+
+    # Read source code if necessary. Might give a SyntaxError due to not being proper
+    # encoded source.
+    if source_filename is not None and not is_namespace and not is_extension:
+        try:
+            # For fake modules, source is provided directly.
+            if source_code is None:
+                source_code = readSourceCodeFromFilename(
+                    module_name=module_name, source_filename=source_filename
+                )
+        except SyntaxError as e:
+            # Avoid hiding our own syntax errors.
+            if not hasattr(e, "generated_by_nuitka"):
+                raise
+
+            # Do not hide SyntaxError in main module.
+            if not hide_syntax_error:
+                raise
+
+            module = _makeModuleBodyFromSyntaxError(
+                exc=e, module_name=module_name, module_filename=module_filename
+            )
+            return module, True
+
+        try:
+            ast_tree = parseSourceCodeToAst(
+                source_code=source_code,
+                module_name=module_name,
+                filename=source_filename,
+                line_offset=0,
+            )
+        except (SyntaxError, IndentationError) as e:
+            # Do not hide SyntaxError if asked not to.
+            if not hide_syntax_error:
+                raise
+
+            module = _makeModuleBodyFromSyntaxError(
+                exc=e, module_name=module_name, module_filename=module_filename
+            )
+            return module, True
+        except CodeTooComplexCode:
+            # Do not hide CodeTooComplexCode in main module.
+            if is_main:
+                raise
+
+            module = _makeModuleBodyTooComplex(
+                module_name=module_name,
+                module_filename=module_filename,
+                source_code=source_code,
+                is_package=is_package,
+            )
+            return module, False
+    else:
+        ast_tree = None
+        source_code = None
+
+    module = _createModule(
+        module_name=module_name,
+        source_code=source_code,
+        source_ref=source_ref,
+        is_top=is_top,
+        is_main=is_main,
+        is_extension=is_extension,
+        is_namespace=is_namespace,
+        is_package=is_package,
+        main_added=main_added,
+    )
+
+    if is_top:
+        ModuleRegistry.addRootModule(module)
+
+        OutputDirectories.setMainModule(module)
+
+    if module.isCompiledPythonModule() and source_code is not None:
+        createModuleTree(
+            module=module,
+            source_ref=source_ref,
+            ast_tree=ast_tree,
+            is_main=is_main,
+        )
+
+    return module, True

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,19 +17,15 @@
 #
 """ Reformulation of with statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
 from nuitka import Options
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
     ExpressionAttributeLookupSpecial,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.CallNodes import (
     ExpressionCallEmpty,
@@ -52,7 +48,9 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version
 
@@ -73,7 +71,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # Many details, pylint: disable=too-many-branches,too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
-    if python_version < 0x380 and Options.is_fullcompat:
+    if python_version < 0x380 and Options.is_full_compat:
         source_ref = with_source.getCompatibleSourceReference()
 
     temp_scope = provider.allocateTempScope("with")
@@ -110,7 +108,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         statements=statements, allow_none=True, source_ref=source_ref
     )
 
-    if body:
+    if body and python_version < 0x3A0:
         deepest = body
 
         while deepest.getVisitableNodes():
@@ -128,12 +126,12 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # The "__enter__" and "__exit__" were normal attribute lookups under
     # CPython2.6, but that changed with CPython2.7.
     if python_version < 0x270:
-        attribute_lookup_class = ExpressionAttributeLookup
+        attribute_lookup_maker = makeExpressionAttributeLookup
     else:
-        attribute_lookup_class = ExpressionAttributeLookupSpecial
+        attribute_lookup_maker = ExpressionAttributeLookupSpecial
 
     enter_value = ExpressionCallEmpty(
-        called=attribute_lookup_class(
+        called=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
@@ -183,7 +181,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
 
     # First assign the with context to a temporary variable.
     statements = [
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_source_variable, source=with_source, source_ref=source_ref
         )
     ]
@@ -197,13 +195,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
             source_ref=source_ref,
         )
 
-    attribute_enter_assignment = StatementAssignmentVariable(
+    attribute_enter_assignment = makeStatementAssignmentVariable(
         variable=tmp_enter_variable, source=enter_value, source_ref=source_ref
     )
 
-    attribute_exit_assignment = StatementAssignmentVariable(
+    attribute_exit_assignment = makeStatementAssignmentVariable(
         variable=tmp_exit_variable,
-        source=attribute_lookup_class(
+        source=attribute_lookup_maker(
             expression=ExpressionTempVariableRef(
                 variable=tmp_source_variable, source_ref=source_ref
             ),
@@ -219,7 +217,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     # Normal "with" statements are enter, exit ordered after 3.6, and "async with"
     # are since 3.9, and since 3.9 the enter is not awaited, until an exit is present.
     if python_version >= 0x390 and not sync:
-        enter_await_statement = StatementAssignmentVariable(
+        enter_await_statement = makeStatementAssignmentVariable(
             variable=tmp_enter_variable,
             source=ExpressionYieldFromWaitable(
                 expression=ExpressionAsyncWaitEnter(
@@ -246,7 +244,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
     statements.extend(attribute_assignments)
 
     statements.append(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_indicator_variable,
             source=makeConstantRefNode(constant=True, source_ref=source_ref),
             source_ref=source_ref,
@@ -264,7 +262,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
                     statements=(
                         # Prevents final block from calling __exit__ as
                         # well.
-                        StatementAssignmentVariable(
+                        makeStatementAssignmentVariable(
                             variable=tmp_indicator_variable,
                             source=makeConstantRefNode(
                                 constant=False, source_ref=source_ref
@@ -307,13 +305,13 @@ def _buildWithNode(provider, context_expr, assign_target, body, sync, source_ref
         provider=provider,
         tried=statements,
         final=(
-            StatementReleaseVariable(
+            makeStatementReleaseVariable(
                 variable=tmp_source_variable, source_ref=with_exit_source_ref
             ),
-            StatementReleaseVariable(
+            makeStatementReleaseVariable(
                 variable=tmp_enter_variable, source_ref=with_exit_source_ref
             ),
-            StatementReleaseVariable(
+            makeStatementReleaseVariable(
                 variable=tmp_exit_variable, source_ref=with_exit_source_ref
             ),
         ),

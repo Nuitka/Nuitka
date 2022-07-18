@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -435,3 +435,41 @@ def generateBuiltinClassmethodCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def getBuiltinCallViaSpecCode(spec, to_name, called_name, expression, emit, context):
+    arg_value_names = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "%s_result" % spec.name.replace(".", "_"), expression, emit, context
+    ) as value_name:
+        emit(
+            """\
+{
+    PyObject *args[] = {%(arg_value_names)s};
+    char const *arg_names[] = {%(arg_names)s};
+
+    %(to_name)s = CALL_BUILTIN_KW_ARGS(%(called_name)s, args, arg_names, sizeof(args) / sizeof(PyObject *));
+}
+"""
+            % {
+                "to_name": value_name,
+                "called_name": called_name,
+                "arg_names": ",".join(
+                    '"%s"' % arg_name for arg_name in spec.getArgumentNames()
+                ),
+                "arg_value_names": ",".join(
+                    (str(arg_value_name) if arg_value_name else "NULL")
+                    for arg_value_name in arg_value_names
+                ),
+            }
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=[called_name] + list(arg_value_names),
+            emit=emit,
+            context=context,
+        )

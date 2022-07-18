@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,26 +25,28 @@ typical support functions to building parts.
 from contextlib import contextmanager
 
 from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
-from nuitka.Options import isExperimental, shallTraceExecution
+from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import my_print, printError
+from nuitka.Tracing import printError
 
 from .Emission import withSubCollector
 from .LabelCodes import getGotoCode, getLabelCode, getStatementTrace
-from .Reports import onMissingHelper
 
 expression_dispatch_dict = {}
 
+_ignore_list_overrides = set(("EXPRESSION_STR_OPERATION_FORMAT",))
 
-def setExpressionDispatchDict(dispatch_dict):
-    # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
 
-    # Please call us only once.
-    global expression_dispatch_dict
+def addExpressionDispatchDict(dispatch_dict):
+    for key, value in dispatch_dict.items():
 
-    assert not expression_dispatch_dict
-    expression_dispatch_dict = dispatch_dict
+        if key in expression_dispatch_dict:
+            if key not in _ignore_list_overrides:
+                assert False, key
+
+            continue
+
+        expression_dispatch_dict[key] = value
 
 
 def generateExpressionCode(to_name, expression, emit, context, allow_none=False):
@@ -80,10 +82,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
     assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        expression.getSourceReference()
-    )
-
     if not expression.isExpression():
         printError("No expression %r" % expression)
 
@@ -99,9 +97,10 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
             expression.kind,
         )
 
-    code_generator(to_name=to_name, expression=expression, emit=emit, context=context)
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    with context.withCurrentSourceCodeReference(expression.getSourceReference()):
+        code_generator(
+            to_name=to_name, expression=expression, emit=emit, context=context
+        )
 
 
 def generateExpressionsCode(names, expressions, emit, context):
@@ -127,9 +126,25 @@ def generateChildExpressionsCode(expression, emit, context):
     value_names = []
 
     for child_name, child_value in expression.getVisitableNodesNamed():
-        if child_value is not None:
+        if type(child_value) is tuple:
+            child_names = []
+
+            for child_val in child_value:
+                value_name = context.allocateTempName(child_name + "_value")
+
+                generateExpressionCode(
+                    to_name=value_name,
+                    expression=child_val,
+                    emit=emit,
+                    context=context,
+                )
+
+                child_names.append(value_name)
+
+            value_names.append(tuple(child_names))
+        elif child_value is not None:
             # Allocate anyway, so names are aligned.
-            value_name = context.allocateTempName(child_name + "_name")
+            value_name = context.allocateTempName(child_name + "_value")
 
             generateExpressionCode(
                 to_name=value_name, expression=child_value, emit=emit, context=context
@@ -137,6 +152,7 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(value_name)
         else:
+            # Allocate anyway, so names are aligned.
             context.skipTempName(child_name + "_value")
 
             value_names.append(None)
@@ -151,7 +167,9 @@ def generateChildExpressionCode(expression, emit, context, child_name=None):
         child_name = expression.getChildName()
 
     # Allocate anyway, so names are aligned.
-    value_name = context.allocateTempName(child_name + "_name")
+    value_name = context.allocateTempName(
+        child_name + "_value",
+    )
 
     generateExpressionCode(
         to_name=value_name, expression=expression, emit=emit, context=context
@@ -181,7 +199,7 @@ def generateStatementCode(statement, emit, context):
         )
 
         # Complain if any temporary was not dealt with yet.
-        assert not context.getCleanupTempnames(), context.getCleanupTempnames()
+        assert not context.getCleanupTempNames(), context.getCleanupTempNames()
     except Exception:
         printError(
             "Problem with %r at %s"
@@ -259,6 +277,7 @@ def withObjectCodeTemporaryAssignment2(
     yield value_name
 
     if to_name is not value_name:
+        # This is also tasked to release value_name.
         to_name.getCType().emitAssignConversionCode(
             to_name=to_name,
             value_name=value_name,
@@ -266,10 +285,6 @@ def withObjectCodeTemporaryAssignment2(
             emit=emit,
             context=context,
         )
-
-        from .ErrorCodes import getReleaseCode
-
-        getReleaseCode(value_name, emit, context)
 
 
 @contextmanager
@@ -295,6 +310,19 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
         from .ErrorCodes import getReleaseCode
 
         getReleaseCode(value_name, emit, context)
+
+
+def assignConstantNoneResult(to_name, emit, context):
+    # TODO: This is also in SetCode, and should be common for statement only
+    # operations that return None in Python, but only in case of non-error
+    to_name.getCType().emitAssignmentCodeFromConstant(
+        to_name=to_name, constant=None, may_escape=False, emit=emit, context=context
+    )
+
+    # This assignment will not necessarily use it, and since it is borrowed,
+    # debug mode would otherwise complain.
+    if to_name.c_type == "nuitka_void":
+        to_name.maybe_unused = True
 
 
 class HelperCallHandle(object):
@@ -392,88 +420,6 @@ class HelperCallHandle(object):
                     self.target_type.helper_code,
                     self.helper_target.helper_code,
                 )
-
-
-def pickCodeHelper(
-    prefix,
-    suffix,
-    target_type,
-    left_shape,
-    right_shape,
-    helpers,
-    nonhelpers,
-    source_ref,
-):
-    # Lots of details to deal with, # pylint: disable=too-many-locals
-
-    left_part = left_shape.helper_code
-    right_part = right_shape.helper_code
-
-    assert left_part != "INVALID", left_shape
-    assert right_part != "INVALID", right_shape
-
-    if target_type is None:
-        target_part = None
-    else:
-        target_part = target_type.helper_code
-
-        assert target_part != "INVALID", target_type
-
-    # Special hack for "NVOID", lets go to "NBOOL more automatically"
-
-    ideal_helper = "_".join(
-        p for p in (prefix, target_part, left_part, right_part, suffix) if p
-    )
-
-    if target_part == "NVOID" and ideal_helper not in helpers:
-        target_part = "NBOOL"
-
-        ideal_helper = "_".join(
-            p for p in (prefix, target_part, left_part, right_part, suffix) if p
-        )
-
-        from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
-
-        helper_target = CTypeNuitkaBoolEnum
-    else:
-        helper_target = target_type
-
-    if ideal_helper in helpers:
-        return HelperCallHandle(
-            helper_name=ideal_helper,
-            target_type=target_type,
-            helper_target=helper_target,
-            left_shape=left_shape,
-            helper_left=left_shape,
-            right_shape=right_shape,
-            helper_right=right_shape,
-        )
-
-    if isExperimental("nuitka_ilong"):
-        my_print(ideal_helper)
-
-    if source_ref is not None and (not nonhelpers or ideal_helper not in nonhelpers):
-        onMissingHelper(ideal_helper, source_ref)
-
-    fallback_helper = "%s_%s_%s_%s%s" % (prefix, "OBJECT", "OBJECT", "OBJECT", suffix)
-
-    fallback_helper = "_".join(
-        p
-        for p in (prefix, "OBJECT" if target_part else "", "OBJECT", "OBJECT", suffix)
-        if p
-    )
-
-    from .c_types.CTypePyObjectPtrs import CTypePyObjectPtr
-
-    return HelperCallHandle(
-        helper_name=fallback_helper,
-        target_type=target_type,
-        helper_target=CTypePyObjectPtr,
-        left_shape=left_shape,
-        helper_left=CTypePyObjectPtr,
-        right_shape=right_shape,
-        helper_right=CTypePyObjectPtr,
-    )
 
 
 @contextmanager

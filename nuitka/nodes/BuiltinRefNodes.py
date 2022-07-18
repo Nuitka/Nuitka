@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,7 +32,7 @@ from nuitka.Builtins import (
     builtin_names,
     builtin_type_names,
 )
-from nuitka.Options import getPythonFlags
+from nuitka.Options import hasPythonFlagNoAsserts
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
@@ -68,14 +68,6 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     def isKnownToBeHashable():
         return True
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
-
     def getStrValue(self):
         return makeConstantRefNode(
             constant=str(self.getCompileTimeConstant()),
@@ -102,7 +94,7 @@ def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):
         )
     elif builtin_name == "__debug__":
         return makeConstantRefNode(
-            constant="no_asserts" not in getPythonFlags(), source_ref=source_ref
+            constant=not hasPythonFlagNoAsserts(), source_ref=source_ref
         )
     elif builtin_name in builtin_type_names:
         return makeExpressionBuiltinTypeRef(
@@ -158,6 +150,16 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
         return new_node, tags, message
 
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )
+
     @staticmethod
     def isKnownToBeIterable(count):
         # TODO: Why yes, some may be, could be told here.
@@ -191,7 +193,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     __slots__ = ()
 
     def __init__(self, builtin_name, source_ref):
-        assert builtin_name in builtin_anon_names, builtin_name
+        assert builtin_name in builtin_anon_names, (builtin_name, source_ref)
 
         ExpressionBuiltinRefBase.__init__(
             self, builtin_name=builtin_name, source_ref=source_ref
@@ -268,3 +270,13 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         assert new_node is not None
 
         return new_node, "new_expression", "Detected built-in exception making."
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        return self.computeExpressionCall(
+            call_node=call_node,
+            call_args=call_args,
+            call_kw=call_kw,
+            trace_collection=trace_collection,
+        )

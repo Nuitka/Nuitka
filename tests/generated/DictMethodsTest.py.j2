@@ -1,0 +1,114 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Python test originally created or extracted from other peoples work. The #}
+{#     parts from me are licensed as below. It is at least Free Software where  #}
+{#     it's copied from other people. In these cases, that will normally be     #}
+{#     indicated.                                                               #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#         http://www.apache.org/licenses/LICENSE-2.0                           #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+
+# This test does check operations in optimizable and not optimizable forms
+# to check for proper errors, exceptions, etc.
+
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
+
+from __future__ import print_function
+
+
+import os
+import sys
+
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
+from nuitka.tools.testing.Common import checkReferenceCount
+
+# isort:start
+
+# Function to hide type because it is not seen through
+def forgetType(value):
+    return value
+
+# To trigger hashing errors
+unhashable = []
+
+{% for dict_method_name in dict_method_names %}
+
+{% if dict_method_name == "get" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "6,9"] %}
+{% elif dict_method_name == "has_key" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable"] %}
+{% elif dict_method_name == "setdefault" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "unhashable,9"] %}
+{% elif dict_method_name == "pop" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "unhashable,9"] %}
+{% elif dict_method_name == "pop" %}
+{% set method_arg_variants = ["1", "5", "[]", "unhashable", "1,7", "unhashable,9"] %}
+{% elif dict_method_name == "update" %}
+{% set method_arg_variants = ["", "1", "[]", "{a:unhashable}, b=1, c=2"] %}
+{% else %}
+{% set method_arg_variants = [""] %}
+{% endif %}
+
+{% if dict_method_name in ("setdefault", "pop", "popitem", "update") %}
+{% set input_value = "dict(kwargs)" %}
+{% else %}
+{% set input_value = "kwargs" %}
+{% endif %}
+
+{% for method_args in method_arg_variants %}
+
+{% set left_1 = "{1:2, 2:3}" %}
+{% set left_2 = "{2:3, 3:4}" %}
+
+{% set operation_id = "check%s%s" % (dict_method_name.title(), (""if loop.index == 0 else loop.index)) %}
+
+def {{operation_id}}(cond = None, **kwargs):
+    # First value type, which we expect to be compile time recognized.
+
+    try:
+        x = kwargs.{{dict_method_name}}({{method_args}})
+    except Exception as e: # pylint: disable=broad-except
+        if cond is not None:
+            print("dict.{{dict_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time occurred:", repr(e))
+    else:
+        if cond is not None:
+            print("dict.{{dict_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time result:", type(x), x)
+
+    # Now the branch may make things less clear for mixed types and
+    # also require the operation to be checked at run time.
+    left = {{left_1}} if cond else {{left_2}}
+
+    try:
+        # We expect this to be compile time error checked still.
+        x = left.{{dict_method_name}}({{method_args}})
+    except Exception as e: # pylint: disable=broad-except
+        if cond is not None:
+            print("dict.{{dict_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime occurred:", repr(e))
+    else:
+        if cond is not None:
+            print("dict.{{dict_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime result:", type(x), x)
+
+{{operation_id}}(1, a=2, b=1)
+{{operation_id}}(0, a=2, b=1)
+
+checkReferenceCount({{operation_id}})
+
+{% endfor %}
+{% endfor %}

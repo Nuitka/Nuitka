@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -22,7 +22,7 @@
 Program tests are typically aiming at checking specific module constellations
 and making sure the details are being right there. These are synthetic small
 programs, each of which try to demonstrate one or more points or special
-behaviour.
+behavior.
 
 """
 
@@ -44,42 +44,23 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     my_print,
     reportSkip,
+    scanDirectoryForTestCaseFolders,
     setup,
     withPythonPathChange,
 )
-
-
-def getMainProgramFilename(filename):
-    for filename_main in os.listdir(filename):
-        if filename_main.endswith(("Main.py", "Main")):
-            return filename_main
-
-    sys.exit(
-        """\
-Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
-        % (filename)
-    )
 
 
 def main():
     # Complex stuff, even more should become common code though.
     # pylint: disable=too-many-branches,too-many-statements
 
-    python_version = setup(needs_io_encoding=True)
+    python_version = setup(suite="programs", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
     extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
-    for filename in sorted(os.listdir(".")):
-        if (
-            not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
-        ):
-            continue
-
-        filename = os.path.relpath(filename)
+    for filename, filename_main in scanDirectoryForTestCaseFolders("."):
 
         # For these, we expect that they will fail.
         expected_errors = [
@@ -105,6 +86,8 @@ def main():
         if python_version < (3,):
             expected_errors.append("named_imports")
 
+        extra_variant = []
+
         if filename not in expected_errors:
             extra_flags = ["expect_success"]
         else:
@@ -127,15 +110,21 @@ def main():
 
         extra_flags.append("remove_output")
 
-        extra_flags.append("recurse_all")
+        extra_flags.append("--follow-imports")
 
-        # Use the original __file__ value, at least one case warns about things
-        # with filename included, but for pkgutil iteration, make sure we do not
-        # see original Python dirs.
+        # Use the original "__file__" value normally, at least one case warns
+        # about things with filename included, but for pkgutil iteration, make
+        # sure we do not see original Python dirs.
         if filename != "pkgutil_itermodules":
-            extra_flags.append("original_file")
+            extra_flags.append("--file-reference-choice=original")
         else:
-            extra_flags.append("runtime_file")
+            extra_flags.append("--file-reference-choice=runtime")
+
+        # Run it as a package and also as directory.
+        if filename == "package_program":
+            # Not really supported for 2.6
+            if python_version >= (2, 7):
+                extra_variant.append("--python-flag=-m")
 
         # Cannot include the files with syntax errors, these would then become
         # ImportError, but that's not the test. In all other cases, use two
@@ -166,10 +155,8 @@ def main():
 
             extra_flags.append("ignore_warnings")
         elif filename == "multiprocessing_using":
-            if os.name == "nt":
-                extra_flags.append("plugin_enable:multiprocessing")
-
-            elif sys.platform == "darwin" and python_version >= (3, 8):
+            # TODO: Still true?
+            if sys.platform == "darwin" and python_version >= (3, 8):
                 reportSkip("Hangs for unknown reasons", ".", filename)
                 continue
         else:
@@ -179,8 +166,6 @@ def main():
 
         if active:
             my_print("Consider output of recursively compiled program:", filename)
-
-            filename_main = getMainProgramFilename(filename)
 
             extra_python_path = [
                 os.path.abspath(os.path.join(filename, entry))
@@ -199,6 +184,16 @@ def main():
                     search_mode=search_mode,
                     needs_2to3=False,
                 )
+
+                if extra_variant:
+                    my_print("Extra variation %r." % extra_variant)
+                    compareWithCPython(
+                        dirname=filename,
+                        filename=filename_main,
+                        extra_flags=extra_flags + extra_variant,
+                        search_mode=search_mode,
+                        needs_2to3=False,
+                    )
 
     search_mode.finish()
 

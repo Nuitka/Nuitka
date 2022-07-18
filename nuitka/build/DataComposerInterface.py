@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,10 +23,18 @@ import subprocess
 import sys
 
 from nuitka.Options import isExperimental
-from nuitka.utils.Execution import withEnvironmentVarsOverriden
+from nuitka.utils.Execution import withEnvironmentVarsOverridden
 
 
 def runDataComposer(source_dir):
+    from nuitka.plugins.Plugins import Plugins
+
+    Plugins.onDataComposerRun()
+    blob_filename = _runDataComposer(source_dir=source_dir)
+    Plugins.onDataComposerResult(blob_filename)
+
+
+def _runDataComposer(source_dir):
     data_composer_path = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", "tools", "data_composer")
     )
@@ -42,7 +50,7 @@ def runDataComposer(source_dir):
 
     blob_filename = getConstantBlobFilename(source_dir)
 
-    with withEnvironmentVarsOverriden(mapping):
+    with withEnvironmentVarsOverridden(mapping):
         subprocess.check_call(
             [
                 sys.executable,
@@ -69,6 +77,8 @@ def deriveModuleConstantsBlobName(filename):
         return ""
     elif basename == "__bytecode":
         return ".bytecode"
+    elif basename == "__files":
+        return ".files"
     else:
         # Strip "module." prefix"
         basename = basename[7:]

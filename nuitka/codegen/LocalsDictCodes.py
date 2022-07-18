@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,8 +20,6 @@
 These are variable handling for classes and partially also Python2 exec
 statements.
 """
-
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 
 from .CodeHelpers import (
     generateExpressionCode,
@@ -97,7 +95,7 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.getTypeShape() is tshape_dict
+    is_dict = locals_scope.hasShapeDictionaryExact()
 
     res_name = context.getIntResName()
 
@@ -136,7 +134,7 @@ def generateLocalsDictDelCode(statement, emit, context):
 
     dict_arg_name = locals_scope.getCodeName()
 
-    is_dict = locals_scope.getTypeShape() is tshape_dict
+    is_dict = locals_scope.hasShapeDictionaryExact()
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
 
@@ -197,30 +195,41 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
         locals_scope = expression.getLocalsDictScope()
         locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-        is_dict = locals_scope.getTypeShape() is tshape_dict
+        is_dict = locals_scope.hasShapeDictionaryExact()
 
         assert not context.needsCleanup(value_name)
 
         if is_dict:
             template = template_read_locals_dict_with_fallback
             fallback_codes = indented(fallback_emit.codes)
+
+            emit(
+                template
+                % {
+                    "to_name": value_name,
+                    "locals_dict": locals_declaration,
+                    "fallback": fallback_codes,
+                    "var_name": context.getConstantCode(constant=variable_name),
+                }
+            )
         else:
             template = template_read_locals_mapping_with_fallback
             fallback_codes = indented(fallback_emit.codes, 2)
 
+            emit(
+                template
+                % {
+                    "to_name": value_name,
+                    "locals_dict": locals_declaration,
+                    "fallback": fallback_codes,
+                    "var_name": context.getConstantCode(constant=variable_name),
+                    "exception_exit": context.getExceptionEscape(),
+                }
+            )
+
             # If the fallback took no reference, then make it do it
             # anyway.
             context.addCleanupTempName(value_name)
-
-        emit(
-            template
-            % {
-                "to_name": value_name,
-                "locals_dict": locals_declaration,
-                "fallback": fallback_codes,
-                "var_name": context.getConstantCode(constant=variable_name),
-            }
-        )
 
 
 def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
@@ -229,7 +238,7 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.getTypeShape() is tshape_dict
+    is_dict = locals_scope.hasShapeDictionaryExact()
 
     if is_dict:
         template = template_read_locals_dict_without_fallback
@@ -269,7 +278,7 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    is_dict = locals_scope.getTypeShape() is tshape_dict
+    is_dict = locals_scope.hasShapeDictionaryExact()
 
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,11 +22,11 @@ directory and then compiles that to either an executable or an extension module
 or package, that can contain all used modules too.
 """
 
-# Import as little as possible initially, because we might be re-executing
-# soon.
+# Note: This avoids imports at all costs, such that initial startup doesn't do more
+# than necessary, until re-execution has been decided.
+
 import os
 import sys
-import warnings
 
 
 def main():
@@ -41,8 +41,12 @@ def main():
 
     if "NUITKA_PYTHONPATH" in os.environ:
         # Restore the PYTHONPATH gained from the site module, that we chose not
-        # to have imported. pylint: disable=eval-used
-        sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
+        # to have imported during compilation. For loading ast module, we need
+        # one element, that is not necessarily in our current path.
+        sys.path = [os.environ["NUITKA_PYTHONPATH_AST"]]
+        import ast
+
+        sys.path = ast.literal_eval(os.environ["NUITKA_PYTHONPATH"])
         del os.environ["NUITKA_PYTHONPATH"]
     else:
         # Remove path element added for being called via "__main__.py", this can
@@ -54,17 +58,12 @@ def main():
             if os.path.dirname(os.path.abspath(__file__)) != path_element
         ]
 
-    # We don't care, and these are triggered by run time calculations of "range" and
-    # others, while on python2.7 they are disabled by default.
-
-    warnings.simplefilter("ignore", DeprecationWarning)
-
     # We will run with the Python configuration as specified by the user, if it does
     # not match, we restart ourselves with matching configuration.
-    needs_reexec = False
+    needs_re_execution = False
 
     if sys.flags.no_site == 0:
-        needs_reexec = True
+        needs_re_execution = True
 
     # The hash randomization totally changes the created source code created,
     # changing it every single time Nuitka is run. This kills any attempt at
@@ -72,70 +71,25 @@ def main():
     # actually may still use it, during compilation we don't want to. So lets
     # disable it.
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
-        needs_reexec = True
-
-    # For re-execution, we might not have done this.
-    from nuitka import Options  # isort:skip
+        needs_re_execution = True
 
     # In case we need to re-execute.
-    if needs_reexec:
-        # TODO: If that's the only one, why do it at all..
-        Options.parseArgs(will_reexec=True)
+    if needs_re_execution:
+        from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
-        if not Options.isAllowedToReexecute():
-            sys.exit("Error, not allowed to re-execute, but that would be needed.")
+        # Does not return
+        reExecuteNuitka(pgo_filename=None)
 
-        our_filename = sys.modules[__name__].__file__
+    # We don't care about deprecations in any version, and these are triggered
+    # by run time calculations of "range" and others, while on python2.7 they
+    # are disabled by default.
+    import warnings
 
-        # Execute with full path as the process name, so it can find itself and its
-        # libraries.
-        args = [sys.executable, sys.executable]
+    warnings.simplefilter("ignore", DeprecationWarning)
 
-        from nuitka.PythonVersions import python_version
+    from nuitka import Options  # isort:skip
 
-        if python_version >= 0x370 and sys.flags.utf8_mode:
-            args += ["-X", "utf8"]
-
-        args += ["-S", our_filename]
-
-        os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
-        os.environ["NUITKA_PACKAGE_HOME"] = os.path.dirname(
-            os.path.abspath(sys.modules["nuitka"].__path__[0])
-        )
-
-        if Options.is_nuitka_run:
-            args.append("--run")
-
-        # Same arguments as before.
-        args += sys.argv[1:] + list(Options.getMainArgs())
-
-        os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
-
-        from nuitka.importing.PreloadedPackages import (
-            detectPreLoadedPackagePaths,
-            detectPthImportedPackages,
-        )
-
-        os.environ["NUITKA_NAMESPACES"] = repr(detectPreLoadedPackagePaths())
-
-        if "site" in sys.modules:
-            os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
-
-            os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
-
-        os.environ["NUITKA_SITE_FLAG"] = (
-            str(sys.flags.no_site) if not Options.hasPythonFlagNoSite() else "1"
-        )
-
-        os.environ["PYTHONHASHSEED"] = "0"
-
-        os.environ["NUITKA_REEXECUTION"] = "1"
-
-        from nuitka.utils import Execution  # isort:skip
-
-        Execution.callExec(args)
-
-    Options.parseArgs(will_reexec=False)
+    Options.parseArgs()
 
     Options.commentArgs()
 
@@ -151,20 +105,17 @@ def main():
 
     if "NUITKA_NAMESPACES" in os.environ:
         # Restore the detected name space packages, that were force loaded in
-        # site.py, and will need a free pass later on. pylint: disable=eval-used
-
+        # site.py, and will need a free pass later on
         from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
 
-        setPreloadedPackagePaths(eval(os.environ["NUITKA_NAMESPACES"]))
+        setPreloadedPackagePaths(ast.literal_eval(os.environ["NUITKA_NAMESPACES"]))
         del os.environ["NUITKA_NAMESPACES"]
 
     if "NUITKA_PTH_IMPORTED" in os.environ:
         # Restore the packages that the ".pth" files asked to import.
-        # pylint: disable=eval-used
-
         from nuitka.importing.PreloadedPackages import setPthImportedPackages
 
-        setPthImportedPackages(eval(os.environ["NUITKA_PTH_IMPORTED"]))
+        setPthImportedPackages(ast.literal_eval(os.environ["NUITKA_PTH_IMPORTED"]))
         del os.environ["NUITKA_PTH_IMPORTED"]
 
     # Now the real main program of Nuitka can take over.

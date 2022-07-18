@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,8 @@ import sys
 
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
+
+from .Utils import withNoDeprecationWarning
 
 
 def _importFilePy3NewWay(filename):
@@ -147,14 +149,15 @@ def getSharedLibrarySuffix(preferred):
     return result
 
 
-def importFromFolder(logger, module_name, path, must_exist, message):
+def _importFromFolder(logger, module_name, path, must_exist, message):
     """Import a module from a folder by adding it temporarily to sys.path"""
 
     # Circular dependency here
     from .FileOperations import isPathBelow
 
     if module_name in sys.modules:
-        # May already be loaded, but the wrong one from a pth of clcache
+        # May already be loaded, but the wrong one from a ".pth" file of
+        # clcache that we then don't want to use.
         if module_name != "clcache" or isPathBelow(
             path=path, filename=sys.modules[module_name].__file__
         ):
@@ -168,12 +171,12 @@ def importFromFolder(logger, module_name, path, must_exist, message):
     # Handle case without inline copy too.
     try:
         return __import__(module_name)
-    except (ImportError, SyntaxError) as e:
+    except (ImportError, SyntaxError, RuntimeError) as e:
         if not must_exist:
             return None
 
         exit_message = (
-            "Error, expected inline copy of %r is in %r there, error was: %r."
+            "Error, expected inline copy of '%s' to be in '%s', error was: %r."
             % (module_name, path, e)
         )
 
@@ -189,14 +192,53 @@ def importFromFolder(logger, module_name, path, must_exist, message):
 def importFromInlineCopy(module_name, must_exist):
     """Import a module from the inline copy stage."""
 
-    return importFromFolder(
+    folder_name = os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__), "..", "build", "inline_copy", module_name
+        )
+    )
+
+    candidate_27 = folder_name + "_27"
+    candidate_35 = folder_name + "_35"
+
+    # Use specific versions if needed.
+    if python_version < 0x300 and os.path.exists(candidate_27):
+        folder_name = candidate_27
+    elif python_version < 0x360 and os.path.exists(candidate_35):
+        folder_name = candidate_35
+
+    return _importFromFolder(
         module_name=module_name,
-        path=os.path.normpath(
-            os.path.join(
-                os.path.dirname(__file__), "..", "build", "inline_copy", module_name
-            )
-        ),
+        path=folder_name,
         must_exist=must_exist,
         message=None,
         logger=general,
     )
+
+
+_compile_time_modules = {}
+
+
+def importFromCompileTime(module_name, must_exist):
+    """Import a module from the compiled time stage.
+
+    This is not for using the inline copy, but the one from the actual
+    installation of the user. It suppresses warnings and caches the value
+    avoid making more __import__ calls that necessary.
+    """
+
+    if module_name not in _compile_time_modules:
+        with withNoDeprecationWarning():
+            try:
+                __import__(module_name)
+            except (ImportError, RuntimeError):
+                # Preventing a retry, converted to None for return
+                _compile_time_modules[module_name] = False
+            else:
+                _compile_time_modules[module_name] = sys.modules[module_name]
+
+    # Some code should only use this, after knowing it will be found. Complain if
+    # that is not the case.
+    assert _compile_time_modules[module_name] or not must_exist
+
+    return _compile_time_modules[module_name] or None

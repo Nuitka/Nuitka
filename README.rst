@@ -2,15 +2,6 @@
  Nuitka User Manual
 ####################
 
-.. image:: doc/images/Nuitka-Logo-Symbol.png
-
-.. contents::
-
-.. raw:: pdf
-
-   PageBreak oneColumn
-   SetPageCounter 1
-
 **********
  Overview
 **********
@@ -22,7 +13,7 @@ license, requirements, credits, etc.
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
 **every** construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8,
-3.9 have, when itself run with that Python version.
+3.9, 3.10 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
 extremely compatible manner.
@@ -51,26 +42,32 @@ Requirements
 
    Currently this means, you need to use one of these compilers:
 
-   -  The ``gcc`` compiler of at least version 5.1, or the ``g++``
-      compiler of at least version 4.4 as an alternative.
+   -  The MinGW64 C11 compiler on Windows, must be based on gcc 11.2 or
+      higher. It will be *automatically* downloaded if no usable C
+      compiler is found, which is the recommended way of installing it,
+      as Nuitka will also upgrade it for you.
 
-   -  The ``clang`` compiler on macOS X and FreeBSD.
-
-   -  The MinGW64 C11 compiler on Windows, must be based on gcc 8 or
-      higher. It will be automatically downloaded if not found, which is
-      the recommended way of installing it.
-
-   -  Visual Studio 2019 or higher on Windows [#]_, older versions will
+   -  Visual Studio 2022 or higher on Windows [#]_, older versions will
       work but only supported for commercial users. Configure to use the
       English language pack for best results (Nuitka filters away
-      garbage outputs, but only for that language).
+      garbage outputs, but only for English language). It will be used
+      by default if installed.
+
+   -  On all other platforms, the ``gcc`` compiler of at least version
+      5.1, and below that the ``g++`` compiler of at least version 4.4
+      as an alternative.
+
+   -  The ``clang`` compiler on macOS X and most FreeBSD architectures.
 
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
       provided by the Visual Studio installer.
 
--  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
+-  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
 
-   .. admonition:: For Python 3.3/3.4 and *only* those, we need other Python version as a *compile time* dependency.
+   .. important::
+
+      For Python 3.3/3.4 and *only* those, we need other Python version
+      as a *compile time* dependency.
 
       Nuitka itself is fully compatible with all listed versions, but
       Scons as an internally used tool is not.
@@ -84,9 +81,14 @@ Requirements
       ``clcache`` does not work with it, there a Python 3.5 or higher
       needs to be installed.
 
-      Nuitka finds these needed Python versions (on Windows via
+      Nuitka finds these needed Python versions (e.g. on Windows via
       registry) and you shouldn't notice it as long as they are
       installed.
+
+      Increasingly, other functionality is available when another Python
+      has a certain package installed. For example, onefile compression
+      will work for a Python 2.x when another Python is found that has
+      the ``zstandard`` package installed.
 
    .. admonition:: Moving binaries to other machines
 
@@ -111,10 +113,6 @@ Requirements
       You need the standard Python implementation, called "CPython", to
       execute Nuitka, because it is closely tied to implementation
       details of it.
-
-      On Windows, for Python not installed system-wide and acceleration
-      mode, you need to copy the ``PythonXX.DLL`` alongside it,
-      something Nuitka does automatically.
 
    .. admonition:: It **cannot be** from Windows app store
 
@@ -151,8 +149,8 @@ Requirements
 .. [#]
 
    Download for free from
-   http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-   (the Express editions work just fine).
+   https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
+   (the community editions work just fine).
 
    The latest version is recommended but not required. On the other hand,
    there is no need to except pre-Windows 10 support, and they might work
@@ -177,11 +175,10 @@ is optional.
 Moreover, if you want to execute with the right interpreter, in that
 case, be sure to execute ``<the_right_python> bin/nuitka`` and be good.
 
-   .. admonition:: Pick the right Interpreter
+.. admonition:: Pick the right Interpreter
 
-      If you encounter a ``SyntaxError`` you absolutely most certainly
-      have picked the wrong interpreter for the program you are
-      compiling.
+   If you encounter a ``SyntaxError`` you absolutely most certainly have
+   picked the wrong interpreter for the program you are compiling.
 
 Nuitka has a ``--help`` option to output what it can do:
 
@@ -205,10 +202,10 @@ Installation
 ============
 
 For most systems, there will be packages on the `download page
-<http://www.nuitka.net/pages/download.html>`__ of Nuitka. But you can
-also install it from source code as described above, but also like any
-other Python program it can be installed via the normal ``python
-setup.py install`` routine.
+<https://nuitka.net/doc/download.html>`__ of Nuitka. But you can also
+install it from source code as described above, but also like any other
+Python program it can be installed via the normal ``python setup.py
+install`` routine.
 
 License
 =======
@@ -238,19 +235,20 @@ Setup
 Install Python
 --------------
 
-   -  Download and install from https://www.python.org/downloads/windows
+-  Download and install Python from
+   https://www.python.org/downloads/windows
 
-   -  Select one of ``Windows x86-64 web-based installer`` (64 bits
-      Python, recommended) or ``x86 executable`` (32 bits Python)
-      installer.
+-  Select one of ``Windows x86-64 web-based installer`` (64 bits Python,
+   recommended) or ``x86 executable`` (32 bits Python) installer.
 
-   -  Verify using command ``python --version``.
+-  Verify it's working using command ``python --version``.
 
 Install Nuitka
 --------------
 
-   -  ``python -m pip install nuitka``
-   -  Verify using command ``python -m nuitka --version``
+-  ``python -m pip install nuitka``
+
+-  Verify using command ``python -m nuitka --version``
 
 Write some code and test
 ========================
@@ -258,21 +256,22 @@ Write some code and test
 Create a folder for the Python code
 -----------------------------------
 
-   -  mkdir HelloWorld
-   -  make a python file named **hello.py**
+-  ``mkdir`` HelloWorld
 
-   .. code:: python
+-  make a python file named **hello.py**
 
-      def talk(message):
-          return "Talk " + message
+.. code:: python
 
-
-      def main():
-          print(talk("Hello World"))
+   def talk(message):
+       return "Talk " + message
 
 
-      if __name__ == "__main__":
-          main()
+   def main():
+       print(talk("Hello World"))
+
+
+   if __name__ == "__main__":
+       main()
 
 Test your program
 -----------------
@@ -291,16 +290,14 @@ Build it using
 
 .. code:: bash
 
-   python -m nuitka --mingw64 hello.py
+   python -m nuitka hello.py
 
 .. note::
 
    This will prompt you to download a C caching tool (to speed up
    repeated compilation of generated C code) and a MinGW64 based C
-   compiler. Say yes to those.
-
-If you like to have full output from the C compilation add
-``--show-scons``, but that should only be useful if you have errors.
+   compiler unless you have a suitable MSVC installed. Say ``yes`` to
+   both those questions.
 
 Run it
 ------
@@ -415,9 +412,11 @@ also feasible, use Nuitka like this:
 
 .. note::
 
-   The recursion into the package directory needs to be provided
-   manually, otherwise, the package is empty. Data files located inside
-   the package will not be embedded yet.
+   The inclusion of the package contents needs to be provided manually,
+   otherwise, the package is empty. You can be more specific if you
+   want, and only include part of it. Data files located inside the
+   package will not be embedded by this process, you need to copy them
+   yourself with this approach.
 
 Use Case 4 - Program Distribution
 =================================
@@ -435,13 +434,13 @@ modules by specifically saying ``--nofollow-import-to``, but then an
 runtime.
 
 For data files to be included, use the option
-``--include-data-file=<source>=<target>`` where the source is a file
+``--include-data-files=<source>=<target>`` where the source is a file
 system path, but target has to be specified relative. For standalone you
 can also copy them manually, but this can do extra checks, and for
 onefile mode, there is no manual copying possible.
 
 To copy some or all file in a directory, use the option
-``--include-data-file=/etc/*.txt=etc/`` where you get to specify shell
+``--include-data-files=/etc/*.txt=etc/`` where you get to specify shell
 patterns for the files, and a subdirectory where to put them, indicated
 by the trailing slash.
 
@@ -469,10 +468,6 @@ This will create a single binary, which on Linux will not even unpack
 itself, but instead loop back mount its contents as a filesystem and use
 that.
 
-On Windows, there are two modes, one which is copying it to the AppData
-of your company specified, to also use it as a cache, and one which does
-it in the temporary directory. You need to do one this this.
-
 .. code:: bash
 
    # Create a binary that unpacks into a temporary folder
@@ -480,29 +475,39 @@ it in the temporary directory. You need to do one this this.
 
 .. note::
 
-   There are more Windows specific options, e.g. related to icons, but
-   also more version information, consider the ``--help`` output for the
-   details of these.
+   There are more platform specific options, e.g. related to icons,
+   splash screen, and version information, consider the ``--help``
+   output for the details of these and check the section "Good Looks".
 
 Again, on Windows, for the temporary file directory, by default the user
-one is used, however this is overridable with a path specification given
-in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%`` which
-is the default and asserts that the temporary directories created cannot
-collide.
+one is used, however this can be overridden with a path specification
+given in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%``
+which is the default and asserts that the temporary directories created
+cannot collide.
 
 Currently these expanded tokens are available:
 
-+-----------+--------------------------------------+-----------------------------------+
-| Token     | What this Expands to                 | Example                           |
-+===========+======================================+===================================+
-| %TEMP%    | User temporary file directory        | C:\Users\...\AppData\Locals\Temp  |
-+-----------+--------------------------------------+-----------------------------------+
-| %PID%     | Process ID                           | 2772                              |
-+-----------+--------------------------------------+-----------------------------------+
-| %TIME%    | Time in seconds since the epoch.     | 1299852985                        |
-+-----------+--------------------------------------+-----------------------------------+
-| %PROGRAM% | Full program filename of executable. | C:\SomeWhere\YourOnefile.exe      |
-+-----------+--------------------------------------+-----------------------------------+
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| Token       | What this Expands to                                                      | Example                          |
++=============+===========================================================================+==================================+
+| %TEMP%      | User temporary file directory                                             | C:\Users\...\AppData\Locals\Temp |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %PID%       | Process ID                                                                | 2772                             |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %TIME%      | Time in seconds since the epoch.                                          | 1299852985                       |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %PROGRAM%   | Full program run-time filename of executable.                             | C:\SomeWhere\YourOnefile.exe     |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %CACHE_DIR% | Cache directory for the user.                                             | C:\Users\SomeBody\AppData\Local  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %COMPANY%   | Value given as ``--windows-company-name``                                 | YourCompanyName                  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %PRODUCT%   | Value given as ``--windows-product-name``                                 | YourProductName                  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %VERSION%   | Combination of ``--windows-file-version`` & ``--windows-product-version`` | 3.0.0.0-1.0.0.0                  |
++-------------+---------------------------------------------------------------------------+----------------------------------+
+| %HOME%      | Home directory for the user.                                              | /home/somebody                   |
++-------------+---------------------------------------------------------------------------+----------------------------------+
 
 .. note::
 
@@ -516,23 +521,291 @@ Currently these expanded tokens are available:
    you want things to reside in a place you choose or abide your naming
    conventions.
 
+Use Case 5 - Setuptools Wheels
+==============================
+
+If you have a ``setup.py``, ``setup.cfg`` or ``pyproject.toml`` driven
+creation of wheels for your software in place, putting Nuitka to use is
+extremely easy.
+
+Lets start with the most common ``setuptools`` approach, you can -
+having Nuitka installed of course, simply execute the target
+``bdist_nuitka`` rather than the ``bdist_wheel``. It takes all the
+options and allows you to specify some more, that are specific to
+Nuitka.
+
+.. code:: python
+
+   # For setup.py if not you't use other build systems:
+   setup(
+      ...,
+      command_options={
+         'nuitka': {
+            # boolean option, e.g. if you cared for C compilation commands
+            '--show-scons': True,
+            # options without value, e.g. enforce using Clang
+            '--clang': None,
+            # options with single values, e.g. enable a plugin of Nuitka
+            '--enable-plugin': "pyside2",
+            # options with several values, e.g. avoiding including modules
+            '--nofollow-import-to' : ["*.tests", "*.distutils"],
+         }
+      },
+   )
+
+   # For setup.py with other build systems:
+   # The tuple nature of the arguments is required by the dark nature of
+   # "setuptools" and plugins to it, that insist on full compatibility,
+   # e.g. "setuptools_rust"
+
+   setup(
+      ...,
+      command_options={
+         'nuitka': {
+            # boolean option, e.g. if you cared for C compilation commands
+            '--show-scons': ("setup.py", True),
+            # options without value, e.g. enforce using Clang
+            '--clang': ("setup.py", None),
+            # options with single values, e.g. enable a plugin of Nuitka
+            '--enable-plugin': ("setup.py", "pyside2"),
+            # options with several values, e.g. avoiding including modules
+            '--nofollow-import-to' : ("setup.py", ["*.tests", "*.distutils"]),
+         }
+      },
+   )
+
+If for some reason, you cannot or do not what to change the target, you
+can add this to your ``setup.py``.
+
+.. code:: python
+
+   # For setup.py
+   setup(
+      ...,
+      build_with_nuitka=True
+   )
+
+.. note::
+
+   To temporarily disable the compilation, you could remove above line,
+   or edit the value to ``False`` by or take its value from an
+   environment variable if you so choose, e.g.
+   ``bool(os.environ.get("USE_NUITKA", "True"))``. This is up to you.
+
+Or you could put it in your ``setup.cfg``
+
+.. code:: toml
+
+   [metadata]
+   build_with_nuitka = True
+
+And last, but not least, Nuitka also supports the new ``build`` meta, so
+when you have a ``pyproject.toml`` already, simple replace or add this
+value:
+
+.. code:: toml
+
+   [build-system]
+   requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
+   build-backend = "nuitka.distutils.Build"
+
+   [nuitka]
+   # These are not recommended, but they make it obvious to have effect.
+
+   # boolean option, e.g. if you cared for C compilation commands, leading
+   # dashes are omitted
+   show-scons = true
+
+   # options with single values, e.g. enable a plugin of Nuitka
+   enable-plugin = pyside2
+
+   # options with several values, e.g. avoiding including modules, accepts
+   # list argument.
+   nofollow-import-to = ["*.tests", "*.distutils"]
+
+.. note::
+
+   For the ``nuitka`` requirement above absolute paths like
+   ``C:\Users\...\Nuitka`` will also work on Linux, use an absolute path
+   with *two* leading slashes, e.g. ``//home/.../Nuitka``.
+
+********
+ Tweaks
+********
+
+Icons
+=====
+
+For good looks, you may specify icons. On Windows, you can provide an
+icon file, a template executable, or a PNG file. All of these will work
+and may even be combined:
+
+.. code:: bash
+
+   # These create binaries with icons:
+   python -m nuitka --onefile --windows-icon-from-ico=your-icon.png program.py
+   python -m nuitka --onefile --windows-icon-from-ico=your-icon.ico program.py
+   python -m nuitka --onefile --windows-icon-template-exe=your-icon.ico program.py
+
+Splash screen
+=============
+
+Splash screens are useful when program startup is slow. Onefile startup
+itself is not slow, but your program may be, and you cannot really know
+how fast the computer used will be, so it might be a good idea to have
+them. Luckily with Nuitka, they are easy to add for Windows.
+
+For splash screen, you need to specify it as an PNG file, and then make
+sure to disable the splash screen when your program is ready, e.g. has
+complete the imports, prepared the window, connected to the database,
+and wants the splash screen to go away. Here we are using the project
+syntax to combine the code with the creation, compile this:
+
+.. code:: python
+
+   # nuitka-project: --onefile
+   # nuitka-project: --onefile-windows-splash-screen-image={MAIN_DIRECTORY}/Splash-Screen.png
+
+   # Whatever this is obviously
+   print("Delaying startup by 10s...")
+   import time
+   time.sleep(10)
+
+   # Use this code to signal the splash screen removal.
+   if "NUITKA_ONEFILE_PARENT" in os.environ:
+      splash_filename = os.path.join(
+         tempfile.gettempdir(),
+         "onefile_%d_splash_feedback.tmp" % int(os.environ["NUITKA_ONEFILE_PARENT"]),
+      )
+
+      if os.path.exists(splash_filename):
+         os.unlink(splash_filename)
+
+   print("Done... splash should be gone.")
+   ...
+
+   # Rest of your program goes here.
+
 ******************
  Typical Problems
 ******************
+
+Memory issues and compiler bugs
+===============================
+
+Sometimes the C compilers will crash saying they cannot allocate memory
+or that some input was truncated, or similar error messages, clearly
+from it. There are several options you can explore here:
+
+Ask Nuitka to use less memory
+-----------------------------
+
+There is a dedicated option ``--low-memory`` which influences decisions
+of Nuitka, such that it avoids high usage of memory during compilation
+at the cost of increased compile time.
+
+Avoid 32 bit C compiler/assembler memory limits
+-----------------------------------------------
+
+Do not use a 32 bits compiler, but a 64 bit one. If you are using Python
+with 32 bits on Windows, you most definitely ought to use MSVC as the C
+compiler, and not MinGW64. The MSVC is a cross compiler, and can use
+more memory than gcc on that platform. If you are not on Windows, that
+is not an option of course. Also using the 64 bits Python will work.
+
+Use LTO compilation or not
+--------------------------
+
+With ``--lto=yes`` or ``--lto=no`` you can switch the C compilation to
+only produce bytecode, and not assembler code and machine code directly,
+but make a whole program optimization at the end. This will change the
+memory usage pretty dramatically, and if you error is coming from the
+assembler, using LTO will most definitely avoid that.
+
+Switch the C compiler to clang
+------------------------------
+
+People have reported that programs that fail to compile with gcc due to
+its bugs or memory usage work fine with clang on Linux. On Windows, this
+could still be an option, but it needs to be implemented first for the
+automatic downloaded gcc, that would contain it. Since MSVC is known to
+be more memory effective anyway, you should go there, and if you want to
+use Clang, there is support for the one contained in MSVC.
+
+Add a larger swap file to your embedded Linux
+---------------------------------------------
+
+On systems with not enough RAM, you need to use swap space. Running out
+of it is possibly a cause, and adding more swap space, or one at all,
+might solve the issue, but beware that it will make things extremely
+slow when the compilers swap back and forth, so consider the next tip
+first or on top of it.
+
+Limit the amount of compilation jobs
+------------------------------------
+
+With the ``--jobs`` option of Nuitka, it will not start many C compiler
+instances at once, each competing for the scarce resource of RAM. By
+picking a value of one, only one C compiler instance will be running,
+and on a 8 core system, that reduces the amount of memory by factor 8,
+so that's a natural choice right there.
 
 Dynamic ``sys.path``
 ====================
 
 If your script modifies ``sys.path`` to e.g. insert directories with
-source code relative to it, Nuitka will currently not be able to see
-those. However, if you set the ``PYTHONPATH`` to the resulting value,
-you will be able to compile it.
+source code relative to it, Nuitka will not be able to see those.
+However, if you set the ``PYTHONPATH`` to the resulting value, it will
+be able to compile it and find the used modules from these paths as
+well.
+
+Manual Python File Loading
+--------------------------
+
+A very frequent pattern with private code is that it scans plugin
+directories of some kind, and uses ``os.listdir``, checks filenames, and
+then opens a file and does ``exec`` on them. This approach is working
+for Python code, but for compiled code, you should use this much cleaner
+approach, that works for pure Python code and is a lot less vulnerable.
+
+.. code:: python
+
+   # Using a package name, to locate the plugins, but this can actually
+   # be also a directory.
+   scan_path = scan_package.__path__
+
+   for item in pkgutil.iter_modules(scan_path):
+      # You may want to do it recursively, but we don't do this here in
+      # this example.
+      if item.ispkg:
+         continue
+
+      # The loader object knows how to do it.
+      module_loader = item.module_finder.find_module(item.name)
+
+      # Ignore bytecode only left overs. Deleted files can cause
+      # these things, so we just ignore it. Not every load has a
+      # filename, so we need to catch that error.
+      try:
+         if module_loader.get_filename().endswith(".pyc"):
+            continue
+      except AttributeError:
+         # Not a bytecode loader, but e.g. extension module, which is OK in case
+         # it was compiled with Nuitka.
+         pass
+
+      plugin_module = module_loader.load_module(item.name)
+
+      # At least for Python2, this is not set properly, but we use it for package
+      # data loading, so this manual patching up allows these to use proper methods
+      # for loading their stuff as well.
+      plugin_module.__package__ = scan_package.__name__
 
 Missing data files in standalone
 ================================
 
 If your program fails to file data, it can cause all kinds of different
-behaviours, e.g. a package might complain it is not the right version,
+behaviors, e.g. a package might complain it is not the right version,
 because a ``VERSION`` file check defaulted to unknown. The absence of
 icon files or help texts, may raise strange errors.
 
@@ -565,6 +838,20 @@ imaginable take time.
 Nuitka will have to learn effective caching to deal with this in the
 future. Right now, you will have to deal with huge compilation times for
 these.
+
+A major weapon in fighting dependency creep should be applied, namely
+the ``anti-bloat`` plugin, which offers interesting abilities, that can
+be put to use and block unneeded imports, giving an error for where they
+occur. Use it e.g. like this ``--noinclude-pytest-mode=nofollow
+--noinclude-setuptools-mode=nofollow`` and e.g. also
+``--noinclude-custom-mode=setuptools:error`` to get the compiler to
+error out for a specific package. Make sure to check its help output. It
+can take for each module of your choice, e.g. forcing also that e.g.
+``PyQt5`` is considered uninstalled for standalone mode.
+
+It's also driven by a configuration file, ``anti-bloat.yml`` that you
+can contribute to, removing typical bloat from packages. Feel free to
+enhance it and make PRs towards Nuitka with it.
 
 Onefile: Finding files
 ======================
@@ -621,18 +908,30 @@ The comments must be a start of line, and indentation is to be used, to
 end a conditional block, much like in Python. There are currently no
 other keywords than the used ones demonstrated above.
 
-+------------------+--------------------------------------+--------------------------------+
-| Variable         | What this Expands to                 | Example                        |
-+==================+======================================+================================+
-| {OS}             | Name of the OS used                  | Linux, Windows, Darwin,        |
-|                  |                                      | FreeBSD, OpenBSD               |
-+------------------+--------------------------------------+--------------------------------+
-| {Version}        | Version of Nuitka                    | (0, 6, 14)                     |
-+------------------+--------------------------------------+--------------------------------+
-| {Arch}           | Architecture used                    | x86_64, arm64, etc.            |
-+------------------+--------------------------------------+--------------------------------+
-| {MAIN_DIRECTORY} | Directory of the compiled file       | some_dir/maybe_relative        |
-+------------------+--------------------------------------+--------------------------------+
+You can put arbitrary Python expressions there, and if you wanted to
+e.g. access a version information of a package, you could simply use
+``__import__("module_name").__version__`` if that would be required to
+e.g. enable or disable certain Nuitka settings. The only thing Nuitka
+does that makes this not Python expressions, is expanding ``{variable}``
+for a pre-defined set of variables:
+
+Table with supported variables:
+
++------------------+--------------------------------+------------------------------------------+
+| Variable         | What this Expands to           | Example                                  |
++==================+================================+==========================================+
+| {OS}             | Name of the OS used            | Linux, Windows, Darwin, FreeBSD, OpenBSD |
++------------------+--------------------------------+------------------------------------------+
+| {Version}        | Version of Nuitka              | e.g. (0, 6, 16)                          |
++------------------+--------------------------------+------------------------------------------+
+| {Commercial}     | Version of Nuitka Commercial   | e.g. (0, 9, 4)                           |
++------------------+--------------------------------+------------------------------------------+
+| {Arch}           | Architecture used              | x86_64, arm64, etc.                      |
++------------------+--------------------------------+------------------------------------------+
+| {MAIN_DIRECTORY} | Directory of the compiled file | some_dir/maybe_relative                  |
++------------------+--------------------------------+------------------------------------------+
+| {Flavor}         | Variant of Python              | e.g. Debian Python, Anaconda Python      |
++------------------+--------------------------------+------------------------------------------+
 
 Python command line flags
 =========================
@@ -661,10 +960,20 @@ hang.
 Nuitka will pick up ``ccache`` if it's in found in system ``PATH``, and
 it will also be possible to provide if by setting
 ``NUITKA_CCACHE_BINARY`` to the full path of the binary, this is for use
-in CI systems.
+in CI systems where things might be non-standard.
 
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
+
+Control where Caches live
+=========================
+
+The storage for cache results of all kinds, downloads, cached
+compilation results from C and Nuitka, is done in a platform dependent
+directory as determined by the ``appdirs`` package. However, you can
+override it with setting the environment variable ``NUITKA_CACHE_DIR``
+to a base directory. This is for use in environments where the home
+directory is not persisted, but other paths are.
 
 Runners
 =======
@@ -702,7 +1011,14 @@ overhead, and this even happens to the DLL with itself, being slower,
 than a Python all contained in one binary.
 
 So if feasible, aim at static linking, which is currently only possible
-with Anaconda Python on non-Windows.
+with Anaconda Python on non-Windows, Debian Python2, self compiled
+Pythons (do not activate ``--enable-shared``, not needed), and installs
+created with ``pyenv``.
+
+.. note::
+
+   On Anaconda, you may need to execute ``conda install
+   libpython-static``
 
 Standalone executables and dependencies
 =======================================
@@ -726,15 +1042,15 @@ it, e.g. adding more resources, and then preventing operations randomly
 due to holding locks. Make sure to exclude your compilation stage from
 these services.
 
-Windows standalone program redistribuation
-==========================================
+Windows standalone program redistribution
+=========================================
 
 Whether compiling with MingW or MSVC, the standalone programs have
 external dependencies to Visual C Runtime libraries. Nuitka tries to
 ship those dependent DLLs by copying them from your system.
 
 Beginning with Microsoft Windows 10, Microsoft ships ``ucrt.dll``
-(Universal C Runtime libraries) which rehook calls to
+(Universal C Runtime libraries) which handles calls to
 ``api-ms-crt-*.dll``.
 
 With earlier Windows platforms (and wine/ReactOS), you should consider
@@ -744,27 +1060,27 @@ standalone compiled program.
 Depending on the used C compiler, you'll need the following redist
 versions:
 
-+------------------+-------------+-------------------------+
-| Visual C version | Redist Year | CPython                 |
-+==================+=============+=========================+
-| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8, 3.9 |
-+------------------+-------------+-------------------------+
-| 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8      |
-+------------------+-------------+-------------------------+
-| 14.0             | 2015        | 3.5, 3.6, 3.7, 3.8      |
-+------------------+-------------+-------------------------+
-| 10.0             | 2010        | 3.3, 3.4                |
-+------------------+-------------+-------------------------+
-| 9.0              | 2008        | 2.6, 2.7                |
-+------------------+-------------+-------------------------+
++------------------+-------------+-------------------------------+
+| Visual C version | Redist Year | CPython                       |
++==================+=============+===============================+
+| 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10 |
++------------------+-------------+-------------------------------+
+| 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8            |
++------------------+-------------+-------------------------------+
+| 14.0             | 2015        | 3.5, 3.6, 3.7, 3.8            |
++------------------+-------------+-------------------------------+
+| 10.0             | 2010        | 3.3, 3.4                      |
++------------------+-------------+-------------------------------+
+| 9.0              | 2008        | 2.6, 2.7                      |
++------------------+-------------+-------------------------------+
 
 When using MingGW64, you'll need the following redist versions:
 
-+------------------+-------------+-------------------------+
-| MingGW64 version | Redist Year | CPython                 |
-+==================+=============+=========================+
-| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9 |
-+------------------+-------------+-------------------------+
++------------------+-------------+-------------------------------+
+| MingGW64 version | Redist Year | CPython                       |
++==================+=============+===============================+
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10 |
++------------------+-------------+-------------------------------+
 
 Once the corresponding runtime libraries are installed on the target
 system, you may remove all ``api-ms-crt-*.dll`` files from your Nuitka
@@ -777,24 +1093,69 @@ It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have
 the module attribute ``__compiled__`` to test if a specific module was
 compiled.
 
+Providing extra Options to Nuitka C compilation
+===============================================
+
+Nuitka will apply values from the environment variables ``CCFLAGS``,
+``LDFLAGS`` during the compilation on top of what it determines to be
+necessary. Beware of course, that is this is only useful if you know
+what you are doing, so should this pose an issues, raise them only with
+perfect information.
+
+*************
+ Performance
+*************
+
+This chapter gives an overview, of what to currently expect in terms of
+performance from Nuitka. It's a work in progress and is updated as we
+go. The current focus for performance measurements is Python 2.7, but
+3.x is going to follow later.
+
+pystone results
+===============
+
+The results are the top value from this kind of output, running pystone
+1000 times and taking the minimal value. The idea is that the fastest
+run is most meaningful, and eliminates usage spikes.
+
+.. code:: bash
+
+   echo "Uncompiled Python2"
+   for i in {1..100}; do BENCH=1 python2 tests/benchmarks/pystone.py ; done | sort -n -r | head -n 1
+   python2 -m nuitka --lto=yes --pgo=yes tests/benchmarks/pystone.py
+   echo "Compiled Python2"
+   for i in {1..100}; do BENCH=1 ./pystone.bin ; done | sort -n -r | head -n 1
+
+   echo "Uncompiled Python3"
+   for i in {1..100}; do BENCH=1 python3 tests/benchmarks/pystone3.py ; done | sort -n -r | head -n 1
+   python3 -m nuitka --lto=yes --pgo=yes tests/benchmarks/pystone3.py
+   echo "Compiled Python3"
+   for i in {1..100}; do BENCH=1 ./pystone3.bin ; done | sort -n -r | head -n 1
+
++-------------------+-------------------+----------------------+---------------------+
+| Python            | Uncompiled        | Compiled LTO         | Compiled PGO        |
++===================+===================+======================+=====================+
+| Debian Python 2.7 | 137497.87 (1.000) | 460995.20 (3.353)    | 503681.91 (3.663)   |
++-------------------+-------------------+----------------------+---------------------+
+| Nuitka Python 2.7 | 144074.78 (1.048) | 479271.51 (3.486)    | 511247.44 (3.718)   |
++-------------------+-------------------+----------------------+---------------------+
+
 ******************
  Where to go next
 ******************
 
-Remember, this project is not completed yet. Although the CPython test
-suite works near perfect, there is still more work needed, esp. to make
-it do more optimization. Try it out.
+Remember, this project needs constant work. Although the Python
+compatibility is insanely high, and test suite works near perfectly,
+there is still more work needed, esp. to make it do more optimization.
+Try it out, and when popular packages do not work, please make reports
+on GitHub.
 
 Follow me on Twitter
 ====================
 
 Nuitka announcements and interesting stuff is pointed to on the Twitter
-account, but obviously with no details. `@KayHayen
+account, but obviously with not too many details. `@KayHayen
 <https://twitter.com/KayHayen>`_.
-
-I will not answer Nuitka issues via Twitter though, rather make
-occasional polls, and give important announcements, as well as low-level
-posts about development ongoing.
 
 Report issues or bugs
 =====================
@@ -809,7 +1170,7 @@ Best practices for reporting bugs:
    the underlying Python version. You can easily copy&paste this into
    your report.
 
-   .. code:: sh
+   .. code:: bash
 
       python -m nuitka --version
 
@@ -849,7 +1210,7 @@ complete the project in all minor and major ways.
 The development of Nuitka occurs in git. We currently have these 3
 branches:
 
--  ``master``
+-  ``main``
 
    This branch contains the stable release to which only hotfixes for
    bugs will be done. It is supposed to work at all times and is
@@ -869,8 +1230,8 @@ branches:
    where my work for develop branch lives first. It is intended for
    testing only and recommended to base any of your own development on.
    When updating it, you very often will get merge conflicts. Simply
-   resolve those by doing ``git reset --hard origin/factory`` and switch
-   to the latest version.
+   resolve those by doing ``git fetch && git reset --hard
+   origin/factory`` and switch to the latest version.
 
 .. note::
 
@@ -1316,144 +1677,12 @@ later, it will be non-trivial though to maintain the order of execution
 without temporary values introduced. The same thing is done for pure
 constants of these types, they change to ``tuple`` values when iterated.
 
-*********
- Credits
-*********
-
-Contributors to Nuitka
-======================
-
-Thanks go to these individuals for their much-valued contributions to
-Nuitka.
-
-The order is sorted by time.
-
--  Li Xuan Ji: Contributed patches for general portability issue and
-   enhancements to the environment variable settings.
-
--  Nicolas Dumazet: Found and fixed reference counting issues,
-   ``import`` packages work, improved some of the English and generally
-   made good code contributions all over the place, solved code
-   generation TODOs, did tree building cleanups, core stuff.
-
--  Khalid Abu Bakr: Submitted patches for his work to support MinGW and
-   Windows, debugged the issues, and helped me to get cross compile with
-   MinGW from Linux to Windows. This was quite difficult stuff.
-
--  Liu Zhenhai: Submitted patches for Windows support, making the inline
-   Scons copy actually work on Windows as well. Also reported import
-   related bugs, and generally helped me make the Windows port more
-   usable through his testing and information.
-
--  Christopher Tott: Submitted patches for Windows, and general as well
-   as structural cleanups.
-
--  Pete Hunt: Submitted patches for macOS X support.
-
--  "ownssh": Submitted patches for built-ins module guarding, and made
-   massive efforts to make high-quality bug reports. Also the initial
-   "standalone" mode implementation was created by him.
-
--  Juan Carlos Paco: Submitted cleanup patches, creator of the `Nuitka
-   GUI <https://github.com/juancarlospaco/nuitka-gui>`__, creator of the
-   `Ninja IDE plugin <https://github.com/juancarlospaco/nuitka-ninja>`__
-   for Nuitka.
-
--  "Dr. Equivalent": Submitted the Nuitka Logo.
-
--  Johan Holmberg: Submitted patch for Python3 support on macOS X.
-
--  Umbra: Submitted patches to make the Windows port more usable, adding
-   user provided application icons, as well as MSVC support for large
-   constants and console applications.
-
--  David Cortesi: Submitted patches and test cases to make macOS port
-   more usable, specifically for the Python3 standalone support of Qt.
-
--  Andrew Leech: Submitted github pull request to allow using "-m
-   nuitka" to call the compiler. Also pull request to improve
-   "bist_nuitka" and to do the registration.
-
--  Paweł K: Submitted github pull request to remove glibc from
-   standalone distribution, saving size and improving robustness
-   considering the various distributions.
-
--  Orsiris de Jong: Submitted github pull request to implement the
-   dependency walking with ``pefile`` under Windows. Also provided the
-   implementation of Dejong Stacks.
-
--  Jorj X. McKie: Submitted github pull requests with NumPy plugin to
-   retain its accelerating libraries, and Tkinter to include the TCL
-   distribution on Windows.
-
-Projects used by Nuitka
-=======================
-
--  The `CPython project <http://www.python.org>`__
-
-   Thanks for giving us CPython, which is the base of Nuitka. We are
-   nothing without it.
-
--  The `GCC project <http://gcc.gnu.org>`__
-
-   Thanks for not only the best compiler suite but also thanks for
-   making it easy supporting to get Nuitka off the ground. Your compiler
-   was the first usable for Nuitka and with very little effort.
-
--  The `Scons project <http://www.scons.org>`__
-
-   Thanks for tackling the difficult points and providing a Python
-   environment to make the build results. This is such a perfect fit to
-   Nuitka and a dependency that will likely remain.
-
--  The `valgrind project <http://valgrind.org>`__
-
-   Luckily we can use Valgrind to determine if something is an actual
-   improvement without the noise. And it's also helpful to determine
-   what's actually happening when comparing.
-
--  The `NeuroDebian project <http://neuro.debian.net>`__
-
-   Thanks for hosting the build infrastructure that the Debian and
-   sponsor Yaroslav Halchenko uses to provide packages for all Ubuntu
-   versions.
-
--  The `openSUSE Buildservice <http://openbuildservice.org>`__
-
-   Thanks for hosting this excellent service that allows us to provide
-   RPMs for a large variety of platforms and make them available
-   immediately nearly at release time.
-
--  The `MinGW64 project <http://mingw-w64.org>`__
-
-   Thanks for porting the gcc to Windows. This allowed portability of
-   Nuitka with relatively little effort.
-
--  The `Buildbot project <http://buildbot.net>`__
-
-   Thanks for creating an easy to deploy and use continuous integration
-   framework that also runs on Windows and is written and configured in
-   Python code. This allows running the Nuitka tests long before release
-   time.
-
--  The `isort project <http://timothycrosley.github.io/isort/>`__
-
-   Thanks for making nice import ordering so easy. This makes it so easy
-   to let your IDE do it and clean up afterward.
-
--  The `black project <https://github.com/ambv/black>`__
-
-   Thanks for making a fast and reliable way for automatically
-   formatting the Nuitka source code.
-
 *************************
  Updates for this Manual
 *************************
 
 This document is written in REST. That is an ASCII format which is
-readable as ASCII, but used to generate PDF or HTML documents.
+readable to human, but easily used to generate PDF or HTML documents.
 
 You will find the current version at:
 https://nuitka.net/doc/user-manual.html
-
-And the current PDF under: https://nuitka.net/doc/README.pdf

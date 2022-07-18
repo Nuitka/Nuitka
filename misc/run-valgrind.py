@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,8 +32,8 @@ sys.path.insert(
 # isort:start
 
 import shutil
-import tempfile
 
+from nuitka.tools.testing.Common import getTempDir
 from nuitka.tools.testing.Valgrind import getBinarySizes, runValgrind
 
 input_file = sys.argv[1]
@@ -45,9 +45,7 @@ nuitka_binary = os.path.normpath(nuitka_binary)
 
 basename = os.path.basename(input_file)
 
-tempdir = tempfile.mkdtemp(
-    prefix=basename + "-", dir=None if not os.path.exists("/var/tmp") else "/var/tmp"
-)
+tempdir = getTempDir()
 
 output_binary = os.path.join(
     tempdir, (basename[:-3] if input_file.endswith(".py") else basename) + ".bin"
@@ -60,12 +58,12 @@ os.environ["PYTHONHASHSEED"] = "0"
 os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
 
 os.system(
-    "%s %s --python-flag=-S --output-dir=%s %s %s %s %s"
+    "%s %s --python-flag=-S --no-progress --output-dir=%s %s %s %s %s"
     % (
         sys.executable,
         nuitka_binary,
         tempdir,
-        "--unstripped",
+        "--unstriped",
         "--quiet",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file,

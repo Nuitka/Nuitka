@@ -8,10 +8,13 @@
         "lextudio.restructuredtext",
         "foxundermoon.shell-format",
         "troelsdamgaard.reflow-paragraph",
-        "laurenttreguier.rpm-spec",
         "ms-vscode.cpptools",
         "mervin.markdown-formatter",
-        "stkb.rewrap"
+        "stkb.rewrap",
+        "trond-snekvik.simple-rst",
+        "redhat.vscode-yaml",
+        "streetsidesoftware.code-spell-checker",
+        "samuelcolvin.jinjahtml"
     ],
     // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
     "unwantedRecommendations": [

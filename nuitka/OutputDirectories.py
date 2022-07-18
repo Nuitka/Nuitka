@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -62,14 +62,39 @@ def getSourceDirectoryPath(onefile=False):
     return result
 
 
-def getStandaloneDirectoryPath():
-    return Options.getOutputPath(
-        path=os.path.basename(getTreeFilenameWithSuffix(_main_module, ".dist"))
+def _getStandaloneDistSuffix(bundle):
+    """Suffix to use for standalone distribution folder."""
+
+    if bundle and Options.shallCreateAppBundle() and not Options.isOnefileMode():
+        return ".app"
+    else:
+        return ".dist"
+
+
+def getStandaloneDirectoryPath(bundle=True):
+    assert Options.isStandaloneMode()
+
+    result = Options.getOutputPath(
+        path=os.path.basename(
+            getTreeFilenameWithSuffix(_main_module, _getStandaloneDistSuffix(bundle))
+        )
     )
 
+    if bundle and Options.shallCreateAppBundle() and not Options.isOnefileMode():
+        result = os.path.join(result, "Contents", "MacOS")
 
-def getResultBasepath(onefile=False):
-    if Options.isStandaloneMode() and not onefile:
+    return result
+
+
+def getResultBasePath(onefile=False):
+    if Options.isOnefileMode() and onefile:
+        file_path = os.path.basename(getTreeFilenameWithSuffix(_main_module, ""))
+
+        if Options.shallCreateAppBundle():
+            file_path = os.path.join(file_path + ".app", "Contents", "MacOS", file_path)
+
+        return Options.getOutputPath(path=file_path)
+    elif Options.isStandaloneMode() and not onefile:
         return os.path.join(
             getStandaloneDirectoryPath(),
             os.path.basename(getTreeFilenameWithSuffix(_main_module, "")),
@@ -83,16 +108,30 @@ def getResultBasepath(onefile=False):
 def getResultFullpath(onefile):
     """Get the final output binary result full path."""
 
-    result = getResultBasepath(onefile=onefile)
+    result = getResultBasePath(onefile=onefile)
 
     if Options.shallMakeModule():
         result += getSharedLibrarySuffix(preferred=True)
     else:
-        if onefile and Options.getOutputFilename() is not None:
-            result = Options.getOutputFilename()
+        output_filename = Options.getOutputFilename()
+
+        if Options.isOnefileMode() and output_filename is not None:
+            if onefile:
+                result = output_filename
+            else:
+                result = os.path.join(
+                    getStandaloneDirectoryPath(),
+                    os.path.basename(output_filename),
+                )
+        elif output_filename is not None:
+            result = output_filename
         elif getOS() == "Windows":
             result += ".exe"
-        elif not Options.isStandaloneMode() or onefile:
+        elif (
+            not Options.isStandaloneMode()
+            or onefile
+            and not Options.shallCreateAppBundle()
+        ):
             result += ".bin"
 
     return result
@@ -102,10 +141,18 @@ def getResultRunFilename(onefile):
     result = getResultFullpath(onefile=onefile)
 
     if isWin32Windows() and Options.shallTreatUninstalledPython():
-        result = getResultBasepath(onefile=onefile) + ".cmd"
+        result = getResultBasePath(onefile=onefile) + ".cmd"
 
     return result
 
 
 def getTreeFilenameWithSuffix(module, suffix):
     return module.getOutputFilename() + suffix
+
+
+def getPgoRunExecutable():
+    return Options.getPgoExecutable() or getResultRunFilename(onefile=False)
+
+
+def getPgoRunInputFilename():
+    return getPgoRunExecutable() + ".nuitka-pgo"

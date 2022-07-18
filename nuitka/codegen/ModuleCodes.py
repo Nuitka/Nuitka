@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,8 +19,6 @@
 
 """
 
-import os
-
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.codegen import Emission
@@ -38,7 +36,7 @@ from .templates.CodeTemplatesModules import (
     template_module_body_template,
     template_module_exception_exit,
     template_module_external_entry_point,
-    template_module_noexception_exit,
+    template_module_no_exception_exit,
 )
 from .VariableCodes import getVariableReferenceCode
 
@@ -95,12 +93,17 @@ def getModuleCode(
     # TODO: Seems like a bug, classes could produce those.
     # assert not _cleanup, _cleanup
 
-    local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
+    module_identifier = module.getCodeName()
 
     if module_body is not None and module_body.mayRaiseException(BaseException):
-        module_exit = template_module_exception_exit
+        module_exit = template_module_exception_exit % {
+            "module_identifier": module_identifier,
+            "is_top": 1 if module.isTopModule() else 0,
+        }
     else:
-        module_exit = template_module_noexception_exit
+        module_exit = template_module_no_exception_exit
+
+    local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
 
     function_table_entries_decl = []
     for func_impl_identifier in context.getFunctionCreationInfos():
@@ -121,15 +124,19 @@ def getModuleCode(
     module_code_objects_decl = getCodeObjectsDeclCode(context)
     module_code_objects_init = getCodeObjectsInitCode(context)
 
+    is_dunder_main = module.isMainModule()
+
+    dunder_main_package = context.getConstantCode(
+        module.getRuntimePackageValue() if is_dunder_main else ""
+    )
+
     return template % {
         "module_name": module_name,
         "version": getNuitkaVersion(),
         "year": getNuitkaVersionYear(),
-        "is_main_module": 1 if module.isMainModule() else 0,
-        "is_dunder_main": 1
-        if module_name == "__main__"
-        and os.path.basename(module.getCompileTimeFilename()) == "__main__.py"
-        else 0,
+        "is_top": 1 if module.isTopModule() else 0,
+        "is_dunder_main": 1 if is_dunder_main else 0,
+        "dunder_main_package": dunder_main_package,
         "is_package": 1 if is_package else 0,
         "module_identifier": module_identifier,
         "module_functions_decl": function_decl_codes,
@@ -169,4 +176,4 @@ def generateNuitkaLoaderCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "nuitka_loader_value", expression, emit, context
     ) as result_name:
-        emit("%s = Nuitka_Loader_New(module_entry);" % result_name)
+        emit("%s = Nuitka_Loader_New(loader_entry);" % result_name)

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,20 +17,15 @@
 #
 """ Reformulation of Python3 class statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
-    ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
@@ -57,7 +52,7 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationGet,
+    ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
     StatementDictOperationRemove,
     StatementDictOperationUpdate,
@@ -82,12 +77,15 @@ from nuitka.nodes.NodeMakingHelpers import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1, ExpressionTypeCheck
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -134,7 +132,7 @@ def buildClassNode3(provider, node, source_ref):
     # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
 
     # This function is the Python3 special case with special re-formulation as
-    # according to developer manual.
+    # according to Developer Manual.
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     # We need a scope for the temporary variables, and they might be closured.
@@ -308,7 +306,7 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     statements += (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=class_variable,
             source=makeExpressionCall(
                 called=ExpressionTempVariableRef(
@@ -378,7 +376,7 @@ def buildClassNode3(provider, node, source_ref):
 
     if node.bases:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_bases if python_version < 0x370 else tmp_bases_orig,
                 source=_buildBasesTupleCreationNode(
                     provider=provider, elements=node.bases, source_ref=source_ref
@@ -408,13 +406,13 @@ def buildClassNode3(provider, node, source_ref):
             )
 
             statements.append(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_bases, source=bases_conversion, source_ref=source_ref
                 )
             )
 
     statements.append(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_class_decl_dict,
             source=makeDictCreationOrConstant2(
                 keys=[keyword.arg for keyword in keywords],
@@ -444,13 +442,11 @@ def buildClassNode3(provider, node, source_ref):
     # decl dict of course.
     if node.bases:
         unspecified_metaclass_expression = ExpressionBuiltinType1(
-            value=ExpressionSubscriptLookup(
+            value=makeExpressionIndexLookup(
                 expression=ExpressionTempVariableRef(
                     variable=tmp_bases, source_ref=source_ref
                 ),
-                subscript=makeConstantRefNode(
-                    constant=0, source_ref=source_ref, user_provided=True
-                ),
+                index_value=0,
                 source_ref=source_ref,
             ),
             source_ref=source_ref,
@@ -474,10 +470,10 @@ def buildClassNode3(provider, node, source_ref):
             builtin_name="type", source_ref=source_ref
         )
 
-    call_prepare = StatementAssignmentVariable(
+    call_prepare = makeStatementAssignmentVariable(
         variable=tmp_prepared,
         source=makeExpressionCall(
-            called=ExpressionAttributeLookup(
+            called=makeExpressionAttributeLookup(
                 expression=ExpressionTempVariableRef(
                     variable=tmp_metaclass, source_ref=source_ref
                 ),
@@ -529,7 +525,7 @@ def buildClassNode3(provider, node, source_ref):
                             ),
                             source_ref=source_ref,
                         ),
-                        ExpressionAttributeLookup(
+                        makeExpressionAttributeLookup(
                             expression=ExpressionBuiltinType1(
                                 value=ExpressionTempVariableRef(
                                     variable=tmp_prepared, source_ref=source_ref
@@ -547,7 +543,7 @@ def buildClassNode3(provider, node, source_ref):
         )
 
     statements += (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_metaclass,
             source=ExpressionSelectMetaclass(
                 metaclass=ExpressionConditional(
@@ -562,7 +558,7 @@ def buildClassNode3(provider, node, source_ref):
                         ),
                         source_ref=source_ref,
                     ),
-                    expression_yes=ExpressionDictOperationGet(
+                    expression_yes=ExpressionDictOperationGet2(
                         dict_arg=ExpressionTempVariableRef(
                             variable=tmp_class_decl_dict, source_ref=source_ref
                         ),
@@ -612,7 +608,7 @@ def buildClassNode3(provider, node, source_ref):
                 source_ref=source_ref,
             ),
             yes_branch=call_prepare,
-            no_branch=StatementAssignmentVariable(
+            no_branch=makeStatementAssignmentVariable(
                 variable=tmp_prepared,
                 source=makeConstantRefNode(
                     constant={}, source_ref=source_ref, user_provided=True
@@ -642,7 +638,7 @@ def buildClassNode3(provider, node, source_ref):
         provider=provider,
         tried=statements,
         final=tuple(
-            StatementReleaseVariable(variable=variable, source_ref=source_ref)
+            makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
             for variable in final
         ),
         source_ref=source_ref,
@@ -691,7 +687,7 @@ def getClassBasesMroConversionHelper():
                     variable=tmp_result_variable, source_ref=internal_source_ref
                 ),
                 value=makeExpressionCall(
-                    called=ExpressionAttributeLookup(
+                    called=makeExpressionAttributeLookup(
                         expression=ExpressionTempVariableRef(
                             variable=tmp_item_variable, source_ref=internal_source_ref
                         ),
@@ -737,7 +733,7 @@ def getClassBasesMroConversionHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -765,22 +761,22 @@ def getClassBasesMroConversionHelper():
     )
 
     final = (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=args_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_result_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -790,7 +786,7 @@ def getClassBasesMroConversionHelper():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant=[], source_ref=internal_source_ref),
             source_ref=internal_source_ref,

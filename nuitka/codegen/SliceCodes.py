@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,7 +43,7 @@ from .IndexCodes import (
 def _isSmallNumberConstant(node):
     if node.isNumberConstant():
         value = node.getCompileTimeConstant()
-        return abs(int(value)) < 2 ** 63 - 1
+        return abs(int(value)) < 2**63 - 1
     else:
         return False
 
@@ -177,22 +177,19 @@ def generateAssignmentSliceCode(statement, emit, context):
             lower=lower, upper=upper, scope="sliceass", emit=emit, context=context
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
+        with context.withCurrentSourceCodeReference(
             value.getSourceReference()
-            if Options.is_fullcompat
+            if Options.is_full_compat
             else statement.getSourceReference()
-        )
-
-        _getSliceAssignmentIndexesCode(
-            target_name=target_name,
-            lower_name=lower_name,
-            upper_name=upper_name,
-            value_name=value_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        ):
+            _getSliceAssignmentIndexesCode(
+                target_name=target_name,
+                lower_name=lower_name,
+                upper_name=upper_name,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
     else:
         lower_name, upper_name = generateExpressionsCode(
             names=("sliceass_lower", "sliceass_upper"),
@@ -201,22 +198,19 @@ def generateAssignmentSliceCode(statement, emit, context):
             context=context,
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
+        with context.withCurrentSourceCodeReference(
             value.getSourceReference()
-            if Options.is_fullcompat
+            if Options.is_full_compat
             else statement.getSourceReference()
-        )
-
-        _getSliceAssignmentCode(
-            target_name=target_name,
-            upper_name=upper_name,
-            lower_name=lower_name,
-            value_name=value_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        ):
+            _getSliceAssignmentCode(
+                target_name=target_name,
+                upper_name=upper_name,
+                lower_name=lower_name,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateDelSliceCode(statement, emit, context):
@@ -237,21 +231,18 @@ def generateDelSliceCode(statement, emit, context):
             lower=lower, upper=upper, scope="slicedel", emit=emit, context=context
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
+        with context.withCurrentSourceCodeReference(
             (upper or lower or statement).getSourceReference()
-            if Options.is_fullcompat
+            if Options.is_full_compat
             else statement.getSourceReference()
-        )
-
-        _getSliceDelIndexesCode(
-            target_name=target_name,
-            lower_name=lower_name,
-            upper_name=upper_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        ):
+            _getSliceDelIndexesCode(
+                target_name=target_name,
+                lower_name=lower_name,
+                upper_name=upper_name,
+                emit=emit,
+                context=context,
+            )
     else:
         lower_name, upper_name = generateExpressionsCode(
             names=("slicedel_lower", "slicedel_upper"),
@@ -260,21 +251,18 @@ def generateDelSliceCode(statement, emit, context):
             context=context,
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(
+        with context.withCurrentSourceCodeReference(
             (upper or lower or target).getSourceReference()
-            if Options.is_fullcompat
+            if Options.is_full_compat
             else statement.getSourceReference()
-        )
-
-        _getSliceDelCode(
-            target_name=target_name,
-            lower_name=lower_name,
-            upper_name=upper_name,
-            emit=emit,
-            context=context,
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        ):
+            _getSliceDelCode(
+                target_name=target_name,
+                lower_name=lower_name,
+                upper_name=upper_name,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateBuiltinSlice3Code(to_name, expression, emit, context):

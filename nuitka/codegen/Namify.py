@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,14 +27,10 @@ it is really necessary.
 import hashlib
 import math
 import re
+import sys
 from types import BuiltinFunctionType
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    GenericAlias,
-    long,
-    unicode,
-    xrange,
-)
+from nuitka.__past__ import GenericAlias, UnionType, long, unicode, xrange
 from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 from nuitka.Tracing import general
 
@@ -152,7 +148,7 @@ def namifyConstant(constant):
 
                 return "list_" + result + "_list"
             except ExceptionCannotNamify:
-                general.warning("Couldn't namify '%r'" % value)
+                general.warning("Couldn't namify '%r'" % constant)
 
                 return "list_" + _digest(repr(constant))
     elif constant_type is bytearray:
@@ -185,8 +181,12 @@ def namifyConstant(constant):
             namifyConstant(constant.__origin__),
             namifyConstant(constant.__args__),
         )
+    elif constant_type is UnionType:
+        return "uniontype_%s" % namifyConstant(constant.__args__)
+    elif constant is sys.version_info:
+        return "sys_version_info"
     else:
-        raise ExceptionCannotNamify("%r" % constant, constant_type)
+        raise ExceptionCannotNamify("%r" % (constant,), constant_type)
 
 
 _re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)
@@ -244,4 +244,4 @@ def _digest(value):
         if type(value) is bytes:
             return hashlib.md5(value).hexdigest()
         else:
-            return hashlib.md5(value.encode("utf-8")).hexdigest()
+            return hashlib.md5(value.encode("utf8")).hexdigest()

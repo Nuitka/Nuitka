@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,7 @@
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
 
-from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
+from .c_types.CTypePyObjectPointers import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
@@ -779,10 +779,10 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         context = PythonFunctionOutlineContext(parent=context, outline=expression)
 
     # Need to set return target, to assign to_name from.
-    old_return_release_mode = context.getReturnReleaseMode()
 
     return_target = context.allocateLabel("outline_result")
     old_return_target = context.setReturnTarget(return_target)
+    old_return_release_mode = context.setReturnReleaseMode(False)
 
     # TODO: Put the return value name as that to_name.c_type too.
 

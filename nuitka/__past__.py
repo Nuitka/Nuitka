@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 """
 
+import pkgutil
 import sys
 from abc import ABCMeta
 
@@ -52,7 +53,6 @@ if str is bytes:
 
     def iterItems(d):
         return d.iteritems()
-
 
 else:
 
@@ -104,10 +104,8 @@ except ImportError:
 
 
 if str is bytes:
-    from collections import (  # pylint: disable=no-name-in-module
-        Iterable,
-        MutableSet,
-    )
+    # Python2 only code, pylint: disable=deprecated-class,no-name-in-module
+    from collections import Iterable, MutableSet
 else:
     from collections.abc import Iterable, MutableSet
 
@@ -135,6 +133,11 @@ try:
 except ImportError:
     GenericAlias = None
 
+try:
+    from types import UnionType
+except ImportError:
+    UnionType = None
+
 
 def getMetaClassBase(meta_class_prefix):
     """For Python2/3 compatible source, we create a base class that has the metaclass
@@ -157,6 +160,23 @@ if str is bytes:
 else:
     import subprocess
 
+# Just to make this not Windows-specific.
+WindowsError = OSError  # pylint: disable=I0021,redefined-builtin
+
+
+if not hasattr(pkgutil, "ModuleInfo"):
+    # Python3.5 or lower do not return namedtuple, but it's nicer to read code with it.
+    from collections import namedtuple
+
+    ModuleInfo = namedtuple("ModuleInfo", "module_finder name ispkg")
+
+    def iter_modules(path=None, prefix=""):
+        for item in pkgutil.iter_modules(path, prefix):
+            yield ModuleInfo(*item)
+
+else:
+    iter_modules = pkgutil.iter_modules
+
 
 # For PyLint to be happy.
 assert long
@@ -172,3 +192,4 @@ assert Iterable
 assert MutableSet
 assert subprocess
 assert GenericAlias or intern
+assert UnionType or intern

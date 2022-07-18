@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,16 +21,18 @@ Holds the information necessary to make C code declarations related to a variabl
 """
 from contextlib import contextmanager
 
-from .c_types.CTypeBools import CTypeBool
+from .c_types.CTypeBooleans import CTypeBool
+from .c_types.CTypeCFloats import CTypeCFloat
+from .c_types.CTypeCLongs import CTypeCLong, CTypeCLongDigit
 from .c_types.CTypeModuleDictVariables import CTypeModuleDictVariable
-from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
+from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
-from .c_types.CTypePyObjectPtrs import (
+from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
+from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr,
 )
-from .c_types.CTypeVoids import CTypeVoid
 
 
 class VariableDeclaration(object):
@@ -115,7 +117,13 @@ class VariableDeclaration(object):
         elif c_type == "module_var":
             return CTypeModuleDictVariable
         elif c_type == "nuitka_void":
-            return CTypeVoid
+            return CTypeNuitkaVoidEnum
+        elif c_type == "long":
+            return CTypeCLong
+        elif c_type == "nuitka_digit":
+            return CTypeCLongDigit
+        elif c_type == "double":
+            return CTypeCFloat
 
         assert False, c_type
 

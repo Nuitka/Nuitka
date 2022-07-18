@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -21,10 +21,12 @@
 
 #if _NUITKA_PROFILE
 
-timespec diff(timespec start, timespec end);
+#include <time.h>
 
-static timespec getTimespecDiff(timespec start, timespec end) {
-    timespec temp;
+struct timespec diff(struct timespec start, struct timespec end);
+
+static struct timespec getTimespecDiff(struct timespec start, struct timespec end) {
+    struct timespec temp;
 
     if ((end.tv_nsec - start.tv_nsec) < 0) {
         temp.tv_sec = end.tv_sec - start.tv_sec - 1;
@@ -40,10 +42,10 @@ static timespec getTimespecDiff(timespec start, timespec end) {
 static FILE *tempfile_profile;
 static PyObject *vmprof_module;
 
-static timespec time1, time2;
+static struct timespec time1, time2;
 
 void startProfiling(void) {
-    tempfile_profile = fopen("nuitka-performance.dat", "wb");
+    tempfile_profile = fopen("nuitka-performance.dat", "w+b");
 
     // Might be necessary to import "site" module to find "vmprof", lets just
     // hope we don't suffer too much from that. If we do, what might be done
@@ -85,7 +87,7 @@ void stopProfiling(void) {
 
     FILE *tempfile_times = fopen("nuitka-times.dat", "wb");
 
-    timespec diff = getTimespecDiff(time1, time2);
+    struct timespec diff = getTimespecDiff(time1, time2);
 
     long delta_ns = diff.tv_sec * 1000000000 + diff.tv_nsec;
     fprintf(tempfile_times, "%ld\n", delta_ns);

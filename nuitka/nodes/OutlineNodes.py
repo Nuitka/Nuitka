@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -100,7 +100,13 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
         # become unused.
         from nuitka.ModuleRegistry import addUsedModule
 
-        addUsedModule(owning_module)
+        addUsedModule(
+            module=owning_module,
+            using_module=None,
+            usage_tag="outline",
+            reason="Owning module",
+            source_ref=self.source_ref,
+        )
 
         abort_context = trace_collection.makeAbortStackContext(
             catch_breaks=False,
@@ -143,6 +149,8 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
             )
 
         if first_statement.isStatementRaiseException():
+            # Exception exit was already annotated, need not repeat it.
+
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
                 exception_value=first_statement.subnode_exception_value,
@@ -266,6 +274,8 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
             )
 
         if first_statement.isStatementRaiseException():
+            # Exception exit was already annotated, need not repeat it.
+
             result = ExpressionRaiseException(
                 exception_type=first_statement.subnode_exception_type,
                 exception_value=first_statement.subnode_exception_value,

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,60 +22,109 @@ be told that. This encodes the knowledge we have for various modules. Feel free
 to add to this and submit patches to make it more complete.
 """
 
-import os
-import pkgutil
-import shutil
-import sys
+import fnmatch
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.__past__ import iter_modules
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import getPyWin32Dir, locateDLL
-from nuitka.utils.Utils import getOS, isWin32Windows
-
-_added_pywin32 = False
+from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
+from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
-class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
     def __init__(self):
-        NuitkaPluginBase.__init__(self)
+        self.config = getYamlPackageConfiguration()
 
     @staticmethod
     def isAlwaysEnabled():
         return True
 
-    @staticmethod
-    def _getImportsByFullname(full_name, module_filename):
-        """Provides names of modules to imported implicitly.
+    def _resolveModulePattern(self, pattern):
+        parts = pattern.split(".")
 
-        Notes:
-            This methods works much like 'getImplicitImports', except that it
-            accepts the search argument as a string. This allows callers to
-            obtain results, which cannot provide a Nuitka module object.
-        """
+        current = None
+
+        for count, part in enumerate(parts):
+            if not part:
+                self.sysexit(
+                    "Error, invalid pattern with empty parts used '%s'." % pattern
+                )
+
+            # TODO: Checking for shell pattern should be done in more places and shared code.
+            if "?" in part or "*" in part or "[" in part:
+                if current is None:
+                    self.sysexit(
+                        "Error, cannot use pattern for first part '%s'." % pattern
+                    )
+
+                module_filename = self.locateModule(
+                    module_name=ModuleName(current),
+                )
+
+                for sub_module in iter_modules([module_filename]):
+                    if not fnmatch.fnmatch(sub_module.name, part):
+                        continue
+
+                    if count == len(parts) - 1:
+                        yield current.getChildNamed(sub_module.name)
+                    else:
+                        child_name = current.getChildNamed(sub_module.name).asString()
+
+                        for value in self._resolveModulePattern(
+                            child_name + "." + ".".join(parts[count + 1 :])
+                        ):
+                            yield value
+
+                return
+            else:
+                if current is None:
+                    current = ModuleName(part)
+                else:
+                    current = current.getChildNamed(part)
+
+        yield current
+
+    def _getImportsByFullname(self, module, full_name):
+        """Provides names of modules to imported implicitly."""
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
+
+        config = self.config.get(full_name, section="implicit-imports")
+
+        # Checking for config, but also allowing fall through.
+        if config:
+            for entry in config:
+                if entry.get("when"):
+                    if not self.evaluateCondition(
+                        full_name=full_name, condition=entry.get("when")
+                    ):
+                        continue
+
+                dependencies = entry.get("depends")
+                for dependency in dependencies:
+                    if dependency.startswith("."):
+                        if (
+                            module.isUncompiledPythonPackage()
+                            or module.isCompiledPythonPackage()
+                        ):
+                            dependency = full_name.getChildNamed(
+                                dependency[1:]
+                            ).asString()
+                        else:
+                            dependency = full_name.getSiblingNamed(
+                                dependency[1:]
+                            ).asString()
+
+                    if "*" in dependency or "?" in dependency:
+                        for resolved in self._resolveModulePattern(dependency):
+                            yield resolved
+                    else:
+                        yield dependency
 
         if full_name == "sip" and python_version < 0x300:
             yield "enum"
-
-        elif full_name == "lxml":
-            yield "lxml.builder"
-            yield "lxml.etree"
-            yield "lxml.objectify"
-            yield "lxml.sax"
-            yield "lxml._elementpath"
-
-        elif full_name == "lxml.etree":
-            yield "lxml._elementpath"
-
-        elif full_name == "lxml.html":
-            yield "lxml.html.clean"
-            yield "lxml.html.diff"
-            yield "lxml.etree"
 
         elif full_name == "gtk._gtk":
             yield "pangocairo"
@@ -100,17 +149,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "_socket"
         elif full_name == "ctypes":
             yield "_ctypes"
-        elif full_name == "gi._gi":
-            yield "gi._error"
-        elif full_name == "gi._gi_cairo":
-            yield "cairo"
         elif full_name == "cairo._cairo":
             yield "gi._gobject"
-        elif full_name == "gi.overrides":
-            yield "gi.overrides.Gtk"
-            yield "gi.overrides.Gdk"
-            yield "gi.overrides.GLib"
-            yield "gi.overrides.GObject"
         elif full_name in ("Tkinter", "tkinter"):
             yield "_tkinter"
         elif full_name == "cryptography":
@@ -120,6 +160,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "nacl._sodium":
             yield "_cffi_backend"
         elif full_name == "brotli._brotli":
+            yield "_cffi_backend"
+        elif full_name == "ipcqueue":
             yield "_cffi_backend"
         elif full_name == "_dbus_glib_bindings":
             yield "_dbus_bindings"
@@ -131,6 +173,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "yaml"
         elif full_name == "apt_inst":
             yield "apt_pkg"
+        elif full_name == "_ruamel_yaml":
+            yield "ruamel.yaml.error"
 
         # start of engineio imports ------------------------------------------
         elif full_name == "engineio":
@@ -201,17 +245,24 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         elif full_name == "gevent._waiter":
             yield "gevent.__waiter"
+            yield "gevent._gevent_c_waiter"
 
         elif full_name == "gevent._hub_local":
             yield "gevent.__hub_local"
             yield "gevent.__greenlet_primitives"
+            yield "gevent._gevent_c_hub_local"
+        elif full_name == "gevent._gevent_c_hub_local":
+            yield "gevent._gevent_c_greenlet_primitives"
 
         elif full_name == "gevent._hub_primitives":
             yield "gevent.__hub_primitives"
+            yield "gevent._gevent_cgreenlet"
+            yield "gevent._gevent_c_hub_primitives"
 
         elif full_name == "gevent.greenlet":
             yield "gevent._hub_local"
             yield "gevent._greenlet"
+            yield "gevent._gevent_c_ident"
 
         elif full_name == "gevent._greenlet":
             yield "gevent.__ident"
@@ -231,24 +282,30 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "gevent._semaphore":
             yield "gevent._abstract_linkable"
             yield "gevent.__semaphore"
+            yield "gevent._gevent_c_semaphore"
 
         elif full_name == "gevent._abstract_linkable":
             yield "gevent.__abstract_linkable"
+            yield "gevent._gevent_c_abstract_linkable"
 
         elif full_name == "gevent.local":
             yield "gevent._local"
+            yield "gevent._gevent_clocal"
 
         elif full_name == "gevent.event":
             yield "gevent._event"
+            yield "gevent._gevent_cevent"
 
         elif full_name == "gevent.queue":
             yield "gevent._queue"
+            yield "gevent._gevent_cqueue"
 
         elif full_name == "gevent.pool":
             yield "gevent._imap"
 
         elif full_name == "gevent._imap":
             yield "gevent.__imap"
+            yield "gevent._gevent_c_imap"
         # end of gevent imports ----------------------------------------------
 
         # start of tensorflow imports ----------------------------------------
@@ -647,7 +704,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pywt._extensions._swt"
 
         # imageio imports -----------------------------------------------
-        elif full_name == "imageio":
+        elif full_name == "PIL.Image":
             yield "PIL.BlpImagePlugin"
             yield "PIL.BmpImagePlugin"
             yield "PIL.BufrStubImagePlugin"
@@ -694,6 +751,21 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "PIL.XpmImagePlugin"
             yield "PIL.XVThumbImagePlugin"
 
+        # rapidfuzz imports -----------------------------------------------
+        elif full_name == "rapidfuzz":
+            yield "rapidfuzz.utils_cpp"
+            yield "rapidfuzz.fuzz_cpp"
+            yield "rapidfuzz.process_cdist_cpp"
+            yield "rapidfuzz.process_cpp"
+            yield "rapidfuzz.string_metric_cpp"
+
+        elif full_name == "rapidfuzz.distance":
+            yield "rapidfuzz.distance._initialize_cpp"
+            yield "rapidfuzz.distance.Hamming_cpp"
+            yield "rapidfuzz.distance.Indel_cpp"
+            yield "rapidfuzz.distance.LCSseq_cpp"
+            yield "rapidfuzz.distance.Levenshtein_cpp"
+
         # scikit-image imports -----------------------------------------------
         elif full_name == "skimage.draw":
             yield "skimage.draw._draw"
@@ -718,6 +790,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "skimage.filters.rank":
             yield "skimage.filters.rank.bilateral_cy"
             yield "skimage.filters.rank.core_cy"
+            yield "skimage.filters.rank.core_cy_3d"
             yield "skimage.filters.rank.generic_cy"
             yield "skimage.filters.rank.percentile_cy"
 
@@ -871,11 +944,23 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "sklearn.utils.weight_vector"
             yield "sklearn.utils._cython_blas"
             yield "sklearn.utils._logistic_sigmoid"
+            yield "sklearn.utils._weight_vector"
+            yield "sklearn.utils._typedefs"
+            yield "sklearn.utils._heap"
+            yield "sklearn.utils._sorting"
+            yield "sklearn.utils._vector_sentinel"
+            yield "sklearn.utils._seq_dataset"
+            yield "sklearn.utils._readonly_array_wrapper"
+            yield "sklearn.utils._openmp_helpers"
+            yield "sklearn.utils._fast_dict"
             yield "sklearn.utils._random"
 
         elif full_name == "sklearn.utils.sparsetools":
             yield "sklearn.utils.sparsetools._graph_validation"
             yield "sklearn.utils.sparsetools._graph_tools"
+
+        elif full_name == "sklearn.utils._hough_transform":
+            yield "skimage.draw"
         # end of scikit-learn imports -----------------------------------------
 
         elif full_name == "PIL._imagingtk":
@@ -886,16 +971,14 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.specifiers"
             yield "pkg_resources._vendor.packaging.requirements"
 
-        # pendulum imports -- START -------------------------------------------
-        elif full_name == "pendulum.locales":
-            # May only need the one idiom folders if that's what's used, but right now we cannot tell.
-            # This should become a plugin that allows control.
-            for idiom in pkgutil.iter_modules([module_filename]):
-                yield full_name.getChildNamed(idiom.name).getChildNamed("locale")
-        # pendulum imports -- STOP --------------------------------------------
+        elif full_name == "pkg_resources._vendor.jaraco":
+            yield "pkg_resources._vendor.jaraco.text"
+            yield "pkg_resources._vendor.jaraco.functools"
+            yield "pkg_resources._vendor.jaraco.context"
 
+        # TODO: Is this even true, or an artifact of how we handled requests.packages.urllib3 in the past.
         # urllib3 -------------------------------------------------------------
-        elif full_name in ("urllib3", "requests.packages", "requests_toolbelt._compat"):
+        elif full_name in ("urllib3", "requests_toolbelt._compat"):
             yield "urllib3"
             yield "urllib3._collections"
             yield "urllib3.connection"
@@ -949,30 +1032,43 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
             crypto_module_name = full_name.getTopLevelPackageName()
 
-            if full_name == crypto_module_name + ".Util._raw_api":
-                for module_name in (
-                    "_raw_aes",
-                    "_raw_aesni",
-                    "_raw_arc2",
-                    "_raw_blowfish",
-                    "_raw_cast",
-                    "_raw_cbc",
-                    "_raw_cfb",
-                    "_raw_ctr",
-                    "_raw_des",
-                    "_raw_des3",
-                    "_raw_ecb",
-                    "_raw_ocb",
-                    "_raw_ofb",
-                ):
-                    if full_name == crypto_module_name + ".Util._raw_api":
-                        yield crypto_module_name + ".Cipher." + module_name
+            if full_name == crypto_module_name + ".Cipher._mode_ofb":
+                yield crypto_module_name + ".Cipher._raw_ofb"
+            elif full_name == crypto_module_name + ".Cipher.CAST":
+                yield crypto_module_name + ".Cipher._raw_cast"
+            elif full_name == crypto_module_name + ".Cipher.DES3":
+                yield crypto_module_name + ".Cipher._raw_des3"
+            elif full_name == crypto_module_name + ".Cipher.DES":
+                yield crypto_module_name + ".Cipher._raw_des"
+            elif full_name == crypto_module_name + ".Cipher._mode_ecb":
+                yield crypto_module_name + ".Cipher._raw_ecb"
+            elif full_name == crypto_module_name + ".Cipher.AES":
+                yield crypto_module_name + ".Cipher._raw_aes"
+                yield crypto_module_name + ".Cipher._raw_aesni"
+            elif full_name == crypto_module_name + ".Cipher._mode_cfb":
+                yield crypto_module_name + ".Cipher._raw_cfb"
+            elif full_name == crypto_module_name + ".Cipher.ARC2":
+                yield crypto_module_name + ".Cipher._raw_arc2"
+            elif full_name == crypto_module_name + ".Cipher.DES3":
+                yield crypto_module_name + ".Cipher._raw_des3"
+            elif full_name == crypto_module_name + ".Cipher._mode_ocb":
+                yield crypto_module_name + ".Cipher._raw_ocb"
+            elif full_name == crypto_module_name + ".Cipher._EKSBlowfish":
+                yield crypto_module_name + ".Cipher._raw_eksblowfish"
+            elif full_name == crypto_module_name + ".Cipher.Blowfish":
+                yield crypto_module_name + ".Cipher._raw_blowfish"
+            elif full_name == crypto_module_name + ".Cipher._mode_ctr":
+                yield crypto_module_name + ".Cipher._raw_ctr"
+            elif full_name == crypto_module_name + ".Cipher._mode_cbc":
+                yield crypto_module_name + ".Cipher._raw_cbc"
             elif full_name == crypto_module_name + ".Util.strxor":
                 yield crypto_module_name + ".Util._strxor"
             elif full_name == crypto_module_name + ".Util._cpu_features":
                 yield crypto_module_name + ".Util._cpuid_c"
             elif full_name == crypto_module_name + ".Hash.BLAKE2s":
                 yield crypto_module_name + ".Hash._BLAKE2s"
+            elif full_name == crypto_module_name + ".Hash.BLAKE2b":
+                yield crypto_module_name + ".Hash._BLAKE2b"
             elif full_name == crypto_module_name + ".Hash.SHA1":
                 yield crypto_module_name + ".Hash._SHA1"
             elif full_name == crypto_module_name + ".Hash.SHA224":
@@ -983,19 +1079,36 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield crypto_module_name + ".Hash._SHA384"
             elif full_name == crypto_module_name + ".Hash.SHA512":
                 yield crypto_module_name + ".Hash._SHA512"
+            elif full_name == crypto_module_name + ".Hash.MD2":
+                yield crypto_module_name + ".Hash._MD2"
+            elif full_name == crypto_module_name + ".Hash.MD4":
+                yield crypto_module_name + ".Hash._MD4"
             elif full_name == crypto_module_name + ".Hash.MD5":
                 yield crypto_module_name + ".Hash._MD5"
             elif full_name == crypto_module_name + ".Hash.keccak":
                 yield crypto_module_name + ".Hash._keccak"
+            elif full_name == crypto_module_name + ".Hash.RIPEMD160":
+                yield crypto_module_name + ".Hash._RIPEMD160"
+            elif full_name == crypto_module_name + ".Hash.Poly1305":
+                yield crypto_module_name + ".Hash._poly1305"
             elif full_name == crypto_module_name + ".Protocol.KDF":
                 yield crypto_module_name + ".Cipher._Salsa20"
                 yield crypto_module_name + ".Protocol._scrypt"
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
+                yield crypto_module_name + ".Hash._ghash_clmul"
                 yield crypto_module_name + ".Hash._ghash_portable"
+            elif full_name == crypto_module_name + ".Cipher.Salsa20":
+                yield crypto_module_name + ".Cipher._Salsa20"
             elif full_name == crypto_module_name + ".Cipher.ChaCha20":
                 yield crypto_module_name + ".Cipher._chacha20"
             elif full_name == crypto_module_name + ".PublicKey.ECC":
                 yield crypto_module_name + ".PublicKey._ec_ws"
+            elif full_name == crypto_module_name + ".Cipher.ARC4":
+                yield crypto_module_name + ".Cipher._ARC4"
+            elif full_name == crypto_module_name + ".Cipher.PKCS1_v1_5":
+                yield crypto_module_name + ".Cipher._pkcs1_decode"
+            elif full_name == crypto_module_name + ".Math._IntegerCustom":
+                yield crypto_module_name + ".Math._modexp"
         elif full_name == "pycparser.c_parser":
             yield "pycparser.yacctab"
             yield "pycparser.lextab"
@@ -1021,12 +1134,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pyglet.text"
             yield "pyglet.window"
         elif full_name in ("pynput.keyboard", "pynput.mouse"):
-            if getOS() == "Darwin":
+            if isMacOS():
                 yield full_name.getChildNamed("_darwin")
             elif isWin32Windows():
                 yield full_name.getChildNamed("_win32")
             else:
-                yield full_name.getChildNamed("xorg")
+                yield full_name.getChildNamed("_xorg")
         elif full_name == "_pytest._code.code":
             yield "py._path.local"
         elif full_name == "pyreadstat._readstat_parser":
@@ -1034,214 +1147,64 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elif full_name == "pyreadstat.pyreadstat":
             yield "pyreadstat._readstat_writer"
             yield "pyreadstat.worker"
+            yield "multiprocessing"
         elif full_name == "cytoolz.itertoolz":
             yield "cytoolz.utils"
         elif full_name == "cytoolz.functoolz":
             yield "cytoolz._signatures"
         elif full_name == "exchangelib":
             yield "tzdata"
-
-    def getImportsByFullname(self, full_name, module_filename):
-        """Recursively create a set of imports for a fullname.
-
-        Notes:
-            If an imported item has imported kids, call again with each new item,
-            resulting in a leaf-only set (no more consequential kids).
-        """
-        result = OrderedSet()
-
-        def checkImportsRecursive(module_name, module_filename):
-            for item in self._getImportsByFullname(module_name, module_filename):
-                item = ModuleName(item)
-
-                if item not in result:
-                    result.add(item)
-                    checkImportsRecursive(item, module_filename)
-
-        checkImportsRecursive(full_name, module_filename)
-
-        if full_name in result:
-            result.remove(full_name)
-
-        return result
+        elif full_name == "curses":
+            yield "_curses"
+        elif full_name == "h5py.h5":
+            yield "h5py.defs"
+        elif full_name == "h5py.h5s":
+            yield "h5py.utils"
+        elif full_name == "h5py.h5p":
+            yield "h5py.h5ac"
+        elif full_name == "h5py.h5a":
+            yield "h5py._proxy"
+        elif full_name == "kivy._clock":
+            yield "kivy.weakmethod"
+        elif full_name == "kivy.graphics.instructions":
+            yield "kivy.graphics.buffer"
+            yield "kivy.graphics.vertex"
+            yield "kivy.graphics.vbo"
+        elif full_name == "kivy.graphics.vbo":
+            yield "kivy.graphics.compiler"
+        elif full_name == "kivy.graphics.compiler":
+            yield "kivy.graphics.shader"
+        elif full_name == "mercurial.encoding":
+            yield "mercurial.charencode"
+            yield "mercurial.cext.parsers"
 
     def getImplicitImports(self, module):
-        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches
         full_name = module.getFullName()
-        module_filename = module.getCompileTimeDirectory()
 
-        if module.isPythonShlibModule():
+        # TODO: This code absolutely doesn't below here.
+        if module.isPythonExtensionModule():
             for used_module in module.getUsedModules():
                 yield used_module[0]
 
         if full_name == "pkg_resources.extern":
-            for line in getFileContentByLine(module.getCompileTimeFilename()):
-                if line.startswith("names"):
-                    line = line.split("=")[-1].strip()
-                    parts = line.split(",")
-
-                    for part in parts:
-                        yield "pkg_resources._vendor." + part.strip("' ")
-
-        elif full_name == "OpenGL":
-            for line in getFileContentByLine(module.getCompileTimeFilename()):
-                if line.startswith("PlatformPlugin("):
-                    os_part, plugin_name_part = line[15:-1].split(",")
-                    os_part = os_part.strip("' ")
-                    plugin_name_part = plugin_name_part.strip(") '")
-                    plugin_name_part = plugin_name_part[: plugin_name_part.rfind(".")]
-                    if os_part == "nt":
-                        if getOS() == "Windows":
-                            yield plugin_name_part
-                    elif os_part.startswith("linux"):
-                        if getOS() == "Linux":
-                            yield plugin_name_part
-                    elif os_part.startswith("darwin"):
-                        if getOS() == "Darwin":
-                            yield plugin_name_part
-                    elif os_part.startswith(("posix", "osmesa", "egl")):
-                        if getOS() != "Windows":
-                            yield plugin_name_part
-                    else:
-                        assert False, os_part
+            # TODO: A package specific lookup of compile time "pkg_resources.extern" could
+            # be done here, but this might be simpler to hardcode for now. Once we have
+            # the infrastructure to ask a module that after optimization, we should do
+            # that instead, as it will not use a separate process.
+            for part in (
+                "packaging",
+                "pyparsing",
+                "appdirs",
+                "jaraco",
+                "importlib_resources",
+                "more_itertools",
+                "six",
+            ):
+                yield "pkg_resources._vendor." + part
 
         else:
-            # create a flattened import set for full_name and yield from it
-            for item in self.getImportsByFullname(full_name, module_filename):
+            for item in self._getImportsByFullname(module=module, full_name=full_name):
                 yield item
-
-    # We don't care about line length here, pylint: disable=line-too-long
-
-    module_aliases = {
-        "six.moves.builtins": "__builtin__" if python_version < 0x300 else "builtins",
-        "six.moves.configparser": "ConfigParser"
-        if python_version < 0x300
-        else "configparser",
-        "six.moves.copyreg": "copy_reg" if python_version < 0x300 else "copyreg",
-        "six.moves.dbm_gnu": "gdbm" if python_version < 0x300 else "dbm.gnu",
-        "six.moves._dummy_thread": "dummy_thread"
-        if python_version < 0x300
-        else "_dummy_thread",
-        "six.moves.http_cookiejar": "cookielib"
-        if python_version < 0x300
-        else "http.cookiejar",
-        "six.moves.http_cookies": "Cookie"
-        if python_version < 0x300
-        else "http.cookies",
-        "six.moves.html_entities": "htmlentitydefs"
-        if python_version < 0x300
-        else "html.entities",
-        "six.moves.html_parser": "HTMLParser"
-        if python_version < 0x300
-        else "html.parser",
-        "six.moves.http_client": "httplib" if python_version < 0x300 else "http.client",
-        "six.moves.email_mime_multipart": "email.MIMEMultipart"
-        if python_version < 0x300
-        else "email.mime.multipart",
-        "six.moves.email_mime_nonmultipart": "email.MIMENonMultipart"
-        if python_version < 0x300
-        else "email.mime.nonmultipart",
-        "six.moves.email_mime_text": "email.MIMEText"
-        if python_version < 0x300
-        else "email.mime.text",
-        "six.moves.email_mime_base": "email.MIMEBase"
-        if python_version < 0x300
-        else "email.mime.base",
-        "six.moves.BaseHTTPServer": "BaseHTTPServer"
-        if python_version < 0x300
-        else "http.server",
-        "six.moves.CGIHTTPServer": "CGIHTTPServer"
-        if python_version < 0x300
-        else "http.server",
-        "six.moves.SimpleHTTPServer": "SimpleHTTPServer"
-        if python_version < 0x300
-        else "http.server",
-        "six.moves.cPickle": "cPickle" if python_version < 0x300 else "pickle",
-        "six.moves.queue": "Queue" if python_version < 0x300 else "queue",
-        "six.moves.reprlib": "repr" if python_version < 0x300 else "reprlib",
-        "six.moves.socketserver": "SocketServer"
-        if python_version < 0x300
-        else "socketserver",
-        "six.moves._thread": "thread" if python_version < 0x300 else "_thread",
-        "six.moves.tkinter": "Tkinter" if python_version < 0x300 else "tkinter",
-        "six.moves.tkinter_dialog": "Dialog"
-        if python_version < 0x300
-        else "tkinter.dialog",
-        "six.moves.tkinter_filedialog": "FileDialog"
-        if python_version < 0x300
-        else "tkinter.filedialog",
-        "six.moves.tkinter_scrolledtext": "ScrolledText"
-        if python_version < 0x300
-        else "tkinter.scrolledtext",
-        "six.moves.tkinter_simpledialog": "SimpleDialog"
-        if python_version < 0x300
-        else "tkinter.simpledialog",
-        "six.moves.tkinter_tix": "Tix" if python_version < 0x300 else "tkinter.tix",
-        "six.moves.tkinter_ttk": "ttk" if python_version < 0x300 else "tkinter.ttk",
-        "six.moves.tkinter_constants": "Tkconstants"
-        if python_version < 0x300
-        else "tkinter.constants",
-        "six.moves.tkinter_dnd": "Tkdnd" if python_version < 0x300 else "tkinter.dnd",
-        "six.moves.tkinter_colorchooser": "tkColorChooser"
-        if python_version < 0x300
-        else "tkinter_colorchooser",
-        "six.moves.tkinter_commondialog": "tkCommonDialog"
-        if python_version < 0x300
-        else "tkinter_commondialog",
-        "six.moves.tkinter_tkfiledialog": "tkFileDialog"
-        if python_version < 0x300
-        else "tkinter.filedialog",
-        "six.moves.tkinter_font": "tkFont"
-        if python_version < 0x300
-        else "tkinter.font",
-        "six.moves.tkinter_messagebox": "tkMessageBox"
-        if python_version < 0x300
-        else "tkinter.messagebox",
-        "six.moves.tkinter_tksimpledialog": "tkSimpleDialog"
-        if python_version < 0x300
-        else "tkinter_tksimpledialog",
-        "six.moves.urllib_parse": None if python_version < 0x300 else "urllib.parse",
-        "six.moves.urllib_error": None if python_version < 0x300 else "urllib.error",
-        "six.moves.urllib_robotparser": "robotparser"
-        if python_version < 0x300
-        else "urllib.robotparser",
-        "six.moves.xmlrpc_client": "xmlrpclib"
-        if python_version < 0x300
-        else "xmlrpc.client",
-        "six.moves.xmlrpc_server": "SimpleXMLRPCServer"
-        if python_version < 0x300
-        else "xmlrpc.server",
-        "six.moves.winreg": "_winreg" if python_version < 0x300 else "winreg",
-        "requests.packages.chardet": "chardet",
-        "requests.packages.idna": "idna",
-        "requests.packages.urllib3": "urllib3",
-        "requests.packages.urllib3._collections": "urllib3._collections",
-        "requests.packages.urllib3.connection": "urllib3.connection",
-        "requests.packages.urllib3.connectionpool": "urllib3.connectionpool",
-        "requests.packages.urllib3.contrib": "urllib3.contrib",
-        "requests.packages.urllib3.contrib.appengine": "urllib3.contrib.appengine",
-        "requests.packages.urllib3.contrib.ntlmpool": "urllib3.contrib.ntlmpool",
-        "requests.packages.urllib3.contrib.pyopenssl": "urllib3.contrib.pyopenssl",
-        "requests.packages.urllib3.contrib.socks": "urllib3.contrib.socks",
-        "requests.packages.urllib3.exceptions": "urllib3.exceptions",
-        "requests.packages.urllib3.fields": "urllib3.fields",
-        "requests.packages.urllib3.filepost": "urllib3.filepost",
-        "requests.packages.urllib3.packages": "urllib3.packages",
-        "requests.packages.urllib3.packages.ordered_dict": "urllib3.packages.ordered_dict",
-        "requests.packages.urllib3.packages.ssl_match_hostname": "urllib3.packages.ssl_match_hostname",
-        "requests.packages.urllib3.packages.ssl_match_hostname._implementation": "urllib3.packages.ssl_match_hostname._implementation",
-        "requests.packages.urllib3.poolmanager": "urllib3.poolmanager",
-        "requests.packages.urllib3.request": "urllib3.request",
-        "requests.packages.urllib3.response": "urllib3.response",
-        "requests.packages.urllib3.util": "urllib3.util",
-        "requests.packages.urllib3.util.connection": "urllib3.util.connection",
-        "requests.packages.urllib3.util.request": "urllib3.util.request",
-        "requests.packages.urllib3.util.response": "urllib3.util.response",
-        "requests.packages.urllib3.util.retry": "urllib3.util.retry",
-        "requests.packages.urllib3.util.ssl_": "urllib3.util.ssl_",
-        "requests.packages.urllib3.util.timeout": "urllib3.util.timeout",
-        "requests.packages.urllib3.util.url": "urllib3.util.url",
-    }
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "numexpr.cpuinfo":
@@ -1257,69 +1220,6 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # Do nothing by default.
         return source_code
-
-    def considerExtraDlls(self, dist_dir, module):
-        full_name = module.getFullName()
-
-        if full_name == "uuid" and getOS() == "Linux":
-            uuid_dll_path = locateDLL("uuid")
-
-            if uuid_dll_path is not None:
-                dist_dll_path = os.path.join(dist_dir, os.path.basename(uuid_dll_path))
-
-                shutil.copy(uuid_dll_path, dist_dll_path)
-
-                return ((uuid_dll_path, dist_dll_path, None),)
-        elif full_name == "iptc" and getOS() == "Linux":
-            import iptc.util  # pylint: disable=I0021,import-error
-
-            xtwrapper_dll = iptc.util.find_library("xtwrapper")[0]
-            xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
-
-            dist_dll_path = os.path.join(dist_dir, os.path.basename(xtwrapper_dll_path))
-
-            shutil.copy(xtwrapper_dll_path, dist_dll_path)
-
-            return ((xtwrapper_dll_path, dist_dll_path, None),)
-        elif full_name == "gi._gi":
-            gtk_dll_path = locateDLL("gtk-3")
-
-            if gtk_dll_path is None:
-                gtk_dll_path = locateDLL("gtk-3-0")
-
-            if gtk_dll_path is not None:
-                dist_dll_path = os.path.join(dist_dir, os.path.basename(gtk_dll_path))
-                shutil.copy(gtk_dll_path, dist_dll_path)
-
-                return ((gtk_dll_path, dist_dll_path, None),)
-        elif full_name in ("win32api", "pythoncom") and isWin32Windows():
-            # Do this only once, pylint: disable=global-statement
-            global _added_pywin32
-
-            result = []
-            pywin_dir = getPyWin32Dir()
-
-            if pywin_dir is not None and not _added_pywin32:
-                _added_pywin32 = True
-
-                for dll_name in "pythoncom", "pywintypes":
-
-                    pythoncom_filename = "%s%d%d.dll" % (
-                        dll_name,
-                        sys.version_info[0],
-                        sys.version_info[1],
-                    )
-                    pythoncom_dll_path = os.path.join(pywin_dir, pythoncom_filename)
-                    dist_dll_path = os.path.join(dist_dir, pythoncom_filename)
-
-                    if os.path.exists(pythoncom_dll_path):
-                        shutil.copy(pythoncom_dll_path, dist_dir)
-
-                        result.append((pythoncom_dll_path, dist_dll_path, None))
-
-            return result
-
-        return ()
 
     unworthy_namespaces = (
         "setuptools",  # Not performance relevant.
@@ -1347,8 +1247,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "pyglet.gl",  # Too large generated code
         "telethon.tl.types",  # Not performance relevant and slow C compile
         "importlib_metadata",  # Not performance relevant and slow C compile
+        "comtypes.gen",  # Not performance relevant and slow C compile
+        "win32com.gen_py",  # Not performance relevant and slow C compile
+        "phonenumbers.geodata",  # Not performance relevant and slow C compile
+        "site",  # Not performance relevant and problems with .pth files
+        "packaging",  # Not performance relevant.
+        "appdirs",  # Not performance relevant.
+        "dropbox.team_log",  # Too large generated code
     )
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         if module_name.hasOneOfNamespaces(self.unworthy_namespaces):
             return "bytecode"

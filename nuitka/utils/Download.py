@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,11 +23,7 @@ Mostly used on Windows, for dependency walker and ccache binaries.
 import os
 
 from nuitka import Tracing
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    raw_input,
-    urlretrieve,
-)
-from nuitka.utils import Utils
+from nuitka.__past__ import raw_input, urlretrieve
 
 from .AppDirs import getAppDir
 from .FileOperations import addFileExecutablePermission, deleteFile, makePath
@@ -38,12 +34,13 @@ def getCachedDownload(
     binary,
     flatten,
     is_arch_specific,
-    specifity,
+    specificity,
     message,
     reject,
     assume_yes_for_downloads,
 ):
-    # Many branches to deal with, pylint: disable=too-many-branches,too-many-statements
+    # Many branches to deal with.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     nuitka_app_dir = getAppDir()
 
@@ -52,10 +49,10 @@ def getCachedDownload(
     )
 
     if is_arch_specific:
-        nuitka_app_dir = os.path.join(nuitka_app_dir, Utils.getArchitecture())
+        nuitka_app_dir = os.path.join(nuitka_app_dir, is_arch_specific)
 
-    if specifity:
-        nuitka_app_dir = os.path.join(nuitka_app_dir, specifity)
+    if specificity:
+        nuitka_app_dir = os.path.join(nuitka_app_dir, specificity)
 
     download_path = os.path.join(nuitka_app_dir, os.path.basename(url))
     exe_path = os.path.join(nuitka_app_dir, binary)
@@ -70,7 +67,7 @@ def getCachedDownload(
                 """\
 %s
 
-Is it OK to download and put it in %r.
+Is it OK to download and put it in '%s'.
 
 No installer needed, cached, one time question.
 
@@ -92,13 +89,13 @@ Proceed and download? [Yes]/No """
 
             try:
                 urlretrieve(url, download_path)
-            except Exception:  # Any kind of error, pylint: disable=broad-except
+            except Exception as e:  # Any kind of error, pylint: disable=broad-except
                 try:
                     urlretrieve(url.replace("https://", "http://"), download_path)
                 except Exception:  # Any kind of error, pylint: disable=broad-except
                     Tracing.general.sysexit(
-                        "Failed to download '%s'. Contents should manually be copied to '%s'."
-                        % (url, download_path)
+                        "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
+                        % (url, e, download_path)
                     )
 
     if not os.path.isfile(exe_path) and os.path.isfile(download_path):
@@ -107,6 +104,7 @@ Proceed and download? [Yes]/No """
         import zipfile
 
         try:
+            # Not all Python versions support using it as a context manager, pylint: disable=consider-using-with
             zip_file = zipfile.ZipFile(download_path)
 
             for zip_info in zip_file.infolist():
@@ -138,3 +136,27 @@ Proceed and download? [Yes]/No """
         exe_path = None
 
     return exe_path
+
+
+def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
+    # Large URLs, pylint: disable=line-too-long
+
+    if target_arch == "x86_64":
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-x86_64-posix-seh-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
+        binary = r"mingw64\bin\gcc.exe"
+    else:
+        url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-i686-posix-dwarf-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
+        binary = r"mingw32\bin\gcc.exe"
+
+    gcc_binary = getCachedDownload(
+        url=url,
+        is_arch_specific=target_arch,
+        specificity=url.rsplit("/", 2)[1],
+        binary=binary,
+        flatten=False,
+        message="Nuitka will use gcc from MinGW64 of winlibs to compile on Windows.",
+        reject="Only this specific gcc is supported with Nuitka.",
+        assume_yes_for_downloads=assume_yes_for_downloads,
+    )
+
+    return gcc_binary

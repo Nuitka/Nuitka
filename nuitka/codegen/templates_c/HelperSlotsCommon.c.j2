@@ -1,0 +1,71 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{# This contains macros that are used for all slot helper macros #}
+{% macro goto_exit(props, target, result, qual="all") %}
+{% if target.endswith(("_exception", "_left", "_right")) or "_const_" in target or target == "exit_result_ok" %}
+{% elif target.endswith("_cbool") %}
+    cbool_result = {{ result }};
+{% elif target.endswith("_nbool") %}
+    nbool_result = {{ result }};
+{% elif target.endswith("_clong") %}
+    clong_result = {{ result }};
+{% elif target.endswith("_cfloat") %}
+    cfloat_result = {{ result }};
+{% elif target.endswith("_object") %}
+    obj_result = {{ result }};
+{% else %}
+#error Cannot derive result variable from {{target}}
+{% endif %}
+    goto {{ target }}; {% if target not in props.get("exits") %} {% do props.get("exits").update({target: []}) %} {% endif %} {% do props.get("exits").get(target).append(qual) %}
+{% endmacro %}
+
+{% macro constant_float_exit_target(props, target, result, left, operand1, label, constant_value, exit_result_ok) %}
+{{label}}:
+{% if target %}
+    {{ target.getAssignFromFloatConstantCode(result, constant_value) }}
+{% else %}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+    {{ left.getAssignFromFloatConstantCode(operand1, constant_value) }}
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endmacro %}
+
+{% macro constant_int_exit_target(props, target, result, left, operand1, label, constant_value, exit_result_ok) %}
+{{label}}:
+{% if target %}
+    {{ target.getAssignFromIntConstantCode(result, constant_value) }}
+{% else %}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+    {{ left.getAssignFromIntConstantCode(operand1, constant_value) }}
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endmacro %}
+
+{% macro constant_long_exit_target(props, target, result, left, operand1, label, constant_value, exit_result_ok) %}
+{{label}}:
+{% if target %}
+    {{ target.getAssignFromLongConstantCode(result, constant_value) }}
+{% else %}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+    {{ left.getAssignFromLongConstantCode(operand1, constant_value) }}
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endmacro %}

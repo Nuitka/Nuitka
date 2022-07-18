@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,8 +29,9 @@ import subprocess
 import sys
 
 from nuitka import Options, Tracing
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
@@ -40,8 +41,12 @@ from nuitka.utils.FileOperations import (
     hasFilenameExtension,
     listDir,
 )
+from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
+from nuitka.utils.Utils import getOS, isMacOS
 
 from .SconsCaching import checkCachingSuccess
+from .SconsUtils import flushSconsReports
 
 
 def getSconsDataPath():
@@ -83,23 +88,6 @@ def _getSconsBinaryCall():
             )
 
 
-def _getPythonSconsExePathWindows():
-    """Find Python for Scons on Windows.
-
-    Only 3.5 or higher will do.
-    """
-
-    # Ordered in the list of preference.
-    python_dir = Execution.getPythonInstallPathWindows(
-        supported=("3.5", "3.6", "3.7", "3.8", "3.9")
-    )
-
-    if python_dir is not None:
-        return os.path.join(python_dir, "python.exe")
-    else:
-        return None
-
-
 def _getPythonForSconsExePath():
     """Find a way to call any Python that works for Scons.
 
@@ -110,40 +98,35 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    if python_version < 0x300 and not Utils.isWin32Windows():
-        # Python 2.6 and 2.7 are fine for scons on all platforms, but not
-        # on Windows due to clcache usage.
-        return sys.executable
-    elif python_version >= 0x350:
-        # Python 3.5 or higher work on all platforms.
-        return sys.executable
-    elif Utils.isWin32Windows():
-        python_exe = _getPythonSconsExePathWindows()
+    scons_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
+    if not Utils.isWin32Windows():
+        scons_supported_pythons += ("2.7", "2.6")
 
-        if python_exe is not None:
-            return python_exe
+    # Our inline copy needs no other module, just the right version of Python is needed.
+    python_for_scons = findInstalledPython(
+        python_versions=scons_supported_pythons, module_name=None, module_version=None
+    )
+
+    if python_for_scons is None:
+        if Utils.isWin32Windows():
+            scons_python_requirement = "Python 3.5 or higher"
         else:
-            Tracing.scons_logger.sysexit(
-                """\
+            scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
+
+        Tracing.scons_logger.sysexit(
+            """\
 Error, while Nuitka works with older Python, Scons does not, and therefore
-Nuitka needs to find a Python 3.5 or higher executable, so please install
+Nuitka needs to find a %s executable, so please install
 it.
 
 You may provide it using option "--python-for-scons=path_to_python.exe"
 in case it is not visible in registry, e.g. due to using uninstalled
 Anaconda Python.
 """
-            )
+            % scons_python_requirement
+        )
 
-    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7", "3.8", "3.9"):
-        candidate = Execution.getExecutablePath("python" + version_candidate)
-
-        if candidate is not None:
-            return candidate
-
-    # Lets be optimistic, this is most often going to be new enough or a
-    # Python2 variant.
-    return "python"
+    return python_for_scons.getPythonExe()
 
 
 @contextlib.contextmanager
@@ -154,14 +137,14 @@ def _setupSconsEnvironment():
     Python DLL lives, in case it needs to be copied, and then also the
     "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
 
-    We also need to preserve PYTHONPATH and PYTHONHOME, but remove it potentially
-    as well, so not to confuse the other Python binary used to run scons.
+    We also need to preserve "PYTHONPATH" and "PYTHONHOME", but remove it
+    potentially as well, so not to confuse the other Python binary used to run
+    scons.
     """
 
     # For Python2, avoid unicode working directory.
-    if Utils.isWin32Windows() and python_version < 0x300:
-        if os.getcwd() != os.getcwdu():
-            os.chdir(getWindowsShortPathName(os.getcwdu()))
+    if Utils.isWin32Windows():
+        os.chdir(getWindowsShortPathName(os.getcwd()))
 
     if Utils.isWin32Windows() and not Options.shallUseStaticLibPython():
         # On Win32, we use the Python.DLL path for some things. We pass it
@@ -231,7 +214,7 @@ def _buildSconsCommand(quiet, options, scons_filename):
     ]
 
     if Options.isShowScons():
-        scons_command.append("--debug=explain,stacktrace")
+        scons_command.append("--debug=stacktrace")
 
     # Python2, encoding unicode values
     def encode(value):
@@ -242,6 +225,11 @@ def _buildSconsCommand(quiet, options, scons_filename):
 
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
+        if value is None:
+            Tracing.scons_logger.sysexit(
+                "Error, failure to provide argument for '%s', please report bug." % key
+            )
+
         scons_command.append(key + "=" + encode(value))
 
     # Python2, make argument encoding recognizable.
@@ -282,15 +270,17 @@ def runScons(options, quiet, scons_filename):
         )
 
         if Options.isShowScons():
-            Tracing.printLine("Scons command:", " ".join(scons_command))
+            Tracing.scons_logger.info("Scons command: %s" % " ".join(scons_command))
 
         Tracing.flushStandardOutputs()
 
         # Call scons, make sure to pass on quiet setting.
-        with Execution.withEnvironmentVarOverriden(
+        with Execution.withEnvironmentVarOverridden(
             "NUITKA_QUIET", "1" if Tracing.is_quiet else "0"
         ):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)
+
+        flushSconsReports()
 
         if result == 0:
             checkCachingSuccess(source_dir or options["source_dir"])
@@ -323,6 +313,9 @@ def cleanSconsDirectory(source_dir):
         ".S",
         ".txt",
         ".const",
+        ".gcda",
+        ".pgd",
+        ".pgc",
     )
 
     def check(path):
@@ -349,6 +342,7 @@ def cleanSconsDirectory(source_dir):
 def setCommonOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
+    # pylint: disable=too-many-branches,too-many-statements
 
     if Options.shallRunInDebugger():
         options["full_names"] = "true"
@@ -369,19 +363,25 @@ def setCommonOptions(options):
         options["mingw_mode"] = "true"
 
     if Options.getMsvcVersion():
-        msvc_version = Options.getMsvcVersion()
+        options["msvc_version"] = Options.getMsvcVersion()
 
-        msvc_version = msvc_version.replace("exp", "Exp")
-        if "." not in msvc_version:
-            msvc_version += ".0"
+    if Options.shallDisableCCacheUsage():
+        options["disable_ccache"] = asBoolStr(True)
 
-        options["msvc_version"] = msvc_version
+    if Options.shallDisableConsoleWindow() and Options.mayDisableConsoleWindow():
+        options["disable_console"] = asBoolStr(True)
 
-    if Options.shallDisableConsoleWindow():
-        options["win_disable_console"] = asBoolStr(True)
+    if Options.getLtoMode() != "auto":
+        options["lto_mode"] = Options.getLtoMode()
 
-    if Options.isLto():
-        options["lto_mode"] = asBoolStr(True)
+    if getOS() == "Windows" or isMacOS():
+        options["noelf_mode"] = asBoolStr(True)
+
+    if Options.isUnstriped():
+        options["unstriped_mode"] = asBoolStr(True)
+
+    if isAnacondaPython():
+        options["anaconda_python"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
@@ -390,6 +390,68 @@ def setCommonOptions(options):
             for key, value in cpp_defines.items()
         )
 
+    cpp_include_dirs = Plugins.getExtraIncludeDirectories()
+    if cpp_include_dirs:
+        options["cpp_include_dirs"] = ",".join(cpp_include_dirs)
+
+    link_dirs = Plugins.getExtraLinkDirectories()
+    if link_dirs:
+        options["link_dirs"] = ",".join(link_dirs)
+
     link_libraries = Plugins.getExtraLinkLibraries()
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
+
+    if Utils.isMacOS():
+        macos_min_version = detectBinaryMinMacOS(sys.executable)
+
+        if macos_min_version is None:
+            Tracing.general.sysexit(
+                "Could not detect minimum macOS version for %r." % sys.executable
+            )
+
+        options["macos_min_version"] = macos_min_version
+
+        macos_target_arch = Options.getMacOSTargetArch()
+
+        if macos_target_arch == "universal":
+            Tracing.general.sysexit(
+                "Cannot create universal macOS binaries (yet), please pick an arch and create two binaries."
+            )
+
+        options["macos_target_arch"] = macos_target_arch
+
+    env_values = {}
+
+    string_values = Options.getWindowsVersionInfoStrings()
+    if "CompanyName" in string_values:
+        env_values["NUITKA_COMPANY_NAME"] = string_values["CompanyName"]
+    if "ProductName" in string_values:
+        env_values["NUITKA_PRODUCT_NAME"] = string_values["ProductName"]
+
+    # Merge version information if possible, to avoid collisions, or deep nesting
+    # in file system.
+    product_version = Options.getWindowsProductVersion()
+    file_version = Options.getWindowsFileVersion()
+
+    if product_version is None:
+        product_version = file_version
+    if product_version is not None:
+        product_version = ".".join(str(d) for d in product_version)
+    if file_version is None:
+        file_version = product_version
+    if file_version is not None:
+        file_version = ".".join(str(d) for d in file_version)
+
+    if product_version != file_version:
+        effective_version = "%s-%s" % (
+            product_version,
+            file_version,
+        )
+    else:
+        effective_version = file_version
+
+    if effective_version:
+        env_values["NUITKA_VERSION_COMBINED"] = effective_version
+
+    return env_values

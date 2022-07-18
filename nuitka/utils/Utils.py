@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,10 +21,11 @@ Here the small things that fit nowhere else and don't deserve their own module.
 
 """
 
+import functools
 import os
 import sys
-
-from nuitka.PythonVersions import python_version
+import time
+from contextlib import contextmanager
 
 
 def getOS():
@@ -42,6 +43,116 @@ def getOS():
         assert False, os.name
 
 
+_linux_distribution_info = None
+
+
+def _parseOsReleaseFileContents(filename):
+    result = None
+    base = None
+    version = None
+
+    from .FileOperations import getFileContentByLine
+
+    for line in getFileContentByLine(filename):
+        if line.startswith("PRETTY_NAME=") and "/sid" in line:
+            version = "sid"
+
+        if line.startswith("ID="):
+            result = line[3:].strip('"')
+
+        if line.startswith("ID_LIKE="):
+            base = line[8:].strip('"').lower()
+
+            if "ubuntu" in base:
+                base = "Ubuntu"
+            elif "debian" in base:
+                base = "Debian"
+            elif "fedora" in base:
+                base = "Fedora"
+
+        if line.startswith("VERSION="):
+            version = line[8:].strip('"')
+
+        if "SUSE Linux Enterprise Server" in line:
+            result = "SLES"  # spell-checker: ignore SLES
+
+    return result, base, version
+
+
+def getLinuxDistribution():
+    """Name of the Linux distribution.
+
+    We should usually avoid this, and rather test for the feature,
+    but in some cases it's hard to manage that.
+    """
+    if getOS() != "Linux":
+        return None, None, None
+
+    # singleton, pylint: disable=global-statement
+    global _linux_distribution_info
+
+    if _linux_distribution_info is None:
+        result = None
+        base = None
+        version = None
+
+        if os.path.exists("/etc/os-release"):
+            result, base, version = _parseOsReleaseFileContents("/etc/os-release")
+        elif os.path.exists("/etc/SuSE-release"):
+            result, base, version = _parseOsReleaseFileContents("/etc/SuSE-release")
+        elif os.path.exists("/etc/issue"):
+            result, base, version = _parseOsReleaseFileContents("/etc/issue")
+
+        if result is None:
+            from .Execution import check_output
+
+            try:
+                result = check_output(["lsb_release", "-i", "-s"], shell=False)
+
+                if str is not bytes:
+                    result = result.decode("utf8")
+            except OSError:
+                pass
+
+        if result is None:
+            from nuitka.Tracing import general
+
+            general.warning(
+                "Cannot detect Linux distribution, this may prevent optimization."
+            )
+            result = "Unknown"
+
+        # Change e.g. "11 (Bullseye)"" to "11".
+        if version is not None and version.strip():
+            version = version.split()[0]
+
+        _linux_distribution_info = result.title(), base, version
+
+    return _linux_distribution_info
+
+
+def getWindowsRelease():
+    if getOS() != "Windows":
+        return None
+
+    import platform
+
+    return platform.release()
+
+
+def isDebianBasedLinux():
+    dist_name, base, _dist_version = getLinuxDistribution()
+
+    # False alarm, pylint: disable=superfluous-parens
+    return (base or dist_name) in ("Debian", "Ubuntu")
+
+
+def isFedoraBasedLinux():
+    dist_name, base, _dist_version = getLinuxDistribution()
+
+    return (base or dist_name) == "Fedora"
+
+
 def isWin32Windows():
     """The Win32 variants of Python does have win32 only, not posix."""
     return os.name == "nt"
@@ -50,6 +161,31 @@ def isWin32Windows():
 def isPosixWindows():
     """The MSYS2 variant of Python does have posix only, not Win32."""
     return os.name == "posix" and getOS() == "Windows"
+
+
+def isLinux():
+    """The Linux OS."""
+    return getOS() == "Linux"
+
+
+def isMacOS():
+    """The macOS platform."""
+    return getOS() == "Darwin"
+
+
+def isNetBSD():
+    """The NetBSD OS."""
+    return getOS() == "NetBSD"
+
+
+def isFreeBSD():
+    """The FreeBSD OS."""
+    return getOS() == "FreeBSD"
+
+
+def isOpenBSD():
+    """The FreeBSD OS."""
+    return getOS() == "OpenBSD"
 
 
 _is_alpine = None
@@ -81,14 +217,17 @@ def getArchitecture():
 def getCoreCount():
     cpu_count = 0
 
-    # Try to sum up the CPU cores, if the kernel shows them.
-    try:
-        # Try to get the number of logical processors
-        with open("/proc/cpuinfo") as cpuinfo_file:
-            cpu_count = cpuinfo_file.read().count("processor\t:")
-    except IOError:
-        pass
+    if getOS() != "Windows":
+        # Try to sum up the CPU cores, if the kernel shows them, getting the number
+        # of logical processors
+        try:
+            # Encoding is not needed, pylint: disable=unspecified-encoding
+            with open("/proc/cpuinfo") as cpuinfo_file:
+                cpu_count = cpuinfo_file.read().count("processor\t:")
+        except IOError:
+            pass
 
+    # Multiprocessing knows the way.
     if not cpu_count:
         import multiprocessing
 
@@ -103,7 +242,7 @@ def encodeNonAscii(var_name):
     For Python3, unicode identifiers can be used, but these are not
     possible in C, so we need to replace them.
     """
-    if python_version < 0x300:
+    if str is bytes:
         return var_name
     else:
         # Using a escaping here, because that makes it safe in terms of not
@@ -120,11 +259,112 @@ def hasOnefileSupportedOS():
     return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD")
 
 
+def hasStandaloneSupportedOS():
+    return getOS() in ("Linux", "Windows", "Darwin", "FreeBSD", "OpenBSD")
+
+
 def getUserName():
     """Return the user name.
 
     Notes: Currently doesn't work on Windows.
     """
-    import pwd
+    import pwd  # pylint: disable=I0021,import-error
+
+    # spell-checker: ignore getpwuid,getuid
 
     return pwd.getpwuid(os.getuid())[0]
+
+
+@contextmanager
+def withWarningRemoved(category):
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=category)
+
+        # These do not inherit from DeprecationWarning by some decision we
+        # are not to care about.
+        if "pkg_resources" in sys.modules and category is DeprecationWarning:
+            try:
+                from pkg_resources import PkgResourcesDeprecationWarning
+            except ImportError:
+                pass
+            else:
+                warnings.filterwarnings(
+                    "ignore", category=PkgResourcesDeprecationWarning
+                )
+
+        yield
+
+
+@contextmanager
+def withNoDeprecationWarning():
+    with withWarningRemoved(DeprecationWarning):
+        yield
+
+
+@contextmanager
+def withNoSyntaxWarning():
+    with withWarningRemoved(SyntaxWarning):
+        yield
+
+
+def decoratorRetries(
+    logger, purpose, consequence, attempts=5, sleep_time=1, exception_type=OSError
+):
+    """Make retries for errors on Windows.
+
+    This executes a decorated function multiple times, and imposes a delay and
+    a virus checker warning.
+    """
+
+    def inner(func):
+        if os.name != "nt":
+            return func
+
+        @functools.wraps(func)
+        def retryingFunction(*args, **kwargs):
+            for attempt in range(1, attempts + 1):
+                try:
+                    result = func(*args, **kwargs)
+                except exception_type as e:
+                    if not isinstance(e, OSError):
+                        logger.warning(
+                            """\
+Failed to %s in attempt %d due to %s.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                            % (purpose, attempt, str(e))
+                        )
+
+                    else:
+                        if isinstance(e, OSError) and e.errno in (110, 13):
+                            logger.warning(
+                                """\
+Failed to %s in attempt %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                                % (purpose, attempt)
+                            )
+                        else:
+                            logger.warning(
+                                """\
+Failed to %s in attempt %d with error code %d.
+Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
+                                % (purpose, attempt, e.errno)
+                            )
+
+                    time.sleep(sleep_time)
+                    continue
+
+                else:
+                    if attempt != 1:
+                        logger.warning(
+                            "Succeeded with %s in attempt %d." % (purpose, attempt)
+                        )
+
+                    return result
+
+            logger.sysexit("Failed to %s, %s." % (purpose, consequence))
+
+        return retryingFunction
+
+    return inner

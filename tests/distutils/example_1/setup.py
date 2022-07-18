@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -23,22 +23,22 @@
 
 from setuptools import setup
 
-#This is a list of files to install, and where
-#(relative to the 'root' dir, where setup.py is)
-#You could be more specific.
+# This is a list of files to install, and where
+# (relative to the 'root' dir, where setup.py is)
+# You could be more specific.
 files = ["data/package_data.txt"]
 data_files = [("some_datadir", ("data_files/some_datafile.txt",))]
 
 setup(
-    name = "nuitka-example-1",
-    version = "101",
-    data_files = data_files,
-    packages = ['example1_package'],
-    package_data = {'example1_package' : files },
-    scripts = ["runner"],
-    description = "yadda yadda",
-    author = "Nobody really",
-    author_email = "email@someplace.com",
-    url = "whatever",
-    long_description = """Really long text here."""
+    name="nuitka-example-1",
+    version="101",
+    data_files=data_files,
+    packages=["example1_package"],
+    package_data={"example1_package": files},
+    scripts=["runner"],
+    description="yadda yadda",
+    author="Nobody really",
+    author_email="email@someplace.com",
+    url="whatever",
+    long_description="""Really long text here.""",
 )

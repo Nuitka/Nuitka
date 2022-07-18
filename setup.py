@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,116 +22,139 @@ the source code. Second, the packages are scanned from the filesystem,
 and third, the byte code compilation is avoided for inline copies of
 scons with mismatching Python major versions.
 
+spellchecker: ignore chdir,pythonw,tqdm
 """
 import os
-import re
 import sys
 
-from setuptools import setup
+os.chdir(os.path.dirname(__file__) or ".")
+sys.path.insert(0, os.path.abspath(os.getcwd()))
+
+# isort:start
+
+import distutils.util
+import fnmatch
+import re
+
+from setuptools import Distribution, setup
 from setuptools.command import easy_install
 
-os.chdir(os.path.dirname(__file__) or ".")
+# TODO: We need a better solution for this, probably error exit, once sys.exit
+# is optimized for. This is to avoid descending into Nuitka through distutils.
+if __name__ == "__main__":
+    from nuitka.PythonFlavors import isMSYS2MingwPython
+    from nuitka.Version import getNuitkaVersion
 
 scripts = []
 
 # For Windows, there are batch files to launch Nuitka.
-if os.name == "nt":
+if os.name == "nt" and not isMSYS2MingwPython():
     scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 
-# Detect the version of Nuitka from its source directly. Without calling it, we
-# don't mean to pollute with ".pyc" files and similar effects.
-def detectVersion():
-    with open("nuitka/Version.py") as version_file:
-        (version_line,) = [line for line in version_file if line.startswith("Nuitka V")]
-
-        return version_line.split("V")[1].strip()
-
-
-version = detectVersion()
-
-# The MSI installer enforces a 3 digit version number, which is stupid, but no
-# way around it, so we map our number to it, in some way.
-if os.name == "nt" and "bdist_msi" in sys.argv:
-
-    # Pre-releases are always smaller, official releases get the "1".
-    middle = 1 if "rc" not in version else 0
-    version = version.replace("rc", "")
-    parts = version.split(".")
-    major, first, last = parts[:3]
-    hotfix = parts[3] if len(parts) > 3 else 0
-
-    version = ".".join(
-        "%s" % value
-        for value in (
-            int(major) * 10 + int(first),
-            middle,
-            int(last) * 10 + int(hotfix),
-        )
-    )
+version = getNuitkaVersion()
 
 
 def findNuitkaPackages():
     result = []
 
     for root, dirnames, filenames in os.walk("nuitka"):
-        # Ignore the inline copy of scons, these are not packages of Nuitka.
-        if "scons-" in root:
-            continue
-
         # Packages must contain "__init__.py" or they are merely directories
         # in Nuitka as we are Python2 compatible.
         if "__init__.py" not in filenames:
             continue
 
         # The "release" namespace is code used to release, but not itself for
-        # release, same goes for "qualit"y.
+        # release, same goes for "quality".
         if "release" in dirnames:
             dirnames.remove("release")
         if "quality" in dirnames:
             dirnames.remove("quality")
+
+        # Handled separately.
+        if "inline_copy" in dirnames:
+            dirnames.remove("inline_copy")
 
         result.append(root.replace(os.path.sep, "."))
 
     return result
 
 
-if (
-    os.path.exists("/usr/bin/scons")
-    and "sdist" not in sys.argv
-    and "bdist_wininst" not in sys.argv
-    and "bdist_msi" not in sys.argv
-):
-    scons_files = []
-else:
-    scons_files = [
-        "inline_copy/*/*.py",
-        "inline_copy/*/*/*.py",
-        "inline_copy/*/*/*/*.py",
-        "inline_copy/*/*/*/*/*.py",
-        "inline_copy/*/*/*/*/*/*.py",
-    ]
+inline_copy_files = []
+no_byte_compile = []
 
-# Have different project names for MSI installers, so 32 and 64 bit versions do
-# not conflict.
-if "bdist_msi" in sys.argv:
-    project_name = "Nuitka%s" % (64 if "AMD64" in sys.version else 32)
-else:
-    project_name = "Nuitka"
 
-import distutils.util
+def addInlineCopy(name, do_byte_compile=True):
+    patterns = (
+        "inline_copy/%s/*.py" % name,
+        "inline_copy/%s/*/*.py" % name,
+        "inline_copy/%s/*/*/*.py" % name,
+        "inline_copy/%s/*/*/*/*.py" % name,
+        "inline_copy/%s/*/*/*/*/*.py" % name,
+        "inline_copy/%s/LICENSE*",
+        "inline_copy/%s/*/LICENSE*",
+        "inline_copy/%s/READ*",
+    )
+
+    inline_copy_files.extend(patterns)
+
+    if not do_byte_compile:
+        no_byte_compile.extend(patterns)
+
+
+addInlineCopy("appdirs")
+addInlineCopy("glob2")
+addInlineCopy("markupsafe")
+addInlineCopy("tqdm")
+
+sdist_mode = "sdist" in sys.argv
+
+if os.name == "nt" or sdist_mode:
+    addInlineCopy("atomicwrites")
+    addInlineCopy("clcache")
+    addInlineCopy("colorama")
+
+if sys.version_info < (3,) or sdist_mode:
+    addInlineCopy("yaml_27")
+if (3,) < sys.version_info < (3, 6) or sdist_mode:
+    addInlineCopy("yaml_35")
+if sys.version_info >= (3, 6) or sdist_mode:
+    addInlineCopy("yaml")
+
+if sys.version_info < (3, 6) or sdist_mode:
+    addInlineCopy("jinja2_35")
+if sys.version_info >= (3, 6) or sdist_mode:
+    addInlineCopy("jinja2")
+
+addInlineCopy("pkg_resources")
+
+# Scons really only, with historic naming and positioning. Needs to match the
+# "scons.py" in bin with respect to versions selection.
+addInlineCopy("bin")
+
+if os.name == "nt" or sdist_mode:
+    addInlineCopy("lib/scons-4.3.0", do_byte_compile=sys.version_info >= (2, 7))
+if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
+    addInlineCopy("lib/scons-2.3.2")
+if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
+    addInlineCopy("lib/scons-3.1.2")
+
 
 orig_byte_compile = distutils.util.byte_compile
 
 
 def byte_compile(py_files, *args, **kw):
-    # Lets hack the byte_compile function so it doesn't byte compile old Scons built-in
-    # copy with Python3 or Windows as it's not used there.
-    if sys.version_info >= (3,) or (os.name == "nt" and "sdist" not in sys.argv):
-        py_files = [py_file for py_file in py_files if "scons-2.3.2" not in py_file]
-
     # Disable bytecode compilation output, too annoying.
     kw["verbose"] = 0
+
+    # Avoid attempting files that won't work.
+    py_files = [
+        filename
+        for filename in py_files
+        if not any(
+            fnmatch.fnmatch(filename, "*/*/*/" + pattern) for pattern in no_byte_compile
+        )
+    ]
 
     orig_byte_compile(py_files, *args, **kw)
 
@@ -231,11 +254,24 @@ except AttributeError:
 else:
     easy_install.get_script_args = get_script_args
 
+binary_suffix = "%d" % sys.version_info[0]
 
-if sys.version_info[0] == 2:
-    binary_suffix = ""
+if os.name == "nt" and not isMSYS2MingwPython():
+    console_scripts = []
 else:
-    binary_suffix = "%d" % sys.version_info[0]
+    console_scripts = [
+        "nuitka%s = nuitka.__main__:main" % binary_suffix,
+        "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
+    ]
+
+# With this, we can enforce a binary package.
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name"""
+
+    @staticmethod
+    def has_ext_modules():
+        return True
+
 
 with open("README.rst", "rb") as input_file:
     long_description = input_file.read().decode("utf8")
@@ -246,12 +282,9 @@ with open("README.rst", "rb") as input_file:
     long_description = long_description.replace(
         ".. image:: doc/images/Nuitka-Logo-Symbol.png\n", ""
     )
-    long_description = long_description.replace(
-        ".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", ""
-    )
 
 setup(
-    name=project_name,
+    name="Nuitka",
     license="Apache License, Version 2.0",
     version=version,
     long_description=long_description,
@@ -280,6 +313,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
@@ -297,20 +331,25 @@ setup(
     packages=findNuitkaPackages(),
     package_data={
         # Include extra files
-        "": ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
+        "": ["*.txt", "*.rst", "*.c", "*.h", "*.yml"],
         "nuitka.build": [
             "Backend.scons",
             "Onefile.scons",
             "static_src/*.c",
+            "static_src/*.cpp",
             "static_src/*/*.c",
             "static_src/*/*.h",
+            "inline_copy/zstd/*.h",
+            "inline_copy/zstd/*/*.h",
+            "inline_copy/zstd/*/*.c",
             "static_src/*/*.asm",
             "static_src/*/*.S",
             "include/*.h",
             "include/*/*.h",
             "include/*/*/*.h",
         ]
-        + scons_files,
+        + inline_copy_files,
+        "nuitka.codegen": ["templates_c/*.j2"],
     },
     # metadata for upload to PyPI
     author="Kay Hayen",
@@ -319,6 +358,14 @@ setup(
     description="""\
 Python compiler with full language support and CPython compatibility""",
     keywords="compiler,python,nuitka",
+    project_urls={
+        "Commercial": "https://nuitka.net/doc/commercial.html",
+        "Support": "https://nuitka.net/pages/support.html",
+        "Documentation": "https://nuitka.net/doc/user-manual.html",
+        "Donations": "https://nuitka.net/pages/donations.html",
+        "Twitter": "https://twitter.com/KayHayen",
+        "Source": "https://github.com/Nuitka/Nuitka",
+    },
     zip_safe=False,
     scripts=scripts,
     entry_points={
@@ -333,9 +380,9 @@ Python compiler with full language support and CPython compatibility""",
         "distutils.setup_keywords": [
             "build_with_nuitka = nuitka.distutils.DistutilCommands:setupNuitkaDistutilsCommands"
         ],
-        "console_scripts": [
-            "nuitka%s = nuitka.__main__:main" % binary_suffix,
-            "nuitka%s-run = nuitka.__main__:main" % binary_suffix,
-        ],
+        "console_scripts": console_scripts,
     },
+    # As we do version specific hacks for installed inline copies, make the
+    # wheel version and platform specific.
+    distclass=BinaryDistribution,
 )

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,6 +25,7 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build.DataComposerInterface import getConstantBlobFilename
+from nuitka.finalizations.FinalizeMarkups import getImportedNames
 from nuitka.PythonVersions import (
     getPythonABI,
     getTargetPythonDLLPath,
@@ -32,6 +33,7 @@ from nuitka.PythonVersions import (
     python_version_str,
 )
 from nuitka.Tracing import postprocessing_logger
+from nuitka.utils.Execution import wrapCommandForDebuggerForExec
 from nuitka.utils.FileOperations import (
     getExternalUsePath,
     getFileContents,
@@ -39,8 +41,10 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     removeFileExecutablePermission,
 )
+from nuitka.utils.Images import convertImageToIconFormat
+from nuitka.utils.MacOSApp import createPlistInfoFile
 from nuitka.utils.SharedLibraries import callInstallNameTool
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
     RT_GROUP_ICON,
     RT_ICON,
@@ -120,7 +124,9 @@ def _addWindowsIconFromIcons(onefile):
         icon_path = os.path.normcase(icon_path)
 
         if not icon_path.endswith(".ico"):
-            postprocessing_logger.info("Not in icon format, converting.")
+            postprocessing_logger.info(
+                "File '%s' is not in Windows icon format, converting to it." % icon_path
+            )
 
             if icon_index is not None:
                 postprocessing_logger.sysexit(
@@ -128,35 +134,22 @@ def _addWindowsIconFromIcons(onefile):
                     % icon_spec
                 )
 
-            try:
-                import imageio
-            except ImportError:
-                postprocessing_logger.sysexit(
-                    "Need to install imageio to use non-ico icon file in '%s'."
-                    % icon_spec
-                )
-
-            try:
-                image = imageio.imread(icon_path)
-            except ValueError:
-                postprocessing_logger.sysexit(
-                    "Unsupported file format for imageio in '%s', use e.g. PNG files."
-                    % icon_spec
-                )
-
             icon_build_path = os.path.join(
                 OutputDirectories.getSourceDirectoryPath(onefile=onefile),
                 "icons",
             )
-
             makePath(icon_build_path)
-
             converted_icon_path = os.path.join(
                 icon_build_path,
                 "icon-%d.ico" % image_id,
             )
 
-            imageio.imwrite(converted_icon_path, image)
+            convertImageToIconFormat(
+                logger=postprocessing_logger,
+                image_filename=icon_spec,
+                icon_filename=converted_icon_path,
+            )
+
             icon_path = converted_icon_path
 
         with open(icon_path, "rb") as icon_file:
@@ -225,9 +218,6 @@ def _addWindowsIconFromIcons(onefile):
         )
 
 
-version_resources = {}
-
-
 def executePostProcessingResources(manifest, onefile):
     """Adding Windows resources to the binary.
 
@@ -235,38 +225,31 @@ def executePostProcessingResources(manifest, onefile):
     """
     result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
 
-    # TODO: Maybe make these different for onefile and not onefile.
-    if (
-        Options.shallAskForWindowsAdminRights()
-        or Options.shallAskForWindowsUIAccessRights()
-    ):
-        if manifest is None:
-            manifest = getDefaultWindowsExecutableManifest()
+    if manifest is None:
+        manifest = getDefaultWindowsExecutableManifest()
 
-        if Options.shallAskForWindowsAdminRights():
-            manifest.addUacAdmin()
+    if Options.shallAskForWindowsAdminRights():
+        manifest.addUacAdmin()
 
-        if Options.shallAskForWindowsUIAccessRights():
-            manifest.addUacUiAccess()
+    if Options.shallAskForWindowsUIAccessRights():
+        manifest.addUacUiAccess()
 
-    if manifest is not None:
-        manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
+    manifest.addResourceToFile(result_filename, logger=postprocessing_logger)
 
     if (
         Options.getWindowsVersionInfoStrings()
         or Options.getWindowsProductVersion()
         or Options.getWindowsFileVersion()
     ):
-        version_resources.update(
-            addVersionInfoResource(
-                string_values=Options.getWindowsVersionInfoStrings(),
-                product_version=Options.getWindowsProductVersion(),
-                file_version=Options.getWindowsFileVersion(),
-                file_date=(0, 0),
-                is_exe=not Options.shallMakeModule(),
-                result_filename=result_filename,
-                logger=postprocessing_logger,
-            )
+
+        addVersionInfoResource(
+            string_values=Options.getWindowsVersionInfoStrings(),
+            product_version=Options.getWindowsProductVersion(),
+            file_version=Options.getWindowsFileVersion(),
+            file_date=(0, 0),
+            is_exe=not Options.shallMakeModule(),
+            result_filename=result_filename,
+            logger=postprocessing_logger,
         )
 
     # Attach icons from template file if given.
@@ -289,6 +272,19 @@ def executePostProcessingResources(manifest, onefile):
             )
     else:
         _addWindowsIconFromIcons(onefile=onefile)
+
+    splash_screen_filename = Options.getWindowsSplashScreen()
+    if splash_screen_filename is not None:
+        splash_data = getFileContents(splash_screen_filename, mode="rb")
+
+        addResourceToFile(
+            target_filename=result_filename,
+            data=splash_data,
+            resource_kind=RT_RCDATA,
+            lang_id=0,
+            res_name=27,
+            logger=postprocessing_logger,
+        )
 
 
 def executePostProcessing():
@@ -331,7 +327,7 @@ def executePostProcessing():
     # On macOS, we update the executable path for searching the "libpython"
     # library.
     if (
-        getOS() == "Darwin"
+        isMacOS()
         and not Options.shallMakeModule()
         and not Options.shallUseStaticLibPython()
     ):
@@ -354,8 +350,12 @@ def executePostProcessing():
                     os.path.join(python_lib_path, python_dll_filename),
                 ),
             ),
+            id_path=None,
             rpath=python_lib_path,
         )
+
+    if Options.shallCreateAppBundle():
+        createPlistInfoFile(logger=postprocessing_logger, onefile=False)
 
     # Modules should not be executable, but Scons creates them like it, fix
     # it up here.
@@ -371,7 +371,8 @@ def executePostProcessing():
         if os.path.exists(candidate):
             os.unlink(candidate)
 
-    if isWin32Windows() and Options.shallTreatUninstalledPython():
+    # Might have to create a CMD file, potentially with debugger run.
+    if Options.shallCreateCmdFileForExecution():
         dll_directory = getExternalUsePath(os.path.dirname(getTargetPythonDLLPath()))
 
         cmd_filename = OutputDirectories.getResultRunFilename(onefile=False)
@@ -380,10 +381,48 @@ def executePostProcessing():
 @echo off
 rem This script was created by Nuitka to execute '%(exe_filename)s' with Python DLL being found.
 set PATH=%(dll_directory)s;%%PATH%%
-"%%~dp0.\\%(exe_filename)s"
+set PYTHONHOME=%(python_home)s
+%(debugger_call)s"%%~dp0.\\%(exe_filename)s" %%*
 """ % {
+            "debugger_call": (" ".join(wrapCommandForDebuggerForExec()) + " ")
+            if Options.shallRunInDebugger()
+            else "",
             "dll_directory": dll_directory,
+            "python_home": sys.prefix,
             "exe_filename": os.path.basename(result_filename),
         }
 
         putTextFileContents(cmd_filename, cmd_contents)
+
+    # Create a ".pyi" file for created modules
+    if Options.shallMakeModule() and Options.shallCreatePyiFile():
+        pyi_filename = OutputDirectories.getResultBasePath() + ".pyi"
+
+        putTextFileContents(
+            filename=pyi_filename,
+            contents="""\
+# This file was generated by Nuitka and describes the types of the
+# created shared library.
+
+# At this time it lists only the imports made and can be used by the
+# tools that bundle libraries, including Nuitka itself. For instance
+# standalone mode usage of the created library will need it.
+
+# In the future, this will also contain type information for values
+# in the module, so IDEs will use this. Therefore please include it
+# when you make software releases of the extension module that it
+# describes.
+
+%(imports)s
+
+# This is not Python source even if it looks so. Make it clear for
+# now. This was decided by PEP 484 designers.
+__name__ = ...
+
+"""
+            % {
+                "imports": "\n".join(
+                    "import %s" % module_name for module_name in getImportedNames()
+                )
+            },
+        )

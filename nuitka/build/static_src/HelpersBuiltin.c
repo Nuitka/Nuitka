@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -30,7 +30,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-static PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args) {
+PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args) {
     int i = 0;
 
     while (i < max_args) {
@@ -226,6 +226,12 @@ NUITKA_DEFINE_BUILTIN(open);
 PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering) {
     NUITKA_ASSIGN_BUILTIN(open);
 
+    PyObject *result;
+
+    if (TRACE_FILE_OPEN(file_name, mode, buffering, &result)) {
+        return result;
+    }
+
     PyObject *args[] = {file_name, mode, buffering};
 
     char const *arg_names[] = {"name", "mode", "buffering"};
@@ -236,6 +242,12 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering)
 PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding, PyObject *errors,
                        PyObject *newline, PyObject *closefd, PyObject *opener) {
     NUITKA_ASSIGN_BUILTIN(open);
+
+    PyObject *result;
+
+    if (TRACE_FILE_OPEN(file_name, mode, buffering, encoding, errors, newline, closefd, opener, &result)) {
+        return result;
+    }
 
     PyObject *args[] = {file_name, mode, buffering, encoding, errors, newline, closefd, opener};
 
@@ -541,9 +553,9 @@ PyObject *BUILTIN_BYTEARRAY3(PyObject *string, PyObject *encoding, PyObject *err
 // From CPython:
 typedef struct {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *it_callable;
+        PyObject *it_callable;
     PyObject *it_sentinel;
 } calliterobject;
 
@@ -598,11 +610,7 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
     PyTypeObject *type = Py_TYPE(result);
 
     if (likely(PyType_IsSubtype(type, &PyType_Type))) {
-        if (
-#if PYTHON_VERSION < 0x300
-            PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) &&
-#endif
-            type->tp_init != NULL) {
+        if (NuitkaType_HasFeatureClass(type) && type->tp_init != NULL) {
             int res = type->tp_init(result, pos_args, NULL);
 
             if (unlikely(res < 0)) {
@@ -615,10 +623,13 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
 
     Py_DECREF(pos_args);
 
-    int res = PyObject_SetAttr(result, const_str_plain___module__, module_name);
+    if (HAS_ATTR_BOOL(result, const_str_plain___module__) == false) {
+        int res = SET_ATTRIBUTE(result, const_str_plain___module__, module_name);
 
-    if (res < 0) {
-        return NULL;
+        if (res < 0) {
+            Py_DECREF(result);
+            return NULL;
+        }
     }
 
     return result;
@@ -632,9 +643,9 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
 
 typedef struct {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyTypeObject *type;
+        PyTypeObject *type;
     PyObject *obj;
     PyTypeObject *obj_type;
 } superobject;
@@ -790,6 +801,10 @@ PyObject *BUILTIN_CALLABLE(PyObject *value) {
  **/
 
 PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value) {
+    CHECK_OBJECT(object);
+    CHECK_OBJECT(attribute);
+    CHECK_OBJECT_X(default_value);
+
 #if PYTHON_VERSION < 0x300
     if (PyUnicode_Check(attribute)) {
         attribute = _PyUnicode_AsDefaultEncodedString(attribute, NULL);

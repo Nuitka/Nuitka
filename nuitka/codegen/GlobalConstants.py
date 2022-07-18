@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,6 +22,8 @@
 from nuitka import Options
 from nuitka.__past__ import long
 from nuitka.PythonVersions import python_version
+
+# spell-checker: ignore fromlist
 
 
 def getConstantDefaultPopulation():
@@ -59,6 +61,7 @@ def getConstantDefaultPopulation():
         "__name__",
         "__package__",
         "__metaclass__",
+        "__abstractmethods__",
         "__dict__",
         "__doc__",
         "__file__",
@@ -67,6 +70,7 @@ def getConstantDefaultPopulation():
         "__exit__",
         "__builtins__",
         "__all__",
+        "__init__",
         "__cmp__",
         "__iter__",
         # Nuitka specific
@@ -83,6 +87,7 @@ def getConstantDefaultPopulation():
         "bytearray",
         "staticmethod",
         "classmethod",
+        "keys",
         # Arguments of __import__ built-in used in helper code.
         "name",
         "globals",
@@ -138,6 +143,9 @@ def getConstantDefaultPopulation():
         # For setting Python2 "sys" attributes for current exception
         result += ("exc_type", "exc_value", "exc_traceback")
 
+        # Abstract base classes need to call the method
+        result.append("join")
+
     # The xrange built-in is Python2 only.
     if python_version < 0x300:
         result.append("xrange")
@@ -167,5 +175,11 @@ def getConstantDefaultPopulation():
 
     if python_version >= 0x370:
         result.append("__class_getitem__")
+
+    if python_version >= 0x3A0:
+        result.append("__match_args__")
+
+        if Options.is_debug:
+            result.append("__args__")
 
     return result

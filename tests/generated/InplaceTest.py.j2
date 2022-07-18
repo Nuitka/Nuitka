@@ -1,4 +1,4 @@
-{#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
 {#                                                                              #}
 {#     Python test originally created or extracted from other peoples work. The #}
 {#     parts from me are licensed as below. It is at least Free Software where  #}
@@ -33,7 +33,7 @@ def displayException(e):
 
     return e
 
-{% for op_name, ioperation in ioperations %}
+{% for op_name, ioperation in inplace_operations %}
 {% for l_type, left_1, left_2 in candidates %}
 {% for r_type, right_1, right_2 in candidates %}
 

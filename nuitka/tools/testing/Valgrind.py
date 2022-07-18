@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,13 +21,15 @@ We are using it for benchmarking purposes, as it's an analysis tool at the
 same time and gives deterministic results.
 """
 
-import shutil
-import subprocess
 import sys
 
 from nuitka.Tracing import my_print
-from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import getFileContentByLine, withTemporaryFile
+from nuitka.utils.Execution import check_output, executeProcess
+from nuitka.utils.FileOperations import (
+    copyFile,
+    getFileContentByLine,
+    withTemporaryFile,
+)
 from nuitka.utils.Utils import isWin32Windows
 
 
@@ -63,19 +65,14 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
 
         command.extend(args)
 
-        process = subprocess.Popen(
-            args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-
-        _stdout_valgrind, stderr_valgrind = process.communicate()
-        exit_valgrind = process.returncode
+        _stdout_valgrind, stderr_valgrind, exit_valgrind = executeProcess(command)
 
         assert exit_valgrind == 0, stderr_valgrind
         if descr:
             my_print("OK", file=sys.stderr)
 
         if save_logfilename is not None:
-            shutil.copyfile(log_filename, save_logfilename)
+            copyFile(log_filename, save_logfilename)
 
         max_mem = None
 

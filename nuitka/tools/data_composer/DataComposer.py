@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,14 +18,13 @@
 """Data composer, crunch constants into binary blobs to load. """
 
 import binascii
-import ctypes
 import math
 import os
 import re
 import struct
 import sys
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (
     BytesIO,
     GenericAlias,
     long,
@@ -39,9 +38,15 @@ from nuitka.constants.Serialization import (
     BlobData,
     BuiltinAnonValue,
     BuiltinSpecialValue,
+    BuiltinUnionTypeValue,
     ConstantStreamReader,
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    isPythonValidCLongLongValue,
+    isPythonValidCLongValue,
+    python_version,
+    sizeof_clonglong,
+)
 from nuitka.Tracing import datacomposer_logger
 from nuitka.utils.FileOperations import listDir
 
@@ -58,17 +63,6 @@ def scanConstFiles(build_dir):
     return result
 
 
-sizeof_clong = ctypes.sizeof(ctypes.c_long)
-
-max_signed_long = 2 ** (sizeof_clong * 7) - 1
-min_signed_long = -(2 ** (sizeof_clong * 7))
-
-sizeof_clonglong = ctypes.sizeof(ctypes.c_longlong)
-
-max_signed_longlong = 2 ** (sizeof_clonglong * 8 - 1) - 1
-min_signed_longlong = -(2 ** (sizeof_clonglong * 8 - 1))
-
-
 # TODO: The determination of this should already happen in Building or in a
 # helper not during code generation.
 _match_attribute_names = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
@@ -80,63 +74,91 @@ def _isAttributeName(value):
     return _match_attribute_names.match(value) or value == ".0"
 
 
+_last_written = None
+
+
 def _writeConstantValue(output, constant_value):
     # Massively many details per value, pylint: disable=too-many-branches,too-many-statements
 
+    # We are a singleton, pylint: disable=global-statement
+    global _last_written
+
     constant_type = type(constant_value)
 
-    if constant_type is tuple:
+    if constant_value is None:
+        output.write(b"n")
+    elif constant_value is _last_written:
+        output.write(b"p")
+    elif constant_value is True:
+        output.write(b"t")
+    elif constant_value is False:
+        output.write(b"F")
+    elif constant_type is tuple:
         # TODO: Optimize for size of tuple to be < 256 with dedicated value
         output.write(b"T" + struct.pack("i", len(constant_value)))
+
+        _last_written = None
 
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is list:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of list to be < 256 with dedicated value
         output.write(b"L" + struct.pack("i", len(constant_value)))
+
+        _last_written = None
 
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is dict:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of dict to be < 256 with dedicated value
         output.write(b"D" + struct.pack("i", len(constant_value)))
 
-        for key, value in constant_value.items():
+        # Write keys first, and values second, such that we allow for the
+        # last_writte to have an impact.
+        items = constant_value.items()
+
+        _last_written = None
+        for key, value in items:
             _writeConstantValue(output, key)
+
+        _last_written = None
+        for key, value in items:
             _writeConstantValue(output, value)
     elif constant_type is set:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of set to be < 256 with dedicated value
         output.write(b"S" + struct.pack("i", len(constant_value)))
 
+        _last_written = None
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is frozenset:
-        # TODO: Optimize for size of tuple to be < 256 with dedicated value
+        # TODO: Optimize for size of set to be < 256 with dedicated value
         output.write(b"P" + struct.pack("i", len(constant_value)))
 
+        _last_written = None
         for element in constant_value:
             _writeConstantValue(output, element)
-
     elif constant_type is long:
-        if min_signed_long <= constant_value <= max_signed_long:
+        if isPythonValidCLongValue(constant_value):
             output.write(b"l" + struct.pack("l", constant_value))
-        elif min_signed_longlong <= constant_value <= max_signed_longlong:
+        elif isPythonValidCLongLongValue(constant_value):
             output.write(b"q" + struct.pack("q", constant_value))
         else:
             output.write(b"g")
 
             if constant_value < 0:
-                constant_value = abs(constant_value)
+                abs_constant_value = abs(constant_value)
                 output.write(b"-")
             else:
+                abs_constant_value = constant_value
                 output.write(b"+")
 
             parts = []
 
             mod_value = 2 ** (sizeof_clonglong * 8)
-            while constant_value > 0:
-                parts.append(constant_value % mod_value)
-                constant_value >>= sizeof_clonglong * 8
+            while abs_constant_value > 0:
+                parts.append(abs_constant_value % mod_value)
+                abs_constant_value >>= sizeof_clonglong * 8
 
             output.write(struct.pack("i", len(parts)))
             for part in reversed(parts):
@@ -164,7 +186,6 @@ def _writeConstantValue(output, constant_value):
         else:
             output.write(b"f" + struct.pack("d", constant_value))
     elif constant_type is unicode:
-
         if str is not bytes:
             encoded = constant_value.encode("utf8", "surrogatepass")
         else:
@@ -183,7 +204,6 @@ def _writeConstantValue(output, constant_value):
                 indicator = b"u"
 
             output.write(indicator + encoded + b"\0")
-
     elif constant_type is bytes:
         if len(constant_value) == 1:
             output.write(b"d" + constant_value)
@@ -200,11 +220,13 @@ def _writeConstantValue(output, constant_value):
             output.write(indicator + constant_value + b"\0")
     elif constant_type is slice:
         output.write(b":")
+        _last_written = None
         _writeConstantValue(output, constant_value.start)
         _writeConstantValue(output, constant_value.stop)
         _writeConstantValue(output, constant_value.step)
     elif constant_type is range:
         output.write(b";")
+        _last_written = None
         _writeConstantValue(output, constant_value.start)
         _writeConstantValue(output, constant_value.stop)
         _writeConstantValue(output, constant_value.step)
@@ -223,13 +245,7 @@ def _writeConstantValue(output, constant_value):
         if len(range_args) < 3:
             range_args.append(1)
 
-        output.write(struct.pack("iii", *range_args))
-    elif constant_value is None:
-        output.write(b"n")
-    elif constant_value is True:
-        output.write(b"t")
-    elif constant_value is False:
-        output.write(b"F")
+        output.write(struct.pack("lll", *range_args))
     elif constant_type is complex:
         # Some float values do not transport well, use float streaming then.
         if (
@@ -242,6 +258,7 @@ def _writeConstantValue(output, constant_value):
         ):
             output.write(b"J")
 
+            _last_written = None
             _writeConstantValue(output, constant_value.real)
             _writeConstantValue(output, constant_value.imag)
         else:
@@ -265,6 +282,15 @@ def _writeConstantValue(output, constant_value):
         output.write(b"X")
         output.write(struct.pack("i", len(constant_value)))
         output.write(constant_value)
+    elif constant_type is GenericAlias:
+        output.write(b"G")
+        _last_written = None
+        _writeConstantValue(output, constant_value.__origin__)
+        _writeConstantValue(output, constant_value.__args__)
+    elif constant_type is BuiltinUnionTypeValue:
+        output.write(b"H")
+        _last_written = None
+        _writeConstantValue(output, constant_value.args)
     elif constant_value in builtin_named_values:
         output.write(b"O")
         output.write(builtin_named_values[constant_value].encode("utf8"))
@@ -273,16 +299,18 @@ def _writeConstantValue(output, constant_value):
         output.write(b"E")
         output.write(constant_value.__name__.encode("utf8"))
         output.write(b"\0")
-    elif constant_type is GenericAlias:
-        output.write(b"G")
-        _writeConstantValue(output, constant_value.__origin__)
-        _writeConstantValue(output, constant_value.__args__)
     else:
         assert False, constant_value
+
+    _last_written = constant_value
 
 
 def _writeConstantStream(constants_reader):
     result = BytesIO()
+
+    # We are a singleton, pylint: disable=global-statement
+    global _last_written
+    _last_written = None
 
     count = 0
     while 1:

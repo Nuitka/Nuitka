@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -53,16 +53,16 @@
 // dictionary.
 typedef struct {
     /* Python object folklore: */
-    PyObject_HEAD;
+    PyObject_HEAD
 
-    PyObject *md_dict;
+        PyObject *md_dict;
 } PyModuleObject;
 
 // Generated code helpers, used in static helper codes:
-extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject **args);
-extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args);
 
 // Most fundamental, because we use it for debugging in everything else.
 #include "nuitka/helper/printing.h"
@@ -71,7 +71,20 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject **args);
 #define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
 #define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
 
+// Helper to check an array of objects with CHECK_OBJECT
+#ifndef __NUITKA_NO_ASSERT__
+#define CHECK_OBJECTS(values, count)                                                                                   \
+    {                                                                                                                  \
+        for (int i = 0; i < count; i++) {                                                                              \
+            CHECK_OBJECT((values)[i]);                                                                                 \
+        }                                                                                                              \
+    }
+#else
+#define CHECK_OBJECTS(values, count)
+#endif
+
 extern void CHECK_OBJECT_DEEP(PyObject *value);
+extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
 
 #include "nuitka/exceptions.h"
 
@@ -93,7 +106,9 @@ extern void stopProfiling(void);
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
+#include "nuitka/helper/operations_builtin_types.h"
 #include "nuitka/helper/sets.h"
+#include "nuitka/helper/strings.h"
 
 #include "nuitka/helper/raising.h"
 
@@ -241,6 +256,13 @@ extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buf
                               PyObject *errors, PyObject *newline, PyObject *closefd, PyObject *opener);
 #endif
 
+// Small helper to open files with few arguments in C.
+extern PyObject *BUILTIN_OPEN_BINARY_READ_SIMPLE(PyObject *filename);
+extern PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool buffering, PyObject *encoding);
+
+// Small helper to read file contents with few arguments in C.
+extern PyObject *GET_FILE_BYTES(PyObject *filename);
+
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR(PyObject *value);
 
@@ -281,9 +303,6 @@ extern PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object);
 
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyObject *value);
-
-// The patched isinstance() functionality used for the built-in.
-extern int Nuitka_IsInstance(PyObject *inst, PyObject *cls);
 
 // For built-in getattr() functionality.
 extern PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value);
@@ -346,14 +365,17 @@ extern void createGlobalConstants(void);
 // Call this to check of common constants are still intact.
 #ifndef __NUITKA_NO_ASSERT__
 extern void checkGlobalConstants(void);
+#ifdef _NUITKA_EXE
+extern void checkModuleConstants___main__(void);
+#endif
 #endif
 
-#if _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED
 // Call this to initialize __main__ constants in non-standard processes.
+#ifdef _NUITKA_EXE
 extern void createMainModuleConstants(void);
 #endif
 
-// Unstreaming constants from a blob.
+// Deserialize constants from a blob.
 #include "nuitka/constants_blob.h"
 
 // Performance enhancements to Python types.
@@ -361,9 +383,6 @@ extern void enhancePythonTypes(void);
 
 // Setup meta path based loader if any.
 extern void setupMetaPathBasedLoader(void);
-
-// Replace built-in functions with ones that accept compiled types too.
-extern void patchBuiltinModule(void);
 
 /* Replace inspect functions with ones that handle compiles types too. */
 #if PYTHON_VERSION >= 0x300
@@ -378,14 +397,19 @@ extern void patchTypeComparison(void);
 // to be slightly faster for exception control flows.
 extern void patchTracebackDealloc(void);
 
-#if PYTHON_VERSION < 0x300
-// Initialize value for "tp_compare" default.
+// Initialize value for "tp_compare" and "tp_init" defaults.
 extern void _initSlotCompare(void);
-#endif
+
+// Default __init__ slot wrapper.
+extern python_initproc default_tp_init_wrapper;
 
 #if PYTHON_VERSION >= 0x300
 // Select the metaclass from specified one and given bases.
 extern PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases);
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+extern PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed);
 #endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME1(PyObject *module) {
@@ -403,11 +427,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
 }
 
 // Get the binary directory was wide characters.
-extern wchar_t const *getBinaryDirectoryWideChars();
+extern wchar_t const *getBinaryDirectoryWideChars(void);
 
 #if !defined(_WIN32) || PYTHON_VERSION < 0x300
 // Get the binary directory, translated to native path
-extern char const *getBinaryDirectoryHostEncoded();
+extern char const *getBinaryDirectoryHostEncoded(void);
 #endif
 
 #if _NUITKA_STANDALONE
@@ -420,7 +444,7 @@ extern void setEarlyFrozenModulesFileAttribute(void);
  */
 extern PyObject *MAKE_RELATIVE_PATH(PyObject *relative);
 
-/* For concatenating two elemented path, typically a dirname and a filename.
+/* For concatenating two elements path, typically a dirname and a filename.
 
    We do this in a lot of helper code, and this is shared functionality.
 */
@@ -428,7 +452,7 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 
 #include <nuitka/threading.h>
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject **elements, Py_ssize_t size) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_ssize_t size) {
     PyObject *result = PyTuple_New(size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
@@ -440,12 +464,26 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject **elements, Py_ssize_t
     return result;
 }
 
-// Make a deep copy of an object.
+// Make a deep copy of an object of general or specific type.
 extern PyObject *DEEP_COPY(PyObject *value);
+extern PyObject *DEEP_COPY_DICT(PyObject *value);
+extern PyObject *DEEP_COPY_LIST(PyObject *value);
+extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
+extern PyObject *DEEP_COPY_SET(PyObject *value);
+
+// UnionType, normally not accessible
+extern PyTypeObject *Nuitka_PyUnion_Type;
 
 // Force a garbage collection, for debugging purposes.
-NUITKA_MAY_BE_UNUSED static void forceGC() {
+NUITKA_MAY_BE_UNUSED static void forceGC(void) {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL);
 }
+
+// We provide the sys.version info shortcut as a global value here for ease of use.
+extern PyObject *Py_SysVersionInfo;
+
+#include "nuitka/python_pgo.h"
+
+extern PyObject *MAKE_UNION_TYPE(PyObject *args);
 
 #endif

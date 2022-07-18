@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -99,6 +99,19 @@ def simpleFunction7():
         nested_args_function((1, 2, 3), 3)
     except ValueError:
         pass
+
+
+def simpleFunction8():
+    from decimal import *
+
+    d1 = Decimal("5")
+    d2 = Decimal("2")
+
+    (p, q) = divmod(d1, d2)
+    (p, q) = divmod(d1, 4)
+    (p, q) = divmod(7, d1)
+
+    return q, p
 
 
 # These need stderr to be wrapped.

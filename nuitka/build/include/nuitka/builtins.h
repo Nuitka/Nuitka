@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -57,7 +57,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
     return result;
 }
 
-extern void _initBuiltinModule();
+extern void _initBuiltinModule(void);
 
 #define NUITKA_DECLARE_BUILTIN(name) extern PyObject *_python_original_builtin_value_##name;
 #define NUITKA_DEFINE_BUILTIN(name) PyObject *_python_original_builtin_value_##name = NULL;
@@ -79,7 +79,16 @@ NUITKA_DECLARE_BUILTIN(iter);
 NUITKA_DECLARE_BUILTIN(long);
 #endif
 
-extern void _initBuiltinOriginalValues();
+extern void _initBuiltinOriginalValues(void);
 #endif
+
+// Avoid the casts needed for older Python, as it's easily forgotten and potentially
+// have our own better implementation later. Gives no reference.
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_SysGetObject(char const *name) { return PySys_GetObject((char *)name); }
+
+NUITKA_MAY_BE_UNUSED static void Nuitka_SysSetObject(char const *name, PyObject *value) {
+    // TODO: Check error in debug mode at least.
+    PySys_SetObject((char *)name, value);
+}
 
 #endif

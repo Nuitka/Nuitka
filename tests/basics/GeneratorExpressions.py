@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -113,13 +113,24 @@ def genexprSend():
     except TypeError as e:
         print("Gave expected TypeError with text:", e)
 
-    z = next(x)
-    print("Next retrun value", z)
+    try:
+        z = next(x)
+    except StopIteration as e:
+        print("Gave expected (3.10.0/1 only) StopIteration with text:", repr(e))
+    else:
+        print("Next return value (pre 3.10)", z)
 
-    y = x.send(3)
+    try:
+        y = x.send(3)
+    except StopIteration as e:
+        print("Gave expected (3.10.0/1 only) StopIteration with text:", repr(e))
+    else:
+        print("Send return value", y)
 
-    print("Send return value", y)
-    print("And then next gave", next(x))
+    try:
+        print("And then next gave", next(x))
+    except StopIteration as e:
+        print("Gave expected (3.10.0/1 only) StopIteration with text:", repr(e))
 
     print("Throwing an exception to it.")
     try:

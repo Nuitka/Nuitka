@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,6 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+"""Tests uncompiled functions and compiled functions responses to inspect and isistance.  """
+
 from __future__ import print_function
 
 import inspect
@@ -48,9 +50,15 @@ def compiledFunction(a, b):
     pass
 
 
-assert inspect.isfunction(compiledFunction) is True
-assert isinstance(compiledFunction, types.FunctionType)
-assert isinstance(compiledFunction, (int, types.FunctionType))
+print("Function inspect.isfunction:", inspect.isfunction(compiledFunction))
+print(
+    "Function isinstance types.FunctionType:",
+    isinstance(compiledFunction, types.FunctionType),
+)
+print(
+    "Function isinstance tuple containing types.FunctionType:",
+    isinstance(compiledFunction, (int, types.FunctionType)),
+)
 
 print("Compiled spec:", inspect.getargspec(compiledFunction))
 print("Compiled args:", inspect.formatargspec(*inspect.getargspec(compiledFunction)))

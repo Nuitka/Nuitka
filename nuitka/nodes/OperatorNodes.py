@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -38,6 +38,7 @@ from .shapes.BuiltinTypeShapes import tshape_bool, tshape_int_or_long
 from .shapes.StandardShapes import (
     ShapeLargeConstantValue,
     ShapeLargeConstantValuePredictable,
+    tshape_unknown,
     vshape_unknown,
 )
 
@@ -67,7 +68,9 @@ class ExpressionOperationBinaryBase(
             self, values={"left": left, "right": right}, source_ref=source_ref
         )
 
-        self.type_shape = None
+        # Question might be asked early on, later this is cached from last computation.
+        self.type_shape = tshape_unknown
+
         self.escape_desc = None
 
         self.inplace_suspect = False
@@ -84,7 +87,7 @@ class ExpressionOperationBinaryBase(
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
 
-    def unmarkAsInplaceSuspect(self):
+    def removeMarkAsInplaceSuspect(self):
         self.inplace_suspect = False
 
     def isInplaceSuspect(self):
@@ -106,12 +109,6 @@ class ExpressionOperationBinaryBase(
         )
 
     def getTypeShape(self):
-        # Question might be asked early on, later this is cached from last computation.
-        if self.type_shape is None:
-            self.type_shape, self.escape_desc = self._getOperationShape(
-                self.subnode_left.getTypeShape(), self.subnode_right.getTypeShape()
-            )
-
         return self.type_shape
 
     @abstractmethod
@@ -493,7 +490,38 @@ class ExpressionOperationBinaryPow(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryPowShape(right_shape)
 
 
-class ExpressionOperationBinaryLshift(ExpressionOperationBinaryBase):
+class ExpressionOperationLshiftMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def getValueShape(self):
+        return self.shape
+
+    def _isTooLarge(self):
+        if self.subnode_right.isNumberConstant():
+            if self.subnode_left.isNumberConstant():
+                # Estimate with logarithm, if the result of number
+                # calculations is computable with acceptable effort,
+                # otherwise, we will have to do it at runtime.
+                left_value = self.subnode_left.getCompileTimeConstant()
+
+                if left_value != 0:
+                    right_value = self.subnode_right.getCompileTimeConstant()
+
+                    # More than a typical shift, most likely a stupid test.
+                    if right_value > 64:
+                        self.shape = ShapeLargeConstantValue(
+                            size=None, shape=tshape_int_or_long
+                        )
+
+                        return True
+
+        return False
+
+
+class ExpressionOperationBinaryLshift(
+    ExpressionOperationLshiftMixin, ExpressionOperationBinaryBase
+):
     kind = "EXPRESSION_OPERATION_BINARY_LSHIFT"
 
     operator = "LShift"

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,11 +21,9 @@ Done by assigning the argument values to variables, and producing an outline
 from the in-lined function.
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,
@@ -84,7 +82,7 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
 
     for argument_name, value in zip(argument_names, values):
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=variable_translation[argument_name],
                 source=value,
                 source_ref=call_source_ref,
@@ -100,7 +98,9 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
     # TODO: Not possible to auto release with outline bodies too?
     if auto_releases:
         releases = [
-            StatementReleaseVariable(variable=variable, source_ref=function_source_ref)
+            makeStatementReleaseVariable(
+                variable=variable, source_ref=function_source_ref
+            )
             for variable in auto_releases
         ]
 

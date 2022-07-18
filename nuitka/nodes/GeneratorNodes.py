@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,13 +24,18 @@ whose implementation lives here. The creation itself also lives here.
 
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import MarkUnoptimizedFunctionIndicatorMixin
 from .ReturnNodes import StatementReturn, StatementReturnNone
 
 
-class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
+class ExpressionMakeGeneratorObject(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
     named_child = "generator_ref"
@@ -64,14 +69,6 @@ class ExpressionMakeGeneratorObject(ExpressionChildHavingBase):
 
         # TODO: Generator body may know something too.
         return self, None, None
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces

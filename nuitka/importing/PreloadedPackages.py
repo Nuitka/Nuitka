@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -97,9 +97,6 @@ def detectPthImportedPackages():
     if not hasattr(sys.modules["site"], "getsitepackages"):
         return ()
 
-    # TODO: Move hard import config to elsewhere.
-    from nuitka.nodes.ImportNodes import isHardModuleWithoutSideEffect
-
     pth_imports = set()
 
     for prefix in sys.modules["site"].getsitepackages():
@@ -117,8 +114,7 @@ def detectPthImportedPackages():
                             for part in line[7:].split(","):
                                 pth_import = part.strip()
 
-                                if not isHardModuleWithoutSideEffect(pth_import):
-                                    pth_imports.add(pth_import)
+                                pth_imports.add(pth_import)
                 except OSError:
                     recursion_logger.warning(
                         "Python installation problem, cannot read file '%s'."

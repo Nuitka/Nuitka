@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,18 +21,13 @@ This contains tools to compare, classify and test constants.
 """
 
 import math
+import sys
 from types import BuiltinFunctionType
 
 from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
 
-from .__past__ import (  # pylint: disable=I0021,redefined-builtin
-    GenericAlias,
-    iterItems,
-    long,
-    unicode,
-    xrange,
-)
+from .__past__ import GenericAlias, UnionType, iterItems, long, unicode, xrange
 from .Builtins import (
     builtin_anon_names,
     builtin_anon_value_list,
@@ -198,6 +193,10 @@ def isConstant(constant):
         return True
     elif constant_type is GenericAlias:
         return True
+    elif constant_type is UnionType:
+        return True
+    elif constant is sys.version_info:
+        return True
     else:
         return False
 
@@ -209,7 +208,7 @@ def isMutable(constant):
     a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -248,6 +247,10 @@ def isMutable(constant):
         return False
     elif constant_type is GenericAlias:
         return isMutable(constant.__origin__) or isMutable(constant.__args__)
+    elif constant_type is UnionType:
+        return False
+    elif constant is sys.version_info:
+        return False
     else:
         assert False, repr(constant)
 
@@ -355,3 +358,16 @@ def isCompileTimeConstantValue(value):
         return True
     else:
         return False
+
+
+# Shared empty values, it would cost time to create them locally.
+the_empty_dict = {}
+the_empty_list = []
+the_empty_set = set()
+the_empty_bytearray = bytearray()
+
+the_empty_tuple = ()
+the_empty_frozenset = frozenset()
+the_empty_slice = slice(None)
+
+the_empty_unicode = unicode()  # black doesn't let us write u"" anymore.

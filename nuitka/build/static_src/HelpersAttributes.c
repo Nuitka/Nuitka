@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -35,9 +35,7 @@ PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
     if (result == NULL) {
         assert(PyTuple_Check(klass->cl_bases));
 
-        // TODO: Why is PyTuple_GET_SIZE performing worse, should not be possible. It seems
-        // tail end recursion and gcc 8.3 might be to blame, clang doesn't show it.
-        Py_ssize_t base_count = PyTuple_Size(klass->cl_bases);
+        Py_ssize_t base_count = PyTuple_GET_SIZE(klass->cl_bases);
 
         for (Py_ssize_t i = 0; i < base_count; i++) {
             result = FIND_ATTRIBUTE_IN_CLASS((PyClassObject *)PyTuple_GET_ITEM(klass->cl_bases, i), attr_name);
@@ -53,8 +51,6 @@ PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
 #endif
 
 #if PYTHON_VERSION < 0x300
-extern PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject **args);
-
 static PyObject *LOOKUP_INSTANCE(PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
@@ -117,6 +113,9 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
      * updated in line with this: LOOKUP_ATTRIBUTE_[DICT|CLASS]_SLOT
      */
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_GetAttr(source, attr_name);
+#else
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
@@ -130,15 +129,13 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -147,9 +144,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;
@@ -237,11 +232,15 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 
         return NULL;
     }
+#endif
 }
 
 PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
     CHECK_OBJECT(source);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_GetAttr(source, const_str_plain___dict__);
+#else
     PyTypeObject *type = Py_TYPE(source);
 
     if (type->tp_getattro == PyObject_GenericGetAttr) {
@@ -251,15 +250,13 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, const_str_plain___dict__);
+        PyObject *descr = Nuitka_TypeLookup(type, const_str_plain___dict__);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -268,9 +265,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;
@@ -354,11 +349,15 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 
         return NULL;
     }
+#endif
 }
 
 PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
     CHECK_OBJECT(source);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_GetAttr(source, const_str_plain___class__);
+#else
     PyTypeObject *type = Py_TYPE(source);
 
     if (type->tp_getattro == PyObject_GenericGetAttr) {
@@ -368,15 +367,13 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, const_str_plain___class__);
+        PyObject *descr = Nuitka_TypeLookup(type, const_str_plain___class__);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -385,9 +382,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
                     return result;
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;
@@ -472,6 +467,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 
         return NULL;
     }
+#endif
 }
 
 int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
@@ -500,15 +496,19 @@ int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
     }
 #endif
 
+    // TODO: This should use what LOOKUP_ATTRIBUTE does and know that the result value is going to
+    // be unused, having an easier time generally, e.g. not having to create the error in the first
+    // place.
     PyObject *value = PyObject_GetAttr(source, attr_name);
 
     if (value == NULL) {
-        if (PyErr_ExceptionMatches(PyExc_AttributeError)) {
-            CLEAR_ERROR_OCCURRED();
-            return 0;
-        }
+        bool had_attribute_error = CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED();
 
-        return -1;
+        if (had_attribute_error) {
+            return 0;
+        } else {
+            return -1;
+        }
     }
 
     Py_DECREF(value);
@@ -520,6 +520,9 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(attr_name);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    return PyObject_HasAttr(source, attr_name);
+#else
     PyTypeObject *type = Py_TYPE(source);
 
     if (type->tp_getattro == PyObject_GenericGetAttr) {
@@ -532,15 +535,13 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
             }
         }
 
-        PyObject *descr = _PyType_Lookup(type, attr_name);
+        PyObject *descr = Nuitka_TypeLookup(type, attr_name);
         descrgetfunc func = NULL;
 
         if (descr != NULL) {
             Py_INCREF(descr);
 
-#if PYTHON_VERSION < 0x300
-            if (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS)) {
-#endif
+            if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
                 func = Py_TYPE(descr)->tp_descr_get;
 
                 if (func != NULL && PyDescr_IsData(descr)) {
@@ -556,9 +557,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
 
                     DROP_ERROR_OCCURRED();
                 }
-#if PYTHON_VERSION < 0x300
             }
-#endif
         }
 
         Py_ssize_t dictoffset = type->tp_dictoffset;
@@ -669,10 +668,11 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
     } else {
         return false;
     }
+#endif
 }
 
 #if PYTHON_VERSION < 0x300
-extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject **args);
+extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args);
 
 static bool SET_INSTANCE(PyObject *target, PyObject *attr_name, PyObject *value) {
     CHECK_OBJECT(target);
@@ -713,45 +713,157 @@ static bool SET_INSTANCE(PyObject *target, PyObject *attr_name, PyObject *value)
 }
 #endif
 
+#if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
+
+// Classes in Pyhon3 might share keys.
+#define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
+
+static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject *attr_name, PyObject *value) {
+    // Unfortunately this is required, although of cause rarely necessary.
+    if (unlikely(type->tp_dict == NULL)) {
+        if (unlikely(PyType_Ready(type) < 0)) {
+            return NULL;
+        }
+    }
+
+    PyObject *descr = Nuitka_TypeLookup(type, attr_name);
+
+    if (descr != NULL) {
+        Py_INCREF(descr);
+
+        if (NuitkaType_HasFeatureClass(Py_TYPE(descr))) {
+            descrsetfunc func = Py_TYPE(descr)->tp_descr_set;
+
+            if (func != NULL && PyDescr_IsData(descr)) {
+                int res = func(descr, target, value);
+                Py_DECREF(descr);
+
+                return res == 0;
+            }
+        }
+    }
+
+    Py_ssize_t dictoffset = type->tp_dictoffset;
+    PyObject *dict = NULL;
+
+    if (dictoffset != 0) {
+        // Negative dictionary offsets have special meaning.
+        if (dictoffset < 0) {
+            Py_ssize_t tsize;
+            size_t size;
+
+            tsize = ((PyVarObject *)target)->ob_size;
+            if (tsize < 0) {
+                tsize = -tsize;
+            }
+            size = _PyObject_VAR_SIZE(type, tsize);
+
+            dictoffset += (long)size;
+        }
+
+        PyObject **dictptr = (PyObject **)((char *)target + dictoffset);
+
+#if PYTHON_VERSION >= 0x300
+        if ((type->tp_flags & Py_TPFLAGS_HEAPTYPE) && (CACHED_KEYS(type) != NULL)) {
+            int res = _PyObjectDict_SetItem(type, dictptr, attr_name, value);
+
+            // TODO: Not possible for set, is it?
+            if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
+                SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
+                return false;
+            }
+
+            return res >= 0;
+        } else
+#endif
+        {
+            dict = *dictptr;
+
+            if (dict == NULL) {
+                dict = PyDict_New();
+                *dictptr = dict;
+            }
+        }
+    }
+
+    if (dict != NULL) {
+        CHECK_OBJECT(dict);
+
+        // TODO: If this is an exact dict, we don't have to hold a reference, is it?
+        Py_INCREF(dict);
+
+        int res = PyDict_SetItem(dict, attr_name, value);
+
+        Py_DECREF(dict);
+        Py_XDECREF(descr);
+
+        return res == 0;
+    }
+
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name,
+                 PyString_AS_STRING(attr_name));
+#else
+    PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
+#endif
+    return NULL;
+}
+
+#endif
+
 bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
     CHECK_OBJECT(target);
     CHECK_OBJECT(attr_name);
     CHECK_OBJECT(value);
 
-#if PYTHON_VERSION < 0x300
-    if (PyInstance_Check(target)) {
-        return SET_INSTANCE(target, attr_name, value);
-    } else
+#if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
+    int res = PyObject_SetAttr(target, attr_name, value);
+    return res == 0;
+#else
+    PyTypeObject *type = Py_TYPE(target);
+
+#if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
+    if (type->tp_setattro == PyObject_GenericSetAttr) {
+        return SET_ATTRIBUTE_GENERIC(type, target, attr_name, value);
+    }
 #endif
-    {
-        PyTypeObject *type = Py_TYPE(target);
+#if PYTHON_VERSION < 0x300
+    if (type->tp_setattro == PyInstance_Type.tp_setattro) {
+        return SET_INSTANCE(target, attr_name, value);
+    }
+#endif
+    if (type->tp_setattro != NULL) {
+        int status = (*type->tp_setattro)(target, attr_name, value);
 
-        if (type->tp_setattro != NULL) {
-            int status = (*type->tp_setattro)(target, attr_name, value);
-
-            if (unlikely(status == -1)) {
-                return false;
-            }
-        } else if (type->tp_setattr != NULL) {
-            int status = (*type->tp_setattr)(target, (char *)Nuitka_String_AsString_Unchecked(attr_name), value);
-
-            if (unlikely(status == -1)) {
-                return false;
-            }
-        } else if (type->tp_getattr == NULL && type->tp_getattro == NULL) {
-            PyErr_Format(PyExc_TypeError, "'%s' object has no attributes (assign to %s)", type->tp_name,
-                         Nuitka_String_AsString_Unchecked(attr_name));
-
-            return false;
-        } else {
-            PyErr_Format(PyExc_TypeError, "'%s' object has only read-only attributes (assign to %s)", type->tp_name,
-                         Nuitka_String_AsString_Unchecked(attr_name));
-
+        if (unlikely(status == -1)) {
             return false;
         }
+
+        return true;
     }
 
-    return true;
+    if (type->tp_setattr != NULL) {
+        int status = (*type->tp_setattr)(target, (char *)Nuitka_String_AsString_Unchecked(attr_name), value);
+
+        if (unlikely(status == -1)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    if (type->tp_getattr == NULL && type->tp_getattro == NULL) {
+        PyErr_Format(PyExc_TypeError, "'%s' object has no attributes (assign to %s)", type->tp_name,
+                     Nuitka_String_AsString_Unchecked(attr_name));
+
+        return false;
+    } else {
+        PyErr_Format(PyExc_TypeError, "'%s' object has only read-only attributes (assign to %s)", type->tp_name,
+                     Nuitka_String_AsString_Unchecked(attr_name));
+
+        return false;
+    }
+#endif
 }
 
 bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value) {
@@ -865,7 +977,7 @@ PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name) {
     // TODO: There is heavy optimization in CPython to avoid it. Potentially
     // that's worth it to imitate that.
 
-    PyObject *result = _PyType_Lookup(Py_TYPE(source), attr_name);
+    PyObject *result = Nuitka_TypeLookup(Py_TYPE(source), attr_name);
 
     if (likely(result)) {
         descrgetfunc func = Py_TYPE(result)->tp_descr_get;

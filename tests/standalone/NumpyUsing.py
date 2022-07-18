@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -17,8 +17,27 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import numpy
+from __future__ import print_function
 
 # nuitka-skip-unless-imports: numpy
 
-numpy.test()
+# nuitka-project: --standalone
+# nuitka-project: --enable-plugin=numpy
+
+# Make sure, the usual bad ones are not included with anti-bloat.
+
+# nuitka-project: --noinclude-default-mode=error
+# nuitka-project: --noinclude-custom-mode=numpy.distutils:error
+
+# nuitka-project: --noinclude-custom-mode=pydoc:error
+
+# To trigger DLL usage on non-Linux.
+import numpy.core.multiarray
+
+a = numpy.arange(15).reshape(3, 5)
+
+print("An array", a)
+
+import numpy.random._bounded_integers
+
+print("OK.")

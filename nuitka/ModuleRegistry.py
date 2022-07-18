@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,9 +25,10 @@
     the existing set of modules.
 """
 
+import collections
 import os
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import areSamePaths
 
@@ -36,6 +37,13 @@ root_modules = OrderedSet()
 
 # To be traversed modules
 active_modules = OrderedSet()
+
+# Information about why a module became active.
+active_modules_info = {}
+
+ActiveModuleInfo = collections.namedtuple(
+    "ActiveModuleInfo", ("using_module", "usage_tag", "reason", "source_ref")
+)
 
 # Already traversed modules
 done_modules = set()
@@ -55,7 +63,7 @@ def getRootModules():
 def getRootTopModule():
     top_module = next(iter(root_modules))
 
-    assert top_module.isTopModule()
+    assert top_module.isTopModule(), top_module
 
     return top_module
 
@@ -77,10 +85,14 @@ def replaceRootModule(old, new):
     for module in root_modules:
         new_root_modules.add(module if module is not old else new)
 
+    assert len(root_modules) == len(new_root_modules)
+
     root_modules = new_root_modules
 
 
 def addUncompiledModule(module):
+    assert module.isUncompiledPythonModule(), module
+
     uncompiled_modules.add(module)
 
 
@@ -137,18 +149,34 @@ def removeUncompiledModule(module):
 def startTraversal():
     # Using global here, as this is really a singleton, in the form of a module,
     # pylint: disable=global-statement
-    global active_modules, done_modules
+    global active_modules, done_modules, active_modules_info
 
     active_modules = OrderedSet(root_modules)
+
+    active_modules_info = {}
+    for root_module in root_modules:
+        active_modules_info[root_module] = ActiveModuleInfo(
+            using_module=None,
+            usage_tag="root_module",
+            reason="Root module",
+            source_ref=None,
+        )
     done_modules = set()
 
     for active_module in active_modules:
         active_module.startTraversal()
 
 
-def addUsedModule(module):
+def addUsedModule(module, using_module, usage_tag, reason, source_ref):
     if module not in done_modules and module not in active_modules:
         active_modules.add(module)
+
+        active_modules_info[module] = ActiveModuleInfo(
+            using_module=using_module,
+            usage_tag=usage_tag,
+            reason=reason,
+            source_ref=source_ref,
+        )
 
         module.startTraversal()
 
@@ -172,7 +200,23 @@ def getDoneModulesCount():
 
 
 def getDoneModules():
-    return sorted(done_modules, key=lambda module: module.getFullName())
+    return sorted(done_modules, key=lambda module: (module.getFullName(), module.kind))
+
+
+def hasDoneModule(module_name):
+    return any(module.getFullName() == module_name for module in done_modules)
+
+
+def getModuleInclusionInfos():
+    return active_modules_info
+
+
+def getModuleInclusionInfoByName(module_name):
+    for module, info in active_modules_info.items():
+        if module.getFullName() == module_name:
+            return info
+
+    return None
 
 
 def removeDoneModule(module):
@@ -212,3 +256,20 @@ def getModuleByName(module_name):
             return module
 
     return None
+
+
+module_influencing_plugins = {}
+
+
+def addModuleInfluencingCondition(
+    module_name, plugin_name, condition, control_tags, result
+):
+    if module_name not in module_influencing_plugins:
+        module_influencing_plugins[module_name] = OrderedSet()
+    module_influencing_plugins[module_name].add(
+        (plugin_name, "condition-used", (condition, tuple(control_tags), result))
+    )
+
+
+def getModuleInfluences(module_name):
+    return module_influencing_plugins.get(module_name, ())

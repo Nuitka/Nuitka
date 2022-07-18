@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -41,27 +41,16 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
+    getMainProgramFilename,
     my_print,
     setup,
     withPythonPathChange,
 )
 
 
-def getMainProgramFilename(filename):
-    for filename_main in os.listdir(filename):
-        if filename_main.endswith(("Main.py", "Main")):
-            return filename_main
-
-    sys.exit(
-        """\
-Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case."""
-        % (filename)
-    )
-
-
 def main():
     # Complex stuff, even more should become common code though.
-    setup(needs_io_encoding=True)
+    setup(suite="plugins", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -83,7 +72,7 @@ def main():
         # We annotate some tests, use that to lower warnings.
         extra_flags.append("plugin_enable:pylint-warnings")
         extra_flags.append("remove_output")
-        extra_flags.append("recurse_all")
+        extra_flags.append("--follow-imports")
 
         plugin_files = [p for p in os.listdir(filename) if p.endswith("-plugin.py")]
 

@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -57,15 +57,6 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
     }
     return (PyObject *)result;
 }
-
-#if PYTHON_VERSION < 0x300
-#include <longintrepr.h>
-
-#if PYTHON_VERSION < 0x270
-// Renamed from Python2.6
-#define sdigit wdigit
-#endif
-#endif
 
 // Convert single digit to sdigit (int32_t)
 #define MEDIUM_VALUE(x)                                                                                                \

@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+"""Runner for example project."""
+
+print("Hello pyproject world!")
+
+import example1_package

@@ -1,0 +1,111 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")}}
+    {{right.getCheckValueCode("operand2")}}
+
+    PyUnicodeObject *a = (PyUnicodeObject *)operand1;
+    PyUnicodeObject *b = (PyUnicodeObject *)operand2;
+
+    // Same object has fast path for all operations.
+    if (operand1 == operand2) {
+{% if operand in ("==", ">=", "<=") %}
+        bool r = true;
+{% else %}
+        bool r = false;
+{% endif %}
+
+        // Convert to target type.
+        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+        {{target.getTakeReferenceStatement("result")}}
+        return result;
+    }
+
+{% if operand in ("==", "!=") %}
+#if PYTHON_VERSION >= 0x300
+    bool r;
+
+    Py_ssize_t len = PyUnicode_GET_LENGTH(a);
+    if (PyUnicode_GET_LENGTH(b) != len) {
+        r = false;
+    } else {
+        int kind1 = PyUnicode_KIND(a);
+        if (unlikely(kind1 == 0)) {
+            int res = _PyUnicode_Ready((PyObject *)a);
+            assert(res != -1);
+            kind1 = PyUnicode_KIND(a);
+            assert(kind1 != 0);
+        }
+
+        int kind2 = PyUnicode_KIND(b);
+        if (unlikely(kind2 == 0)) {
+            int res = _PyUnicode_Ready((PyObject *)b);
+            assert(res != -1);
+            kind2 = PyUnicode_KIND(b);
+            assert(kind2 != 0);
+        }
+
+        if (kind1 != kind2) {
+            r = false;
+        } else {
+            const void *data1 = PyUnicode_DATA(a);
+            const void *data2 = PyUnicode_DATA(b);
+
+            int cmp = memcmp(data1, data2, len * kind1);
+            r = (cmp == 0);
+        }
+    }
+
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+#else
+    bool r;
+
+    Py_ssize_t len = PyUnicode_GET_LENGTH(a);
+    if (PyUnicode_GET_LENGTH(b) != len) {
+        r = false;
+    } else {
+        const Py_UNICODE *data1 = a->str;
+        const Py_UNICODE *data2 = b->str;
+
+        int cmp = memcmp(data1, data2, len * sizeof(Py_UNICODE));
+        r = (cmp == 0);
+    }
+
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r == " + ("true" if operand == "==" else "false"))}};
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+#endif
+{% else %}
+    {# TODO: Make these specialized for Python versions, if only because we have no
+       way of going to C bool quickly otherwise #}
+    PyObject *r = PyUnicode_RichCompare((PyObject *)a, (PyObject *)b, Py_{{op_code}});
+    CHECK_OBJECT(r);
+
+{% if target.type_name == "object" %}
+    return r;
+{% else %}
+    // Convert to target type if necessary
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r == Py_True")}};
+    Py_DECREF(r);
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+{% endif %}
+{% endif %}
+}

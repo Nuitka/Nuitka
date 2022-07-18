@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,8 +25,8 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 )
 from nuitka.PythonVersions import python_version
 
-from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
-from .c_types.CTypePyObjectPtrs import (
+from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
+from .c_types.CTypePyObjectPointers import (
     CTypeCellObject,
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr,
@@ -81,7 +81,7 @@ def generateAssignmentVariableCode(statement, emit, context):
         variable=variable,
         variable_trace=variable_trace,
         needs_release=statement.needsReleasePreviousValue(),
-        in_place=statement.isInplaceSuspect(),
+        inplace=statement.isInplaceSuspect(),
         emit=emit,
         context=context,
     )
@@ -91,22 +91,17 @@ def generateAssignmentVariableCode(statement, emit, context):
 
 
 def generateDelVariableCode(statement, emit, context):
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
-
-    _getVariableDelCode(
-        variable=statement.getVariable(),
-        variable_trace=statement.variable_trace,
-        previous_trace=statement.previous_trace,
-        tolerant=statement.isTolerant(),
-        needs_check=statement.isTolerant()
-        or statement.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        _getVariableDelCode(
+            variable=statement.getVariable(),
+            variable_trace=statement.variable_trace,
+            previous_trace=statement.previous_trace,
+            tolerant=statement.is_tolerant,
+            needs_check=statement.is_tolerant
+            or statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
 
 
 def getVariableReferenceCode(
@@ -226,8 +221,7 @@ def getPickedCType(variable, context):
                 # Avoiding this for now, but we will have to use our enum
                 # based code variants, either generated or hard coded in
                 # the future.
-                if len(shapes) > 1:
-                    return CTypePyObjectPtr
+                return CTypePyObjectPtr
 
             r = shapes.pop().getCType()
             return r
@@ -347,7 +341,7 @@ def getLocalVariableDeclaration(context, variable, variable_trace):
 
 
 def getVariableAssignmentCode(
-    context, emit, variable, variable_trace, tmp_name, needs_release, in_place
+    context, emit, variable, variable_trace, tmp_name, needs_release, inplace
 ):
     # For transfer of ownership.
     if context.needsCleanup(tmp_name):
@@ -374,7 +368,7 @@ def getVariableAssignmentCode(
         needs_release=needs_release,
         tmp_name=tmp_name,
         ref_count=ref_count,
-        in_place=in_place,
+        inplace=inplace,
         emit=emit,
         context=context,
     )

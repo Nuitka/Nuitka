@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,11 +24,6 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
     ExpressionLocalsVariableRef,
@@ -41,10 +36,13 @@ from nuitka.nodes.NodeMakingHelpers import (
     mergeStatements,
 )
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     makeExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version,
@@ -87,16 +85,18 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             source_ref,
         ) in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
-
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
-
-                node.getLocalsScope().registerClosureVariable(variable)
 
                 if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (non_local_name),
                         source_ref,
                     )
+
+                if node.isExpressionClassBody() and non_local_name == "__class__":
+                    pass
+                else:
+                    node.getLocalsScope().registerClosureVariable(variable)
 
                 variable.addVariableUser(node)
 
@@ -167,7 +167,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                     statements = mergeStatements(
                         statements=(
-                            StatementAssignmentVariable(
+                            makeStatementAssignmentVariable(
                                 variable=tmp_variable,
                                 source=node.subnode_source.subnode_left,
                                 source_ref=node.source_ref,
@@ -175,7 +175,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             makeTryFinallyStatement(
                                 provider=provider,
                                 tried=(
-                                    StatementAssignmentVariable(
+                                    makeStatementAssignmentVariable(
                                         variable=tmp_variable,
                                         source=makeExpressionOperationBinaryInplace(
                                             left=ExpressionTempVariableRef(
@@ -198,7 +198,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                         source_ref=node.source_ref,
                                     ),
                                 ),
-                                final=StatementReleaseVariable(
+                                final=makeStatementReleaseVariable(
                                     variable=tmp_variable, source_ref=node.source_ref
                                 ),
                                 source_ref=node.source_ref,
@@ -222,7 +222,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable_name=variable_name
                 )
 
-                new_node = StatementAssignmentVariable(
+                new_node = makeStatementAssignmentVariable(
                     variable=variable,
                     source=node.subnode_source,
                     source_ref=node.source_ref,
@@ -253,7 +253,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable_name=variable_name
                 )
 
-                new_node = StatementDelVariable(
+                new_node = makeStatementDelVariable(
                     variable=variable,
                     tolerant=node.tolerant,
                     source_ref=node.source_ref,

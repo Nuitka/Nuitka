@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,20 +19,32 @@
 
 """ Main program for PyLint checker tool.
 
+spell-checker: ignore unpushed
 """
 
-from __future__ import print_function
-
-import sys
 from optparse import OptionParser
 
 from nuitka.PythonVersions import python_version
 from nuitka.tools.Basics import addPYTHONPATH, getHomePath, goHome, setupPATH
-from nuitka.tools.quality.Git import getModifiedPaths
+from nuitka.tools.quality.Git import getModifiedPaths, getUnpushedPaths
 from nuitka.tools.quality.pylint import PyLint
 from nuitka.tools.quality.ScanSources import isPythonFile, scanTargets
 from nuitka.tools.testing.Common import hasModule, setup
+from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import resolveShellPatternToFilenames
+
+
+def isIgnoredFile(filename):
+    if filename.startswith("Mini"):
+        return True
+    if filename.startswith("examples/"):
+        return True
+    if filename.startswith("tests/") and not filename.endswith("/run_all.py"):
+        return True
+    if "inline_copy" in filename:
+        return True
+
+    return False
 
 
 def main():
@@ -50,14 +62,23 @@ def main():
         dest="diff",
         default=False,
         help="""\
-Analyse the changed files in git. Default is %default.""",
+Analyze the changed files in git checkout. Default is %default.""",
     )
 
     parser.add_option(
-        "--show-todos",
-        "--todos",
+        "--unpushed",
         action="store_true",
-        dest="todos",
+        dest="unpushed",
+        default=False,
+        help="""\
+Analyze the changed files in git not yet pushed. Default is %default.""",
+    )
+
+    parser.add_option(
+        "--show-todo",
+        "--todo",
+        action="store_true",
+        dest="todo",
         default=False,
         help="""\
 Show TODO items. Default is %default.""",
@@ -93,20 +114,37 @@ Insist on PyLint to be installed. Default is %default.""",
     options, positional_args = parser.parse_args()
 
     if options.not_installed_is_no_error and not hasModule("pylint"):
-        print("PyLint is not installed for this interpreter version: SKIPPED")
-        sys.exit(0)
+        tools_logger.warning(
+            "PyLint is not installed for this interpreter version: SKIPPED",
+            style="yellow",
+        )
+        tools_logger.sysexit(exit_code=0)
 
     if positional_args:
-        if options.diff:
-            sys.exit("Error, no filenames argument allowed in git diff mode.")
+        if options.diff or options.unpushed:
+            tools_logger.sysexit(
+                "Error, no filenames argument allowed in git diff mode."
+            )
+
     else:
         goHome()
 
         if options.diff:
             positional_args = [
-                filename for filename in getModifiedPaths() if isPythonFile(filename)
+                filename
+                for filename in getModifiedPaths()
+                if isPythonFile(filename)
+                if not isIgnoredFile(filename)
             ]
-        else:
+        elif options.unpushed:
+            positional_args = [
+                filename
+                for filename in getUnpushedPaths()
+                if isPythonFile(filename)
+                if not isIgnoredFile(filename)
+            ]
+
+        if not positional_args:
             positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
 
     positional_args = sum(
@@ -118,9 +156,9 @@ Insist on PyLint to be installed. Default is %default.""",
     )
 
     if not positional_args:
-        sys.exit("No files found.")
+        tools_logger.sysexit("No files found.")
 
-    print("Working on:", positional_args)
+    my_print("Working on: %s" % " ".join(positional_args))
 
     ignore_list = []
 
@@ -135,12 +173,12 @@ Insist on PyLint to be installed. Default is %default.""",
     )
     PyLint.executePyLint(
         filenames=filenames,
-        show_todos=options.todos,
+        show_todo=options.todo,
         verbose=options.verbose,
         one_by_one=options.one_by_one,
     )
 
     if not filenames:
-        sys.exit("No files found.")
+        tools_logger.sysexit("No matching files found.")
 
-    sys.exit(PyLint.our_exit_code)
+    tools_logger.sysexit(exit_code=PyLint.our_exit_code)

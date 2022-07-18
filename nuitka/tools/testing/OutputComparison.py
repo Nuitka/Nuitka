@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -117,7 +117,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
     for line in lines:
         if type(line) is not str:
-            line = line.decode("utf-8" if os.name != "nt" else "cp850")
+            try:
+                line = line.decode("utf-8" if os.name != "nt" else "cp850")
+            except UnicodeDecodeError:
+                line = repr(line)
 
         if line.endswith("\r"):
             line = line[:-1]
@@ -137,7 +140,15 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         if logging_info_re.match(line):
             continue
 
-        if line.startswith("Nuitka-Recursion:WARNING: Cannot follow import to module"):
+        if line.startswith("Nuitka-Inclusion:WARNING: Cannot follow import to module"):
+            continue
+        if line.startswith("Nuitka:WARNING: Cannot detect Linux distribution"):
+            continue
+        if line.startswith(
+            "Nuitka-Options:WARNING: You did not specify to follow or include"
+        ):
+            continue
+        if line.startswith("Nuitka:WARNING: Using very slow fallback for ordered sets"):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)

@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -29,9 +29,9 @@
 // async generator object instance of which there can be many for each code.
 struct Nuitka_AsyncgenObject {
     /* Python object folklore: */
-    PyObject_VAR_HEAD;
+    PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -81,6 +81,9 @@ struct Nuitka_AsyncgenObject {
 
     // It is closed, and cannot be closed again.
     bool m_closed;
+
+    // A kind of uuid for the generator object, used in comparisons.
+    long m_counter;
 
     /* The heap of generator objects at run time. */
     void *m_heap_storage;

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -25,15 +25,14 @@ from setuptools import setup
 
 # use `python setup.py bdist_nuitka` to use nuitka or use
 # in the setup(..., build_with_nuitka=True, ...)
-# and bdist and build will allways use nuitka
+# and bdist and build will always use nuitka
 
 setup(
-    name='py_modules_only',
-    description='nuitka bdist_nuitka test-case compiling py_modules only' +
-                ' package',
-    author='Tommy',
-    author_email='xxx@gmail.com',
+    name="py_modules_only",
+    description="nuitka bdist_nuitka test-case compiling py_modules only" + " package",
+    author="Nobody really",
+    author_email="email@someplace.com",
     py_modules=["py_modules_only"],
     version="0.1",
-    scripts = ["runner"],
+    scripts=["runner"],
 )

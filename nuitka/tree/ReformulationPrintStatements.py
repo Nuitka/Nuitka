@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,21 +17,19 @@
 #
 """ Reformulation of print statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
-from nuitka.nodes.ImportNodes import ExpressionImportModuleNameHard
+from nuitka.nodes.ImportNodes import makeExpressionImportModuleNameHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -51,16 +49,19 @@ def buildPrintNode(provider, node, source_ref):
             temp_scope=temp_scope, name="target"
         )
 
-        target_default_statement = StatementAssignmentVariable(
+        target_default_statement = makeStatementAssignmentVariable(
             variable=tmp_target_variable,
-            source=ExpressionImportModuleNameHard(
-                module_name="sys", import_name="stdout", source_ref=source_ref
+            source=makeExpressionImportModuleNameHard(
+                module_name="sys",
+                import_name="stdout",
+                module_guaranteed=True,
+                source_ref=source_ref,
             ),
             source_ref=source_ref,
         )
 
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_target_variable,
                 source=buildNode(
                     provider=provider, node=node.dest, source_ref=source_ref
@@ -109,7 +110,7 @@ def buildPrintNode(provider, node, source_ref):
             makeTryFinallyStatement(
                 provider=provider,
                 tried=print_statements,
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=tmp_target_variable, source_ref=source_ref
                 ),
                 source_ref=source_ref,

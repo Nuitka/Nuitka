@@ -1,3 +1,5 @@
+# Spell checking makes no sense, spell-checker: disable
+
 include LICENSE.txt
 include MANIFEST.in
 include README.rst README.pdf
@@ -19,6 +21,8 @@ include misc/*.sh
 include misc/*.bat
 include tests/run-tests
 
+include nuitka/plugins/standard/*.yml
+
 # Logo with source
 include doc/Logo/Nuitka-Logo-Symbol.svg
 include doc/Logo/Nuitka-Logo-Vertical.svg
@@ -34,9 +38,13 @@ recursive-include tests/basics *.py
 recursive-include tests/syntax *.py
 recursive-include tests/packages *.py
 recursive-include tests/programs *.py
-include tests/programs/pkgutil_usage/package/DATA_FILE.txt
+include tests/programs/pkgutil_usage/package/DATA_FILE*.txt
+include tests/programs/resource_reader37/some_package/DATA_FILE*.txt
 recursive-include tests/optimizations *.py
 recursive-include tests/standalone *.py
 recursive-include tests/onefile *.py
 recursive-include tests/reflected *.py
 recursive-include tests/plugins *.py
+
+# C templates for code generation.
+recursive-include nuitka/codegen/templates_c *.j2

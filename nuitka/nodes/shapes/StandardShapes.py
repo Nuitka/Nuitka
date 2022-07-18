@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,7 @@
 from abc import abstractmethod
 
 from nuitka.__past__ import getMetaClassBase
-from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
+from nuitka.codegen.c_types.CTypePyObjectPointers import CTypePyObjectPtr
 from nuitka.codegen.Reports import onMissingOperation
 
 from .ControlFlowDescriptions import ControlFlowDescriptionFullEscape
@@ -48,6 +48,10 @@ class ShapeBase(getMetaClassBase("Shape")):
     @staticmethod
     def getShapeIter():
         return tshape_unknown
+
+    @staticmethod
+    def hasShapeIndexLookup():
+        return None
 
     @staticmethod
     def hasShapeModule():
@@ -94,11 +98,23 @@ class ShapeBase(getMetaClassBase("Shape")):
         return None
 
     @staticmethod
+    def hasShapeSlotNextCode():
+        return None
+
+    @staticmethod
     def hasShapeSlotContains():
         return None
 
     @staticmethod
     def hasShapeSlotHash():
+        return None
+
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return None
+
+    @staticmethod
+    def isShapeIterator():
         return None
 
     add_shapes = {}
@@ -464,6 +480,12 @@ class ShapeBase(getMetaClassBase("Shape")):
     def getOperationUnaryReprEscape(self):
         pass
 
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        # Virtual method, pylint: disable=unused-argument
+
+        return None
+
     def emitAlternatives(self, emit):
         emit(self)
 
@@ -541,11 +563,11 @@ class ShapeTypeUnknown(ShapeBase):
 tshape_unknown = ShapeTypeUnknown()
 
 
-class ShapeTypeUninit(ShapeTypeUnknown):
+class ShapeTypeUninitialized(ShapeTypeUnknown):
     pass
 
 
-tshape_uninit = ShapeTypeUninit()
+tshape_uninitialized = ShapeTypeUninitialized()
 
 
 class ValueShapeBase(object):
@@ -601,6 +623,10 @@ class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
 
 class ShapeIterator(ShapeBase, ShapeIteratorMixin):
     """Iterator created by iter with 2 arguments, TODO: could be way more specific."""
+
+    @staticmethod
+    def isShapeIterator():
+        return None
 
     @staticmethod
     def hasShapeSlotBool():

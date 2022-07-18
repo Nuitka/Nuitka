@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,15 +17,11 @@
 #
 """ Reformulation of for loop statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionAsyncIter,
     ExpressionAsyncNext,
@@ -37,7 +33,9 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -54,7 +52,7 @@ from .TreeHelpers import (
 
 
 def _buildForLoopNode(provider, node, sync, source_ref):
-    # The for loop is re-formulated according to developer manual. An iterator
+    # The for loop is re-formulated according to Developer Manual. An iterator
     # is created, and looped until it gives StopIteration. The else block is
     # taken if a for loop exits normally, i.e. because of iterator
     # exhaustion. We do this by introducing an indicator variable.
@@ -87,7 +85,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         )
 
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_break_indicator,
                 source=makeConstantRefNode(constant=True, source_ref=source_ref),
                 source_ref=source_ref,
@@ -122,7 +120,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_value_variable, source=next_node, source_ref=source_ref
             ),
             exception_name="StopIteration" if sync else "StopAsyncIteration",
@@ -150,13 +148,15 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     )
 
     cleanup_statements = [
-        StatementReleaseVariable(variable=tmp_value_variable, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_iter_variable, source_ref=source_ref),
+        makeStatementReleaseVariable(
+            variable=tmp_value_variable, source_ref=source_ref
+        ),
+        makeStatementReleaseVariable(variable=tmp_iter_variable, source_ref=source_ref),
     ]
 
     if else_block is not None:
         statements = [
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_break_indicator,
                 source=makeConstantRefNode(constant=False, source_ref=source_ref),
                 source_ref=source_ref,
@@ -179,7 +179,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     statements += (
         # First create the iterator and store it.
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable, source=iter_source, source_ref=source_ref
         ),
         makeTryFinallyStatement(

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,8 @@ the scope, to make sure it can be used without.
 
 Note: This is using "optparse", because "argparse" is only Python 2.7 and
 higher, and we still support Python 2.6 due to the RHELs still being used,
-and despite the long deprecation, it's in every later release.
+and despite the long deprecation, it's in every later release, and actually
+pretty good.
 """
 
 import os
@@ -31,9 +32,29 @@ import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.utils import Utils
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isApplePython,
+    isCPythonOfficialPackage,
+    isDebianPackagePython,
+    isFedoraPackagePython,
+    isHomebrewPython,
+    isMSYS2MingwPython,
+    isNuitkaPython,
+    isPyenvPython,
+    isWinPython,
+)
 from nuitka.utils.FileOperations import getFileContentByLine
-from nuitka.Version import getNuitkaVersion
+from nuitka.utils.Utils import (
+    getArchitecture,
+    getLinuxDistribution,
+    getOS,
+    getWindowsRelease,
+    isLinux,
+    isPosixWindows,
+    withNoSyntaxWarning,
+)
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
@@ -44,24 +65,89 @@ if not is_nuitka_run:
 else:
     usage = "usage: %prog [options] main_module.py"
 
-parser = OptionParser(
+
+def _getPythonFlavor():
+    # return driven, pylint: disable=too-many-return-statements
+
+    if isNuitkaPython():
+        return "Nuitka Python"
+    elif isAnacondaPython():
+        return "Anaconda Python"
+    elif isWinPython():
+        return "WinPython"
+    elif isDebianPackagePython():
+        return "Debian Python"
+    elif isFedoraPackagePython():
+        return "Fedora Python"
+    elif isHomebrewPython():
+        return "Homebrew Python"
+    elif isApplePython():
+        return "Apple Python"
+    elif isPyenvPython():
+        return "pyenv"
+    elif isPosixWindows():
+        return "MSYS2 Posix"
+    elif isMSYS2MingwPython():
+        return "MSYS2 MinGW"
+    elif isCPythonOfficialPackage():
+        return "CPython Official"
+    else:
+        return "Unknown"
+
+
+def _getVersionInformationValues():
+    # TODO: Might be nice if we could delay version information computation
+    # until it's actually used.
+    yield getNuitkaVersion()
+    yield "Commercial: %s" % getCommercialVersion()
+    yield "Python: %s" % sys.version.split("\n", 1)[0]
+    yield "Flavor: %s" % _getPythonFlavor()
+    yield "Executable: %s" % sys.executable
+    yield "OS: %s" % getOS()
+    yield "Arch: %s" % getArchitecture()
+
+    if isLinux():
+        dist_name, dist_base, dist_version = getLinuxDistribution()
+
+        if dist_base is not None:
+            yield "Distribution: %s (based on %s) %s" % (
+                dist_name,
+                dist_base,
+                dist_version,
+            )
+        else:
+            yield "Distribution: %s %s" % (dist_name, dist_version)
+
+    if getOS() == "Windows":
+        yield "WindowsRelease: %s" % getWindowsRelease()
+
+
+class OurOptionParser(OptionParser):
+    # spell-checker: ignore rargs
+    def _process_long_opt(self, rargs, values):
+        arg = rargs[0]
+
+        if "=" not in arg:
+            opt = self._match_long_opt(arg)
+            option = self._long_opt[opt]
+            if option.takes_value():
+                self.error(
+                    "The '%s' option requires an argument with '%s='." % (opt, opt)
+                )
+
+        return OptionParser._process_long_opt(self, rargs, values)
+
+
+parser = OurOptionParser(
     usage=usage,
-    version="\n".join(
-        (
-            getNuitkaVersion(),
-            "Python: " + sys.version.split("\n")[0],
-            "Executable: " + sys.executable,
-            "OS: " + Utils.getOS(),
-            "Arch: " + Utils.getArchitecture(),
-        )
-    ),
+    version="\n".join(_getVersionInformationValues()),
 )
 
 parser.add_option(
     "--module",
-    action="store_false",
-    dest="executable",
-    default=True,
+    action="store_true",
+    dest="module_mode",
+    default=False,
     help="""\
 Create an extension module executable instead of a program. Defaults to off.""",
 )
@@ -74,10 +160,18 @@ parser.add_option(
     help="""\
 Enable standalone mode for output. This allows you to transfer the created binary
 to other machines without it using an existing Python installation. This also
-means it will become big. It implies these option: "--follow-imports". You may also
-want to use "--python-flag=no_site" to avoid the "site.py" module, which can save
-a lot of code dependencies. Defaults to off.""",
+means it will become big. It implies these option: "--follow-imports" and
+"--python-flag=no_site". Defaults to off.""",
 )
+
+parser.add_option(
+    "--no-standalone",
+    action="store_false",
+    dest="is_standalone",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
 
 parser.add_option(
     "--onefile",
@@ -85,9 +179,8 @@ parser.add_option(
     dest="is_onefile",
     default=False,
     help="""\
-In case of standalone mode, enable single file mode. This means not a folder,
-but a compressed executable is created and used. Experimental at this time,
-and not supported on all OSes. Defaults to off.""",
+On top of standalone mode, enable onefile mode. This means not a folder,
+but a compressed executable is created and used. Defaults to off.""",
 )
 
 parser.add_option(
@@ -97,20 +190,6 @@ parser.add_option(
     default=False,
     help=SUPPRESS_HELP,
 )
-
-
-if os.name == "nt":
-    parser.add_option(
-        "--python-arch",
-        action="store",
-        dest="python_arch",
-        choices=("x86", "x86_64"),
-        default=None,
-        help="""\
-Architecture of Python to use. One of "x86" or "x86_64".
-Defaults to what you run Nuitka with (currently "%s")."""
-        % (Utils.getArchitecture()),
-    )
 
 parser.add_option(
     "--python-debug",
@@ -126,19 +205,22 @@ parser.add_option(
     "--python-flag",
     action="append",
     dest="python_flags",
+    metavar="FLAG",
     default=[],
     help="""\
-Python flags to use. Default uses what you are using to run Nuitka, this
+Python flags to use. Default is what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported: "-S" (alias "nosite"),
+Python executable. Currently supported: "-S" (alias "no_site"),
 "static_hashes" (do not use hash randomization), "no_warnings" (do not
-give Python runtime warnings), "-O" (alias "noasserts"). Default empty.""",
+give Python runtime warnings), "-O" (alias "no_asserts"), "no_docstrings"
+(do not use doc strings), "-u" (alias "unbuffered") and "-m".  Default empty.""",
 )
 
 parser.add_option(
     "--python-for-scons",
     action="store",
     dest="python_scons",
+    metavar="PATH",
     default=None,
     help="""\
 If using Python3.3 or Python3.4, provide the path of a Python binary to use
@@ -146,7 +228,10 @@ for Scons. Otherwise Nuitka can use what you run Nuitka with or a "scons"
 binary that is found in PATH, or a Python installation from Windows registry.""",
 )
 
-parser.add_option(
+warnings_group = OptionGroup(parser, "Control the warnings to be given by Nuitka")
+
+
+warnings_group.add_option(
     "--warn-implicit-exceptions",
     action="store_true",
     dest="warn_implicit_exceptions",
@@ -155,7 +240,7 @@ parser.add_option(
 Enable warnings for implicit exceptions detected at compile time.""",
 )
 
-parser.add_option(
+warnings_group.add_option(
     "--warn-unusual-code",
     action="store_true",
     dest="warn_unusual_code",
@@ -164,18 +249,35 @@ parser.add_option(
 Enable warnings for unusual code detected at compile time.""",
 )
 
-parser.add_option(
+warnings_group.add_option(
     "--assume-yes-for-downloads",
     action="store_true",
     dest="assume_yes_for_downloads",
     default=False,
     help="""\
-Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""",
+Allow Nuitka to download external code if necessary, e.g. dependency
+walker, ccache, and even gcc on Windows. To disable, redirect input
+from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
 )
 
 
+warnings_group.add_option(
+    "--nowarn-mnemonic",
+    action="append",
+    dest="nowarn_mnemonics",
+    metavar="MNEMONIC",
+    default=[],
+    help="""\
+Disable warning for a given mnemonic. These are given to make sure you are aware of
+certain topics, and typically point to the Nuitka website. The mnemonic is the part
+of the URL at the end, without the HTML suffix. Can be given multiple times and
+accepts shell pattern. Default empty.""",
+)
+
+parser.add_option_group(warnings_group)
+
 include_group = OptionGroup(
-    parser, "Control the inclusion of modules and packages in result."
+    parser, "Control the inclusion of modules and packages in result"
 )
 
 include_group.add_option(
@@ -185,10 +287,11 @@ include_group.add_option(
     metavar="PACKAGE",
     default=[],
     help="""\
-Include a whole package. Give as a Python namespace, e.g. ``some_package.sub_package``
+Include a whole package. Give as a Python namespace, e.g. "some_package.sub_package"
 and Nuitka will then find it and include it and all the modules found below that
 disk location in the binary or extension module it creates, and make it available
-for import by the code. Default empty.""",
+for import by the code. To avoid unwanted sub packages, e.g. tests you can e.g. do
+this "--nofollow-import-to=*.tests". Default empty.""",
 )
 
 include_group.add_option(
@@ -198,7 +301,7 @@ include_group.add_option(
     metavar="MODULE",
     default=[],
     help="""\
-Include a single module. Give as a Python namespace, e.g. ``some_package.some_module``
+Include a single module. Give as a Python namespace, e.g. "some_package.some_module"
 and Nuitka will then find it and include it in the binary or extension module
 it creates, and make it available for import by the code. Default empty.""",
 )
@@ -206,19 +309,19 @@ it creates, and make it available for import by the code. Default empty.""",
 include_group.add_option(
     "--include-plugin-directory",
     action="append",
-    dest="recurse_extra",
+    dest="include_extra",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
 Include the content of that directory, no matter if it's used by the given main
-program in a visible form. Overrides all other recursion options. Can be given
+program in a visible form. Overrides all other inclusion options. Can be given
 multiple times. Default empty.""",
 )
 
 include_group.add_option(
     "--include-plugin-files",
     action="append",
-    dest="recurse_extra_files",
+    dest="include_extra_files",
     metavar="PATTERN",
     default=[],
     help="""\
@@ -255,7 +358,7 @@ follow_group = OptionGroup(parser, "Control the following into imported modules"
 follow_group.add_option(
     "--follow-stdlib",
     action="store_true",
-    dest="recurse_stdlib",
+    dest="follow_stdlib",
     default=False,
     help="""\
 Also descend into imported modules from standard library. This will increase
@@ -265,17 +368,17 @@ the compilation time by a lot. Defaults to off.""",
 follow_group.add_option(
     "--nofollow-imports",
     action="store_true",
-    dest="recurse_none",
+    dest="follow_none",
     default=False,
     help="""\
 When --nofollow-imports is used, do not descend into any imported modules at all,
-overrides all other recursion options. Defaults to off.""",
+overrides all other inclusion options. Defaults to off.""",
 )
 
 follow_group.add_option(
     "--follow-imports",
     action="store_true",
-    dest="recurse_all",
+    dest="follow_all",
     default=False,
     help="""\
 When --follow-imports is used, attempt to descend into all imported modules.
@@ -285,7 +388,7 @@ Defaults to off.""",
 follow_group.add_option(
     "--follow-import-to",
     action="append",
-    dest="recurse_modules",
+    dest="follow_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
@@ -296,7 +399,7 @@ multiple times. Default empty.""",
 follow_group.add_option(
     "--nofollow-import-to",
     action="append",
-    dest="recurse_not_modules",
+    dest="follow_not_modules",
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
@@ -308,13 +411,13 @@ times. Default empty.""",
 parser.add_option_group(follow_group)
 
 
-data_group = OptionGroup(parser, "Data files for standalone/onefile mode")
+data_group = OptionGroup(parser, "Data files")
 
 data_group.add_option(
     "--include-package-data",
     action="append",
     dest="package_data",
-    metavar="PACKAGE_DATA",
+    metavar="PACKAGE",
     default=[],
     help="""\
 Include data files of the given package name. Can use patterns. By default
@@ -324,18 +427,18 @@ empty.""",
 )
 
 data_group.add_option(
-    "--include-data-file",
+    "--include-data-files",
     action="append",
     dest="data_files",
-    metavar="DATA_FILES",
+    metavar="DESC",
     default=[],
     help="""\
 Include data files by filenames in the distribution. There are many
-allowed forms. With '--include-data-file=/path/to/file/*.txt=folder_name/some.txt' it
+allowed forms. With '--include-data-files=/path/to/file/*.txt=folder_name/some.txt' it
 will copy a single file and complain if it's multiple. With
-'--include-data-file=/path/to/files/*.txt=folder_name/' it will put
+'--include-data-files=/path/to/files/*.txt=folder_name/' it will put
 all matching files into that folder. For recursive copy there is a
-form with 3 values that '--include-data-file=/path/to/scan=folder_name=**/*.txt'
+form with 3 values that '--include-data-files=/path/to/scan=folder_name=**/*.txt'
 that will preserve directory structure. Default empty.""",
 )
 
@@ -343,19 +446,49 @@ data_group.add_option(
     "--include-data-dir",
     action="append",
     dest="data_dirs",
-    metavar="DATA_DIRS",
+    metavar="DIRECTORY",
     default=[],
     help="""\
 Include data files from complete directory in the distribution. This is
-recursive. Check '--include-data-file' with patterns if you want non-recursive
-inclusion. An example would be '--include-data-dir=/path/somedir=data/somedir'
+recursive. Check '--include-data-files' with patterns if you want non-recursive
+inclusion. An example would be '--include-data-dir=/path/some_dir=data/some_dir'
 for plain copy, of the whole directory. All files are copied, if you want to
-exclude files you need to remove them beforehand. Default empty.""",
+exclude files you need to remove them beforehand, or use '--noinclude-data-files'
+option to remove them. Default empty.""",
 )
 
+data_group.add_option(
+    "--noinclude-data-files",
+    action="append",
+    dest="data_files_inhibited",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Do not include data files matching the filename pattern given. This is against
+the target filename, not source paths. So ignore file pattern from package
+data for "package_name" should be matched as "package_name/*.txt". Default
+empty.""",
+)
 
 parser.add_option_group(data_group)
 
+
+dll_group = OptionGroup(parser, "DLL files")
+
+dll_group.add_option(
+    "--noinclude-dlls",
+    action="append",
+    dest="dll_files_inhibited",
+    metavar="PATTERN",
+    default=[],
+    help="""\
+Do not include DLL files matching the filename pattern given. This is against
+the target filename, not source paths. So ignore a DLL "someDLL" contained in
+the package "package_name" it should be matched as "package_name/someDLL.*".
+Default empty.""",
+)
+
+parser.add_option_group(dll_group)
 
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
 
@@ -387,9 +520,9 @@ execute_group.add_option(
     dest="keep_pythonpath",
     default=False,
     help="""\
-When immediately executing the created binary (--execute), don't reset
-PYTHONPATH. When all modules are successfully included, you ought to not need
-PYTHONPATH anymore.""",
+When immediately executing the created binary ('--execute'), don't reset
+'PYTHONPATH' environment. When all modules are successfully included, you
+ought to not need PYTHONPATH anymore.""",
 )
 
 parser.add_option_group(execute_group)
@@ -408,9 +541,32 @@ dump_group.add_option(
 parser.add_option_group(dump_group)
 
 
-codegen_group = OptionGroup(parser, "Code generation choices")
+compilation_group = OptionGroup(parser, "Compilation choices")
 
-codegen_group.add_option(
+compilation_group.add_option(
+    "--user-package-configuration-file",
+    action="append",
+    dest="user_yaml_files",
+    default=[],
+    metavar="USER_YAML",
+    help="""\
+User provided Yaml file with package configuration. You can include DLLs,
+remove bloat, add hidden dependencies. Check User Manual for a complete
+description of the format to use. Can be given multiple times. Defaults
+to empty.""",
+)
+
+compilation_group.add_option(
+    "--disable-bytecode-cache",
+    action="store_true",
+    dest="disable_bytecode_cache",
+    default=False,
+    help="""\
+Do not reuse dependency analysis results for modules, esp. from standard library,
+that are included as bytecode.""",
+)
+
+compilation_group.add_option(
     "--full-compat",
     action="store_false",
     dest="improved",
@@ -419,14 +575,15 @@ codegen_group.add_option(
 Enforce absolute compatibility with CPython. Do not even allow minor
 deviations from CPython behavior, e.g. not having better tracebacks
 or exception messages which are not really incompatible, but only
-different. This is intended for tests only and should not be used
-for normal use.""",
+different or worse. This is intended for tests only and should *not*
+be used.""",
 )
 
-codegen_group.add_option(
+compilation_group.add_option(
     "--file-reference-choice",
     action="store",
     dest="file_reference_mode",
+    metavar="MODE",
     choices=("original", "runtime", "frozen"),
     default=None,
     help="""\
@@ -441,7 +598,23 @@ compatibility reasons, the "__file__" value will always have ".py" suffix
 independent of what it really is.""",
 )
 
-parser.add_option_group(codegen_group)
+compilation_group.add_option(
+    "--module-name-choice",
+    action="store",
+    dest="module_name_mode",
+    metavar="MODE",
+    choices=("original", "runtime"),
+    default=None,
+    help="""\
+Select what value "__name__" and "__package__" are going to be. With "runtime"
+(default for module mode), the created module uses the parent package to
+deduce the value of "__package__", to be fully compatible. The value "original"
+(default for other modes) allows for more static optimization to happen, but
+is incompatible for modules that normally can be loaded into any package.""",
+)
+
+
+parser.add_option_group(compilation_group)
 
 output_group = OptionGroup(parser, "Output choices")
 
@@ -458,7 +631,7 @@ include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % "<program_name>"
-    + (".exe" if Utils.getOS() == "Windows" else ".bin"),
+    + (".exe" if getOS() == "Windows" else ".bin"),
 )
 
 output_group.add_option(
@@ -511,9 +684,9 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
-    "--unstripped",
+    "--unstriped",
     action="store_true",
-    dest="unstripped",
+    dest="unstriped",
     default=False,
     help="""\
 Keep debug info in the resulting object file for better debugger interaction.
@@ -530,12 +703,13 @@ Enable vmprof based profiling of time spent. Not working currently. Defaults to 
 )
 
 debug_group.add_option(
-    "--graph",
+    "--internal-graph",
     action="store_true",
-    dest="graph",
+    dest="internal_graph",
     default=False,
     help="""\
-Create graph of optimization process. Defaults to off.""",
+Create graph of optimization process internals, do not use for whole programs, but only
+for small test cases. Defaults to off.""",
 )
 
 debug_group.add_option(
@@ -576,6 +750,7 @@ debug_group.add_option(
     "--experimental",
     action="append",
     dest="experimental",
+    metavar="FLAG",
     default=[],
     help="""\
 Use features declared as 'experimental'. May have no effect if no experimental
@@ -589,6 +764,17 @@ debug_group.add_option(
     dest="explain_imports",
     default=False,
     help=SUPPRESS_HELP,
+)
+
+debug_group.add_option(
+    "--low-memory",
+    action="store_true",
+    dest="low_memory",
+    default=False,
+    help="""\
+Attempt to use less memory, by forking less C compilation jobs and using
+options that use less memory. For use on embedded machines. Use this in
+case of out of memory problems. Defaults to off.""",
 )
 
 if os.name == "nt":
@@ -642,28 +828,28 @@ Enforce the use of clang. On Windows this requires a working Visual
 Studio version to piggy back on. Defaults to off.""",
 )
 
-if os.name == "nt":
-    c_compiler_group.add_option(
-        "--mingw64",
-        action="store_true",
-        dest="mingw64",
-        default=False,
-        help="""\
+c_compiler_group.add_option(
+    "--mingw64",
+    action="store_true",
+    dest="mingw64",
+    default=False,
+    help="""\
 Enforce the use of MinGW64 on Windows. Defaults to off.""",
-    )
+)
 
-    c_compiler_group.add_option(
-        "--msvc",
-        action="store",
-        dest="msvc",
-        default=None,
-        help="""\
+c_compiler_group.add_option(
+    "--msvc",
+    action="store",
+    dest="msvc_version",
+    default=None,
+    help="""\
 Enforce the use of specific MSVC version on Windows. Allowed values
-are e.g. 14.0, specify an illegal value for a list of installed compilers,
-beware that only latest MSVC is really supported.
+are e.g. "14.3" (MSVC 2022) and other MSVC version numbers, specify
+"list" for a list of installed compilers, or use "latest".
 
-Defaults to the most recent version.""",
-    )
+Defaults to latest MSVC being used if installed, otherwise MinGW64
+is used.""",
+)
 
 c_compiler_group.add_option(
     "-j",
@@ -671,7 +857,7 @@ c_compiler_group.add_option(
     action="store",
     dest="jobs",
     metavar="N",
-    default=Utils.getCoreCount(),
+    default=None,
     help="""\
 Specify the allowed number of parallel C compiler jobs. Defaults to the
 system CPU count.""",
@@ -679,26 +865,101 @@ system CPU count.""",
 
 c_compiler_group.add_option(
     "--lto",
-    action="store_true",
+    action="store",
     dest="lto",
-    default=False,
+    metavar="choice",
+    default="auto",
+    choices=("yes", "no", "auto"),
     help="""\
-Use link time optimizations if available and usable (MSVC, gcc >=4.6, clang).
-Defaults to off.""",
+Use link time optimizations (MSVC, gcc, clang). Allowed values are
+"yes", "no", and "auto" (when it's known to work). Defaults to
+"auto".""",
 )
 
 c_compiler_group.add_option(
     "--static-libpython",
     action="store",
     dest="static_libpython",
+    metavar="choice",
     default="auto",
     choices=("yes", "no", "auto"),
     help="""\
-Use static link library of Python if available. Defaults to auto, i.e. enabled for where
-we know it's working.""",
+Use static link library of Python. Allowed values are "yes", "no",
+and "auto" (when it's known to work). Defaults to "auto".""",
+)
+
+c_compiler_group.add_option(
+    "--disable-ccache",
+    action="store_true",
+    dest="disable_ccache",
+    default=False,
+    help="""\
+Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).""",
 )
 
 parser.add_option_group(c_compiler_group)
+
+pgo_group = OptionGroup(parser, "PGO compilation choices")
+
+pgo_group.add_option(
+    "--pgo",
+    action="store_true",
+    dest="is_c_pgo",
+    default=False,
+    help="""\
+Enables C level profile guided optimization (PGO), by executing a dedicated build first
+for a profiling run, and then using the result to feedback into the C compilation.
+Note: This is experimental and not working with standalone modes of Nuitka yet.
+Defaults to off.""",
+)
+
+pgo_group.add_option(
+    "--pgo-python",
+    action="store_true",
+    dest="is_python_pgo",
+    default=False,
+    help=SUPPRESS_HELP,
+)
+
+pgo_group.add_option(
+    "--pgo-python-input",
+    action="store",
+    dest="python_pgo_input",
+    default=None,
+    help=SUPPRESS_HELP,
+)
+
+pgo_group.add_option(
+    "--pgo-python-policy-unused-module",
+    action="store",
+    dest="python_pgo_policy_unused_module",
+    choices=("include", "exclude", "bytecode"),
+    default="include",
+    help=SUPPRESS_HELP,
+)
+
+pgo_group.add_option(
+    "--pgo-args",
+    action="store",
+    dest="pgo_args",
+    default="",
+    help="""\
+Arguments to be passed in case of profile guided optimization. These are passed to the special
+built executable during the PGO profiling run. Default empty.""",
+)
+
+pgo_group.add_option(
+    "--pgo-executable",
+    action="store",
+    dest="pgo_executable",
+    default=None,
+    help="""\
+Command to execute when collecting profile information. Use this only, if you need to
+launch it through a script that prepares it to run. Default use created program.""",
+)
+
+
+parser.add_option_group(pgo_group)
 
 tracing_group = OptionGroup(parser, "Tracing features")
 
@@ -732,12 +993,11 @@ Defaults to off.""",
 )
 
 tracing_group.add_option(
-    "--no-progress",
+    "--no-progressbar",
     action="store_false",
     dest="progress_bar",
     default=True,
-    help="""Disable progress bar outputs (if tqdm is installed).
-Defaults to off.""",
+    help="""Disable progress bar. Defaults to off.""",
 )
 
 
@@ -765,9 +1025,19 @@ tracing_group.add_option(
     "--show-modules-output",
     action="store",
     dest="show_inclusion_output",
+    metavar="PATH",
     default=None,
     help="""\
 Where to output --show-modules, should be a filename. Default is standard output.""",
+)
+
+tracing_group.add_option(
+    "--report",
+    action="store",
+    dest="compilation_report_filename",
+    default=None,
+    help="""\
+Report module inclusion in an XML output file. Default is off.""",
 )
 
 tracing_group.add_option(
@@ -784,12 +1054,67 @@ tracing_group.add_option(
     "--verbose-output",
     action="store",
     dest="verbose_output",
+    metavar="PATH",
     default=None,
     help="""\
 Where to output --verbose, should be a filename. Default is standard output.""",
 )
 
 parser.add_option_group(tracing_group)
+
+os_group = OptionGroup(parser, "General OS controls")
+
+os_group.add_option(
+    "--disable-console",
+    "--macos-disable-console",
+    "--windows-disable-console",
+    action="store_true",
+    dest="disable_console",
+    default=None,
+    help="""\
+When compiling for Windows or macOS, disable the console window and create a GUI
+application. Defaults to off.""",
+)
+
+os_group.add_option(
+    "--enable-console",
+    action="store_false",
+    dest="disable_console",
+    default=None,
+    help="""\
+When compiling for Windows or macOS, enable the console window and create a console
+application. This disables hints from certain modules, e.g. "PySide" that suggest
+to disable it. Defaults to true.""",
+)
+
+os_group.add_option(
+    "--force-stdout-spec",
+    "--windows-force-stdout-spec",
+    action="store",
+    dest="force_stdout_spec",
+    metavar="FORCE_STDOUT_SPEC",
+    default=None,
+    help="""\
+Force standard output of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka commercial.
+Defaults to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
+)
+
+os_group.add_option(
+    "--force-stderr-spec",
+    "--windows-force-stderr-spec",
+    action="store",
+    dest="force_stderr_spec",
+    metavar="FORCE_STDERR_SPEC",
+    default=None,
+    help="""\
+Force standard error of the program to go to this location. Useful for programs with
+disabled console and programs using the Windows Services Plugin of Nuitka commercial.
+Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
+)
+
+
+parser.add_option_group(os_group)
 
 windows_group = OptionGroup(parser, "Windows specific controls")
 
@@ -799,15 +1124,6 @@ windows_group.add_option(
     dest="dependency_tool",
     default=None,
     help=SUPPRESS_HELP,
-)
-
-windows_group.add_option(
-    "--windows-disable-console",
-    action="store_true",
-    dest="win_disable_console",
-    default=False,
-    help="""\
-When compiling for Windows, disable the console window. Defaults to off.""",
 )
 
 windows_group.add_option(
@@ -833,6 +1149,15 @@ windows_group.add_option(
 )
 
 windows_group.add_option(
+    "--onefile-windows-splash-screen-image",
+    action="store",
+    dest="splash_screen_image",
+    default=None,
+    help="""\
+When compiling for Windows and onefile, show this while loading the application. Defaults to off.""",
+)
+
+windows_group.add_option(
     "--windows-uac-admin",
     action="store_true",
     dest="windows_uac_admin",
@@ -842,7 +1167,7 @@ windows_group.add_option(
 )
 
 windows_group.add_option(
-    "--windows-uac-uiaccess",
+    "--windows-uac-uiaccess",  # spell-checker: ignore uiaccess
     action="store_true",
     dest="windows_uac_uiaccess",
     metavar="WINDOWS_UAC_UIACCESS",
@@ -885,7 +1210,7 @@ windows_group.add_option(
     default=None,
     help="""\
 File version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, nothing else allowed.
+up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
@@ -898,7 +1223,7 @@ windows_group.add_option(
     default=None,
     help="""\
 Product version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, nothing else allowed.
+up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
@@ -927,7 +1252,7 @@ windows_group.add_option(
 )
 
 windows_group.add_option(
-    "--windows-onefile-tempdir-spec",
+    "--onefile-tempdir-spec",
     action="store",
     dest="onefile_tempdir_spec",
     metavar="ONEFILE_TEMPDIR_SPEC",
@@ -936,42 +1261,120 @@ windows_group.add_option(
 Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",
 )
 
-windows_group.add_option(
-    "--windows-force-stdout-spec",
-    action="store",
-    dest="force_stdout_spec",
-    metavar="WINDOWS_FORCE_STDOUT_SPEC",
-    default=None,
-    help="""\
-Force standard output of the program to go to this location. Useful for programs with
-disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
-to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
-)
-
-windows_group.add_option(
-    "--windows-force-stderr-spec",
-    action="store",
-    dest="force_stderr_spec",
-    metavar="WINDOWS_FORCE_STDERR_SPEC",
-    default=None,
-    help="""\
-Force standard error of the program to go to this location. Useful for programs with
-disabled console and programs using the Windows Services Plugin of Nuitka. Defaults
-to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
-)
-
-
 parser.add_option_group(windows_group)
+
+macos_group = OptionGroup(parser, "macOS specific controls")
+
+macos_group.add_option(
+    "--macos-target-arch",
+    action="store",
+    dest="macos_target_arch",
+    choices=("universal", "arm64", "x86_64"),
+    metavar="MACOS_TARGET_ARCH",
+    default=None,
+    help="""\
+What architectures is this to supposed to run on. Default and limit
+is what the running Python allows for. Default is "native" which is
+the architecture the Python is run with.""",
+)
+
+macos_group.add_option(
+    "--macos-create-app-bundle",
+    action="store_true",
+    dest="macos_create_bundle",
+    default=False,
+    help="""\
+When compiling for macOS, create a bundle rather than a plain binary
+application. Currently experimental and incomplete. Currently this
+is the only way to unlock disabling of console.Defaults to off.""",
+)
+
+macos_group.add_option(
+    "--macos-app-icon",
+    action="append",
+    dest="icon_path",
+    metavar="ICON_PATH",
+    default=[],
+    help="Add icon for the application bundle to use. Can be given only one time. Defaults to Python icon if available.",
+)
+
+
+macos_group.add_option(
+    "--macos-signed-app-name",
+    action="store",
+    dest="macos_signed_app_name",
+    metavar="MACOS_SIGNED_APP_NAME",
+    default=None,
+    help="""\
+Name of the application to use for macOS signing. Follow "com.YourCompany.AppName"
+naming results for best results, as these have to be globally unique, and will
+potentially grant protected API accesses.""",
+)
+
+macos_group.add_option(
+    "--macos-app-name",
+    action="store",
+    dest="macos_app_name",
+    metavar="MACOS_APP_NAME",
+    default=None,
+    help="""\
+Name of the product to use in macOS bundle information. Defaults to base
+filename of the binary.""",
+)
+
+macos_group.add_option(
+    "--macos-sign-identity",
+    action="store",
+    dest="macos_sign_identity",
+    metavar="MACOS_APP_VERSION",
+    default="-",
+    help="""\
+When signing on macOS, by default an ad-hoc identify will be used, but with this
+option your get to specify another identity to use. The signing of code is now
+mandatory on macOS and cannot be disabled. Default "-" if not given, which means
+ad-hoc.""",
+)
+
+macos_group.add_option(
+    "--macos-app-version",
+    action="store",
+    dest="macos_app_version",
+    metavar="MACOS_APP_VERSION",
+    default=None,
+    help="""\
+Product version to use in macOS bundle information. Defaults to "1.0" if
+not given.""",
+)
+
+macos_group.add_option(
+    "--macos-app-protected-resource",
+    action="append",
+    dest="macos_protected_resources",
+    metavar="RESOURCE_DESC",
+    default=[],
+    help="""\
+Request access for macOS protected resources, e.g.
+"NSMicrophoneUsageDescription:Microphone access for recording audio."
+requests access to the microphone and provides an informative text for
+the user, why that is needed. Before the colon, is an OS identifier for
+an access right, then the informative text. Legal values can be found on
+https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources and
+the option can be specified multiple times. Default empty.""",
+)
+
+
+parser.add_option_group(macos_group)
 
 linux_group = OptionGroup(parser, "Linux specific controls")
 
 linux_group.add_option(
+    "--linux-icon",
     "--linux-onefile-icon",
     action="append",
     dest="icon_path",
     metavar="ICON_PATH",
     default=[],
-    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to ",
+    help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
 )
 
 parser.add_option_group(linux_group)
@@ -979,10 +1382,11 @@ parser.add_option_group(linux_group)
 plugin_group = OptionGroup(parser, "Plugin control")
 
 plugin_group.add_option(
-    "--plugin-enable",
     "--enable-plugin",
+    "--plugin-enable",
     action="append",
     dest="plugins_enabled",
+    metavar="PLUGIN_NAME",
     default=[],
     help="""\
 Enabled plugins. Must be plug-in names. Use --plugin-list to query the
@@ -990,10 +1394,11 @@ full list and exit. Default empty.""",
 )
 
 plugin_group.add_option(
-    "--plugin-disable",
     "--disable-plugin",
+    "--plugin-disable",
     action="append",
     dest="plugins_disabled",
+    metavar="PLUGIN_NAME",
     default=[],
     help="""\
 Disabled plugins. Must be plug-in names. Use --plugin-list to query the
@@ -1007,9 +1412,9 @@ plugin_group.add_option(
     default=True,
     help="""\
 Plugins can detect if they might be used, and the you can disable the warning
-via --plugin-disable=plugin-that-warned, or you can use this option to disable
+via "--disable-plugin=plugin-that-warned", or you can use this option to disable
 the mechanism entirely, which also speeds up compilation slightly of course as
-this detection code is run in vain once you are certain of which plug-ins to
+this detection code is run in vain once you are certain of which plugins to
 use. Defaults to off.""",
 )
 
@@ -1029,29 +1434,44 @@ plugin_group.add_option(
     "--user-plugin",
     action="append",
     dest="user_plugins",
+    metavar="PATH",
     default=[],
     help="The file name of user plugin. Can be given multiple times. Default empty.",
 )
 
+plugin_group.add_option(
+    "--show-source-changes",
+    action="store_true",
+    dest="show_source_changes",
+    default=False,
+    help="""\
+Show source changes to original Python file content before compilation. Mostly
+intended for developing plugins. Default False.""",
+)
+
 
 def _considerPluginOptions(logger):
-    # Recursive dependency on plugins during parsing of command line.
+    # Cyclic dependency on plugins during parsing of command line.
     from nuitka.plugins.Plugins import (
         addPluginCommandLineOptions,
+        addStandardPluginCommandLineOptions,
         addUserPluginCommandLineOptions,
     )
+
+    addStandardPluginCommandLineOptions(parser=parser)
 
     for arg in sys.argv[1:]:
         if arg.startswith(("--enable-plugin=", "--plugin-enable=")):
             plugin_names = arg[16:]
             if "=" in plugin_names:
                 logger.sysexit(
-                    "Error, plugin options format changed. Use '--plugin-enable=%s --help' to know new options."
+                    "Error, plugin options format changed. Use '--enable-plugin=%s --help' to know new options."
                     % plugin_names.split("=", 1)[0]
                 )
 
             addPluginCommandLineOptions(
-                parser=parser, plugin_names=plugin_names.split(",")
+                parser=parser,
+                plugin_names=plugin_names.split(","),
             )
 
         if arg.startswith("--user-plugin="):
@@ -1059,7 +1479,7 @@ def _considerPluginOptions(logger):
             if "=" in plugin_name:
                 logger.sysexit(
                     "Error, plugin options format changed. Use '--user-plugin=%s --help' to know new options."
-                    % plugin_name
+                    % plugin_name.split("=", 1)[0]
                 )
 
             addUserPluginCommandLineOptions(parser=parser, filename=plugin_name)
@@ -1073,21 +1493,33 @@ def _expandProjectArg(arg, filename_arg, for_eval):
             return value
 
     values = {
-        "OS": wrap(Utils.getOS()),
-        "Arch": wrap(Utils.getArchitecture()),
+        "OS": wrap(getOS()),
+        "Arch": wrap(getArchitecture()),
+        "Flavor": wrap(_getPythonFlavor()),
         "Version": getNuitkaVersion(),
+        "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
     }
+
+    if isLinux():
+        dist_info = getLinuxDistribution()
+    else:
+        dist_info = "N/A", "N/A", "0"
+
+    values["Linux_Distribution_Name"] = dist_info[0]
+    values["Linux_Distribution_Base"] = dist_info[1] or dist_info[0]
+    values["Linux_Distribution_Version"] = dist_info[2]
+
+    if getOS() == "Windows":
+        values["WindowsRelease"] = getWindowsRelease()
+
     arg = arg.format(**values)
 
     return arg
 
 
 def _getProjectOptions(logger, filename_arg, module_mode):
-    # Complex stuff, pylint: disable=too-many-branches,too-many-locals
-    # Do it only once.
-    if os.environ.get("NUITKA_REEXECUTION", "0") == "1":
-        return
+    # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if os.path.isdir(filename_arg):
         if module_mode:
@@ -1109,23 +1541,26 @@ def _getProjectOptions(logger, filename_arg, module_mode):
 
     cond_level = -1
 
-    for count, line in enumerate(contents_by_line):
-        match = re.match(b"^\\s*#(\\s+)nuitka-project(.*?):(.*)", line)
+    for line_number, line in enumerate(contents_by_line):
+        match = re.match(b"^\\s*#(\\s*)nuitka-project(.*?):(.*)", line)
 
         if match:
             level, command, arg = match.groups()
             level = len(level)
+            arg = arg.rstrip()
 
             # Check for empty conditional blocks.
             if expect_block and level <= cond_level:
                 sysexit(
-                    count,
-                    "Error, 'nuitka-project-if' is expected to be followed by block start.",
+                    line_number,
+                    "Error, 'nuitka-project-if|else' is expected to be followed by block start.",
                 )
 
             expect_block = False
 
-            if level <= cond_level:
+            if level == cond_level and command == b"-else":
+                execute_block = not execute_block
+            elif level <= cond_level:
                 execute_block = True
 
             if level > cond_level and not execute_block:
@@ -1138,29 +1573,49 @@ def _getProjectOptions(logger, filename_arg, module_mode):
             if command == "-if":
                 if not arg.endswith(":"):
                     sysexit(
-                        count,
-                        "Error, 'nuitka-project-if' needs to start a block with a colon.",
+                        line_number,
+                        "Error, 'nuitka-project-if' needs to start a block with a colon at line end.",
                     )
 
-                arg = arg[:-1]
+                arg = arg[:-1].strip()
 
                 expanded = _expandProjectArg(arg, filename_arg, for_eval=True)
-                r = eval(  # We allow the user to run any code, pylint: disable=eval-used
-                    expanded
-                )
+
+                with withNoSyntaxWarning():
+                    r = eval(  # We allow the user to run any code, pylint: disable=eval-used
+                        expanded
+                    )
 
                 # Likely mistakes, e.g. with "in" tests.
                 if r is not True and r is not False:
                     sys.exit(
-                        "Error, 'nuitka-project-if' condition %r (%r) does not yield boolean result %r"
+                        "Error, 'nuitka-project-if' condition %r (expanded to %r) does not yield boolean result %r"
                         % (arg, expanded, r)
                     )
 
                 execute_block = r
                 expect_block = True
                 cond_level = level
+            elif command == "-else":
+                if arg:
+                    sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-else' cannot have argument.",
+                    )
+
+                if cond_level != level:
+                    sysexit(
+                        line_number,
+                        "Error, 'nuitka-project-else' not currently allowed after nested nuitka-project-if.",
+                    )
+
+                expect_block = True
+                cond_level = level
             elif command == "":
                 arg = re.sub(r"""^([\w-]*=)(['"])(.*)\2$""", r"\1\3", arg.lstrip())
+
+                if not arg:
+                    continue
 
                 yield _expandProjectArg(arg, filename_arg, for_eval=False)
             else:

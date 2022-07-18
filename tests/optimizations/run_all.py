@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -48,18 +48,19 @@ sys.path.insert(
 )
 
 # isort:start
-from nuitka.TreeXML import toString
-
-from nuitka.tools.testing.Common import (  # isort:skip
+from nuitka.tools.testing.Common import (
     check_output,
     convertUsing2to3,
     createSearchMode,
     decideFilenameVersionSkip,
+    getPythonSysPath,
     my_print,
     setup,
+    withPythonPathChange,
 )
+from nuitka.TreeXML import toString
 
-python_version = setup()
+python_version = setup(suite="optimiations")
 
 search_mode = createSearchMode()
 
@@ -90,7 +91,8 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or kind in (
         "ImportModuleHard",
-        "ImportModuleNameHard",
+        "ImportModuleNameHardExists",
+        "ImportModuleNameHardMaybeExists",
         "ModuleAttributeFileRef",
         "ModuleLoaderRef",
     )
@@ -138,7 +140,7 @@ def checkSequence(filename, statements):
 
             continue
 
-        if kind == "AssignmentVariable":
+        if kind.startswith("AssignmentVariable"):
             variable_name = statement.attrib["variable_name"]
 
             # Ignore "__spec__" assignment for Python3.4, it is not going
@@ -153,7 +155,8 @@ def checkSequence(filename, statements):
 
             if not isConstantExpression(assign_source):
                 search_mode.onErrorDetected(
-                    "Error, assignment from non-constant '%s'." % getKind(assign_source)
+                    "%s: Error, assignment from non-constant '%s'."
+                    % (getSourceRef(filename, statement), getKind(assign_source))
                 )
 
             continue
@@ -212,21 +215,6 @@ def main():
                 if "PYTHONHASHSEED" not in os.environ:
                     os.environ["PYTHONHASHSEED"] = "0"
 
-                # Coverage modules hates Nuitka to re-execute, and so we must avoid
-                # that.
-                python_path = check_output(
-                    [
-                        os.environ["PYTHON"],
-                        "-c",
-                        "import sys, os; print(os.pathsep.join(sys.path))",
-                    ]
-                )
-
-                if sys.version_info >= (3,):
-                    python_path = python_path.decode("utf8")
-
-                os.environ["PYTHONPATH"] = python_path.strip()
-
                 command.insert(2, "--must-not-re-execute")
 
                 command = (
@@ -235,7 +223,14 @@ def main():
                     + command[1:]
                 )
 
-            result = check_output(command)
+                # Coverage modules hates Nuitka to re-execute, and so we must avoid
+                # that.
+                python_path = getPythonSysPath()
+            else:
+                python_path = None
+
+            with withPythonPathChange(python_path):
+                result = check_output(command)
 
             # Parse the result into XML and check it.
             try:
@@ -265,7 +260,10 @@ def main():
                 if changed:
                     os.unlink(filename)
             except SystemExit:
-                my_print("FAIL.")
+                my_print("Optimization result:")
+                my_print(result, style="test-debug")
+                my_print("FAIL.", style="red")
+
                 raise
 
             my_print("OK.")

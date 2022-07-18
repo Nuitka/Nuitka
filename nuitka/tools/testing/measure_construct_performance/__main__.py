@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,11 +25,8 @@ in comparisons.
 
 """
 
-from __future__ import print_function
-
 import hashlib
 import os
-import shutil
 import sys
 from optparse import OptionParser
 
@@ -45,6 +42,12 @@ from nuitka.tools.testing.Common import (
 from nuitka.tools.testing.Constructs import generateConstructCases
 from nuitka.tools.testing.Valgrind import runValgrind
 from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import (
+    copyFile,
+    getFileContentByLine,
+    getFileContents,
+    putTextFileContents,
+)
 
 
 def main():
@@ -94,13 +97,15 @@ def main():
 
     my_print("PYTHON='%s'" % getPythonVersionString())
     my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
-    with open(test_case, "rb") as f:
-        my_print("TEST_CASE_HASH='%s'" % hashlib.md5(f.read()).hexdigest())
+    my_print(
+        "TEST_CASE_HASH='%s'"
+        % hashlib.md5(getFileContents(test_case, "rb")).hexdigest()
+    )
 
     needs_2to3 = decideNeeds2to3(test_case)
 
     if options.target_dir:
-        shutil.copyfile(
+        copyFile(
             test_case, os.path.join(options.target_dir, os.path.basename(test_case))
         )
 
@@ -110,14 +115,10 @@ def main():
     test_case_1 = os.path.join(temp_dir, "Variant1_" + os.path.basename(test_case))
     test_case_2 = os.path.join(temp_dir, "Variant2_" + os.path.basename(test_case))
 
-    with open(test_case) as f:
-        case_1_source, case_2_source = generateConstructCases(f.read())
+    case_1_source, case_2_source = generateConstructCases(getFileContents(test_case))
 
-    with open(test_case_1, "w") as case_1_file:
-        case_1_file.write(case_1_source)
-
-    with open(test_case_2, "w") as case_2_file:
-        case_2_file.write(case_2_source)
+    putTextFileContents(test_case_1, case_1_source)
+    putTextFileContents(test_case_2, case_2_source)
 
     if needs_2to3:
         test_case_1, _needs_delete = convertUsing2to3(test_case_1)
@@ -138,19 +139,29 @@ def main():
 
     os.chdir(getTempDir())
 
+    case_name = os.path.basename(test_case)
+
+    no_site = "Numpy" not in case_name
+
     if nuitka:
+
         nuitka_call = [
             os.environ["PYTHON"],
             nuitka,
             "--quiet",
-            "--python-flag=-S",
-            os.path.basename(test_case),
+            "--no-progress",
         ]
+
+        if no_site:
+            nuitka_call.append("--python-flag=-S")
+
         nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
+
+        nuitka_call.append(case_name)
 
         # We want to compile under the same filename to minimize differences, and
         # then copy the resulting files afterwards.
-        shutil.copyfile(test_case_1, os.path.basename(test_case))
+        copyFile(test_case_1, case_name)
 
         check_call(nuitka_call)
 
@@ -168,7 +179,7 @@ def main():
             os.path.basename(test_case_1).replace(".py", exe_suffix),
         )
 
-        shutil.copyfile(test_case_2, os.path.basename(test_case))
+        copyFile(test_case_2, os.path.basename(test_case))
 
         check_call(nuitka_call)
 
@@ -205,18 +216,16 @@ def main():
 
             import difflib
 
-            with open(options.diff_filename, "w") as f:
-                with open(cpp_1) as cpp1:
-                    with open(cpp_2) as cpp2:
-                        f.write(
-                            difflib.HtmlDiff().make_table(
-                                cpp1.readlines(),
-                                cpp2.readlines(),
-                                "Construct",
-                                "Baseline",
-                                True,
-                            )
-                        )
+            putTextFileContents(
+                options.diff_filename,
+                difflib.HtmlDiff().make_table(
+                    getFileContentByLine(cpp_1),
+                    getFileContentByLine(cpp_2),
+                    "Construct",
+                    "Baseline",
+                    True,
+                ),
+            )
 
         nuitka_1 = runValgrind(
             "Nuitka construct",
@@ -240,16 +249,25 @@ def main():
         my_print("NUITKA_CONSTRUCT=%s" % nuitka_diff)
 
     if options.cpython:
+        cpython_call = [os.environ["PYTHON"], "-S", test_case_1]
+        if not no_site:
+            cpython_call.remove("-S")
+
         cpython_1 = runValgrind(
             "CPython construct",
             "callgrind",
-            (os.environ["PYTHON"], "-S", test_case_1),
+            cpython_call,
             include_startup=True,
         )
+
+        cpython_call = [os.environ["PYTHON"], "-S", test_case_2]
+        if not no_site:
+            cpython_call.remove("-S")
+
         cpython_2 = runValgrind(
             "CPython baseline",
             "callgrind",
-            (os.environ["PYTHON"], "-S", test_case_2),
+            cpython_call,
             include_startup=True,
         )
 

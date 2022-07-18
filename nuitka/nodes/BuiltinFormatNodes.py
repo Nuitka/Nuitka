@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,15 +29,17 @@ from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
 )
-from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
-from .shapes.BuiltinTypeShapes import (
-    tshape_int_or_long,
-    tshape_str,
-    tshape_str_or_unicode,
+from .ExpressionShapeMixins import (
+    ExpressionIntOrLongExactMixin,
+    ExpressionStrOrUnicodeExactMixin,
+    ExpressionStrShapeExactMixin,
 )
+from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
 
-class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
+class ExpressionBuiltinFormat(
+    ExpressionStrOrUnicodeExactMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_FORMAT"
 
     named_children = ("value", "format_spec")
@@ -52,10 +54,6 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
             source_ref=source_ref,
         )
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_str_or_unicode
-
     def computeExpression(self, trace_collection):
         # TODO: Can use the format built-in on compile time constants at least.
 
@@ -67,17 +65,6 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
             self.subnode_format_spec = None
             format_spec = None
 
-        # Strings format themselves as what they are.
-        if format_spec is None:
-            if value.hasShapeStrExact() or value.hasShapeUnicodeExact():
-                return (
-                    value,
-                    "new_expression",
-                    """\
-Removed useless 'format' on '%s' value."""
-                    % value.getTypeShape().getTypeName(),
-                )
-
         # TODO: Provide "__format__" slot based handling.
 
         # Any code could be run, note that.
@@ -86,51 +73,56 @@ Removed useless 'format' on '%s' value."""
         # Any exception may be raised.
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        # Strings format themselves as what they are.
+        if format_spec is None:
+            if value.hasShapeStrOrUnicodeExact():
+                return (
+                    value,
+                    "new_expression",
+                    """\
+Removed useless 'format' on '%s' value."""
+                    % value.getTypeShape().getTypeName(),
+                )
+
         return self, None, None
 
 
-class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinAscii(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_ASCII"
 
     if python_version >= 0x300:
         builtin_spec = BuiltinParameterSpecs.builtin_ascii_spec
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_str
 
-
-class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinBin(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_BIN"
 
     builtin_spec = BuiltinParameterSpecs.builtin_bin_spec
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_str
 
-
-class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinOct(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_OCT"
 
     builtin_spec = BuiltinParameterSpecs.builtin_oct_spec
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_str
 
-
-class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinHex(
+    ExpressionStrShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_HEX"
 
     builtin_spec = BuiltinParameterSpecs.builtin_hex_spec
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_str
 
-
-class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinId(
+    ExpressionIntOrLongExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_ID"
 
     builtin_spec = BuiltinParameterSpecs.builtin_id_spec
@@ -146,10 +138,7 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
     def getIntValue(self):
         return self
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_int_or_long
-
+    # TODO: Make use SideEffectsFromChildrenMixin in form of a SideEffectsFromChildMixin
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementExpressionOnlyReplacementNode(
             expression=self.subnode_value, node=self
@@ -168,4 +157,4 @@ Removed id taking for unused result.""",
         return self.subnode_value.mayHaveSideEffects()
 
     def extractSideEffects(self):
-        return (self.subnode_value,)
+        return self.subnode_value.extractSideEffects()

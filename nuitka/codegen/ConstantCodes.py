@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,7 +33,7 @@ import sys
 from nuitka import Options
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
-from nuitka.Version import getNuitkaVersion
+from nuitka.Version import getNuitkaVersionTuple
 
 from .CodeHelpers import withObjectCodeTemporaryAssignment
 from .ErrorCodes import getAssertionCode
@@ -49,6 +49,8 @@ def generateConstantReferenceCode(to_name, expression, emit, context):
     to_name.getCType().emitAssignmentCodeFromConstant(
         to_name=to_name,
         constant=expression.getCompileTimeConstant(),
+        # Derive this from context.
+        may_escape=True,
         emit=emit,
         context=context,
     )
@@ -63,6 +65,7 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
     origin_name.getCType().emitAssignmentCodeFromConstant(
         to_name=origin_name,
         constant=expression.getCompileTimeConstant().__origin__,
+        may_escape=True,
         emit=emit,
         context=context,
     )
@@ -70,6 +73,7 @@ def generateConstantGenericAliasCode(to_name, expression, emit, context):
     args_name.getCType().emitAssignmentCodeFromConstant(
         to_name=args_name,
         constant=expression.getCompileTimeConstant().__args__,
+        may_escape=True,
         emit=emit,
         context=context,
     )
@@ -91,6 +95,8 @@ def getConstantsDefinitionCode():
     than one module) and create them.
 
     """
+    # Somewhat detail rich, pylint: disable=too-many-locals
+
     constant_accessor = ConstantAccessor(
         data_filename="__constants.const", top_level_name="global_constants"
     )
@@ -145,13 +151,7 @@ def getConstantsDefinitionCode():
         "header_body": "\n".join(lines),
     }
 
-    major, minor, micro = getNuitkaVersion().split(".")[:3]
-
-    if "rc" in micro:
-        micro = micro[: micro.find("rc")]
-        level = "candidate"
-    else:
-        level = "release"
+    major, minor, micro, is_final, _rc_number = getNuitkaVersionTuple()
 
     body = template_constants_reading % {
         "global_constants_count": constant_accessor.getConstantsCount(),
@@ -163,7 +163,7 @@ def getConstantsDefinitionCode():
         "nuitka_version_major": major,
         "nuitka_version_minor": minor,
         "nuitka_version_micro": micro,
-        "nuitka_version_level": level,
+        "nuitka_version_level": "release" if is_final else "candidate",
     }
 
     return header, body

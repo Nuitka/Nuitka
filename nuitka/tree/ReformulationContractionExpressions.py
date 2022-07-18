@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,16 +17,12 @@
 #
 """ Reformulation of contraction expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
+from nuitka.__past__ import intern
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
     ExpressionMakeAsyncgenObject,
@@ -69,7 +65,9 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence,
 )
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
     ExpressionYieldFromWaitable,
@@ -77,7 +75,7 @@ from nuitka.nodes.YieldNodes import (
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationBooleanExpressions import buildAndNode
+from .ReformulationBooleanExpressions import makeAndNode
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -130,7 +128,7 @@ def _getStopIterationName(qual):
 
 def _buildPython2ListContraction(provider, node, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the developer manual. They use a lot of temporary names,
+    # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
     # Note: The assign_provider is only to cover Python2 list contractions,
@@ -290,7 +288,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     function_body.setChild(
         "body",
         makeStatementsSequenceFromStatements(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_tmp,
                 source=_makeIteratorCreation(
                     provider=provider,
@@ -311,7 +309,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 ),
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=iter_tmp, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -392,7 +390,7 @@ def _buildContractionBodyNode(
     # First assign the iterator if we are an outline.
     if assign_provider:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_tmp,
                 source=_makeIteratorCreation(
                     provider=provider,
@@ -406,7 +404,7 @@ def _buildContractionBodyNode(
 
     if for_asyncgen and python_version >= 0x370 and node.generators[0].is_async:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_tmp,
                 source=ExpressionTempVariableRef(
                     variable=iter_tmp, source_ref=source_ref
@@ -417,7 +415,7 @@ def _buildContractionBodyNode(
 
     if start_value is not None:
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=container_tmp,
                 source=makeConstantRefNode(constant=start_value, source_ref=source_ref),
                 source_ref=source_ref.atInternal(),
@@ -505,7 +503,7 @@ def _buildContractionBodyNode(
             tmp_variables.append(tmp_iter_variable)
 
             nested_statements = [
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_iter_variable,
                     source=value_iterator,
                     source_ref=source_ref,
@@ -518,7 +516,7 @@ def _buildContractionBodyNode(
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
-                tried=StatementAssignmentVariable(
+                tried=makeStatementAssignmentVariable(
                     variable=tmp_value_variable,
                     source=_makeIteratorNext(
                         iterator_ref=iterator_ref, qual=qual, source_ref=source_ref
@@ -549,7 +547,7 @@ def _buildContractionBodyNode(
         if len(conditions) >= 1:
             loop_statements.append(
                 makeStatementConditional(
-                    condition=buildAndNode(values=conditions, source_ref=source_ref),
+                    condition=makeAndNode(values=conditions, source_ref=source_ref),
                     yes_branch=current_body,
                     no_branch=None,
                     source_ref=source_ref,
@@ -569,7 +567,7 @@ def _buildContractionBodyNode(
 
         if tmp_iter_variable is not None:
             nested_statements.append(
-                StatementReleaseVariable(
+                makeStatementReleaseVariable(
                     variable=tmp_iter_variable, source_ref=source_ref
                 )
             )
@@ -582,7 +580,7 @@ def _buildContractionBodyNode(
     statements = mergeStatements(statements)
 
     release_statements = [
-        StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
+        makeStatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
         for tmp_variable in tmp_variables
     ]
 
@@ -591,7 +589,7 @@ def _buildContractionBodyNode(
 
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
-    # described in the developer manual. They use a lot of temporary names,
+    # described in the Developer Manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
     function_body = ExpressionOutlineFunction(
@@ -618,7 +616,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         source_ref=source_ref,
     )
 
-    assign_iter_statement = StatementAssignmentVariable(
+    assign_iter_statement = makeStatementAssignmentVariable(
         source=_makeIteratorCreation(
             provider=provider,
             qual=node.generators[0],

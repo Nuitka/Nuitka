@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -55,6 +55,10 @@ class ShapeContainerMixin(object):
     @staticmethod
     def getOperationUnaryReprEscape():
         return ControlFlowDescriptionElementBasedEscape
+
+    @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
 
 
 class ShapeContainerMutableMixin(ShapeContainerMixin):
@@ -167,11 +171,23 @@ class ShapeNumberMixin(object):
         return False
 
     @staticmethod
+    def hasShapeTrustedAttributes():
+        return True
+
+    @staticmethod
     def getOperationUnaryReprEscape():
         return ControlFlowDescriptionNoEscape
 
 
 class ShapeIteratorMixin(ShapeNotContainerMixin):
+    @staticmethod
+    def isShapeIterator():
+        return True
+
+    @staticmethod
+    def getIteratedShape():
+        return None
+
     @staticmethod
     def hasShapeSlotIter():
         return True
@@ -179,6 +195,15 @@ class ShapeIteratorMixin(ShapeNotContainerMixin):
     @staticmethod
     def hasShapeSlotNext():
         return True
+
+    @staticmethod
+    def hasShapeSlotNextCode():
+        """Does next execute code, i.e. control flow escaped.
+
+        For most known iterators that is not the case, only the generic
+        tshape_iterator needs to say "do not know", aka None.
+        """
+        return False
 
     @staticmethod
     def hasShapeSlotContains():

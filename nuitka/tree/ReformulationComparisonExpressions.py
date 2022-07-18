@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,21 +17,19 @@
 #
 """ Reformulation of comparison chain expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -52,7 +50,7 @@ def buildComparisonNode(provider, node, source_ref):
 
     assert len(node.comparators) == len(node.ops)
 
-    # Comparisons are re-formulated as described in the developer manual. When
+    # Comparisons are re-formulated as described in the Developer Manual. When
     # having multiple comparators, things require assignment expressions and
     # references of them to work properly. Then they can become normal "and"
     # code.
@@ -95,17 +93,17 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     )
 
     def makeTempAssignment(count, value):
-        return StatementAssignmentVariable(
+        return makeStatementAssignmentVariable(
             variable=variables[count], source=value, source_ref=source_ref
         )
 
     def makeReleaseStatement(count):
-        return StatementReleaseVariable(
+        return makeStatementReleaseVariable(
             variable=variables[count], source_ref=source_ref
         )
 
     def makeValueComparisonReturn(left, right, comparator):
-        yield StatementAssignmentVariable(
+        yield makeStatementAssignmentVariable(
             variable=tmp_variable,
             source=_makeComparisonNode(
                 left=left, right=right, comparator=comparator, source_ref=source_ref
@@ -165,7 +163,9 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                 )
             )
             final.append(
-                StatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
+                makeStatementReleaseVariable(
+                    variable=tmp_variable, source_ref=source_ref
+                )
             )
 
     outline_body.setChild(

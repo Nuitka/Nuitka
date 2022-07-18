@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -58,7 +58,6 @@ if python_version < 0x300:
                 values={"filename": filename, "mode": mode, "buffering": buffering},
                 source_ref=source_ref,
             )
-
 
 else:
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,21 +21,20 @@
 
 """
 
-from __future__ import print_function
-
 import hashlib
 import os
 import pickle
 import re
 import subprocess
 import sys
-import tempfile
 import time
 
 from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
     executeAfterTimePassed,
+    getDebugPython,
+    getTempDir,
     getTestingCPythonOutputsCacheDir,
     killProcess,
     withPythonPathChange,
@@ -43,7 +42,9 @@ from nuitka.tools.testing.Common import (
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
+    callProcess,
     check_output,
+    executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
@@ -70,7 +71,7 @@ def checkNoPermissionError(output):
         if candidate in output:
             return False
 
-    # These are localized it seems.
+    # These are localized it seems, spell-checker: ignore totest
     if re.search(
         b"(WindowsError|FileNotFoundError|FileExistsError|WinError 145):"
         b".*(@test|totest|xx|Error 145)",
@@ -88,12 +89,13 @@ def checkNoPermissionError(output):
 def _getCPythonResults(cpython_cmd, send_kill):
     stop_watch = StopWatch()
 
-    # Try a coupile of times for permission denied, on Windows it can
+    # Try a compile of times for permission denied, on Windows it can
     # be transient.
     for _i in range(5):
         stop_watch.start()
 
         with withPythonPathChange(os.getcwd()):
+            # want fine grained control, pylint: disable=consider-using-with
             process = subprocess.Popen(
                 args=cpython_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
@@ -147,7 +149,7 @@ def getCPythonResults(cpython_cmd, cpython_cached, force_update, send_kill):
         command_hash.update(hash_salt)
 
         if os.name == "nt" and python_version < 0x300:
-            curdir = os.getcwdu()
+            curdir = os.getcwdu()  # spell-checker: ignore getcwdu
         else:
             curdir = os.getcwd()
 
@@ -200,6 +202,23 @@ def main():
         else:
             return False
 
+    def hasArgValue(arg_option, default=None):
+        for arg in args:
+            if arg.startswith(arg_option + "="):
+                args.remove(arg)
+                return arg[len(arg_option) + 1 :]
+        return default
+
+    def hasArgValues(arg_option):
+        result = []
+
+        for arg in tuple(args):
+            if arg.startswith(arg_option + "="):
+                args.remove(arg)
+                result.append(arg[len(arg_option) + 1 :])
+
+        return result
+
     # For output keep it
     arguments = list(args)
 
@@ -208,8 +227,10 @@ def main():
     ignore_warnings = hasArg("ignore_warnings")
     expect_success = hasArg("expect_success")
     expect_failure = hasArg("expect_failure")
-    python_debug = hasArg("python_debug")
-    module_mode = hasArg("module_mode")
+    python_debug = hasArg("python_debug") or hasArg("--python-debug")
+    module_mode = hasArg("--module")
+    module_entry_point = hasArgValue("--module-entry-point")
+    coverage_mode = hasArg("coverage")
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
     keep_python_path = hasArg("keep_python_path")
@@ -220,21 +241,27 @@ def main():
     remove_binary = not hasArg("--keep-binary")
     standalone_mode = hasArg("--standalone")
     onefile_mode = hasArg("--onefile")
-    no_site = hasArg("no_site")
-    recurse_none = hasArg("recurse_none")
-    recurse_all = hasArg("recurse_all")
+    no_site = hasArg("no_site") or coverage_mode
+    report = hasArgValue("--report")
+    nofollow_imports = hasArg("recurse_none") or hasArg("--nofollow-imports")
+    follow_imports = hasArg("recurse_all") or hasArg("--follow-imports")
     timing = hasArg("timing")
-    coverage_mode = hasArg("coverage")
-    original_file = hasArg("original_file")
-    runtime_file = hasArg("runtime_file")
+    original_file = hasArg("original_file") or hasArg(
+        "--file-reference-choice=original"
+    )
+    runtime_file = hasArg("runtime_file") or hasArg("--file-reference-choice=runtime")
     no_warnings = not hasArg("warnings")
     full_compat = not hasArg("improved")
     cpython_cached = hasArg("cpython_cache")
     syntax_errors = hasArg("syntax_errors")
-    noprefer_source = hasArg("noprefer_source")
-    noverbose_log = hasArg("noverbose_log")
-    noinclusion_log = hasArg("noinclusion_log")
+    no_prefer_source = hasArg("--no-prefer-source")
+    no_verbose_log = hasArg("no_verbose_log")
+    no_inclusion_log = hasArg("no_inclusion_log")
     send_kill = hasArg("--send-ctrl-c")
+    output_dir = hasArgValue("--output-dir", None)
+    include_packages = hasArgValues("--include-package")
+    include_modules = hasArgValues("--include-module")
+    python_flag_m = hasArg("--python-flag=-m")
 
     plugins_enabled = []
     for count, arg in reversed(tuple(enumerate(args))):
@@ -254,18 +281,11 @@ def main():
             user_plugins.append(arg[len("user_plugin:") :])
             del args[count]
 
-    recurse_not = []
+    nowarn_mnemonics = []
 
     for count, arg in reversed(tuple(enumerate(args))):
-        if arg.startswith("recurse_not:"):
-            recurse_not.append(arg[len("recurse_not:") :])
-            del args[count]
-
-    recurse_to = []
-
-    for count, arg in reversed(tuple(enumerate(args))):
-        if arg.startswith("recurse_to:"):
-            recurse_to.append(arg[len("recurse_to:") :])
+        if arg.startswith("--nowarn-mnemonic="):
+            nowarn_mnemonics.append(arg[len("--nowarn-mnemonic=") :])
             del args[count]
 
     if args:
@@ -288,7 +308,7 @@ def main():
         two_step_execution = True
 
     assert not standalone_mode or not module_mode
-    assert not recurse_all or not recurse_none
+    assert not follow_imports or not nofollow_imports
 
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
@@ -300,22 +320,13 @@ def main():
 
     extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-    if "--python-debug" in extra_options or "--python-dbg" in extra_options:
+    if os.path.normcase(os.environ["PYTHON"]).endswith(("-dbg", "-debug", "_d.exe")):
+        python_debug = True
+    elif "--python-debug" in extra_options or "--python-dbg" in extra_options:
         python_debug = True
 
     if python_debug:
-        if os.path.exists(os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")):
-            os.environ["PYTHON"] += "-dbg"
-
-        if os.name == "nt":
-            if os.path.exists(os.environ["PYTHON"][:-4] + "_d.exe"):
-                os.environ["PYTHON"] = os.environ["PYTHON"][:-4] + "_d.exe"
-
-    if os.environ["PYTHON"].endswith("-dbg"):
-        python_debug = True
-
-    if os.environ["PYTHON"].lower().endswith("_d.exe"):
-        python_debug = True
+        os.environ["PYTHON"] = getDebugPython() or os.environ["PYTHON"]
 
     if comparison_mode:
         my_print(
@@ -345,28 +356,41 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         filename = os.path.abspath(filename)
 
     if module_mode:
+        module_name = os.path.basename(filename)
+
+        if module_name.endswith(".py"):
+            module_name = module_name[:-3]
+
+        mini_script = "import %s" % module_name
+        if module_entry_point:
+            mini_script += "; %s.%s()" % (module_name, module_entry_point)
+
+        cpython_cmd = [
+            os.environ["PYTHON"],
+            "-c",
+            "import sys; sys.path.append(%s); %s"
+            % (repr(os.path.dirname(filename)), mini_script),
+        ]
+
         if no_warnings:
-            cpython_cmd = [
-                os.environ["PYTHON"],
+            cpython_cmd[1:1] = [
                 "-W",
                 "ignore",
-                "-c",
-                "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), os.path.basename(filename)),
             ]
-        else:
-            cpython_cmd = [
-                os.environ["PYTHON"],
-                "-c",
-                "import sys; sys.path.append(%s); import %s"
-                % (repr(os.path.dirname(filename)), os.path.basename(filename)),
+    else:
+        cpython_cmd = [os.environ["PYTHON"]]
+
+        if no_warnings:
+            cpython_cmd[1:1] = [
+                "-W",
+                "ignore",
             ]
 
-    else:
-        if no_warnings:
-            cpython_cmd = [os.environ["PYTHON"], "-W", "ignore", filename]
+        if python_flag_m:
+            cpython_cmd += ["-m", os.path.basename(filename)]
+            os.chdir(os.path.dirname(filename))
         else:
-            cpython_cmd = [os.environ["PYTHON"], filename]
+            cpython_cmd.append(filename)
 
     if no_site:
         cpython_cmd.insert(1, "-S")
@@ -375,7 +399,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         # Would need to extract which "python" this is going to use.
         assert not coverage_mode, "Not implemented for binaries."
 
-        nuitka_call = [os.environ["NUITKA"]]
+        nuitka_call = [os.environ["PYTHON"], os.environ["NUITKA"]]
     else:
         if comparison_mode:
             nuitka_call = [
@@ -385,6 +409,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
             ]
         else:
             assert coverage_mode
+
+            # spell-checker: ignore rcfile
 
             nuitka_call = [
                 os.environ["PYTHON"],
@@ -417,8 +443,11 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if full_compat:
         extra_options.append("--full-compat")
 
-    if noprefer_source:
+    if no_prefer_source:
         extra_options.append("--no-prefer-source")
+
+    if python_flag_m:
+        extra_options.append("--python-flag=-m")
 
     if coverage_mode:
         # Coverage modules hates Nuitka to re-execute, and so we must avoid
@@ -439,36 +468,62 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if binary_python_path:
         addToPythonPath(os.path.dirname(os.path.abspath(filename)))
 
-    if keep_python_path or binary_python_path:
+    if (keep_python_path or binary_python_path) and not coverage_mode:
         extra_options.append("--execute-with-pythonpath")
 
-    if recurse_none:
+    if report:
+        extra_options.append("--report=%s" % report)
+
+    if nofollow_imports:
         extra_options.append("--nofollow-imports")
 
-    if recurse_all:
+    if follow_imports:
         extra_options.append("--follow-imports")
 
-    if recurse_not:
-        extra_options.extend("--nofollow-import-to=" + v for v in recurse_not)
+    if nowarn_mnemonics:
+        extra_options.extend("--nowarn-mnemonic=" + v for v in nowarn_mnemonics)
 
     if coverage_mode:
         extra_options.append("--must-not-re-execute")
         extra_options.append("--generate-c-only")
 
     for plugin_enabled in plugins_enabled:
-        extra_options.append("--plugin-enable=" + plugin_enabled)
+        extra_options.append("--enable-plugin=" + plugin_enabled)
 
     for plugin_disabled in plugins_disabled:
-        extra_options.append("--plugin-disable=" + plugin_disabled)
+        extra_options.append("--disable-plugin=" + plugin_disabled)
 
     for user_plugin in user_plugins:
         extra_options.append("--user-plugin=" + user_plugin)
 
-    if not noverbose_log:
+    if not no_verbose_log:
         extra_options.append("--verbose-output=%s.optimization.log" % filename)
 
-    if not noinclusion_log:
+    if not no_inclusion_log:
         extra_options.append("--show-modules-output=%s.inclusion.log" % filename)
+
+    if output_dir is not None:
+        extra_options.append("--output-dir=%s" % output_dir)
+    else:
+        # TODO: The run-tests uses NUITKA_EXTRA_OPTIONS still.
+        for extra_option in extra_options:
+            dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_option)
+
+            if dir_match:
+                output_dir = dir_match.group(1)
+                break
+        else:
+            # The default.
+            output_dir = "."
+
+    for include_package in include_packages:
+        extra_options.append("--include-package=%s" % include_package)
+
+    for include_module in include_modules:
+        extra_options.append("--include-module=%s" % include_module)
+
+    # Progress bar is not used.
+    extra_options.append("--no-progressbar")
 
     # Now build the command to run Nuitka.
     if not two_step_execution:
@@ -497,24 +552,13 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if no_site:
             nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
 
-    for extra_option in extra_options:
-        dir_match = re.search(r"--output-dir=(.*?)(\s|$)", extra_option)
-
-        if dir_match:
-            output_dir = dir_match.group(1)
-            break
-    else:
-        # The default.
-        output_dir = "."
-
     if module_mode:
-        nuitka_cmd2 = [
-            os.environ["PYTHON"],
-            "-W",
-            "ignore",
-            "-c",
-            "import %s" % os.path.basename(filename),
-        ]
+        module_name = os.path.basename(filename)
+
+        if module_name.endswith(".py"):
+            module_name = module_name[:-3]
+
+        nuitka_cmd2 = [os.environ["PYTHON"], "-W", "ignore", "-c", mini_script]
     else:
         exe_filename = os.path.basename(filename)
 
@@ -555,12 +599,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         if output_dir:
             os.chdir(output_dir)
         else:
-            tmp_dir = tempfile.gettempdir()
-
-            # Try to avoid RAM disk /tmp and use the disk one instead.
-            if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-                tmp_dir = "/var/tmp"
-
+            tmp_dir = getTempDir()
             os.chdir(tmp_dir)
 
         if trace_command:
@@ -598,12 +637,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
         for _i in range(5):
             with withPythonPathChange(nuitka_package_dir):
-                process = subprocess.Popen(
-                    args=nuitka_cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                stdout_nuitka1, stderr_nuitka1, exit_nuitka1 = executeProcess(
+                    nuitka_cmd1
                 )
-
-            stdout_nuitka1, stderr_nuitka1 = process.communicate()
-            exit_nuitka1 = process.returncode
 
             if exit_nuitka1 != 0:
                 if (
@@ -623,6 +659,8 @@ Stderr was:
 
                 exit_nuitka = exit_nuitka1
                 stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+                stdout_nuitka2 = b"not run due to compilation error:\n" + stdout_nuitka1
+                stderr_nuitka2 = stderr_nuitka1
             else:
                 # No execution second step for coverage mode.
                 if comparison_mode:
@@ -632,11 +670,14 @@ Stderr was:
                     if trace_command:
                         my_print("Nuitka command 2:", nuitka_cmd2)
 
+                    # Need full manual control, and not all Python versions allow using
+                    # context manager here, pylint: disable=consider-using-with
                     process = subprocess.Popen(
                         args=nuitka_cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
 
                     if send_kill:
+                        # Lambda is used immediately in same loop, pylint: disable=cell-var-from-loop
                         executeAfterTimePassed(
                             1.0,
                             lambda: killProcess("Nuitka compiled program", process.pid),
@@ -651,10 +692,7 @@ Stderr was:
                     if exit_nuitka in (-11, -6) and sys.platform != "nt":
                         nuitka_cmd2 = wrapCommandForDebuggerForSubprocess(*nuitka_cmd2)
 
-                        process = subprocess.Popen(
-                            args=nuitka_cmd2, stdin=subprocess.PIPE
-                        )
-                        process.communicate()
+                        callProcess(nuitka_cmd2, shell=False)
                 else:
                     exit_nuitka = exit_nuitka1
                     stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
@@ -681,7 +719,11 @@ Stderr was:
 
         def makeComparisons(trace_result):
             exit_code_stdout = compareOutput(
-                "stdout", stdout_cpython, stdout_nuitka, ignore_warnings, syntax_errors
+                "stdout",
+                stdout_cpython,
+                stdout_nuitka2 if two_step_execution else stdout_nuitka,
+                ignore_warnings,
+                syntax_errors,
             )
 
             if ignore_stderr:
@@ -690,7 +732,7 @@ Stderr was:
                 exit_code_stderr = compareOutput(
                     "stderr",
                     stderr_cpython,
-                    stderr_nuitka,
+                    stderr_nuitka2 if two_step_execution else stderr_nuitka,
                     ignore_warnings,
                     syntax_errors,
                 )
@@ -711,35 +753,36 @@ Stderr was:
                 trace_result=False
             )
 
-            if exit_code_stdout or exit_code_stderr or exit_code_return:
-                old_stdout_cpython = stdout_cpython
-                old_stderr_cpython = stderr_cpython
-                old_exit_cpython = exit_cpython
+            if not int(os.environ.get("NUITKA_CPYTHON_NO_CACHE_UPDATE", "0")):
+                if exit_code_stdout or exit_code_stderr or exit_code_return:
+                    old_stdout_cpython = stdout_cpython
+                    old_stderr_cpython = stderr_cpython
+                    old_exit_cpython = exit_cpython
 
-                my_print(
-                    "Updating CPython cache by force due to non-matching comparison results.",
-                    style="yellow",
-                )
+                    my_print(
+                        "Updating CPython cache by force due to non-matching comparison results.",
+                        style="yellow",
+                    )
 
-                (
-                    cpython_time,
-                    stdout_cpython,
-                    stderr_cpython,
-                    exit_cpython,
-                ) = getCPythonResults(
-                    cpython_cmd=cpython_cmd,
-                    cpython_cached=cpython_cached,
-                    force_update=True,
-                    send_kill=send_kill,
-                )
+                    (
+                        cpython_time,
+                        stdout_cpython,
+                        stderr_cpython,
+                        exit_cpython,
+                    ) = getCPythonResults(
+                        cpython_cmd=cpython_cmd,
+                        cpython_cached=cpython_cached,
+                        force_update=True,
+                        send_kill=send_kill,
+                    )
 
-                if not silent_mode:
-                    if (
-                        old_stdout_cpython != stdout_cpython
-                        or old_stderr_cpython != stderr_cpython
-                        or old_exit_cpython != exit_cpython
-                    ):
-                        displayOutput(stdout_cpython, stderr_cpython)
+                    if not silent_mode:
+                        if (
+                            old_stdout_cpython != stdout_cpython
+                            or old_stderr_cpython != stderr_cpython
+                            or old_exit_cpython != exit_cpython
+                        ):
+                            displayOutput(stdout_cpython, stderr_cpython)
 
         exit_code_stdout, exit_code_stderr, exit_code_return = makeComparisons(
             trace_result=True
@@ -757,9 +800,7 @@ Stderr was:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             with withPythonPathChange(nuitka_package_dir):
-                process = subprocess.Popen(args=nuitka_cmd, stdin=subprocess.PIPE)
-
-            process.communicate()
+                callProcess(nuitka_cmd, shell=False)
 
         exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 

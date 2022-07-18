@@ -1,24 +1,31 @@
-Before submitting an Issue, please review the [Issue Guidelines](https://github.com/kayhayen/Nuitka/blob/master/CONTRIBUTING.md#submitting-an-issue).
+Before submitting an Issue, please review the [Issue Guidelines](https://github.com/kayhayen/Nuitka/blob/develop/CONTRIBUTING.md#submitting-an-issue).
 
 * Please check whether the bug was already reported or fixed.
 
 * Please check out if the develop version of Nuitka works better for you.
 
-  Download source, packages [from here](https://nuitka.net/pages/download.html)
-  where you will also find instructions how to do it via pip.
+  Download source, packages [from here](https://nuitka.net/doc/download.html)
+  where you will also find instructions how to do it via pip or git.
 
 If you want to post a problem/bug, to help us understand and resolve your issue
 please check that you have provided at least the information below, and discard
 up to here:
 
-* Nuitka version, full Python version and Platform (Windows, OSX, Linux ...)
+* Nuitka version, full Python version, flavor, OS, etc. as output by *this*
+  command.
 
   > python -m nuitka --version
 
+  If you are not providing the full output. The issue cannot be solved and will
+  be considered `invalid`. It does more than you think, and we are adding more
+  all the time. We do not want to left guessing or trying things out to
+  reproduce your issue.
+
 * How did you install Nuitka and Python
 
-  Did you use pip, anaconda, deb, rpm, from source, in a virtualenv or not,
-  this is very important usually.
+  Did you use pip, anaconda, deb, rpm, from source, git clone, then install into
+  a virtualenv or not, this is very important usually and one thing, the above
+  command does not tell us (yet).
 
 * The specific PyPI names and versions
 
@@ -29,26 +36,44 @@ up to here:
 
 * Many times when you get an error from Nuitka, your setup may be special
 
-  Then even a `print("hello world")` program will not work, please try that and report
-  that instead.
+  Then even a `print("hello world")` program will not work, please try that and
+  report that error instead. We do not need a report that says "Tensorflow does
+  not work" when nothing actually works for you. You ought to also read the User
+  Manual and check that your setup is actually supported already.
 
-* Also supply a [Short, Self Contained, Correct, Example](http://sscce.org/)
+* Also supply a [Short, Self Contained, Correct, Example](https://sscce.org/)
 
   That demonstrates the issue i.e a small piece of code which reproduces
   the issue and can be run with out any other (or as few as possible)
   external dependencies. Issues without this may get rejected without much
   consideration.
 
-* In your issue the options used
+  Pointers to repositories with usage of ``pipenv`` are very welcome, archives
+  with examples are too. This must be only source code, binaries are not used
+  ever by us.
 
-  Ideally use the project feature, so options and example code go alone
+* Provide in your issue the Nuitka options used
+
+  Ideally use the `# nuitka-project:` options feature in the code, so options
+  and example code go along. Alternatively state the command line. Do not use
+  `--onefile` if the issue also happens with `--standalone`. Minimize the use
+  of options as far as you can, please.
 
   [Nuitka Options in the code](https://nuitka.net/doc/user-manual.html#nuitka-options-in-the-code)
 
 * Note if this is a regression
 
   If it used to work in an earlier version of Nuitka, please note what you know
-  about that.
+  about that. Since git bisect is a thing for which we do a lot of error to make
+  it usable, this will help dramatically to isolate the issue.
+
+* Consider getting commercial support
+
+  [Nuitka commercial](https://nuitka.net/doc/commercial.html) offers
+  subscriptions and priority support. This will accelerate your problem solution
+  and helps to sustain Nuitka development. Also you then have a chance to
+  provide source code of your project to us, which might simplify things, or pay
+  for time to solve your issues in your environment.
 
 Some things are not welcome, please consider it.
 
@@ -65,8 +90,8 @@ Some things are not welcome, please consider it.
   hotfix or a new release, before that it will be "Done" in planning and go
   through `factory` and `develop` tags to indicate they are solved there.
 
-  Of course, if you find out your issue is invalid, please close it, and
-  attach the `invalid` tag.
+  Of course, if you find out your issue is invalid, please do close it, and
+  we then attach the `invalid` tag.
 
 * Do *not* report against factory version
 

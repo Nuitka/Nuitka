@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,6 +24,7 @@
  */
 
 #ifdef _NUITKA_TRACE
+
 #define NUITKA_PRINT_TRACE(value)                                                                                      \
     {                                                                                                                  \
         puts(value);                                                                                                   \
@@ -34,9 +35,38 @@
         printf(__VA_ARGS__);                                                                                           \
         fflush(stdout);                                                                                                \
     }
+
 #else
 #define NUITKA_PRINT_TRACE(value)
 #define NUITKA_PRINTF_TRACE(...)
+
+#endif
+
+#if defined(_NUITKA_EXPERIMENTAL_SHOW_STARTUP_TIME)
+
+#if defined(_WIN32)
+
+#include <windows.h>
+static void inline PRINT_TIME_STAMP(void) {
+    SYSTEMTIME t;
+    GetSystemTime(&t); // or GetLocalTime(&t)
+    printf("%02d:%02d:%02d.%03d:", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
+}
+#else
+static void inline PRINT_TIME_STAMP(void) {}
+#endif
+
+#define NUITKA_PRINT_TIMING(value)                                                                                     \
+    {                                                                                                                  \
+        PRINT_TIME_STAMP();                                                                                            \
+        puts(value);                                                                                                   \
+        fflush(stdout);                                                                                                \
+    }
+
+#else
+
+#define NUITKA_PRINT_TIMING(value) NUITKA_PRINT_TRACE(value)
+
 #endif
 
 #endif

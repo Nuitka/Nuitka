@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,6 +21,9 @@ This is mostly for the different kinds of visits that the node tree can have.
 You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
+
+from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Tracing import general
 
 
 def visitTree(tree, visitor):
@@ -51,3 +54,49 @@ class VisitorNoopMixin(object):
 
     def onLeaveNode(self, node):
         """Overloaded for operation after the node children were done."""
+
+
+class DetectUsedModules(VisitorNoopMixin):
+    def __init__(self):
+        self.used_modules = OrderedSet()
+
+    def onEnterNode(self, node):
+        try:
+            self._onEnterNode(node)
+        except Exception:
+            general.my_print(
+                "Problem with %r at %s"
+                % (node, node.getSourceReference().getAsString())
+            )
+            raise
+
+    def _onEnterNode(self, node):
+        if node.isExpressionBuiltinImport():
+
+            for (
+                used_module_name,
+                used_module_filename,
+                finding,
+                level,
+            ) in node.getUsedModules():
+                self.used_modules.add(
+                    (
+                        used_module_name,
+                        used_module_filename,
+                        finding,
+                        level,
+                        node.source_ref,
+                    )
+                )
+        elif (
+            node.isExpressionImportModuleHard()
+            or node.isExpressionImportModuleNameHard()
+            or node.isExpressionImportModuleFixed()
+        ):
+            used_module_name, used_module_filename, finding = node.getUsedModule()
+            self.used_modules.add(
+                (used_module_name, used_module_filename, finding, 0, node.source_ref)
+            )
+
+    def getUsedModules(self):
+        return self.used_modules

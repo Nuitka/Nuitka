@@ -1,4 +1,4 @@
-#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2022, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,50 +20,17 @@
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.Utils import getOS
 
 
-class GeventPlugin(NuitkaPluginBase):
+class NuitkaPluginGevent(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "gevent"
     plugin_desc = "Required by the gevent package"
 
-    @classmethod
-    def isRelevant(cls):
-        """One time only check: may this plugin be required?
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return Options.isStandaloneMode()
-
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
-        if module_name.hasNamespace("gevent"):
-            return True, "everything from gevent"
-
-    def onModuleSourceCode(self, module_name, source_code):
-        """Append a statement to gevent/_config.py."""
-        if module_name != "gevent._config":
-            return source_code
-        source_lines = source_code.splitlines()
-        source_lines.append("config.track_greenlet_tree = False")
-        self.info("Greenlet tree tracking switched off")
-        return "\n".join(source_lines)
-
-    def decideCompilation(self, module_name, source_ref):
-        if module_name.hasNamespace("gevent") and getOS() == "Windows":
-            return "bytecode"
-
-
-class GeventPluginDetector(NuitkaPluginBase):
-    """Only used if plugin is NOT activated.
-
-    Notes:
-        We are given the chance to issue a warning if we think we may be required.
-    """
-
-    detector_for = GeventPlugin
+    @staticmethod
+    def isAlwaysEnabled():
+        return True
 
     @classmethod
     def isRelevant(cls):
@@ -74,15 +41,19 @@ class GeventPluginDetector(NuitkaPluginBase):
         """
         return Options.isStandaloneMode()
 
-    def onModuleDiscovered(self, module):
-        """This method checks whether gevent is imported.
+    @staticmethod
+    def createPostModuleLoadCode(module):
+        """Make sure greentlet tree tracking is switched off."""
+        full_name = module.getFullName()
 
-        Notes:
-            Issue a warning if package gevent is encountered.
-        Args:
-            module: the module object
-        Returns:
-            None
-        """
-        if module.getFullName().hasNamespace("gevent"):
-            self.warnUnusedPlugin("gevent support.")
+        if full_name == "gevent":
+            code = r"""\
+import gevent._config
+gevent._config.config.track_greenlet_tree = False
+"""
+
+            return (
+                code,
+                """\
+Disabling 'gevent' greenlet tree tracking.""",
+            )

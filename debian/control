@@ -9,21 +9,29 @@ Build-Depends: debhelper (>= 9),
                base-files (>= 11) | python-all-dbg (>= 2.6.6-2),
                base-files (>= 11) | python-all-dev (>= 2.6.6-2),
                base-files (>= 11) | python-setuptools,
+               base-files (>= 11) | python-jinja2,
+               base-files (>= 11) | python-yaml,
                scons,
                python3-all-dev (>= 3.3),
                python3-all-dbg (>= 3.3),
                python3-setuptools,
+               python3-jinja2,
+               python3-yaml,
+               zlib1g-dev,
                base-files (>= 11) | python-appdirs,
                python3-appdirs | base-files (<< 7.2),
                rst2pdf,
+               fontconfig,
                base-files (>= 11) | python-pil | python-imaging,
                python3-pil | base-files (<< 11),
                ccache,
                strace,
-               chrpath,
+               patchelf,
+               libzstd-dev | base-files (<= 8),
                gdb | lldb
+Rules-Requires-Root: no
 Vcs-Git: https://github.com/Nuitka/Nuitka.git
-Vcs-browser: https://github.com/Nuitka/Nuitka
+Vcs-Browser: https://github.com/Nuitka/Nuitka
 Homepage: https://nuitka.net
 Standards-Version: 4.4.1
 X-Python-Version: >= 2.6
@@ -33,16 +41,19 @@ Package: nuitka
 Architecture: all
 Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          scons (>= 2.0.0),
+         python3-jinja2,
          python3-appdirs | base-files (<< 7.2),
          python3-dev,
+         zlib1g-dev,
+         libzstd-dev,
          ccache,
+         patchelf,
          ${misc:Depends},
          ${python:Depends},
          ${python3:Depends}
 Recommends: python3-lxml,
             python3-tqdm,
             strace,
-            chrpath,
             libfuse2
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python

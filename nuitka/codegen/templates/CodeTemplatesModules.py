@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -61,6 +61,9 @@ PyDictObject *moduledict_%(module_identifier)s;
 
 /* The declarations of module constants used, if any. */
 static PyObject *mod_consts[%(constants_count)d];
+#ifndef __NUITKA_NO_ASSERT__
+static Py_hash_t mod_consts_hash[%(constants_count)d];
+#endif
 
 static PyObject *module_filename_obj = NULL;
 
@@ -72,11 +75,17 @@ static void createModuleConstants(void) {
     if (constants_created == false) {
         loadConstantsBlob(&mod_consts[0], UNTRANSLATE(%(module_const_blob_name)s));
         constants_created = true;
+
+#ifndef __NUITKA_NO_ASSERT__
+        for (int i = 0; i < %(constants_count)d; i++) {
+            mod_consts_hash[i] = DEEP_HASH(mod_consts[i]);
+        }
+#endif
     }
 }
 
-/* For multiprocessing, we want to be able to initialize the __main__ constants. */
-#if (_NUITKA_PLUGIN_MULTIPROCESSING_ENABLED || _NUITKA_PLUGIN_TRACEBACK_ENCRYPTION_ENABLED) && %(is_main_module)s
+// We want to be able to initialize the "__main__" constants in any case.
+#if %(is_dunder_main)s
 void createMainModuleConstants(void) {
     createModuleConstants();
 }
@@ -88,7 +97,10 @@ void checkModuleConstants_%(module_identifier)s(void) {
     // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
-    checkConstantsBlob(&mod_consts[0], "%(module_name)s");
+    for (int i = 0; i < %(constants_count)d; i++) {
+        assert(mod_consts_hash[i] == DEEP_HASH(mod_consts[i]));
+        CHECK_OBJECT_DEEP(mod_consts[i]);
+    }
 }
 #endif
 
@@ -272,71 +284,73 @@ static PyMethodDef _method_def_create_compiled_function = {
 #endif
 
 // Internal entry point for module code.
-PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *module_entry) {
+PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaPathBasedLoaderEntry const *loader_entry) {
+    // Report entry to PGO.
+    PGO_onModuleEntered("%(module_name)s");
+
+    // Store the module for future use.
     module_%(module_identifier)s = module;
 
-#ifdef _NUITKA_MODULE
-    // In case of a stand alone extension module, need to call initialization
-    // the init here because that's the first and only time we are going to get
-    // called here.
+    // Modules can be loaded again in case of errors, avoid the init being done again.
+    static bool init_done = false;
 
-    // Initialize the constant values used.
-    _initBuiltinModule();
-    createGlobalConstants();
+    if (init_done == false) {
+#if defined(_NUITKA_MODULE) && %(is_top)d
+        // In case of an extension module loaded into a process, we need to call
+        // initialization here because that's the first and potentially only time
+        // we are going called.
 
-    /* Initialize the compiled types of Nuitka. */
-    _initCompiledCellType();
-    _initCompiledGeneratorType();
-    _initCompiledFunctionType();
-    _initCompiledMethodType();
-    _initCompiledFrameType();
+        // Initialize the constant values used.
+        _initBuiltinModule();
+        createGlobalConstants();
 
-#if PYTHON_VERSION < 0x300
-    _initSlotCompare();
-#endif
+        /* Initialize the compiled types of Nuitka. */
+        _initCompiledCellType();
+        _initCompiledGeneratorType();
+        _initCompiledFunctionType();
+        _initCompiledMethodType();
+        _initCompiledFrameType();
+
+        _initSlotCompare();
 #if PYTHON_VERSION >= 0x270
-    _initSlotIternext();
+        _initSlotIterNext();
 #endif
 
-    patchBuiltinModule();
-    patchTypeComparison();
+        patchTypeComparison();
 
-    // Enable meta path based loader if not already done.
+        // Enable meta path based loader if not already done.
 #ifdef _NUITKA_TRACE
-    PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
+        PRINT_STRING("%(module_name)s: Calling setupMetaPathBasedLoader().\n");
 #endif
-    setupMetaPathBasedLoader();
+        setupMetaPathBasedLoader();
 
 #if PYTHON_VERSION >= 0x300
-    patchInspectModule();
+        patchInspectModule();
 #endif
 
 #endif
 
-    /* The constants only used by this module are created now. */
+        /* The constants only used by this module are created now. */
 #ifdef _NUITKA_TRACE
-    PRINT_STRING("%(module_name)s: Calling createModuleConstants().\n");
+        PRINT_STRING("%(module_name)s: Calling createModuleConstants().\n");
 #endif
-    createModuleConstants();
+        createModuleConstants();
 
-    /* The code objects used by this module are created now. */
+        /* The code objects used by this module are created now. */
 #ifdef _NUITKA_TRACE
-    PRINT_STRING("%(module_name)s: Calling createModuleCodeObjects().\n");
+        PRINT_STRING("%(module_name)s: Calling createModuleCodeObjects().\n");
 #endif
-    createModuleCodeObjects();
+        createModuleCodeObjects();
+
+        init_done = true;
+    }
 
     // PRINT_STRING("in init%(module_identifier)s\n");
-
-    // Create the module object first. There are no methods initially, all are
-    // added dynamically in actual code only.  Also no "__doc__" is initially
-    // set at this time, as it could not contain NUL characters this way, they
-    // are instead set in early module code.  No "self" for modules, we have no
-    // use for it.
 
     moduledict_%(module_identifier)s = MODULE_DICT(module_%(module_identifier)s);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
-    registerDillPluginTables(module_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
+    registerDillPluginTables(loader_entry->name, &_method_def_reduce_compiled_function, &_method_def_create_compiled_function);
 #endif
 
     // Set "__compiled__" to what version information we have.
@@ -352,7 +366,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         UPDATE_STRING_DICT0(
             moduledict_%(module_identifier)s,
             (Nuitka_StringObject *)const_str_plain___package__,
-            const_str_empty
+            %(dunder_main_package)s
         );
 #elif %(is_package)s
         PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
@@ -402,7 +416,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
         PyObject *value = (PyObject *)builtin_module;
 
         // Check if main module, not a dict then but the module itself.
-#if !defined(_NUITKA_EXE) || !%(is_main_module)s
+#if defined(_NUITKA_MODULE) || !%(is_dunder_main)s
         value = PyModule_GetDict(value);
 #endif
 
@@ -416,7 +430,7 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 #if PYTHON_VERSION >= 0x340
 // Set the "__spec__" value
 
-#if %(is_main_module)s
+#if %(is_dunder_main)s
     // Main modules just get "None" as spec.
     UPDATE_STRING_DICT0(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None);
 #else
@@ -453,6 +467,10 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
     // Module code.
 %(module_code)s
 
+    // Report to PGO about leaving the module without error.
+    PGO_onModuleExit("%(module_name)s", false);
+
+    Py_INCREF(module_%(module_identifier)s);
     return module_%(module_identifier)s;
 %(module_exit)s
 """
@@ -499,6 +517,33 @@ template_module_external_entry_point = r"""
 #endif
 
 #if PYTHON_VERSION >= 0x300
+static setattrofunc orig_PyModule_Type_tp_setattro;
+static PyObject *orig_dunder_file_value;
+
+/* This is used one time only. */
+static int Nuitka_TopLevelModule_tp_setattro(PyObject *module, PyObject *name, PyObject *value) {
+    PyModule_Type.tp_setattro = orig_PyModule_Type_tp_setattro;
+
+    if (orig_dunder_file_value != NULL) {
+        UPDATE_STRING_DICT0(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___file__,
+            orig_dunder_file_value
+        );
+    }
+
+    // Prevent "__spec__" update as well.
+#if PYTHON_VERSION >= 0x340
+    if (PyUnicode_Check(name) && PyUnicode_Compare(name, const_str_plain___spec__) == 0) {
+        return 0;
+    }
+#endif
+
+    return orig_PyModule_Type_tp_setattro(module, name, value);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x300
 static struct PyModuleDef mdef_%(module_identifier)s = {
     PyModuleDef_HEAD_INIT,
     NULL,                /* m_name, filled later */
@@ -510,7 +555,6 @@ static struct PyModuleDef mdef_%(module_identifier)s = {
     NULL,                /* m_clear */
     NULL,                /* m_free */
 };
-
 #endif
 
 /* The exported interface to CPython. On import of the module, this function
@@ -548,8 +592,22 @@ MOD_INIT_DECL(%(module_identifier)s) {
 
 #if PYTHON_VERSION < 0x300
     modulecode_%(module_identifier)s(module, NULL);
+
+    // TODO: Our "__file__" value will not be respected by CPython and one
+    // way we could avoid it, is by having a capsule type, that when it gets
+    // released, we are called.
 #else
     PyObject *result = modulecode_%(module_identifier)s(module, NULL);
+
+    if (result != NULL) {
+        // Make sure we undo the change of the "__file__" attribute during importing. We do not
+        // know how to achieve it for Python2 though. TODO: Find something for Python2 too.
+        orig_PyModule_Type_tp_setattro = PyModule_Type.tp_setattro;
+        PyModule_Type.tp_setattro = Nuitka_TopLevelModule_tp_setattro;
+
+        orig_dunder_file_value = DICT_GET_ITEM_WITH_HASH_ERROR1((PyObject *)moduledict_%(module_identifier)s, const_str_plain___file__);
+    }
+
     return result;
 #endif
 }
@@ -557,11 +615,23 @@ MOD_INIT_DECL(%(module_identifier)s) {
 
 template_module_exception_exit = """\
     module_exception_exit:
+
+#if defined(_NUITKA_MODULE) && %(is_top)d
+    {
+        PyObject *module_name = GET_STRING_DICT_VALUE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__);
+
+        if (module_name != NULL) {
+            Nuitka_DelModule(module_name);
+        }
+    }
+#endif
+    PGO_onModuleExit("%(module_identifier)s", false);
+
     RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
     return NULL;
 }"""
 
-template_module_noexception_exit = """\
+template_module_no_exception_exit = """\
 }"""
 
 template_helper_impl_decl = """\
@@ -570,7 +640,7 @@ template_helper_impl_decl = """\
 
 #include "nuitka/prelude.h"
 
-extern PyObject *callPythonFunction( PyObject *func, PyObject **args, int count );
+extern PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count);
 
 """
 

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,9 +36,10 @@ from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
 )
+from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-from .shapes.BuiltinTypeShapes import tshape_bool, tshape_type
+from .shapes.BuiltinTypeShapes import tshape_type
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
@@ -245,7 +246,11 @@ class ExpressionBuiltinIssubclass(ExpressionChildrenHavingBase):
         )
 
 
-class ExpressionTypeCheck(SideEffectsFromChildrenMixin, ExpressionChildHavingBase):
+class ExpressionTypeCheck(
+    ExpressionBoolShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ExpressionChildHavingBase,
+):
     kind = "EXPRESSION_TYPE_CHECK"
 
     named_child = "cls"
@@ -256,10 +261,6 @@ class ExpressionTypeCheck(SideEffectsFromChildrenMixin, ExpressionChildHavingBas
             value=cls,
             source_ref=source_ref,
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
 
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict, but I am not aware of

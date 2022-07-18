@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -190,6 +190,8 @@ if (%(to_name)s == NULL) {
     if (CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()) {
 %(fallback)s
         Py_INCREF(%(to_name)s);
+    } else {
+        goto %(exception_exit)s;
     }
 }
 """

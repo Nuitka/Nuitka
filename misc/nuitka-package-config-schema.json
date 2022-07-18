@@ -1,0 +1,202 @@
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "module-name": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9\\.\\_\\-]+$"
+            },
+            "data-files": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "dest_path": {
+                        "type": "string"
+                    },
+                    "dirs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "patterns": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "empty_dirs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "empty_dir_structures": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "when": {
+                        "type": "string"
+                    }
+                }
+            },
+            "dlls": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "from_filenames": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "relative_path": {
+                                    "type": "string"
+                                },
+                                "prefixes": {
+                                    "type": "array"
+                                }
+                            }
+                        },
+                        "by_code": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                                "setup_code": {
+                                    "type": "string"
+                                },
+                                "dll_filename_code": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "dest_path": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "anti-bloat": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "context": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "module_code": {
+                            "type": "string"
+                        },
+                        "replacements": {
+                            "type": "object"
+                        },
+                        "replacements_plain": {
+                            "type": "object"
+                        },
+                        "change_function": {
+                            "type": "object"
+                        },
+                        "append_result": {
+                            "type": "string"
+                        },
+                        "append_plain": {
+                            "type": "string"
+                        },
+                        "when": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "implicit-imports": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "depends": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "when": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "checks": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "description": {
+                                    "type": "string"
+                                },
+                                "console": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        },
+                                        {
+                                            "const": "recommend"
+                                        }
+                                    ]
+                                },
+                                "macos_bundle": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        },
+                                        {
+                                            "const": "recommend"
+                                        }
+                                    ]
+                                },
+                                "macos_bundle_as_onefile": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        }
+                                    ]
+                                },
+                                "when": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

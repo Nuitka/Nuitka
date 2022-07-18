@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,8 +19,6 @@
 
 This also includes writing back to locals for exec statements.
 """
-
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
@@ -74,7 +72,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
 
         if updated:
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
-            is_dict = locals_scope.getTypeShape() is tshape_dict
+            is_dict = locals_scope.hasShapeDictionaryExact()
             # For Python3 it may really not be a dictionary.
 
             # TODO: Creation is not needed for classes.

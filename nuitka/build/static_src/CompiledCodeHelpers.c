@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -27,10 +27,23 @@
 
 #include "nuitka/prelude.h"
 
+#include "HelpersBuiltinTypeMethods.c"
+
+static void _initBuiltinTypeMethods(void) {
+#if PYTHON_VERSION < 0x300
+    _initStrBuiltinMethods();
+#else
+    _initBytesBuiltinMethods();
+#endif
+    _initUnicodeBuiltinMethods();
+    _initDictBuiltinMethods();
+}
+
 #include "HelpersBuiltin.c"
 #include "HelpersClasses.c"
 #include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"
+#include "HelpersFiles.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
 #include "HelpersImportHard.c"
@@ -38,6 +51,10 @@
 #include "HelpersStrings.c"
 
 #include "HelpersSafeStrings.c"
+
+#if PYTHON_VERSION >= 0x3a0
+#include "HelpersMatching.c"
+#endif
 
 #if PYTHON_VERSION < 0x300
 
@@ -74,7 +91,15 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
 
 static PyObject *_BUILTIN_RANGE_INT2(long low, long high) { return _BUILTIN_RANGE_INT3(low, high, 1); }
 
-static PyObject *_BUILTIN_RANGE_INT(long boundary) { return _BUILTIN_RANGE_INT2(0, boundary); }
+static PyObject *_BUILTIN_RANGE_INT(long boundary) {
+    PyObject *result = PyList_New(boundary > 0 ? boundary : 0);
+
+    for (int i = 0; i < boundary; i++) {
+        PyList_SET_ITEM(result, i, PyInt_FromLong(i));
+    }
+
+    return result;
+}
 
 static PyObject *TO_RANGE_ARG(PyObject *value, char const *name) {
     if (likely(PyInt_Check(value) || PyLong_Check(value))) {
@@ -171,7 +196,7 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -237,7 +262,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
 
         NUITKA_ASSIGN_BUILTIN(range);
 
-        PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(range), pos_args);
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS3(NUITKA_ACCESS_BUILTIN(range), pos_args);
 
         Py_DECREF(pos_args);
 
@@ -812,11 +837,14 @@ void PRINT_REFCOUNT(PyObject *object) {
 }
 
 bool PRINT_STRING(char const *str) {
-    PyObject *tmp = PyUnicode_FromString(str);
-    bool res = PRINT_ITEM(tmp);
-    Py_DECREF(tmp);
-
-    return res;
+    if (str) {
+        PyObject *tmp = PyUnicode_FromString(str);
+        bool res = PRINT_ITEM(tmp);
+        Py_DECREF(tmp);
+        return res;
+    } else {
+        return PRINT_STRING("<nullstr>");
+    }
 }
 
 bool PRINT_FORMAT(char const *fmt, ...) {
@@ -857,6 +885,8 @@ bool PRINT_REPR(PyObject *object) {
 }
 
 bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
+
+bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
 
 void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb) {
     PRINT_REPR(exception_type);
@@ -924,8 +954,8 @@ void PRINT_TRACEBACK(PyTracebackObject *traceback) {
 }
 #endif
 
-PyObject *GET_STDOUT() {
-    PyObject *result = PySys_GetObject((char *)"stdout");
+PyObject *GET_STDOUT(void) {
+    PyObject *result = Nuitka_SysGetObject("stdout");
 
     if (unlikely(result == NULL)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stdout");
@@ -935,8 +965,8 @@ PyObject *GET_STDOUT() {
     return result;
 }
 
-PyObject *GET_STDERR() {
-    PyObject *result = PySys_GetObject((char *)"stderr");
+PyObject *GET_STDERR(void) {
+    PyObject *result = Nuitka_SysGetObject("stderr");
 
     if (unlikely(result == NULL)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "lost sys.stderr");
@@ -1106,7 +1136,7 @@ static PyObject *nuitka_class_getattr(PyClassObject *klass, PyObject *attr_name)
 
     PyTypeObject *type = Py_TYPE(value);
 
-    descrgetfunc tp_descr_get = PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) ? type->tp_descr_get : NULL;
+    descrgetfunc tp_descr_get = NuitkaType_HasFeatureClass(type) ? type->tp_descr_get : NULL;
 
     if (tp_descr_get == NULL) {
         Py_INCREF(value);
@@ -1138,114 +1168,6 @@ extern "C"
 #ifdef __FreeBSD__
 #include <floatingpoint.h>
 #endif
-
-PyObject *original_isinstance = NULL;
-
-// Note: Installed and used by "InspectPatcher" as "instance" too.
-int Nuitka_IsInstance(PyObject *inst, PyObject *cls) {
-    CHECK_OBJECT(original_isinstance);
-    CHECK_OBJECT(inst);
-    CHECK_OBJECT(cls);
-
-    // Quick paths
-    if (Py_TYPE(inst) == (PyTypeObject *)cls) {
-        return true;
-    }
-
-    // Our paths for the types we need to hook.
-    if (cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check(inst)) {
-        return true;
-    }
-
-    if (cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check(inst)) {
-        return true;
-    }
-
-    if (cls == (PyObject *)&PyMethod_Type && Nuitka_Method_Check(inst)) {
-        return true;
-    }
-
-    if (cls == (PyObject *)&PyFrame_Type && Nuitka_Frame_Check(inst)) {
-        return true;
-    }
-
-#if PYTHON_VERSION >= 0x350
-    if (cls == (PyObject *)&PyCoro_Type && Nuitka_Coroutine_Check(inst)) {
-        return true;
-    }
-#endif
-
-#if PYTHON_VERSION >= 0x360
-    if (cls == (PyObject *)&PyAsyncGen_Type && Nuitka_Asyncgen_Check(inst)) {
-        return true;
-    }
-#endif
-
-    // May need to be recursive for tuple arguments.
-    if (PyTuple_Check(cls)) {
-        for (Py_ssize_t i = 0, size = PyTuple_GET_SIZE(cls); i < size; i++) {
-            PyObject *element = PyTuple_GET_ITEM(cls, i);
-
-            if (unlikely(Py_EnterRecursiveCall((char *)" in __instancecheck__"))) {
-                return -1;
-            }
-
-            int res = Nuitka_IsInstance(inst, element);
-
-            Py_LeaveRecursiveCall();
-
-            if (res != 0) {
-                return res;
-            }
-        }
-
-        return 0;
-    } else {
-        PyObject *args[] = {inst, cls};
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(original_isinstance, args);
-
-        if (result == NULL) {
-            return -1;
-        }
-
-        int res = CHECK_IF_TRUE(result);
-        Py_DECREF(result);
-
-        if (res == 0) {
-            if (cls == (PyObject *)&PyFunction_Type) {
-                args[1] = (PyObject *)&Nuitka_Function_Type;
-            } else if (cls == (PyObject *)&PyMethod_Type) {
-                args[1] = (PyObject *)&Nuitka_Method_Type;
-            } else if (cls == (PyObject *)&PyFrame_Type) {
-                args[1] = (PyObject *)&Nuitka_Frame_Type;
-            }
-#if PYTHON_VERSION >= 0x350
-            else if (cls == (PyObject *)&PyCoro_Type) {
-                args[1] = (PyObject *)&Nuitka_Coroutine_Type;
-            }
-#endif
-#if PYTHON_VERSION >= 0x360
-            else if (cls == (PyObject *)&PyAsyncGen_Type) {
-                args[1] = (PyObject *)&Nuitka_Asyncgen_Type;
-            }
-#endif
-            else {
-                return 0;
-            }
-
-            result = CALL_FUNCTION_WITH_ARGS2(original_isinstance, args);
-
-            if (result == NULL) {
-                return -1;
-            }
-
-            res = CHECK_IF_TRUE(result);
-            Py_DECREF(result);
-        }
-
-        return res;
-    }
-}
 
 #define ITERATOR_GENERIC 0
 #define ITERATOR_COMPILED_GENERATOR 1
@@ -1508,9 +1430,10 @@ PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start) {
     PyTuple_SET_ITEM(pos_args, 1, start);
     Py_INCREF(start);
 
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS(NUITKA_ACCESS_BUILTIN(sum), pos_args);
+    PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
     Py_DECREF(pos_args);
+
     return result;
 }
 
@@ -1591,16 +1514,26 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 #include <sys/sysctl.h>
 #endif
 
-PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
-    static PyObject *sep_object = NULL;
+static PyObject *getPathSeparatorStringObject(void) {
+    static char const sep[2] = {SEP, 0};
 
-    if (sep_object == NULL) {
-        static char const sep[2] = {SEP, 0};
-        sep_object = Nuitka_String_FromString(sep);
+    static PyObject *sep_str = NULL;
+
+    if (sep_str == NULL) {
+        sep_str = Nuitka_String_FromString(sep);
     }
 
+    CHECK_OBJECT(sep_str);
+
+    return sep_str;
+}
+
+PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
+    CHECK_OBJECT(dirname);
+    CHECK_OBJECT(filename);
+
     // Avoid string APIs, so str, unicode doesn't matter for input.
-    PyObject *result = PyNumber_Add(dirname, sep_object);
+    PyObject *result = PyNumber_Add(dirname, getPathSeparatorStringObject());
     CHECK_OBJECT(result);
 
     result = PyNumber_InPlaceAdd(result, filename);
@@ -1609,10 +1542,29 @@ PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename) {
     return result;
 }
 
+#if defined(_WIN32)
+// Replacement for RemoveFileSpecW, slightly smaller, avoids a link library.
+NUITKA_MAY_BE_UNUSED static void stripFilenameW(wchar_t *path) {
+    wchar_t *last_slash = NULL;
+
+    while (*path != 0) {
+        if (*path == L'\\') {
+            last_slash = path;
+        }
+
+        path++;
+    }
+
+    if (last_slash != NULL) {
+        *last_slash = 0;
+    }
+}
+#endif
+
 #if defined(_NUITKA_EXE)
 
 #ifndef _WIN32
-char const *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded(void) {
     static char binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1669,33 +1621,14 @@ char const *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
-#if defined(_WIN32)
-// Replacement for RemoveFileSpecW, slightly smaller.
-static void stripFilenameW(wchar_t *path) {
-    wchar_t *last_slash = NULL;
-
-    while (*path != 0) {
-        if (*path == L'\\') {
-            last_slash = path;
-        }
-
-        path++;
-    }
-
-    if (last_slash != NULL) {
-        *last_slash = 0;
-    }
-}
-#endif
-
-wchar_t const *getBinaryDirectoryWideChars() {
+wchar_t const *getBinaryDirectoryWideChars(void) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
     if (init_done == false) {
         binary_directory[0] = 0;
 
-#ifdef _WIN32
+#if defined(_WIN32)
         DWORD res = GetModuleFileNameW(NULL, binary_directory, sizeof(binary_directory));
         assert(res != 0);
 
@@ -1728,7 +1661,7 @@ wchar_t const *getBinaryDirectoryWideChars() {
 }
 
 #if defined(_WIN32) && PYTHON_VERSION < 0x300
-char const *getBinaryDirectoryHostEncoded() {
+char const *getBinaryDirectoryHostEncoded(void) {
     static char *binary_directory = NULL;
 
     if (binary_directory != NULL) {
@@ -1753,7 +1686,7 @@ char const *getBinaryDirectoryHostEncoded() {
 }
 #endif
 
-static PyObject *getBinaryDirectoryObject() {
+static PyObject *getBinaryDirectoryObject(void) {
     static PyObject *binary_directory = NULL;
 
     if (binary_directory != NULL) {
@@ -1767,7 +1700,7 @@ static PyObject *getBinaryDirectoryObject() {
 #if PYTHON_VERSION >= 0x300
 #ifdef _WIN32
     wchar_t const *bin_directory = getBinaryDirectoryWideChars();
-    binary_directory = PyUnicode_FromWideChar(bin_directory, wcslen(bin_directory));
+    binary_directory = NuitkaUnicode_FromWideChar(bin_directory, -1);
 #else
     binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
 #endif
@@ -1800,7 +1733,7 @@ PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
 
 #if defined(_WIN32)
 /* Small helper function to get current DLL handle. */
-static HMODULE getDllModuleHandle() {
+static HMODULE getDllModuleHandle(void) {
     static HMODULE hm = NULL;
 
     if (hm == NULL) {
@@ -1834,7 +1767,7 @@ static void stripFilenameA(char *path) {
 }
 #endif
 
-static char const *getDllDirectory() {
+static char const *getDllDirectory(void) {
 #if defined(_WIN32)
     static char path[MAXPATHLEN + 1];
     path[0] = '\0';
@@ -1867,7 +1800,12 @@ static char const *getDllDirectory() {
 }
 #endif
 
-void _initBuiltinModule() {
+static void _initDeepCopy(void);
+
+void _initBuiltinModule(void) {
+    _initBuiltinTypeMethods();
+    _initDeepCopy();
+
 #if _NUITKA_MODULE
     if (builtin_module != NULL) {
         return;
@@ -1918,6 +1856,7 @@ void _initBuiltinModule() {
 }
 
 #include "HelpersCalling.c"
+#include "HelpersCalling2.c"
 
 PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     CHECK_OBJECT(relative);
@@ -1948,7 +1887,7 @@ NUITKA_DEFINE_BUILTIN(long)
 NUITKA_DEFINE_BUILTIN(range);
 #endif
 
-void _initBuiltinOriginalValues() {
+void _initBuiltinOriginalValues(void) {
     NUITKA_ASSIGN_BUILTIN(type);
     NUITKA_ASSIGN_BUILTIN(len);
     NUITKA_ASSIGN_BUILTIN(range);
@@ -1972,7 +1911,7 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 #if PYTHON_VERSION >= 0x270
 iternextfunc default_iternext;
 
-void _initSlotIternext() {
+void _initSlotIterNext(void) {
     PyObject *pos_args = PyTuple_New(1);
     PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyBaseObject_Type);
     Py_INCREF(&PyBaseObject_Type);
@@ -1994,6 +1933,30 @@ void _initSlotIternext() {
     default_iternext = Py_TYPE(r)->tp_iternext;
 
     Py_DECREF(r);
+}
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+PyObject *MAKE_UNION_TYPE(PyObject *args) {
+    assert(PyTuple_CheckExact(args));
+    assert(PyTuple_GET_SIZE(args) > 1);
+
+    CHECK_OBJECT_DEEP(args);
+
+    PyObject *result = NULL;
+
+    for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(args); i++) {
+        PyObject *value = PyTuple_GET_ITEM(args, i);
+
+        if (result == NULL) {
+            assert(i == 0);
+            result = value;
+        } else {
+            result = PyNumber_InPlaceBitor(result, value);
+        }
+    }
+
+    return result;
 }
 #endif
 
@@ -2053,3 +2016,9 @@ void _initSlotIternext() {
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"
 #endif
+
+#if _NUITKA_PGO_PYTHON
+#include "HelpersPythonPgo.c"
+#endif
+
+#include "MetaPathBasedLoader.c"

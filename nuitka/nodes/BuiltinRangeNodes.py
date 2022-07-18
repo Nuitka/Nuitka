@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,26 +32,23 @@ from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
 )
+from .ExpressionShapeMixins import ExpressionListShapeExactMixin
 from .IterationHandles import (
     IterationHandleRange1,
     IterationHandleRange2,
     IterationHandleRange3,
 )
 from .NodeMakingHelpers import makeConstantReplacementNode
-from .shapes.BuiltinTypeShapes import tshape_list, tshape_xrange
+from .shapes.BuiltinTypeShapes import tshape_xrange
 
 
-class ExpressionBuiltinRangeMixin(object):
+class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
     """Mixin class for range nodes with 1/2/3 arguments."""
 
     # Mixins are required to slots
     __slots__ = ()
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_list
 
     def getTruthValue(self):
         length = self.getIterationLength()
@@ -114,28 +111,24 @@ class ExpressionBuiltinRangeMixin(object):
     def computeExpressionIter1(self, iter_node, trace_collection):
         assert python_version < 0x300
 
-        iteration_length = self.getIterationLength()
+        # TODO: The xrange is always faster and more memory usage than range, so this makes no sense, to
+        # use it as a source for any iteration, esp. as xrange is the Python3 only type that will be
+        # best optimized.
+        result = makeExpressionBuiltinXrange(
+            low=self.subnode_low,
+            high=self.subnode_high,
+            step=self.subnode_step,
+            source_ref=self.source_ref,
+        )
 
-        if iteration_length is not None and iteration_length > 256:
-            result = makeExpressionBuiltinXrange(
-                low=self.subnode_low,
-                high=self.subnode_high,
-                step=self.subnode_step,
-                source_ref=self.source_ref,
-            )
+        self.parent.replaceChild(self, result)
+        del self.parent
 
-            self.parent.replaceChild(self, result)
-            del self.parent
-
-            return (
-                iter_node,
-                "new_expression",
-                "Replaced 'range' with 'xrange' built-in call for iteration.",
-            )
-
-        # No exception will be raised on ranges.
-
-        return iter_node, None, None
+        return (
+            iter_node,
+            "new_expression",
+            "Replaced 'range' with 'xrange' built-in call for iteration.",
+        )
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None

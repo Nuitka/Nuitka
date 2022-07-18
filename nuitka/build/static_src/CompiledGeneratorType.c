@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -92,25 +92,19 @@ NUITKA_MAY_BE_UNUSED static void PRINT_COROUTINE_STRING(char const *name, char c
 #endif
 
 static PyObject *Nuitka_Generator_tp_repr(struct Nuitka_GeneratorObject *generator) {
-#if PYTHON_VERSION < 0x300
-    return PyString_FromFormat("<compiled_generator object %s at %p>", Nuitka_String_AsString(generator->m_name),
-                               generator);
-#else
-    return PyUnicode_FromFormat("<compiled_generator object %s at %p>",
+    return Nuitka_String_FromFormat("<compiled_generator object %s at %p>",
 #if PYTHON_VERSION < 0x350
-                                Nuitka_String_AsString(generator->m_name),
+                                    Nuitka_String_AsString(generator->m_name),
 #else
-                                Nuitka_String_AsString(generator->m_qualname),
+                                    Nuitka_String_AsString(generator->m_qualname),
 #endif
-                                generator);
-#endif
+                                    generator);
 }
 
 static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generator, visitproc visit, void *arg) {
     CHECK_OBJECT(generator);
 
-    // TODO: Identify the impact of not visiting owned objects like module and
-    // frame.
+    // TODO: Identify the impact of not visiting owned objects like module.
 #if PYTHON_VERSION >= 0x300
     Py_VISIT(generator->m_yieldfrom);
 #endif
@@ -118,6 +112,8 @@ static long Nuitka_Generator_tp_traverse(struct Nuitka_GeneratorObject *generato
     for (Py_ssize_t i = 0; i < generator->m_closure_given; i++) {
         Py_VISIT(generator->m_closure[i]);
     }
+
+    Py_VISIT(generator->m_frame);
 
     return 0;
 }
@@ -134,7 +130,7 @@ static void Nuitka_Generator_release_closure(struct Nuitka_GeneratorObject *gene
 #if PYTHON_VERSION >= 0x300
 
 // Note: Shared with coroutines and asyncgen code.
-static PyObject *ERROR_GET_STOP_ITERATION_VALUE() {
+static PyObject *ERROR_GET_STOP_ITERATION_VALUE(void) {
     assert(PyErr_ExceptionMatches(PyExc_StopIteration));
 
     PyObject *exception_type, *exception_value;
@@ -392,22 +388,16 @@ static PyObject *Nuitka_YieldFromGeneratorNext(struct Nuitka_GeneratorObject *ge
 #if PYTHON_VERSION >= 0x350
     if (PyCoro_CheckExact(generator->m_yieldfrom) || Nuitka_Coroutine_Check(generator->m_yieldfrom)) {
         if (unlikely((generator->m_code_object->co_flags & CO_ITERABLE_COROUTINE) == 0)) {
-            Py_DECREF(generator->m_yieldfrom);
-            generator->m_yieldfrom = NULL;
-
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
                                             "cannot 'yield from' a coroutine object in a non-coroutine generator");
-            return NULL;
         }
     } else
 #endif
     {
-        PyObject *old = generator->m_yieldfrom;
-        generator->m_yieldfrom = MAKE_ITERATOR(generator->m_yieldfrom);
-        Py_DECREF(old);
-
-        if (unlikely(generator->m_yieldfrom == NULL)) {
-            return NULL;
+        PyObject *new_iterator = MAKE_ITERATOR(generator->m_yieldfrom);
+        if (new_iterator != NULL) {
+            Py_DECREF(generator->m_yieldfrom);
+            generator->m_yieldfrom = new_iterator;
         }
     }
 
@@ -570,7 +560,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
         if (yielded == NULL) {
 #if _DEBUG_GENERATOR
             PRINT_GENERATOR_STATUS("finishing from yield", generator);
-            PRINT_STRING("-> finishing sets status_Finished\n");
+            PRINT_STRING("-> finishing generator sets status_Finished\n");
             PRINT_COROUTINE_VALUE("return_value", generator->m_returned);
             PRINT_CURRENT_EXCEPTION();
             PRINT_NEW_LINE();
@@ -650,7 +640,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
             return NULL;
         } else {
-#if PYTHON_VERSION < 0x300
+#if _NUITKA_MAINTAIN_SYS_EXC_VARS
             PyObject *old_type = thread_state->exc_type;
             PyObject *old_value = thread_state->exc_value;
             PyTracebackObject *old_tb = (PyTracebackObject *)thread_state->exc_traceback;
@@ -713,6 +703,11 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
 static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value) {
     if (generator->m_status == status_Unused && value != NULL && value != Py_None) {
+        // Buggy CPython 3.10 refuses to allow later usage.
+#if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3a2
+        generator->m_status = status_Finished;
+#endif
+
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started generator");
         return NULL;
     }
@@ -848,9 +843,9 @@ static bool _Nuitka_Generator_check_throw2(PyObject **exception_type, PyObject *
 
 failed_throw:
     // Release exception, we are done with it now.
-    Py_DECREF(exception_type);
-    Py_XDECREF(exception_value);
-    Py_XDECREF(exception_tb);
+    Py_DECREF(*exception_type);
+    Py_XDECREF(*exception_value);
+    Py_XDECREF(*exception_tb);
 
     return false;
 }
@@ -965,8 +960,7 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
 
 #if PYTHON_VERSION >= 0x300
     if (generator->m_yieldfrom != NULL) {
-        // TODO: This probably should be changed to EXCEPTION_MATCH_BOOL_SINGLE for performance.
-        if (PyErr_GivenExceptionMatches(exception_type, PyExc_GeneratorExit)) {
+        if (EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
             // Generators need to close the yield_from.
             generator->m_running = 1;
             bool res = Nuitka_gen_close_iter(generator->m_yieldfrom);
@@ -1286,6 +1280,8 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 }
 
+static long Nuitka_Generator_tp_hash(struct Nuitka_GeneratorObject *generator) { return generator->m_counter; }
+
 static PyObject *Nuitka_Generator_get_name(struct Nuitka_GeneratorObject *generator) {
     PyObject *result = generator->m_name;
     Py_INCREF(result);
@@ -1372,6 +1368,35 @@ static int Nuitka_Generator_set_frame(struct Nuitka_GeneratorObject *generator, 
     return -1;
 }
 
+static PyObject *Nuitka_Generator_get_running(struct Nuitka_GeneratorObject *generator) {
+    PyObject *result;
+
+/* The type of "gi_running" changed in Python3. */
+#if PYTHON_VERSION < 0x300
+    result = PyInt_FromLong(generator->m_running);
+#else
+    result = BOOL_FROM(generator->m_running != 0);
+    Py_INCREF(result);
+#endif
+    return result;
+}
+
+static int Nuitka_Generator_set_running(struct Nuitka_GeneratorObject *generator, PyObject *value) {
+#if PYTHON_VERSION < 0x300
+    PyObject *exception_type = PyExc_TypeError;
+#else
+    PyObject *exception_type = PyExc_AttributeError;
+#endif
+
+#if !defined(_NUITKA_FULL_COMPAT) || PYTHON_VERSION >= 0x3a0
+    SET_CURRENT_EXCEPTION_TYPE0_STR(exception_type, "attribute 'gi_running' of 'generator' objects is not writable");
+#else
+    SET_CURRENT_EXCEPTION_TYPE0_STR(exception_type, "readonly attribute");
+#endif
+
+    return -1;
+}
+
 static PyGetSetDef Nuitka_Generator_getsetlist[] = {
 #if PYTHON_VERSION < 0x350
     {(char *)"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL},
@@ -1382,6 +1407,7 @@ static PyGetSetDef Nuitka_Generator_getsetlist[] = {
 #endif
     {(char *)"gi_code", (getter)Nuitka_Generator_get_code, (setter)Nuitka_Generator_set_code, NULL},
     {(char *)"gi_frame", (getter)Nuitka_Generator_get_frame, (setter)Nuitka_Generator_set_frame, NULL},
+    {(char *)"gi_running", (getter)Nuitka_Generator_get_running, (setter)Nuitka_Generator_set_running, NULL},
 
     {NULL}};
 
@@ -1390,16 +1416,17 @@ static PyMethodDef Nuitka_Generator_methods[] = {{"send", (PyCFunction)Nuitka_Ge
                                                  {"close", (PyCFunction)Nuitka_Generator_close, METH_NOARGS, NULL},
                                                  {NULL}};
 
-#include <structmember.h>
-
-static PyMemberDef Nuitka_Generator_members[] = {
-/* The type of "gi_running" changed in Python3. */
-#if PYTHON_VERSION < 0x300
-    {(char *)"gi_running", T_INT, offsetof(struct Nuitka_GeneratorObject, m_running), READONLY},
-#else
-    {(char *)"gi_running", T_BOOL, offsetof(struct Nuitka_GeneratorObject, m_running), READONLY},
+// This is only used.
+#if PYTHON_VERSION >= 0x3a0
+static PyAsyncMethods Nuitka_Generator_as_async = {
+    NULL, /* am_await */
+    NULL, /* am_aiter */
+    NULL, /* am_anext */
+    NULL  // TODO: have this too, (sendfunc)_Nuitka_Generator_amsend /* am_anext */
+};
 #endif
-    {NULL}};
+
+#include <structmember.h>
 
 PyTypeObject Nuitka_Generator_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_generator", /* tp_name */
@@ -1409,17 +1436,21 @@ PyTypeObject Nuitka_Generator_Type = {
     0,                                                   /* tp_print */
     0,                                                   /* tp_getattr */
     0,                                                   /* tp_setattr */
-    0,                                                   /* tp_compare */
-    (reprfunc)Nuitka_Generator_tp_repr,                  /* tp_repr */
-    0,                                                   /* tp_as_number */
-    0,                                                   /* tp_as_sequence */
-    0,                                                   /* tp_as_mapping */
-    0,                                                   /* tp_hash */
-    0,                                                   /* tp_call */
-    0,                                                   /* tp_str */
-    PyObject_GenericGetAttr,                             /* tp_getattro */
-    0,                                                   /* tp_setattro */
-    0,                                                   /* tp_as_buffer */
+#if PYTHON_VERSION < 0x3a0
+    0, /* tp_as_async */
+#else
+    &Nuitka_Generator_as_async, /* tp_as_async */
+#endif
+    (reprfunc)Nuitka_Generator_tp_repr, /* tp_repr */
+    0,                                  /* tp_as_number */
+    0,                                  /* tp_as_sequence */
+    0,                                  /* tp_as_mapping */
+    (hashfunc)Nuitka_Generator_tp_hash, /* tp_hash */
+    0,                                  /* tp_call */
+    0,                                  /* tp_str */
+    PyObject_GenericGetAttr,            /* tp_getattro */
+    0,                                  /* tp_setattro */
+    0,                                  /* tp_as_buffer */
 #if PYTHON_VERSION < 0x340
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
 #else
@@ -1434,7 +1465,7 @@ PyTypeObject Nuitka_Generator_Type = {
     PyObject_SelfIter,                                   /* tp_iter */
     (iternextfunc)Nuitka_Generator_tp_iternext,          /* tp_iternext */
     Nuitka_Generator_methods,                            /* tp_methods */
-    Nuitka_Generator_members,                            /* tp_members */
+    NULL,                                                /* tp_members */
     Nuitka_Generator_getsetlist,                         /* tp_getset */
     0,                                                   /* tp_base */
     0,                                                   /* tp_dict */
@@ -1455,7 +1486,7 @@ PyTypeObject Nuitka_Generator_Type = {
     0                                                    /* tp_version_tag */
 #if PYTHON_VERSION >= 0x340
     ,
-    (destructor)Nuitka_Generator_tp_finalizer /* tp_finalizer */
+    (destructor)Nuitka_Generator_tp_finalizer /* tp_finalize */
 #endif
 };
 
@@ -1467,7 +1498,43 @@ static void _initCompiledAsyncgenTypes();
 #endif
 
 void _initCompiledGeneratorType(void) {
+    Nuitka_Generator_Type.tp_base = &PyGen_Type;
+
     PyType_Ready(&Nuitka_Generator_Type);
+
+    // Be a paranoid subtype of uncompiled function, we want nothing shared.
+    assert(Nuitka_Generator_Type.tp_doc != PyGen_Type.tp_doc || PyGen_Type.tp_doc == NULL);
+    assert(Nuitka_Generator_Type.tp_traverse != PyGen_Type.tp_traverse);
+    assert(Nuitka_Generator_Type.tp_clear != PyGen_Type.tp_clear || PyGen_Type.tp_clear == NULL);
+    assert(Nuitka_Generator_Type.tp_richcompare != PyGen_Type.tp_richcompare || PyGen_Type.tp_richcompare == NULL);
+    assert(Nuitka_Generator_Type.tp_iter != PyGen_Type.tp_iter || PyGen_Type.tp_iter == PyObject_SelfIter);
+    assert(Nuitka_Generator_Type.tp_iternext != PyGen_Type.tp_iternext || PyGen_Type.tp_iternext == NULL);
+#if PYTHON_VERSION >= 0x350
+    assert(Nuitka_Generator_Type.tp_as_async != PyGen_Type.tp_as_async || PyGen_Type.tp_as_async == NULL);
+#endif
+    assert(Nuitka_Generator_Type.tp_methods != PyGen_Type.tp_methods);
+    assert(Nuitka_Generator_Type.tp_members != PyGen_Type.tp_members);
+    assert(Nuitka_Generator_Type.tp_getset != PyGen_Type.tp_getset);
+    assert(Nuitka_Generator_Type.tp_base != PyGen_Type.tp_base);
+    assert(Nuitka_Generator_Type.tp_dict != PyGen_Type.tp_dict);
+    assert(Nuitka_Generator_Type.tp_descr_get != PyGen_Type.tp_descr_get || PyGen_Type.tp_descr_get == NULL);
+
+    assert(Nuitka_Generator_Type.tp_descr_set != PyGen_Type.tp_descr_set || PyGen_Type.tp_descr_set == NULL);
+    assert(Nuitka_Generator_Type.tp_dictoffset != PyGen_Type.tp_dictoffset || PyGen_Type.tp_dictoffset == 0);
+    // TODO: These get changed and into the same thing, not sure what to compare against, project something
+    // assert(Nuitka_Generator_Type.tp_init != PyGen_Type.tp_init || PyGen_Type.tp_init == NULL);
+    // assert(Nuitka_Generator_Type.tp_alloc != PyGen_Type.tp_alloc || PyGen_Type.tp_alloc == NULL);
+    // assert(Nuitka_Generator_Type.tp_new != PyGen_Type.tp_new || PyGen_Type.tp_new == NULL);
+    // assert(Nuitka_Generator_Type.tp_free != PyGen_Type.tp_free || PyGen_Type.tp_free == NULL);
+    assert(Nuitka_Generator_Type.tp_bases != PyGen_Type.tp_bases);
+    assert(Nuitka_Generator_Type.tp_mro != PyGen_Type.tp_mro);
+    assert(Nuitka_Generator_Type.tp_cache != PyGen_Type.tp_cache || PyGen_Type.tp_cache == NULL);
+    assert(Nuitka_Generator_Type.tp_subclasses != PyGen_Type.tp_subclasses || PyGen_Type.tp_cache == NULL);
+    assert(Nuitka_Generator_Type.tp_weaklist != PyGen_Type.tp_weaklist);
+    assert(Nuitka_Generator_Type.tp_del != PyGen_Type.tp_del || PyGen_Type.tp_del == NULL);
+#if PYTHON_VERSION >= 0x340
+    assert(Nuitka_Generator_Type.tp_finalize != PyGen_Type.tp_finalize || PyGen_Type.tp_finalize == NULL);
+#endif
 
 #if PYTHON_VERSION >= 0x350
     // Also initialize coroutines if necessary
@@ -1548,6 +1615,9 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     result->m_exc_state.exc_value = NULL;
     result->m_exc_state.exc_traceback = NULL;
 #endif
+
+    static long Nuitka_Generator_counter = 0;
+    result->m_counter = Nuitka_Generator_counter++;
 
     Nuitka_GC_Track(result);
     return (PyObject *)result;

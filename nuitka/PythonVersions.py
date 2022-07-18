@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,15 +23,20 @@ should attempt to make run time detections.
 
 """
 
+import __future__
+
+import ctypes
 import os
 import re
 import sys
+
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 
 
 def getSupportedPythonVersions():
     """Officially supported Python versions for Nuitka."""
 
-    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9")
+    return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
 
 
 def getPartiallySupportedPythonVersions():
@@ -54,7 +59,6 @@ def getSupportedPythonVersionStr():
 def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
-    # TODO: Give up on decimal versions already.
     return big * 256 + major * 16 + min(15, minor)
 
 
@@ -62,12 +66,6 @@ python_version = _getPythonVersion()
 
 python_version_full_str = ".".join(str(s) for s in sys.version_info[0:3])
 python_version_str = ".".join(str(s) for s in sys.version_info[0:2])
-
-
-def isNuitkaPython():
-    """Is this our own fork of CPython named Nuitka-Python."""
-
-    return python_version > 0x300 and sys.implementation.name == "nuitkapython"
 
 
 def getErrorMessageExecWithNestedFunction():
@@ -138,30 +136,8 @@ def needsDuplicateArgumentColOffset():
         return True
 
 
-def isUninstalledPython():
-    if os.name == "nt":
-        import ctypes.wintypes
-
-        GetSystemDirectory = ctypes.windll.kernel32.GetSystemDirectoryW
-        GetSystemDirectory.argtypes = (ctypes.wintypes.LPWSTR, ctypes.wintypes.DWORD)
-        GetSystemDirectory.restype = ctypes.wintypes.DWORD
-
-        MAX_PATH = 4096
-        buf = ctypes.create_unicode_buffer(MAX_PATH)
-
-        res = GetSystemDirectory(buf, MAX_PATH)
-        assert res != 0
-
-        system_path = os.path.normcase(buf.value)
-        return not getRunningPythonDLLPath().startswith(system_path)
-
-    return (
-        os.path.exists(os.path.join(sys.prefix, "conda-meta"))
-        or "WinPython" in sys.version
-    )
-
-
 def getRunningPythonDLLPath():
+    # False alarm for subpackage, pylint: disable=redefined-outer-name
     import ctypes.wintypes
 
     MAX_PATH = 4096
@@ -192,17 +168,17 @@ def getRunningPythonDLLPath():
 def getTargetPythonDLLPath():
     dll_path = getRunningPythonDLLPath()
 
-    from nuitka.Options import isPythonDebug
+    from nuitka.Options import shallUsePythonDebug
 
     if dll_path.endswith("_d.dll"):
-        if not isPythonDebug():
+        if not shallUsePythonDebug():
             dll_path = dll_path[:-6] + ".dll"
 
         if not os.path.exists(dll_path):
             sys.exit("Error, cannot switch to non-debug Python, not installed.")
 
     else:
-        if isPythonDebug():
+        if shallUsePythonDebug():
             dll_path = dll_path[:-4] + "_d.dll"
 
         if not os.path.exists(dll_path):
@@ -212,6 +188,10 @@ def getTargetPythonDLLPath():
 
 
 def isStaticallyLinkedPython():
+    # On Windows, there is no way to detect this from sysconfig.
+    if os.name == "nt":
+        return ctypes.pythonapi is None
+
     try:
         import sysconfig
     except ImportError:
@@ -221,26 +201,6 @@ def isStaticallyLinkedPython():
 
     result = sysconfig.get_config_var("Py_ENABLE_SHARED") == 0
 
-    if result:
-        from nuitka.utils.Execution import check_output
-
-        with open(os.devnull, "w") as devnull:
-            output = check_output(
-                (os.path.realpath(sys.executable) + "-config", "--ldflags"),
-                stderr=devnull,
-            )
-
-        if str is not bytes:
-            output = output.decode("utf8")
-
-        import shlex
-
-        output = shlex.split(output)
-
-        python_abi_version = python_version_str + getPythonABI()
-
-        result = ("-lpython" + python_abi_version) not in output
-
     return result
 
 
@@ -249,9 +209,9 @@ def getPythonABI():
         abiflags = sys.abiflags
 
         # Cyclic dependency here.
-        from nuitka.Options import isPythonDebug
+        from nuitka.Options import shallUsePythonDebug
 
-        if isPythonDebug() or hasattr(sys, "getobjects"):
+        if shallUsePythonDebug() or hasattr(sys, "getobjects"):
             if not abiflags.startswith("d"):
                 abiflags = "d" + abiflags
     else:
@@ -294,6 +254,8 @@ def getSystemPrefixPath():
         ):
             candidate = os.path.join(sys_prefix, candidate)
             if os.path.exists(candidate):
+                # Cannot use FileOperations.getFileContents() here, because of circular dependency.
+                # pylint: disable=unspecified-encoding
                 with open(candidate) as f:
                     sys_prefix = f.read()
 
@@ -323,45 +285,74 @@ def getSystemPrefixPath():
     return _the_sys_prefix
 
 
-def getSystemStaticLibPythonPath():
-    sys_prefix = getSystemPrefixPath()
-    python_abi_version = python_version_str + getPythonABI()
+def getFutureModuleKeys():
+    result = [
+        "unicode_literals",
+        "absolute_import",
+        "division",
+        "print_function",
+        "generator_stop",
+        "nested_scopes",
+        "generators",
+        "with_statement",
+    ]
 
-    if isNuitkaPython():
-        # Nuitka Python has this.
-        return os.path.join(
-            sys_prefix,
-            "libs",
-            "python" + python_abi_version.replace(".", "") + ".lib",
-        )
+    if hasattr(__future__, "barry_as_FLUFL"):
+        result.append("barry_as_FLUFL")
+    if hasattr(__future__, "annotations"):
+        result.append("annotations")
 
-    if os.name == "nt":
-        candidates = [
-            # Anaconda has this.
-            os.path.join(
-                sys_prefix,
-                "libs",
-                "libpython" + python_abi_version.replace(".", "") + ".dll.a",
-            ),
-            # MSYS2 mingw64 Python has this.
-            os.path.join(
-                sys_prefix,
-                "lib",
-                "libpython" + python_abi_version + ".dll.a",
-            ),
-        ]
+    return result
 
-        for candidate in candidates:
-            if os.path.exists(candidate):
-                return candidate
+
+def getImportlibSubPackages():
+    result = []
+    if python_version >= 0x270:
+        import importlib
+        import pkgutil
+
+        for module_info in pkgutil.walk_packages(importlib.__path__):
+            result.append(module_info[1])
+
+    return result
+
+
+def isDebugPython():
+    """Is this a debug build of Python."""
+    return hasattr(sys, "gettotalrefcount")
+
+
+def isPythonValidDigitValue(value):
+    if python_version < 0x270:
+        bits_per_digit = 15
+    elif python_version < 0x300:
+        bits_per_digit = sys.long_info.bits_per_digit
     else:
-        python_lib_path = os.path.join(sys_prefix, "lib")
+        bits_per_digit = sys.int_info.bits_per_digit
 
-        candidate = os.path.join(
-            python_lib_path, "libpython" + python_abi_version + ".a"
-        )
+    boundary = (2**bits_per_digit) - 1
 
-        if os.path.exists(candidate):
-            return candidate
+    # Note:Digits in long objects do not use 2-complement, but a boolean sign.
+    return -boundary <= value <= boundary
 
-    return None
+
+sizeof_clong = ctypes.sizeof(ctypes.c_long)
+
+# TODO: We could be more aggressive here, there are issues with using full
+# values, in some contexts, but that can probably be sorted out.
+_max_signed_long = 2 ** (sizeof_clong * 7) - 1
+_min_signed_long = -(2 ** (sizeof_clong * 7))
+
+# Used by data composer to write Python long values.
+sizeof_clonglong = ctypes.sizeof(ctypes.c_longlong)
+
+_max_signed_longlong = 2 ** (sizeof_clonglong * 8 - 1) - 1
+_min_signed_longlong = -(2 ** (sizeof_clonglong * 8 - 1))
+
+
+def isPythonValidCLongValue(value):
+    return _min_signed_long <= value <= _max_signed_long
+
+
+def isPythonValidCLongLongValue(value):
+    return _min_signed_longlong <= value <= _max_signed_longlong

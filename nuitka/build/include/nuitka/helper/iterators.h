@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@
 // Initialize value for "tp_iternext" to compare with, needed by HAS_ITERNEXT
 // which emulates "PyCheck_Iter" but is bug free.
 extern iternextfunc default_iternext;
-extern void _initSlotIternext(void);
+extern void _initSlotIterNext(void);
 #endif
 
 // This is like "PyIter_Check" but without bugs due to shared library pointers.
@@ -94,6 +94,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR_INFALLIBLE(PyObject *iterate
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
     CHECK_OBJECT(iterated);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ITERATOR_OPT
+    return PyObject_GetIter(iterated);
+#else
+
 #if PYTHON_VERSION < 0x300
     getiterfunc tp_iter = NULL;
     if (PyType_HasFeature(Py_TYPE(iterated), Py_TPFLAGS_HAVE_ITER)) {
@@ -133,6 +137,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
 
         return NULL;
     }
+#endif
 }
 
 #if PYTHON_VERSION >= 0x370
@@ -179,6 +184,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_UNPACK_ITERATOR(PyObject *iterated) {
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
     CHECK_OBJECT(iterator);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_ITERATOR_OPT
+    return PyIter_Next(iterator);
+#else
     iternextfunc iternext = Py_TYPE(iterator)->tp_iternext;
 
     if (unlikely(iternext == NULL)) {
@@ -198,6 +206,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT(PyObject *iterator) {
     CHECK_OBJECT_X(result);
 
     return result;
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1(PyObject *iterator) {

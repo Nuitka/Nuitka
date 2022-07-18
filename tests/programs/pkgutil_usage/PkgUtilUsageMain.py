@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,4 +15,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Using pkgutil to read data from a package.
+
+This test can use the commercial code, which includes the file inside
+the binary, inaccessible to the user, as as well a the free code, where
+the file must exist in the file system.
+"""
+
+# nuitka-project: --include-package=package
+# nuitka-project-if: {Commercial} is not None:
+#  nuitka-project: --embed-data-files-runtime-pattern=*
+#  nuitka-project: --include-package-data=package
+
+# test code, pylint: disable=unused-import
+
 import package

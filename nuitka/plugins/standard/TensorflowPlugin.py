@@ -1,4 +1,4 @@
-#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2022, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-class TensorflowPlugin(NuitkaPluginBase):
+class NuitkaPluginTensorflow(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
     This is a plugin to ensure tensorflow scripts compile and work well in
@@ -48,37 +48,12 @@ class TensorflowPlugin(NuitkaPluginBase):
         """
         return Options.isStandaloneMode()
 
-    def onModuleEncounter(self, module_filename, module_name, module_kind):
+    def onModuleEncounter(self, module_name, module_filename, module_kind):
         for candidate in ("tensor", "google"):
             if module_name.hasNamespace(candidate):
-                return True, "Accept everything from %s" % candidate
+                return True, "Including everything from %s" % candidate
 
-    def onModuleSourceCode(self, module_name, source_code):
-        """Neutralize some path magic in tensorflow.
-
-        Notes:
-            Make sure tensorflow understands, we are not running as a PIP
-            installed application.
-        """
-        if module_name != "tensorflow":
-            return source_code
-        source_lines = source_code.splitlines()
-        found_insert = False
-        for i, l in enumerate(source_lines):
-            if l.startswith("def ") and "_running_from_pip_package():" in l:
-                source_lines.insert(i, "_site_packages_dirs = []")
-                source_lines.insert(i, "from tensorflow.python import keras")
-                found_insert = True
-                break
-
-        if found_insert is True:
-            self.info("Patched 'running-from-pip' path magic.")
-        else:
-            self.sysexit("Did not find path magic code." % self.plugin_name)
-
-        return "\n".join(source_lines)
-
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         """Include major packages as bytecode.
 
         Notes:
@@ -97,18 +72,16 @@ class TensorflowPlugin(NuitkaPluginBase):
             "matplotlib",
         ):
             return "bytecode"
-        else:
-            return "compiled"
 
 
-class TensorflowPluginDetector(NuitkaPluginBase):
+class NuitkaPluginDetectorTensorflow(NuitkaPluginBase):
     """Only used if plugin is NOT activated.
 
     Notes:
         We are given the chance to issue a warning if we think we may be required.
     """
 
-    detector_for = TensorflowPlugin
+    detector_for = NuitkaPluginTensorflow
 
     @classmethod
     def isRelevant(cls):

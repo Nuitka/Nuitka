@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,21 +25,23 @@ Buildbot on a timer basis.
 """
 
 
-from __future__ import print_function
-
 import csv
 import sys
 
 from nuitka.__past__ import StringIO
+from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_output
 
 
 def main():
-    print("Querying openSUSE build service status of Nuitka packages.")
+    my_print("Querying openSUSE build service status of Nuitka packages.")
 
     osc_cmd = ["osc", "pr", "-c", "home:kayhayen"]
 
     stdout_osc = check_output(args=osc_cmd)
+
+    if str is not bytes:
+        stdout_osc = stdout_osc.decode("utf8")
 
     # Response is really a CSV file, so use that for parsing.
     csvfile = StringIO(stdout_osc)
@@ -49,16 +51,18 @@ def main():
 
     bad = ("failed", "unresolvable", "broken", "blocked")
 
-    titles = osc_reader.next()[1:]
+    titles = next(osc_reader)[1:]
 
     # Nuitka (follow git main branch)
-    row1 = osc_reader.next()
+    row1 = next(osc_reader)
     # Nuitka-Unstable (follow git develop branch)
-    row2 = osc_reader.next()
+    row2 = next(osc_reader)
+    # Nuitka-Experimental (follow git factory branch)
+    row3 = next(osc_reader)
 
     problems = []
 
-    def decideConsideration(title):
+    def decideConsideration(title, status):
         # Ignore other arch builds, they might to not even boot at times.
         if "ppc" in title or "aarch" in title or "arm" in title:
             return False
@@ -67,33 +71,57 @@ def main():
         if "openSUSE_Tumbleweed" in title:
             return False
 
+        # Ignore old Fedora and RHEL6 32 bit being blocked.
+        if status == "blocked":
+            if (
+                "Fedora_2" in title
+                or "RedHat_RHEL-6/i586" in title
+                or "CentOS_CentOS-6/i586" in title
+            ):
+                return False
+
+        # It makes building visible now, that's not an error of course.
+        if status == "building":
+            return False
+
         return True
 
     for count, title in enumerate(titles):
-        if not decideConsideration(title):
-            continue
-
         status = row1[count + 1]
+
+        if not decideConsideration(title, status):
+            continue
 
         if status in bad:
             problems.append((row1[0], title, status))
 
     for count, title in enumerate(titles):
-        if not decideConsideration(title):
-            continue
-
         status = row2[count + 1]
+
+        if not decideConsideration(title, status):
+            continue
 
         if status in bad:
             problems.append((row2[0], title, status))
 
+    for count, title in enumerate(titles):
+        status = row3[count + 1]
+
+        if not decideConsideration(title, status):
+            continue
+
+        if status in bad:
+            problems.append((row3[0], title, status))
+
     if problems:
-        print("There are problems with:")
-        print("\n".join("%s: %s (%s)" % problem for problem in problems))
+        my_print("There are problems with:", style="yellow")
+        my_print(
+            "\n".join("%s: %s (%s)" % problem for problem in problems), style="yellow"
+        )
 
         sys.exit(1)
     else:
-        print("Looks good.")
+        my_print("Looks good.", style="blue")
         sys.exit(0)
 
 

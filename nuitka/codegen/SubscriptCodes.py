@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,7 +29,7 @@ from .CodeHelpers import (
     generateExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
 def _decideIntegerSubscript(subscript):
@@ -37,7 +37,7 @@ def _decideIntegerSubscript(subscript):
         if subscript.isIndexConstant():
             constant_value = subscript.getIndexValue()
 
-            if abs(constant_value) < 2 ** 31:
+            if abs(constant_value) < 2**31:
                 return constant_value, True
 
     return None, False
@@ -66,31 +66,28 @@ def generateAssignmentSubscriptCode(statement, emit, context):
         to_name=subscript_name, expression=subscript, emit=emit, context=context
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
-    )
-
-    if integer_subscript:
-        _getIntegerSubscriptAssignmentCode(
-            subscribed_name=subscribed_name,
-            subscript_name=subscript_name,
-            subscript_value=subscript_constant,
-            value_name=value_name,
-            emit=emit,
-            context=context,
-        )
-    else:
-        _getSubscriptAssignmentCode(
-            target_name=subscribed_name,
-            subscript_name=subscript_name,
-            value_name=value_name,
-            emit=emit,
-            context=context,
-        )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    ):
+        if integer_subscript:
+            _getIntegerSubscriptAssignmentCode(
+                subscribed_name=subscribed_name,
+                subscript_name=subscript_name,
+                subscript_value=subscript_constant,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
+        else:
+            _getSubscriptAssignmentCode(
+                target_name=subscribed_name,
+                subscript_name=subscript_name,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
 
 
 def generateDelSubscriptCode(statement, emit, context):
@@ -104,20 +101,17 @@ def generateDelSubscriptCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         subscript.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
-    )
-
-    _getSubscriptDelCode(
-        target_name=target_name,
-        subscript_name=subscript_name,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    ):
+        _getSubscriptDelCode(
+            target_name=target_name,
+            subscript_name=subscript_name,
+            emit=emit,
+            context=context,
+        )
 
 
 def generateSubscriptLookupCode(to_name, expression, emit, context):
@@ -157,6 +151,41 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
             )
 
 
+def generateSubscriptCheckCode(to_name, expression, emit, context):
+    subscribed = expression.subnode_expression
+    subscript = expression.subnode_subscript
+
+    subscribed_name = generateChildExpressionCode(
+        expression=subscribed, emit=emit, context=context
+    )
+
+    subscript_name = generateChildExpressionCode(
+        expression=subscript, emit=emit, context=context
+    )
+
+    subscript_constant, integer_subscript = _decideIntegerSubscript(subscript)
+
+    res_name = context.getBoolResName()
+
+    if integer_subscript:
+        emit(
+            "%s = HAS_SUBSCRIPT_CONST(%s, %s, %s);"
+            % (res_name, subscribed_name, subscript_name, subscript_constant)
+        )
+    else:
+        emit(
+            "%s = HAS_SUBSCRIPT(%s, %s);" % (res_name, subscribed_name, subscript_name)
+        )
+
+    getReleaseCodes((subscript_name, subscribed_name), emit, context)
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name,
+        condition=res_name,
+        emit=emit,
+    )
+
+
 def _getIntegerSubscriptLookupCode(
     to_name, subscribed_name, subscript_name, subscript_value, emit, context
 ):
@@ -191,7 +220,7 @@ def _getSubscriptLookupCode(to_name, subscript_name, subscribed_name, emit, cont
 def _getIntegerSubscriptAssignmentCode(
     subscribed_name, subscript_name, subscript_value, value_name, emit, context
 ):
-    assert abs(subscript_value) < 2 ** 31
+    assert abs(subscript_value) < 2**31
 
     res_name = context.allocateTempName("ass_subscript_res", "int")
 

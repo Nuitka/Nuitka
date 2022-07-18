@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -43,6 +43,7 @@ sys.path.insert(
 
 # isort:start
 
+from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     checkLoadedFileAccesses,
     checkRequirements,
@@ -52,14 +53,13 @@ from nuitka.tools.testing.Common import (
     displayFileContents,
     displayFolderContents,
     displayRuntimeTraces,
-    getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
     test_logger,
 )
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 
 def displayError(dirname, filename):
@@ -76,7 +76,7 @@ def main():
     # Complex stuff, even more should become common code or project options though.
     # pylint: disable=too-many-branches,too-many-statements
 
-    python_version = setup(needs_io_encoding=True)
+    python_version = setup(suite="standalone", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -101,8 +101,8 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
-            # TODO: This plugin probably ought to be on by default.
-            "plugin_enable:pkg-resources",
+            # Don't care here, this is mostly for coverage.
+            "--nowarn-mnemonic=debian-dist-packages",
         ]
 
         # skip each test if their respective requirements are not met
@@ -111,9 +111,12 @@ def main():
             reportSkip(error_message, ".", filename)
             continue
 
-        # catch error
-        if filename == "Boto3Using.py":
-            reportSkip("boto3 test not fully working yet", ".", filename)
+        if filename == "Urllib3Using.py" and os.name == "nt":
+            reportSkip(
+                "Socket module early import not working on Windows currently",
+                ".",
+                filename,
+            )
             continue
 
         if "Idna" in filename:
@@ -140,11 +143,11 @@ def main():
                 continue
 
         if filename == "TkInterUsing.py":
-            if getOS() == "Darwin":
+            if isMacOS():
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
-            if getOS() == "Windows":
+            if isWin32Windows() == "Windows":
                 reportSkip("Can hang on Windows CI.", ".", filename)
                 continue
 
@@ -155,19 +158,20 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename == "NumpyUsing.py":
-            extra_flags.append("plugin_enable:numpy")
+        # TODO: Once we have a no-Qt Plugin, we should use that.
+        if filename == "MatplotlibUsing.py":
+            # For the plugin warnings.
+            extra_flags.append("ignore_warnings")
 
+        if filename == "NumpyUsing.py":
             # TODO: Disabled for now.
             reportSkip("numpy.test not fully working yet", ".", filename)
             continue
 
         if filename == "PandasUsing.py":
             extra_flags.append("plugin_enable:numpy")
+            extra_flags.append("plugin_enable:no-qt")
             extra_flags.append("plugin_disable:pylint-warnings")
-            extra_flags.append("plugin_disable:qt-plugins")
-            extra_flags.append("plugin_disable:pyside2")
-            extra_flags.append("plugin_disable:pyside6")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
@@ -178,7 +182,6 @@ def main():
 
         if filename == "GlfwUsing.py":
             # For the warnings.
-            extra_flags.append("plugin_enable:glfw")
             extra_flags.append("plugin_enable:numpy")
 
         if filename == "PasslibUsing.py":
@@ -189,20 +192,12 @@ def main():
             # For the warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename.startswith(("PySide6", "PyQt5", "PyQt6")):
+        if filename.startswith(("PySide2", "PySide6", "PyQt5", "PyQt6")):
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
             if python_version < (2, 7) or ((3,) <= python_version < (3, 7)):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
-
-            # For the plug-in information
-            if filename.startswith("PySide6"):
-                extra_flags.append("plugin_enable:pyside6")
-            elif filename.startswith("PyQt5"):
-                extra_flags.append("plugin_enable:qt-plugins")
-            elif filename.startswith("PyQt6"):
-                extra_flags.append("plugin_enable:pyqt6")
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename
@@ -270,7 +265,7 @@ def main():
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger, path=binary_filename
+                logger=test_logger, command=[binary_filename]
             )
 
         illegal_accesses = checkLoadedFileAccesses(

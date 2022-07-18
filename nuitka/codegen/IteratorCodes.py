@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,6 +20,7 @@
 Next variants and unpacking with related checks.
 """
 
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -28,7 +29,9 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
+from .ComparisonCodes import getRichComparisonCode
 from .ErrorCodes import (
+    getErrorExitBoolCode,
     getErrorExitCode,
     getErrorExitReleaseCode,
     getFrameVariableTypeDescriptionCode,
@@ -170,43 +173,88 @@ def generateUnpackCheckCode(statement, emit, context):
     release_code = getErrorExitReleaseCode(context)
     var_description_code = getFrameVariableTypeDescriptionCode(context)
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+
+        (
+            exception_type,
+            exception_value,
+            exception_tb,
+            _exception_lineno,
+        ) = context.variable_storage.getExceptionVariableDescriptions()
+
+        emit(
+            template_iterator_check
+            % {
+                "iterator_name": iterator_name,
+                "attempt_name": attempt_name,
+                "exception_exit": context.getExceptionEscape(),
+                "release_temps_1": indented(release_code, 3),
+                "line_number_code_1": indented(
+                    getErrorLineNumberUpdateCode(context), 3
+                ),
+                "var_description_code_1": indented(var_description_code, 3),
+                "release_temps_2": indented(release_code),
+                "var_description_code_2": indented(var_description_code),
+                "line_number_code_2": indented(getErrorLineNumberUpdateCode(context)),
+                "exception_type": exception_type,
+                "exception_value": exception_value,
+                "exception_tb": exception_tb,
+                "too_many_values_error": context.getConstantCode(
+                    "too many values to unpack"
+                    if python_version < 0x300
+                    else "too many values to unpack (expected %d)"
+                    % statement.getCount()
+                ),
+            }
+        )
+
+        getReleaseCode(release_name=iterator_name, emit=emit, context=context)
+
+
+def generateUnpackCheckFromIteratedCode(statement, emit, context):
+    iteration_length_name = context.allocateTempName("iteration_length", unique=True)
+
+    generateExpressionCode(
+        to_name=iteration_length_name,
+        expression=statement.subnode_iterated_length,
+        emit=emit,
+        context=context,
     )
 
-    (
-        exception_type,
-        exception_value,
-        exception_tb,
-        _exception_lineno,
-    ) = context.variable_storage.getExceptionVariableDescriptions()
+    to_name = context.getBoolResName()
 
+    getRichComparisonCode(
+        to_name=to_name,
+        comparator="Gt",
+        left=statement.subnode_iterated_length,
+        # Creating a temporary node on the fly, knowing it's not used for many
+        # things. TODO: Once we have value shapes, we ought to use those.
+        right=makeConstantRefNode(
+            constant=statement.count,
+            source_ref=statement.source_ref,
+            user_provided=True,
+        ),
+        # We know that cannot fail.
+        needs_check=False,
+        source_ref=statement.source_ref,
+        emit=emit,
+        context=context,
+    )
+
+    # TODO: Why is this necessary, to_name doesn't allow storage.
+    context.removeCleanupTempName(to_name)
+
+    # TODO: This exception ought to have a creator function.
     emit(
-        template_iterator_check
-        % {
-            "iterator_name": iterator_name,
-            "attempt_name": attempt_name,
-            "exception_exit": context.getExceptionEscape(),
-            "release_temps_1": indented(release_code, 3),
-            "line_number_code_1": indented(getErrorLineNumberUpdateCode(context), 3),
-            "var_description_code_1": indented(var_description_code, 3),
-            "release_temps_2": indented(release_code),
-            "var_description_code_2": indented(var_description_code),
-            "line_number_code_2": indented(getErrorLineNumberUpdateCode(context)),
-            "exception_type": exception_type,
-            "exception_value": exception_value,
-            "exception_tb": exception_tb,
-            "too_many_values_error": context.getConstantCode(
-                "too many values to unpack"
-                if python_version < 0x300
-                else "too many values to unpack (expected %d)" % statement.getCount()
-            ),
-        }
+        """
+if (%(to_name)s) {
+    PyErr_Format(PyExc_ValueError, "too many values to unpack");
+}
+"""
+        % {"to_name": to_name}
     )
 
-    getReleaseCode(release_name=iterator_name, emit=emit, context=context)
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    getErrorExitBoolCode(condition=str(to_name), emit=emit, context=context)
 
 
 def generateBuiltinNext2Code(to_name, expression, emit, context):

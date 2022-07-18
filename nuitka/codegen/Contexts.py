@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,13 +20,15 @@
 """
 
 import collections
-import hashlib
 from abc import abstractmethod
+from contextlib import contextmanager
 
 from nuitka import Options
 from nuitka.__past__ import getMetaClassBase, iterItems
+from nuitka.Constants import isMutable
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -256,7 +258,7 @@ class TempMixin(object):
     def setFalseBranchTarget(self, label):
         self.false_target = label
 
-    def getCleanupTempnames(self):
+    def getCleanupTempNames(self):
         return self.cleanup_names[-1]
 
     def addCleanupTempName(self, tmp_name):
@@ -270,6 +272,11 @@ class TempMixin(object):
     def removeCleanupTempName(self, tmp_name):
         assert tmp_name in self.cleanup_names[-1], tmp_name
         self.cleanup_names[-1].remove(tmp_name)
+
+    def transferCleanupTempName(self, tmp_source, tmp_dest):
+        if self.needsCleanup(tmp_source):
+            self.addCleanupTempName(tmp_dest)
+            self.removeCleanupTempName(tmp_source)
 
     def needsCleanup(self, tmp_name):
         return tmp_name in self.cleanup_names[-1]
@@ -334,19 +341,8 @@ class CodeObjectsMixin(object):
 
         return self.code_objects[key]
 
-    if python_version < 0x300:
-
-        def _calcHash(self, key):
-            hash_value = hashlib.md5("-".join(str(s) for s in key))
-
-            return hash_value.hexdigest()
-
-    else:
-
-        def _calcHash(self, key):
-            hash_value = hashlib.md5("-".join(str(s) for s in key).encode("utf-8"))
-
-            return hash_value.hexdigest()
+    def _calcHash(self, key):
+        return getStringHash("-".join(str(s) for s in key))
 
 
 class PythonContextBase(getMetaClassBase("Context")):
@@ -355,7 +351,6 @@ class PythonContextBase(getMetaClassBase("Context")):
         self.source_ref = None
 
         self.current_source_ref = None
-        self.last_source_ref = None
 
     if isCountingInstances():
         __del__ = counted_del()
@@ -367,21 +362,21 @@ class PythonContextBase(getMetaClassBase("Context")):
         result = self.current_source_ref
         self.current_source_ref = value
 
-        if value is not None:
-            self.last_source_ref = result
-
         return result
 
-    def getLastSourceCodeReference(self):
-        result = self.last_source_ref
-        # self.last_source_ref = None
-        return result
+    @contextmanager
+    def withCurrentSourceCodeReference(self, value):
+        old_source_ref = self.setCurrentSourceCodeReference(value)
+
+        yield old_source_ref
+
+        self.setCurrentSourceCodeReference(value)
 
     def getInplaceLeftName(self):
         return self.allocateTempName("inplace_orig", "PyObject *", True)
 
     @abstractmethod
-    def getConstantCode(self, constant):
+    def getConstantCode(self, constant, deep_check=False):
         pass
 
     @abstractmethod
@@ -509,7 +504,7 @@ class PythonContextBase(getMetaClassBase("Context")):
         pass
 
     @abstractmethod
-    def getCleanupTempnames(self):
+    def getCleanupTempNames(self):
         pass
 
     @abstractmethod
@@ -541,8 +536,8 @@ class PythonChildContextBase(PythonContextBase):
 
         self.parent = parent
 
-    def getConstantCode(self, constant):
-        return self.parent.getConstantCode(constant)
+    def getConstantCode(self, constant, deep_check=False):
+        return self.parent.getConstantCode(constant, deep_check=deep_check)
 
     def getModuleCodeName(self):
         return self.parent.getModuleCodeName()
@@ -840,7 +835,10 @@ class PythonModuleContext(
     def mayRecurse(self):
         return False
 
-    def getConstantCode(self, constant):
+    def getConstantCode(self, constant, deep_check=False):
+        if deep_check and Options.is_debug:
+            assert not isMutable(constant)
+
         return self.constant_accessor.getConstantCode(constant)
 
     def getConstantsCount(self):
@@ -985,11 +983,15 @@ class PythonFunctionOutlineContext(
     def hasTempName(self, base_name):
         return self.parent.hasTempName(base_name)
 
-    def getCleanupTempnames(self):
-        return self.parent.getCleanupTempnames()
+    def getCleanupTempNames(self):
+        return self.parent.getCleanupTempNames()
 
+    # TODO: Make this work on shared data instead.
     def addCleanupTempName(self, tmp_name):
         self.parent.addCleanupTempName(tmp_name)
+
+    def transferCleanupTempName(self, tmp_source, tmp_dest):
+        self.parent.transferCleanupTempName(tmp_source, tmp_dest)
 
     def removeCleanupTempName(self, tmp_name):
         self.parent.removeCleanupTempName(tmp_name)

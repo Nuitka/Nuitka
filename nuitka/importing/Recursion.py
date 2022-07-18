@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,166 +20,160 @@
 """
 
 import glob
-import marshal
 import os
 
 from nuitka import ModuleRegistry, Options
+from nuitka.Errors import NuitkaForbiddenImportEncounter
 from nuitka.importing import ImportCache, Importing, StandardLibrary
+from nuitka.ModuleRegistry import addUsedModule, getRootTopModule
+from nuitka.pgo.PGO import decideInclusionFromPGO
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
-from nuitka.utils.FileOperations import listDir, relpath
+from nuitka.utils.FileOperations import listDir
 from nuitka.utils.ModuleNames import ModuleName
 
+from .Importing import getModuleNameAndKindFromFilename, locateModule
 
-def _recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
-    from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
+
+def _recurseTo(module_name, module_filename, module_kind):
     from nuitka.tree import Building
 
-    module, source_ref, source_code = Building.decideModuleTree(
-        filename=module_filename,
-        package=module_package,
+    module, is_added = Building.buildModule(
+        module_filename=module_filename,
+        module_name=module_name,
+        source_code=None,
         is_top=False,
         is_main=False,
-        is_shlib=module_kind == "shlib",
+        is_extension=module_kind == "extension",
+        is_fake=False,
+        hide_syntax_error=True,
     )
-
-    if Options.isShowInclusion():
-        recursion_logger.info(
-            "Recurse to import '%s' from '%s'. (%s)"
-            % (module.getFullName(), module_relpath, reason)
-        )
-
-    if source_code is not None:
-        try:
-            Building.createModuleTree(
-                module=module,
-                source_ref=source_ref,
-                source_code=source_code,
-                is_main=False,
-            )
-        except (SyntaxError, IndentationError) as e:
-            if module_filename not in Importing.warned_about:
-                Importing.warned_about.add(module_filename)
-
-                recursion_logger.warning(
-                    """\
-Cannot follow import to module %r (%r) because of %r"""
-                    % (module_relpath, module_filename, e.__class__.__name__)
-                )
-
-            return None, False
-        except Building.CodeTooComplexCode:
-            if module_filename not in Importing.warned_about:
-                Importing.warned_about.add(module_filename)
-
-                recursion_logger.warning(
-                    """\
-Cannot recurse to import module %r (%r) because code is too complex."""
-                    % (
-                        module_relpath,
-                        module_filename,
-                    )
-                )
-
-                if Options.isStandaloneMode():
-                    module = makeUncompiledPythonModule(
-                        module_name=module.getFullName(),
-                        filename=module_filename,
-                        bytecode=marshal.dumps(
-                            compile(
-                                source_code, module_filename, "exec", dont_inherit=True
-                            )
-                        ),
-                        is_package=module.isCompiledPythonPackage(),
-                        user_provided=True,
-                        technical=False,
-                    )
-
-                    ModuleRegistry.addUncompiledModule(module)
-
-            return None, False
 
     ImportCache.addImportedModule(module)
 
-    return module, True
+    return module, is_added
 
 
-def recurseTo(module_package, module_filename, module_relpath, module_kind, reason):
-    if ImportCache.isImportedModuleByPath(module_relpath):
-        try:
-            module = ImportCache.getImportedModuleByPath(module_relpath, module_package)
-        except KeyError:
-            module = None
-    else:
+def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
+    try:
+        module = ImportCache.getImportedModuleByNameAndPath(
+            module_name, module_filename
+        )
+    except KeyError:
         module = None
 
     if module is None:
-        return _recurseTo(
-            module_package=module_package,
+        Plugins.onModuleRecursion(
             module_filename=module_filename,
-            module_relpath=module_relpath,
+            module_name=module_name,
             module_kind=module_kind,
-            reason=reason,
         )
-    else:
-        return module, False
+
+        module, added_flag = _recurseTo(
+            module_name=module_name,
+            module_filename=module_filename,
+            module_kind=module_kind,
+        )
+
+        if added_flag and signal_change is not None:
+            signal_change("new_code", module.getSourceReference(), reason)
+
+    return module
 
 
 def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
     # Many branches, which make decisions immediately, by returning
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
-        return False, "Main program is not recursed to again."
+        return False, "Main program is not followed to a second time."
+
+    # In -m mode, when including the package, do not duplicate main program.
+    if (
+        Options.hasPythonFlagPackageMode()
+        and not Options.shallMakeModule()
+        and module_name.getBasename() == "__main__"
+    ):
+        if module_name.getPackageName() == getRootTopModule().getRuntimePackageValue():
+            return False, "Main program is already included in package mode."
 
     plugin_decision = Plugins.onModuleEncounter(
-        module_filename, module_name, module_kind
+        module_filename=module_filename,
+        module_name=module_name,
+        module_kind=module_kind,
     )
 
     if plugin_decision is not None:
         return plugin_decision
 
-    if module_kind == "shlib":
+    if module_kind == "extension":
         if Options.isStandaloneMode():
             return True, "Extension module needed for standalone mode."
         else:
-            return False, "Shared library cannot be inspected."
+            return False, "Extension module cannot be inspected."
+
+    # PGO decisions are not overruling plugins, but all command line options, they are
+    # supposed to be applied already.
+    is_stdlib = StandardLibrary.isStandardLibraryPath(module_filename)
+
+    if not is_stdlib or Options.shallFollowStandardLibrary():
+        # TODO: Bad placement of this function or should PGO also know about
+        # bytecode modules loaded or not.
+        from nuitka.tree.Building import decideCompilationMode
+
+        if (
+            decideCompilationMode(is_top=False, module_name=module_name, for_pgo=True)
+            == "compiled"
+        ):
+            pgo_decision = decideInclusionFromPGO(
+                module_name=module_name,
+                module_kind=module_kind,
+            )
+
+            if pgo_decision is not None:
+                return pgo_decision, "PGO based decision"
 
     no_case, reason = module_name.matchesToShellPatterns(
         patterns=Options.getShallFollowInNoCase()
     )
 
     if no_case:
-        return (False, "Module %s instructed by user to not recurse to." % reason)
+        return (False, "Module %s instructed by user to not follow to." % reason)
 
     any_case, reason = module_name.matchesToShellPatterns(
         patterns=Options.getShallFollowModules()
     )
 
     if any_case:
-        return (True, "Module %s instructed by user to recurse to." % reason)
+        return (True, "Module %s instructed by user to follow to." % reason)
 
-    if Options.shallFollowNoImports():
-        return (False, "Requested to not recurse at all.")
-
-    if StandardLibrary.isStandardLibraryPath(module_filename):
-        return (
-            Options.shallFollowStandardLibrary(),
-            "Requested to %srecurse to standard library."
-            % ("" if Options.shallFollowStandardLibrary() else "not "),
-        )
-
-    if Options.shallFollowAllImports():
-        return (True, "Requested to recurse to all non-standard library modules.")
-
-    # Means, we were not given instructions how to handle things.
     if extra_recursion:
         return (True, "Lives in plug-in directory.")
 
-    if Options.shallMakeModule():
-        return (False, "Making a module, not following any imports by default.")
+    if is_stdlib and Options.shallFollowStandardLibrary():
+        return (True, "Instructed by user to follow to standard library.")
 
-    return (None, "Default behavior, not recursing without request.")
+    if Options.shallFollowAllImports():
+        if is_stdlib:
+            if StandardLibrary.isStandardLibraryNoAutoInclusionModule(module_name):
+                return (
+                    True,
+                    "Instructed by user to follow all modules, including non-automatic standard library modules.",
+                )
+        else:
+            return (
+                True,
+                "Instructed by user to follow to all non-standard library modules.",
+            )
+
+    if Options.shallFollowNoImports():
+        return (None, "Instructed by user to not follow at all.")
+
+    # Means, we were not given instructions how to handle things.
+    return (
+        None,
+        "Default behavior in non-standalone mode, not following without request.",
+    )
 
 
 def considerFilename(module_filename):
@@ -189,19 +183,16 @@ def considerFilename(module_filename):
         module_filename = os.path.abspath(module_filename)
 
         module_name = os.path.basename(module_filename)
-        module_relpath = relpath(module_filename)
 
-        return module_filename, module_relpath, module_name
+        return module_filename, module_name
     elif module_filename.endswith(".py"):
         module_name = os.path.basename(module_filename)[:-3]
-        module_relpath = relpath(module_filename)
 
-        return module_filename, module_relpath, module_name
+        return module_filename, module_name
     elif module_filename.endswith(".pyw"):
         module_name = os.path.basename(module_filename)[:-4]
-        module_relpath = relpath(module_filename)
 
-        return module_filename, module_relpath, module_name
+        return module_filename, module_name
     else:
         return None
 
@@ -215,8 +206,63 @@ def isSameModulePath(path1, path2):
     return os.path.abspath(path1) == os.path.abspath(path2)
 
 
-def checkPluginSinglePath(plugin_filename, module_package):
+def _addIncludedModule(module):
     # Many branches, for the decision is very complex, pylint: disable=too-many-branches
+
+    if Options.isShowInclusion():
+        recursion_logger.info(
+            "Included '%s' as '%s'."
+            % (
+                module.getFullName(),
+                module,
+            )
+        )
+
+    ImportCache.addImportedModule(module)
+
+    if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
+        package_filename = module.getFilename()
+
+        if os.path.isdir(package_filename):
+            # Must be a namespace package.
+            assert python_version >= 0x300
+
+            package_dir = package_filename
+
+            # Only include it, if it contains actual modules, which will
+            # recurse to this one and find it again.
+        else:
+            package_dir = os.path.dirname(package_filename)
+
+            # Real packages will always be included.
+            ModuleRegistry.addRootModule(module)
+
+        if Options.isShowInclusion():
+            recursion_logger.info("Package directory '%s'." % package_dir)
+
+        for sub_path, sub_filename in listDir(package_dir):
+            if sub_filename in ("__init__.py", "__pycache__"):
+                continue
+
+            if Importing.isPackageDir(sub_path) and not os.path.exists(
+                sub_path + ".py"
+            ):
+                checkPluginSinglePath(sub_path, module_package=module.getFullName())
+            elif sub_path.endswith(".py"):
+                checkPluginSinglePath(sub_path, module_package=module.getFullName())
+
+    elif module.isCompiledPythonModule() or module.isUncompiledPythonModule():
+        ModuleRegistry.addRootModule(module)
+    elif module.isPythonExtensionModule():
+        if Options.isStandaloneMode():
+            ModuleRegistry.addRootModule(module)
+    else:
+        assert False, module
+
+
+def checkPluginSinglePath(plugin_filename, module_package):
+    # The importing wants these to be unique.
+    plugin_filename = os.path.abspath(plugin_filename)
 
     if Options.isShowInclusion():
         recursion_logger.info(
@@ -230,6 +276,12 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
     module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
+    if module_kind == "extension" and not Options.isStandaloneMode():
+        recursion_logger.warning(
+            "Cannot include '%s' unless using at least standalone mode."
+            % module_name.asString()
+        )
+
     if module_kind is not None:
         decision, reason = decideRecursion(
             module_filename=plugin_filename,
@@ -239,104 +291,31 @@ def checkPluginSinglePath(plugin_filename, module_package):
         )
 
         if decision:
-            module_relpath = relpath(plugin_filename)
-
-            module, is_added = recurseTo(
+            module = recurseTo(
+                signal_change=None,
                 module_filename=plugin_filename,
-                module_relpath=module_relpath,
-                module_package=module_package,
+                module_name=module_name,
                 module_kind=module_kind,
                 reason=reason,
             )
 
             if module:
-                if not is_added:
-                    recursion_logger.warning(
-                        "Recursed to %s '%s' at '%s' twice."
-                        % (
-                            "package" if module.isCompiledPythonPackage() else "module",
-                            module.getName(),
-                            plugin_filename,
-                        )
-                    )
-
-                    if not isSameModulePath(module.getFilename(), plugin_filename):
-                        recursion_logger.warning(
-                            "Duplicate '%s' of '%s' ignored ."
-                            % (
-                                plugin_filename,
-                                module.getFilename(),
-                            )
-                        )
-
-                        return
-
-                if Options.isShowInclusion():
-                    recursion_logger.info(
-                        "Recursed to '%s' %s"
-                        % (
-                            module.getFullName(),
-                            module,
-                        )
-                    )
-
-                ImportCache.addImportedModule(module)
-
-                if module.isCompiledPythonPackage():
-                    package_filename = module.getFilename()
-
-                    if os.path.isdir(package_filename):
-                        # Must be a namespace package.
-                        assert python_version >= 0x300
-
-                        package_dir = package_filename
-
-                        # Only include it, if it contains actual modules, which will
-                        # recurse to this one and find it again.
-                    else:
-                        package_dir = os.path.dirname(package_filename)
-
-                        # Real packages will always be included.
-                        ModuleRegistry.addRootModule(module)
-
-                    if Options.isShowInclusion():
-                        recursion_logger.info("Package directory '%s'." % package_dir)
-
-                    for sub_path, sub_filename in listDir(package_dir):
-                        if sub_filename in ("__init__.py", "__pycache__"):
-                            continue
-
-                        assert sub_path != plugin_filename
-
-                        if Importing.isPackageDir(sub_path) and not os.path.exists(
-                            sub_path + ".py"
-                        ):
-                            checkPluginSinglePath(
-                                sub_path, module_package=module.getFullName()
-                            )
-                        elif sub_path.endswith(".py"):
-                            checkPluginSinglePath(
-                                sub_path, module_package=module.getFullName()
-                            )
-
-                elif module.isCompiledPythonModule():
-                    ModuleRegistry.addRootModule(module)
-                elif module.isPythonShlibModule():
-                    if Options.isStandaloneMode():
-                        ModuleRegistry.addRootModule(module)
-
+                _addIncludedModule(module)
             else:
                 recursion_logger.warning(
                     "Failed to include module from '%s'." % plugin_filename
                 )
+        else:
+            recursion_logger.warning(
+                "Not allowed to include module '%s' due to '%s'."
+                % (module_name, reason)
+            )
 
 
 def checkPluginPath(plugin_filename, module_package):
-    plugin_filename = os.path.normpath(plugin_filename)
-
     if Options.isShowInclusion():
         recursion_logger.info(
-            "Checking top level plug-in path %s %s" % (plugin_filename, module_package)
+            "Checking top level path '%s' '%s'." % (plugin_filename, module_package)
         )
 
     plugin_info = considerFilename(module_filename=plugin_filename)
@@ -379,3 +358,101 @@ def checkPluginFilenamePattern(pattern):
 
     if not found:
         recursion_logger.warning("Didn't match any files against pattern %r." % pattern)
+
+
+def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):
+    for parent_package_name in module_name.getParentPackageNames():
+        _parent_package_name, parent_package_filename, _finding = locateModule(
+            module_name=parent_package_name, parent_package=None, level=0
+        )
+
+        assert parent_package_filename is not None, parent_package_name
+        assert _parent_package_name == parent_package_name
+
+        _parent_package_name, package_module_kind = getModuleNameAndKindFromFilename(
+            parent_package_filename
+        )
+
+        _decision, reason = decideRecursion(
+            module_filename=parent_package_filename,
+            module_name=parent_package_name,
+            module_kind=package_module_kind,
+        )
+
+        used_package_module = recurseTo(
+            signal_change=signal_change,
+            module_name=parent_package_name,
+            module_filename=parent_package_filename,
+            module_kind=package_module_kind,
+            reason=reason,
+        )
+
+        addUsedModule(
+            module=used_package_module,
+            using_module=using_module,
+            usage_tag="package",
+            reason=reason,
+            source_ref=source_ref,
+        )
+
+
+def considerUsedModules(module, signal_change):
+    for (
+        used_module_name,
+        used_module_filename,
+        finding,
+        level,
+        source_ref,
+    ) in module.getUsedModules():
+        if finding == "not-found":
+            Importing.warnAbout(
+                importing=module,
+                source_ref=source_ref,
+                module_name=used_module_name,
+                level=level,
+            )
+
+        try:
+            if used_module_filename is None:
+                continue
+
+            _module_name, module_kind = getModuleNameAndKindFromFilename(
+                used_module_filename
+            )
+
+            decision, reason = decideRecursion(
+                module_filename=used_module_filename,
+                module_name=used_module_name,
+                module_kind=module_kind,
+            )
+
+            if decision:
+                _addParentPackageUsages(
+                    using_module=module,
+                    module_name=used_module_name,
+                    signal_change=signal_change,
+                    source_ref=source_ref,
+                )
+
+                used_module = recurseTo(
+                    signal_change=signal_change,
+                    module_name=used_module_name,
+                    module_filename=used_module_filename,
+                    module_kind=module_kind,
+                    reason=reason,
+                )
+
+                addUsedModule(
+                    module=used_module,
+                    using_module=module,
+                    usage_tag="import",
+                    reason=reason,
+                    source_ref=source_ref,
+                )
+        except NuitkaForbiddenImportEncounter as e:
+            recursion_logger.sysexit(
+                "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
+                % (e, module.getFullName().asString(), source_ref.getAsString())
+            )
+
+    Plugins.considerImplicitImports(module=module, signal_change=signal_change)

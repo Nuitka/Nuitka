@@ -1,6 +1,5 @@
 from ._monitor import TMonitor, TqdmSynchronisationWarning
 from ._tqdm_pandas import tqdm_pandas
-from .cli import main  # TODO: remove in v5.0.0
 from .gui import tqdm as tqdm_gui  # TODO: remove in v5.0.0
 from .gui import trange as tgrange  # TODO: remove in v5.0.0
 from .std import (

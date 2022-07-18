@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,8 +21,6 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import shutil
 import stat
@@ -30,6 +28,7 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
+from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
     check_call,
     getExecutablePath,
@@ -102,7 +101,7 @@ Default is %default.""",
 
         doxy_filename = doxy_file.name
 
-    print("Running doxygen:")
+    my_print("Running doxygen:", style="blue")
     try:
         check_call([doxygen_path, doxy_filename])
     finally:
@@ -113,12 +112,12 @@ Default is %default.""",
     if options.upload:
         assert (
             os.system(
-                "rsync -avz --delete html/ --chown www-data root@nuitka.net:/var/www/apidoc/"
+                "rsync -avz --delete html/ --chown www-data root@ssh.nuitka.net:/var/www/apidoc/"
             )
             == 0
         )
 
-    print("Finished.")
+    my_print("Finished.", style="blue")
 
 
 if __name__ == "__main__":

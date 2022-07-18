@@ -1,14 +1,13 @@
 name: Nuitka tests
-
+# makes little sense, spell-checker: disable
 on:
   pull_request:
     branches:
       - develop
   push:
     branches:
-      - master
+      - main
       - develop
-      - jorj
       - factory
       - release/**
       - hotfix/**
@@ -23,26 +22,25 @@ jobs:
             - '3.7'
             - '3.8'
             - '3.9'
+            - '3.10'
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Use Python ${{ matrix.python_version }}
+      - name: 🐍 Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install Nuitka dependencies
+      - name: 🧳 Install Nuitka and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install chrpath gdb ccache libfuse2
-          pip install -r requirements-devel.txt
-
-      - name: Install Nuitka
-        run:
-          pip install .
+          sudo apt-get install patchelf gdb ccache libfuse2
+          python -m pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          python -m pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
@@ -57,28 +55,71 @@ jobs:
 
       - name: PyLint on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-pylint
-        if: matrix.python_version == '3.7'
+          python ./bin/check-nuitka-with-pylint
+        if: matrix.python_version == '3.9'
 
       - name: RestLint on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-restlint
-        if: matrix.python_version == '3.7'
+          python ./bin/check-nuitka-with-restlint
+        if: matrix.python_version == '3.9'
+
+      - name: YamlLint on Nuitka source code
+        run: |
+          python ./bin/check-nuitka-with-yamllint
+        if: matrix.python_version == '3.9'
 
       - name: Codespell on Nuitka source code
         run: |
-          ./bin/check-nuitka-with-codespell
-        if: matrix.python_version == '3.7'
+          python ./bin/check-nuitka-with-codespell
+        if: matrix.python_version == '3.9'
 
-  mac:
-    runs-on: macOS-latest
+      - name: Auto-format check on Nuitka source code
+        run: |
+          python ./bin/autoformat-nuitka-source --check-only
+        if: matrix.python_version == '3.9'
+
+  mac-python2:
+    runs-on: macos-10.15
     strategy:
       matrix:
         python_version:
             - '2.7'
+    name: macOS Python ${{ matrix.python_version }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Verbose installation output for Python
+        run: |
+          set -x
+          which python
+          otool -L $(which python)
+          otool -l $(which python)
+
+      - name: 🧳 Install Nuitka and dependencies
+        run: |
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
+
+      - name: Verbose scons output in compilation
+        run: |
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+
+      - name: Run Nuitka test suite
+        run: |
+          python -m nuitka --version
+          env | sort
+          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
+
+  mac-python3:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python_version:
             - '3.7'
             - '3.8'
             - '3.9'
+            - '3.10'
     name: macOS Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
@@ -96,19 +137,15 @@ jobs:
           otool -l $(which python)
           ls -lR $(dirname $(dirname $(which python)))
 
-      - name: Install Nuitka dependencies
+      - name: 🧳 Install Nuitka and dependencies
         run: |
-          brew install ccache
-          pip install -r requirements-devel.txt
-
-      - name: Install Nuitka
-        run:
-          pip install .
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run tests/basics/Empty.py
-          python -m nuitka --show-scons --run tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
 
       - name: Run Nuitka test suite
         run: |
@@ -125,32 +162,30 @@ jobs:
             - '3.7'
             - '3.8'
             - '3.9'
+            - '3.10'
     name: Windows Python ${{ matrix.python_version }}
     steps:
       - uses: actions/checkout@v2
+
+      - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Use Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install Nuitka dependencies
+      - name: 🧳 Install Nuitka and dependencies
         run: |
-          pip install -r requirements-devel.txt
-
-      - name: Install Nuitka
-        run: |
-          pip install .
+          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
+          pip install --no-python-version-warning --disable-pip-version-check .
 
       - name: Verbose scons output in compilation
-        shell: bash
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads --mingw64 tests/basics/Empty.py
-          python -m nuitka --show-scons --run --mingw64 tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests\basics\Empty.py
+          python -m nuitka --show-scons --run tests\basics\Empty.py
 
       - name: Run Nuitka test suite
-        shell: bash
         run: |
+          Get-ChildItem env:
           python -m nuitka --version
-          env | sort
-          python ./tests/run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads --mingw64
+          python .\tests\run-tests --no-other-python --no-debug --skip-reflection-test --skip-all-cpython-tests --assume-yes-for-downloads

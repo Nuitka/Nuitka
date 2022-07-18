@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -91,6 +91,15 @@ static bool LIST_RESIZE(PyListObject *list, Py_ssize_t newsize) {
 }
 
 bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    PyObject *result = _PyList_Extend((PyListObject *)list, other);
+    if (result != NULL) {
+        Py_DECREF(result);
+        return true;
+    } else {
+        return false;
+    }
+#else
     assert(PyList_CheckExact(list));
     assert(PyList_CheckExact(other));
 
@@ -117,6 +126,7 @@ bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
     }
 
     return true;
+#endif
 }
 
 bool LIST_EXTEND(PyObject *target, PyObject *other) {
@@ -127,6 +137,15 @@ bool LIST_EXTEND(PyObject *target, PyObject *other) {
 
     PyListObject *list = (PyListObject *)target;
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    PyObject *result = _PyList_Extend(list, other);
+    if (result != NULL) {
+        Py_DECREF(result);
+        return true;
+    } else {
+        return false;
+    }
+#else
     // First attempt those things that occur most often. Keep in mind that
     // other might be the same object as list.
     PyObject **src;
@@ -180,7 +199,7 @@ bool LIST_EXTEND(PyObject *target, PyObject *other) {
     Py_ssize_t cur_size = PyList_GET_SIZE(list);
 
 #if PYTHON_VERSION >= 0x340
-    // Guess a iteratat if possible
+    // Guess a iterator size if possible
     src_size = PyObject_LengthHint(other, 8);
 
     if (src_size < 0) {
@@ -253,6 +272,7 @@ bool LIST_EXTEND(PyObject *target, PyObject *other) {
     }
 
     return true;
+#endif
 }
 
 #if PYTHON_VERSION >= 0x390
@@ -278,6 +298,11 @@ bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other) {
 #endif
 
 bool LIST_APPEND1(PyObject *target, PyObject *item) {
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    int res == PyList_Append(target, item);
+    Py_DECREF(item);
+    return res == 0;
+#else
     CHECK_OBJECT(target);
     assert(PyList_Check(target));
 
@@ -297,9 +322,14 @@ bool LIST_APPEND1(PyObject *target, PyObject *item) {
     PyList_SET_ITEM(list, cur_size, item);
 
     return true;
+#endif
 }
 
 bool LIST_APPEND0(PyObject *target, PyObject *item) {
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    int res == PyList_Append(target, item);
+    return res == 0;
+#else
     CHECK_OBJECT(target);
     assert(PyList_Check(target));
 
@@ -319,6 +349,7 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
     PyList_SET_ITEM0(list, cur_size, item);
 
     return true;
+#endif
 }
 
 #if PYTHON_VERSION >= 0x340
@@ -340,6 +371,16 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 PyObject *MAKE_LIST(PyObject *iterable) {
     PyObject *list = PyList_New(0);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
+    PyObject *result = _PyList_Extend((PyListObject *)list, iterable);
+    if (result == NULL) {
+        Py_DECREF(list);
+        return NULL;
+    } else {
+        Py_DECREF(result);
+        return list;
+    }
+#else
 #if PYTHON_VERSION >= 0x340
     if (_PyObject_HasLen(iterable)) {
         Py_ssize_t iter_len = PyObject_Size(iterable);
@@ -368,4 +409,5 @@ PyObject *MAKE_LIST(PyObject *iterable) {
     }
 
     return list;
+#endif
 }

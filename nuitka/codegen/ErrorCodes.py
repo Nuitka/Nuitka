@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,7 +43,7 @@ from .templates.CodeTemplatesExceptions import (
 
 def getErrorExitReleaseCode(context):
     temp_release = "\n".join(
-        "Py_DECREF(%s);" % tmp_name for tmp_name in context.getCleanupTempnames()
+        "Py_DECREF(%s);" % tmp_name for tmp_name in context.getCleanupTempNames()
     )
 
     keeper_variables = context.getExceptionKeeperVariables()
@@ -85,6 +85,7 @@ def getErrorExitBoolCode(
         assert not release_name
 
     if release_name is not None:
+        assert type(release_name) is not tuple
         getReleaseCode(release_name, emit, context)
         assert not release_names
 

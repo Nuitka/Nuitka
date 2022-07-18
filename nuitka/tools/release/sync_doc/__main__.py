@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,8 +18,6 @@
 #
 
 """ Release tool to sync Developer Manual with code comments. """
-
-from __future__ import print_function
 
 import inspect
 import re

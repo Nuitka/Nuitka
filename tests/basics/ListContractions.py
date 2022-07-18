@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -21,13 +21,21 @@
 
 from __future__ import print_function
 
-# Tests do bad things, pylint: disable=redefined-outer-name,possibly-unused-variable
+# Tests do bad things, pylint: disable=possibly-unused-variable,redefined-outer-name
+
 
 def displayDict(d):
     result = "{"
+    first = True
     for key, value in sorted(d.items()):
-        result += "%s: %s" % (key, value)
+        if not first:
+            result += ","
+
+        result += "%s: %s" % (repr(key), repr(value))
+        first = False
     result += "}"
+
+    return result
 
 
 print("List contraction on the module level:")

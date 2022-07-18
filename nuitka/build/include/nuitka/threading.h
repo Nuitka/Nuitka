@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -28,14 +28,32 @@ extern volatile int _Py_Ticker;
 
 #ifdef NUITKA_USE_PYCORE_THREADSTATE
 
+#if PYTHON_VERSION < 0x380
+// Signals pending got their own indicator only in 3.8, covered by calls to do before.
+#define HAS_WORK_TO_DO(ceval, ceval2) (ceval2->pending.calls_to_do._value)
+#else
+#define HAS_WORK_TO_DO(ceval, ceval2) (ceval->signals_pending._value || ceval2->pending.calls_to_do._value)
+#endif
+
 NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    struct _ceval_runtime_state *ceval = &tstate->interp->runtime->ceval;
-    struct _ceval_state *ceval2 = &tstate->interp->ceval;
+#if PYTHON_VERSION >= 0x390
+    _PyRuntimeState *const runtime = tstate->interp->runtime;
+#else
+    _PyRuntimeState *const runtime = &_PyRuntime;
+#endif
 
-    /* Pending signals */
-    if (ceval->signals_pending._value || ceval2->pending.calls_to_do._value) {
+    // This was split in 2 parts in 3.9 or higher.
+    struct _ceval_runtime_state *ceval = &runtime->ceval;
+#if PYTHON_VERSION >= 0x390
+    struct _ceval_state *ceval2 = &tstate->interp->ceval;
+#else
+    struct _ceval_runtime_state *ceval2 = ceval;
+#endif
+
+    /* Pending signals or calls to do*/
+    if (HAS_WORK_TO_DO(ceval, ceval2)) {
         int res = Py_MakePendingCalls();
 
         if (unlikely(res < 0 && ERROR_OCCURRED())) {

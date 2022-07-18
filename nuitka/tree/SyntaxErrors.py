@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,11 @@ from nuitka.PythonVersions import python_version
 
 def formatOutput(e):
     if len(e.args) > 1:
-        reason, (filename, lineno, colno, message) = e.args
+        if python_version < 0x3A0:
+            reason, (filename, lineno, colno, message) = e.args
+        else:
+            # TODO: For Python3.10 there is more information here, use it probably end information.
+            reason, (filename, lineno, colno, message, _lineno2, _colno2) = e.args
 
         if message is None and colno is not None:
             colno = None
@@ -121,7 +125,7 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
         else:
             source_line = None
 
-        raise SyntaxError(
+        exc = SyntaxError(
             reason,
             (
                 source_ref.getFilename(),
@@ -131,4 +135,8 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
             ),
         )
 
-    raise SyntaxError(reason, (None, None, None, None))
+    exc = SyntaxError(reason, (None, None, None, None))
+
+    exc.generated_by_nuitka = True
+
+    raise exc

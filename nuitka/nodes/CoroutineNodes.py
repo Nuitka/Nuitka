@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,11 +22,16 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
-class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
+class ExpressionMakeCoroutineObject(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
     named_child = "coroutine_ref"
@@ -58,14 +63,6 @@ class ExpressionMakeCoroutineObject(ExpressionChildHavingBase):
 
         # TODO: Coroutine body may know something too.
         return self, None, None
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        return False
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces

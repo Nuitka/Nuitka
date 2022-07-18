@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,7 @@ import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
 from nuitka.__past__ import builtins
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import python_version
 
 
@@ -184,6 +184,7 @@ def _getAnonBuiltins():
         # pylint: disable=I0021,no-name-in-module
         from types import ClassType, InstanceType, MethodType
 
+        # We can to be sure of the type here, so use open without encoding, pylint: disable=unspecified-encoding
         with open(sys.executable) as any_file:
             anon_names["file"] = type(any_file)
         anon_codes["file"] = "&PyFile_Type"
@@ -196,6 +197,16 @@ def _getAnonBuiltins():
 
         anon_names["instancemethod"] = MethodType
         anon_codes["instancemethod"] = "&PyMethod_Type"
+
+    if python_version >= 0x270:
+        anon_names["version_info"] = type(sys.version_info)
+        anon_codes["version_info"] = 'Py_TYPE(Nuitka_SysGetObject("version_info"))'
+
+    if python_version >= 0x3A0:
+        # 3.10 only code, pylint: disable=I0021,unsupported-binary-operation
+
+        anon_names["UnionType"] = type(int | str)
+        anon_codes["UnionType"] = "Nuitka_PyUnion_Type"
 
     return anon_names, anon_codes
 

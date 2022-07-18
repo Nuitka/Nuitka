@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -187,6 +187,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
             getCallCodePosArgsQuick(
                 to_name=value_name,
                 called_name=getExceptionIdentifier(exception_type),
+                expression=expression,
                 arg_names=exception_arg_names,
                 needs_check=False,
                 emit=emit,
@@ -197,6 +198,7 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
             getCallCodeNoArgs(
                 to_name=value_name,
                 called_name=getExceptionIdentifier(exception_type),
+                expression=expression,
                 needs_check=False,
                 emit=emit,
                 context=context,

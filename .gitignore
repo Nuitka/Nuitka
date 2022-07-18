@@ -20,10 +20,12 @@ __pycache__/
 *.build
 *.onefile-build
 *.dist
+*.app
 *.key
 *.optimization.log
 *.inclusion.log
 *.strace
+*.nuitka-pgo
 .mypy_cache
 *.egg-info
 tests/reflected/nuitka/
@@ -34,8 +36,6 @@ tests/basics/BigConstants.py
 tests/generated/*.py
 !tests/generated/run_all.py
 tests/PyPI-pytest/venv_*
-*.dist
-*.build
 *.dblite
 *.pdb
 releases/
@@ -69,3 +69,4 @@ doxygen-*
 .vscode/ipch
 .vscode/tags
 .vscode/.ropeproject
+Nuitka-*

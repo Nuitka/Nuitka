@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -401,6 +401,19 @@ def simpleFunction23():
     next(gen)
 
     gen.throw(MyError)
+
+
+oho = 1
+
+
+def simpleFunction24():
+    def someGenerator():
+        yield from oho
+
+    try:
+        list(someGenerator())
+    except TypeError:
+        pass
 
 
 # These need stderr to be wrapped.

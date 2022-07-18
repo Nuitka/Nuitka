@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,14 +22,15 @@
 from nuitka.specs.BuiltinParameterSpecs import builtin_dict_spec
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
-from .ConstantRefNodes import makeConstantRefNode
-from .DictionaryNodes import ExpressionKeyValuePair, makeExpressionMakeDict
+from .DictionaryNodes import makeExpressionMakeDict
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
-from .shapes.BuiltinTypeShapes import tshape_dict
 
 
-class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
+class ExpressionBuiltinDict(
+    ExpressionDictShapeExactMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ("pos_arg", "pairs")
@@ -42,25 +43,10 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             self,
             values={
                 "pos_arg": pos_arg,
-                "pairs": tuple(
-                    ExpressionKeyValuePair(
-                        makeConstantRefNode(key, source_ref),
-                        value,
-                        value.getSourceReference(),
-                    )
-                    for key, value in pairs
-                ),
+                "pairs": pairs,
             },
             source_ref=source_ref,
         )
-
-    @staticmethod
-    def getTypeShape():
-        return tshape_dict
-
-    @staticmethod
-    def hasShapeDictionaryExact():
-        return True
 
     def hasOnlyConstantArguments(self):
         pos_arg = self.subnode_pos_arg
@@ -69,9 +55,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             return False
 
         for arg_pair in self.subnode_pairs:
-            if not arg_pair.subnode_key.isCompileTimeConstant():
-                return False
-            if not arg_pair.subnode_value.isCompileTimeConstant():
+            if not arg_pair.isCompileTimeConstant():
                 return False
 
         return True

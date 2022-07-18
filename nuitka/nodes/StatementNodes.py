@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -222,17 +222,9 @@ class StatementExpressionOnly(StatementChildHavingBase):
     def computeStatement(self, trace_collection):
         expression = trace_collection.onExpression(expression=self.subnode_expression)
 
-        if expression.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        result, change_tags, change_desc = expression.computeExpressionDrop(
+        return expression.computeExpressionDrop(
             statement=self, trace_collection=trace_collection
         )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self, None, None
 
     @staticmethod
     def getStatementNiceName():

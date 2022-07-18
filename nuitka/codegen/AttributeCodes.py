@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -37,7 +37,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
     attribute_name = statement.getAttributeName()
     value = statement.subnode_source
 
-    value_name = context.allocateTempName("assattr_name")
+    value_name = context.allocateTempName("assattr_value")
     generateExpressionCode(
         to_name=value_name, expression=value, emit=emit, context=context
     )
@@ -47,30 +47,33 @@ def generateAssignmentAttributeCode(statement, emit, context):
         to_name=target_name, expression=lookup_source, emit=emit, context=context
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         value.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
-    )
-
-    if attribute_name == "__dict__":
-        getAttributeAssignmentDictSlotCode(
-            target_name=target_name, value_name=value_name, emit=emit, context=context
-        )
-    elif attribute_name == "__class__":
-        getAttributeAssignmentClassSlotCode(
-            target_name=target_name, value_name=value_name, emit=emit, context=context
-        )
-    else:
-        getAttributeAssignmentCode(
-            target_name=target_name,
-            value_name=value_name,
-            attribute_name=context.getConstantCode(constant=attribute_name),
-            emit=emit,
-            context=context,
-        )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    ):
+        if attribute_name == "__dict__":
+            getAttributeAssignmentDictSlotCode(
+                target_name=target_name,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
+        elif attribute_name == "__class__":
+            getAttributeAssignmentClassSlotCode(
+                target_name=target_name,
+                value_name=value_name,
+                emit=emit,
+                context=context,
+            )
+        else:
+            getAttributeAssignmentCode(
+                target_name=target_name,
+                value_name=value_name,
+                attribute_name=context.getConstantCode(constant=attribute_name),
+                emit=emit,
+                context=context,
+            )
 
 
 def generateDelAttributeCode(statement, emit, context):
@@ -83,20 +86,19 @@ def generateDelAttributeCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         statement.subnode_expression.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
-    )
-
-    getAttributeDelCode(
-        target_name=target_name,
-        attribute_name=context.getConstantCode(constant=statement.getAttributeName()),
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    ):
+        getAttributeDelCode(
+            target_name=target_name,
+            attribute_name=context.getConstantCode(
+                constant=statement.getAttributeName()
+            ),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateAttributeLookupCode(to_name, expression, emit, context):

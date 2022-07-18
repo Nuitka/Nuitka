@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,7 +19,7 @@
 
 import ast
 
-from nuitka.Options import getPythonFlags
+from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoDocstrings
 from nuitka.tree.TreeHelpers import getKind
 
 doc_having = tuple(
@@ -40,31 +40,57 @@ def _removeDocFromBody(node):
 def compileSourceToBytecode(source_code, filename):
     """Compile given source code into bytecode."""
 
-    if "no_docstrings" in getPythonFlags():
-        tree = ast.parse(source_code, filename)
+    # Prepare compile call with AST tree.
+    tree = ast.parse(source_code, filename)
 
-        _removeDocFromBody(tree)
+    # Do we need to remove docstrings.
+    remove_docstrings_from_tree = hasPythonFlagNoDocstrings()
+
+    # For Python2, we need to do this manually.
+    remove_asserts_from_tree = hasPythonFlagNoAsserts() and str is bytes
+
+    if remove_docstrings_from_tree or remove_asserts_from_tree:
+        # Module level docstring.
+        if remove_docstrings_from_tree:
+            _removeDocFromBody(tree)
 
         for node in ast.walk(tree):
-            # Check if it's a documented thing.
-            if not isinstance(node, doc_having):
-                continue
+            if remove_asserts_from_tree:
+                node_type = type(node)
 
-            _removeDocFromBody(node)
+                if node_type is ast.Name:
+                    if node.id == "__debug__":
+                        node.id = "False"
 
+                elif node_type is ast.Assert:
+                    # Cannot really remove the assertion node easily, lets just replace it with
+                    # "assert 1" and remove the assert msg. Probably not worth more effort for
+                    # Python2 at this time.
+                    node.test = ast.Num()
+                    node.test.n = 1
+                    node.test.lineno = node.lineno
+                    node.test.col_offset = node.col_offset
+                    node.msg = None
+
+            # Check if it's a docstring having node type.
+            if remove_docstrings_from_tree and isinstance(node, doc_having):
+                _removeDocFromBody(node)
+
+    if str is bytes:
         bytecode = compile(
             tree,
             filename=filename,
             mode="exec",
             dont_inherit=True,
         )
-
     else:
+        # Let the handling of __debug__ happen within compile built-in.
+        optimize = 0
+        if hasPythonFlagNoAsserts():
+            optimize = 1
+
         bytecode = compile(
-            source_code,
-            filename=filename,
-            mode="exec",
-            dont_inherit=True,
+            tree, filename=filename, mode="exec", dont_inherit=True, optimize=optimize
         )
 
     return bytecode

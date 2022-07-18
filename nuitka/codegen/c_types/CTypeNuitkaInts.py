@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,9 +35,9 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
 
     @classmethod
     def emitVariableAssignCode(
-        cls, value_name, needs_release, tmp_name, ref_count, in_place, emit, context
+        cls, value_name, needs_release, tmp_name, ref_count, inplace, emit, context
     ):
-        assert not in_place
+        assert not inplace
 
         if tmp_name.c_type == "nuitka_ilong":
             emit("%s = %s;" % (value_name, tmp_name))

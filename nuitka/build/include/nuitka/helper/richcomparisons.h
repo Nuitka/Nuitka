@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -24,7 +24,5 @@
 #include "nuitka/helper/comparisons_le.h"
 #include "nuitka/helper/comparisons_lt.h"
 #include "nuitka/helper/comparisons_ne.h"
-
-#define RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT_NORECURSE RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT
 
 #endif

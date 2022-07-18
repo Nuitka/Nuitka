@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -17,6 +17,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# nuitka-project: --standalone
+
 import glfw
+
 
 # nuitka-skip-unless-imports: glfw

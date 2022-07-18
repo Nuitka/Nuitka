@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -27,7 +27,7 @@ import sys
 # from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
-class MyPlugin(NuitkaPluginBase):
+class NuitkaPluginForTesting(NuitkaPluginBase):
     plugin_name = __name__.split(".")[-1]
 
     def __init__(self, trace_my_plugin):
@@ -35,7 +35,7 @@ class MyPlugin(NuitkaPluginBase):
         # check whether some specific option is set
 
         self.check = trace_my_plugin
-        self.info(" 'trace' is set to '%s'" % self.check)
+        self.info("The 'trace' value is set to '%s'" % self.check)
 
         # do more init work here ...
 

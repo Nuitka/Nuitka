@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -41,7 +41,7 @@ from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
     decideNeeds2to3,
-    hasDebugPython,
+    getDebugPython,
     scanDirectoryForTestCases,
     setup,
 )
@@ -60,11 +60,11 @@ def main():
             "expect_success",
             # Keep no temporary files.
             "remove_output",
-            # Include imported files, mostly nothing though.
-            "recurse_all",
+            # Do not follow imports.
+            "--nofollow-imports",
             # Use the original __file__ value, at least one case warns about things
             # with filename included.
-            "original_file",
+            "--file-reference-choice=original",
             # Cache the CPython results for re-use, they will normally not change.
             "cpython_cache",
             # To understand what is slow.
@@ -75,9 +75,8 @@ def main():
 
         # This test should be run with the debug Python, and makes outputs to
         # standard error that might be ignored.
-        if filename.startswith("Referencing"):
-            if hasDebugPython():
-                extra_flags.append("python_debug")
+        if filename.startswith("Referencing") and getDebugPython() is not None:
+            extra_flags.append("--python-debug")
 
         # This tests warns about __import__() used.
         if filename == "OrderChecks.py":

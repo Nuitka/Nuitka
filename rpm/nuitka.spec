@@ -23,6 +23,9 @@ BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  python-setuptools
 %endif
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8
+BuildRequires:  python-markupsafe
+%endif
 %if 0%{?fedora} >= 24
 BuildRequires:  python-libs
 BuildRequires:  python-debug
@@ -35,17 +38,27 @@ BuildRequires:  python3-devel
 BuildRequires:  python36
 BuildRequires:  python36-devel
 %endif
+%if 0%{?fedora} >= 24 || 0%{?rhel} == 8
+BuildRequires:  python3-markupsafe
+%endif
+%if 0%{?suse_version} >= 1500
+BuildRequires:  python3-MarkupSafe
+%if 0{?sles_version} == 0
+BuildRequires:  openSUSE-release
+%endif
+%endif
 %if 0%{?fedora} >= 27
 BuildRequires:  python3-tools
 %endif
-%if 0%{?suse_version} >= 1500
+%if 0%{?fedora} >= 35 || 0%{?suse_version} >= 1500
 BuildRequires:  python3-setuptools
 %endif
 BuildRequires:  gcc-c++
 BuildRequires:  strace
-BuildRequires:  chrpath
+BuildRequires:  patchelf
 BuildRequires:  ccache
 BuildRequires:  gdb
+
 %if 0%{?fedora} < 28 && 0%{?rhel} < 8
 Requires:       python-devel
 %endif
@@ -55,10 +68,23 @@ Requires:       python3-devel
 %if 0%{?rhel} == 8
 Requires:       python36-devel
 %endif
+%if 0%{?fedora} < 31 && 0%{?rhel} < 8
+Requires:       python-markupsafe
+%endif
+%if 0%{?fedora} >= 24 || 0%{?rhel} == 8
+Requires:       python3-markupsafe
+%endif
+%if 0%{?suse_version} >= 1500
+Requires:       python3-MarkupSafe
+%if 0{?sles_version} == 0
+Requires:       openSUSE-release
+%endif
+%endif
 Requires:       gcc-c++
 Requires:       strace
-Requires:       chrpath
+Requires:       patchelf
 Requires:       ccache
+
 BuildArchitectures: noarch
 
 %description
@@ -80,6 +106,9 @@ then
 fi
 python3=`which python3 2>/dev/null || true`
 
+# Only used on Windows:
+rm -rf nuitka/build/inline_copy/lib/scons-4*
+
 if [ "$python2_version" != "2.6" ]
 then
     # Remove files needed only for Python 2.6, they only cause errors during
@@ -88,7 +117,7 @@ then
 else
     # Remove files mot needed for Python 2.6, they only cause errors during
     # compilation with Python 2.6.
-    rm -rf nuitka/build/inline_copy/lib/scons-3*
+    rm -rf nuitka/build/inline_copy/lib/scons-3.1.2
     rm -rf nuitka/build/inline_copy/tqdm
 fi
 
@@ -96,7 +125,6 @@ fi
 rm -rf nuitka/build/inline_copy/clcache
 rm -rf nuitka/build/inline_copy/atomicwrites
 rm -rf nuitka/build/inline_copy/colorama
-rm -rf nuitka/build/inline_copy/zstd
 
 if [ "$python2" != "" ]
 then
@@ -110,12 +138,50 @@ then
 fi
 
 %check
+
+echo "Environment variables during build:"
 env
+
+echo "OS information during build:"
+if [ -f /etc/os-release ]
+then
+    echo "Contents of /etc/os-release :"
+    cat /etc/os-release
+else
+    echo "No /etc/os-release file found"
+fi
+
+if [ -f /etc/SuSE-release ]
+then
+    echo "Contents of /etc/SuSE-release :"
+    cat /etc/SuSE-release
+else
+    echo "No /etc/SuSE-release file found"
+fi
+
+if [ -f /etc/issue ]
+then
+    echo "Contents of /etc/issue :"
+    cat /etc/issue
+else
+    echo "No /etc/issue file found"
+fi
+
+
+if [ -x "$(command -v lsb_release)" ]
+then
+    lsb_release -a
+else
+    echo "No lsb_release binary found"
+fi
+
 
 python2=`which python2 || true`
 
 if [ "$python2" != "" ]
 then
+    echo "Nuitka Version information"
+    $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
     $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/Empty.py
     echo "Basic compilation test of empty program:"
@@ -123,6 +189,8 @@ then
 
     $python2 ./tests/run-tests --skip-reflection-test
 else
+    echo "Nuitka Version information"
+    python3 -m nuitka --version
     echo "Basic compilation test of empty module:"
     python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
     echo "Basic compilation test of empty program:"
@@ -148,10 +216,10 @@ then
 fi
 
 mkdir -p %{buildroot}%{_mandir}/man1
-gzip -c doc/nuitka.1 > %{buildroot}%{_mandir}/man1/nuitka.1.gz
-cp %{buildroot}%{_mandir}/man1/nuitka.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
-gzip -c doc/nuitka-run.1 > %{buildroot}%{_mandir}/man1/nuitka-run.1.gz
-cp %{buildroot}%{_mandir}/man1/nuitka-run.1.gz %{buildroot}%{_mandir}/man1/nuitka3-run.1.gz
+gzip -c doc/nuitka2.1 > %{buildroot}%{_mandir}/man1/nuitka2.1.gz
+cp %{buildroot}%{_mandir}/man1/nuitka2.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
+gzip -c doc/nuitka2-run.1 > %{buildroot}%{_mandir}/man1/nuitka2-run.1.gz
+cp %{buildroot}%{_mandir}/man1/nuitka2-run.1.gz %{buildroot}%{_mandir}/man1/nuitka3-run.1.gz
 
 %clean
 rm -rf %{buildroot}
@@ -160,8 +228,8 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %doc README.rst Changelog.rst
 %if 0%{?fedora} < 31 && 0%{?rhel} < 8
-%{_bindir}/nuitka
-%{_bindir}/nuitka-run
+%{_bindir}/nuitka2
+%{_bindir}/nuitka2-run
 %{python_sitearch}/*
 %endif
 %{_mandir}/man1/*

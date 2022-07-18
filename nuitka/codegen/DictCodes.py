@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,14 +21,23 @@
 
 from nuitka import Options
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Jinja2 import renderTemplateFromString
 
 from .CodeHelpers import (
+    assignConstantNoneResult,
+    decideConversionCheckNeeded,
+    generateChildExpressionCode,
     generateChildExpressionsCode,
     generateExpressionCode,
     withCleanupFinally,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    generateCAPIObjectCode0,
+    makeArgDescFromExpression,
+)
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):
@@ -114,15 +123,12 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
     dict_key_name = context.allocateTempName("dict_key")
     dict_value_name = context.allocateTempName("dict_value")
 
-    is_hashable_key = [pair.subnode_key.isKnownToBeHashable() for pair in pairs]
+    is_hashable_key = [pair.isKeyKnownToBeHashable() for pair in pairs]
 
     # Does this dictionary build need an exception handling at all.
     if all(is_hashable_key):
         for pair in pairs[1:]:
-            if pair.subnode_key.mayRaiseException(BaseException):
-                needs_exception_exit = True
-                break
-            if pair.subnode_value.mayRaiseException(BaseException):
+            if pair.mayRaiseException(BaseException):
                 needs_exception_exit = True
                 break
         else:
@@ -133,15 +139,18 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
     def generateValueCode(dict_value_name, pair):
         generateExpressionCode(
             to_name=dict_value_name,
-            expression=pair.subnode_value,
+            expression=pair.getValueNode(),
             emit=emit,
             context=context,
         )
 
+    # TODO: There must be a way to avoid using a node like getKeyNode does, to
+    # create the pair creation code, maybe this kind of virtual constants can
+    # be asked, but then this code should be shared.
     def generateKeyCode(dict_key_name, pair):
         generateExpressionCode(
             to_name=dict_key_name,
-            expression=pair.subnode_key,
+            expression=pair.getKeyNode(),
             emit=emit,
             context=context,
         )
@@ -168,7 +177,7 @@ def _getDictionaryCreationCode(to_name, pairs, emit, context):
 
     key_needs_release, value_needs_release = generatePairCode(pairs[0])
 
-    # Create dictionary presized.
+    # Create dictionary pre-sized.
     emit("%s = _PyDict_NewPresized( %d );" % (to_name, pairs_count))
 
     with withCleanupFinally(
@@ -219,27 +228,22 @@ def generateDictOperationUpdateCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        res_name = context.getIntResName()
 
-    res_name = context.getIntResName()
+        emit("assert(PyDict_Check(%s));" % dict_arg_name)
+        emit("%s = PyDict_Update(%s, %s);" % (res_name, dict_arg_name, value_arg_name))
 
-    emit("assert(PyDict_Check(%s));" % dict_arg_name)
-    emit("%s = PyDict_Update(%s, %s);" % (res_name, dict_arg_name, value_arg_name))
-
-    getErrorExitBoolCode(
-        condition="%s != 0" % res_name,
-        release_names=(dict_arg_name, value_arg_name),
-        needs_check=statement.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
-
-    old_source_ref = context.setCurrentSourceCodeReference(old_source_ref)
+        getErrorExitBoolCode(
+            condition="%s != 0" % res_name,
+            release_names=(dict_arg_name, value_arg_name),
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
 
 
-def generateDictOperationGetCode(to_name, expression, emit, context):
+def generateDictOperationItemCode(to_name, expression, emit, context):
     dict_name, key_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
@@ -262,12 +266,441 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
+def generateDictOperationGet2Code(to_name, expression, emit, context):
+    dict_name, key_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_value", expression, emit, context
+    ) as value_name:
+        emit(
+            renderTemplateFromString(
+                r"""
+{% if expression.known_hashable_key %}
+%(value_name)s = DICT_GET_ITEM0(%(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL) {
+{% else %}
+%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR0(%(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+{% endif %}
+    %(value_name)s = Py_None;
+}
+""",
+                expression=expression,
+            )
+            % {
+                "value_name": value_name,
+                "dict_name": dict_name,
+                "key_name": key_name,
+            }
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(dict_name, key_name),
+            needs_check=not expression.known_hashable_key,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateDictOperationGet3Code(to_name, expression, emit, context):
+    dict_name, key_name, default_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    # TODO: This code could actually make it dependent on default taking
+    # a reference or not, and then use DICT_GET_ITEM0/DICT_GET_ITEM_WITH_HASH_ERROR0 if not.
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_value", expression, emit, context
+    ) as value_name:
+        emit(
+            renderTemplateFromString(
+                r"""
+{% if expression.known_hashable_key %}
+%(value_name)s = DICT_GET_ITEM1(%(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL) {
+{% else %}
+%(value_name)s = DICT_GET_ITEM_WITH_HASH_ERROR1(%(dict_name)s, %(key_name)s);
+if (%(value_name)s == NULL && !ERROR_OCCURRED()) {
+{% endif %}
+    %(value_name)s = %(default_name)s;
+    Py_INCREF(%(value_name)s);
+}
+
+""",
+                expression=expression,
+            )
+            % {
+                "value_name": value_name,
+                "dict_name": dict_name,
+                "key_name": key_name,
+                "default_name": default_name,
+            }
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(dict_name, key_name, default_name),
+            needs_check=not expression.known_hashable_key,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateDictOperationSetdefault2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_SETDEFAULT2",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=not expression.known_hashable_key,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationSetdefault3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_SETDEFAULT3",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=not expression.known_hashable_key,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationPop2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_POP2",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationPop3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_POP3",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=not expression.known_hashable_key,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationPopitemCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_POPITEM",
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def _generateDictOperationUpdateCommonCode(
+    dict_name, iterable_name, release_dict, expression, emit, context
+):
+    res_name = context.getIntResName()
+
+    emit("assert(PyDict_Check(%s));" % dict_name)
+
+    emit(
+        renderTemplateFromString(
+            r"""
+{% if has_keys_attribute == None %}
+if (HAS_ATTR_BOOL(%(iterable_name)s, const_str_plain_keys)){
+    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
+} else {
+    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
+}
+{% elif has_keys_attribute == True %}
+    %(res_name)s = PyDict_Merge(%(dict_name)s, %(iterable_name)s, 1);
+{% else %}
+    %(res_name)s = PyDict_MergeFromSeq2(%(dict_name)s, %(iterable_name)s, 1);
+{% endif %}
+""",
+            has_keys_attribute=expression.subnode_iterable.isKnownToHaveAttribute(
+                "keys"
+            ),
+        )
+        % {
+            "res_name": res_name,
+            "dict_name": dict_name,
+            "iterable_name": iterable_name,
+        }
+    )
+
+    if release_dict:
+        release_names = (dict_name, iterable_name)
+    else:
+        release_names = (iterable_name,)
+
+    getErrorExitBoolCode(
+        condition="%s != 0" % res_name,
+        release_names=release_names,
+        needs_check=expression.mayRaiseException(BaseException),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationUpdate2Code(to_name, expression, emit, context):
+    dict_name, iterable_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    _generateDictOperationUpdateCommonCode(
+        dict_name=dict_name,
+        iterable_name=iterable_name,
+        release_dict=True,
+        expression=expression,
+        emit=emit,
+        context=context,
+    )
+
+    assignConstantNoneResult(to_name, emit, context)
+
+
+def generateDictOperationUpdate3Code(to_name, expression, emit, context):
+    dict_name = generateChildExpressionCode(
+        expression=expression.subnode_dict_arg, emit=emit, context=context
+    )
+
+    emit("assert(PyDict_Check(%s));" % dict_name)
+
+    if expression.subnode_iterable is not None:
+        iterable_name = generateChildExpressionCode(
+            expression=expression.subnode_iterable, emit=emit, context=context
+        )
+
+        _generateDictOperationUpdateCommonCode(
+            dict_name=dict_name,
+            iterable_name=iterable_name,
+            release_dict=False,
+            expression=expression,
+            emit=emit,
+            context=context,
+        )
+
+    # Unique values per build here, but nested.
+    dict_key_name = context.allocateTempName("dictupdate_key")
+    dict_value_name = context.allocateTempName("dictupdate_value")
+
+    res_name = context.getIntResName()
+
+    for count, pair in enumerate(expression.subnode_pairs):
+        generateExpressionCode(
+            to_name=dict_key_name,
+            expression=pair.getKeyNode(),
+            emit=emit,
+            context=context,
+        )
+
+        generateExpressionCode(
+            to_name=dict_value_name,
+            expression=pair.getValueNode(),
+            emit=emit,
+            context=context,
+        )
+
+        emit(
+            "%s = PyDict_SetItem(%s, %s, %s);"
+            % (res_name, dict_name, dict_key_name, dict_value_name)
+        )
+
+        getErrorExitBoolCode(
+            condition="%s != 0" % res_name,
+            needs_check=not expression.subnode_pairs[count].isKnownToBeHashable(),
+            release_names=(dict_key_name, dict_value_name),
+            emit=emit,
+            context=context,
+        )
+
+    getReleaseCode(
+        release_name=dict_name,
+        emit=emit,
+        context=context,
+    )
+
+    assignConstantNoneResult(to_name, emit, context)
+
+
+def generateDictOperationCopyCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_COPY",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationClearCode(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name=None,
+        capi="DICT_CLEAR",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+    # None result if wanted.
+    assignConstantNoneResult(to_name, emit, context)
+
+
+def generateDictOperationItemsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITEMS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationIteritemsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITERITEMS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationViewitemsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VIEWITEMS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationKeysCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_KEYS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationIterkeysCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITERKEYS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationViewkeysCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VIEWKEYS",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationValuesCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VALUES",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationItervaluesCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_ITERVALUES",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateDictOperationViewvaluesCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="DICT_VIEWVALUES",
+        arg_desc=(("dict_arg", expression.subnode_dict_arg),),
+        may_raise=False,
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateDictOperationInCode(to_name, expression, emit, context):
     inverted = expression.isExpressionDictOperationNotIn()
 
     dict_name, key_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
+
+    # Reverse child order.
+    if expression.isExpressionDictOperationHaskey():
+        dict_name, key_name = key_name, dict_name
 
     res_name = context.getIntResName()
 
@@ -317,8 +750,11 @@ def generateDictOperationSetCode(statement, emit, context):
     res_name = context.getIntResName()
 
     emit(
-        "%s = PyDict_SetItem(%s, %s, %s);"
-        % (res_name, dict_arg_name, key_arg_name, value_arg_name)
+        """\
+assert(PyDict_CheckExact(%s));
+%s = PyDict_SetItem(%s, %s, %s);
+"""
+        % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name)
     )
 
     getErrorExitBoolCode(
@@ -360,8 +796,11 @@ def generateDictOperationSetCodeKeyValue(statement, emit, context):
     res_name = context.getIntResName()
 
     emit(
-        "%s = PyDict_SetItem(%s, %s, %s);"
-        % (res_name, dict_arg_name, key_arg_name, value_arg_name)
+        """\
+assert(PyDict_CheckExact(%s));
+%s = PyDict_SetItem(%s, %s, %s);
+"""
+        % (dict_arg_name, res_name, dict_arg_name, key_arg_name, value_arg_name)
     )
 
     getErrorExitBoolCode(
@@ -390,22 +829,19 @@ def generateDictOperationRemoveCode(statement, emit, context):
         context=context,
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         statement.subnode_key.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
-    )
+    ):
+        res_name = context.getBoolResName()
 
-    res_name = context.getBoolResName()
+        emit("%s = DICT_REMOVE_ITEM(%s, %s);" % (res_name, dict_arg_name, key_arg_name))
 
-    emit("%s = DICT_REMOVE_ITEM(%s, %s);" % (res_name, dict_arg_name, key_arg_name))
-
-    getErrorExitBoolCode(
-        condition="%s == false" % res_name,
-        release_names=(dict_arg_name, key_arg_name),
-        needs_check=statement.mayRaiseException(BaseException),
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name,
+            release_names=(dict_arg_name, key_arg_name),
+            needs_check=statement.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )

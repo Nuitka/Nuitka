@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,16 +17,11 @@
 #
 """ Reformulation of function statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
     ExpressionMakeAsyncgenObject,
@@ -55,12 +50,18 @@ from nuitka.nodes.GeneratorNodes import (
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableNameNodes import (
+    ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableNameRef,
     ExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.Options import hasPythonFlagNoAnnotations
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -133,6 +134,10 @@ def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details, pylint: disable=too-many-locals
 
     assert getKind(node) == "FunctionDef"
+
+    Plugins.onFunctionBodyParsing(
+        provider=provider, function_name=node.name, body=node.body
+    )
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
@@ -293,6 +298,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     # We are creating a function here that creates coroutine objects, with
     # many details each, pylint: disable=too-many-locals
     assert getKind(node) == "AsyncFunctionDef"
+
+    Plugins.onFunctionBodyParsing(
+        provider=provider, function_name=node.name, body=node.body
+    )
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
@@ -548,7 +557,7 @@ def _wrapFunctionWithSpecialNestedArgs(
         iter_vars.append(iter_var)
 
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=iter_var,
                 source=ExpressionBuiltinIter1(value=source, source_ref=source_ref),
                 source_ref=source_ref,
@@ -561,7 +570,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 outer_body.getLocalsScope().registerProvidedVariable(arg_var)
 
                 statements.append(
-                    StatementAssignmentVariable(
+                    makeStatementAssignmentVariable(
                         variable=arg_var,
                         source=ExpressionSpecialUnpack(
                             value=ExpressionTempVariableRef(
@@ -638,7 +647,9 @@ def _wrapFunctionWithSpecialNestedArgs(
                 provider=outer_body,
                 tried=statements,
                 final=[
-                    StatementReleaseVariable(variable=variable, source_ref=source_ref)
+                    makeStatementReleaseVariable(
+                        variable=variable, source_ref=source_ref
+                    )
                     for variable in sorted(
                         outer_body.getTempVariables(),
                         key=lambda variable: variable.getName(),
@@ -772,7 +783,7 @@ def addFunctionVariableReleases(function):
             continue
 
         releases.append(
-            StatementReleaseVariable(variable=variable, source_ref=source_ref)
+            makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
         )
 
     if releases:

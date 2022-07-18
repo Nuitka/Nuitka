@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,15 +17,11 @@
 #
 """ Reformulation of lambda expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNot
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
@@ -43,7 +39,9 @@ from nuitka.nodes.GeneratorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
@@ -123,7 +121,7 @@ def buildLambdaNode(provider, node, source_ref):
             )
 
             statements = (
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_return_value, source=body, source_ref=source_ref
                 ),
                 makeStatementConditional(
@@ -150,7 +148,7 @@ def buildLambdaNode(provider, node, source_ref):
             body = makeTryFinallyStatement(
                 provider=provider,
                 tried=statements,
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=tmp_return_value, source_ref=source_ref
                 ),
                 source_ref=source_ref,

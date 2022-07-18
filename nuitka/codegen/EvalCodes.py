@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,7 +18,6 @@
 """ Eval/exec/execfile/compile built-in related codes. """
 
 from nuitka import Options
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -69,7 +68,7 @@ def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
                 variable_trace=variable_trace,
                 tmp_name=value_name,
                 needs_release=None,  # TODO: Could be known maybe.
-                in_place=False,
+                inplace=False,
                 emit=emit,
                 context=context,
             )
@@ -266,8 +265,9 @@ def generateExecCode(statement, emit, context):
     filename_name.getCType().emitAssignmentCodeFromConstant(
         to_name=filename_name,
         constant="<string>"
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else "<string at %s>" % source_ref.getAsString(),
+        may_escape=False,
         emit=emit,
         context=context,
     )
@@ -278,61 +278,61 @@ def generateExecCode(statement, emit, context):
     getReferenceExportCode(source_name, emit, context)
     context.addCleanupTempName(source_name)
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         locals_arg.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
-    )
+    ):
 
-    res_name = context.getBoolResName()
+        res_name = context.getBoolResName()
 
-    emit(
-        "%s = EXEC_FILE_ARG_HANDLING(&%s, &%s);"
-        % (res_name, source_name, filename_name)
-    )
+        emit(
+            "%s = EXEC_FILE_ARG_HANDLING(&%s, &%s);"
+            % (res_name, source_name, filename_name)
+        )
 
-    getErrorExitBoolCode(condition="%s == false" % res_name, emit=emit, context=context)
+        getErrorExitBoolCode(
+            condition="%s == false" % res_name, emit=emit, context=context
+        )
 
-    compiled_name = context.allocateTempName("exec_compiled")
+        compiled_name = context.allocateTempName("exec_compiled")
 
-    _getBuiltinCompileCode(
-        to_name=compiled_name,
-        source_name=source_name,
-        filename_name=filename_name,
-        mode_name=context.getConstantCode(constant="exec"),
-        flags_name="NULL",
-        dont_inherit_name="NULL",
-        optimize_name="NULL",
-        emit=emit,
-        context=context,
-    )
+        _getBuiltinCompileCode(
+            to_name=compiled_name,
+            source_name=source_name,
+            filename_name=filename_name,
+            mode_name=context.getConstantCode(constant="exec"),
+            flags_name="NULL",
+            dont_inherit_name="NULL",
+            optimize_name="NULL",
+            emit=emit,
+            context=context,
+        )
 
-    to_name = context.allocateTempName("exec_result")
+        to_name = context.allocateTempName("exec_result")
 
-    emit(
-        "%s = EVAL_CODE(%s, %s, %s);"
-        % (to_name, compiled_name, globals_name, locals_name)
-    )
+        emit(
+            "%s = EVAL_CODE(%s, %s, %s);"
+            % (to_name, compiled_name, globals_name, locals_name)
+        )
 
-    getErrorExitCode(
-        check_name=to_name,
-        release_names=(
-            compiled_name,
-            globals_name,
-            locals_name,
-            source_name,
-            filename_name,
-        ),
-        emit=emit,
-        context=context,
-    )
+        getErrorExitCode(
+            check_name=to_name,
+            release_names=(
+                compiled_name,
+                globals_name,
+                locals_name,
+                source_name,
+                filename_name,
+            ),
+            emit=emit,
+            context=context,
+        )
 
-    # Immediately release the exec result, no point in keeping it, it's a
-    # statement.
-    context.addCleanupTempName(to_name)
-    getReleaseCode(release_name=to_name, emit=emit, context=context)
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+        # Immediately release the exec result, no point in keeping it, it's a
+        # statement.
+        context.addCleanupTempName(to_name)
+        getReleaseCode(release_name=to_name, emit=emit, context=context)
 
 
 def _generateEvalCode(to_name, node, emit, context):
@@ -407,16 +407,11 @@ def generateLocalsDictSyncCode(statement, emit, context):
         to_name=locals_name, expression=locals_arg, emit=emit, context=context
     )
 
-    old_source_ref = context.setCurrentSourceCodeReference(
-        statement.getSourceReference()
-    )
-
-    _getStoreLocalsCode(
-        locals_name=locals_name,
-        variable_traces=statement.getPreviousVariablesTraces(),
-        is_dict=locals_arg.getTypeShape() is tshape_dict,
-        emit=emit,
-        context=context,
-    )
-
-    context.setCurrentSourceCodeReference(old_source_ref)
+    with context.withCurrentSourceCodeReference(statement.getSourceReference()):
+        _getStoreLocalsCode(
+            locals_name=locals_name,
+            variable_traces=statement.getPreviousVariablesTraces(),
+            is_dict=locals_arg.hasShapeDictionaryExact(),
+            emit=emit,
+            context=context,
+        )

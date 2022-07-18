@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -17,8 +17,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# nuitka-project: --standalone
+
 import ctypes
 import os
+import sys
 
 if os.name == "nt":
     # adapted from http://code.activestate.com/recipes/578513
@@ -60,12 +63,11 @@ if os.name == "nt":
         raise ctypes.WinError()
 
     print("OK.")
-else:
-    # TODO: How to get this to work.
-    if False:
-        libc = ctypes.CDLL("libc")
+elif sys.platform == "linux":
+    libc = ctypes.CDLL("libc.so.6")
 
-        printf = libc.printf
-        printf("Hello, %s\n", "World!")
+    printf = libc.printf
+    # printf.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    printf(b"Hello, %s\n", b"World!")
 
     print("OK.")

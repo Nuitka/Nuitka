@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -118,7 +118,8 @@ def generateTryCode(statement, emit, context):
         getLabelCode(return_handler_escape, emit)
 
         # During the return value, the value being returned is in a variable,
-        # and therefore needs to be released before being updated.
+        # and therefore needs to be released before being updated with a new
+        # return value.
         old_return_value_release = context.setReturnReleaseMode(True)
 
         generateStatementSequenceCode(
@@ -310,29 +311,27 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
 
     tmp_name2 = context.allocateTempName("assign_source")
 
-    old_source_ref = context.setCurrentSourceCodeReference(
+    with context.withCurrentSourceCodeReference(
         assign_source.getSourceReference()
-        if Options.is_fullcompat
+        if Options.is_full_compat
         else statement.getSourceReference()
-    )
+    ):
 
-    getBuiltinLoopBreakNextCode(
-        to_name=tmp_name2, value=tmp_name, emit=emit, context=context
-    )
+        getBuiltinLoopBreakNextCode(
+            to_name=tmp_name2, value=tmp_name, emit=emit, context=context
+        )
 
-    getVariableAssignmentCode(
-        tmp_name=tmp_name2,
-        variable=tried_statement.getVariable(),
-        variable_trace=tried_statement.getVariableTrace(),
-        needs_release=None,
-        in_place=False,
-        emit=emit,
-        context=context,
-    )
+        getVariableAssignmentCode(
+            tmp_name=tmp_name2,
+            variable=tried_statement.getVariable(),
+            variable_trace=tried_statement.getVariableTrace(),
+            needs_release=None,
+            inplace=False,
+            emit=emit,
+            context=context,
+        )
 
-    context.setCurrentSourceCodeReference(old_source_ref)
-
-    if context.needsCleanup(tmp_name2):
-        context.removeCleanupTempName(tmp_name2)
+        if context.needsCleanup(tmp_name2):
+            context.removeCleanupTempName(tmp_name2)
 
     return True

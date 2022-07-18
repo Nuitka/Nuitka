@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -85,9 +85,14 @@ FALSE = 0
 
 def main(loops=LOOPS):
     benchtime, stones = pystones(loops)
-    print("Pystone(%s) time for %d passes = %g" % \
-          (__version__, loops, benchtime))
-    print("This machine benchmarks at %g pystones/second" % stones)
+
+    import os
+    if int(os.environ.get("BENCH", "0")):
+        print("%g" % stones)
+    else:
+        print("Pystone(%s) time for %d passes = %g" % \
+            (__version__, loops, benchtime))
+        print("This machine benchmarks at %g pystones/second" % stones)
 
 
 def pystones(loops=LOOPS):

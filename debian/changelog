@@ -1,8 +1,306 @@
-nuitka (0.6.16~rc4+ds-1) experimental; urgency=medium
+nuitka (1.0~rc8+ds-1) unstable; urgency=medium
 
   * New upstream pre-release.
 
- -- Kay Hayen <kay.hayen@gmail.com>  Sun, 06 Jun 2021 19:03:39 +0200
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 17 Jul 2022 18:50:17 +0200
+
+nuitka (0.9.6+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 17 Jul 2022 18:40:22 +0200
+
+nuitka (0.9.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 15 Jul 2022 13:59:28 +0200
+
+nuitka (0.9.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 07 Jul 2022 09:24:53 +0200
+
+nuitka (0.9.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 02 Jul 2022 18:49:29 +0200
+
+nuitka (0.9.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 30 Jun 2022 08:40:14 +0200
+
+nuitka (0.9.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 26 Jun 2022 10:41:06 +0200
+
+nuitka (0.9+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+  * Python 3.10 is now compatible again. (Closes: #1006051)
+
+  * Solved CVE-2022-2054 (Closes: #1012762)
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 23 Jun 2022 08:36:25 +0200
+
+nuitka (0.8.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 07 Jun 2022 17:21:39 +0200
+
+nuitka (0.8.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 28 May 2022 14:59:01 +0200
+
+nuitka (0.8.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 26 May 2022 08:23:28 +0200
+
+nuitka (0.8.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 23 May 2022 08:31:51 +0200
+
+nuitka (0.8+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 19 May 2022 14:24:06 +0200
+
+nuitka (0.7.7+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 01 Apr 2022 12:01:36 +0200
+
+nuitka (0.7.6+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 19 Mar 2022 13:44:59 +0100
+
+nuitka (0.7.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 14 Mar 2022 18:55:11 +0100
+
+nuitka (0.7.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 12 Mar 2022 13:50:50 +0100
+
+nuitka (0.7.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 27 Feb 2022 13:58:34 +0100
+
+nuitka (0.7.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 26 Feb 2022 16:54:03 +0100
+
+nuitka (0.7.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 24 Feb 2022 13:22:40 +0100
+
+nuitka (0.7+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 20 Feb 2022 09:09:50 +0100
+
+nuitka (0.6.19.7+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 11 Feb 2022 14:37:34 +0100
+
+nuitka (0.6.19.6+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 03 Feb 2022 10:30:39 +0100
+
+nuitka (0.6.19.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 01 Feb 2022 18:53:20 +0100
+
+nuitka (0.6.19.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 19 Jan 2022 10:02:04 +0100
+
+nuitka (0.6.19.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 16 Jan 2022 11:32:51 +0100
+
+nuitka (0.6.19.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 14 Jan 2022 11:03:16 +0100
+
+nuitka (0.6.19.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 11 Jan 2022 07:59:24 +0100
+
+nuitka (0.6.19+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sun, 09 Jan 2022 13:14:29 +0100
+
+nuitka (0.6.18.6+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 29 Dec 2021 19:42:43 +0100
+
+nuitka (0.6.18.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 20 Dec 2021 13:41:00 +0100
+
+nuitka (0.6.18.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 16 Dec 2021 08:31:41 +0100
+
+nuitka (0.6.18.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 10 Dec 2021 17:49:19 +0100
+
+nuitka (0.6.18.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 09 Dec 2021 14:52:56 +0100
+
+nuitka (0.6.18.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 04 Dec 2021 18:39:19 +0100
+
+nuitka (0.6.18+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 02 Dec 2021 17:33:56 +0100
+
+nuitka (0.6.17.7+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 15 Nov 2021 14:33:27 +0100
+
+nuitka (0.6.17.6+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 08 Nov 2021 14:07:11 +0100
+
+nuitka (0.6.17.5+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 28 Oct 2021 11:52:02 +0200
+
+nuitka (0.6.17.4+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 21 Oct 2021 13:03:34 +0200
+
+nuitka (0.6.17.3+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 14 Oct 2021 10:32:17 +0200
+
+nuitka (0.6.17.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 05 Oct 2021 17:21:29 +0200
+
+nuitka (0.6.17.1+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 29 Sep 2021 12:28:39 +0200
+
+nuitka (0.6.17+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 27 Sep 2021 13:38:42 +0200
+
+nuitka (0.6.16.5+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Mon, 06 Sep 2021 10:46:40 +0200
+
+nuitka (0.6.16.4+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 25 Aug 2021 11:51:44 +0200
+
+nuitka (0.6.16.3+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 07 Aug 2021 18:14:58 +0200
+
+nuitka (0.6.16.2+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 02 Jul 2021 10:40:08 +0200
+
+nuitka (0.6.16.1+ds-1) experimental; urgency=medium
+
+  * New upstream hotfix release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Fri, 25 Jun 2021 16:45:43 +0200
+
+nuitka (0.6.16+ds-1) experimental; urgency=medium
+
+  * New upstream release.
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Thu, 24 Jun 2021 11:52:37 +0200
 
 nuitka (0.6.15.3+ds-1) experimental; urgency=medium
 
@@ -1195,7 +1493,7 @@ nuitka (0.3.18~pre2+ds-1) unstable; urgency=low
     sponsor Yaroslav Halchenko <debian@onerussian.com>
   * New maintainer (Closes: #648489)
   * Added Developer Manual to the generated PDF documentation.
-  * Added python-dbg to Build-Depends to also execcute reference
+  * Added python-dbg to Build-Depends to also execute reference
     count tests.
   * Changed copyright file to reference Apache license via its
     standard Debian location as well.

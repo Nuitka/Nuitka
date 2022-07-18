@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -20,6 +20,7 @@
 
 static inline Py_ssize_t DICT_SIZE(PyObject *dict) {
     CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
 
     return ((PyDictObject *)dict)->ma_used;
 }
@@ -130,6 +131,10 @@ struct _dictkeysobject {
 
 #define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
 
+#else
+
+#define DK_ENTRIES(dk) (dk->dk_entries)
+
 #endif
 
 typedef PyObject **Nuitka_DictEntryHandle;
@@ -229,6 +234,11 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM(PyObject *dict, PyObject *key)
 
 // Get dict lookup for a key, similar to PyDict_GetItemWithError, ref returned
 extern PyObject *DICT_GET_ITEM_WITH_ERROR(PyObject *dict, PyObject *key);
+
+// Get dict lookup for a key, with only hash error, does not create KeyError, 1=ref returned, 0=not
+extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR1(PyObject *dict, PyObject *key);
+extern PyObject *DICT_GET_ITEM_WITH_HASH_ERROR0(PyObject *dict, PyObject *key);
+
 // Get dict lookup for a key, similar to PyDict_GetItem, 1=ref returned, 0=not
 extern PyObject *DICT_GET_ITEM1(PyObject *dict, PyObject *key);
 extern PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key);
@@ -355,5 +365,41 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_
         CHECK_OBJECT(value);
     }
 }
+
+#if PYTHON_VERSION < 0x300
+// Python2 dictionary keys, return a list of keys
+extern PyObject *DICT_KEYS(PyObject *dict);
+// Python2 dictionary items, return a list of values
+extern PyObject *DICT_VALUES(PyObject *dict);
+// Python2 dictionary items, return a list of key/value tuples
+extern PyObject *DICT_ITEMS(PyObject *dict);
+#endif
+
+// Python3 dictionary keys, Python2 iterkeys returns dictionary keys iterator
+extern PyObject *DICT_ITERKEYS(PyObject *dict);
+
+// Python3 dictionary values, Python2 itervalues returns dictionary values iterator
+extern PyObject *DICT_ITERVALUES(PyObject *dict);
+
+// Python3 dictionary items, Python2 iteritems returns dictionary items iterator
+extern PyObject *DICT_ITERITEMS(PyObject *dict);
+
+// Python dictionary keys view
+extern PyObject *DICT_VIEWKEYS(PyObject *dict);
+
+// Python dictionary values view
+extern PyObject *DICT_VIEWVALUES(PyObject *dict);
+
+// Python dictionary items view
+extern PyObject *DICT_VIEWITEMS(PyObject *dict);
+
+// Python dictionary copy, return a shallow copy of a dictionary.
+extern PyObject *DICT_COPY(PyObject *dict);
+
+// Python dictionary clear, empty a dictionary.
+extern void DICT_CLEAR(PyObject *dict);
+
+// Replacement for PyDict_Next that is faster (to call).
+extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
 
 #endif

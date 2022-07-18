@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,10 +27,12 @@ good.
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
-from .shapes.BuiltinTypeShapes import tshape_int_or_long
+from .ExpressionShapeMixins import ExpressionIntOrLongExactMixin
 
 
-class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinLen(
+    ExpressionIntOrLongExactMixin, ExpressionBuiltinSingleArgBase
+):
     kind = "EXPRESSION_BUILTIN_LEN"
 
     builtin_spec = BuiltinParameterSpecs.builtin_len_spec
@@ -47,11 +49,6 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
         return self.subnode_value.computeExpressionLen(
             len_node=self, trace_collection=trace_collection
         )
-
-    @staticmethod
-    def getTypeShape():
-        # Length could be really big, using a long.
-        return tshape_int_or_long
 
     def mayRaiseException(self, exception_type):
         value = self.subnode_value

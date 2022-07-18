@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,11 @@ import hashlib
 import os
 import sys
 
-from nuitka.utils.FileOperations import areSamePaths
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getFileContents,
+    putTextFileContents,
+)
 
 
 class SearchModeBase(object):
@@ -55,6 +59,9 @@ class SearchModeBase(object):
 
     @classmethod
     def _match(cls, dirname, filename, candidate):
+        # Circular dependency.
+        from .Common import getStartDir
+
         parts = [dirname, filename]
 
         while None in parts:
@@ -66,17 +73,16 @@ class SearchModeBase(object):
         candidates = (
             dirname,
             filename,
-            filename.replace(".py", ""),
-            filename.split(".")[0],
+            filename.rsplit(".", 1)[0],
+            filename.rsplit(".", 1)[0].replace("Test", ""),
             path,
-            path.replace(".py", ""),
+            path.rsplit(".", 1)[0],
+            path.rsplit(".", 1)[0].replace("Test", ""),
         )
 
-        candidate2 = os.path.relpath(
-            candidate, os.path.dirname(sys.modules["__main__"].__file__)
+        return candidate.rstrip("/") in candidates or areSamePaths(
+            os.path.join(getStartDir(), candidate), filename
         )
-
-        return candidate.rstrip("/") in candidates or candidate2 in candidates
 
     def exit(self, message):
         # Virtual method, pylint: disable=no-self-use
@@ -102,6 +108,9 @@ class SearchModeByPattern(SearchModeBase):
         self.start_at = start_at
 
     def consider(self, dirname, filename):
+        if self.start_at is None:
+            self.active = True
+
         if self.active:
             return True
 
@@ -134,8 +143,7 @@ class SearchModeResume(SearchModeBase):
         self.cache_filename = cache_filename
 
         if os.path.exists(cache_filename):
-            with open(cache_filename, "r") as f:
-                self.resume_from = f.read() or None
+            self.resume_from = getFileContents(cache_filename) or None
         else:
             self.resume_from = None
 
@@ -151,8 +159,7 @@ class SearchModeResume(SearchModeBase):
         path = os.path.join(*parts)
 
         if self.active:
-            with open(self.cache_filename, "w") as f:
-                f.write(path)
+            putTextFileContents(self.cache_filename, contents=path)
 
             return True
 
@@ -167,7 +174,7 @@ class SearchModeResume(SearchModeBase):
             sys.exit("Error, became never active, restarting next time.")
 
 
-class SearchModeCoverage(SearchModeBase):
+class SearchModeCoverage(SearchModeByPattern):
     def getExtraFlags(self, dirname, filename):
         return ["coverage"]
 
@@ -193,18 +200,3 @@ class SearchModeOnly(SearchModeByPattern):
                 self.done = True
 
             return active
-
-
-class SearchModeAll(SearchModeBase):
-    def __init__(self):
-        SearchModeBase.__init__(self)
-        self.total_errors = 0
-
-    def updateTotalErrors(self):
-        self.total_errors += 1
-
-    def onErrorDetected(self, message):
-        self.updateTotalErrors()
-
-    def finish(self):
-        self.exit("Total " + str(self.total_errors) + " error(s) found.")

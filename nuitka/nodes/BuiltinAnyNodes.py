@@ -1,4 +1,4 @@
-#     Copyright 2021, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
+#     Copyright 2022, Batakrishna Sahu, mailto:<Batakrishna.Sahu@suiit.ac.in>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,15 +22,17 @@
 from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
 )
-from .shapes.BuiltinTypeShapes import tshape_bool
 
 
-class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
+class ExpressionBuiltinAny(
+    ExpressionBoolShapeExactMixin, ExpressionBuiltinSingleArgBase
+):
     """Builtin Any Node class.
 
     Args:
@@ -49,6 +51,9 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         value = self.subnode_value
         shape = value.getTypeShape()
         if shape.hasShapeSlotIter() is False:
+            # An exception is raised.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template="'%s' object is not iterable",
                 operation="any",
@@ -110,11 +115,6 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
-
-    @staticmethod
-    def getTypeShape():
-        """returns type shape of the 'any' node"""
-        return tshape_bool
 
     def mayRaiseException(self, exception_type):
         """returns boolean True if exception is raised else False"""

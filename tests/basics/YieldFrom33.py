@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -122,12 +122,14 @@ test_throw_catched_subgenerator_handling()
 
 def give_cpython_generator():
     # TODO: This relies on eval not being inlined, which will become untrue.
-    return eval("( x for x in range(3) )")
+    return eval("(x for x in range(3))")
 
 
 def gen_compiled():
     yield from give_cpython_generator()
+    yield ...
     yield from range(7)
 
 
+print("Mixing uncompiled and compiled yield from:")
 print(list(gen_compiled()))

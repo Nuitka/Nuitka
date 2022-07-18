@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,11 +23,10 @@ has.
 """
 
 import os
-import subprocess
 import sys
 
 from nuitka.tools.testing.Common import hasModule, my_print
-from nuitka.utils.Execution import check_output, getNullInput
+from nuitka.utils.Execution import check_output, executeProcess, getNullOutput
 
 pylint_version = None
 
@@ -43,10 +42,9 @@ def checkVersion():
         )
 
     if pylint_version is None:
-        with open(os.devnull, "w") as devnull:
-            pylint_version = check_output(
-                [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=devnull
-            )
+        pylint_version = check_output(
+            [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=getNullOutput()
+        )
 
         if str is not bytes:
             pylint_version = pylint_version.decode("utf8")
@@ -88,10 +86,10 @@ def checkVersion():
 # W0632: Possible unbalanced tuple unpacking with sequence defined at ...
 # It's not really good at guessing these things.
 #
-# W1504: Using type() instead of isinstance() for a typecheck.
+# W1504: Using type() instead of isinstance() for typechecking.
 # Nuitka is all about exact type checks, so this doesn't apply
 #
-# C0123: Using type() instead of isinstance() for a typecheck.
+# C0123: Using type() instead of isinstance() for typechecking.
 # Nuitka is all about exact type checks, so this doesn't apply
 #
 # C0413: Import "..." should be placed at the top of the module
@@ -113,7 +111,9 @@ def checkVersion():
 # Not too useful for us.
 #
 # useless-object-inheritance
-# The code is for Python2 still, where it makes a difference.
+# The code is for Python2 still, where it makes a difference, if you do
+# not specify a base class, object is not the default there, but old style
+# classes are, which perform different/worse.
 #
 # useless-return
 # We like explicit None returns where the return value can be overloaded
@@ -128,16 +128,36 @@ def checkVersion():
 # assignment-from-none
 # Overloaded functions are not detected, default value returns are all
 # warned about, not worth it.
+#
+# raise-missing-from
+# cannot do that, as long as we are backwards compatible
+
+# import-outside-toplevel
+# We do this deliberately, to avoid importing modules we do not use in
+# all cases, e.g. Windows/macOS specific stuff.
+
+# consider-using-f-string
+# We need to be backward compatible for Python versions that do not have
+# it.
+
+# super-with-arguments
+# Keeping code portable to Python2 is still good.
 
 
 def getOptions():
     checkVersion()
 
+    # spell-checker: ignore setrecursionlimit,rcfile
+
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
---disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
-similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none,ungrouped-imports,\
-no-else-return,c-extension-no-member,inconsistent-return-statements
+--disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,\
+C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,\
+deprecated-module,deprecated-method,deprecated-argument,assignment-from-none,\
+ungrouped-imports,no-else-return,c-extension-no-member,\
+inconsistent-return-statements,raise-missing-from,import-outside-toplevel,\
+useless-object-inheritance,useless-return,assignment-from-no-return,\
+redundant-u-string-prefix,consider-using-f-string
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -152,7 +172,7 @@ no-else-return,c-extension-no-member,inconsistent-return-statements
 --const-rgx=.*
 --max-line-length=125
 --no-docstring-rgx=.*
---max-module-lines=5000
+--max-module-lines=6000
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
@@ -164,34 +184,6 @@ no-else-return,c-extension-no-member,inconsistent-return-statements
 """.split(
         "\n"
     )
-
-    if pylint_version >= "2.0":
-        default_pylint_options += """\
---disable=useless-object-inheritance,useless-return,assignment-from-no-return\
-""".split(
-            "\n"
-        )
-
-    if pylint_version >= "2.4":
-        default_pylint_options += """\
---disable=import-outside-toplevel\
-""".split(
-            "\n"
-        )
-
-    if pylint_version >= "2.6":
-        default_pylint_options += """\
---disable=raise-missing-from\
-""".split(
-            "\n"
-        )
-
-    if pylint_version < "2.0":
-        default_pylint_options += """\
---disable=slots-on-old-class\
-""".split(
-            "\n"
-        )
 
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
@@ -241,16 +233,7 @@ def _executePylint(filenames, pylint_options, extra_options):
         + filenames
     )
 
-    process = subprocess.Popen(
-        args=command,
-        stdin=getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=False,
-    )
-
-    stdout, stderr = process.communicate()
-    exit_code = process.returncode
+    stdout, stderr, exit_code = executeProcess(command)
 
     if exit_code == -11:
         sys.exit("Error, segfault from pylint.")
@@ -279,18 +262,10 @@ def _executePylint(filenames, pylint_options, extra_options):
 
 
 def hasPyLintBugTrigger(filename):
-    # Stack overflow core dumps with 1.9.x unfortunately.
-    if pylint_version < "2.0.0":
-        if os.path.basename(filename) in (
-            "ReformulationContractionExpressions.py",
-            "TreeHelpers.py",
-        ):
-            return True
-
-    # Slot warning that is impossible to disable
-    if pylint_version < "2.0.0":
-        if os.path.basename(filename) in ("Variables.py",):
-            return True
+    """Decide if a filename should be skipped."""
+    # Currently everything is good, but it's a useful hook, pylint_: disable=unused-argument
+    if filename == "nuitka/distutils/Build.py":
+        return True
 
     return False
 
@@ -298,18 +273,18 @@ def hasPyLintBugTrigger(filename):
 def isSpecificPythonOnly(filename):
     """Decide if something is not used for this specific Python."""
 
-    # Currently everything is portable, but it's a good hook, pylint: disable=unused-argument
+    # Currently everything is portable, but it's a useful hook, pylint: disable=unused-argument
     return False
 
 
-def executePyLint(filenames, show_todos, verbose, one_by_one):
+def executePyLint(filenames, show_todo, verbose, one_by_one):
     filenames = list(filenames)
 
     if verbose:
         my_print("Checking", filenames, "...")
 
     pylint_options = getOptions()
-    if not show_todos:
+    if not show_todo:
         pylint_options.append("--notes=")
 
     filenames = [

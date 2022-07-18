@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -103,19 +103,10 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
 
 static PyObject *Nuitka_Cell_tp_repr(struct Nuitka_CellObject *cell) {
     if (cell->ob_ref == NULL) {
-#if PYTHON_VERSION < 0x300
-        return PyString_FromFormat(
-#else
-        return PyUnicode_FromFormat(
-#endif
-            "<compiled_cell at %p: empty>", cell);
+        return Nuitka_String_FromFormat("<compiled_cell at %p: empty>", cell);
     } else {
-#if PYTHON_VERSION < 0x300
-        return PyString_FromFormat(
-#else
-        return PyUnicode_FromFormat(
-#endif
-            "<compiled_cell at %p: %s object at %p>", cell, cell->ob_ref->ob_type->tp_name, cell->ob_ref);
+        return Nuitka_String_FromFormat("<compiled_cell at %p: %s object at %p>", cell, cell->ob_ref->ob_type->tp_name,
+                                        cell->ob_ref);
     }
 }
 
@@ -144,11 +135,16 @@ static PyObject *Nuitka_Cell_get_contents(struct Nuitka_CellObject *cell, void *
 #if PYTHON_VERSION >= 0x370
 static int Nuitka_Cell_set_contents(struct Nuitka_CellObject *cell, PyObject *value) {
     PyObject *old = cell->ob_ref;
+
+    if (old != NULL && value == NULL) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cell_contents cannot be used to delete values Nuitka");
+        return -1;
+    }
+
     cell->ob_ref = value;
     Py_XINCREF(value);
     Py_XDECREF(old);
 
-    // Cannot fail.
     return 0;
 }
 #endif
@@ -163,8 +159,8 @@ static PyGetSetDef Nuitka_Cell_getsetlist[] = {
 
 PyTypeObject Nuitka_Cell_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_cell",
-    sizeof(struct Nuitka_CellObject),
-    0,
+    sizeof(struct Nuitka_CellObject),   /* tp_basicsize */
+    0,                                  /* tp_itemsize */
     (destructor)Nuitka_Cell_tp_dealloc, /* tp_dealloc */
     0,                                  /* tp_print */
     0,                                  /* tp_getattr */

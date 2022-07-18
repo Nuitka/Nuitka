@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,13 +19,9 @@
 
 One for each type of call. """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeCheck,
-    ExpressionAttributeLookup,
+    makeExpressionAttributeLookup,
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
@@ -46,7 +42,11 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
-from nuitka.nodes.DictionaryNodes import StatementDictOperationSetKeyValue
+from nuitka.nodes.DictionaryNodes import (
+    ExpressionDictOperationIteritems,
+    StatementDictOperationSet,
+    StatementDictOperationSetKeyValue,
+)
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
     StatementRaiseException,
@@ -68,10 +68,12 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinType1,
 )
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import (
     getComplexCallSequenceErrorTemplate,
     python_version,
@@ -114,7 +116,7 @@ def orderArgs(*args):
 
 
 def _makeNameAttributeLookup(node, attribute_name="__name__"):
-    return ExpressionAttributeLookup(
+    return makeExpressionAttributeLookup(
         expression=node, attribute_name=attribute_name, source_ref=internal_source_ref
     )
 
@@ -129,7 +131,7 @@ def getCallableNameDescBody():
     #
     # called_type = type(BuiltinFunctionType)
     #
-    # if ininstance( called, (FunctionType, MethodType, BuiltinFunctionType) ):
+    # if isinstance(called, (FunctionType, MethodType, BuiltinFunctionType)):
     #     return called.__name__
     # elif python_version < 0x3 and isinstance(called, ClassType):
     #     return called_type.__name__ + " constructor"
@@ -393,7 +395,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
                 ),
                 source_ref=internal_source_ref,
             ),
-            yes_branch=StatementAssignmentVariable(
+            yes_branch=makeStatementAssignmentVariable(
                 variable=star_list_variable,
                 source=ExpressionBuiltinTuple(
                     value=ExpressionVariableRef(
@@ -410,7 +412,7 @@ def _makeStarListArgumentToTupleStatement(called_variable, star_list_variable):
         )
     else:
         non_tuple_code = makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=star_list_variable,
                 source=ExpressionBuiltinTuple(
                     value=ExpressionVariableRef(
@@ -507,7 +509,7 @@ def _makeRaiseExceptionMustBeMapping(called_variable, star_dict_variable):
 def _makeIteratingLoopStatement(tmp_iter_variable, tmp_item_variable, statements):
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_item_variable,
                 source=ExpressionBuiltinNext1(
                     value=ExpressionTempVariableRef(
@@ -558,14 +560,14 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
         )
 
     loop_body.append(
-        StatementAssignmentSubscript(
-            subscribed=ExpressionTempVariableRef(
+        StatementDictOperationSet(
+            dict_arg=ExpressionTempVariableRef(
                 variable=tmp_dict_variable, source_ref=internal_source_ref
             ),
-            subscript=ExpressionTempVariableRef(
+            key=ExpressionTempVariableRef(
                 variable=tmp_key_variable, source_ref=internal_source_ref
             ),
-            source=ExpressionSubscriptLookup(
+            value=ExpressionSubscriptLookup(
                 expression=ExpressionVariableRef(
                     variable=star_dict_variable, source_ref=internal_source_ref
                 ),
@@ -580,7 +582,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
 
     mapping_case = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_keys_variable,
                 source=makeCallNode(
                     _makeNameAttributeLookup(
@@ -599,7 +601,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionTempVariableRef(
@@ -609,7 +611,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_dict_variable,
             source=makeConstantRefNode(
                 constant={}, source_ref=internal_source_ref, user_provided=True
@@ -621,7 +623,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
             tmp_item_variable=tmp_key_variable,
             statements=loop_body,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=star_dict_variable,
             source=ExpressionTempVariableRef(
                 variable=tmp_dict_variable, source_ref=internal_source_ref
@@ -649,16 +651,16 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
     )
 
     final = (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_dict_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_keys_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     )
@@ -773,25 +775,21 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
 def _makeStarDictArgumentMergeToKwStatement(
     result, called_variable, kw_variable, star_dict_variable
 ):
-    # This is plain terribly complex, pylint: disable=too-many-locals
+    # This is plain terribly complex
     temp_scope = result.allocateTempScope("dict")
 
-    tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")
     tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
     tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key_xxx")
 
     final = [
-        StatementReleaseVariable(
-            variable=tmp_dict_variable, source_ref=internal_source_ref
-        ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_keys_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     ]
@@ -835,7 +833,7 @@ def _makeStarDictArgumentMergeToKwStatement(
 
     mapping_case = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried=StatementAssignmentVariable(
+            tried=makeStatementAssignmentVariable(
                 variable=tmp_keys_variable,
                 source=makeCallNode(
                     _makeNameAttributeLookup(
@@ -854,20 +852,13 @@ def _makeStarDictArgumentMergeToKwStatement(
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionTempVariableRef(
                     variable=tmp_keys_variable, source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,
-            ),
-            source_ref=internal_source_ref,
-        ),
-        StatementAssignmentVariable(
-            variable=tmp_dict_variable,
-            source=makeConstantRefNode(
-                constant={}, source_ref=internal_source_ref, user_provided=True
             ),
             source_ref=internal_source_ref,
         ),
@@ -885,19 +876,19 @@ def _makeStarDictArgumentMergeToKwStatement(
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
     final += (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     )
 
     dict_loop_body = (
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_key_variable,
             source=ExpressionSubscriptLookup(
                 expression=ExpressionTempVariableRef(
@@ -947,7 +938,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
     dict_case = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=kw_variable,
             source=ExpressionBuiltinDict(
                 pos_arg=ExpressionVariableRef(
@@ -958,19 +949,14 @@ def _makeStarDictArgumentMergeToKwStatement(
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
-                value=makeCallNode(
-                    _makeNameAttributeLookup(
-                        ExpressionVariableRef(
-                            variable=star_dict_variable, source_ref=internal_source_ref
-                        ),
-                        attribute_name="iteritems"
-                        if python_version < 0x300
-                        else "items",
+                value=ExpressionDictOperationIteritems(
+                    dict_arg=ExpressionVariableRef(
+                        variable=star_dict_variable, source_ref=internal_source_ref
                     ),
-                    internal_source_ref,
+                    source_ref=internal_source_ref,
                 ),
                 source_ref=internal_source_ref,
             ),
@@ -2077,7 +2063,7 @@ def getFunctionCallHelperDictionaryUnpacking():
     loop_body = (
         makeTryExceptSingleHandlerNode(
             tried=makeStatementsSequenceFromStatements(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_iter2_variable,
                     source=ExpressionBuiltinIter1(
                         value=makeCallNode(
@@ -2109,25 +2095,25 @@ def getFunctionCallHelperDictionaryUnpacking():
     )
 
     final = (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_result_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter2_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     )
 
     tried = makeStatementsSequenceFromStatements(
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
             source=ExpressionBuiltinIter1(
                 value=ExpressionVariableRef(
@@ -2137,7 +2123,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             ),
             source_ref=internal_source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_result_variable,
             source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
             source_ref=internal_source_ref,

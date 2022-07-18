@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,17 +17,12 @@
 #
 """ Reformulation of Python2 class statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionClassBody
@@ -39,7 +34,7 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTupleOrConstant,
 )
 from nuitka.nodes.DictionaryNodes import (
-    ExpressionDictOperationGet,
+    ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
 )
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
@@ -51,13 +46,16 @@ from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeNameRef
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
-from nuitka.nodes.VariableRefNodes import (
-    ExpressionTempVariableRef,
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
+    StatementAssignmentVariableName,
 )
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3
@@ -75,7 +73,7 @@ from .TreeHelpers import (
 
 def buildClassNode2(provider, node, source_ref):
     # This function is the Python2 special case with special re-formulation as
-    # according to developer manual, and it's very detailed, pylint: disable=too-many-locals
+    # according to Developer Manual, and it's very detailed, pylint: disable=too-many-locals
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     function_body = ExpressionClassBody(
@@ -181,15 +179,13 @@ def buildClassNode2(provider, node, source_ref):
         tmp_base = select_metaclass.allocateTempVariable(temp_scope=None, name="base")
 
         statements = (
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_base,
-                source=ExpressionSubscriptLookup(
+                source=makeExpressionIndexLookup(
                     expression=ExpressionTempVariableRef(
                         variable=tmp_bases, source_ref=source_ref
                     ),
-                    subscript=makeConstantRefNode(
-                        constant=0, source_ref=source_ref, user_provided=True
-                    ),
+                    index_value=0,
                     source_ref=source_ref,
                 ),
                 source_ref=source_ref,
@@ -199,7 +195,7 @@ def buildClassNode2(provider, node, source_ref):
                 tried=StatementTry(
                     tried=makeStatementsSequenceFromStatement(
                         statement=StatementReturn(
-                            expression=ExpressionAttributeLookup(
+                            expression=makeExpressionAttributeLookup(
                                 expression=ExpressionTempVariableRef(
                                     variable=tmp_base, source_ref=source_ref
                                 ),
@@ -225,7 +221,7 @@ def buildClassNode2(provider, node, source_ref):
                     return_handler=None,
                     source_ref=source_ref,
                 ),
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=tmp_base, source_ref=source_ref
                 ),
                 source_ref=source_ref,
@@ -269,7 +265,7 @@ def buildClassNode2(provider, node, source_ref):
     )
 
     statements = [
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_bases,
             source=makeExpressionMakeTupleOrConstant(
                 elements=buildNodeList(
@@ -280,10 +276,10 @@ def buildClassNode2(provider, node, source_ref):
             ),
             source_ref=source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_class_dict, source=function_body, source_ref=source_ref
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_metaclass,
             source=ExpressionConditional(
                 condition=ExpressionDictOperationIn(
@@ -297,7 +293,7 @@ def buildClassNode2(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 ),
-                expression_yes=ExpressionDictOperationGet(
+                expression_yes=ExpressionDictOperationGet2(
                     dict_arg=ExpressionTempVariableRef(
                         variable=tmp_class_dict, source_ref=source_ref
                     ),
@@ -313,7 +309,7 @@ def buildClassNode2(provider, node, source_ref):
             ),
             source_ref=source_ref,
         ),
-        StatementAssignmentVariable(
+        makeStatementAssignmentVariable(
             variable=tmp_class,
             source=makeExpressionCall(
                 called=ExpressionTempVariableRef(
@@ -344,7 +340,7 @@ def buildClassNode2(provider, node, source_ref):
 
     for decorator in buildNodeList(provider, reversed(node.decorator_list), source_ref):
         statements.append(
-            StatementAssignmentVariable(
+            makeStatementAssignmentVariable(
                 variable=tmp_class,
                 source=makeExpressionCall(
                     called=decorator,
@@ -373,10 +369,10 @@ def buildClassNode2(provider, node, source_ref):
     )
 
     final = (
-        StatementReleaseVariable(variable=tmp_class, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_bases, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_class_dict, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_metaclass, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_class, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_bases, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_class_dict, source_ref=source_ref),
+        makeStatementReleaseVariable(variable=tmp_metaclass, source_ref=source_ref),
     )
 
     return makeTryFinallyStatement(

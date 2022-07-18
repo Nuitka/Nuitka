@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,17 +26,14 @@ from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
-from .AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable,
-    StatementReleaseVariable,
-)
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
-from .shapes.BuiltinTypeShapes import tshape_dict
+from .VariableAssignNodes import makeStatementAssignmentVariable
+from .VariableDelNodes import makeStatementDelVariable
 from .VariableRefNodes import ExpressionTempVariableRef
+from .VariableReleaseNodes import makeStatementReleaseVariable
 
 
 class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
@@ -89,9 +86,19 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
             # Need to compute the replacement still.
             return replacement.computeExpressionRaw(trace_collection)
 
+        no_exec = not self.locals_scope.isUnoptimizedFunctionScope()
+
+        # if we can be sure if doesn't have a value set, go to the fallback directly.
+        if no_exec and self.variable_trace.mustNotHaveValue():
+            return trace_collection.computedExpressionResultRaw(
+                self.subnode_fallback,
+                "new_expression",
+                "Name '%s' cannot be in locals dict." % self.variable.getName(),
+            )
+
         # If we cannot be sure if the value is set, then we need the fallback,
         # otherwise we could remove it simply.
-        if self.variable_trace.mustHaveValue():
+        if no_exec and self.variable_trace.mustHaveValue():
             trace_collection.signalChange(
                 "new_expression",
                 self.source_ref,
@@ -117,14 +124,6 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
             trace_collection.mergeBranches(branch_fallback, None)
 
-        # if we can be sure if doesn't have a value set, go to the fallback directly.
-        if self.variable_trace.mustNotHaveValue():
-            return (
-                self.subnode_fallback,
-                "new_expression",
-                "Name '%s' cannot be in locals dict." % self.variable.getName(),
-            )
-        else:
             return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
@@ -181,9 +180,12 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
         return call_node, None, None
 
+    # TODO: Specialize for Python3 maybe to save attribute for Python2.
+    may_raise_access = python_version >= 0x300
+
     def mayRaiseException(self, exception_type):
-        if python_version < 0x300 or self.locals_scope.getTypeShape() is tshape_dict:
-            return False
+        if self.may_raise_access and self.locals_scope.hasShapeDictionaryExact():
+            return True
 
         return self.subnode_fallback.mayRaiseException(exception_type)
 
@@ -373,7 +375,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
                 trace_collection=trace_collection, variable_name=variable_name
             )
 
-            result = StatementAssignmentVariable(
+            result = makeStatementAssignmentVariable(
                 source=self.subnode_source,
                 variable=variable,
                 source_ref=self.source_ref,
@@ -381,15 +383,15 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             result.parent = self.parent
 
             new_result = result.computeStatement(trace_collection)
+            result = new_result[0]
 
-            if new_result[0] is not result:
-                assert False, (new_result, result)
+            assert result.isStatementAssignmentVariable(), new_result
 
             self.finalize()
             return (
                 result,
                 "new_statements",
-                "Replaced dictionary assignment with temporary variable.",
+                "Replaced dictionary assignment with temporary variable assignment.",
             )
 
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -475,18 +477,18 @@ class StatementLocalsDictOperationDel(StatementBase):
                 trace_collection=trace_collection, variable_name=variable_name
             )
 
-            result = StatementDelVariable(
+            result = makeStatementDelVariable(
                 variable=variable, tolerant=False, source_ref=self.source_ref
             )
             result.parent = self.parent
 
             new_result = result.computeStatement(trace_collection)
+            result = new_result[0]
 
-            if new_result[0] is not result:
-                assert False, (new_result, result)
+            assert result.isStatementDelVariable(), new_result
 
             return (
-                result,
+                new_result,
                 "new_statements",
                 "Replaced dictionary del with temporary variable.",
             )
@@ -506,8 +508,6 @@ class StatementLocalsDictOperationDel(StatementBase):
         _variable_trace = trace_collection.onVariableDel(
             variable=self.variable, version=self.variable_version, del_node=self
         )
-
-        trace_collection.onVariableContentEscapes(self.variable)
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
@@ -626,7 +626,9 @@ class StatementReleaseLocals(StatementBase):
     def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             statements = [
-                StatementReleaseVariable(variable=variable, source_ref=self.source_ref)
+                makeStatementReleaseVariable(
+                    variable=variable, source_ref=self.source_ref
+                )
                 for variable in self.locals_scope.getPropagationVariables().values()
             ]
 

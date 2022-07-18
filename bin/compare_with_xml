@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,18 +21,25 @@
 
 """
 
-from __future__ import print_function
+import os
+import sys
+
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought to be there.
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+
+# isort:start
 
 import difflib
-import os
-import subprocess
-import sys
+
+from nuitka.tools.testing.Common import my_print
+from nuitka.utils.Execution import executeProcess
 
 nuitka1 = sys.argv[1]
 nuitka2 = sys.argv[2]
 filename = sys.argv[3]
 
-print(
+my_print(
     """\
 Comparing output of '{filename}' using '{nuitka1}' <-> '{nuitka2}' ...""".format(
         filename=filename, nuitka1=nuitka1, nuitka2=nuitka2
@@ -42,22 +49,10 @@ Comparing output of '{filename}' using '{nuitka1}' <-> '{nuitka2}' ...""".format
 extra_options = os.environ.get("NUITKA_EXTRA_OPTIONS", "")
 
 nuitka1_cmd = "{nuitka1} --xml {filename}".format(nuitka1=nuitka1, filename=filename)
-
-process = subprocess.Popen(
-    args=nuitka1_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
-)
-
-stdout_nuitka1, stderr_nuitka1 = process.communicate()
-exit_nuitka1 = process.returncode
-
 nuitka2_cmd = "{nuitka2} --xml {filename}".format(nuitka2=nuitka2, filename=filename)
 
-process = subprocess.Popen(
-    args=nuitka2_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True
-)
-
-stdout_nuitka2, stderr_nuitka2 = process.communicate()
-exit_nuitka2 = process.returncode
+stdout_nuitka1, stderr_nuitka1, exit_nuitka1 = executeProcess(nuitka1_cmd, shell=True)
+stdout_nuitka2, stderr_nuitka2, exit_nuitka2 = executeProcess(nuitka2_cmd, shell=True)
 
 
 def makeDiffable(output):
@@ -89,7 +84,7 @@ def compareOutput(kind, out1, out2):
 
     if result:
         for line in result:
-            print(line, end="\n" if not line.startswith("---") else "")
+            my_print(line, end="\n" if not line.startswith("---") else "")
         return 1
     else:
         return 0
@@ -99,7 +94,7 @@ exit_code_stdout = compareOutput("stdout", stdout_nuitka1, stdout_nuitka2)
 exit_code_return = exit_nuitka1 != exit_nuitka2
 
 if exit_code_return:
-    print(
+    my_print(
         """\
 Exit codes {exit_nuitka1:d} ({nuitka1}) != {exit_nuitka2:d} ({nuitka2})""".format(
             exit_nuitka1=exit_nuitka1,
@@ -114,4 +109,4 @@ exit_code = exit_code_stdout or exit_code_return
 if exit_code:
     sys.exit("Error, outputs differed.")
 
-print("OK, same outputs.")
+my_print("OK, same outputs.")

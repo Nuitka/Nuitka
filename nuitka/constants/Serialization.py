@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,13 +21,10 @@
 
 import os
 import pickle
+import sys
 
 from nuitka import OutputDirectories
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    basestring,
-    to_byte,
-    xrange,
-)
+from nuitka.__past__ import UnionType, basestring, to_byte, xrange
 from nuitka.Builtins import (
     builtin_anon_codes,
     builtin_anon_values,
@@ -36,8 +33,9 @@ from nuitka.Builtins import (
 
 # TODO: Move to constants
 from nuitka.codegen.Namify import namifyConstant
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
+from nuitka.utils.FileOperations import openTextFile
 
 
 class BuiltinAnonValue(object):
@@ -55,6 +53,11 @@ class BuiltinAnonValue(object):
         return to_byte(self.anon_values.index(self.anon_name))
 
 
+class BuiltinUnionTypeValue(object):
+    def __init__(self, args):
+        self.args = args
+
+
 class BuiltinSpecialValue(object):
     """Used to pickle special values."""
 
@@ -69,6 +72,8 @@ class BuiltinSpecialValue(object):
             return to_byte(0)
         elif self.value == "NotImplemented":
             return to_byte(1)
+        elif self.value == "Py_SysVersionInfo":
+            return to_byte(2)
         else:
             assert False, self.value
 
@@ -76,11 +81,17 @@ class BuiltinSpecialValue(object):
 class BlobData(object):
     """Used to pickle bytes to become raw pointers."""
 
-    def __init__(self, data):
+    __slots__ = ("data", "name")
+
+    def __init__(self, data, name):
         self.data = data
+        self.name = name
 
     def getData(self):
         return self.data
+
+    def __repr__(self):
+        return "<nuitka.constants.Serialization.BlobData %s>" % self.name
 
 
 def _pickleAnonValues(pickler, value):
@@ -90,8 +101,14 @@ def _pickleAnonValues(pickler, value):
         pickler.save(BuiltinSpecialValue("Ellipsis"))
     elif value is NotImplemented:
         pickler.save(BuiltinSpecialValue("NotImplemented"))
+    elif value is sys.version_info:
+        pickler.save(BuiltinSpecialValue("Py_SysVersionInfo"))
     else:
         pickler.save_global(value)
+
+
+def _pickeUnionType(picker, value):
+    picker.save(BuiltinUnionTypeValue(value.__args__))
 
 
 class ConstantStreamWriter(object):
@@ -101,7 +118,7 @@ class ConstantStreamWriter(object):
         self.count = 0
 
         filename = os.path.join(OutputDirectories.getSourceDirectoryPath(), filename)
-        self.file = open(filename, "wb")
+        self.file = openTextFile(filename, "wb")
         if python_version < 0x300:
             self.pickle = pickle.Pickler(self.file, -1)
         else:
@@ -113,12 +130,19 @@ class ConstantStreamWriter(object):
         self.pickle.dispatch[type(Ellipsis)] = _pickleAnonValues
         self.pickle.dispatch[type(NotImplemented)] = _pickleAnonValues
 
+        if type(sys.version_info) is not tuple:
+            self.pickle.dispatch[type(sys.version_info)] = _pickleAnonValues
+
+        # Standard pickling doesn't work with our necessary wrappers.
+        if python_version >= 0x3A0:
+            self.pickle.dispatch[UnionType] = _pickeUnionType
+
     def addConstantValue(self, constant_value):
         self.pickle.dump(constant_value)
         self.count += 1
 
-    def addBlobData(self, data):
-        self.pickle.dump(BlobData(data))
+    def addBlobData(self, data, name):
+        self.pickle.dump(BlobData(data, name))
         self.count += 1
 
     def close(self):
@@ -144,7 +168,7 @@ class ConstantAccessor(object):
     def getConstantCode(self, constant):
         # Use in user code, or for constants building code itself, many
         # constant types get special code immediately.
-        # pylint: disable=too-many-branches
+        # pylint: disable=too-many-branches,too-many-statements
         if constant is None:
             key = "Py_None"
         elif constant is True:
@@ -155,6 +179,8 @@ class ConstantAccessor(object):
             key = "Py_Ellipsis"
         elif constant is NotImplemented:
             key = "Py_NotImplemented"
+        elif constant is sys.version_info:
+            key = "Py_SysVersionInfo"
         elif type(constant) is type:
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
@@ -190,7 +216,7 @@ class ConstantAccessor(object):
                 elif constant is str:
                     type_name = "string" if python_version < 0x300 else "unicode"
 
-                key = "(PyObject *)&Py%s_Type" % type_name.title()
+                key = "(PyObject *)&Py%s_Type" % type_name.capitalize()
         else:
             key = "const_" + namifyConstant(constant)
 
@@ -203,12 +229,12 @@ class ConstantAccessor(object):
         # TODO: Make it returning, more clear.
         return key
 
-    def getBlobDataCode(self, data):
+    def getBlobDataCode(self, data, name):
         key = "blob_" + namifyConstant(data)
 
         if key not in self.constants:
             self.constants.add(key)
-            self.constants_writer.addBlobData(data)
+            self.constants_writer.addBlobData(data=data, name=name)
 
         key = "%s[%d]" % (self.top_level_name, self.constants.index(key))
 

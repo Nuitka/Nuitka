@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Tommy Li, mailto:<tommyli3318@gmail.com>
+#     Copyright 2022, Tommy Li, mailto:<tommyli3318@gmail.com>
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -55,6 +55,7 @@ from nuitka.tools.testing.Common import (
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.FileOperations import getFileContents
 
 
 def executeCommand(command):
@@ -82,7 +83,7 @@ def gitClone(package, url, directory):
 def main():
     # pylint: disable=broad-except,too-many-branches,too-many-locals,too-many-statements
 
-    setup()
+    setup(suite="pypi")
 
     # cache_dir is where the git clones are cached
     cache_dir = os.path.join(getCacheDir(), "pypi-git-clones")
@@ -96,8 +97,7 @@ def main():
     results = []
 
     # load json
-    with open("packages.json", "r") as f:
-        packages = json.load(f)
+    packages = json.load(getFileContents("packages.json"))
 
     for package_name, details in sorted(packages.items()):
         active = search_mode.consider(dirname=None, filename=package_name)
@@ -212,8 +212,12 @@ def main():
                     ]
                 )
 
-                # get compiled pytest results
-                compiled_stdout, compiled_stderr = venv.runCommandWithOutput(
+                # get compiled pytest results, may fail some tests.
+                (
+                    compiled_stdout,
+                    compiled_stderr,
+                    _exit_code,
+                ) = venv.runCommandWithOutput(
                     commands=[
                         "cd %s" % package_dir,
                         "python -m pytest --disable-warnings",

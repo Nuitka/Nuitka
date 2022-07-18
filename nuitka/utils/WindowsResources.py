@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,9 +32,10 @@ multiple resources proved to be not possible.
 import ctypes
 import os
 import struct
-import time
 
 from nuitka import TreeXML
+
+from .Utils import decoratorRetries
 
 # SxS manifest files resource kind
 RT_MANIFEST = 24
@@ -57,7 +58,7 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         with_data - Return value includes data or only the name, lang pairs
 
     Returns:
-        List of resourcs in the DLL, see with_data which controls scope.
+        List of resources in the DLL, see with_data which controls scope.
 
     """
     # Quite complex stuff, pylint: disable=too-many-locals
@@ -129,8 +130,12 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
         EnumResourceLanguages(
             hModule, lpType, lpName, EnumResourceLanguagesCallback(callback2), 0
         )
-        # Always pick first one, we should get away with that.
-        lang_id = langs[0]
+        # Always pick first one, we should get away with that. On very old Python,
+        # we do not find any, and pick 0.
+        try:
+            lang_id = langs[0]
+        except IndexError:
+            lang_id = 0
 
         if with_data:
             hResource = ctypes.windll.kernel32.FindResourceA(hModule, lpName, lpType)
@@ -258,41 +263,19 @@ def copyResourcesFromFileToFile(source_filename, target_filename, resource_kinds
 
 
 def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, logger):
-    max_attempts = 5
+    assert os.path.exists(target_filename), target_filename
 
-    for attempt in range(1, max_attempts + 1):
+    @decoratorRetries(
+        logger=logger,
+        purpose="add resources to file %r" % target_filename,
+        consequence="the result is unusable",
+    )
+    def _addResourceToFile():
         update_handle = _openFileWindowsResources(target_filename)
-
         _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data)
+        _closeFileWindowsResources(update_handle)
 
-        try:
-            _closeFileWindowsResources(update_handle)
-        except OSError as e:
-            if e.errno == 110:
-                logger.warning(
-                    """
-Failed to add resources to file %r in attempt %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
-                    % (target_filename, attempt)
-                )
-            else:
-                logger.warning(
-                    """
-Failed to add resources to file %r in attempt %d with error code %d.
-Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
-                    % (target_filename, attempt, e.errno)
-                )
-
-            time.sleep(1)
-            continue
-        else:
-            if attempt != 1:
-                logger.warning(
-                    "Succeeded with resource update in attempt %d." % attempt
-                )
-            break
-    else:
-        logger.sysexit("Failed to update resources, the result is unusable.")
+    _addResourceToFile()
 
 
 class WindowsExecutableManifest(object):
@@ -300,9 +283,11 @@ class WindowsExecutableManifest(object):
         self.tree = TreeXML.fromString(template)
 
     def addResourceToFile(self, filename, logger):
+        manifest_data = TreeXML.toBytes(self.tree, indent=False)
+
         addResourceToFile(
             target_filename=filename,
-            data=TreeXML.toBytes(self.tree),
+            data=manifest_data,
             resource_kind=RT_MANIFEST,
             res_name=1,
             lang_id=0,
@@ -363,10 +348,20 @@ def _getDefaultWindowsExecutableTrustInfo():
 
 
 def getDefaultWindowsExecutableManifest():
+    # Note: Supported OS are lied about by CPython.
     template = (
         """\
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <assemblyIdentity type="win32" name="Mini" version="1.0.0.0"/>
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}"/>
+      <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+    </application>
+  </compatibility>
   %s
 </assembly>
 """
@@ -644,5 +639,3 @@ def addVersionInfoResource(
         lang_id=0,
         logger=logger,
     )
-
-    return string_values

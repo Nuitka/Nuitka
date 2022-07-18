@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -55,16 +55,16 @@ if branch_name == "factory":
 
 assert (
     os.system(
-        "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/"
+        "rsync -rvlpt --exclude=deb_dist dist/ root@ssh.nuitka.net:/var/www/releases/"
     )
     == 0
 )
 
 for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
-    assert os.system("rsync %s root@nuitka.net:/var/www/doc/" % filename) == 0
+    assert os.system("rsync %s root@ssh.nuitka.net:/var/www/doc/" % filename) == 0
 
-# Upload only stable releases to OpenSUSE Build Service:
-if branch_name.startswith("release") or branch_name == "master":
+# Upload only stable and develop releases to OpenSUSE Build Service:
+if branch_name.startswith("release") or branch_name == "main":
     pass
 elif branch_name == "develop":
     for remote in "origin", "github":
@@ -75,6 +75,6 @@ elif branch_name == "develop":
             )
             == 0
         )
-        assert os.system("git push %s master" % remote) == 0
+        assert os.system("git push %s main" % remote) == 0
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)

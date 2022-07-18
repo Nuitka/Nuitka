@@ -1,4 +1,4 @@
-#     Copyright 2021, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
+#     Copyright 2022, Jorj McKie, mailto:<jorj.x.mckie@outlook.de>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
-class EventletPlugin(NuitkaPluginBase):
+class NuitkaPluginEventlet(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "eventlet"
@@ -35,9 +35,7 @@ class EventletPlugin(NuitkaPluginBase):
         full_name = module.getFullName()
 
         if full_name == "eventlet":
-            for dns_module_name in self.locateModules(module, "dns"):
-                yield dns_module_name
-
+            yield self.locateModules("dns")
             yield "eventlet.hubs"
 
         elif full_name == "eventlet.hubs":
@@ -49,6 +47,6 @@ class EventletPlugin(NuitkaPluginBase):
             yield "eventlet.hubs.selects"
             yield "eventlet.hubs.timer"
 
-    def decideCompilation(self, module_name, source_ref):
+    def decideCompilation(self, module_name):
         if module_name.hasNamespace("dns"):
             return "bytecode"

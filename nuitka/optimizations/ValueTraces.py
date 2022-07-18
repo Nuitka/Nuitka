@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,19 +23,25 @@ the SSA (Single State Assignment) form being used in Nuitka.
 Values can be seen as:
 
 * Unknown (maybe initialized, maybe not, we cannot know)
-* Uninit (definitely not initialized, first version)
+* Uninitialized (definitely not initialized, first version)
 * Init (definitely initialized, e.g. parameter variables)
 * Assign (assignment was done)
-* Deleted (del was done, now unassigned, uninitialted)
+* Deleted (del was done, now unassigned, uninitialized)
 * Merge (result of diverged code paths, loop potentially)
 * LoopIncomplete (aggregation during loops, not yet fully known)
 * LoopComplete (complete knowledge of loop types)
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict, tshape_tuple
+from nuitka.nodes.shapes.ControlFlowDescriptions import (
+    ControlFlowDescriptionElementBasedEscape,
+    ControlFlowDescriptionFullEscape,
+    ControlFlowDescriptionNoEscape,
+)
 from nuitka.nodes.shapes.StandardShapes import (
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
-    tshape_uninit,
+    tshape_uninitialized,
     tshape_unknown,
 )
 from nuitka.utils.InstanceCounters import (
@@ -131,7 +137,7 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
-    def isUninitTrace():
+    def isUninitializedTrace():
         return False
 
     @staticmethod
@@ -141,6 +147,14 @@ class ValueTraceBase(object):
     @staticmethod
     def isUnknownTrace():
         return False
+
+    @staticmethod
+    def isEscapeTrace():
+        return False
+
+    @staticmethod
+    def isTraceThatNeedsEscape():
+        return True
 
     @staticmethod
     def isMergeTrace():
@@ -170,7 +184,49 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def hasShapeStrExact():
+        return False
+
+    @staticmethod
+    def hasShapeUnicodeExact():
+        return False
+
+    @staticmethod
+    def hasShapeTupleExact():
+        return False
+
+    @staticmethod
     def getTruthValue():
+        return None
+
+    @staticmethod
+    def getComparisonValue():
+        return False, None
+
+    @staticmethod
+    def getAttributeNode():
+        """Node to use for attribute lookups."""
+        return None
+
+    @staticmethod
+    def getAttributeNodeTrusted():
+        """Node to use for attribute lookups, with increased trust.
+
+        Used with hard imports mainly.
+        """
+        return None
+
+    @staticmethod
+    def getAttributeNodeVeryTrusted():
+        """Node to use for attribute lookups, with highest trust.
+
+        Used for hard imports mainly.
+        """
+        return None
+
+    @staticmethod
+    def getIterationSourceNode():
+        """Node to use for iteration decisions."""
         return None
 
 
@@ -183,7 +239,11 @@ class ValueTraceUnassignedBase(ValueTraceBase):
 
     @staticmethod
     def getTypeShape():
-        return tshape_uninit
+        return tshape_uninitialized
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionNoEscape
 
     def compareValueTrace(self, other):
         # We are unassigned, just need to know if the other one is, pylint: disable=no-self-use
@@ -198,15 +258,22 @@ class ValueTraceUnassignedBase(ValueTraceBase):
         return True
 
 
-class ValueTraceUninit(ValueTraceUnassignedBase):
+class ValueTraceUninitialized(ValueTraceUnassignedBase):
     __slots__ = ()
 
     def __init__(self, owner, previous):
         ValueTraceUnassignedBase.__init__(self, owner=owner, previous=previous)
 
     @staticmethod
-    def isUninitTrace():
+    def isUninitializedTrace():
         return True
+
+    @staticmethod
+    def isTraceThatNeedsEscape():
+        return False
+
+    def dump(self, indent):
+        print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
 
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
@@ -237,6 +304,10 @@ class ValueTraceInit(ValueTraceBase):
     def getTypeShape():
         return tshape_unknown
 
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionFullEscape
+
     def compareValueTrace(self, other):
         # We are initialized, just need to know if the other one is, pylint: disable=no-self-use
         return other.isInitTrace()
@@ -254,15 +325,44 @@ class ValueTraceInit(ValueTraceBase):
         return False
 
 
+class ValueTraceInitStarArgs(ValueTraceInit):
+    @staticmethod
+    def getTypeShape():
+        return tshape_tuple
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionElementBasedEscape
+
+    @staticmethod
+    def hasShapeTupleExact():
+        return True
+
+
+class ValueTraceInitStarDict(ValueTraceInit):
+    @staticmethod
+    def getTypeShape():
+        return tshape_dict
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionElementBasedEscape
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
+
+
 class ValueTraceUnknown(ValueTraceBase):
     __slots__ = ()
-
-    def __init__(self, owner, previous):
-        ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
     @staticmethod
     def getTypeShape():
         return tshape_unknown
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionFullEscape
 
     def addUsage(self):
         self.usage_count += 1
@@ -286,12 +386,30 @@ class ValueTraceUnknown(ValueTraceBase):
         return True
 
     @staticmethod
+    def isTraceThatNeedsEscape():
+        return False
+
+    @staticmethod
     def mustHaveValue():
         return False
 
     @staticmethod
     def mustNotHaveValue():
         return False
+
+    def getAttributeNode(self):
+        # TODO: Differentiate unknown with not previous node from ones with for performance and
+        # clarity.
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeTrusted(self):
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
+
+    def getAttributeNodeVeryTrusted(self):
+        if self.previous is not None:
+            return self.previous.getAttributeNodeVeryTrusted()
 
 
 class ValueTraceEscaped(ValueTraceUnknown):
@@ -313,20 +431,50 @@ class ValueTraceEscaped(ValueTraceUnknown):
         if self.merge_usage_count <= 2:
             self.previous.addMergeUsage()
 
+    def mustHaveValue(self):
+        return self.previous.mustHaveValue()
+
+    def mustNotHaveValue(self):
+        return self.previous.mustNotHaveValue()
+
+    def getReplacementNode(self, usage):
+        return self.previous.getReplacementNode(usage)
+
+    @staticmethod
+    def isUnknownTrace():
+        return False
+
+    @staticmethod
+    def isEscapeTrace():
+        return True
+
+    @staticmethod
+    def isTraceThatNeedsEscape():
+        return False
+
+    def getAttributeNode(self):
+        return self.previous.getAttributeNodeTrusted()
+
+    def getAttributeNodeTrusted(self):
+        return self.previous.getAttributeNodeTrusted()
+
+    def getAttributeNodeVeryTrusted(self):
+        return self.previous.getAttributeNodeVeryTrusted()
+
 
 class ValueTraceAssign(ValueTraceBase):
-    __slots__ = ("assign_node", "replace_it")
+    __slots__ = ("assign_node",)
 
     def __init__(self, owner, assign_node, previous):
         ValueTraceBase.__init__(self, owner=owner, previous=previous)
 
         self.assign_node = assign_node
-        self.replace_it = None
 
     def __repr__(self):
-        return "<ValueTraceAssign at {source_ref} of {value}>".format(
-            source_ref=self.assign_node.getSourceReference().getAsString(),
-            value=self.assign_node.subnode_source,
+        return "<%s at %s of %s>" % (
+            self.__class__.__name__,
+            self.assign_node.getSourceReference().getAsString(),
+            self.assign_node.subnode_source,
         )
 
     @staticmethod
@@ -347,23 +495,71 @@ class ValueTraceAssign(ValueTraceBase):
     def getTypeShape(self):
         return self.assign_node.getTypeShape()
 
+    def getReleaseEscape(self):
+        return self.assign_node.getReleaseEscape()
+
     def getAssignNode(self):
         return self.assign_node
-
-    def setReplacementNode(self, replacement):
-        self.replace_it = replacement
-
-    def getReplacementNode(self, usage):
-        if self.replace_it is not None:
-            return self.replace_it(usage)
-        else:
-            return None
 
     def hasShapeDictionaryExact(self):
         return self.assign_node.subnode_source.hasShapeDictionaryExact()
 
+    def hasShapeStrExact(self):
+        return self.assign_node.subnode_source.hasShapeStrExact()
+
+    def hasShapeUnicodeExact(self):
+        return self.assign_node.subnode_source.hasShapeUnicodeExact()
+
     def getTruthValue(self):
         return self.assign_node.subnode_source.getTruthValue()
+
+    def getComparisonValue(self):
+        return self.assign_node.subnode_source.getComparisonValue()
+
+    def getAttributeNode(self):
+        return self.assign_node.subnode_source
+
+    def getAttributeNodeTrusted(self):
+        source_node = self.assign_node.subnode_source
+
+        if source_node.hasShapeTrustedAttributes():
+            return source_node
+        else:
+            return None
+
+    def getAttributeNodeVeryTrusted(self):
+        source_node = self.assign_node.subnode_source
+
+        # Hard imports typically.
+        if source_node.hasVeryTrustedValue():
+            return source_node
+        else:
+            return None
+
+    def getIterationSourceNode(self):
+        return self.assign_node.subnode_source
+
+
+class ValueTraceAssignUnescapable(ValueTraceAssign):
+    @staticmethod
+    def isTraceThatNeedsEscape():
+        return False
+
+
+class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):
+    """Assignment from value where it is not that escaping doesn't matter."""
+
+    __slots__ = ("replacement",)
+
+    def __init__(self, owner, assign_node, previous, replacement):
+        ValueTraceAssignUnescapable.__init__(
+            self, owner=owner, assign_node=assign_node, previous=previous
+        )
+
+        self.replacement = replacement
+
+    def getReplacementNode(self, usage):
+        return self.replacement(usage)
 
 
 class ValueTraceMergeBase(ValueTraceBase):
@@ -379,6 +575,24 @@ class ValueTraceMergeBase(ValueTraceBase):
             for previous in self.previous:
                 previous.addNameUsage()
 
+    def addUsage(self):
+        self.usage_count += 1
+
+        # Only do it once.
+        if self.usage_count == 1:
+            for trace in self.previous:
+                trace.addMergeUsage()
+
+    def addMergeUsage(self):
+        self.addUsage()
+        self.merge_usage_count += 1
+
+    def dump(self, indent):
+        print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
+
+        for trace in self.previous:
+            trace.dump(indent + "  ")
+
 
 class ValueTraceMerge(ValueTraceMergeBase):
     """Merge of two or more traces.
@@ -391,16 +605,30 @@ class ValueTraceMerge(ValueTraceMergeBase):
     __slots__ = ()
 
     def __init__(self, traces):
-        ValueTraceMergeBase.__init__(self, owner=traces[0].owner, previous=traces)
+        shorted = []
 
         for trace in traces:
-            trace.addMergeUsage()
+            if type(trace) is ValueTraceMerge:
+                for trace2 in trace.previous:
+                    if trace2 not in shorted:
+                        shorted.append(trace2)
+            else:
+                if trace not in shorted:
+                    shorted.append(trace)
+
+        traces = tuple(shorted)
+
+        assert len(traces) > 1
+
+        # assert len(set(traces)) == len(traces), [(v) for v in traces]
+
+        ValueTraceMergeBase.__init__(self, owner=traces[0].owner, previous=traces)
 
     def __repr__(self):
         return "<ValueTraceMerge of {previous}>".format(previous=self.previous)
 
     def getTypeShape(self):
-        type_shapes = set()
+        type_shape_found = None
 
         for trace in self.previous:
             type_shape = trace.getTypeShape()
@@ -408,13 +636,30 @@ class ValueTraceMerge(ValueTraceMergeBase):
             if type_shape is tshape_unknown:
                 return tshape_unknown
 
-            type_shapes.add(type_shape)
+            if type_shape_found is None:
+                type_shape_found = type_shape
+            elif type_shape is not type_shape_found:
+                # TODO: Find the lowest common denominator.
+                return tshape_unknown
 
-        # TODO: Find the lowest common denominator.
-        if len(type_shapes) == 1:
-            return type_shapes.pop()
-        else:
-            return tshape_unknown
+        return type_shape_found
+
+    def getReleaseEscape(self):
+        release_escape_found = None
+
+        for trace in self.previous:
+            release_escape = trace.getReleaseEscape()
+
+            if release_escape is ControlFlowDescriptionFullEscape:
+                return ControlFlowDescriptionFullEscape
+
+            if release_escape_found is None:
+                release_escape_found = release_escape
+            elif release_escape is not release_escape_found:
+                # TODO: Find the lowest common denominator.
+                return ControlFlowDescriptionFullEscape
+
+        return release_escape_found
 
     @staticmethod
     def isMergeTrace():
@@ -447,9 +692,6 @@ class ValueTraceMerge(ValueTraceMergeBase):
 
         return True
 
-    def addUsage(self):
-        self.usage_count += 1
-
     def hasShapeDictionaryExact(self):
         return all(previous.hasShapeDictionaryExact() for previous in self.previous)
 
@@ -477,6 +719,11 @@ class ValueTraceMerge(ValueTraceMergeBase):
         # Now all agreed and were not unknown, so we can conclude all false or all true.
         return any_true
 
+    def getComparisonValue(self):
+        # TODO: Support multiple values as candidates, e.g. both 1, 3 could be compared to 2, for
+        # now we are delaying that.
+        return False, None
+
 
 class ValueTraceLoopBase(ValueTraceMergeBase):
     __slots__ = ("loop_node", "type_shapes", "type_shape", "recursion")
@@ -484,8 +731,6 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
     def __init__(self, loop_node, previous, type_shapes):
         # Note: That previous is being added to later.
         ValueTraceMergeBase.__init__(self, owner=previous.owner, previous=(previous,))
-
-        previous.addMergeUsage()
 
         self.loop_node = loop_node
         self.type_shapes = type_shapes
@@ -538,6 +783,11 @@ class ValueTraceLoopBase(ValueTraceMergeBase):
 class ValueTraceLoopComplete(ValueTraceLoopBase):
     __slots__ = ()
 
+    @staticmethod
+    def getReleaseEscape():
+        # TODO: May consider the shapes for better result
+        return ControlFlowDescriptionFullEscape
+
     def compareValueTrace(self, other):
         # Incomplete loop value traces behave the same.
         return (
@@ -559,6 +809,10 @@ class ValueTraceLoopComplete(ValueTraceLoopBase):
     def getTruthValue():
         return None
 
+    @staticmethod
+    def getComparisonValue():
+        return False, None
+
 
 class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     __slots__ = ()
@@ -568,6 +822,10 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
             self.type_shape = ShapeLoopInitialAlternative(self.type_shapes)
 
         return self.type_shape
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionFullEscape
 
     def compareValueTrace(self, other):
         # Incomplete loop value traces behave the same.
@@ -584,3 +842,7 @@ class ValueTraceLoopIncomplete(ValueTraceLoopBase):
     @staticmethod
     def getTruthValue():
         return None
+
+    @staticmethod
+    def getComparisonValue():
+        return False, None

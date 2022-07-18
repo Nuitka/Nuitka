@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,12 +27,10 @@ quickly, in others they will present boundaries for optimization.
 
 """
 
-import os
-
 from nuitka import Options
 
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionBase
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 
 
 class ExpressionModuleAttributeBase(ExpressionBase):
@@ -106,9 +104,9 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
 
-        if not Options.shallMakeModule():
+        if Options.getModuleNameMode() != "runtime":
             result = makeConstantRefNode(
-                constant=self.variable.getModule().getFullName().asString(),
+                constant=self.variable.getModule().getRuntimeNameValue(),
                 source_ref=self.source_ref,
             )
 
@@ -130,25 +128,9 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
 
-        if not Options.shallMakeModule():
+        if Options.getModuleNameMode() != "runtime":
             provider = self.variable.getModule()
-
-            if provider.isCompiledPythonPackage():
-                value = provider.getFullName().asString()
-            else:
-                value = provider.getFullName().getPackageName()
-
-                if value is not None:
-                    value = value.asString()
-                else:
-                    if (
-                        provider.getFullName() == "__main__"
-                        and os.path.basename(provider.getCompileTimeFilename())
-                        == "__main__.py"
-                    ):
-                        value = ""
-                    else:
-                        value = None
+            value = provider.getRuntimePackageValue()
 
             result = makeConstantRefNode(constant=value, source_ref=self.source_ref)
 
@@ -196,7 +178,7 @@ class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
         return self, None, None
 
 
-class ExpressionNuitkaLoaderCreation(ExpressionBase):
+class ExpressionNuitkaLoaderCreation(ExpressionNoSideEffectsMixin, ExpressionBase):
     __slots__ = ("provider",)
 
     kind = "EXPRESSION_NUITKA_LOADER_CREATION"
@@ -213,13 +195,3 @@ class ExpressionNuitkaLoaderCreation(ExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         # Nothing can be done here.
         return self, None, None
-
-    @staticmethod
-    def mayRaiseException(exception_type):
-        # Never raises an exception.
-        return False
-
-    @staticmethod
-    def mayHaveSideEffects():
-        # No effect really by itself.
-        return False

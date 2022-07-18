@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -42,6 +42,7 @@ sys.path.insert(
 )
 
 # isort:start
+from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     addExtendedExtraOptions,
     checkLoadedFileAccesses,
@@ -51,13 +52,12 @@ from nuitka.tools.testing.Common import (
     decideFilenameVersionSkip,
     displayFileContents,
     displayRuntimeTraces,
-    getRuntimeTraceOfLoadedFiles,
     reportSkip,
     setup,
     test_logger,
 )
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isLinux, isMacOS
 
 
 def displayError(dirname, filename):
@@ -68,11 +68,11 @@ def displayError(dirname, filename):
 
 
 def main():
-    python_version = setup(needs_io_encoding=True)
+    python_version = setup(suite="onefile", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
-    if getOS() == "Linux":
+    if isLinux():
         addExtendedExtraOptions(
             "--linux-onefile-icon=../../doc/Logo/Nuitka-Logo-Symbol.svg"
         )
@@ -99,12 +99,14 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
+            # The onefile can warn about zstandard not being installed.
+            "ignore_warnings",
         ]
 
-        if filename == "KeyboardInteruptTest.py":
-            if getOS() == "Darwin":
+        if filename == "KeyboardInterruptTest.py":
+            if isMacOS():
                 reportSkip(
-                    "Exit code from KeybaordInterrupt on macOS is not yet good.",
+                    "Exit code from KeyboardInterrupt on macOS is not yet good.",
                     ".",
                     filename,
                 )
@@ -120,9 +122,9 @@ def main():
 
             if os.name == "nt":
                 reportSkip(
+                    "Testing cannot send KeyboardInterrupt on Windows yet",
                     ".",
                     filename,
-                    "Testing cannot send KeyboardInterrupt on Windows yet",
                 )
                 continue
 
@@ -150,7 +152,7 @@ def main():
 
         binary_filename = filename[:-3] + (".exe" if os.name == "nt" else ".bin")
 
-        if filename == "KeyboardInteruptTest.py":
+        if filename == "KeyboardInterruptTest.py":
             continue
 
         # Then use "strace" on the result.
@@ -158,7 +160,7 @@ def main():
             "Determining run time loaded files took %.2f", logger=test_logger
         ):
             loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger, path=binary_filename
+                logger=test_logger, command=[binary_filename]
             )
 
         illegal_accesses = checkLoadedFileAccesses(
@@ -170,7 +172,7 @@ def main():
             displayRuntimeTraces(test_logger, binary_filename)
 
             test_logger.warning(
-                "Should not access these file(s): '%r'." % illegal_accesses
+                "Should not access these file(s): '%s'." % ",".join(illegal_accesses)
             )
 
             search_mode.onErrorDetected(1)

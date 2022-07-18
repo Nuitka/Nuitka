@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -577,3 +577,48 @@ bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
     return true;
 }
 #endif
+
+PyObject *UNICODE_JOIN(PyObject *str, PyObject *iterable) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(iterable);
+    assert(PyUnicode_CheckExact(str));
+
+    return PyUnicode_Join(str, iterable);
+}
+
+PyObject *UNICODE_PARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(sep);
+    assert(PyUnicode_CheckExact(str));
+
+    return PyUnicode_Partition(str, sep);
+}
+
+PyObject *UNICODE_RPARTITION(PyObject *str, PyObject *sep) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(sep);
+    assert(PyUnicode_CheckExact(str));
+
+    return PyUnicode_RPartition(str, sep);
+}
+#if PYTHON_VERSION < 0x300
+
+PyObject *STR_JOIN(PyObject *str, PyObject *iterable) {
+    CHECK_OBJECT(str);
+    CHECK_OBJECT(iterable);
+    assert(PyString_CheckExact(str));
+
+    return _PyString_Join(str, iterable);
+}
+
+#endif
+
+PyObject *NuitkaUnicode_FromWideChar(const wchar_t *str, Py_ssize_t size) {
+#if PYTHON_VERSION < 0x300
+    if (size == -1) {
+        size = wcslen(str);
+    }
+#endif
+
+    return PyUnicode_FromWideChar(str, size);
+}

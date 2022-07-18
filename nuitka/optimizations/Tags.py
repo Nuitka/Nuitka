@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,6 +40,8 @@ allowed_tags = (
     "var_usage",
     # Detected module variable to be read only.
     "read_only_mvar",
+    # Trusting module variables in functions.
+    "trusted_module_variables",
     # New built-in reference detected.
     "new_builtin_ref",
     # New built-in call detected.

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -96,7 +96,7 @@ with open("testjson.json", "w") as f:
 
 r = http.request("GET", "http://localhost:%d/testjson.json" % port)
 
-data = json.loads(r.data.decode("utf-8"))
+data = json.loads(r.data.decode("utf8"))
 if "Date" in data:
     del data["Date"]
 print("DATA:", data)

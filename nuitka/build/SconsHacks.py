@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,6 +35,8 @@ import SCons.Tool.gcc  # pylint: disable=I0021,import-error
 from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
+from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.Utils import isLinux, isMacOS
 
 from .SconsUtils import decodeData, getExecutablePath, isGccName
 
@@ -108,7 +110,7 @@ def _myDetectVersion(env, clvar):
     ret = pipe.wait()
     if ret != 0:
         scons_details_logger.info(
-            "Error, error exit from %r (%d) gave %r."
+            "Error, error exit from '%s' (%d) gave %r."
             % (command, ret, pipe.stderr.read())
         )
         return None
@@ -159,6 +161,9 @@ def myDetect(self, progs):
         if blocked_tool in progs:
             return None
 
+    # Note: Actually, with our inline copy, this is maybe not supposed to
+    # happen at all
+
     return orig_detect(self, progs)
 
 
@@ -168,6 +173,15 @@ orig_detect = Environment.Detect
 
 def getEnhancedToolDetect():
     SCons.Tool.gcc.detect_version = myDetectVersion
+
+    # Allow CondaCC to be detected if it is in PATH.
+    if isLinux():
+        SCons.Tool.gcc.compilers.insert(0, "x86_64-conda-linux-gnu-gcc")
+
+    if isMacOS() and "CONDA_TOOLCHAIN_BUILD" in os.environ:
+        SCons.Tool.gcc.compilers.insert(
+            0, "%s-clang" % os.environ["CONDA_TOOLCHAIN_BUILD"]
+        )
 
     return myDetect
 
@@ -179,7 +193,7 @@ def makeGccUseLinkerFile(source_dir, source_files, env):
         "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
     )
 
-    with open(tmp_linker_filename, "w") as tmpfile:
+    with openTextFile(tmp_linker_filename, "w") as tmpfile:
         for filename in source_files:
             filename = ".".join(filename.split(".")[:-1]) + ".o"
 

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,14 +22,19 @@ progress, and gives warnings about things taking very long.
 """
 
 import os
-import subprocess
+import sys
 import threading
 
 from nuitka.Tracing import my_print, scons_logger
+from nuitka.utils.Execution import executeProcess
 from nuitka.utils.Timing import TimerReport
 
 from .SconsCaching import runClCache
-from .SconsProgress import closeSconsProgressBar, updateSconsProgressBar
+from .SconsProgress import (
+    closeSconsProgressBar,
+    reportSlowCompilation,
+    updateSconsProgressBar,
+)
 from .SconsUtils import decodeData
 
 
@@ -57,17 +62,10 @@ class SubprocessThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                proc = subprocess.Popen(
-                    self.cmdline,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    shell=False,
-                    env=self.env,
+                self.data, self.err, self.exit_code = executeProcess(
+                    command=self.cmdline, env=self.env
                 )
 
-                self.data, self.err = proc.communicate()
-                self.exit_code = proc.wait()
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.exception = e
 
@@ -83,10 +81,7 @@ def runProcessMonitored(cmdline, env):
     thread.join(60)
 
     if thread.is_alive():
-        scons_logger.info(
-            "Slow C compilation detected, used %.0fs so far, this might indicate scalability problems."
-            % thread.timer_report.getTimer().getDelta()
-        )
+        reportSlowCompilation(cmdline, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
@@ -95,7 +90,7 @@ def runProcessMonitored(cmdline, env):
     return thread.getProcessResult()
 
 
-def _filterLinkOutput(module_mode, lto_mode, data):
+def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
     # Training newline in some cases, esp. LTO it seems.
     data = data.rstrip()
 
@@ -110,18 +105,22 @@ def _filterLinkOutput(module_mode, lto_mode, data):
 
     # The linker will say generating code at the end, due to localization
     # we don't know.
-    if lto_mode:
+    if env.lto_mode and exit_code == 0:
         if len(data.split(b"\r\n")) == 2:
             data = b""
+
+    if env.pgo_mode == "use" and exit_code == 0:
+        # Very noisy, partially in native language for PGO link.
+        data = b""
 
     return data
 
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
-def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
+def _getWindowsSpawnFunction(env, module_mode, source_files):
     def spawnWindowsCommand(
-        sh, escape, cmd, args, env
+        sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
 
         # The "del" appears to not work reliably, but is used with large amounts of
@@ -141,32 +140,33 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
             else:
                 return arg
 
-        newargs = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
-        cmdline = cmd + " " + newargs
+        new_args = " ".join(removeTrailingSlashQuote(arg) for arg in args[1:])
+        cmdline = cmd + " " + new_args
 
         # Special hook for clcache inline copy
         if cmd == "<clcache>":
-            data, err, rv = runClCache(args, env)
+            data, err, rv = runClCache(args, os_env)
         else:
-            data, err, rv, exception = runProcessMonitored(cmdline, env)
+            data, err, rv, exception = runProcessMonitored(cmdline, os_env)
 
             if exception:
                 closeSconsProgressBar()
                 raise exception
 
         if cmd == "link":
-            data = _filterLinkOutput(module_mode, lto_mode, data)
-
+            data = _filterMsvcLinkOutput(
+                env=env, module_mode=module_mode, data=data, exit_code=rv
+            )
         elif cmd in ("cl", "<clcache>"):
             # Skip forced output from cl.exe
             data = data[data.find(b"\r\n") + 2 :]
 
-            source_basenames = [
+            source_base_names = [
                 os.path.basename(source_file) for source_file in source_files
             ]
 
             def check(line):
-                return line in (b"", b"Generating Code...") or line in source_basenames
+                return line in (b"", b"Generating Code...") or line in source_base_names
 
             data = (
                 b"\r\n".join(line for line in data.split(b"\r\n") if not check(line))
@@ -183,10 +183,18 @@ def getWindowsSpawnFunction(module_mode, lto_mode, source_files):
             my_print(data, style="yellow", end="")
 
         if err:
-            if str is not bytes:
-                err = decodeData(err)
+            err = b"\r\n".join(
+                line for line in err.split(b"\r\n") if not isIgnoredError(line)
+            )
 
-            my_print(err, style="yellow", end="")
+            if err:
+                err += b"\r\n"
+
+                if str is not bytes:
+                    err = decodeData(err)
+
+                if err:
+                    my_print(err, style="yellow", end="")
 
         return rv
 
@@ -207,16 +215,94 @@ def _unescape(arg):
     return arg
 
 
+def isIgnoredError(line):
+    # Many cases and return driven, pylint: disable=too-many-branches,too-many-return-statements
+
+    # spell-checker: ignore tmpnam,tempnam,structseq,bytearrayobject
+
+    # Debian Python2 static libpython lto warnings:
+    if b"function `posix_tmpnam':" in line:
+        return True
+    if b"function `posix_tempnam':" in line:
+        return True
+
+    # Self compiled Python2 static libpython lot warnings:
+    if b"the use of `tmpnam_r' is dangerous" in line:
+        return True
+    if b"the use of `tempnam' is dangerous" in line:
+        return True
+    if line.startswith((b"Objects/structseq.c:", b"Python/import.c:")):
+        return True
+    if line == b"In function 'load_next',":
+        return True
+    if b"at Python/import.c" in line:
+        return True
+
+    # Debian Bullseye when compiling in directory with spaces:
+    if b"overriding recipe for target" in line:
+        return True
+    if b"ignoring old recipe for target" in line:
+        return True
+    if b"Error 1 (ignored)" in line:
+        return True
+
+    # Trusty has buggy toolchain that does this with LTO.
+    if (
+        line
+        == b"""\
+bytearrayobject.o (symbol from plugin): warning: memset used with constant zero \
+length parameter; this could be due to transposed parameters"""
+    ):
+        return True
+
+    # The gcc LTO with debug information is deeply buggy with many messages:
+    if b"Dwarf Error:" in line:
+        return True
+
+    # gcc from MinGW64 12.1 gives these, that seem non-consequential.
+    if line.startswith(b"mingw32-make:") and line.endswith(b"Error 1 (ignored)"):
+        return True
+
+    return False
+
+
+def subprocess_spawn(args):
+    sh, _cmd, args, env = args
+
+    _stdout, stderr, exit_code = executeProcess(
+        command=[sh, "-c", " ".join(args)], env=env
+    )
+
+    ignore_next = False
+    for line in stderr.splitlines():
+        if ignore_next:
+            ignore_next = False
+            continue
+
+        if isIgnoredError(line):
+            ignore_next = True
+            continue
+
+        if str is not bytes:
+            line = decodeData(line)
+
+        if exit_code != 0 and "terminated with signal 11" in line:
+            exit_code = -11
+
+        my_print(line, style="yellow", file=sys.stderr)
+
+    return exit_code
+
+
 class SpawnThread(threading.Thread):
-    def __init__(self, spawn, *args):
+    def __init__(self, *args):
         threading.Thread.__init__(self)
 
-        self.spawn = spawn
         self.args = args
 
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
-            % (" ".join(_unescape(arg) for arg in self.args[3]).replace("%", "%%"),),
+            % (" ".join(_unescape(arg) for arg in self.args[2]).replace("%", "%%"),),
             min_report_time=60,
             logger=scons_logger,
         )
@@ -228,7 +314,7 @@ class SpawnThread(threading.Thread):
         try:
             # execute the command, queue the result
             with self.timer_report:
-                self.result = self.spawn(*self.args)
+                self.result = subprocess_spawn(self.args)
         except Exception as e:  # will rethrow all, pylint: disable=broad-except
             self.exception = e
 
@@ -236,18 +322,15 @@ class SpawnThread(threading.Thread):
         return self.result, self.exception
 
 
-def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
-    thread = SpawnThread(spawn, sh, escape, cmd, args, env)
+def runSpawnMonitored(sh, cmd, args, env):
+    thread = SpawnThread(sh, cmd, args, env)
     thread.start()
 
     # Allow a minute before warning for long compile time.
     thread.join(60)
 
     if thread.is_alive():
-        scons_logger.info(
-            "Slow C compilation detected, used %.0fs so far, this might indicate scalability problems."
-            % thread.timer_report.getTimer().getDelta()
-        )
+        reportSlowCompilation(cmd, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
@@ -256,21 +339,39 @@ def runSpawnMonitored(spawn, sh, escape, cmd, args, env):
     return thread.getSpawnResult()
 
 
-def getWrappedSpawnFunction(spawn):
-    def spawnCommand(sh, escape, cmd, args, env):
+def _getWrappedSpawnFunction(env):
+    def spawnCommand(sh, escape, cmd, args, _env):
+        # signature needed towards Scons core, pylint: disable=unused-argument
+
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
         if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
-            env = dict(env)
-            env["CCACHE_DISABLE"] = "1"
+            _env = dict(_env)
+            _env["CCACHE_DISABLE"] = "1"
 
-        result, exception = runSpawnMonitored(spawn, sh, escape, cmd, args, env)
+        result, exception = runSpawnMonitored(sh, cmd, args, _env)
 
         if exception:
             closeSconsProgressBar()
 
             raise exception
 
+        # Segmentation fault should give a clear error.
+        if result == -11:
+            scons_logger.sysexit(
+                "Error, the C compiler '%s' crashed with segfault. Consider upgrading it or using --clang option."
+                % env.the_compiler
+            )
+
         return result
 
     return spawnCommand
+
+
+def enableSpawnMonitoring(env, win_target, module_mode, source_files):
+    if win_target:
+        env["SPAWN"] = _getWindowsSpawnFunction(
+            env=env, module_mode=module_mode, source_files=source_files
+        )
+    else:
+        env["SPAWN"] = _getWrappedSpawnFunction(env=env)

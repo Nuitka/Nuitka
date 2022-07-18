@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,19 +33,19 @@ are in another context.
 
 
 from nuitka import Tracing
-from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import unicode
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
+from nuitka.tree.Operations import VisitorNoopMixin
 
-from .FinalizeBase import FinalizationVisitorBase
-
-imported_names = set()
+imported_names = OrderedSet()
 
 
 def getImportedNames():
     return imported_names
 
 
-class FinalizeMarkups(FinalizationVisitorBase):
+class FinalizeMarkups(VisitorNoopMixin):
     def onEnterNode(self, node):
         try:
             self._onEnterNode(node)
@@ -81,7 +81,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
                 else:
                     search.markAsNeedsGeneratorReturnHandling(1)
 
-        if node.isExpressionBuiltinImport() and node.recurse_attempted:
+        if node.isExpressionBuiltinImport() and node.follow_attempted:
             module_name = node.subnode_name
 
             if module_name.isCompileTimeConstant():
@@ -127,7 +127,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
                             node.markAsInplaceSuspect()
                 elif left_arg.isExpressionLocalsVariableRefOrFallback():
                     # TODO: This might be bad.
-                    assign_source.unmarkAsInplaceSuspect()
+                    assign_source.removeMarkAsInplaceSuspect()
 
         if python_version < 0x300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()

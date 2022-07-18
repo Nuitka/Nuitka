@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,11 +23,11 @@ CPython relatively to one another.
 
 # Note: This is currently severely broken.
 
-from __future__ import print_function
-
 import runpy
 import sys
 import tempfile
+
+from nuitka.Tracing import my_print
 
 
 def _namelen(e):
@@ -40,7 +40,7 @@ def _namelen(e):
 def show(stats):
     p = stats.top_profile()
     if not p:
-        print("no stats")
+        my_print("no stats")
         return
 
     p.sort(key=lambda x: x[1], reverse=True)
@@ -48,8 +48,8 @@ def show(stats):
 
     max_len = max([_namelen(e[0]) for e in p])
 
-    print(" vmprof output:")
-    print(" %:      name:" + " " * (max_len - 3) + "location:")
+    my_print(" vmprof output:")
+    my_print(" %:      name:" + " " * (max_len - 3) + "location:")
 
     for k, v in p:
         v = "%.1f%%" % (float(v) / top * 100)
@@ -58,12 +58,12 @@ def show(stats):
         if k.startswith("py:"):
             _, func_name, lineno, filename = k.split(":", 3)
             lineno = int(lineno)
-            print(
+            my_print(
                 " %s %s %s:%d"
                 % (v.ljust(7), func_name.ljust(max_len + 1), filename, lineno)
             )
         else:
-            print(" %s %s" % (v.ljust(7), k.ljust(max_len + 1)))
+            my_print(" %s %s" % (v.ljust(7), k.ljust(max_len + 1)))
 
 
 def main():
@@ -83,7 +83,7 @@ def main():
 
         vmprof.disable()
 
-        stats = vmprof.read_profile(prof_file.name, virtual_only=True)
+        stats = vmprof.read_profile(prof_file.name)
 
         show(stats)
 

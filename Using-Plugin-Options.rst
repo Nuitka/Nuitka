@@ -24,7 +24,7 @@ A **whole new dimension of flexibility** can be added by using
 **********************
 
 **Standard plugins** are activated by the command line parameter
-``--plugin-enable=<plugin_name>``. The parameter ``plugin_name`` must
+``--enable-plugin=<plugin_name>``. The parameter ``plugin_name`` must
 equal the plugin's variable with the same name, so that Nuitka can
 identify it.
 
@@ -43,7 +43,7 @@ Plugin options can be added by overloading the method
        ...  # add options to "group" here.
 
 Here you extend the optparser group with any amount of options you
-choose. Be careful with the `dest` names, try to make names that will
+choose. Be careful with the ``dest`` names, try to make names that will
 not collide with other plugins, as we have no per plugin namespace here.
 
 *********

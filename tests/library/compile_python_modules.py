@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -41,7 +41,6 @@ sys.path.insert(
 # isort:start
 
 import subprocess
-import tempfile
 
 from nuitka.tools.testing.Common import (
     checkCompilesNotWithCPython,
@@ -49,22 +48,21 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     getPythonArch,
     getPythonVendor,
+    getTempDir,
     my_print,
     setup,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
 
-python_version = setup(needs_io_encoding=True)
+python_version = setup(suite="python_modules", needs_io_encoding=True)
 python_vendor = getPythonVendor()
 python_arch = getPythonArch()
 
 search_mode = createSearchMode()
 
-tmp_dir = tempfile.gettempdir()
+tmp_dir = getTempDir()
 
-# Try to avoid RAM disk /tmp and use the disk one instead.
-if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
-    tmp_dir = "/var/tmp"
+# spell-checker: ignore idnadata,tweedie
 
 ignore_list = (
     "__phello__.foo.py",  # Triggers error for "." in module name
@@ -76,7 +74,7 @@ ignore_list = (
     "cheshire_tomography.py",
 )
 
-nosyntax_errors = (
+late_syntax_errors = (
     # No syntax error with Python2 compileall, but run time only:
     "_identifier.py",
     "bench.py",
@@ -99,21 +97,35 @@ def action(stage_dir, _root, path):
         sys.executable,
         os.path.join("..", "..", "bin", "nuitka"),
         "--module",
-        "--output-dir",
-        stage_dir,
+        "--output-dir=%s" % stage_dir,
         "--remove-output",
-        "--plugin-enable=pylint-warnings",
+        "--quiet",
+        "--nofollow-imports",
+        "--no-progressbar",
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-    command.append(path)
+    suffix = getSharedLibrarySuffix(preferred=True)
+
+    if os.path.basename(path) == "__init__.py":
+        source_filename = os.path.dirname(path)
+        target_filename = os.path.basename(source_filename) + suffix
+    else:
+        source_filename = path
+        target_filename = os.path.basename(source_filename)[:-3] + suffix
+
+    target_filename = target_filename.replace("(", "").replace(")", "")
+
+    command.append(source_filename)
 
     try:
         subprocess.check_call(command)
     except subprocess.CalledProcessError:
-        if os.path.basename(path) in nosyntax_errors:
-            my_print("Syntax error is known unreliable with file file.")
+        basename = os.path.basename(path)
+
+        if basename in late_syntax_errors:
+            my_print("Syntax error is known unreliable with file %s." % basename)
         else:
             my_print("Falling back to full comparison due to error exit.")
 
@@ -123,11 +135,6 @@ def action(stage_dir, _root, path):
     else:
         my_print("OK")
 
-        suffix = getSharedLibrarySuffix(preferred=True)
-
-        target_filename = os.path.basename(path)[:-3] + suffix
-        target_filename = target_filename.replace("(", "").replace(")", "")
-
         os.unlink(os.path.join(stage_dir, target_filename))
 
 
@@ -136,7 +143,7 @@ compileLibraryTest(
     stage_dir=os.path.join(
         tmp_dir,
         "compile_library_%s-%s-%s"
-        % (".".join(python_version), python_arch, python_vendor),
+        % (".".join(str(d) for d in python_version), python_arch, python_vendor),
     ),
     decide=decide,
     action=action,

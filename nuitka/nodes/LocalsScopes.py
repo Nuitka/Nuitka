@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,13 +17,14 @@
 #
 """ This module maintains the locals dict handles. """
 
-from nuitka import Variables
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.Errors import NuitkaOptimizationError
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
     isCountingInstances,
 )
+from nuitka.Variables import LocalsDictVariable, LocalVariable
 
 from .shapes.BuiltinTypeShapes import tshape_dict
 from .shapes.StandardShapes import tshape_unknown
@@ -50,7 +51,16 @@ def getLocalsDictType(kind):
 
 
 def getLocalsDictHandle(locals_name, kind, owner):
-    assert locals_name not in locals_dict_handles, locals_name
+    # Duplicates are bad and cannot be tolerated.
+    if locals_name in locals_dict_handles:
+        raise NuitkaOptimizationError(
+            locals_name,
+            kind,
+            owner.getFullName(),
+            owner.getCompileTimeFilename(),
+            locals_dict_handles[locals_name].owner.getFullName(),
+            locals_dict_handles[locals_name].owner.getCompileTimeFilename(),
+        )
 
     locals_dict_handles[locals_name] = getLocalsDictType(kind)(
         locals_name=locals_name, owner=owner
@@ -147,6 +157,10 @@ class LocalsDictHandleBase(object):
     def getTypeShape():
         return tshape_dict
 
+    @staticmethod
+    def hasShapeDictionaryExact():
+        return True
+
     def getCodeName(self):
         return self.locals_name
 
@@ -160,6 +174,10 @@ class LocalsDictHandleBase(object):
 
     @staticmethod
     def isFunctionScope():
+        return False
+
+    @staticmethod
+    def isUnoptimizedFunctionScope():
         return False
 
     def getProvidedVariables(self):
@@ -198,9 +216,7 @@ class LocalsDictHandleBase(object):
 
     def getLocalsDictVariable(self, variable_name):
         if variable_name not in self.variables:
-            result = Variables.LocalsDictVariable(
-                owner=self, variable_name=variable_name
-            )
+            result = LocalsDictVariable(owner=self, variable_name=variable_name)
 
             self.variables[variable_name] = result
 
@@ -209,7 +225,7 @@ class LocalsDictHandleBase(object):
     # TODO: Have variable ownership moved to the locals scope, so owner becomes not needed here.
     def getLocalVariable(self, owner, variable_name):
         if variable_name not in self.local_variables:
-            result = Variables.LocalVariable(owner=owner, variable_name=variable_name)
+            result = LocalVariable(owner=owner, variable_name=variable_name)
 
             self.local_variables[variable_name] = result
 
@@ -334,9 +350,12 @@ class LocalsDictHandle(LocalsDictHandleBase):
                 elif variable_trace.isMergeTrace():
                     propagate = False
                     break
-                elif variable_trace.isUninitTrace():
+                elif variable_trace.isUninitializedTrace():
                     pass
                 elif variable_trace.isUnknownTrace():
+                    propagate = False
+                    break
+                elif variable_trace.isEscapeTrace():
                     propagate = False
                     break
                 else:
@@ -363,6 +382,11 @@ class LocalsMappingHandle(LocalsDictHandle):
     def getTypeShape():
         # TODO: Make mapping available for this.
         return tshape_unknown
+
+    @staticmethod
+    def hasShapeDictionaryExact():
+        # TODO: Keep in sync with getTypeShape being calculated eventually.
+        return False
 
     @staticmethod
     def isClassScope():
@@ -424,10 +448,6 @@ class LocalsDictFunctionHandle(LocalsDictHandleBase):
     @staticmethod
     def isFunctionScope():
         return True
-
-    @staticmethod
-    def isUnoptimizedFunctionScope():
-        return False
 
 
 class GlobalsDictHandle(LocalsDictHandleBase):

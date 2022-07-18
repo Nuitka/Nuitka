@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -40,21 +40,6 @@ extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_OBJECT(PyObject *operand1, P
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_INT_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
 extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_LONG_LONG(PyObject *operand1, PyObject *operand2);
 #endif
@@ -67,21 +52,6 @@ extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_LONG(PyObject *operand1, 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_LONG_LONG(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -100,43 +70,13 @@ extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_OBJECT(PyObject *operand1,
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "FLOAT" to Python 'float'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "FLOAT" to Python 'float'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "OBJECT" to any Python object. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_INT_LONG(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_LONG_INT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
@@ -146,40 +86,40 @@ extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_INT(PyObject *operand1, Py
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "FLOAT" to Python 'float'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_INT_FLOAT(PyObject *operand1, PyObject *operand2);
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_FLOAT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "INT" to Python2 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_FLOAT_INT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_LONG_INT(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_LONG(PyObject *operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_INT_CLONG(PyObject *operand1, long operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "FLOAT" to Python 'float'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
+/* Code referring to "CLONG" corresponds to C platform long value and "INT" to Python2 'int'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_CLONG_INT(long operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "FLOAT" corresponds to Python 'float' and "LONG" to Python2 'long', Python3 'int'. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
+/* Code referring to "FLOAT" corresponds to Python 'float' and "CFLOAT" to C platform float value. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_FLOAT_CFLOAT(PyObject *operand1, double operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "CFLOAT" corresponds to C platform float value and "FLOAT" to Python 'float'. */
+extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_CFLOAT_FLOAT(double operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
 extern PyObject *BINARY_OPERATION_OLDDIV_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
-#endif
-
-#if PYTHON_VERSION < 0x300
-/* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-extern nuitka_bool BINARY_OPERATION_OLDDIV_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2);
 #endif

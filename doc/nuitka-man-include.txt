@@ -11,38 +11,34 @@ Compile a Python program "some_program.py" to an executable "some_program.exe":
 Compile a Python program "some_program.py" and the package "some_package" it
 uses to an executable "some_program.exe":
 .IP
-\f(CW$ nuitka \-\-recurse\-to=some_package some_program.py\fR
+\f(CW$ nuitka \-\-follow\-import-\-to=some_package some_program.py\fR
 .PP
 Compile a Python program "some_program.py" and all the modules it uses to an executable "some_program.exe". Then execute it immediately when ready:
 .IP
-\f(CW$ nuitka \-\-run \-\-recurse\-all some_program.py\fR
+\f(CW$ nuitka \-\-run \-\-follow\-imports some_program.py\fR
 .PP
 Compile a Python program "some_program.py" and the modules it uses (even standard library) to an executable "some_program.exe":
 .IP
-\f(CW$ nuitka \-\-recurse\-all \-\-recurse\-stdlib some_program.py\fR
+\f(CW$ nuitka \-\-recurse\-all \-\-follow\-stdlib some_program.py\fR
 .PP
 Compile a Python program "some_program.py" and the modules it uses to an executable "some_program.exe". Keep the debug information, so valgrind, gdb, etc. work
 nicely.
 
 Note: This will *not* degrade performance:
 .IP
-\f(CW$ nuitka \-\-unstriped \-\-recurse\-all some_program.py\fR
+\f(CW$ nuitka \-\-unstriped \-\-follow\-imports some_program.py\fR
 .PP
 Compile a Python program "some_program.py" and the modules it uses to an executable "some_program.exe". Perform all kinds of checks about correctness of the generated
 C and run\-time checks.
 
 Note: This will degrade performance and should only be used to debug Nuitka:
 .IP
-\f(CW$ nuitka \-\-debug \-\-recurse\-all some_program.py\fR
+\f(CW$ nuitka \-\-debug \-\-follow\-imports some_program.py\fR
 .PP
 Compile a Python program "some_program.py" and the modules it uses to an executable "some_program.exe". Perform all kinds of checks about correctness of the generated
 C and run\-time checks. Also use the debug Python library, which does its own checks.
 
 Note: This will degrade performance and should only be used to debug Nuitka:
 .IP
-\f(CW$ nuitka \-\-debug \-\-python-debug \-\-recurse\-all some_program.py\fR
-.PP
-Compile a Python program "some_program.py" and the plugins modules it loads at run time to an executable "some_program.exe":
-.IP
-\f(CW$ nuitka \-\-recurse\-all \-\-recurse\-directory=plugins_dir some_program.py\fR
+\f(CW$ nuitka \-\-debug \-\-python-debug \-\-follow\-imports some_program.py\fR
 .PP

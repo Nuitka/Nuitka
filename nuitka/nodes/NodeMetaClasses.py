@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,7 @@ of checks, and add methods automatically.
 
 from abc import ABCMeta
 
-from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import intern
 from nuitka.Errors import NuitkaNodeDesignError
 
 
@@ -63,6 +63,14 @@ class NodeCheckMetaClass(ABCMeta):
             dictionary["__slots__"] = ()
 
         if "named_child" in dictionary:
+            named_child = dictionary["named_child"]
+            if type(named_child) is not str:
+                raise NuitkaNodeDesignError(
+                    name,
+                    "Class named_child attribute must be string not",
+                    type(named_child),
+                )
+
             dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
 
         if "named_children" in dictionary:
@@ -93,12 +101,16 @@ class NodeCheckMetaClass(ABCMeta):
             kind = dictionary["kind"]
 
             assert type(kind) is str, name
-            assert kind not in NodeCheckMetaClass.kinds, (name, kind)
+
+            if kind in NodeCheckMetaClass.kinds and not "replaces" in dictionary:
+                raise NuitkaNodeDesignError(
+                    name, "Duplicate nodes for kind '%s'" % kind
+                )
 
             NodeCheckMetaClass.kinds[kind] = cls
             NodeCheckMetaClass.kinds[name] = cls
 
-            kind_to_name_part = "".join([x.title() for x in kind.split("_")])
+            kind_to_name_part = "".join([x.capitalize() for x in kind.split("_")])
             assert name.endswith(kind_to_name_part), (name, kind_to_name_part)
 
             # Automatically add checker methods for everything to the common

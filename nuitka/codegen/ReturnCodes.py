@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -38,6 +38,7 @@ def generateReturnCode(statement, emit, context):
     return_value_name = context.getReturnValueName()
 
     if context.getReturnReleaseMode():
+        emit("CHECK_OBJECT(%s);" % return_value_name)
         emit("Py_DECREF(%s);" % return_value_name)
 
     generateExpressionCode(
@@ -69,11 +70,13 @@ def generateReturnConstantCode(statement, emit, context):
     return_value_name = context.getReturnValueName()
 
     if context.getReturnReleaseMode():
+        emit("CHECK_OBJECT(%s);" % return_value_name)
         emit("Py_DECREF(%s);" % return_value_name)
 
     return_value_name.getCType().emitAssignmentCodeFromConstant(
         to_name=return_value_name,
         constant=statement.getConstant(),
+        may_escape=True,
         emit=emit,
         context=context,
     )
@@ -95,6 +98,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
         expression = statement.subnode_expression
 
         if context.getReturnReleaseMode():
+            emit("CHECK_OBJECT(%s);" % return_value_name)
             emit("Py_DECREF(%s);" % return_value_name)
 
         generateExpressionCode(
@@ -124,10 +128,15 @@ def generateGeneratorReturnNoneCode(statement, emit, context):
         return_value_name = context.getGeneratorReturnValueName()
 
         if context.getReturnReleaseMode():
+            emit("CHECK_OBJECT(%s);" % return_value_name)
             emit("Py_DECREF(%s);" % return_value_name)
 
         return_value_name.getCType().emitAssignmentCodeFromConstant(
-            to_name=return_value_name, constant=None, emit=emit, context=context
+            to_name=return_value_name,
+            constant=None,
+            may_escape=False,
+            emit=emit,
+            context=context,
         )
 
         if context.needsCleanup(return_value_name):

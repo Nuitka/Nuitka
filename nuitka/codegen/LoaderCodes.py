@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,8 @@ The level of compatibility for C compiled stuff is so high that this is not
 needed except for technical reasons.
 """
 
+import sys
+
 from nuitka import Options
 from nuitka.ModuleRegistry import (
     getDoneModules,
@@ -38,24 +40,39 @@ from nuitka.ModuleRegistry import (
     getUncompiledTechnicalModules,
 )
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.CStrings import encodePythonStringToC
+from nuitka.utils.CStrings import encodePythonStringToC, encodePythonUnicodeToC
 
 from .Indentation import indented
 from .templates.CodeTemplatesLoader import (
     template_metapath_loader_body,
     template_metapath_loader_bytecode_module_entry,
     template_metapath_loader_compiled_module_entry,
-    template_metapath_loader_shlib_module_entry,
+    template_metapath_loader_extension_module_entry,
 )
 
 
-def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
+def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
     module_c_name = encodePythonStringToC(
         Plugins.encodeDataComposerName(module.getFullName().asString())
     )
 
     flags = ["NUITKA_TRANSLATED_FLAG"]
+
+    if (
+        not Options.isStandaloneMode()
+        and not Options.shallMakeModule()
+        and python_version >= 0x370
+    ):
+        if Options.isWin32Windows():
+            file_path = encodePythonUnicodeToC(module.getCompileTimeFilename())
+        else:
+            file_path = encodePythonStringToC(
+                module.getCompileTimeFilename().encode(sys.getfilesystemencoding())
+            )
+    else:
+        file_path = "NULL"
 
     if module.isUncompiledPythonModule():
         code_data = module.getByteCode()
@@ -65,20 +82,25 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
         if is_package:
             flags.append("NUITKA_PACKAGE_FLAG")
 
-        accessor_code = bytecode_accessor.getBlobDataCode(code_data)
+        accessor_code = bytecode_accessor.getBlobDataCode(
+            data=code_data,
+            name="bytecode of module '%s'" % module.getFullName().asString(),
+        )
 
         return template_metapath_loader_bytecode_module_entry % {
             "module_name": module_c_name,
             "bytecode": accessor_code[accessor_code.find("[") + 1 : -1],
             "size": len(code_data),
-            "flags": " | ".join(flags) or "0",
+            "flags": " | ".join(flags),
+            "file_path": file_path,
         }
-    elif module.isPythonShlibModule():
-        flags.append("NUITKA_SHLIB_FLAG")
+    elif module.isPythonExtensionModule():
+        flags.append("NUITKA_EXTENSION_MODULE_FLAG")
 
-        return template_metapath_loader_shlib_module_entry % {
+        return template_metapath_loader_extension_module_entry % {
             "module_name": module_c_name,
-            "flags": " | ".join(flags) or "0",
+            "flags": " | ".join(flags),
+            "file_path": file_path,
         }
     else:
         if module.isCompiledPythonPackage():
@@ -88,16 +110,23 @@ def getModuleMetapathLoaderEntryCode(module, bytecode_accessor):
             "module_name": module_c_name,
             "module_identifier": module.getCodeName(),
             "flags": " | ".join(flags),
+            "file_path": file_path,
         }
 
 
-def getMetapathLoaderBodyCode(bytecode_accessor):
+def getMetaPathLoaderBodyCode(bytecode_accessor):
     metapath_loader_inittab = []
     metapath_module_decls = []
 
+    uncompiled_modules = getUncompiledModules()
+
     for other_module in getDoneModules():
+        # Put those at the end.
+        if other_module in uncompiled_modules:
+            continue
+
         metapath_loader_inittab.append(
-            getModuleMetapathLoaderEntryCode(
+            getModuleMetaPathLoaderEntryCode(
                 module=other_module, bytecode_accessor=bytecode_accessor
             )
         )
@@ -109,9 +138,9 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
                 % {"module_identifier": other_module.getCodeName()}
             )
 
-    for uncompiled_module in getUncompiledModules():
+    for uncompiled_module in uncompiled_modules:
         metapath_loader_inittab.append(
-            getModuleMetapathLoaderEntryCode(
+            getModuleMetaPathLoaderEntryCode(
                 module=uncompiled_module, bytecode_accessor=bytecode_accessor
             )
         )
@@ -129,7 +158,10 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
         if is_package:
             size = -size
 
-        accessor_code = bytecode_accessor.getBlobDataCode(code_data)
+        accessor_code = bytecode_accessor.getBlobDataCode(
+            data=code_data,
+            name="bytecode of module '%s'" % uncompiled_module.getFullName().asString(),
+        )
 
         frozen_defs.append(
             """\

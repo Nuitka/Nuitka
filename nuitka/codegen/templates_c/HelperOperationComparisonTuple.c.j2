@@ -1,0 +1,99 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{left.getCheckValueCode("operand1")}}
+    {{right.getCheckValueCode("operand2")}}
+
+    PyTupleObject *a = (PyTupleObject *)operand1;
+    PyTupleObject *b = (PyTupleObject *)operand2;
+
+    Py_ssize_t len_a = Py_SIZE(a);
+    Py_ssize_t len_b = Py_SIZE(b);
+
+{# Shortcut for equality, driven by length check. #}
+{% if operand in ("==", "!=") %}
+    if (len_a != len_b) {
+{% if operand == "==" %}
+        bool r = false;
+{% else %}
+        bool r = true;
+{% endif %}
+
+        // Convert to target type.
+        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+        {{target.getTakeReferenceStatement("result")}}
+        return result;
+    }
+{% endif %}
+
+{# Find the first non-identical object. #}
+{% if operand not in ("==", "!=") %}
+    bool found = false;
+{% endif %}
+    nuitka_bool res = NUITKA_BOOL_TRUE;
+
+    Py_ssize_t i;
+    for (i = 0; i < len_a && i < len_b; i++) {
+        PyObject *aa = a->ob_item[i];
+        PyObject *bb = b->ob_item[i];
+
+        if (aa == bb) {
+            continue;
+        }
+
+        res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(aa, bb);
+
+        if (res == NUITKA_BOOL_EXCEPTION) {
+            return {{target.getExceptionResultIndicatorValue()}};
+        }
+
+        if (res == NUITKA_BOOL_FALSE) {
+{% if operand not in ("==", "!=") %}
+            found = true;
+{% endif %}
+            break;
+        }
+    }
+
+{# If size mismatches, but all is equal at the start, compare sizes to order tuples. #}
+{% if operand not in ("==", "!=") %}
+    if (found == false) {
+        bool r = len_a {{operand}} len_b;
+
+        // Convert to target type.
+        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+        {{target.getTakeReferenceStatement("result")}}
+        return result;
+    }
+
+    return RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_OBJECT_OBJECT(a->ob_item[i], b->ob_item[i]);
+{% else %}
+{% if operand == "==" %}
+    bool r = res == NUITKA_BOOL_TRUE;
+{% else %}
+    bool r = res == NUITKA_BOOL_FALSE;
+{% endif %}
+
+    // Convert to target type.
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+
+{% endif %}
+
+}

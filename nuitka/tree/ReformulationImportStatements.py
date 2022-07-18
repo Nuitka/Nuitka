@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,28 +17,26 @@
 #
 """ Reformulation of import statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementAssignmentVariableName,
-    StatementReleaseVariable,
-)
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
     ExpressionBuiltinImport,
-    ExpressionImportModuleHard,
     ExpressionImportName,
     StatementImportStar,
+    makeExpressionImportModuleFixed,
 )
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
+from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -207,7 +205,7 @@ def buildImportFromNode(provider, node, source_ref):
         )
     else:
         if module_name == "__future__":
-            imported_from_module = ExpressionImportModuleHard(
+            imported_from_module = makeExpressionImportModuleFixed(
                 module_name="__future__", source_ref=source_ref
             )
         else:
@@ -231,7 +229,7 @@ def buildImportFromNode(provider, node, source_ref):
             )
 
             statements.append(
-                StatementAssignmentVariable(
+                makeStatementAssignmentVariable(
                     variable=tmp_import_from,
                     source=imported_from_module,
                     source_ref=source_ref,
@@ -273,7 +271,7 @@ def buildImportFromNode(provider, node, source_ref):
                     provider=provider,
                     tried=import_statements,
                     final=(
-                        StatementReleaseVariable(
+                        makeStatementReleaseVariable(
                             variable=tmp_import_from, source_ref=source_ref
                         ),
                     ),
@@ -292,7 +290,7 @@ def buildImportFromNode(provider, node, source_ref):
 
 
 def buildImportModulesNode(provider, node, source_ref):
-    # Import modules statement. As described in the developer manual, these
+    # Import modules statement. As described in the Developer Manual, these
     # statements can be treated as several ones.
 
     import_names = [
@@ -314,6 +312,9 @@ def buildImportModulesNode(provider, node, source_ref):
             else None
         )
 
+        # TODO: Go to fixed node directly, avoiding the optimization for the
+        # node to do it, with absolute imports we can use makeExpressionImportModuleFixed
+        # instead.
         import_node = ExpressionBuiltinImport(
             name=makeConstantRefNode(module_name, source_ref, True),
             globals_arg=ExpressionBuiltinGlobals(source_ref),

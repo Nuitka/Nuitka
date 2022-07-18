@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,8 +21,6 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 from optparse import OptionParser
@@ -30,7 +28,8 @@ from optparse import OptionParser
 from nuitka.freezer.Standalone import (
     detectBinaryPathDLLsWindowsDependencyWalker,
 )
-from nuitka.utils.SharedLibraries import getSxsFromDLL, getWindowsDLLVersion
+from nuitka.Tracing import my_print
+from nuitka.utils.SharedLibraries import getDLLVersion, getSxsFromDLL
 from nuitka.utils.Timing import TimerReport
 
 
@@ -43,15 +42,15 @@ def main():
         sys.exit("No DLLs given.")
 
     for filename in positional_args:
-        print("Filename:", filename)
-        print("Version Information:", getWindowsDLLVersion(filename))
+        my_print("Filename: %s" % filename)
+        my_print("Version Information: %s" % getDLLVersion(filename))
 
-        print("SXS information (manifests):")
+        my_print("SXS information (manifests):")
         sxs = getSxsFromDLL(filename=filename, with_data=True)
         if sxs:
-            print(sxs)
+            my_print(sxs)
 
-        print("DLLs recursively dependended (depends.exe):")
+        my_print("DLLs recursively depended (depends.exe):")
 
         with TimerReport(
             message="Finding dependencies for %s took %%.2f seconds" % filename
@@ -67,9 +66,9 @@ def main():
             )
 
             for dll_filename in sorted(r):
-                print("  ", dll_filename)
+                my_print("   %s" % dll_filename)
 
-            print("Total: %d" % len(r))
+            my_print("Total: %d" % len(r))
 
 
 if __name__ == "__main__":

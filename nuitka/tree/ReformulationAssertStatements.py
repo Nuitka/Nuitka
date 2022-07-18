@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,8 +17,8 @@
 #
 """ Reformulation of assert statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -26,7 +26,7 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import makeExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodesUnary import ExpressionOperationNot
-from nuitka.Options import getPythonFlags
+from nuitka.Options import hasPythonFlagNoAsserts
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import buildNode
@@ -34,7 +34,7 @@ from .TreeHelpers import buildNode
 
 def buildAssertNode(provider, node, source_ref):
     # Build assert statements. These are re-formulated as described in the
-    # developer manual too. They end up as conditional statement with raises of
+    # Developer Manual too. They end up as conditional statement with raises of
     # AssertionError exceptions.
 
     # Underlying assumption:
@@ -49,7 +49,7 @@ def buildAssertNode(provider, node, source_ref):
 
     exception_value = buildNode(provider, node.msg, source_ref, True)
 
-    if "no_asserts" in getPythonFlags():
+    if hasPythonFlagNoAsserts():
         return None
 
     if exception_value is not None and python_version >= 0x272:

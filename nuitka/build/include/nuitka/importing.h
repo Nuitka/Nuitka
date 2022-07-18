@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -50,7 +50,7 @@ extern PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyOb
 #endif
 
 #if PYTHON_VERSION >= 0x300
-extern PyObject *getImportLibBootstrapModule();
+extern PyObject *getImportLibBootstrapModule(void);
 #endif
 
 // Replacement for PyImport_GetModule working across all versions and less checks.
@@ -73,6 +73,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModuleString(char const *module_
 
 // Add a module to the modules dictionary from name object
 NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModule(PyObject *module_name, PyObject *module) {
+    CHECK_OBJECT(module_name);
     CHECK_OBJECT(module);
     assert(PyModule_Check(module));
 
@@ -86,6 +87,46 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModuleString(char const *module_name,
     Py_DECREF(module_name_object);
 
     return result;
+}
+
+// Remove a module to the modules dictionary from name object
+NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyObject *module_name) {
+    CHECK_OBJECT(module_name);
+
+    PyObject *save_exception_type, *save_exception_value;
+    PyTracebackObject *save_exception_tb;
+    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+
+    bool result = DEL_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+
+    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
+
+    return result;
+}
+
+// Remove a module to the modules dictionary from name C string
+NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModuleString(char const *module_name) {
+    PyObject *module_name_object = Nuitka_String_FromString(module_name);
+    bool result = Nuitka_DelModule(module_name_object);
+    Py_DECREF(module_name_object);
+
+    return result;
+}
+
+// Wrapper for PyModule_GetFilenameObject that has no error.
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFilenameObject(PyObject *module) {
+#if PYTHON_VERSION < 0x300
+    PyObject *filename = LOOKUP_ATTRIBUTE(module, const_str_plain___file__);
+#else
+    PyObject *filename = PyModule_GetFilenameObject(module);
+#endif
+
+    if (unlikely(filename == NULL)) {
+        DROP_ERROR_OCCURRED();
+        filename = PyUnicode_FromString("unknown location");
+    }
+
+    return filename;
 }
 
 #endif

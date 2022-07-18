@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -265,11 +265,7 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 
 // tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
-#if PYTHON_VERSION < 0x300
-    return PyString_FromFormat(
-#else
-    return PyUnicode_FromFormat(
-#endif
+    return Nuitka_String_FromFormat(
 #if PYTHON_VERSION >= 0x370
         "<compiled_frame at %p, file %R, line %d, code %S>", nuitka_frame, nuitka_frame->m_frame.f_code->co_filename,
         nuitka_frame->m_frame.f_lineno, nuitka_frame->m_frame.f_code->co_name
@@ -277,8 +273,7 @@ static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
         "<compiled_frame object for %s at %p>", Nuitka_String_AsString(nuitka_frame->m_frame.f_code->co_name),
         nuitka_frame
 #else
-        "<compiled_frame object at %p>",
-        nuitka_frame
+        "<compiled_frame object at %p>", nuitka_frame
 #endif
     );
 }
@@ -438,7 +433,7 @@ static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc 
 #if PYTHON_VERSION >= 0x340
 
 static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
-    if (frame->m_frame.f_executing) {
+    if (Nuitka_Frame_IsExecuting(frame)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
 
         return NULL;
@@ -545,6 +540,39 @@ PyTypeObject Nuitka_Frame_Type = {
 };
 
 void _initCompiledFrameType(void) {
+    Nuitka_Frame_Type.tp_base = &PyFrame_Type;
+
+    assert(Nuitka_Frame_Type.tp_doc != PyFrame_Type.tp_doc || PyFrame_Type.tp_doc == NULL);
+    assert(Nuitka_Frame_Type.tp_traverse != PyFrame_Type.tp_traverse);
+    assert(Nuitka_Frame_Type.tp_clear != PyFrame_Type.tp_clear || PyFrame_Type.tp_clear == NULL);
+    assert(Nuitka_Frame_Type.tp_richcompare != PyFrame_Type.tp_richcompare || PyFrame_Type.tp_richcompare == NULL);
+    assert(Nuitka_Frame_Type.tp_weaklistoffset != PyFrame_Type.tp_weaklistoffset ||
+           PyFrame_Type.tp_weaklistoffset == 0);
+    assert(Nuitka_Frame_Type.tp_iter != PyFrame_Type.tp_iter || PyFrame_Type.tp_iter == NULL);
+    assert(Nuitka_Frame_Type.tp_iternext != PyFrame_Type.tp_iternext || PyFrame_Type.tp_iternext == NULL);
+    assert(Nuitka_Frame_Type.tp_methods != PyFrame_Type.tp_methods);
+    assert(Nuitka_Frame_Type.tp_members != PyFrame_Type.tp_members);
+    assert(Nuitka_Frame_Type.tp_getset != PyFrame_Type.tp_getset);
+    assert(Nuitka_Frame_Type.tp_base != PyFrame_Type.tp_base);
+    assert(Nuitka_Frame_Type.tp_dict != PyFrame_Type.tp_dict);
+    assert(Nuitka_Frame_Type.tp_descr_get != PyFrame_Type.tp_descr_get || PyFrame_Type.tp_descr_get == NULL);
+
+    assert(Nuitka_Frame_Type.tp_descr_set != PyFrame_Type.tp_descr_set || PyFrame_Type.tp_descr_set == NULL);
+    assert(Nuitka_Frame_Type.tp_dictoffset != PyFrame_Type.tp_dictoffset || PyFrame_Type.tp_dictoffset == 0);
+    // TODO: These get changed and into the same thing, not sure what to compare against, project something
+    // assert(Nuitka_Frame_Type.tp_init != PyFrame_Type.tp_init || PyFrame_Type.tp_init == NULL);
+    // assert(Nuitka_Frame_Type.tp_alloc != PyFrame_Type.tp_alloc || PyFrame_Type.tp_alloc == NULL);
+    // assert(Nuitka_Frame_Type.tp_new != PyFrame_Type.tp_new || PyFrame_Type.tp_new == NULL);
+    // assert(Nuitka_Frame_Type.tp_free != PyFrame_Type.tp_free || PyFrame_Type.tp_free == NULL);
+    assert(Nuitka_Frame_Type.tp_bases != PyFrame_Type.tp_bases);
+    assert(Nuitka_Frame_Type.tp_mro != PyFrame_Type.tp_mro);
+    assert(Nuitka_Frame_Type.tp_cache != PyFrame_Type.tp_cache || PyFrame_Type.tp_cache == NULL);
+    assert(Nuitka_Frame_Type.tp_subclasses != PyFrame_Type.tp_subclasses || PyFrame_Type.tp_cache == NULL);
+    assert(Nuitka_Frame_Type.tp_weaklist != PyFrame_Type.tp_weaklist);
+    assert(Nuitka_Frame_Type.tp_del != PyFrame_Type.tp_del || PyFrame_Type.tp_del == NULL);
+#if PYTHON_VERSION >= 0x340
+    assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
+#endif
     PyType_Ready(&Nuitka_Frame_Type);
 
     // These are to be used interchangeably. Make sure that's true.
@@ -554,6 +582,7 @@ void _initCompiledFrameType(void) {
 static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *module, bool is_module,
                                              Py_ssize_t locals_size) {
     assertCodeObject(code);
+    CHECK_OBJECT(module);
 
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_Frame_Type += 1;
@@ -561,6 +590,8 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
 #endif
 
     PyObject *globals = ((PyModuleObject *)module)->md_dict;
+    CHECK_OBJECT(globals);
+
     assert(PyDict_Check(globals));
 
     struct Nuitka_FrameObject *result;
@@ -620,7 +651,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
 
 #if PYTHON_VERSION >= 0x340
     frame->f_gen = NULL;
-    frame->f_executing = 0;
+    Nuitka_Frame_MarkAsNotExecuting(result);
 #endif
 
     Nuitka_GC_Track(result);
@@ -714,6 +745,8 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 }
 
 void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...) {
+    assertFrameObject(frame);
+
     assert(frame->m_type_description == NULL);
 
     // TODO: Do not call this if there is nothing to do. Instead make all the

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,10 @@ from nuitka import PythonOperators
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildHavingBase
-from .shapes.BuiltinTypeShapes import tshape_bool, tshape_str
+from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
+    ExpressionStrOrUnicodeDerivedShapeMixin,
+)
 
 
 class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
@@ -69,7 +72,9 @@ class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
         return True
 
 
-class ExpressionOperationUnaryRepr(ExpressionOperationUnaryBase):
+class ExpressionOperationUnaryRepr(  # TODO: Not exact
+    ExpressionStrOrUnicodeDerivedShapeMixin, ExpressionOperationUnaryBase
+):
     """Python unary operator `x` and repr built-in."""
 
     kind = "EXPRESSION_OPERATION_UNARY_REPR"
@@ -102,9 +107,6 @@ class ExpressionOperationUnaryRepr(ExpressionOperationUnaryBase):
             or self.subnode_operand.mayRaiseException(exception_type)
         )
 
-    def mayRaiseExceptionBool(self, exception_type):
-        return False
-
     def mayHaveSideEffects(self):
         operand = self.subnode_operand
 
@@ -112,11 +114,6 @@ class ExpressionOperationUnaryRepr(ExpressionOperationUnaryBase):
             return True
 
         return self.escape_desc is None or self.escape_desc.isControlFlowEscape()
-
-    @staticmethod
-    def getTypeShape():
-        # Even unicode gets decoded in Python2
-        return tshape_str
 
 
 class ExpressionOperationUnarySub(ExpressionOperationUnaryBase):
@@ -167,7 +164,9 @@ class ExpressionOperationUnaryInvert(ExpressionOperationUnaryBase):
         )
 
 
-class ExpressionOperationNot(ExpressionOperationUnaryBase):
+class ExpressionOperationNot(
+    ExpressionBoolShapeExactMixin, ExpressionOperationUnaryBase
+):
     kind = "EXPRESSION_OPERATION_NOT"
 
     operator = "Not"
@@ -178,10 +177,6 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
             self, operand=operand, source_ref=source_ref
         )
 
-    @staticmethod
-    def getTypeShape():
-        return tshape_bool
-
     def computeExpression(self, trace_collection):
         return self.subnode_operand.computeExpressionOperationNot(
             not_node=self, trace_collection=trace_collection
@@ -191,9 +186,6 @@ class ExpressionOperationNot(ExpressionOperationUnaryBase):
         return self.subnode_operand.mayRaiseException(
             exception_type
         ) or self.subnode_operand.mayRaiseExceptionBool(exception_type)
-
-    def mayRaiseExceptionBool(self, exception_type):
-        return self.subnode_operand.mayRaiseExceptionBool(exception_type)
 
     def getTruthValue(self):
         result = self.subnode_operand.getTruthValue()

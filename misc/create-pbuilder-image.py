@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,6 +17,8 @@
 #     limitations under the License.
 #
 
+""" Small tool to creaet a pbuilder image for Nuitka private CI mainly. """
+
 import os
 import shutil
 import subprocess
@@ -30,6 +32,9 @@ if "-" in codename:
 else:
     arch = subprocess.check_output("dpkg-architecture -q DEB_HOST_ARCH".split()).strip()
 
+    if str is not bytes:
+        arch = arch.decode("utf8")
+
 start_dir = os.getcwd()
 
 stage = tempfile.mkdtemp()
@@ -37,18 +42,11 @@ stage = tempfile.mkdtemp()
 try:
     os.chdir(stage)
 
-    for line in subprocess.check_output(["apt-config", "dump"]).splitlines():
-        if line.startswith("Acquire::http::Proxy "):
-            mirror = line.split(" ", 1)[1][:-1].strip('"')
-            break
-    else:
-        sys.exit("Need acquire proxy, so we have hope it's apt-cacher using.")
-
     if debian == "debian":
-        mirror += "/ftp.us.debian.org/debian"
+        mirror = "https://ftp.us.debian.org/debian"
         components = "main"
     elif debian == "ubuntu":
-        mirror += "/archive.ubuntu.com/ubuntu"
+        mirror = "http://de.archive.ubuntu.com/ubuntu"
         components = "main,universe"
     else:
         assert False, debian

@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,11 +27,11 @@ making it more difficult to use.
 """
 
 from nuitka import Options
-from nuitka.__past__ import GenericAlias
+from nuitka.__past__ import GenericAlias, UnionType
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import unusual_logger
+from nuitka.Tracing import my_print, unusual_logger
 
 
 def makeConstantReplacementNode(constant, node, user_provided):
@@ -125,6 +125,33 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
     )
 
 
+def makeRaiseExceptionStatementFromInstance(exception, source_ref):
+    assert isinstance(exception, Exception)
+
+    args = exception.args
+    if type(args) is tuple and len(args) == 1:
+        value = args[0]
+    else:
+        assert type(args) is tuple
+        value = args
+
+    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .ConstantRefNodes import makeConstantRefNode
+    from .ExceptionNodes import StatementRaiseExceptionImplicit
+
+    return StatementRaiseExceptionImplicit(
+        exception_type=ExpressionBuiltinExceptionRef(
+            exception_name=exception.__class__.__name__, source_ref=source_ref
+        ),
+        exception_value=makeConstantRefNode(
+            constant=value, source_ref=source_ref, user_provided=False
+        ),
+        exception_cause=None,
+        exception_trace=None,
+        source_ref=source_ref,
+    )
+
+
 def makeRaiseExceptionExpressionFromTemplate(
     exception_type, template, template_args, source_ref
 ):
@@ -169,17 +196,16 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
         )
 
         result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=value_node)
-
     else:
-        from .AttributeNodes import ExpressionAttributeLookup
+        from .AttributeNodes import makeExpressionAttributeLookup
         from .TypeNodes import ExpressionBuiltinType1
 
         source_ref = original_node.getSourceReference()
 
         result = makeRaiseExceptionExpressionFromTemplate(
             exception_type="TypeError",
-            template="object of type '%s' has no len()",
-            template_args=ExpressionAttributeLookup(
+            template=template,
+            template_args=makeExpressionAttributeLookup(
                 expression=ExpressionBuiltinType1(
                     value=value_node.makeClone(), source_ref=source_ref
                 ),
@@ -218,11 +244,18 @@ def makeCompileTimeConstantReplacementNode(value, node, user_provided):
             )
         else:
             return node
-    elif isinstance(value, GenericAlias):
+    elif GenericAlias is not None and isinstance(value, GenericAlias):
         from .BuiltinTypeNodes import ExpressionConstantGenericAlias
 
         return ExpressionConstantGenericAlias(
             generic_alias=value,
+            source_ref=node.getSourceReference(),
+        )
+    elif UnionType is not None and isinstance(value, UnionType):
+        from .BuiltinTypeNodes import ExpressionConstantUnionType
+
+        return ExpressionConstantUnionType(
+            union_type=value,
             source_ref=node.getSourceReference(),
         )
     else:
@@ -313,14 +346,18 @@ def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     from .SideEffectNodes import ExpressionSideEffects
 
     if side_effects:
-        side_effects = sum(
-            (
-                side_effect.extractSideEffects()
-                for side_effect in side_effects
-                if side_effect.mayHaveSideEffects()
-            ),
-            (),
-        )
+        try:
+            side_effects = sum(
+                (
+                    side_effect.extractSideEffects()
+                    for side_effect in side_effects
+                    if side_effect.mayHaveSideEffects()
+                ),
+                (),
+            )
+        except AttributeError:
+            my_print("Problem with side effects:", side_effects)
+            raise
 
         if side_effects:
             new_node = ExpressionSideEffects(

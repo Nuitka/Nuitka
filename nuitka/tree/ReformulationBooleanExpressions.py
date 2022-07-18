@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,8 +17,8 @@
 #
 """ Reformulation of boolean and/or expressions.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Consult the Developer Manual for information. TODO: Add ability to sync
+source code comments with Developer Manual sections.
 
 """
 
@@ -43,7 +43,7 @@ def buildBoolOpNode(provider, node, source_ref):
 
         source_ref = values[-1].getSourceReference()
 
-        return buildOrNode(values=values, source_ref=source_ref)
+        return makeOrNode(values=values, source_ref=source_ref)
 
     elif bool_op == "And":
         # The "and" may be short circuit and is therefore not a plain operation.
@@ -54,7 +54,7 @@ def buildBoolOpNode(provider, node, source_ref):
 
         source_ref = values[-1].getSourceReference()
 
-        return buildAndNode(values=values, source_ref=source_ref)
+        return makeAndNode(values=values, source_ref=source_ref)
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
         return makeNotExpression(
@@ -64,7 +64,7 @@ def buildBoolOpNode(provider, node, source_ref):
         assert False, bool_op
 
 
-def buildOrNode(values, source_ref):
+def makeOrNode(values, source_ref):
     values = list(values)
 
     result = values.pop()
@@ -80,7 +80,7 @@ def buildOrNode(values, source_ref):
     return result
 
 
-def buildAndNode(values, source_ref):
+def makeAndNode(values, source_ref):
     values = list(values)
 
     result = values.pop()

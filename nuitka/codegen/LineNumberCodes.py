@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -68,7 +68,11 @@ def emitErrorLineNumberUpdateCode(emit, context):
         emit(update_code)
 
 
-def emitLineNumberUpdateCode(emit, context):
+def emitLineNumberUpdateCode(expression, emit, context):
+    # Optional expression.
+    if expression is not None:
+        context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
     code = getLineNumberUpdateCode(context)
 
     if code:

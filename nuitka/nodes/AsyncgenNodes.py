@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,11 +22,16 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionNoSideEffectsMixin,
+)
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
-class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
+class ExpressionMakeAsyncgenObject(
+    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
     named_child = "asyncgen_ref"
@@ -58,12 +63,6 @@ class ExpressionMakeAsyncgenObject(ExpressionChildHavingBase):
 
         # TODO: Asyncgen body may know something too.
         return self, None, None
-
-    def mayRaiseException(self, exception_type):
-        return False
-
-    def mayHaveSideEffects(self):
-        return False
 
     def getClosureVariableVersions(self):
         return self.variable_closure_traces

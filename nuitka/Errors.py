@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -58,10 +58,6 @@ class NuitkaAssumptionError(AssertionError):
     pass
 
 
-class NuitkaPluginError(NuitkaErrorBase):
-    pass
-
-
 class NuitkaCodeDeficit(NuitkaErrorBase):
     pass
 
@@ -71,4 +67,18 @@ class NuitkaNodeDesignError(Exception):
 
 
 class NuitkaForbiddenImportEncounter(Exception):
-    pass
+    """This import was an error to attempt and include it."""
+
+
+class CodeTooComplexCode(Exception):
+    """The code of the module is too complex.
+
+    It cannot be compiled, with recursive code, and therefore the bytecode
+    should be used instead.
+
+    Example of this is "idnadata".
+    """
+
+
+class NuitkaForbiddenDLLEncounter(Exception):
+    """This DLL is not allowed to be included."""

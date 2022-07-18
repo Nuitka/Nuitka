@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -30,8 +30,5 @@
  */
 
 extern void loadConstantsBlob(PyObject **, char const *name);
-#ifndef __NUITKA_NO_ASSERT__
-extern void checkConstantsBlob(PyObject **, char const *name);
-#endif
 
 #endif

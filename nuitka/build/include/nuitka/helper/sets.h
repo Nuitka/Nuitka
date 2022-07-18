@@ -1,4 +1,4 @@
-//     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -18,7 +18,9 @@
 #ifndef __NUITKA_SETS_H__
 #define __NUITKA_SETS_H__
 
-// This is not Python headers, but we use it in our assertions.
+// This is not Python headers before 3.10, but we use it in our assertions.
+#if PYTHON_VERSION < 0x3a0
 #define PySet_CheckExact(op) (Py_TYPE(op) == &PySet_Type)
+#endif
 
 #endif

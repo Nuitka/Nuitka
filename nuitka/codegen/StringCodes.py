@@ -1,4 +1,4 @@
-#     Copyright 2021, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,13 +21,14 @@
 
 from nuitka.PythonVersions import python_version
 
+from .CallCodes import getCallCodePosVariableKeywordVariableArgs
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, makeArgDescFromExpression
 from .TupleCodes import getTupleCreationCode
 
 
@@ -148,7 +149,7 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
     )
 
 
-def generateStringContenationCode(to_name, expression, emit, context):
+def generateStringConcatenationCode(to_name, expression, emit, context):
     values = expression.subnode_values
 
     with withObjectCodeTemporaryAssignment(
@@ -228,3 +229,65 @@ def generateBuiltinAsciiCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateStrOperationCode(to_name, expression, emit, context):
+    api_name = expression.kind.rsplit("_")[-1]
+
+    if str is bytes:
+        api_name = "STR_" + api_name
+    else:
+        api_name = "UNICODE_" + api_name
+
+    # This operation has no default available for compile time.
+    none_null = expression.isExpressionStrOperationDecode3()
+
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=api_name,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+        none_null=none_null,
+    )
+
+
+def generateBytesOperationCode(to_name, expression, emit, context):
+    assert str is not bytes
+
+    api_name = "BYTES_" + expression.kind.rsplit("_")[-1]
+
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi=api_name,
+        arg_desc=makeArgDescFromExpression(expression),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateStrFormatMethodCode(to_name, expression, emit, context):
+    if str is bytes:
+        called_name = "str_builtin_format"
+    else:
+        called_name = "unicode_builtin_format"
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "format_result", expression, emit, context
+    ) as result_name:
+        getCallCodePosVariableKeywordVariableArgs(
+            to_name=result_name,
+            expression=expression,
+            called_name=called_name,
+            call_args=(expression.subnode_str_arg,) + expression.subnode_args,
+            pairs=expression.subnode_pairs,
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
