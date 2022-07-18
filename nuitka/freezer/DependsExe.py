@@ -38,10 +38,14 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.Utils import getArchitecture
 
 CURRENTLY_LOADED_DLLS = {}
-if os.name == 'nt':
-    import win32api, win32process
-    for dll_path in [win32api.GetModuleFileName(h_) 
-                     for h_ in win32process.EnumProcessModules(win32process.GetCurrentProcess())]:
+if os.name == "nt":
+    import win32api
+    import win32process
+
+    for dll_path in [
+        win32api.GetModuleFileName(h_)
+        for h_ in win32process.EnumProcessModules(win32process.GetCurrentProcess())
+    ]:
         _, name = os.path.split(dll_path)
         CURRENTLY_LOADED_DLLS[name] = dll_path
 
