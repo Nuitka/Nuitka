@@ -37,6 +37,18 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Utils import getArchitecture
 
+CURRENTLY_LOADED_DLLS = {}
+if os.name == "nt":
+    import win32api
+    import win32process
+
+    for dll_path in [
+        win32api.GetModuleFileName(h_)
+        for h_ in win32process.EnumProcessModules(win32process.GetCurrentProcess())
+    ]:
+        _, name = os.path.split(dll_path)
+        CURRENTLY_LOADED_DLLS[name] = dll_path
+
 
 def getDependsExePath():
     """Return the path of depends.exe (for Windows).
@@ -93,6 +105,11 @@ def _parseDependsExeOutput2(lines):
 
         # Skip missing DLLs, apparently not needed anyway.
         if "?" in line[: line.find("]")]:
+            # Let find it on currently loaded DLLs
+            if dll_filename in CURRENTLY_LOADED_DLLS:
+                dll_filename = CURRENTLY_LOADED_DLLS[dll_filename]
+                continue
+
             # One exception are PythonXY.DLL
             if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
                 dll_filename = os.path.join(

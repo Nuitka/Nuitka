@@ -36,3 +36,5 @@ zstandard; python_version >= '3.5'
 pyyaml; python_version == '2.7' or python_version >= '3.6'
 
 Jinja2 >= 2.10.2
+
+pywin32; sys.platform == "win32" and python_version >= '3.6'
