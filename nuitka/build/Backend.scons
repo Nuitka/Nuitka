@@ -322,6 +322,7 @@ mingw_mode = prepareEnvironment(
     mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
 )
 
+
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
 
@@ -714,33 +715,22 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
-    if nuitka_python and "pgo-link" in experimental:
-        # With Nuitka-Python, we do not use the static link library actually, but
-        # instead we link against the object files, as otherwise gcc doesn't seem
-        # to want to pick the profiling information up. TODO: This is not showing
-        # any benefit over plain LTO yet.
-        pgo_dir = os.path.join(python_prefix, "lib/pgo")
-
-        env.Append(LINKFLAGS=["-fprofile-dir=%s" % pgo_dir])
-        env.Append(LINKFLAGS=["-fprofile-correction"])
-
-        for filename in check_output(["ar", "t", static_libpython]).splitlines():
-            filename = os.path.join(pgo_dir, filename)
-
-            if not filename.endswith(".o"):
-                continue
-
-            if os.path.basename(filename) in ("main.o", "python.o"):
-                continue
-
-            gcda_filename = filename[:-2] + ".gcda"
-
-            if os.path.exists(gcda_filename):
-                env.Append(
-                    LINKFLAGS=["-fprofile-use=%s" % os.path.basename(gcda_filename)]
-                )
-
-            env.Append(LIBS=[env.File(filename)])
+    if nuitka_python:
+        link_data = loadJsonFromFilename(os.path.join(python_prefix, "link.json"))
+        for lib in link_data["libraries"]:
+            # Need to prevent Scons from stripping .a from the passed in libs.
+            if os.path.isfile(lib):
+                env.Append(_LIBFLAGS=[lib])
+            elif lib.startswith(":") and lib.endswith(".a"):
+                env.Append(_LIBFLAGS=["-l" + lib])
+            else:
+                env.Append(LIBS=[lib])
+        env.Append(LIBPATH=link_data["library_dirs"])
+        for define, value in link_data["macros"]:
+            if value:
+                env.Append(CPPDEFINES=[define + "=" + value])
+            else:
+                env.Append(CPPDEFINES=[define])
     elif static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
 

@@ -27,6 +27,7 @@ import sys
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import listDllFilesFromDirectory
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import isLinux, isWin32Windows
@@ -165,7 +166,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 self.reportFileCount(full_name, found)
 
         # TODO: This is legacy code, ideally moved to yaml config over time.
-        if full_name == "uuid" and isLinux():
+        if full_name == "uuid" and isLinux() and python_version < 0x300:
             uuid_dll_path = self.locateDLL("uuid")
 
             if uuid_dll_path is not None:

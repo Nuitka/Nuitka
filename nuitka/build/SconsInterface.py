@@ -27,11 +27,12 @@ import copy
 import os
 import subprocess
 import sys
+import sysconfig
 
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
@@ -453,5 +454,10 @@ def setCommonOptions(options):
 
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
+
+    if getOS() != "Windows" and isNuitkaPython():
+        # Override environment CC and CXX to match build compiler.
+        env_values["CC"] = sysconfig.get_config_var("CC").split()[0]
+        env_values["CXX"] = sysconfig.get_config_var("CXX").split()[0]
 
     return env_values
