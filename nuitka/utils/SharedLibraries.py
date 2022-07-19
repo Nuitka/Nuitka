@@ -24,7 +24,9 @@ import re
 import sys
 
 from nuitka import Options
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 from nuitka.__past__ import unicode
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
@@ -602,3 +604,77 @@ def getDLLVersion(filename):
         return _getDLLVersionMacOS(filename)
     elif isWin32Windows():
         return _getDLLVersionWindows(filename)
+
+
+def getWindowsRunningProcessModuleFilename(handle):
+    """Runtime lookup of filename of a module in the current Python process."""
+
+    import ctypes.wintypes
+
+    MAX_PATH = 4096
+    buf = ctypes.create_unicode_buffer(MAX_PATH)
+
+    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
+    GetModuleFileName.argtypes = (
+        ctypes.wintypes.HANDLE,
+        ctypes.wintypes.LPWSTR,
+        ctypes.wintypes.DWORD,
+    )
+    GetModuleFileName.restype = ctypes.wintypes.DWORD
+
+    res = GetModuleFileName(handle, buf, MAX_PATH)
+    if res == 0:
+        # Windows only code, pylint: disable=I0021,undefined-variable
+        raise WindowsError(
+            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+        )
+
+    return os.path.normcase(buf.value)
+
+
+def _getWindowsRunningProcessModuleHandles():
+    """Return list of process module handles for running process."""
+    import ctypes.wintypes
+
+    try:
+        EnumProcessModulesProc = ctypes.windll.psapi.EnumProcessModules
+    except AttributeError:
+        EnumProcessModulesProc = ctypes.windll.kernel32.EnumProcessModules
+
+    EnumProcessModulesProc.restype = ctypes.wintypes.BOOL
+    EnumProcessModulesProc.argtypes = [
+        ctypes.wintypes.HANDLE,
+        ctypes.POINTER(ctypes.wintypes.HANDLE),
+        ctypes.wintypes.LONG,
+        ctypes.POINTER(ctypes.wintypes.ULONG),
+    ]
+
+    # Very unlikely that this is not sufficient for CPython.
+    handles = (ctypes.wintypes.HANDLE * 1024)()
+    needed = ctypes.wintypes.ULONG()
+
+    res = EnumProcessModulesProc(
+        ctypes.windll.kernel32.GetCurrentProcess(),
+        handles,
+        ctypes.sizeof(handles),
+        ctypes.byref(needed),
+    )
+
+    if not res:
+        # Windows only code, pylint: disable=I0021,undefined-variable
+        raise WindowsError(
+            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+        )
+
+    return tuple(handle for handle in handles if handle is not None)
+
+
+def getWindowsRunningProcessDLLPaths():
+    result = OrderedDict()
+
+    for handle in _getWindowsRunningProcessModuleHandles():
+        filename = getWindowsRunningProcessModuleFilename(handle)
+
+        result[os.path.basename(filename)] = filename
+
+    return result

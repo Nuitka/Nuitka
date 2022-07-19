@@ -30,8 +30,6 @@ import os
 import re
 import sys
 
-from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
-
 
 def getSupportedPythonVersions():
     """Officially supported Python versions for Nuitka."""
@@ -137,32 +135,12 @@ def needsDuplicateArgumentColOffset():
 
 
 def getRunningPythonDLLPath():
-    # False alarm for subpackage, pylint: disable=redefined-outer-name
-    import ctypes.wintypes
-
-    MAX_PATH = 4096
-    buf = ctypes.create_unicode_buffer(MAX_PATH)
-
-    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
-    GetModuleFileName.argtypes = (
-        ctypes.wintypes.HANDLE,
-        ctypes.wintypes.LPWSTR,
-        ctypes.wintypes.DWORD,
+    from nuitka.utils.SharedLibraries import (
+        getWindowsRunningProcessModuleFilename,
     )
-    GetModuleFileName.restype = ctypes.wintypes.DWORD
 
     # We trust ctypes internals here, pylint: disable=protected-access
-    res = GetModuleFileName(ctypes.pythonapi._handle, buf, MAX_PATH)
-    if res == 0:
-        # Windows only code, pylint: disable=I0021,undefined-variable
-        raise WindowsError(
-            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-        )
-
-    dll_path = os.path.normcase(buf.value)
-    assert os.path.exists(dll_path), dll_path
-
-    return dll_path
+    return getWindowsRunningProcessModuleFilename(ctypes.pythonapi._handle)
 
 
 def getTargetPythonDLLPath():

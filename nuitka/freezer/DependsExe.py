@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     withFileLock,
 )
+from nuitka.utils.SharedLibraries import getWindowsRunningProcessDLLPaths
 from nuitka.utils.Utils import getArchitecture
 
 
@@ -93,6 +94,13 @@ def _parseDependsExeOutput2(lines):
 
         # Skip missing DLLs, apparently not needed anyway.
         if "?" in line[: line.find("]")]:
+            # Let find it on currently loaded DLLs
+            currently_loaded_dll = getWindowsRunningProcessDLLPaths()
+
+            if dll_filename in currently_loaded_dll:
+                dll_filename = currently_loaded_dll[dll_filename]
+                continue
+
             # One exception are PythonXY.DLL
             if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
                 dll_filename = os.path.join(
