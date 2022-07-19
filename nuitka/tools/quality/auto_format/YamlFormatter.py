@@ -18,14 +18,26 @@
 """ Automatic formatting of Yaml files. """
 
 import json
+import sys
 from collections import OrderedDict
-from copy import copy
+
+import ruamel
+from ruamel.yaml import YAML
+from ruamel.yaml.compat import _F
+from ruamel.yaml.constructor import ConstructorError
+from ruamel.yaml.nodes import ScalarNode
+from ruamel.yaml.scalarstring import (
+    DoubleQuotedScalarString,
+    FoldedScalarString,
+    LiteralScalarString,
+    PlainScalarString,
+    SingleQuotedScalarString,
+)
 
 from nuitka.utils.FileOperations import openTextFile
-from nuitka.utils.Yaml import (
-    getYamlPackage,
-    getYamlPackageConfigurationSchemaFilename,
-)
+from nuitka.utils.Yaml import getYamlPackageConfigurationSchemaFilename
+
+sys.setrecursionlimit(100000)
 
 MASTER_KEYS = None
 DATA_FILES_KEYS = None
@@ -37,6 +49,12 @@ IMPLICIT_IMPORTS_KEYS = None
 OPTIONS_KEYS = None
 OPTIONS_CHECKS_KEYS = None
 
+YAML_HEADER = """---
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# too many spelling things, spell-checker: disable
+"""
 
 def _initNuitkaPackageSchema():
     # Singleton, pylint: disable=global-statement
@@ -85,243 +103,132 @@ def _decideStrFormat(string):
     """
     take the character that is not closest to the beginning or end
     """
-    single_quote_left = string.find("'")
-    single_quote_right = string.rfind("'")
-    quote_left = string.find('"')
-    quote_right = string.rfind('"')
-
-    if single_quote_left == -1 and not quote_left == -1:
-        return "'"
-
-    elif quote_left == -1 and not single_quote_left == -1:
-        return '"'
-
-    elif (
-        single_quote_left == -1
-        and single_quote_right == -1
-        and quote_left == -1
-        and quote_right == -1
+    # Singleton, pylint: disable=too-many-return-statements
+    if (
+        string not in MASTER_KEYS
+        and string not in DATA_FILES_KEYS
+        and string not in DLLS_KEYS
+        and string not in DLLS_BY_CODE_KEYS
+        and string not in DLLS_FROM_FILENAMES_KEYS
+        and string not in ANTI_BLOAT_KEYS
+        and string not in IMPLICIT_IMPORTS_KEYS
+        and string not in OPTIONS_KEYS
+        and string not in OPTIONS_CHECKS_KEYS
     ):
-        return '"'
+        single_quote_left = string.find("'")
+        single_quote_right = string.rfind("'")
+        quote_left = string.find('"')
+        quote_right = string.rfind('"')
 
-    elif single_quote_left > quote_left and single_quote_right < quote_right:
-        return "'"
+        if single_quote_left == -1 and not quote_left == -1:
+            return "'"
 
-    elif single_quote_left < quote_left and single_quote_right > quote_right:
-        return '"'
+        elif quote_left == -1 and not single_quote_left == -1:
+            return '"'
+
+        elif (
+            single_quote_left == -1
+            and single_quote_right == -1
+            and quote_left == -1
+            and quote_right == -1
+        ):
+            return '"'
+
+        elif single_quote_left > quote_left and single_quote_right < quote_right:
+            return "'"
+
+        elif single_quote_left < quote_left and single_quote_right > quote_right:
+            return '"'
+
+        else:
+            return '"'
 
     else:
-        return '"'
+        return ""
 
 
-def _strPresenter(dumper, data):
-    """
-    custom Representer for strings
-    """
-    if data.strip().count("\n") > 0:
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+class CustomConstructor(ruamel.yaml.constructor.RoundTripConstructor):
+    def construct_scalar(self, node):
+        # Singleton, pylint: disable= too-many-branches,too-many-return-statements
+        if not isinstance(node, ScalarNode):
+            raise ConstructorError(
+                None,
+                None,
+                _F("expected a scalar node, but found {node_id!s}", node_id=node.id),
+                node.start_mark,
+            )
 
-    return dumper.represent_scalar(
-        "tag:yaml.org,2002:str",
-        data,
-        style=_decideStrFormat(data)
-        if (
-            data not in MASTER_KEYS
-            and data not in DATA_FILES_KEYS
-            and data not in DLLS_KEYS
-            and data not in DLLS_BY_CODE_KEYS
-            and data not in DLLS_FROM_FILENAMES_KEYS
-            and data not in ANTI_BLOAT_KEYS
-            and data not in IMPLICIT_IMPORTS_KEYS
-            and data not in OPTIONS_KEYS
-            and data not in OPTIONS_CHECKS_KEYS
-        )
-        else "",
-    )
-
-
-def _getOnTopComments(lines):
-    """
-    find comments that are at the top
-    example:
-    # comment
-    - module-name: "module"
-    """
-    comments = {}
-    new_lines = copy(lines)
-    deleted_counter = 0
-    for i, line in enumerate(lines):
-        error = False
-        if line.startswith("#"):
-            line2 = line
-            counter = 0
-            while not line2.startswith("- module-name: "):
-                counter += 1
-                line2 = lines[i + counter].strip()
-                if len(line2) > 0 and line2[0] not in ["#", " ", "-"]:
-                    error = True
-                    break
-
-            if error:
-                continue
-
-            module_name = line2.replace("- module-name: ", "")
-
-            data = {"comment": line, "type": "on-top"}
-            if module_name in comments:
-                comments[module_name].append(data)
+        if node.style == "|" and isinstance(node.value, str):
+            lss = LiteralScalarString(node.value, anchor=node.anchor)
+            if self.loader and self.loader.comment_handling is None:
+                if node.comment and node.comment[1]:
+                    lss.comment = node.comment[1][0]
 
             else:
-                comments[module_name] = [data]
+                if node.comment is not None and node.comment[1]:
+                    lss.comment = self.comment(node.comment[1][0])
 
-            del new_lines[i - deleted_counter]
-            deleted_counter += 1
+            return lss
 
-    return new_lines, comments
-
-
-def _getBetweenComments(lines, comments):
-    """
-    find comments between to lines
-    example:
-    - module-name: "arcade"
-      # comment
-      data-files:
-    """
-    for i, line in enumerate(lines):
-        if line.strip().startswith("#"):
-            comment = line
-            line2 = line
-            counter = 0
+        if node.style == ">" and isinstance(node.value, str):
+            fold_positions = []
+            idx = -1
             while True:
-                counter += 1
-                line2 = lines[i - counter]
-                if line2 != "" and not line2.strip().startswith("#"):
-                    key = line2.strip()
+                idx = node.value.find("\a", idx + 1)
+                if idx < 0:
                     break
 
-            counter = 0
-            while True:
-                counter += 1
-                line2 = lines[i - counter]
-                if line2.startswith("- module-name: "):
-                    module_name = line2.replace("- module-name: ", "")
-                    break
+                fold_positions.append(idx - len(fold_positions))
 
-            del lines[i]
-
-            data = {"key": key, "comment": comment, "type": "between"}
-            if module_name in comments:
-                comments[module_name].append(data)
+            fss = FoldedScalarString(node.value.replace("\a", ""), anchor=node.anchor)
+            if self.loader and self.loader.comment_handling is None:
+                if node.comment and node.comment[1]:
+                    fss.comment = node.comment[1][0]
 
             else:
-                comments[module_name] = [data]
+                # NEWCMNT
+                if node.comment is not None and node.comment[1]:
+                    # nprintf('>>>>nc2', node.comment)
+                    # EOL comment after >
+                    fss.comment = self.comment(node.comment[1][0])  # type: ignore
 
-    return lines, comments
+            if fold_positions:
+                fss.fold_pos = fold_positions  # type: ignore
 
+            return fss
 
-def _getEndOfLineComment(lines, comments):
-    """
-    find comments at the end of a line
-    example:
-    - "module" # comment
-    """
-    for i, line in enumerate(lines):
-        splitted_line = line.split("#")
-        if len(splitted_line) > 1:
-            comment = "#" + splitted_line[-1]
-            key = "".join(splitted_line[:-1]).strip()
-            line2 = line
-            counter = 0
-            while True:
-                counter += 1
-                line2 = lines[i - counter]
-                if line2.startswith("- module-name: "):
-                    module_name = line2.replace("- module-name: ", "")
-                    break
+        elif isinstance(node.value, str):
+            node.style = _decideStrFormat(node.value)
+            if node.style == "'":
+                return SingleQuotedScalarString(node.value, anchor=node.anchor)
 
-            data = {"key": key, "comment": comment, "type": "on-end"}
+            if node.style == '"':
+                return DoubleQuotedScalarString(node.value, anchor=node.anchor)
 
-            if module_name in comments:
-                comments[module_name].append(data)
+            if node.style == "":
+                return PlainScalarString(node.value, anchor=node.anchor)
 
-            else:
-                comments[module_name] = [data]
+        if node.anchor:
+            return PlainScalarString(node.value, anchor=node.anchor)
 
-    return comments
-
-
-def _getComments(lines):
-    """
-    find all comments using three parses
-    """
-    lines, comments = _getOnTopComments(lines)
-    lines, comments = _getBetweenComments(lines, comments)
-    comments = _getEndOfLineComment(lines, comments)
-    return comments
-
-
-def _restoreComments(lines, comments):
-    """
-    restore all comments from "comments"
-    """
-    new_lines = copy(lines)
-    new_lines_counter = 0
-    for i, line in enumerate(lines):
-        if line.startswith("- module-name: "):
-            module_name = line.split(": ")[1]
-            if module_name in comments:
-                for entry in comments[module_name]:
-                    if entry["type"] == "on-top":
-                        new_lines.insert(i + new_lines_counter, entry["comment"])
-
-                        new_lines_counter += 1
-
-                    if entry["type"] == "between":
-                        line2 = line
-                        counter = 0
-                        while line2.strip() != entry["key"]:
-                            counter += 1
-                            line2 = lines[i + counter]
-
-                        new_lines.insert(
-                            i + counter + new_lines_counter + 1, entry["comment"]
-                        )
-                        new_lines_counter += 1
-
-                    if entry["type"] == "on-end":
-                        line2 = line
-                        counter = 0
-                        while line2.strip() != entry["key"]:
-                            counter += 1
-                            line2 = lines[i + counter]
-
-                        new_lines[i + counter + new_lines_counter] = (
-                            lines[i + counter] + " " + entry["comment"]
-                        )
-
-    return new_lines
+        return node.value
 
 
 def formatYaml(path):
     """
     format and sort a yaml file
     """
-    # spell-checker: ignore representer,indentless
 
     _initNuitkaPackageSchema()
 
-    yaml = getYamlPackage()
+    ruamel.yaml.constructor.RoundTripConstructor = CustomConstructor
 
-    yaml.add_representer(str, _strPresenter)
-    yaml.representer.SafeRepresenter.add_representer(str, _strPresenter)
+    yaml = YAML(typ="rt", pure=True)
+    yaml.width = 100000000  # high value to not wrap lines
+    yaml.indent = 2
 
     with openTextFile(path, "r", encoding="utf-8") as input_file:
-        data = yaml.load(input_file, Loader=yaml.SafeLoader)
-        input_file.seek(0)
-        lines = input_file.read().splitlines()
-        header = lines[:3]
-        comments = _getComments(lines[3:])
+        data = yaml.load(input_file.read())
 
     new_data = []
     for entry in data:
@@ -394,25 +301,6 @@ def formatYaml(path):
     # Do not sort by name yet, not clear if ever.
     # new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
 
-    class _IndentingDumper(yaml.SafeDumper):
-        """
-        Custom dumper enforcing indentation.
-        """
-
-        def increase_indent(self, flow=False, indentless=False):
-            return yaml.SafeDumper.increase_indent(self, flow, False)
-
-    with openTextFile(path, "w", encoding="utf-8") as output_file:
-        dumped = ""
-        for entry in new_data:
-            dumped += (
-                yaml.dump(
-                    [entry], Dumper=_IndentingDumper, width=10000000, sort_keys=False
-                )
-                + "\n"
-            )
-
-        output_file.writelines(line + "\n" for line in header)
-        output_file.writelines(
-            line + "\n" for line in _restoreComments(dumped.splitlines(), comments)
-        )
+    with open(path, "w", encoding="utf-8") as output_file:
+        output_file.write(YAML_HEADER)
+        yaml.dump(new_data, output_file)
