@@ -149,7 +149,8 @@ def _decideStrFormat(string):
 
 class CustomConstructor(ruamel.yaml.constructor.RoundTripConstructor):
     def construct_scalar(self, node):
-        # Singleton, pylint: disable= too-many-branches,too-many-return-statements
+        # Singleton, pylint: disable= too-many-branches
+,too-many-return-statements
         if not isinstance(node, ScalarNode):
             raise ConstructorError(
                 None,
