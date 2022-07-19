@@ -63,7 +63,7 @@ PATH while executing this will be sufficient."""
 
         if not os.path.exists(sh_path):
             sh_path = os.path.join(
-                os.path.dirname(git_path), "..", "..", "bin", "sh.exe"
+                os.path.dirname(git_path), "..", "bin", "sh.exe"
             )
 
         sh_path = os.path.normpath(sh_path)
