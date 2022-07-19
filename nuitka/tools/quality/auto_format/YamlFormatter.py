@@ -56,6 +56,7 @@ YAML_HEADER = """---
 # too many spelling things, spell-checker: disable
 """
 
+
 def _initNuitkaPackageSchema():
     # Singleton, pylint: disable=global-statement
     global MASTER_KEYS, DATA_FILES_KEYS, DLLS_KEYS, DLLS_BY_CODE_KEYS
@@ -149,7 +150,7 @@ def _decideStrFormat(string):
 
 class CustomConstructor(ruamel.yaml.constructor.RoundTripConstructor):
     def construct_scalar(self, node):
-        # Singleton, pylint: disable= too-many-branches,too-many-return-statements
+        # Singleton, pylint: disable= too-many-branches,too-many-return-statements
         if not isinstance(node, ScalarNode):
             raise ConstructorError(
                 None,
