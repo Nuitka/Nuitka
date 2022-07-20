@@ -21,8 +21,10 @@ setlocal
 
 if exist "%~dp0..\python.exe" (
 "%~dp0..\python" -m nuitka %*
-) else (
+) else if exist "%~dp0python.exe" (
 "%~dp0python" -m nuitka %*
+) else (
+"python" -m nuitka %*
 )
 
 endlocal
