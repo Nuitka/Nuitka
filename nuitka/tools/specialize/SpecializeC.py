@@ -32,11 +32,11 @@ import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
-from nuitka.codegen.BinaryOperationHelperDefinitions import (
+from nuitka.code_generation.BinaryOperationHelperDefinitions import (
     getSpecializedBinaryOperations,
     parseTypesFromHelper,
 )
-from nuitka.codegen.CallCodes import (
+from nuitka.code_generation.CallCodes import (
     getQuickCallCode,
     getQuickMethodCallCode,
     getQuickMethodDescriptorCallCode,
@@ -44,10 +44,10 @@ from nuitka.codegen.CallCodes import (
     getTemplateCodeDeclaredFunction,
     max_quick_call,
 )
-from nuitka.codegen.ComparisonHelperDefinitions import (
+from nuitka.code_generation.ComparisonHelperDefinitions import (
     getSpecializedComparisonOperations,
 )
-from nuitka.codegen.ImportCodes import getImportModuleHardCodeName
+from nuitka.code_generation.ImportCodes import getImportModuleHardCodeName
 from nuitka.nodes.ImportNodes import (
     hard_modules,
     hard_modules_non_stdlib,
@@ -89,7 +89,7 @@ from .CTypeDescriptions import (
 
 def getDoExtensionUsingTemplateC(template_name):
     return getTemplateC(
-        package_name="nuitka.codegen",
+        package_name="nuitka.code_generation",
         template_subdir="templates_c",
         template_name=template_name,
         extensions=("jinja2.ext.do",),
@@ -729,7 +729,7 @@ def makeHelperCalls():
                 emit_c(*args)
 
             template = getTemplateC(
-                "nuitka.codegen", "CodeTemplateCallsPositional.c.j2"
+                "nuitka.code_generation", "CodeTemplateCallsPositional.c.j2"
             )
 
             emitGenerationWarning(emit, template.name)
@@ -748,7 +748,9 @@ def makeHelperCalls():
                     emit_c(code)
                     emit_h(getTemplateCodeDeclaredFunction(code))
 
-            template = getTemplateC("nuitka.codegen", "CodeTemplateCallsMixed.c.j2")
+            template = getTemplateC(
+                "nuitka.code_generation", "CodeTemplateCallsMixed.c.j2"
+            )
 
             # Only keywords, but not positional arguments, via split args.
             code = getQuickMixedCallCode(

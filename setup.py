@@ -168,7 +168,7 @@ package_data = {
         "include/*/*/*.h",
     ]
     + inline_copy_files,
-    "nuitka.codegen": ["templates_c/*.j2"],
+    "nuitka.code_generation": ["templates_c/*.j2"],
 }
 
 

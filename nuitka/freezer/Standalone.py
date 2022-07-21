@@ -57,7 +57,7 @@ from nuitka.Progress import (
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, inclusion_logger, printError
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
