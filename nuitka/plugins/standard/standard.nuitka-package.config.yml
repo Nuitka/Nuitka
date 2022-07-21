@@ -206,12 +206,6 @@
         "def goahead(self, i):": "'def goahead(self, end):'"
         "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
 
-- module-name: "formatter"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
 - module-name: "frozendict"
   data-files:
     patterns:
