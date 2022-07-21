@@ -296,9 +296,6 @@ def pickSourceFilenames(source_dir, modules):
     return module_filenames
 
 
-standalone_entry_points = []
-
-
 def makeSourceDirectory():
     """Get the full list of modules imported, create code for all of them."""
     # We deal with a lot of details here, but rather one by one, and split makes

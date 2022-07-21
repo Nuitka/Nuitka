@@ -43,22 +43,12 @@ def makeIncludedEntryPoint(kind, source_path, dest_path, package_name, executabl
     if package_name is not None:
         package_name = ModuleName(package_name)
 
-    assert type(executable) is bool
+    assert type(executable) is bool, executable
 
     return IncludedEntryPoint(kind, source_path, dest_path, package_name, executable)
 
 
-def makeMainExecutableEntryPoint(dest_path):
-    return makeIncludedEntryPoint(
-        "executable",
-        source_path=dest_path,
-        dest_path=dest_path,
-        package_name=None,
-        executable=True,
-    )
-
-
-def makeDllEntryPoint(source_path, dest_path, package_name):
+def _makeDllOrExeEntryPoint(kind, source_path, dest_path, package_name, executable):
     assert type(dest_path) not in (tuple, list)
     assert type(source_path) not in (tuple, list)
     assert isRelativePath(dest_path), dest_path
@@ -68,35 +58,51 @@ def makeDllEntryPoint(source_path, dest_path, package_name):
     dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
 
     return makeIncludedEntryPoint(
-        "dll", source_path, dest_path, package_name, executable=False
-    )
-
-
-def makeExeEntryPoint(source_path, dest_path, package_name):
-    assert type(dest_path) not in (tuple, list)
-    assert type(source_path) not in (tuple, list)
-    assert isRelativePath(dest_path), dest_path
-
-    assert os.path.exists(source_path), source_path
-
-    dest_path = os.path.join(getStandaloneDirectoryPath(), dest_path)
-
-    return makeIncludedEntryPoint(
-        "dll",
+        kind=kind,
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
-        executable=True,
+        executable=executable,
     )
 
 
 def makeExtensionModuleEntryPoint(source_path, dest_path, package_name):
-    return makeIncludedEntryPoint(
-        "extension",
+    return _makeDllOrExeEntryPoint(
+        kind="extension",
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
         executable=False,
+    )
+
+
+def makeDllEntryPoint(source_path, dest_path, package_name):
+    return _makeDllOrExeEntryPoint(
+        kind="dll",
+        source_path=source_path,
+        dest_path=dest_path,
+        package_name=package_name,
+        executable=False,
+    )
+
+
+def makeExeEntryPoint(source_path, dest_path, package_name):
+    return _makeDllOrExeEntryPoint(
+        kind="exe",
+        source_path=source_path,
+        dest_path=dest_path,
+        package_name=package_name,
+        executable=True,
+    )
+
+
+def makeMainExecutableEntryPoint(dest_path):
+    return _makeDllOrExeEntryPoint(
+        kind="executable",
+        source_path=dest_path,
+        dest_path=dest_path,
+        package_name=None,
+        executable=True,
     )
 
 
@@ -116,6 +122,7 @@ def setMainEntryPoint(binary_filename):
 
 
 def addExtensionModuleEntryPoint(module):
+    # TODO: Delay the copying until the end.
     target_filename = os.path.join(
         getStandaloneDirectoryPath(), module.getFullName().asPath()
     )
@@ -131,7 +138,8 @@ def addExtensionModuleEntryPoint(module):
     standalone_entry_points.append(
         makeExtensionModuleEntryPoint(
             source_path=module.getFilename(),
-            dest_path=target_filename,
+            dest_path=module.getFullName().asPath()
+            + getSharedLibrarySuffix(preferred=False),
             package_name=module.getFullName().getPackageName(),
         )
     )
