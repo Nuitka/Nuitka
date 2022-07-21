@@ -942,7 +942,7 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     // Revive temporarily.
     assert(Py_REFCNT(asyncgen) == 0);
-    Py_REFCNT(asyncgen) = 1;
+    Py_SET_REFCNT(asyncgen, 1);
 
     // Save the current exception, if any, we must preserve it.
     PyObject *save_exception_type, *save_exception_value;
@@ -975,8 +975,9 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
 
     Nuitka_Asyncgen_release_closure(asyncgen);
 
-    // Allow for above code to resurrect the coroutine.
-    Py_REFCNT(asyncgen) -= 1;
+    // Allow for above code to resurrect the coroutine, do not release the object
+    // like Py_DECREF would.
+    Py_SET_REFCNT(asyncgen, Py_REFCNT(asyncgen) - 1);
     if (Py_REFCNT(asyncgen) >= 1) {
         return;
     }
