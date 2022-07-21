@@ -625,12 +625,6 @@
         "postreleaser_before": "'(lambda data: None)'"
         "prereleaser_middle": "'(lambda data: None)'"
 
-- module-name: "xmllib"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
 - module-name: "mhlib"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -643,60 +637,17 @@
       change_function:
         "test": "'(lambda: None)'"
 
-- module-name: "audiodev"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
-- module-name: "rexec"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
 - module-name: "modulefinder"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:
         "test": "'(lambda: None)'"
 
-
-
-- module-name: "fpformat"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
-
-
 - module-name: "formatter"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:
         "test": "'(lambda: None)'"
-
-
-
-- module-name: "xml.sax.xmlreader.py"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-
-
-
-
-
-
-
-- module-name: "Bastion"
-  anti-bloat:
-    - change_function:
-        "_test": "'(lambda: None)'"
-      description: "remove module ability to run as a binary"
 
 - module-name: "h5py"
   anti-bloat:

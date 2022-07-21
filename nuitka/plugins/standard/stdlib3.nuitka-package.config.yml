@@ -20,12 +20,6 @@
       change_function:
         "_main": "'(lambda: None)'"
 
-- module-name: "sysconfig"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_main": "'(lambda: None)'"
-
 - module-name: "ensurepip"
   anti-bloat:
     - description: "remove module ability to run as a binary"
