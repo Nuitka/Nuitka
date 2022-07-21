@@ -150,8 +150,18 @@ def getYamlPackageConfiguration():
         _package_config = parsePackageYaml(
             "nuitka.plugins.standard",
             "standard.nuitka-package.config.yml",
-            "stdlib2.nuitka-package.config.yml",
-            "stdlib3.nuitka-package.config.yml",
+        )
+        _package_config.update(
+            parsePackageYaml(
+                "nuitka.plugins.stdlib2",
+                "stdlib2.nuitka-package.config.yml",
+            )
+        )
+        _package_config.update(
+            parsePackageYaml(
+                "nuitka.plugins.stdlib3",
+                "stdlib3.nuitka-package.config.yml",
+            )
         )
 
         try:
