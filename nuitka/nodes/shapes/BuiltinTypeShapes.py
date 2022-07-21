@@ -19,9 +19,13 @@
 
 """
 
-from nuitka.codegen.c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
-from nuitka.codegen.c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
-from nuitka.codegen.Reports import onMissingOperation
+from nuitka.code_generation.c_types.CTypeNuitkaBooleans import (
+    CTypeNuitkaBoolEnum,
+)
+from nuitka.code_generation.c_types.CTypeNuitkaInts import (
+    CTypeNuitkaIntOrLongStruct,
+)
+from nuitka.code_generation.Reports import onMissingOperation
 from nuitka.Constants import the_empty_unicode
 from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version

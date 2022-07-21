@@ -197,7 +197,7 @@ from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
-from .SourceReading import (
+from .SourceHandling import (
     checkPythonVersionFromCode,
     readSourceCodeFromFilename,
 )

@@ -15,10 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Read source code from files.
+""" Read/write source code from files.
 
-This is tremendously more complex than one might think, due to encoding issues
-and version differences of Python versions.
+Reading is tremendously more complex than one might think, due to encoding
+issues and version differences of Python versions.
 """
 
 import os
@@ -30,6 +30,7 @@ from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import general, my_print
+from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import getOS
 
@@ -261,3 +262,11 @@ def readSourceLine(source_ref):
     return linecache.getline(
         filename=source_ref.getFilename(), lineno=source_ref.getLineNumber()
     )
+
+
+def writeSourceCode(filename, source_code):
+    # Prevent accidental overwriting. When this happens the collision detection
+    # or something else has failed.
+    assert not os.path.isfile(filename), filename
+
+    putTextFileContents(filename=filename, contents=source_code, encoding="latin1")

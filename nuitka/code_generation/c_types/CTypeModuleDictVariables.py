@@ -23,7 +23,7 @@
 
 """
 
-from nuitka.codegen.templates.CodeTemplatesVariables import (
+from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_del_global_known,
     template_del_global_unclear,
     template_read_mvar_unclear,

@@ -85,10 +85,11 @@ Nuitka top level works like this:
 
 -  ``nuitka.finalization`` prepares the tree for code generation
 
--  ``nuitka.codegen.CodeGeneration`` orchestrates the creation of code
-   snippets
+-  ``nuitka.code_generation.CodeGeneration`` orchestrates the creation
+   of code snippets
 
--  ``nuitka.codegen.*Codes`` knows how specific code kinds are created
+-  ``nuitka.code_generation.*Codes`` knows how specific code kinds are
+   created
 
 -  ``nuitka.MainControl`` keeps it all together
 
@@ -257,10 +258,10 @@ For the packages, no real code is allowed in their ``__init__.py`` and
 they must be lower case, like e.g. ``nuitka`` or ``codegen``. This is to
 distinguish them from the modules.
 
-Packages shall only be used to group things. In ``nuitka.codegen`` the
-code generation packages are located, while the main interface is
-``nuitka.codegen.CodeGeneration`` and may then use most of the entries
-as local imports.
+Packages shall only be used to group things. In
+``nuitka.code_generation`` the code generation packages are located,
+while the main interface is ``nuitka.code_generation.CodeGeneration``
+and may then use most of the entries as local imports.
 
 There is no code in packages themselves. For programs, we use
 ``__main__`` package to carry the actual code.
