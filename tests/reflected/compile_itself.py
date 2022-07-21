@@ -273,6 +273,8 @@ def executePASS1():
     for filename in (
         "nuitka/build/Backend.scons",
         "nuitka/plugins/standard/standard.nuitka-package.config.yml",
+        "nuitka/plugins/standard/stdlib3.nuitka-package.config.yml",
+        "nuitka/plugins/standard/stdlib2.nuitka-package.config.yml",
     ):
         shutil.copyfile(
             os.path.join(base_dir, filename),
