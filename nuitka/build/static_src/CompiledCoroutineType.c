@@ -1093,7 +1093,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
 
     // Revive temporarily.
     assert(Py_REFCNT(coroutine) == 0);
-    Py_REFCNT(coroutine) = 1;
+    Py_SET_REFCNT(coroutine, 1);
 
     // Save the current exception, if any, we must preserve it.
     PyObject *save_exception_type, *save_exception_value;
@@ -1114,7 +1114,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     Nuitka_Coroutine_release_closure(coroutine);
 
     // Allow for above code to resurrect the coroutine.
-    Py_REFCNT(coroutine) -= 1;
+    Py_SET_REFCNT(coroutine, Py_REFCNT(coroutine) - 1);
     if (Py_REFCNT(coroutine) >= 1) {
         RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
         return;
@@ -1238,7 +1238,7 @@ static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObj
     Nuitka_GC_UnTrack((PyObject *)cw);
 
     assert(Py_REFCNT(cw) == 0);
-    Py_REFCNT(cw) = 1;
+    Py_SET_REFCNT(cw, 1);
 
 #if _DEBUG_REFCOUNTS
     count_active_Nuitka_CoroutineWrapper_Type -= 1;
@@ -1250,7 +1250,7 @@ static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObj
     cw->m_coroutine = NULL;
 
     assert(Py_REFCNT(cw) == 1);
-    Py_REFCNT(cw) = 0;
+    Py_SET_REFCNT(cw, 0);
 
     releaseToFreeList(free_list_coro_wrappers, cw, MAX_COROUTINE_FREE_LIST_COUNT);
 }

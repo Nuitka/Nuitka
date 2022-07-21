@@ -61,8 +61,16 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
         }
     }
 
+#ifdef _NUITKA_EXPERIMENTAL_NOGIL
+    /* load eval breaker */
+    uintptr_t b = _Py_atomic_load_uintptr(&tstate->eval_breaker);
+
+    /* GIL drop request */
+    if ((b & EVAL_PENDING_SIGNALS) != 0) {
+#else
     /* GIL drop request */
     if (ceval2->gil_drop_request._value) {
+#endif
         /* Give another thread a chance */
         PyEval_SaveThread();
         PyEval_AcquireThread(tstate);

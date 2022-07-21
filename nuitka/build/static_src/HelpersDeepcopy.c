@@ -88,6 +88,7 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
     return result;
 #else
     /* Python 3 */
+#ifndef _NUITKA_EXPERIMENTAL_NOGIL
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
@@ -120,7 +121,9 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
         Nuitka_GC_Track(result);
 
         return (PyObject *)result;
-    } else {
+    } else
+#endif
+    {
         PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
 
         PyDictObject *mp = (PyDictObject *)value;
