@@ -85,7 +85,6 @@ from nuitka.utils.FileOperations import (
     getDirectoryRealPath,
     getExternalUsePath,
     makePath,
-    putTextFileContents,
     removeDirectory,
     resetDirectory,
 )
@@ -98,14 +97,15 @@ from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, LoaderCodes, Reports
+from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import packDistFolderToOnefile
 from .freezer.Standalone import checkFreezingModuleSet, copyDllsUsed
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
 from .Reports import writeCompilationReport
-from .tree import Building
+from .tree.Building import buildMainModuleTree
+from .tree.SourceHandling import writeSourceCode
 
 
 def _createNodeTree(filename):
@@ -120,7 +120,7 @@ def _createNodeTree(filename):
     # Many cases to deal with, pylint: disable=too-many-branches
 
     # First, build the raw node tree from the source code.
-    main_module = Building.buildMainModuleTree(
+    main_module = buildMainModuleTree(
         filename=filename,
         is_main=not Options.shallMakeModule(),
     )
@@ -706,25 +706,6 @@ def runSconsBackend(quiet):
     return result
 
 
-def writeSourceCode(filename, source_code):
-    # Prevent accidental overwriting. When this happens the collision detection
-    # or something else has failed.
-    assert not os.path.isfile(filename), filename
-
-    putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
-
-
-def writeBinaryData(filename, binary_data):
-    # Prevent accidental overwriting. When this happens the collision detection
-    # or something else has failed.
-    assert not os.path.isfile(filename), filename
-
-    assert type(binary_data) is bytes
-
-    with open(filename, "wb") as output_file:
-        output_file.write(binary_data)
-
-
 def callExecPython(args, clean_path, add_path):
     old_python_path = os.environ.get("PYTHONPATH")
 
@@ -754,6 +735,7 @@ def executeMain(binary_filename, clean_path):
 
 
 def executeModule(tree, clean_path):
+    """Execute the extension module just created."""
 
     if python_version < 0x340:
         python_command_template = """\

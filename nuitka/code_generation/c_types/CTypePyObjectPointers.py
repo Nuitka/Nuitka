@@ -20,8 +20,11 @@
 """
 
 from nuitka.__past__ import iterItems
-from nuitka.codegen.ErrorCodes import getErrorExitBoolCode, getReleaseCode
-from nuitka.codegen.templates.CodeTemplatesVariables import (
+from nuitka.code_generation.ErrorCodes import (
+    getErrorExitBoolCode,
+    getReleaseCode,
+)
+from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
     template_del_local_known,
     template_del_local_tolerant,

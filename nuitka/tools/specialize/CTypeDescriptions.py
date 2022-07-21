@@ -23,7 +23,7 @@ import math
 from abc import abstractmethod
 
 from nuitka.__past__ import getMetaClassBase, long
-from nuitka.codegen.Namify import namifyConstant
+from nuitka.code_generation.Namify import namifyConstant
 
 
 class TypeDescBase(getMetaClassBase("Type")):
