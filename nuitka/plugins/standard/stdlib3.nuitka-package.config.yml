@@ -3,22 +3,73 @@
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
 ---
-- module-name: "site"
-  data-files:
-    patterns:
-      - "orig-prefix.txt"
+- module-name: "_asyncio"
+  implicit-imports:
+    - depends:
+        - "asyncio"
 
-- module-name: "lib2to3.pgen2"
-  data-files:
-    dest_path: "lib2to3"
-    patterns:
-      - "../*.pickle"
-    when: "not debian_python"
-- module-name: "inspect"
+- module-name: "ast"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:
-        "_main": "'(lambda: None)'"
+        "main": "'(lambda: None)'"
+
+- module-name: "base64"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+        "test": "'(lambda: None)'"
+
+- module-name: "binhex"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "concurrent.futures.process"
+  implicit-imports:
+    - depends:
+        - "multiprocessing"
+        - "multiprocessing.connection"
+
+- module-name: "copy"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "ctypes.util"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "difflib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "dis"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "doctest"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "encodings"
+  implicit-imports:
+    - depends:
+        - ".idna"
+        - ".base64_codec"
+        - ".hex_codec"
+        - ".rot_13"
 
 - module-name: "ensurepip"
   anti-bloat:
@@ -31,6 +82,97 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "_main": "'(lambda: None)'"
+
+- module-name: "ftplib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "gzip"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+        "main": "'(lambda: None)'"
+
+- module-name: "imghdr"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "importlib.metadata"
+  implicit-imports:
+    - depends:
+        - "email"
+
+- module-name: "inspect"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "keyword"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
+
+- module-name: "lib2to3.pgen2"
+  data-files:
+    dest_path: "lib2to3"
+    patterns:
+      - "../*.pickle"
+    when: "not debian_python"
+- module-name: "lib2to3.pgen2.literals"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "locale"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "mailcap"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "mimetypes"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_main": "'(lambda: None)'"
+
+- module-name: "pathlib"
+  implicit-imports:
+    - depends:
+        - "ntpath"
+        - "posixpath"
+
+- module-name: "pdb"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+        "help": "'(lambda: None)'"
+
+- module-name: "pickle"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "pickletools"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
 
 - module-name: "pyclbr"
   anti-bloat:
@@ -46,18 +188,6 @@
       replacements:
         "import pydoc_data.topics": "'raise ImportError'"
 
-- module-name: "mimetypes"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_main": "'(lambda: None)'"
-
-- module-name: "tarfile"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-
 - module-name: "quopri"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -67,68 +197,21 @@
     - depends:
         - "py_compile"
 
-- module-name: "zipfile"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-
-- module-name: "gzip"
+- module-name: "random"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:
         "_test": "'(lambda: None)'"
-        "main": "'(lambda: None)'"
 
-- module-name: "base64"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-        "test": "'(lambda: None)'"
+- module-name: "shelve"
+  implicit-imports:
+    - depends:
+        - "dbm.dumb"
 
-- module-name: "ast"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-
-- module-name: "tokenize"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-
-- module-name: "keyword"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-
-- module-name: "tabnanny"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-
-- module-name: "trace"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "main": "'(lambda: None)'"
-
-- module-name: "uu"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
-
-- module-name: "imghdr"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
+- module-name: "site"
+  data-files:
+    patterns:
+      - "orig-prefix.txt"
 
 - module-name: "sndhdr"
   anti-bloat:
@@ -136,30 +219,17 @@
       change_function:
         "test": "'(lambda: None)'"
 
-- module-name: "ftplib"
+- module-name: "tabnanny"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:
-        "test": "'(lambda: None)'"
+        "main": "'(lambda: None)'"
 
-- module-name: "pdb"
+- module-name: "tarfile"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:
-        "test": "'(lambda: None)'"
-        "help": "'(lambda: None)'"
-
-- module-name: "mailcap"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
-- module-name: "lib2to3.pgen2.literals"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
+        "main": "'(lambda: None)'"
 
 - module-name: "telnetlib"
   anti-bloat:
@@ -167,67 +237,7 @@
       change_function:
         "test": "'(lambda: None)'"
 
-- module-name: "ctypes.util"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
-- module-name: "pickletools"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "random"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "dis"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
 - module-name: "threading"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "doctest"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "difflib"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "locale"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "binhex"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "copy"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "_test": "'(lambda: None)'"
-
-- module-name: "pickle"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:
@@ -250,24 +260,17 @@
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
 
-- module-name: "encodings"
-  implicit-imports:
-    - depends:
-        - ".idna"
-        - ".base64_codec"
-        - ".hex_codec"
-        - ".rot_13"
+- module-name: "tokenize"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
 
-- module-name: "pathlib"
-  implicit-imports:
-    - depends:
-        - "ntpath"
-        - "posixpath"
-
-- module-name: "importlib.metadata"
-  implicit-imports:
-    - depends:
-        - "email"
+- module-name: "trace"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
 
 - module-name: "urllib.request"
   implicit-imports:
@@ -275,23 +278,19 @@
         - "http.client"
         - "http.cookiejar"
 
-- module-name: "_asyncio"
-  implicit-imports:
-    - depends:
-        - "asyncio"
+- module-name: "uu"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
 
-- module-name: "concurrent.futures.process"
-  implicit-imports:
-    - depends:
-        - "multiprocessing"
-        - "multiprocessing.connection"
-
-- module-name: "shelve"
-  implicit-imports:
-    - depends:
-        - "dbm.dumb"
 
 - module-name: "wsgiref.simple_server"
   implicit-imports:
     - depends:
         - "http.server"
+- module-name: "zipfile"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "main": "'(lambda: None)'"
