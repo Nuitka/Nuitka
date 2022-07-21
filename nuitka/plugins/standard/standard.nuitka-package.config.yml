@@ -625,19 +625,7 @@
         "postreleaser_before": "'(lambda data: None)'"
         "prereleaser_middle": "'(lambda data: None)'"
 
-- module-name: "mhlib"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
 - module-name: "sgmllib"
-  anti-bloat:
-    - description: "remove module ability to run as a binary"
-      change_function:
-        "test": "'(lambda: None)'"
-
-- module-name: "modulefinder"
   anti-bloat:
     - description: "remove module ability to run as a binary"
       change_function:

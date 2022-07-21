@@ -65,3 +65,16 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "_test": "'(lambda: None)'"
+
+
+- module-name: "mhlib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "modulefinder"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
