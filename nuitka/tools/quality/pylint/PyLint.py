@@ -143,6 +143,9 @@ def checkVersion():
 # super-with-arguments
 # Keeping code portable to Python2 is still good.
 
+# consider-using-dict-comprehension
+# Keeping code portable to Python2 is still good.
+
 
 def getOptions():
     checkVersion()
@@ -157,7 +160,7 @@ deprecated-module,deprecated-method,deprecated-argument,assignment-from-none,\
 ungrouped-imports,no-else-return,c-extension-no-member,\
 inconsistent-return-statements,raise-missing-from,import-outside-toplevel,\
 useless-object-inheritance,useless-return,assignment-from-no-return,\
-redundant-u-string-prefix,consider-using-f-string
+redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehension
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no

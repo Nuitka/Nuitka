@@ -162,109 +162,28 @@ def _checkRequiredVersion(tool, tool_call):
     return required_version == actual_version, message
 
 
-def _updateCommentNode(comment_node):
-    if "pylint:" in str(comment_node.value):
-
-        def replacer(part):
-            def renamer(pylint_token):
-                # pylint: disable=too-many-branches,too-many-return-statements
-                if pylint_token == "E0602":
-                    return "undefined-variable"
-                elif pylint_token in ("E0401", "F0401"):
-                    return "import-error"
-                elif pylint_token == "E1102":
-                    return "not-callable"
-                elif pylint_token == "E1133":
-                    return " not-an-iterable"
-                elif pylint_token == "E1128":
-                    return "assignment-from-none"
-                # Save line length for this until isort is better at long lines.
-                elif pylint_token == "useless-suppression":
-                    return "I0021"
-                elif pylint_token == "R0911":
-                    return "too-many-return-statements"
-                elif pylint_token == "R0201":
-                    return "no-self-use"
-                elif pylint_token == "R0902":
-                    return "too-many-instance-attributes"
-                elif pylint_token == "R0912":
-                    return "too-many-branches"
-                elif pylint_token == "R0914":
-                    return "too-many-locals"
-                elif pylint_token == "R0915":
-                    return "too-many-statements"
-                elif pylint_token == "W0123":
-                    return "eval-used"
-                elif pylint_token == "W0603":
-                    return "global-statement"
-                elif pylint_token == "W0613":
-                    return "unused-argument"
-                elif pylint_token == "W0622":
-                    return "redefined-builtin"
-                elif pylint_token == "W0703":
-                    return "broad-except"
-                else:
-                    return pylint_token
-
-            return part.group(1) + ",".join(
-                sorted(renamer(token) for token in part.group(2).split(",") if token)
-            )
-
-        new_value = str(comment_node.value).replace("pylint:disable", "pylint: disable")
-        new_value = re.sub(r"(pylint\: disable=)(.*)", replacer, new_value, flags=re.M)
-
-        comment_node.value = new_value
-
-
 def _cleanupPyLintComments(filename):
     new_code = old_code = getFileContents(filename, encoding="utf8")
 
     def replacer(part):
-        def renamer(pylint_token):
-            # pylint: disable=too-many-branches,too-many-return-statements
-            if pylint_token == "E0602":
-                return "undefined-variable"
-            elif pylint_token in ("E0401", "F0401"):
-                return "import-error"
-            elif pylint_token == "E1102":
-                return "not-callable"
-            elif pylint_token == "E1133":
-                return " not-an-iterable"
-            elif pylint_token == "E1128":
-                return "assignment-from-none"
+        def changePyLintTagName(pylint_token):
             # Save line length for this until isort is better at long lines.
-            elif pylint_token == "useless-suppression":
+            if pylint_token == "useless-suppression":
                 return "I0021"
-            elif pylint_token == "R0911":
-                return "too-many-return-statements"
-            elif pylint_token == "R0201":
-                return "no-self-use"
-            elif pylint_token == "R0902":
-                return "too-many-instance-attributes"
-            elif pylint_token == "R0912":
-                return "too-many-branches"
-            elif pylint_token == "R0914":
-                return "too-many-locals"
-            elif pylint_token == "R0915":
-                return "too-many-statements"
-            elif pylint_token == "W0123":
-                return "eval-used"
-            elif pylint_token == "W0603":
-                return "global-statement"
-            elif pylint_token == "W0613":
-                return "unused-argument"
-            elif pylint_token == "W0622":
-                return "redefined-builtin"
-            elif pylint_token == "W0703":
-                return "broad-except"
             else:
                 return pylint_token
 
         return part.group(1) + ",".join(
-            sorted(set(renamer(token) for token in part.group(2).split(",") if token))
+            sorted(
+                set(
+                    changePyLintTagName(token)
+                    for token in part.group(2).split(",")
+                    if token
+                )
+            )
         )
 
-    new_code = re.sub(r"(pylint\: disable=)(.*)", replacer, new_code, flags=re.M)
+    new_code = re.sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
         putTextFileContents(filename, new_code)
