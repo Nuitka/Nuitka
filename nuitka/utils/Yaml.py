@@ -153,13 +153,13 @@ def getYamlPackageConfiguration():
         )
         _package_config.update(
             parsePackageYaml(
-                "nuitka.plugins.stdlib2",
+                "nuitka.plugins.standard",
                 "stdlib2.nuitka-package.config.yml",
             )
         )
         _package_config.update(
             parsePackageYaml(
-                "nuitka.plugins.stdlib3",
+                "nuitka.plugins.standard",
                 "stdlib3.nuitka-package.config.yml",
             )
         )
