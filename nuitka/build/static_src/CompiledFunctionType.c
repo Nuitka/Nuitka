@@ -1472,6 +1472,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
         }
 #else
         /* Python 3 */
+#ifndef _NUITKA_EXPERIMENTAL_NOGIL
         if (_PyDict_HasSplitTable((PyDictObject *)kw)) {
             PyDictObject *mp = (PyDictObject *)kw;
 
@@ -1511,7 +1512,9 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
             Nuitka_GC_Track(split_copy);
 
             python_pars[star_dict_index] = (PyObject *)split_copy;
-        } else {
+        } else
+#endif
+        {
             python_pars[star_dict_index] = PyDict_New();
 
             PyDictObject *mp = (PyDictObject *)kw;

@@ -59,6 +59,11 @@
 #define Py_REFCNT(ob) (_PyObject_CAST(ob)->ob_refcnt)
 #endif
 
+// We are using this new macro on old code too.
+#ifndef Py_SET_REFCNT
+#define Py_SET_REFCNT(ob, refcnt) Py_REFCNT(ob) = refcnt
+#endif
+
 #if defined(_WIN32)
 // Windows is too difficult for API redefines.
 #define MIN_PYCORE_PYTHON_VERSION 0x380
@@ -101,9 +106,11 @@ extern _PyRuntimeState _PyRuntime;
 // TODO: Might be useful too, allows access to Python configuration.
 // #include <internal/pycore_initconfig.h>
 
+#ifndef _NUITKA_EXPERIMENTAL_NOGIL
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))
+#endif
 
 #undef Py_BUILD_CORE
 
