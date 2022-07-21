@@ -296,8 +296,7 @@ def formatYaml(path):
 
         new_data.append(sorted_entry)
 
-    # Do not sort by name yet, not clear if ever.
-    # new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
+    new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
 
     with open(path, "w", encoding="utf-8") as output_file:
         output_file.write(YAML_HEADER)
