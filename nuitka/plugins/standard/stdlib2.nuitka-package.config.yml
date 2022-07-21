@@ -1,0 +1,31 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# too many spelling things, spell-checker: disable
+---
+- module-name: "Tkinter"
+  options:
+    checks:
+      - macos_bundle_as_onefile: "yes"
+        console: "recommend"
+
+- module-name: "StringIO"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "BaseHTTPServer"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "Cookie"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+  implicit-imports:
+    - depends:
+        - "_bootlocale"
