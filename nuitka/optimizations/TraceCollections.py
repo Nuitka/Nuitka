@@ -34,7 +34,7 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninitialized
-from nuitka.tree.SourceReading import readSourceLine
+from nuitka.tree.SourceHandling import readSourceLine
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,

@@ -22,7 +22,7 @@ to assign to it, but allows to check for exception.
 """
 
 from nuitka import Options
-from nuitka.codegen.ErrorCodes import getReleaseCode
+from nuitka.code_generation.ErrorCodes import getReleaseCode
 
 from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 

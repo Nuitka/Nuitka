@@ -21,7 +21,7 @@
 
 from nuitka import Options
 from nuitka.__past__ import iterItems
-from nuitka.codegen import Emission
+from nuitka.code_generation import Emission
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeHelpers import (

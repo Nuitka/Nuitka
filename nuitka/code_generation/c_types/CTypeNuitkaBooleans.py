@@ -15,23 +15,19 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" CType classes for nuitka_ilong, an struct to represent long values.
+""" CType classes for nuitka_bool, an enum to represent True, False, unassigned.
 
 """
 
+from nuitka.code_generation.ErrorCodes import getReleaseCode
 
-from nuitka.codegen.templates.CodeTemplatesVariables import (
-    template_release_object_clear,
-    template_release_object_unclear,
-)
-
-from .CTypeBases import CTypeBase
+from .CTypeBases import CTypeBase, CTypeNotReferenceCountedMixin
 
 
-class CTypeNuitkaIntOrLongStruct(CTypeBase):
-    c_type = "nuitka_ilong"
+class CTypeNuitkaBoolEnum(CTypeNotReferenceCountedMixin, CTypeBase):
+    c_type = "nuitka_bool"
 
-    helper_code = "NILONG"
+    helper_code = "NBOOL"
 
     @classmethod
     def emitVariableAssignCode(
@@ -39,40 +35,31 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
     ):
         assert not inplace
 
-        if tmp_name.c_type == "nuitka_ilong":
+        if tmp_name.c_type == "nuitka_bool":
             emit("%s = %s;" % (value_name, tmp_name))
-
-            if ref_count:
-                emit("/* REFCOUNT ? */")
-
         else:
             if tmp_name.c_type == "PyObject *":
-                emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % value_name)
-                emit("%s.ilong_object = %s;" % (value_name, tmp_name))
-
-                if ref_count:
-                    emit("/* REFCOUNT ? */")
+                test_code = "%s == Py_True" % tmp_name
             else:
-                assert False, repr(tmp_name)
+                assert False, tmp_name
+
+            cls.emitAssignmentCodeFromBoolCondition(
+                to_name=value_name, condition=test_code, emit=emit
+            )
+
+            # TODO: Refcount and context needs release are redundant.
+            if ref_count:
+                getReleaseCode(tmp_name, emit, context)
 
     @classmethod
-    def emitVariantAssignmentCode(cls, int_name, value_name, int_value, emit, context):
-        # needs no context, pylint: disable=unused-argument
-        if value_name is None:
-            assert int_value is not None
-            assert False  # TODO
-        else:
-            if int_value is None:
-                emit("%s.validity = NUITKA_ILONG_OBJECT_VALID;" % int_name)
-                emit("%s.ilong_object = %s;" % (int_name, value_name))
-            else:
-                emit("%s.validity = NUITKA_ILONG_BOTH_VALID;" % int_name)
-                emit("%s.ilong_object = %s;" % (int_name, value_name))
-                emit("%s.ilong_value = %s;" % (int_name, int_value))
+    def emitAssignmentCodeToNuitkaIntOrLong(
+        cls, to_name, value_name, needs_check, emit, context
+    ):
+        assert False, to_name
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
-        return "%s != 0" % value_name
+        return "%s == NUITKA_BOOL_TRUE" % value_name
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -81,14 +68,14 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
 
     @classmethod
     def emitValueAssertionCode(cls, value_name, emit):
-        emit("assert(%s.validity != NUITKA_ILONG_UNASSIGNED);" % value_name)
+        emit("assert(%s != NUITKA_BOOL_UNASSIGNED);" % value_name)
 
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
         if value_name.c_type == cls.c_type:
             emit("%s = %s;" % (to_name, value_name))
         else:
-            value_name.getCType().emitAssignmentCodeToNuitkaIntOrLong(
+            value_name.getCType().emitAssignmentCodeToNuitkaBool(
                 to_name=to_name,
                 value_name=value_name,
                 needs_check=needs_check,
@@ -96,59 +83,67 @@ class CTypeNuitkaIntOrLongStruct(CTypeBase):
                 context=context,
             )
 
+            getReleaseCode(value_name, emit, context)
+
+    @classmethod
+    def emitAssignmentCodeFromConstant(
+        cls, to_name, constant, may_escape, emit, context
+    ):
+        # No context needed, pylint: disable=unused-argument
+        emit(
+            "%s = %s;"
+            % (to_name, "NUITKA_BOOL_TRUE" if constant else "NUITKA_BOOL_FALSE")
+        )
+
     @classmethod
     def getInitValue(cls, init_from):
         if init_from is None:
-            # TODO: In debug mode, use more crash prone maybe.
-            return "{NUITKA_ILONG_UNASSIGNED, NULL, 0}"
+            return "NUITKA_BOOL_UNASSIGNED"
         else:
             assert False, init_from
             return init_from
 
     @classmethod
     def getInitTestConditionCode(cls, value_name, inverted):
-        return "%s.validity %s NUITKA_ILONG_UNASSIGNED" % (
-            value_name,
-            "==" if inverted else "!=",
-        )
+        return "%s %s NUITKA_BOOL_UNASSIGNED" % (value_name, "==" if inverted else "!=")
 
     @classmethod
-    def getReleaseCode(cls, value_name, needs_check, emit):
-        emit(
-            "if ((%s.validity & NUITKA_ILONG_OBJECT_VALID) == NUITKA_ILONG_OBJECT_VALID) {"
-            % value_name
-        )
-
-        # TODO: Have a derived C type that does it.
-
-        if needs_check:
-            template = template_release_object_unclear
-        else:
-            template = template_release_object_clear
-
-        emit(template % {"identifier": "%s.ilong_object" % value_name})
-
-        emit("}")
+    def emitReinitCode(cls, value_name, emit):
+        emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
 
     @classmethod
     def getDeleteObjectCode(
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
-        assert False, "TODO"
-
         if not needs_check:
             emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
         elif tolerant:
             emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
         else:
-            emit("%s = %s == NUITKA_BOOL_UNASSIGNED;" % (to_name, value_name))
+            emit("%s = %s != NUITKA_BOOL_UNASSIGNED;" % (to_name, value_name))
             emit("%s = NUITKA_BOOL_UNASSIGNED;" % value_name)
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
-        assert False, "TODO"
-
         emit(
             "%(to_name)s = (%(condition)s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;"
             % {"to_name": to_name, "condition": condition}
         )
+
+    @classmethod
+    def emitAssignInplaceNegatedValueCode(cls, to_name, needs_check, emit, context):
+        # Half way, virtual method: pylint: disable=unused-argument
+        cls.emitValueAssertionCode(to_name, emit=emit)
+        emit("assert(%s != NUITKA_BOOL_EXCEPTION);" % to_name)
+
+        cls.emitAssignmentCodeFromBoolCondition(
+            to_name=to_name, condition="%s == NUITKA_BOOL_FALSE" % to_name, emit=emit
+        )
+
+    @classmethod
+    def getExceptionCheckCondition(cls, value_name):
+        return "%s == NUITKA_BOOL_EXCEPTION" % value_name
+
+    @classmethod
+    def hasErrorIndicator(cls):
+        return True

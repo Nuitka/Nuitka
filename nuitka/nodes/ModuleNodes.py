@@ -35,7 +35,7 @@ from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.Operations import DetectUsedModules, visitTree
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName

@@ -47,4 +47,4 @@ recursive-include tests/reflected *.py
 recursive-include tests/plugins *.py
 
 # C templates for code generation.
-recursive-include nuitka/codegen/templates_c *.j2
+recursive-include nuitka/code_generation/templates_c *.j2

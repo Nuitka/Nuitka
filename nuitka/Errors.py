@@ -32,7 +32,7 @@ class NuitkaNodeError(NuitkaErrorBase):
     # Try to output more information about nodes passed.
     def __str__(self):
         try:
-            from nuitka.codegen.Indentation import indented
+            from nuitka.code_generation.Indentation import indented
 
             parts = [""]
 
