@@ -19,6 +19,8 @@
 
 """
 
+import sys
+
 from nuitka import TreeXML
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.Standalone import getCopiedDLLInfos
@@ -102,14 +104,21 @@ def writeCompilationReport(report_filename):
             )
         )
 
-    search_path = getPackageSearchPath(None)
-
-    root.append(
-        TreeXML.Element(
-            "search_path",
-            dirs=":".join(search_path),
-        )
+    search_path_element = TreeXML.appendTreeElement(
+        root,
+        "search_path",
     )
+
+    for search_path in getPackageSearchPath(None):
+        search_path_element.append(TreeXML.Element("path", value=search_path))
+
+    options_element = TreeXML.appendTreeElement(
+        root,
+        "command_line",
+    )
+
+    for arg in sys.argv[1:]:
+        options_element.append(TreeXML.Element("option", value=arg))
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 
