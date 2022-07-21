@@ -1073,17 +1073,21 @@ max_quick_call = 10
 
 
 def getQuickCallCode(args_count, has_tuple_arg):
-    template = getTemplateC("nuitka.codegen", "CodeTemplateCallsPositional.c.j2")
+    template = getTemplateC(
+        "nuitka.code_generation", "CodeTemplateCallsPositional.c.j2"
+    )
     return template.render(args_count=args_count, has_tuple_arg=has_tuple_arg)
 
 
 def getQuickMethodCallCode(args_count):
-    template = getTemplateC("nuitka.codegen", "CodeTemplateCallsMethodPositional.c.j2")
+    template = getTemplateC(
+        "nuitka.code_generation", "CodeTemplateCallsMethodPositional.c.j2"
+    )
     return template.render(args_count=args_count)
 
 
 def getQuickMixedCallCode(args_count, has_tuple_arg, has_dict_values):
-    template = getTemplateC("nuitka.codegen", "CodeTemplateCallsMixed.c.j2")
+    template = getTemplateC("nuitka.code_generation", "CodeTemplateCallsMixed.c.j2")
 
     return template.render(
         args_count=args_count,
@@ -1094,7 +1098,7 @@ def getQuickMixedCallCode(args_count, has_tuple_arg, has_dict_values):
 
 def getQuickMethodDescriptorCallCode(args_count):
     template = getTemplateC(
-        "nuitka.codegen", "CodeTemplateCallsPositionalMethodDescr.c.j2"
+        "nuitka.code_generation", "CodeTemplateCallsPositionalMethodDescr.c.j2"
     )
 
     return template.render(

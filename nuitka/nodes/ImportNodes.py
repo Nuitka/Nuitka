@@ -29,7 +29,7 @@ modules being added. After optimization it will be asked about used modules.
 import sys
 
 from nuitka.__past__ import long, unicode, xrange
-from nuitka.codegen.Reports import onMissingTrust
+from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename,
     isPackageDir,

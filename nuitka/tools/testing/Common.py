@@ -38,7 +38,7 @@ from nuitka.PythonVersions import (
     isDebugPython,
 )
 from nuitka.Tracing import OurLogger, my_print
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output, getNullInput, getNullOutput
 from nuitka.utils.FileOperations import (

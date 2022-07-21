@@ -75,9 +75,9 @@ PACKAGE_LIST = (
     "nuitka/importing",
     "nuitka/build",
     "nuitka/freezer",
-    "nuitka/codegen",
-    "nuitka/codegen/templates",
-    "nuitka/codegen/c_types",
+    "nuitka/code_generation",
+    "nuitka/code_generation/templates",
+    "nuitka/code_generation/c_types",
     "nuitka/optimizations",
     "nuitka/finalizations",
     "nuitka/plugins",
@@ -282,8 +282,8 @@ def executePASS1():
         )
 
     copyTree(
-        os.path.join(base_dir, "nuitka", "codegen", "templates_c"),
-        os.path.join("nuitka", "codegen", "templates_c"),
+        os.path.join(base_dir, "nuitka", "code_generation", "templates_c"),
+        os.path.join("nuitka", "code_generation", "templates_c"),
     )
 
     copyTree(
