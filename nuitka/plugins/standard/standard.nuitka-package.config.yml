@@ -138,6 +138,16 @@
         "_build": "un-callable"
       when: "not use_cffi_recompiler"
 
+- module-name: "chainer"
+  implicit-imports:
+    - depends:
+        - "chainer.distributions"
+        - "chainer.distributions.utils"
+
+- module-name: "chainer.distributions"
+  implicit-imports:
+    - depends:
+        - "chainer.distributions.utils"
 - module-name: "clr"
   dlls:
     - from_filenames:
@@ -1876,6 +1886,44 @@
     - from_filenames:
         prefixes:
           - "libvosk"
+
+- module-name: "vtkmodules"
+  implicit-imports:
+    - depends:
+        - "vtkmodules.all"
+        - "vtkmodules.util"
+
+- module-name: "vtkmodules.qt"
+  implicit-imports:
+    - depends:
+        - "vtkmodules.qt.QVTKRenderWindowInteractor"
+
+- module-name: "vtkmodules.tk"
+  implicit-imports:
+    - depends:
+        - "vtkmodules.tk.vtkLoadPythonTkWidgets"
+        - "vtkmodules.tk.vtkTkImageViewerWidget"
+        - "vtkmodules.tk.vtkTkPhotoImage"
+        - "vtkmodules.tk.vtkTkRenderWidget"
+        - "vtkmodules.tk.vtkTkRenderWindowInteractor"
+
+- module-name: "vtkmodules.util"
+  implicit-imports:
+    - depends:
+        - "vtkmodules.util.misc"
+        - "vtkmodules.util.numpy_support"
+        - "vtkmodules.util.vtkAlgorithm"
+        - "vtkmodules.util.vtkConstants"
+        - "vtkmodules.util.vtkImageExportToArray"
+        - "vtkmodules.util.vtkImageImportFromArray"
+        - "vtkmodules.util.vtkMethodParser"
+        - "vtkmodules.util.vtkVariant"
+
+- module-name: "vtkmodules.wx"
+  implicit-imports:
+    - depends:
+        - "vtkmodules.wx.wxVTKRenderWindow"
+        - "vtkmodules.wx.wxVTKRenderWindowInteractor"
 
 - module-name: "weasyprint"
   data-files:
