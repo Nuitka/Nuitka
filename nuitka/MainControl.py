@@ -100,7 +100,11 @@ from .build import SconsInterface
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import packDistFolderToOnefile
-from .freezer.Standalone import checkFreezingModuleSet, copyDllsUsed
+from .freezer.Standalone import (
+    checkFreezingModuleSet,
+    copyDllsUsed,
+    detectUsedDLLs,
+)
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
 from .Reports import writeCompilationReport
@@ -957,10 +961,14 @@ def main():
             for module in ModuleRegistry.getDoneModules():
                 addIncludedEntryPoints(Plugins.considerExtraDlls(module))
 
+            detectUsedDLLs(
+                standalone_entry_points=getStandaloneEntryPoints(),
+                source_dir=OutputDirectories.getSourceDirectoryPath(),
+            )
+
             dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
             copyDllsUsed(
-                source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
             )
