@@ -47,7 +47,7 @@ from nuitka.PythonVersions import (
     python_version,
     sizeof_clonglong,
 )
-from nuitka.Tracing import datacomposer_logger
+from nuitka.Tracing import data_composer_logger
 from nuitka.utils.FileOperations import listDir
 
 
@@ -322,14 +322,14 @@ def _writeConstantStream(constants_reader):
         old_size = result.tell()
         _writeConstantValue(result, constant_value)
 
-        if not datacomposer_logger.is_quiet:
+        if not data_composer_logger.is_quiet:
             new_size = result.tell()
 
             result.seek(old_size)
             type_char = result.read(1)
             result.seek(new_size)
 
-            datacomposer_logger.info(
+            data_composer_logger.info(
                 "Size of constant %r is %d with type %r"
                 % (constant_value, new_size - old_size, type_char)
             )
@@ -374,14 +374,14 @@ def _writeConstantsBlob(output_filename, desc):
 
         assert output.tell() == 8
 
-        datacomposer_logger.info(
+        data_composer_logger.info(
             "Total constants blob size without header %d." % data_size
         )
-        datacomposer_logger.info("Total constants blob CRC32 is %d." % crc32)
+        data_composer_logger.info("Total constants blob CRC32 is %d." % crc32)
 
 
 def main():
-    datacomposer_logger.is_quiet = (
+    data_composer_logger.is_quiet = (
         os.environ.get("NUITKA_DATACOMPOSER_VERBOSE", "0") != "1"
     )
 
@@ -399,7 +399,7 @@ def main():
     names = set()
 
     for fullpath, filename in const_files:
-        datacomposer_logger.info("Working on constant file %r." % filename)
+        data_composer_logger.info("Working on constant file %r." % filename)
 
         with open(fullpath, "rb") as const_file:
             constants_reader = ConstantStreamReader(const_file)
@@ -412,7 +412,7 @@ def main():
         assert name not in names, name
         names.add(name)
 
-        datacomposer_logger.info(
+        data_composer_logger.info(
             "Storing %r chunk with %s values size %r." % (name, count, len(part))
         )
 
@@ -422,7 +422,7 @@ def main():
 
         desc.append((name, part))
 
-    datacomposer_logger.info("Total amount of constants is %d." % total)
+    data_composer_logger.info("Total amount of constants is %d." % total)
 
     _writeConstantsBlob(output_filename=output_filename, desc=desc)
 
