@@ -1318,6 +1318,7 @@
         relative_path: "core/platform"
         prefixes:
           - "_cpu_feature_guard"
+
   anti-bloat:
     - description: "remove useless distutils and test framework usage"
       replacements_plain:
@@ -1327,6 +1328,11 @@
         "_site.ENABLE_USER_SITE": "False"
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
         "from ._api.v2 import test": "test = None"
+
+  implicit-imports:
+    - depends:
+        - "tensorboard"
+        - "tensorflow_estimator"
 
 - module-name: "tensorflow._api.v2.compat.v2"
   anti-bloat:
@@ -1358,6 +1364,196 @@
       replacements_plain:
         "from tensorflow._api.v2.compat.v2 import test": "test = None"
 
+- module-name: "tensorflow.compiler.tf2tensorrt"
+  implicit-imports:
+    - depends:
+        - "tensorflow.compiler.tf2tensorrt._wrap_py_utils"
+      when: "not win32"
+
+- module-name: "tensorflow.compiler.tf2tensorrt.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt"
+      when: "not win32"
+
+- module-name: "tensorflow.compiler.tf2xla.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.compiler.tf2xla.ops._xla_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.bigtable.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.bigtable.python.ops._bigtable"
+      when: "not win32"
+- module-name: "tensorflow.contrib.boosted_trees.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.factorization.python.opso"
+  implicit-imports:
+    - depends:
+        - "tensorflw.contrib.factorization.python.ops._factorization_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.ffmpeg"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.ffmpeg.ffmpeg"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.framework.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.framework.python.ops._variable_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.fused_conv.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.hadoop"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.hadoop._dataset_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.ignite"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.ignite._ignite_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.image.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.image.python.ops._distort_image_ops"
+        - "tensorflow.contrib.image.python.ops._image_ops"
+        - "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.input_pipeline.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.kafka"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.kafka._dataset_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.kinesis"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.kinesis._dataset_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.layers.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.libsvm.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.libsvm.python.ops._libsvm_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.memory_stats.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.nearest_neighbor.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.periodic_resample.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.reduce_slice_ops.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.resampler.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.resampler.python.ops._resampler_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.rnn.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.rnn.python.ops._gru_ops"
+        - "tensorflow.contrib.rnn.python.ops._lstm_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.rpc.python.kernel_tests"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.rpc.python.kernel_tests.libtestexample"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.seq2seq.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.seq2seq.python.ops._beam_search_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.tensor_forest"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.tensor_forest.libforestprotos"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.tensor_forest.hybrid.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.tensor_forest.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.tensor_forest.python.ops._model_ops"
+        - "tensorflow.contrib.tensor_forest.python.ops._stats_ops"
+        - "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.contrib.text.python.ops"
+  implicit-imports:
+    - depends:
+        - "tensorflow.contrib.text.python.ops._skip_gram_ops"
+      when: "not win32"
+
+- module-name: "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
+  implicit-imports:
+    - depends:
+        - "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation"
+      when: "not win32"
+
+- module-name: "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
+  implicit-imports:
+    - depends:
+        - "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message"
+      when: "not win32"
+
 - module-name: "tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op"
   dlls:
     - from_filenames:
@@ -1371,6 +1567,28 @@
       replacements:
         "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
         "import distutils.spawn": ""
+
+- module-name: "tensorflow.lite.python.interpreter_wrapper"
+  implicit-imports:
+    - depends:
+        - "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper"
+
+- module-name: "tensorflow.lite.python.optimize"
+  implicit-imports:
+    - depends:
+        - "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper"
+
+- module-name: "tensorflow.lite.toco.python"
+  implicit-imports:
+    - depends:
+        - "tensorflow.lite.toco.python._tensorflow_wrap_toco"
+
+- module-name: "tensorflow.python"
+  implicit-imports:
+    - depends:
+        - "tensorflow.python._pywrap_tensorflow_internal"
+        - "tensorflow.python.ops"
+        - "tensorflow.python.ops.cond_v2"
 
 - module-name: "tensorflow.python.autograph.core.ag_ctx"
   anti-bloat:
@@ -1422,6 +1640,12 @@
         "from tensorflow.python.framework import test_util as framework_test_util": "framework_test_util = None"
         "from tensorflow.python.distribute import multi_process_runner": "multi_process_runner = None"
         "from tensorflow.python.distribute import multi_worker_test_base": "multi_worker_test_base = None"
+
+- module-name: "tensorflow.python.framework"
+  implicit-imports:
+    - depends:
+        - "tensorflow.python.framework.fast_tensor_util"
+      when: "not win32"
 
 - module-name: "tensorflow.python.framework.meta_graph"
   anti-bloat:
