@@ -23,7 +23,7 @@ real stuff.
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.Tracing import codegen_logger, optimization_logger
+from nuitka.Tracing import code_generation_logger, optimization_logger
 
 _missing_helpers = OrderedDict()
 
@@ -43,9 +43,9 @@ def doMissingOptimizationReport():
         )
 
         if _error_for_missing:
-            codegen_logger.warning(message)
+            code_generation_logger.warning(message)
         else:
-            codegen_logger.info(message)
+            code_generation_logger.info(message)
 
     for desc in _missing_operations:
         message = "Missing optimization, used fallback: %s" % (desc,)
