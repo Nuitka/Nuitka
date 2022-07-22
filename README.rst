@@ -882,6 +882,39 @@ options ``--windows-force-stdout-spec`` and
 ``--windows-force-stderr-spec`` with paths as documented for
 ``--windows-onefile-tempdir-spec`` above.
 
+Deep copying uncompiled functions
+=================================
+
+Sometimes people use this kind of code, which for packages on PyPI, we
+deal with by doing source code patches on the fly. If this is in your
+own code, here is what you can do:
+
+.. code:: python
+
+   def binder(func, name):
+      result = types.FunctionType(func.__code__, func.__globals__, name=func.__name__, argdefs=func.__defaults__, closure=func.__closure__)
+      result = functools.update_wrapper(result, func)
+      result.__kwdefaults__ = func.__kwdefaults__
+      result.__name__ = name
+      return result
+
+Compiled functions cannot be used to create uncompiled ones from, so the
+above code, will not work. However, there is a dedicated ``clone``
+method, that is specific to them, so use this instead.
+
+.. code:: python
+
+   def binder(func, name):
+      try:
+         result = func.clone()
+      except AttributeError:
+         result = types.FunctionType(func.__code__, func.__globals__, name=func.__name__, argdefs=func.__defaults__, closure=func.__closure__)
+         result = functools.update_wrapper(result, func)
+         result.__kwdefaults__ = func.__kwdefaults__
+
+      result.__name__ = name
+      return result
+
 ******
  Tips
 ******
