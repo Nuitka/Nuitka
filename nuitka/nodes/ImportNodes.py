@@ -466,7 +466,7 @@ class ExpressionImportModuleHard(
         if self.finding != "not-found" and isHardModuleWithoutSideEffect(
             self.module_name
         ):
-            __import__(self.module_name)
+            __import__(self.module_name.asString())
             self.module = sys.modules[self.value_name]
 
             self.is_package = hasattr(self.module, "__path__")
