@@ -670,6 +670,20 @@
       replacements_plain:
         "import numexpr.tests": "raise ImportError"
 
+- module-name: "numpy"
+  implicit-imports:
+    - depends:
+        - "numpy._mklinit"
+        - "numpy.compat"
+        - "numpy.lib"
+        - "numpy.linalg"
+        - "numpy.fft"
+        - "numpy.polynomial"
+        - "numpy.random"
+        - "numpy.ctypeslib"
+        - "numpy.ma"
+        - "numpy.matrixlib"
+
 - module-name: "numpy._pytesttester"
   anti-bloat:
     - description: "remove numpy testing framework"
@@ -677,6 +691,12 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
+- module-name: "numpy.core"
+  implicit-imports:
+    - depends:
+        - "numpy.core._dtype_ctypes"
+        - "numpy.core._multiarray_tests"
 
 - module-name: "numpy.core.overrides"
   anti-bloat:
@@ -702,6 +722,32 @@
         ".pydoc.allmethods(object)": "()"
         "import pydoc": ""
 
+- module-name: "numpy.random"
+  implicit-imports:
+    - depends:
+      # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
+        - "numpy.random._bit_generator"
+        - "numpy.random._bounded_integers"
+        - "numpy.random._common"
+        - "numpy.random._generator"
+        - "numpy.random._mt19937"
+        - "numpy.random._pcg64"
+        - "numpy.random._philox"
+        - "numpy.random._sfc64"
+
+      # These are pre-1.18 names
+        - "numpy.random.bit_generator"
+        - "numpy.random.bounded_integers"
+        - "numpy.random.common"
+        - "numpy.random.generator"
+        - "numpy.random.mt19937"
+        - "numpy.random.pcg64"
+        - "numpy.random.philox"
+        - "numpy.random.sfc64"
+
+      # TODO: Clarify if entropy is needed for 1.18 or at all.
+        - "numpy.random.entropy"
+        - "numpy.random.mtrand"
 - module-name: "numpy.testing"
   anti-bloat:
     - description: "remove numpy testing framework"
