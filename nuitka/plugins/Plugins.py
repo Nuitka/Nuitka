@@ -32,19 +32,14 @@ import os
 from optparse import OptionConflictError, OptionGroup
 
 from nuitka import Options, OutputDirectories
-from nuitka.__past__ import basestring, iter_modules, iterItems
+from nuitka.__past__ import basestring, iter_modules
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import (
-    addFileExecutablePermission,
-    copyFile,
-    makePath,
-    putTextFileContents,
-)
+from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import ModuleName, checkModuleName
 
@@ -418,13 +413,14 @@ class Plugins(object):
                 )
 
     @staticmethod
-    def onCopiedDLLs(dist_dir, used_dlls):
-        """Lets the plugins modify copied DLLs on disk."""
-        for dll_filename, _sources in iterItems(used_dlls):
+    def onCopiedDLLs(dist_dir, standalone_entry_points):
+        """Lets the plugins modify entry points on disk."""
+        for entry_point in standalone_entry_points:
+            if entry_point.kind.endswith("_ignored"):
+                continue
+
             for plugin in getActivePlugins():
-                plugin.onCopiedDLL(
-                    os.path.join(dist_dir, os.path.basename(dll_filename))
-                )
+                plugin.onCopiedDLL(os.path.join(dist_dir, entry_point.dest_path))
 
     @staticmethod
     def onBeforeCodeParsing():
@@ -472,23 +468,6 @@ class Plugins(object):
 
         for plugin in getActivePlugins():
             for extra_dll in plugin.getExtraDlls(module):
-                # Backward compatibility with plugins not yet migrated to getExtraDlls usage.
-                if len(extra_dll) == 3:
-                    plugin.sysexit("Error, produce DLL entry point objects now.")
-                else:
-                    if not os.path.isfile(extra_dll.source_path):
-                        plugin.sysexit(
-                            "Error, attempting to copy plugin determined filename %r for module %r that is not a file."
-                            % (extra_dll.source_path, module.getFullName())
-                        )
-
-                    makePath(os.path.dirname(extra_dll.dest_path))
-
-                    copyFile(extra_dll.source_path, extra_dll.dest_path)
-
-                    if extra_dll.executable:
-                        addFileExecutablePermission(extra_dll.dest_path)
-
                 result.append(extra_dll)
 
         return result
