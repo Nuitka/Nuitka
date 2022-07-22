@@ -69,6 +69,15 @@
   data-files:
     dirs:
       - "data"
+  implicit-imports:
+    - depends:
+        - "boto3.ec2"
+        - "boto3.ec2.createtags"
+        - "boto3.ec2.deletetags"
+        - "boto3.dynamodb"
+        - "boto3.s3"
+        - "boto3.s3.inject"
+        - "boto3.s3.transfer"
 
 - module-name: "botocore"
   data-files:
@@ -170,6 +179,9 @@
   implicit-imports:
     - depends:
         - "cv2.cv2"
+        - "numpy"
+        - "numpy.core"
+
 
 - module-name: "dask"
   data-files:
@@ -247,6 +259,10 @@
     - depends:
         - ".response_helpers"
 
+- module-name: "fastapi"
+  implicit-imports:
+    - depends:
+        - "fastapi.routing"
 - module-name: "feedparser.html"
   anti-bloat:
     - change_function:
@@ -732,6 +748,14 @@
   data-files:
     dirs:
       - "data"
+  implicit-imports:
+    - depends:
+        - "osgeo._gdal"
+        - "osgeo._gdalconst"
+        - "osgeo._gdal_array"
+        - "osgeo._gnm"
+        - "osgeo._ogr"
+        - "osgeo._osr"
 
 - module-name: "pandas"
   anti-bloat:
