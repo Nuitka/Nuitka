@@ -419,6 +419,21 @@ static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) 
     return result;
 }
 
+static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
+    struct Nuitka_FunctionObject *result =
+        Nuitka_Function_New(function->m_c_code, function->m_name,
+#if PYTHON_VERSION >= 0x300
+                            function->m_qualname,
+#endif
+                            function->m_code_object, function->m_defaults,
+#if PYTHON_VERSION >= 0x300
+                            function->m_kwdefaults, function->m_annotations,
+#endif
+                            function->m_module, function->m_doc, function->m_closure, function->m_closure_given);
+
+    return (PyObject *)result;
+}
+
 #define MAX_FUNCTION_FREE_LIST_COUNT 100
 static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
@@ -475,6 +490,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
 }
 
 static PyMethodDef Nuitka_Function_methods[] = {{"__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL},
+                                                {"clone", (PyCFunction)Nuitka_Function_clone, METH_NOARGS, NULL},
                                                 {NULL}};
 
 static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw);
