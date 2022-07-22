@@ -214,7 +214,7 @@ def getArchitecture():
         return os.uname()[4]
 
 
-def getCoreCount():
+def getCPUCoreCount():
     cpu_count = 0
 
     if getOS() != "Windows":

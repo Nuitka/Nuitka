@@ -137,9 +137,9 @@ def parseDependsExeOutput(filename):
     return _parseDependsExeOutput2(getFileContentByLine(filename, encoding="latin1"))
 
 
-def detectDLLsWithDependencyWalker(binary_filename, scan_dirs):
-    dwp_filename = binary_filename + ".dwp"
-    output_filename = binary_filename + ".depends"
+def detectDLLsWithDependencyWalker(binary_filename, source_dir, scan_dirs):
+    dwp_filename = os.path.join(source_dir, os.path.basename(binary_filename) + ".dwp")
+    output_filename = os.path.join(os.path.basename(binary_filename) + ".depends")
 
     # User query should only happen once if at all.
     with withFileLock(

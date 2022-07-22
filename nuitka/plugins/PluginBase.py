@@ -41,7 +41,10 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedGeneratedDataFile,
     makeIncludedPackageDataFiles,
 )
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
+from nuitka.freezer.IncludedEntryPoints import (
+    makeDllEntryPoint,
+    makeExeEntryPoint,
+)
 from nuitka.ModuleRegistry import (
     addModuleInfluencingCondition,
     getModuleInclusionInfoByName,
@@ -422,11 +425,22 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         return locateDLLsInDirectory(directory)
 
-    @classmethod
-    def makeDllEntryPoint(cls, source_path, dest_path, package_name):
+    def makeDllEntryPoint(self, source_path, dest_path, package_name):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeDllEntryPoint(
-            source_path=source_path, dest_path=dest_path, package_name=package_name
+            logger=self,
+            source_path=source_path,
+            dest_path=dest_path,
+            package_name=package_name,
+        )
+
+    def makeExeEntryPoint(self, source_path, dest_path, package_name):
+        """Create an entry point, as expected to be provided by getExtraDlls."""
+        return makeExeEntryPoint(
+            logger=self,
+            source_path=source_path,
+            dest_path=dest_path,
+            package_name=package_name,
         )
 
     def reportFileCount(self, module_name, count, section=None):
