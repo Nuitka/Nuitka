@@ -123,473 +123,473 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     else:
                         yield dependency
 
-        if full_name == "sip" and python_version < 0x300:
-            yield "enum"
+        # if full_name == "sip" and python_version < 0x300:
+        #     yield "enum"
 
-        elif full_name == "gtk._gtk":
-            yield "pangocairo"
-            yield "pango"
-            yield "cairo"
-            yield "gio"
-            yield "atk"
-        elif full_name == "atk":
-            yield "gobject"
-        elif full_name == "gtkunixprint":
-            yield "gobject"
-            yield "cairo"
-            yield "gtk"
-        elif full_name == "pango":
-            yield "gobject"
-        elif full_name == "pangocairo":
-            yield "pango"
-            yield "cairo"
-        elif full_name == "reportlab.rl_config":
-            yield "reportlab.rl_settings"
-        elif full_name == "socket":
-            yield "_socket"
-        elif full_name == "ctypes":
-            yield "_ctypes"
-        elif full_name == "cairo._cairo":
-            yield "gi._gobject"
-        elif full_name in ("Tkinter", "tkinter"):
-            yield "_tkinter"
-        elif full_name == "cryptography":
-            yield "_cffi_backend"
-        elif full_name == "bcrypt._bcrypt":
-            yield "_cffi_backend"
-        elif full_name == "nacl._sodium":
-            yield "_cffi_backend"
-        elif full_name == "brotli._brotli":
-            yield "_cffi_backend"
-        elif full_name == "ipcqueue":
-            yield "_cffi_backend"
-        elif full_name == "_dbus_glib_bindings":
-            yield "_dbus_bindings"
-        elif full_name == "_mysql":
-            yield "_mysql_exceptions"
-        elif full_name == "lxml.objectify":
-            yield "lxml.etree"
-        elif full_name == "_yaml":
-            yield "yaml"
-        elif full_name == "apt_inst":
-            yield "apt_pkg"
-        elif full_name == "_ruamel_yaml":
-            yield "ruamel.yaml.error"
+        # elif full_name == "gtk._gtk":
+        #     yield "pangocairo"
+        #     yield "pango"
+        #     yield "cairo"
+        #     yield "gio"
+        #     yield "atk"
+        # elif full_name == "atk":
+        #     yield "gobject"
+        # elif full_name == "gtkunixprint":
+        #     yield "gobject"
+        #     yield "cairo"
+        #     yield "gtk"
+        # elif full_name == "pango":
+        #     yield "gobject"
+        # elif full_name == "pangocairo":
+        #     yield "pango"
+        #     yield "cairo"
+        # elif full_name == "reportlab.rl_config":
+        #     yield "reportlab.rl_settings"
+        # elif full_name == "socket":
+        #     yield "_socket"
+        # elif full_name == "ctypes":
+        #     yield "_ctypes"
+        # elif full_name == "cairo._cairo":
+        #     yield "gi._gobject"
+        # elif full_name in ("Tkinter", "tkinter"):
+        #     yield "_tkinter"
+        # elif full_name == "cryptography":
+        #     yield "_cffi_backend"
+        # elif full_name == "bcrypt._bcrypt":
+        #     yield "_cffi_backend"
+        # elif full_name == "nacl._sodium":
+        #     yield "_cffi_backend"
+        # elif full_name == "brotli._brotli":
+        #     yield "_cffi_backend"
+        # elif full_name == "ipcqueue":
+        #     yield "_cffi_backend"
+        # elif full_name == "_dbus_glib_bindings":
+        #     yield "_dbus_bindings"
+        # elif full_name == "_mysql":
+        #     yield "_mysql_exceptions"
+        # elif full_name == "lxml.objectify":
+        #     yield "lxml.etree"
+        # elif full_name == "_yaml":
+        #     yield "yaml"
+        # elif full_name == "apt_inst":
+        #     yield "apt_pkg"
+        # elif full_name == "_ruamel_yaml":
+        #     yield "ruamel.yaml.error"
 
-        # start of engineio imports ------------------------------------------
-        elif full_name == "engineio":
-            yield "engineio.async_drivers"
+        # # start of engineio imports ------------------------------------------
+        # elif full_name == "engineio":
+        #     yield "engineio.async_drivers"
 
-        elif full_name == "engineio.async_drivers":
-            yield "engineio.async_drivers.aiohttp"
-            yield "engineio.async_drivers.asgi"
-            yield "engineio.async_drivers.eventlet"
-            yield "engineio.async_drivers.gevent"
-            yield "engineio.async_drivers.gevent_uwsgi"
-            yield "engineio.async_drivers.sanic"
-            yield "engineio.async_drivers.threading"
-            yield "engineio.async_drivers.tornado"
+        # elif full_name == "engineio.async_drivers":
+        #     yield "engineio.async_drivers.aiohttp"
+        #     yield "engineio.async_drivers.asgi"
+        #     yield "engineio.async_drivers.eventlet"
+        #     yield "engineio.async_drivers.gevent"
+        #     yield "engineio.async_drivers.gevent_uwsgi"
+        #     yield "engineio.async_drivers.sanic"
+        #     yield "engineio.async_drivers.threading"
+        #     yield "engineio.async_drivers.tornado"
 
-        # start of gevent imports --------------------------------------------
-        elif full_name == "gevent":
-            yield "_cffi_backend"
-            yield "gevent._config"
-            yield "gevent.core"
-            yield "gevent.resolver_thread"
-            yield "gevent.resolver_ares"
-            yield "gevent.socket"
-            yield "gevent.threadpool"
-            yield "gevent.thread"
-            yield "gevent.threading"
-            yield "gevent.select"
-            yield "gevent.hub"
-            yield "gevent.greenlet"
-            yield "gevent.local"
-            yield "gevent.event"
-            yield "gevent.queue"
-            yield "gevent.resolver"
-            yield "gevent.subprocess"
-            if getOS() == "Windows":
-                yield "gevent.libuv"
-            else:
-                yield "gevent.libev"
+        # # start of gevent imports --------------------------------------------
+        # elif full_name == "gevent":
+        #     yield "_cffi_backend"
+        #     yield "gevent._config"
+        #     yield "gevent.core"
+        #     yield "gevent.resolver_thread"
+        #     yield "gevent.resolver_ares"
+        #     yield "gevent.socket"
+        #     yield "gevent.threadpool"
+        #     yield "gevent.thread"
+        #     yield "gevent.threading"
+        #     yield "gevent.select"
+        #     yield "gevent.hub"
+        #     yield "gevent.greenlet"
+        #     yield "gevent.local"
+        #     yield "gevent.event"
+        #     yield "gevent.queue"
+        #     yield "gevent.resolver"
+        #     yield "gevent.subprocess"
+        #     if getOS() == "Windows":
+        #         yield "gevent.libuv"
+        #     else:
+        #         yield "gevent.libev"
 
-        elif full_name == "gevent.hub":
-            yield "gevent._hub_primitives"
-            yield "gevent._greenlet_primitives"
-            yield "gevent._hub_local"
-            yield "gevent._waiter"
-            yield "gevent._util"
-            yield "gevent._ident"
-            yield "gevent.exceptions"
+        # elif full_name == "gevent.hub":
+        #     yield "gevent._hub_primitives"
+        #     yield "gevent._greenlet_primitives"
+        #     yield "gevent._hub_local"
+        #     yield "gevent._waiter"
+        #     yield "gevent._util"
+        #     yield "gevent._ident"
+        #     yield "gevent.exceptions"
 
-        elif full_name == "gevent.libev":
-            yield "gevent.libev.corecext"
-            yield "gevent.libev.corecffi"
-            yield "gevent.libev.watcher"
+        # elif full_name == "gevent.libev":
+        #     yield "gevent.libev.corecext"
+        #     yield "gevent.libev.corecffi"
+        #     yield "gevent.libev.watcher"
 
-        elif full_name == "gevent.libuv":
-            yield "gevent._interfaces"
-            yield "gevent._ffi"
-            yield "gevent.libuv.loop"
-            yield "gevent.libuv.watcher"
+        # elif full_name == "gevent.libuv":
+        #     yield "gevent._interfaces"
+        #     yield "gevent._ffi"
+        #     yield "gevent.libuv.loop"
+        #     yield "gevent.libuv.watcher"
 
-        elif full_name == "gevent.libuv.loop":
-            yield "gevent.libuv._corecffi"
-            yield "gevent._interfaces"
+        # elif full_name == "gevent.libuv.loop":
+        #     yield "gevent.libuv._corecffi"
+        #     yield "gevent._interfaces"
 
-        elif full_name == "gevent._ffi":
-            yield "gevent._ffi.loop"
-            yield "gevent._ffi.callback"
-            yield "gevent._ffi.watcher"
+        # elif full_name == "gevent._ffi":
+        #     yield "gevent._ffi.loop"
+        #     yield "gevent._ffi.callback"
+        #     yield "gevent._ffi.watcher"
 
-        elif full_name == "gevent._waiter":
-            yield "gevent.__waiter"
-            yield "gevent._gevent_c_waiter"
+        # elif full_name == "gevent._waiter":
+        #     yield "gevent.__waiter"
+        #     yield "gevent._gevent_c_waiter"
 
-        elif full_name == "gevent._hub_local":
-            yield "gevent.__hub_local"
-            yield "gevent.__greenlet_primitives"
-            yield "gevent._gevent_c_hub_local"
-        elif full_name == "gevent._gevent_c_hub_local":
-            yield "gevent._gevent_c_greenlet_primitives"
+        # elif full_name == "gevent._hub_local":
+        #     yield "gevent.__hub_local"
+        #     yield "gevent.__greenlet_primitives"
+        #     yield "gevent._gevent_c_hub_local"
+        # elif full_name == "gevent._gevent_c_hub_local":
+        #     yield "gevent._gevent_c_greenlet_primitives"
 
-        elif full_name == "gevent._hub_primitives":
-            yield "gevent.__hub_primitives"
-            yield "gevent._gevent_cgreenlet"
-            yield "gevent._gevent_c_hub_primitives"
+        # elif full_name == "gevent._hub_primitives":
+        #     yield "gevent.__hub_primitives"
+        #     yield "gevent._gevent_cgreenlet"
+        #     yield "gevent._gevent_c_hub_primitives"
 
-        elif full_name == "gevent.greenlet":
-            yield "gevent._hub_local"
-            yield "gevent._greenlet"
-            yield "gevent._gevent_c_ident"
+        # elif full_name == "gevent.greenlet":
+        #     yield "gevent._hub_local"
+        #     yield "gevent._greenlet"
+        #     yield "gevent._gevent_c_ident"
 
-        elif full_name == "gevent._greenlet":
-            yield "gevent.__ident"
+        # elif full_name == "gevent._greenlet":
+        #     yield "gevent.__ident"
 
-        elif full_name == "gevent.monkey":
-            yield "gevent.builtins"
-            yield "gevent.time"
-            yield "gevent.local"
-            yield "gevent.ssl"
-            yield "gevent.events"
+        # elif full_name == "gevent.monkey":
+        #     yield "gevent.builtins"
+        #     yield "gevent.time"
+        #     yield "gevent.local"
+        #     yield "gevent.ssl"
+        #     yield "gevent.events"
 
-        elif full_name == "gevent.resolver":
-            yield "gevent.resolver.blocking"
-            yield "gevent.resolver.cares"
-            yield "gevent.resolver.thread"
+        # elif full_name == "gevent.resolver":
+        #     yield "gevent.resolver.blocking"
+        #     yield "gevent.resolver.cares"
+        #     yield "gevent.resolver.thread"
 
-        elif full_name == "gevent._semaphore":
-            yield "gevent._abstract_linkable"
-            yield "gevent.__semaphore"
-            yield "gevent._gevent_c_semaphore"
+        # elif full_name == "gevent._semaphore":
+        #     yield "gevent._abstract_linkable"
+        #     yield "gevent.__semaphore"
+        #     yield "gevent._gevent_c_semaphore"
 
-        elif full_name == "gevent._abstract_linkable":
-            yield "gevent.__abstract_linkable"
-            yield "gevent._gevent_c_abstract_linkable"
+        # elif full_name == "gevent._abstract_linkable":
+        #     yield "gevent.__abstract_linkable"
+        #     yield "gevent._gevent_c_abstract_linkable"
 
-        elif full_name == "gevent.local":
-            yield "gevent._local"
-            yield "gevent._gevent_clocal"
+        # elif full_name == "gevent.local":
+        #     yield "gevent._local"
+        #     yield "gevent._gevent_clocal"
 
-        elif full_name == "gevent.event":
-            yield "gevent._event"
-            yield "gevent._gevent_cevent"
+        # elif full_name == "gevent.event":
+        #     yield "gevent._event"
+        #     yield "gevent._gevent_cevent"
 
-        elif full_name == "gevent.queue":
-            yield "gevent._queue"
-            yield "gevent._gevent_cqueue"
+        # elif full_name == "gevent.queue":
+        #     yield "gevent._queue"
+        #     yield "gevent._gevent_cqueue"
 
-        elif full_name == "gevent.pool":
-            yield "gevent._imap"
+        # elif full_name == "gevent.pool":
+        #     yield "gevent._imap"
 
-        elif full_name == "gevent._imap":
-            yield "gevent.__imap"
-            yield "gevent._gevent_c_imap"
+        # elif full_name == "gevent._imap":
+        #     yield "gevent.__imap"
+        #     yield "gevent._gevent_c_imap"
         # end of gevent imports ----------------------------------------------
 
         # start of tensorflow imports ----------------------------------------
-        elif full_name == "tensorflow":
-            yield "tensorboard"
-            yield "tensorflow_estimator"
+        # elif full_name == "tensorflow":
+        #     yield "tensorboard"
+        #     yield "tensorflow_estimator"
 
-        elif full_name == "tensorflow.python":
-            yield "tensorflow.python._pywrap_tensorflow_internal"
-            yield "tensorflow.python.ops"
-            yield "tensorflow.python.ops.cond_v2"
+        # elif full_name == "tensorflow.python":
+        #     yield "tensorflow.python._pywrap_tensorflow_internal"
+        #     yield "tensorflow.python.ops"
+        #     yield "tensorflow.python.ops.cond_v2"
 
-        elif full_name == "tensorflow.lite.python.interpreter_wrapper":
-            yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper"
+        # elif full_name == "tensorflow.lite.python.interpreter_wrapper":
+        #     yield "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper"
 
-        elif full_name == "tensorflow.lite.python.optimize":
-            yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper"
+        # elif full_name == "tensorflow.lite.python.optimize":
+        #     yield "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper"
 
-        elif full_name == "tensorflow.lite.toco.python":
-            yield "tensorflow.lite.toco.python._tensorflow_wrap_toco"
+        # elif full_name == "tensorflow.lite.toco.python":
+        #     yield "tensorflow.lite.toco.python._tensorflow_wrap_toco"
 
         # the remaining entries are relevant non-Windows platforms only
-        elif full_name.hasNamespace("tensorflow") and getOS() != "Windows":
-            if (
-                full_name
-                == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
-            ):
-                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation"
+        # elif full_name.hasNamespace("tensorflow") and getOS() != "Windows":
+        #     if (
+        #         full_name
+        #         == "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
+        #     ):
+        #         yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation"
 
-            elif (
-                full_name
-                == "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
-            ):
-                yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message"
+        #     elif (
+        #         full_name
+        #         == "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
+        #     ):
+        #         yield "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message"
 
-            elif full_name == "tensorflow.python.framework":
-                yield "tensorflow.python.framework.fast_tensor_util"
+        #     elif full_name == "tensorflow.python.framework":
+        #         yield "tensorflow.python.framework.fast_tensor_util"
 
-            elif full_name == "tensorflow.compiler.tf2tensorrt":
-                yield "tensorflow.compiler.tf2tensorrt._wrap_py_utils"
+        #     elif full_name == "tensorflow.compiler.tf2tensorrt":
+        #         yield "tensorflow.compiler.tf2tensorrt._wrap_py_utils"
 
-            elif full_name == "tensorflow.compiler.tf2tensorrt.python.ops":
-                yield "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt"
+        #     elif full_name == "tensorflow.compiler.tf2tensorrt.python.ops":
+        #         yield "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt"
 
-            elif full_name == "tensorflow.compiler.tf2xla.ops":
-                yield "tensorflow.compiler.tf2xla.ops._xla_ops"
+        #     elif full_name == "tensorflow.compiler.tf2xla.ops":
+        #         yield "tensorflow.compiler.tf2xla.ops._xla_ops"
 
-            elif full_name == "tensorflow.contrib.tensor_forest":
-                yield "tensorflow.contrib.tensor_forest.libforestprotos"
+        #     elif full_name == "tensorflow.contrib.tensor_forest":
+        #         yield "tensorflow.contrib.tensor_forest.libforestprotos"
 
-            elif full_name == "tensorflow.contrib.tensor_forest.python.ops":
-                yield "tensorflow.contrib.tensor_forest.python.ops._model_ops"
-                yield "tensorflow.contrib.tensor_forest.python.ops._stats_ops"
-                yield "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops"
+        # elif full_name == "tensorflow.contrib.tensor_forest.python.ops":
+        #     yield "tensorflow.contrib.tensor_forest.python.ops._model_ops"
+        #     yield "tensorflow.contrib.tensor_forest.python.ops._stats_ops"
+        #     yield "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops"
 
-            elif full_name == "tensorflow.contrib.tensor_forest.hybrid.python.ops":
-                yield "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops"
+        # elif full_name == "tensorflow.contrib.tensor_forest.hybrid.python.ops":
+        #     yield "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops"
 
-            elif full_name == "tensorflow.contrib.resampler.python.ops":
-                yield "tensorflow.contrib.resampler.python.ops._resampler_ops"
+        # elif full_name == "tensorflow.contrib.resampler.python.ops":
+        #     yield "tensorflow.contrib.resampler.python.ops._resampler_ops"
 
-            elif full_name == "tensorflow.contrib.nearest_neighbor.python.ops":
-                yield "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops"
+        # elif full_name == "tensorflow.contrib.nearest_neighbor.python.ops":
+        #     yield "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops"
 
-            elif full_name == "tensorflow.contrib.ignite":
-                yield "tensorflow.contrib.ignite._ignite_ops"
+        # elif full_name == "tensorflow.contrib.ignite":
+        #     yield "tensorflow.contrib.ignite._ignite_ops"
 
-            elif full_name == "tensorflow.contrib.kinesis":
-                yield "tensorflow.contrib.kinesis._dataset_ops"
+        # elif full_name == "tensorflow.contrib.kinesis":
+        #     yield "tensorflow.contrib.kinesis._dataset_ops"
 
-            elif full_name == "tensorflow.contrib.ffmpeg":
-                yield "tensorflow.contrib.ffmpeg.ffmpeg"
+        # elif full_name == "tensorflow.contrib.ffmpeg":
+        #     yield "tensorflow.contrib.ffmpeg.ffmpeg"
 
-            elif full_name == "tensorflow.contrib.framework.python.ops":
-                yield "tensorflow.contrib.framework.python.ops._variable_ops"
+        # elif full_name == "tensorflow.contrib.framework.python.ops":
+        #     yield "tensorflow.contrib.framework.python.ops._variable_ops"
 
-            elif full_name == "tensorflow.contrib.text.python.ops":
-                yield "tensorflow.contrib.text.python.ops._skip_gram_ops"
+        # elif full_name == "tensorflow.contrib.text.python.ops":
+        #     yield "tensorflow.contrib.text.python.ops._skip_gram_ops"
 
-            elif full_name == "tensorflow.contrib.reduce_slice_ops.python.ops":
-                yield "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops"
+        # elif full_name == "tensorflow.contrib.reduce_slice_ops.python.ops":
+        #     yield "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops"
 
-            elif full_name == "tensorflow.contrib.periodic_resample.python.ops":
-                yield "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op"
+        # elif full_name == "tensorflow.contrib.periodic_resample.python.ops":
+        #     yield "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op"
 
-            elif full_name == "tensorflow.contrib.memory_stats.python.ops":
-                yield "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops"
+        # elif full_name == "tensorflow.contrib.memory_stats.python.ops":
+        #     yield "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops"
 
-            elif full_name == "tensorflow.contrib.libsvm.python.ops":
-                yield "tensorflow.contrib.libsvm.python.ops._libsvm_ops"
+        # elif full_name == "tensorflow.contrib.libsvm.python.ops":
+        #     yield "tensorflow.contrib.libsvm.python.ops._libsvm_ops"
 
-            elif full_name == "tensorflow.contrib.fused_conv.python.ops":
-                yield "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op"
+        # elif full_name == "tensorflow.contrib.fused_conv.python.ops":
+        #     yield "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op"
 
-            elif full_name == "tensorflow.contrib.kafka":
-                yield "tensorflow.contrib.kafka._dataset_ops"
+        # elif full_name == "tensorflow.contrib.kafka":
+        #     yield "tensorflow.contrib.kafka._dataset_ops"
 
-            elif full_name == "tensorflow.contrib.hadoop":
-                yield "tensorflow.contrib.hadoop._dataset_ops"
+        # elif full_name == "tensorflow.contrib.hadoop":
+        #     yield "tensorflow.contrib.hadoop._dataset_ops"
 
-            elif full_name == "tensorflow.contrib.seq2seq.python.ops":
-                yield "tensorflow.contrib.seq2seq.python.ops._beam_search_ops"
+        # elif full_name == "tensorflow.contrib.seq2seq.python.ops":
+        #     yield "tensorflow.contrib.seq2seq.python.ops._beam_search_ops"
 
-            elif full_name == "tensorflow.contrib.rpc.python.kernel_tests":
-                yield "tensorflow.contrib.rpc.python.kernel_tests.libtestexample"
+        # elif full_name == "tensorflow.contrib.rpc.python.kernel_tests":
+        #     yield "tensorflow.contrib.rpc.python.kernel_tests.libtestexample"
 
-            elif full_name == "tensorflow.contrib.boosted_trees.python.ops":
-                yield "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops"
+        # elif full_name == "tensorflow.contrib.boosted_trees.python.ops":
+        #     yield "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops"
 
-            elif full_name == "tensorflow.contrib.layers.python.ops":
-                yield "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op"
+        # elif full_name == "tensorflow.contrib.layers.python.ops":
+        #     yield "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op"
 
-            elif full_name == "tensorflow.contrib.image.python.ops":
-                yield "tensorflow.contrib.image.python.ops._distort_image_ops"
-                yield "tensorflow.contrib.image.python.ops._image_ops"
-                yield "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms"
+        # elif full_name == "tensorflow.contrib.image.python.ops":
+        #     yield "tensorflow.contrib.image.python.ops._distort_image_ops"
+        #     yield "tensorflow.contrib.image.python.ops._image_ops"
+        #     yield "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms"
 
-            elif full_name == "tensorflow.contrib.factorization.python.ops":
-                yield "tensorflow.contrib.factorization.python.ops._factorization_ops"
+        # elif full_name == "tensorflow.contrib.factorization.python.opso":
+        #     yield "tensorflw.contrib.factorization.python.ops._factorization_ops"
 
-            elif full_name == "tensorflow.contrib.input_pipeline.python.ops":
-                yield "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops"
+        # elif full_name == "tensorflow.contrib.input_pipeline.python.ops":
+        #     yield "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops"
 
-            elif full_name == "tensorflow.contrib.rnn.python.ops":
-                yield "tensorflow.contrib.rnn.python.ops._gru_ops"
-                yield "tensorflow.contrib.rnn.python.ops._lstm_ops"
+        # elif full_name == "tensorflow.contrib.rnn.python.ops":
+        #     yield "tensorflow.contrib.rnn.python.ops._gru_ops"
+        #     yield "tensorflow.contrib.rnn.python.ops._lstm_ops"
 
-            elif full_name == "tensorflow.contrib.bigtable.python.ops":
-                yield "tensorflow.contrib.bigtable.python.ops._bigtable"
+        # elif full_name == "tensorflow.contrib.bigtable.python.ops":
+        #     yield "tensorflow.contrib.bigtable.python.ops._bigtable"
         # end of tensorflow imports -------------------------------------------
 
         # boto3 imports ------------------------------------------------------
-        elif full_name == "boto3":
-            yield "boto3.ec2"
-            yield "boto3.ec2.createtags"
-            yield "boto3.ec2.deletetags"
-            yield "boto3.dynamodb"
-            yield "boto3.s3"
-            yield "boto3.s3.inject"
-            yield "boto3.s3.transfer"
+        # elif full_name == "boto3":
+        #     yield "boto3.ec2"
+        #     yield "boto3.ec2.createtags"
+        #     yield "boto3.ec2.deletetags"
+        #     yield "boto3.dynamodb"
+        #     yield "boto3.s3"
+        #     yield "boto3.s3.inject"
+        #     yield "boto3.s3.transfer"
 
-        # GDAL imports ------------------------------------------------------
-        elif full_name == "osgeo":
-            yield "osgeo._gdal"
-            yield "osgeo._gdalconst"
-            yield "osgeo._gdal_array"
-            yield "osgeo._gnm"
-            yield "osgeo._ogr"
-            yield "osgeo._osr"
+        # # GDAL imports ------------------------------------------------------
+        # elif full_name == "osgeo":
+        #     yield "osgeo._gdal"
+        #     yield "osgeo._gdalconst"
+        #     yield "osgeo._gdal_array"
+        #     yield "osgeo._gnm"
+        #     yield "osgeo._ogr"
+        #     yield "osgeo._osr"
 
         # OpenCV imports ------------------------------------------------------
-        elif full_name == "cv2":
-            yield "numpy"
-            yield "numpy.core"
+        # elif full_name == "cv2":
+        #     yield "numpy"
+        #     yield "numpy.core"
 
         # fastapi imports ---------------------------------------------------
-        elif full_name == "fastapi":
-            yield "fastapi.routing"
+        # elif full_name == "fastapi":
+        #     yield "fastapi.routing"
 
         # pydantic imports ---------------------------------------------------
-        elif full_name == "pydantic":
-            yield "pydantic.typing"
-            yield "pydantic.fields"
-            yield "pydantic.utils"
-            yield "pydantic.schema"
-            yield "pydantic.env_settings"
-            yield "pydantic.main"
-            yield "pydantic.error_wrappers"
-            yield "pydantic.validators"
-            yield "pydantic.mypy"
-            yield "pydantic.version"
-            yield "pydantic.types"
-            yield "pydantic.color"
-            yield "pydantic.parse"
-            yield "pydantic.json"
-            yield "pydantic.datetime_parse"
-            yield "pydantic.dataclasses"
-            yield "pydantic.class_validators"
-            yield "pydantic.networks"
-            yield "pydantic.errors"
+        # elif full_name == "pydantic":
+        #     yield "pydantic.typing"
+        #     yield "pydantic.fields"
+        #     yield "pydantic.utils"
+        #     yield "pydantic.schema"
+        #     yield "pydantic.env_settings"
+        #     yield "pydantic.main"
+        #     yield "pydantic.error_wrappers"
+        #     yield "pydantic.validators"
+        #     yield "pydantic.mypy"
+        #     yield "pydantic.version"
+        #     yield "pydantic.types"
+        #     yield "pydantic.color"
+        #     yield "pydantic.parse"
+        #     yield "pydantic.json"
+        #     yield "pydantic.datetime_parse"
+        #     yield "pydantic.dataclasses"
+        #     yield "pydantic.class_validators"
+        #     yield "pydantic.networks"
+        #     yield "pydantic.errors"
 
         # uvicorn imports -----------------------------------------------------
-        elif full_name == "uvicorn":
-            yield "uvicorn.loops"
-            yield "uvicorn.lifespan"
-            yield "uvicorn.protocols"
-        elif full_name == "uvicorn.config":
-            yield "uvicorn.logging"
-        elif full_name == "uvicorn.lifespan":
-            yield "uvicorn.lifespan.off"
-            yield "uvicorn.lifespan.on"
-        elif full_name == "uvicorn.loops":
-            yield "uvicorn.loops.auto"
-            yield "uvicorn.loops.uvloop"
-        elif full_name == "uvicorn.protocols":
-            yield "uvicorn.protocols.http"
-            yield "uvicorn.protocols.websockets"
-        elif full_name == "uvicorn.protocols.http":
-            yield "uvicorn.protocols.http.auto"
-            yield "uvicorn.protocols.http.h11_impl"
-            yield "uvicorn.protocols.http.httptools_impl"
-        elif full_name == "uvicorn.protocols.websockets":
-            yield "uvicorn.protocols.websockets.auto"
-            yield "uvicorn.protocols.websockets.websockets_impl"
-            yield "uvicorn.protocols.websockets.wsproto_impl"
+        # elif full_name == "uvicorn":
+        #     yield "uvicorn.loops"
+        #     yield "uvicorn.lifespan"
+        #     yield "uvicorn.protocols"
+        # elif full_name == "uvicorn.config":
+        #     yield "uvicorn.logging"
+        # elif full_name == "uvicorn.lifespan":
+        #     yield "uvicorn.lifespan.off"
+        #     yield "uvicorn.lifespan.on"
+        # elif full_name == "uvicorn.loops":
+        #     yield "uvicorn.loops.auto"
+        #     yield "uvicorn.loops.uvloop"
+        # elif full_name == "uvicorn.protocols":
+        #     yield "uvicorn.protocols.http"
+        #     yield "uvicorn.protocols.websockets"
+        # elif full_name == "uvicorn.protocols.http":
+        #     yield "uvicorn.protocols.http.auto"
+        #     yield "uvicorn.protocols.http.h11_impl"
+        #     yield "uvicorn.protocols.http.httptools_impl"
+        # elif full_name == "uvicorn.protocols.websockets":
+        #     yield "uvicorn.protocols.websockets.auto"
+        #     yield "uvicorn.protocols.websockets.websockets_impl"
+        #     yield "uvicorn.protocols.websockets.wsproto_impl"
 
         # vtk imports -----------------------------------------------------
-        elif full_name == "vtkmodules":
-            yield "vtkmodules.all"
-            yield "vtkmodules.util"
+        # elif full_name == "vtkmodules":
+        #     yield "vtkmodules.all"
+        #     yield "vtkmodules.util"
 
-        elif full_name == "vtkmodules.util":
-            yield "vtkmodules.util.misc"
-            yield "vtkmodules.util.numpy_support"
-            yield "vtkmodules.util.vtkAlgorithm"
-            yield "vtkmodules.util.vtkConstants"
-            yield "vtkmodules.util.vtkImageExportToArray"
-            yield "vtkmodules.util.vtkImageImportFromArray"
-            yield "vtkmodules.util.vtkMethodParser"
-            yield "vtkmodules.util.vtkVariant"
+        # elif full_name == "vtkmodules.util":
+        #     yield "vtkmodules.util.misc"
+        #     yield "vtkmodules.util.numpy_support"
+        #     yield "vtkmodules.util.vtkAlgorithm"
+        #     yield "vtkmodules.util.vtkConstants"
+        #     yield "vtkmodules.util.vtkImageExportToArray"
+        #     yield "vtkmodules.util.vtkImageImportFromArray"
+        #     yield "vtkmodules.util.vtkMethodParser"
+        #     yield "vtkmodules.util.vtkVariant"
 
-        elif full_name == "vtkmodules.qt":
-            yield "vtkmodules.qt.QVTKRenderWindowInteractor"
+        # elif full_name == "vtkmodules.qt":
+        #     yield "vtkmodules.qt.QVTKRenderWindowInteractor"
 
-        elif full_name == "vtkmodules.tk":
-            yield "vtkmodules.tk.vtkLoadPythonTkWidgets"
-            yield "vtkmodules.tk.vtkTkImageViewerWidget"
-            yield "vtkmodules.tk.vtkTkPhotoImage"
-            yield "vtkmodules.tk.vtkTkRenderWidget"
-            yield "vtkmodules.tk.vtkTkRenderWindowInteractor"
+        # elif full_name == "vtkmodules.tk":
+        #     yield "vtkmodules.tk.vtkLoadPythonTkWidgets"
+        #     yield "vtkmodules.tk.vtkTkImageViewerWidget"
+        #     yield "vtkmodules.tk.vtkTkPhotoImage"
+        #     yield "vtkmodules.tk.vtkTkRenderWidget"
+        #     yield "vtkmodules.tk.vtkTkRenderWindowInteractor"
 
-        elif full_name == "vtkmodules.wx":
-            yield "vtkmodules.wx.wxVTKRenderWindow"
-            yield "vtkmodules.wx.wxVTKRenderWindowInteractor"
+        # elif full_name == "vtkmodules.wx":
+        #     yield "vtkmodules.wx.wxVTKRenderWindow"
+        #     yield "vtkmodules.wx.wxVTKRenderWindowInteractor"
 
         # chainer imports -----------------------------------------------------
-        elif full_name == "chainer":
-            yield "chainer.distributions"
-            yield "chainer.distributions.utils"
+        # elif full_name == "chainer":
+        #     yield "chainer.distributions"
+        #     yield "chainer.distributions.utils"
 
-        elif full_name == "chainer.distributions":
-            yield "chainer.distributions.utils"
+        # elif full_name == "chainer.distributions":
+        #     yield "chainer.distributions.utils"
 
         # numpy imports -------------------------------------------------------
-        elif full_name == "numpy":
-            yield "numpy._mklinit"
-            yield "numpy.compat"
-            yield "numpy.lib"
-            yield "numpy.linalg"
-            yield "numpy.fft"
-            yield "numpy.polynomial"
-            yield "numpy.random"
-            yield "numpy.ctypeslib"
-            yield "numpy.ma"
-            yield "numpy.matrixlib"
+        # elif full_name == "numpy":
+        #     yield "numpy._mklinit"
+        #     yield "numpy.compat"
+        #     yield "numpy.lib"
+        #     yield "numpy.linalg"
+        #     yield "numpy.fft"
+        #     yield "numpy.polynomial"
+        #     yield "numpy.random"
+        #     yield "numpy.ctypeslib"
+        #     yield "numpy.ma"
+        #     yield "numpy.matrixlib"
 
-        elif full_name == "numpy.core":
-            yield "numpy.core._dtype_ctypes"
-            yield "numpy.core._multiarray_tests"
+        # elif full_name == "numpy.core":
+        #     yield "numpy.core._dtype_ctypes"
+        #     yield "numpy.core._multiarray_tests"
 
-        elif full_name == "numpy.random":
-            # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
-            yield "numpy.random._bit_generator"
-            yield "numpy.random._bounded_integers"
-            yield "numpy.random._common"
-            yield "numpy.random._generator"
-            yield "numpy.random._mt19937"
-            yield "numpy.random._pcg64"
-            yield "numpy.random._philox"
-            yield "numpy.random._sfc64"
+        # elif full_name == "numpy.random":
+        #     # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
+        #     yield "numpy.random._bit_generator"
+        #     yield "numpy.random._bounded_integers"
+        #     yield "numpy.random._common"
+        #     yield "numpy.random._generator"
+        #     yield "numpy.random._mt19937"
+        #     yield "numpy.random._pcg64"
+        #     yield "numpy.random._philox"
+        #     yield "numpy.random._sfc64"
 
-            # These are pre-1.18 names
-            yield "numpy.random.bit_generator"
-            yield "numpy.random.bounded_integers"
-            yield "numpy.random.common"
-            yield "numpy.random.generator"
-            yield "numpy.random.mt19937"
-            yield "numpy.random.pcg64"
-            yield "numpy.random.philox"
-            yield "numpy.random.sfc64"
+        #     # These are pre-1.18 names
+        #     yield "numpy.random.bit_generator"
+        #     yield "numpy.random.bounded_integers"
+        #     yield "numpy.random.common"
+        #     yield "numpy.random.generator"
+        #     yield "numpy.random.mt19937"
+        #     yield "numpy.random.pcg64"
+        #     yield "numpy.random.philox"
+        #     yield "numpy.random.sfc64"
 
-            # TODO: Clarify if entropy is needed for 1.18 or at all.
-            yield "numpy.random.entropy"
-            yield "numpy.random.mtrand"
+        #     # TODO: Clarify if entropy is needed for 1.18 or at all.
+        #     yield "numpy.random.entropy"
+        #     yield "numpy.random.mtrand"
 
         # matplotlib imports --------------------------------------------------
         elif full_name == "matplotlib":
