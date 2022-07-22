@@ -57,7 +57,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
-    getCoreCount,
+    getCPUCoreCount,
     getOS,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
@@ -1107,7 +1107,7 @@ def getJobLimit():
         if options.low_memory:
             return 1
         else:
-            return getCoreCount()
+            return getCPUCoreCount()
 
     return int(options.jobs)
 
@@ -1566,11 +1566,6 @@ def hasPythonFlagPackageMode():
 def shallFreezeAllStdlib():
     """*bool* = **not** shallFollowStandardLibrary"""
     return not shallFollowStandardLibrary()
-
-
-def getWindowsDependencyTool():
-    """*str*, value of ``--windows-dependency-tool=``"""
-    return options.dependency_tool
 
 
 def shallNotUseDependsExeCachedResults():

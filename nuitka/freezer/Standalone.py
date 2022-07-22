@@ -22,22 +22,17 @@ FreeBSD are also very welcome, but might break with time and need your
 help.
 """
 
-import collections
-import hashlib
 import marshal
 import os
 import pkgutil
 import sys
 
 from nuitka import Options, SourceCodeReferences
-from nuitka.__past__ import iterItems
-from nuitka.build.SconsUtils import readSconsReport
 from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.importing import ImportCache
-from nuitka.importing.Importing import locateModule
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryNoAutoInclusionModule,
@@ -54,43 +49,32 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
-from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
-from nuitka.utils import Utils
-from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
-from nuitka.utils.FileOperations import (
-    areSamePaths,
-    getDirectoryRealPath,
-    getFileContentByLine,
-    getSubDirectoriesWithDlls,
-    haveSameFileContents,
-    isPathBelow,
-    listDllFilesFromDirectory,
-    makePath,
-    putTextFileContents,
-    relpath,
-    withFileLock,
-)
+from nuitka.utils.Execution import executeProcess
+from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import (
-    callInstallNameTool,
-    copyDllFile,
-    getDLLVersion,
-    getOtoolDependencyOutput,
-    getOtoolListing,
-    getPyWin32Dir,
-    getSharedLibraryRPATH,
-    setSharedLibraryRPATH,
-)
+from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import isDebianBasedLinux
+from nuitka.utils.Utils import (
+    getCPUCoreCount,
+    getOS,
+    isDebianBasedLinux,
+    isMacOS,
+    isPosixWindows,
+    isWin32Windows,
+)
 
-from .DependsExe import detectDLLsWithDependencyWalker
+from .DllDependenciesMacOS import (
+    detectBinaryPathDLLsMacOS,
+    fixupBinaryDLLPathsMacOS,
+)
+from .DllDependenciesPosix import detectBinaryPathDLLsPosix
+from .DllDependenciesWin32 import detectBinaryPathDLLsWindowsDependencyWalker
+from .IncludedEntryPoints import addIncludedEntryPoint, makeDllEntryPoint
 
 
 def loadCodeObjectData(bytecode_filename):
@@ -565,509 +549,6 @@ def detectEarlyImports():
     return early_modules
 
 
-_detected_python_rpath = None
-
-ldd_result_cache = {}
-
-_linux_dll_ignore_list = (
-    # Do not include kernel / glibc specific libraries. This list has been
-    # assembled by looking what are the most common .so files provided by
-    # glibc packages from ArchLinux, Debian Stretch and CentOS.
-    #
-    # Online sources:
-    #  - https://centos.pkgs.org/7/puias-computational-x86_64/glibc-aarch64-linux-gnu-2.24-2.sdl7.2.noarch.rpm.html
-    #  - https://centos.pkgs.org/7/centos-x86_64/glibc-2.17-222.el7.x86_64.rpm.html
-    #  - https://archlinux.pkgs.org/rolling/archlinux-core-x86_64/glibc-2.28-5-x86_64.pkg.tar.xz.html
-    #  - https://packages.debian.org/stretch/amd64/libc6/filelist
-    #
-    # Note: This list may still be incomplete. Some additional libraries
-    # might be provided by glibc - it may vary between the package versions
-    # and between Linux distros. It might or might not be a problem in the
-    # future, but it should be enough for now.
-    "ld-linux-x86-64.so",
-    "libc.so",
-    "libpthread.so",
-    "libm.so",
-    "libdl.so",
-    "libBrokenLocale.so",
-    "libSegFault.so",
-    "libanl.so",
-    "libcidn.so",
-    "libcrypt.so",
-    "libmemusage.so",
-    "libmvec.so",
-    "libnsl.so",
-    "libnss3.so",
-    "libnssutils3.so",
-    "libnss_compat.so",
-    "libnss_db.so",
-    "libnss_dns.so",
-    "libnss_files.so",
-    "libnss_hesiod.so",
-    "libnss_nis.so",
-    "libnss_nisplus.so",
-    "libpcprofile.so",
-    "libresolv.so",
-    "librt.so",
-    "libthread_db-1.0.so",
-    "libthread_db.so",
-    "libutil.so",
-    # The C++ standard library can also be ABI specific, and can cause system
-    # libraries like MESA to not load any drivers, so we exclude it too, and
-    # it can be assumed to be installed everywhere anyway.
-    "libstdc++.so",
-    # The DRM layer should also be taken from the OS in question and won't
-    # allow loading native drivers otherwise.
-    "libdrm.so",
-)
-
-_ld_library_cache = {}
-
-
-def _getLdLibraryPath(package_name, python_rpath, original_dir):
-    key = package_name, python_rpath, original_dir
-
-    if key not in _ld_library_cache:
-
-        ld_library_path = OrderedSet()
-        if python_rpath:
-            ld_library_path.add(python_rpath)
-
-        ld_library_path.update(_getPackageSpecificDLLDirectories(package_name))
-        if original_dir is not None:
-            ld_library_path.add(original_dir)
-
-        _ld_library_cache[key] = ld_library_path
-
-    return _ld_library_cache[key]
-
-
-def _detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
-    # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches
-
-    if ldd_result_cache.get(dll_filename):
-        return ldd_result_cache[dll_filename]
-
-    # Ask "ldd" about the libraries being used by the created binary, these
-    # are the ones that interest us.
-
-    # This is the rpath of the Python binary, which will be effective when
-    # loading the other DLLs too. This happens at least for Python installs
-    # on Travis. pylint: disable=global-statement
-    global _detected_python_rpath
-    if _detected_python_rpath is None and not Utils.isPosixWindows():
-        _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
-
-        if _detected_python_rpath:
-            _detected_python_rpath = _detected_python_rpath.replace(
-                "$ORIGIN", os.path.dirname(sys.executable)
-            )
-
-    # TODO: Actually would be better to pass it as env to the created process instead.
-    with withEnvironmentPathAdded(
-        "LD_LIBRARY_PATH",
-        *_getLdLibraryPath(
-            package_name=package_name,
-            python_rpath=_detected_python_rpath,
-            original_dir=original_dir,
-        )
-    ):
-        # TODO: Check exit code, should never fail.
-        stdout, stderr, _exit_code = executeProcess(command=("ldd", dll_filename))
-
-    stderr = b"\n".join(
-        line
-        for line in stderr.splitlines()
-        if not line.startswith(
-            b"ldd: warning: you do not have execution permission for"
-        )
-    )
-
-    inclusion_logger.debug("ldd output for %s is:\n%s" % (dll_filename, stdout))
-
-    if stderr:
-        inclusion_logger.debug("ldd error for %s is:\n%s" % (dll_filename, stderr))
-
-    result = set()
-
-    for line in stdout.split(b"\n"):
-        if not line:
-            continue
-
-        if b"=>" not in line:
-            continue
-
-        part = line.split(b" => ", 2)[1]
-
-        if b"(" in part:
-            filename = part[: part.rfind(b"(") - 1]
-        else:
-            filename = part
-
-        if not filename:
-            continue
-
-        if python_version >= 0x300:
-            filename = filename.decode("utf8")
-
-        # Sometimes might use stuff not found or supplied by ldd itself.
-        if filename in ("not found", "ldd"):
-            continue
-
-        # Normalize, sometimes the DLLs produce "something/../", this has
-        # been seen with Qt at least.
-        filename = os.path.normpath(filename)
-
-        # If we encounter a valid relative path, resolve it to an absolute one.
-        if not os.path.isabs(filename):
-            inclusion_logger.sysexit(
-                "Error: Found a dependency with a relative path. Was a dependency copied to dist early? "
-                + filename
-            )
-
-        # Do not include kernel DLLs on the ignore list.
-        filename_base = os.path.basename(filename)
-        if any(
-            filename_base == entry or filename_base.startswith(entry + ".")
-            for entry in _linux_dll_ignore_list
-        ):
-            continue
-
-        result.add(filename)
-
-    ldd_result_cache[dll_filename] = result
-
-    sub_result = set(result)
-
-    for sub_dll_filename in result:
-        sub_result = sub_result.union(
-            _detectBinaryPathDLLsPosix(
-                dll_filename=sub_dll_filename,
-                package_name=package_name,
-                original_dir=original_dir,
-            )
-        )
-
-    return sub_result
-
-
-def _parseOtoolListingOutput(output):
-    paths = OrderedSet()
-
-    for line in output.split(b"\n")[1:]:
-        if str is not bytes:
-            line = line.decode("utf8")
-
-        if not line:
-            continue
-
-        filename = line.split(" (", 1)[0].strip()
-
-        # Ignore dependency from system paths.
-        if not isPathBelow(
-            path=(
-                "/usr/lib/",
-                "/System/Library/Frameworks/",
-                "/System/Library/PrivateFrameworks/",
-            ),
-            filename=filename,
-        ):
-            paths.add(filename)
-
-    return paths
-
-
-def _detectBinaryPathDLLsMacOS(
-    original_dir, binary_filename, package_name, keep_unresolved, recursive
-):
-    assert os.path.exists(binary_filename), binary_filename
-
-    # This is for Anaconda, which puts required libraries of packages in this folder.
-    # pylint: disable=global-statement
-    global _detected_python_rpath
-    global _detected_python_rpath
-    if _detected_python_rpath is None:
-        if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
-            _detected_python_rpath = os.path.normpath(
-                os.path.join(os.environ["CONDA_PYTHON_EXE"], "..", "..", "lib")
-            )
-            if not os.path.isdir(_detected_python_rpath):
-                _detected_python_rpath = False
-        else:
-            _detected_python_rpath = False
-
-    python_rpath = _detected_python_rpath if _detected_python_rpath else None
-
-    package_specific_dirs = _getLdLibraryPath(
-        package_name=package_name, python_rpath=python_rpath, original_dir=original_dir
-    )
-
-    # This is recursive potentially and might add more and more.
-    stdout = getOtoolDependencyOutput(
-        filename=binary_filename,
-        package_specific_dirs=package_specific_dirs,
-    )
-    paths = _parseOtoolListingOutput(stdout)
-
-    had_self, resolved_result = _resolveBinaryPathDLLsMacOS(
-        original_dir=original_dir,
-        binary_filename=binary_filename,
-        paths=paths,
-        package_specific_dirs=package_specific_dirs,
-    )
-
-    if recursive:
-        merged_result = OrderedDict(resolved_result)
-
-        for sub_dll_filename in resolved_result:
-            _, sub_result = _detectBinaryPathDLLsMacOS(
-                original_dir=os.path.dirname(sub_dll_filename),
-                binary_filename=sub_dll_filename,
-                package_name=package_name,
-                recursive=True,
-                keep_unresolved=True,
-            )
-
-            merged_result.update(sub_result)
-
-        resolved_result = merged_result
-
-    if keep_unresolved:
-        return had_self, resolved_result
-    else:
-        return OrderedSet(resolved_result)
-
-
-def _resolveBinaryPathDLLsMacOS(
-    original_dir, binary_filename, paths, package_specific_dirs
-):
-    had_self = False
-
-    result = OrderedDict()
-
-    rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
-    rpaths.update(package_specific_dirs)
-
-    for path in paths:
-        if path.startswith("@rpath/"):
-            # Resolve rpath to just the ones given, first match.
-            for rpath in rpaths:
-                if os.path.exists(os.path.join(rpath, path[7:])):
-                    resolved_path = os.path.normpath(os.path.join(rpath, path[7:]))
-                    break
-            else:
-                # This is only a guess, might be missing package specific directories.
-                resolved_path = os.path.join(original_dir, path[7:])
-        elif path.startswith("@loader_path/"):
-            resolved_path = os.path.join(original_dir, path[13:])
-        elif os.path.basename(path) == os.path.basename(binary_filename):
-            # We ignore the references to itself coming from the library id.
-            continue
-        else:
-            resolved_path = path
-
-        if not os.path.exists(resolved_path):
-            # TODO: Make this a plugin decision, to move this from here to PySide6 plugin:
-            if os.path.basename(binary_filename) == "libqpdf.dylib":
-                raise NuitkaForbiddenDLLEncounter(binary_filename, "pyside6")
-
-            inclusion_logger.sysexit(
-                "Error, failed to resolve DLL path %s (for %s), please report the bug."
-                % (path, binary_filename)
-            )
-
-        # Some libraries depend on themselves.
-        if areSamePaths(binary_filename, resolved_path):
-            had_self = True
-            continue
-
-        result[resolved_path] = path
-
-    return had_self, result
-
-
-def _detectBinaryRPathsMacOS(original_dir, binary_filename):
-    stdout = getOtoolListing(binary_filename)
-
-    lines = stdout.split(b"\n")
-
-    result = OrderedSet()
-
-    for i, line in enumerate(lines):
-        if line.endswith(b"cmd LC_RPATH"):
-            line = lines[i + 2]
-            if str is not bytes:
-                line = line.decode("utf8")
-
-            line = line.split("path ", 1)[1]
-            line = line.split(" (offset", 1)[0]
-
-            if line.startswith("@loader_path"):
-                line = os.path.join(original_dir, line[13:])
-            elif line.startswith("@executable_path"):
-                continue
-
-            result.add(line)
-
-    return result
-
-
-def _getCacheFilename(
-    dependency_tool, is_main_executable, source_dir, original_dir, binary_filename
-):
-    original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
-    original_filename = os.path.normcase(original_filename)
-
-    if is_main_executable:
-        # Normalize main program name for caching as well, but need to use the
-        # scons information to distinguish different compilers, so we use
-        # different libs there.
-
-        # Ignore values, that are variable per compilation.
-        hashed_value = "".join(
-            key + value
-            for key, value in iterItems(readSconsReport(source_dir=source_dir))
-            if key not in ("CLCACHE_STATS",)
-        )
-    else:
-        hashed_value = original_filename
-
-    # Have different values for different Python major versions.
-    hashed_value += sys.version + sys.executable
-
-    if str is not bytes:
-        hashed_value = hashed_value.encode("utf8")
-
-    cache_dir = os.path.join(getCacheDir(), "library_dependencies", dependency_tool)
-
-    makePath(cache_dir)
-
-    return os.path.join(cache_dir, hashlib.md5(hashed_value).hexdigest())
-
-
-_scan_dir_cache = {}
-
-
-def _getPackageSpecificDLLDirectories(package_name):
-    scan_dirs = OrderedSet()
-
-    if package_name is not None:
-        package_dir = locateModule(
-            module_name=package_name, parent_package=None, level=0
-        )[1]
-
-        if os.path.isdir(package_dir):
-            scan_dirs.add(package_dir)
-
-            scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
-
-        scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
-
-    return scan_dirs
-
-
-def getScanDirectories(package_name, original_dir):
-    cache_key = package_name, original_dir
-
-    if cache_key in _scan_dir_cache:
-        return _scan_dir_cache[cache_key]
-
-    scan_dirs = [sys.prefix]
-
-    if package_name is not None:
-        scan_dirs.extend(_getPackageSpecificDLLDirectories(package_name))
-
-    if original_dir is not None:
-        scan_dirs.append(original_dir)
-        scan_dirs.extend(getSubDirectoriesWithDlls(original_dir))
-
-    if (
-        Utils.isWin32Windows()
-        and package_name is not None
-        and package_name.isBelowNamespace("win32com")
-    ):
-        py_win32_dir = getPyWin32Dir()
-
-        if py_win32_dir is not None:
-            scan_dirs.append(py_win32_dir)
-
-    for path_dir in os.environ["PATH"].split(";"):
-        if not os.path.isdir(path_dir):
-            continue
-
-        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"])):
-            continue
-        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "System32")):
-            continue
-        if areSamePaths(path_dir, os.path.join(os.environ["SYSTEMROOT"], "SysWOW64")):
-            continue
-
-        scan_dirs.append(path_dir)
-
-    result = []
-
-    # Remove directories that hold no DLLs.
-    for scan_dir in scan_dirs:
-        scan_dir = getDirectoryRealPath(scan_dir)
-
-        # No DLLs, no use.
-        if not any(listDllFilesFromDirectory(scan_dir)):
-            continue
-
-        result.append(os.path.realpath(scan_dir))
-
-    _scan_dir_cache[cache_key] = result
-    return result
-
-
-def detectBinaryPathDLLsWindowsDependencyWalker(
-    is_main_executable,
-    source_dir,
-    original_dir,
-    binary_filename,
-    package_name,
-    use_cache,
-    update_cache,
-):
-    # This is the caching mechanism and plugin handling for DLL imports.
-    if use_cache or update_cache:
-        cache_filename = _getCacheFilename(
-            dependency_tool="depends.exe",
-            is_main_executable=is_main_executable,
-            source_dir=source_dir,
-            original_dir=original_dir,
-            binary_filename=binary_filename,
-        )
-
-        if use_cache:
-            with withFileLock():
-                if not os.path.exists(cache_filename):
-                    use_cache = False
-
-        if use_cache:
-            result = OrderedSet()
-
-            for line in getFileContentByLine(cache_filename):
-                line = line.strip()
-
-                result.add(line)
-
-            return result
-
-    if Options.isShowProgress():
-        general.info("Analyzing dependencies of '%s'." % binary_filename)
-
-    scan_dirs = getScanDirectories(package_name, original_dir)
-
-    result = detectDLLsWithDependencyWalker(binary_filename, scan_dirs)
-
-    if update_cache:
-        putTextFileContents(filename=cache_filename, contents=result)
-
-    return result
-
-
 def _detectBinaryDLLs(
     is_main_executable,
     source_dir,
@@ -1083,16 +564,13 @@ def _detectBinaryDLLs(
     "otool" (macOS) the list of used DLLs is retrieved.
     """
 
-    if (
-        Utils.getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD")
-        or Utils.isPosixWindows()
-    ):
-        return _detectBinaryPathDLLsPosix(
+    if getOS() in ("Linux", "NetBSD", "FreeBSD", "OpenBSD") or isPosixWindows():
+        return detectBinaryPathDLLsPosix(
             dll_filename=original_filename,
             package_name=package_name,
             original_dir=os.path.dirname(original_filename),
         )
-    elif Utils.isWin32Windows():
+    elif isWin32Windows():
         with TimerReport(
             message="Running 'depends.exe' for %s took %%.2f seconds" % binary_filename,
             decider=Options.isShowProgress,
@@ -1106,8 +584,8 @@ def _detectBinaryDLLs(
                 use_cache=use_cache,
                 update_cache=update_cache,
             )
-    elif Utils.isMacOS():
-        return _detectBinaryPathDLLsMacOS(
+    elif isMacOS():
+        return detectBinaryPathDLLsMacOS(
             original_dir=os.path.dirname(original_filename),
             binary_filename=original_filename,
             package_name=package_name,
@@ -1116,7 +594,7 @@ def _detectBinaryDLLs(
         )
     else:
         # Support your platform above.
-        assert False, Utils.getOS()
+        assert False, getOS()
 
 
 _not_found_dlls = set()
@@ -1172,7 +650,7 @@ working with Python, report a Nuitka bug."""
 
     result = OrderedDict()
 
-    with ThreadPoolExecutor(max_workers=Utils.getCoreCount() * 3) as worker_pool:
+    with ThreadPoolExecutor(max_workers=getCPUCoreCount() * 3) as worker_pool:
         workers = []
 
         for count, standalone_entry_point in enumerate(standalone_entry_points):
@@ -1207,306 +685,92 @@ working with Python, report a Nuitka bug."""
     return result
 
 
-def _fixupBinaryDLLPathsMacOS(
-    binary_filename, package_name, duplicate_dlls, original_location
-):
-    """For macOS, the binary needs to be told to use relative DLL paths"""
+def copyDllsUsed(dist_dir, standalone_entry_points):
+    # This is complex, because we also need to handle OS specifics.
 
-    # There may be nothing to do, in case there are no DLLs pulled in.
-    if not dlls_used_map:
-        return
+    # Only do ones not ignored
+    copy_standalone_entry_points = [
+        standalone_entry_point
+        for standalone_entry_point in standalone_entry_points[1:]
+        if not standalone_entry_point.kind.endswith("_ignored")
+    ]
 
-    had_self, rpath_map = _detectBinaryPathDLLsMacOS(
-        original_dir=os.path.dirname(original_location),
-        binary_filename=original_location,
-        package_name=package_name,
-        keep_unresolved=True,
-        recursive=False,
-    )
-
-    mapping = []
-
-    for resolved_filename, rpath_filename in rpath_map.items():
-        for copied_dll in dlls_used_map:
-            if resolved_filename == copied_dll.source_path:
-                dist_path = copied_dll.dest_path
-                break
-
-            # Might have been a removed duplicate, check those too.
-            if copied_dll.source_path in duplicate_dlls.get(resolved_filename, ()):
-                dist_path = copied_dll.dest_path
-                break
-
-        else:
-            dist_path = None
-
-        if dist_path is None:
-            inclusion_logger.sysexit(
-                """\
-Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                % (binary_filename, rpath_filename)
-            )
-
-        mapping.append((rpath_filename, "@executable_path/" + dist_path))
-
-    if mapping or had_self:
-        callInstallNameTool(
-            filename=binary_filename,
-            mapping=mapping,
-            id_path=os.path.basename(binary_filename) if had_self else None,
-            rpath=None,
-        )
-
-
-# These DLLs are run time DLLs from Microsoft, and packages will depend on different
-# ones, but it will be OK to use the latest one, spell-checker: ignore msvcp vcruntime
-ms_runtime_dlls = (
-    "msvcp140_1.dll",
-    "msvcp140.dll",
-    "vcruntime140_1.dll",
-    "concrt140.dll",
-)
-
-
-def _removeDuplicateDlls(used_dlls):
-    # Many things to consider and verbose code, pylint: disable=too-many-branches,too-many-statements
-    removed_dlls = set()
-    warned_about = set()
-
-    # Identical DLLs are interesting for DLL resolution on macOS at least.
-    duplicate_dlls = {}
-
-    # Fist make checks and remove some, in loops we copy the items so we can remove
-    # the used_dll list freely.
-    for dll_filename1, (_package_name1, sources1) in tuple(iterItems(used_dlls)):
-        if dll_filename1 in removed_dlls:
-            continue
-
-        for dll_filename2, (_package_name1, sources2) in tuple(iterItems(used_dlls)):
-            if dll_filename1 == dll_filename2:
-                continue
-
-            if dll_filename2 in removed_dlls:
-                continue
-
-            # Only DLLs with colliding basename are an issue to us.
-            if os.path.basename(dll_filename1) != os.path.basename(dll_filename2):
-                continue
-
-            # May already have been removed earlier
-            if dll_filename1 not in used_dlls:
-                continue
-
-            if dll_filename2 not in used_dlls:
-                continue
-
-            dll_name = os.path.basename(dll_filename1)
-
-            if Options.isShowInclusion():
-                inclusion_logger.info(
-                    """Colliding DLL names for %s, checking identity of \
-'%s' <-> '%s'."""
-                    % (dll_name, dll_filename1, dll_filename2)
-                )
-
-            # Check that if a DLL has the same name, if it's identical, then it's easy.
-            if haveSameFileContents(dll_filename1, dll_filename2):
-                del used_dlls[dll_filename2]
-                removed_dlls.add(dll_filename2)
-
-                duplicate_dlls.setdefault(dll_filename1, []).append(dll_filename2)
-                duplicate_dlls.setdefault(dll_filename2, []).append(dll_filename1)
-
-                continue
-
-            # For Win32 and macOS, we can check out file versions.
-            dll_version1 = getDLLVersion(dll_filename1)
-            dll_version2 = getDLLVersion(dll_filename2)
-
-            if dll_version1 is None and dll_version2 is None:
-                pass
-            elif dll_version1 is None and dll_version2 is not None:
-                del used_dlls[dll_filename1]
-                removed_dlls.add(dll_filename1)
-
-                continue
-            elif dll_version1 is not None and dll_version2 is None:
-                del used_dlls[dll_filename2]
-                removed_dlls.add(dll_filename2)
-
-                continue
-            elif dll_version2 < dll_version1:
-                del used_dlls[dll_filename2]
-                removed_dlls.add(dll_filename2)
-
-                continue
-            elif dll_version1 < dll_version2:
-                del used_dlls[dll_filename1]
-                removed_dlls.add(dll_filename1)
-
-                continue
-
-            if dll_name not in warned_about and dll_name not in ms_runtime_dlls:
-                warned_about.add(dll_name)
-
-                inclusion_logger.warning(
-                    "Conflicting DLLs for '%s' in your installation, newest file version used, hoping for the best."
-                    % dll_name
-                )
-
-            # So we have conflicting DLLs, in which case we do report the fact.
-            inclusion_logger.warning(
-                """\
-Ignoring non-identical DLLs for '%s'.
-%s used by:
-   %s
-different from
-%s used by
-   %s"""
-                % (
-                    dll_name,
-                    dll_filename1,
-                    "\n   ".join(sources1),
-                    dll_filename2,
-                    "\n   ".join(sources2),
-                )
-            )
-
-            del used_dlls[dll_filename2]
-            removed_dlls.add(dll_filename2)
-
-    return duplicate_dlls
-
-
-CopiedDLLInfo = collections.namedtuple(
-    "CopiedDLLInfo",
-    ("source_path", "dest_path", "package_name", "dll_name", "sources"),
-)
-
-
-def _copyDllsUsed(dist_dir, used_dlls):
     setupProgressBar(
         stage="Copying used DLLs",
         unit="DLL",
-        total=len(used_dlls),
+        total=len(copy_standalone_entry_points),
     )
 
-    result = []
+    for standalone_entry_point in copy_standalone_entry_points:
+        reportProgressBar(standalone_entry_point.dest_path)
 
-    for dll_filename, (package_name, sources) in iterItems(used_dlls):
-        dll_name = os.path.basename(dll_filename)
-        dest_path = dll_name
-
-        target_path = os.path.join(dist_dir, dll_name)
-
-        reportProgressBar(target_path)
-
-        # Sometimes DLL dependencies were copied there already. TODO: That should
-        # actually become disallowed with plugins no longer seeing that folder.
-        if not os.path.exists(target_path):
-            copyDllFile(source_path=dll_filename, dest_path=target_path)
-
-        result.append(
-            CopiedDLLInfo(
-                source_path=dll_filename,
-                dest_path=dest_path,
-                package_name=package_name,
-                dll_name=dll_name,
-                sources=sources,
-            )
+        copyDllFile(
+            source_path=standalone_entry_point.source_path,
+            dist_dir=dist_dir,
+            dest_path=standalone_entry_point.dest_path,
+            executable=standalone_entry_point.executable,
         )
 
-        if Options.isShowInclusion():
-            inclusion_logger.info(
-                "Included used shared library '%s' (used by %s)."
-                % (dll_filename, ", ".join(sources))
+        if isMacOS():
+            fixupBinaryDLLPathsMacOS(
+                binary_filename=os.path.join(
+                    dist_dir, standalone_entry_point.dest_path
+                ),
+                package_name=standalone_entry_point.package_name,
+                original_location=standalone_entry_point.source_path,
+                standalone_entry_points=standalone_entry_points,
             )
 
     closeProgressBar()
 
-    return result
+    # After dependency detection, we can change the RPATH for macOS main binary.
+    if isMacOS():
+        setSharedLibraryRPATH(
+            os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
+        )
 
-
-dlls_used_map = None
-
-
-def getCopiedDLLInfos():
-    """Get information about copied DLLs that were determined as dependencies
-
-    This does not yet cover plugin provided DLLs, as these are considered standalone
-    entry points.
-    """
-
-    return dlls_used_map or ()
-
-
-def copyDllsUsed(source_dir, dist_dir, standalone_entry_points):
-    # This is complex, because we also need to handle OS specifics.
-
-    used_dlls = _detectUsedDLLs(
-        source_dir=source_dir,
-        standalone_entry_points=standalone_entry_points,
-        use_cache=not Options.shallNotUseDependsExeCachedResults()
-        and Options.getWindowsDependencyTool() != "depends.exe",
-        update_cache=not Options.shallNotStoreDependsExeCachedResults()
-        and Options.getWindowsDependencyTool() != "depends.exe",
-    )
-
-    duplicate_dlls = _removeDuplicateDlls(used_dlls=used_dlls)
-
-    # We want to make this accessible for reports, pylint: disable=global-statement
-    global dlls_used_map
-    dlls_used_map = _copyDllsUsed(dist_dir=dist_dir, used_dlls=used_dlls)
-
-    # TODO: This belongs inside _copyDllsUsed
-    if Utils.isMacOS():
-        # For macOS, the binary and the DLLs needs to be changed to reflect
-        # the relative DLL location in the ".dist" folder.
-        for standalone_entry_point in standalone_entry_points:
-            _fixupBinaryDLLPathsMacOS(
-                binary_filename=standalone_entry_point.dest_path,
-                package_name=standalone_entry_point.package_name,
-                duplicate_dlls=duplicate_dlls,
-                original_location=standalone_entry_point.source_path,
-            )
-
-        for copied_dll_info in dlls_used_map:
-            _fixupBinaryDLLPathsMacOS(
-                binary_filename=os.path.join(dist_dir, copied_dll_info.dest_path),
-                package_name=copied_dll_info.package_name,
-                duplicate_dlls=duplicate_dlls,
-                original_location=copied_dll_info.source_path,
-            )
-
-    # Remove or update rpath settings.
-    if Utils.isLinux():
-        # For Linux, the "rpath" of libraries may be an issue and must be
-        # removed.
-        for standalone_entry_point in standalone_entry_points[1:]:
-            count = relpath(
-                path=standalone_entry_point.dest_path, start=dist_dir
-            ).count(os.path.sep)
-
-            rpath = os.path.join("$ORIGIN", *([".."] * count))
-            setSharedLibraryRPATH(standalone_entry_point.dest_path, rpath)
-
-        for copied_dll in dlls_used_map:
-            setSharedLibraryRPATH(
-                os.path.join(dist_dir, copied_dll.dest_path), "$ORIGIN"
-            )
-
-    if Utils.isMacOS():
-        setSharedLibraryRPATH(standalone_entry_points[0].dest_path, "$ORIGIN")
-
+    # Add macOS code signature
+    if isMacOS():
         addMacOSCodeSignature(
             filenames=[
-                standalone_entry_point.dest_path
-                for standalone_entry_point in standalone_entry_points
-            ]
-            + [
-                os.path.join(dist_dir, copied_dll.dest_path)
-                for copied_dll in dlls_used_map
+                os.path.join(dist_dir, standalone_entry_point.dest_path)
+                for standalone_entry_point in copy_standalone_entry_points
             ]
         )
 
-    Plugins.onCopiedDLLs(dist_dir=dist_dir, used_dlls=used_dlls)
+    Plugins.onCopiedDLLs(
+        dist_dir=dist_dir, standalone_entry_points=copy_standalone_entry_points
+    )
+
+
+def _decideTargetPath(dll_filename):
+    return os.path.basename(dll_filename)
+
+
+def _detectUsedDLLs(standalone_entry_point, source_dir):
+    used_dlls = _detectBinaryDLLs(
+        is_main_executable=standalone_entry_point.kind == "executable",
+        source_dir=source_dir,
+        original_filename=standalone_entry_point.source_path,
+        binary_filename=standalone_entry_point.source_path,
+        package_name=standalone_entry_point.package_name,
+        use_cache=not Options.shallNotUseDependsExeCachedResults(),
+        update_cache=not Options.shallNotStoreDependsExeCachedResults(),
+    )
+
+    for used_dll in used_dlls:
+        addIncludedEntryPoint(
+            makeDllEntryPoint(
+                logger=inclusion_logger,
+                source_path=used_dll,
+                dest_path=_decideTargetPath(used_dll),
+                package_name=None,
+            )
+        )
+
+
+def detectUsedDLLs(standalone_entry_points, source_dir):
+    for standalone_entry_point in standalone_entry_points:
+        _detectUsedDLLs(
+            standalone_entry_point=standalone_entry_point, source_dir=source_dir
+        )

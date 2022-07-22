@@ -35,8 +35,14 @@ from .Execution import (
     withEnvironmentPathAdded,
     withEnvironmentVarOverridden,
 )
-from .FileOperations import copyFile, getFileList, withMadeWritableFileMode
-from .Utils import isAlpineLinux, isMacOS, isWin32Windows
+from .FileOperations import (
+    addFileExecutablePermission,
+    copyFile,
+    getFileList,
+    makeContainingPath,
+    withMadeWritableFileMode,
+)
+from .Utils import isAlpineLinux, isLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
     VsFixedFileInfoStructure,
@@ -52,7 +58,7 @@ def locateDLLFromFilesystem(name, paths):
                 return os.path.join(root, name)
 
 
-_ldconfig_usage = "The 'ldconfig' is used to analyse dependencies on ELF using systems and required to be found."
+_ldconfig_usage = "The 'ldconfig' is used to analyze dependencies on ELF using systems and required to be found."
 
 
 def locateDLL(dll_name):
@@ -68,10 +74,7 @@ def locateDLL(dll_name):
     if isMacOS() and not os.path.exists(dll_name):
         return None
 
-    if isWin32Windows():
-        return os.path.abspath(dll_name)
-
-    if isMacOS():
+    if isWin32Windows() or isMacOS():
         return os.path.abspath(dll_name)
 
     if os.path.sep in dll_name:
@@ -586,16 +589,29 @@ def makeMacOSThinBinary(filename):
         )
 
 
-def copyDllFile(source_path, dest_path):
+def copyDllFile(source_path, dist_dir, dest_path, executable):
     """Copy an extension/DLL file making some adjustments on the way."""
 
-    copyFile(source_path=source_path, dest_path=dest_path)
+    target_filename = os.path.join(dist_dir, dest_path)
+    makeContainingPath(target_filename)
+
+    copyFile(source_path=source_path, dest_path=target_filename)
 
     if isWin32Windows() and python_version < 0x300:
-        _removeSxsFromDLL(dest_path)
+        _removeSxsFromDLL(target_filename)
 
     if isMacOS() and Options.getMacOSTargetArch() != "universal":
-        makeMacOSThinBinary(dest_path)
+        makeMacOSThinBinary(target_filename)
+
+    if isLinux():
+        # Path must be normalized for this to be correct, but entry points enforced that.
+        count = dest_path.count(os.path.sep)
+
+        rpath = os.path.join("$ORIGIN", *([".."] * count))
+        setSharedLibraryRPATH(target_filename, rpath)
+
+    if executable:
+        addFileExecutablePermission(target_filename)
 
 
 def getDLLVersion(filename):
