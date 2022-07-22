@@ -43,8 +43,10 @@ BuildRequires:  python3-markupsafe
 %endif
 %if 0%{?suse_version} >= 1500
 BuildRequires:  python3-MarkupSafe
-%if 0{?sles_version} == 0
+%if 0%{?sle_version} == 0
 BuildRequires:  openSUSE-release
+%else
+BuildRequires:  dummy-release
 %endif
 %endif
 %if 0%{?fedora} >= 27
@@ -76,8 +78,10 @@ Requires:       python3-markupsafe
 %endif
 %if 0%{?suse_version} >= 1500
 Requires:       python3-MarkupSafe
-%if 0{?sles_version} == 0
+%if 0%{?sle_version} == 0
 Requires:       openSUSE-release
+%else
+Requires:       dummy-release
 %endif
 %endif
 Requires:       gcc-c++
