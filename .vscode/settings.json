@@ -161,6 +161,7 @@
         "Kivy",
         "kwargs",
         "kwds",
+        "ldconfig",
         "libc",
         "libpython",
         "lldb",

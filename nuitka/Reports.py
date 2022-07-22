@@ -19,11 +19,12 @@
 
 """
 
+import os
 import sys
 
 from nuitka import TreeXML
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
-from nuitka.freezer.Standalone import getCopiedDLLInfos
+from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.ModuleRegistry import (
     getDoneModules,
@@ -35,7 +36,7 @@ from nuitka.utils.FileOperations import putTextFileContents
 
 
 def writeCompilationReport(report_filename):
-    # Many details to work with, pylint: disable=too-many-locals
+    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
 
     active_modules_info = getModuleInclusionInfos()
 
@@ -90,17 +91,27 @@ def writeCompilationReport(report_filename):
                 )
             )
 
-    for copied_dll_info in getCopiedDLLInfos():
+    for standalone_entry_point in getStandaloneEntryPoints():
+        if standalone_entry_point.kind == "executable":
+            continue
+
+        kind = standalone_entry_point.kind
+
+        if kind.endswith("_ignored"):
+            ignored = True
+            kind = kind.replace("_ignored", "")
+        else:
+            ignored = False
+
         root.append(
             TreeXML.Element(
-                "included_dll",
-                name=copied_dll_info.dll_name,
-                dest_path=copied_dll_info.dest_path,
-                source_path=copied_dll_info.source_path,
-                package=copied_dll_info.source_path,
-                sources=".".join(copied_dll_info.sources),
+                "included_" + kind,
+                name=os.path.basename(standalone_entry_point.dest_path),
+                dest_path=standalone_entry_point.dest_path,
+                source_path=standalone_entry_point.source_path,
+                package=standalone_entry_point.source_path,
+                ignored="yes" if ignored else "no"
                 # TODO: No reason yet.
-                # reason=copied_dll_info.reason,
             )
         )
 

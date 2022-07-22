@@ -25,7 +25,7 @@ import os
 import sys
 from optparse import OptionParser
 
-from nuitka.freezer.Standalone import (
+from nuitka.freezer.DllDependenciesWin32 import (
     detectBinaryPathDLLsWindowsDependencyWalker,
 )
 from nuitka.Tracing import my_print

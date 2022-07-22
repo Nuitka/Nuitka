@@ -1,0 +1,63 @@
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
+"""DLL dependency scan methods that are shared. """
+
+import os
+
+from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.importing.Importing import locateModule
+from nuitka.plugins.Plugins import Plugins
+from nuitka.utils.FileOperations import getSubDirectoriesWithDlls
+
+_ld_library_cache = {}
+
+
+def getLdLibraryPath(package_name, python_rpath, original_dir):
+    key = package_name, python_rpath, original_dir
+
+    if key not in _ld_library_cache:
+
+        ld_library_path = OrderedSet()
+        if python_rpath:
+            ld_library_path.add(python_rpath)
+
+        ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
+        if original_dir is not None:
+            ld_library_path.add(original_dir)
+
+        _ld_library_cache[key] = ld_library_path
+
+    return _ld_library_cache[key]
+
+
+def getPackageSpecificDLLDirectories(package_name):
+    scan_dirs = OrderedSet()
+
+    if package_name is not None:
+        package_dir = locateModule(
+            module_name=package_name, parent_package=None, level=0
+        )[1]
+
+        if os.path.isdir(package_dir):
+            scan_dirs.add(package_dir)
+
+            scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
+
+        scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
+
+    return scan_dirs
