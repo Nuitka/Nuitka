@@ -3,6 +3,26 @@
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
 ---
+- module-name: "_dbus_glib_bindings"
+  implicit-imports:
+    - depends:
+        - "_dbus_bindings"
+
+- module-name: "_mysql"
+  implicit-imports:
+    - depends:
+        - "_mysql_exceptions"
+
+- module-name: "_ruamel_yaml"
+  implicit-imports:
+    - depends:
+        - "ruamel.yaml.error"
+
+- module-name: "_yaml"
+  implicit-imports:
+    - depends:
+        - "yaml"
+
 - module-name: "accessible_output2"
   data-files:
     dirs:
@@ -12,6 +32,11 @@
   implicit-imports:
     - depends:
         - "anyio._backends._asyncio"
+
+- module-name: "apt_inst"
+  implicit-imports:
+    - depends:
+        - "apt_pkg"
 
 - module-name: "arcade"
   data-files:
@@ -27,6 +52,11 @@
   implicit-imports:
     - depends:
         - "asyncpg.pgproto.pgproto"
+
+- module-name: "atk"
+  implicit-imports:
+    - depends:
+        - "gobject"
 
 - module-name: "babel"
   data-files:
@@ -46,6 +76,16 @@
       - "data"
     patterns:
       - "cacert.pem"
+
+- module-name: "brotli._brotli"
+  implicit-imports:
+    - depends:
+        - "_cffi_backend"
+
+- module-name: "cairo._cairo"
+  implicit-imports:
+    - depends:
+        - "gi._gobject"
 
 - module-name: "cairocffi"
   data-files:
@@ -167,6 +207,22 @@
       replacements:
         'load_module(str("_traceback_no_io"), traceback)': "'__import__(\"traceback\")'"
 
+- module-name: "engineio"
+  implicit-imports:
+    - depends:
+        - "engineio.async_drivers"
+
+- module-name: "engineio.async_drivers"
+  implicit-imports:
+    - depends:
+        - "engineio.async_drivers.aiohttp"
+        - "engineio.async_drivers.asgi"
+        - "engineio.async_drivers.eventlet"
+        - "engineio.async_drivers.gevent"
+        - "engineio.async_drivers.gevent_uwsgi"
+        - "engineio.async_drivers.sanic"
+        - "engineio.async_drivers.threading"
+        - "engineio.async_drivers.tornado"
 - module-name: "falcon.app"
   implicit-imports:
     - depends:
@@ -211,6 +267,84 @@
     patterns:
       - "VERSION"
 
+- module-name: "gevent"
+  implicit-imports:
+    - depends:
+        - "_cffi_backend"
+        - "gevent._config"
+        - "gevent.core"
+        - "gevent.resolver_thread"
+        - "gevent.resolver_ares"
+        - "gevent.socket"
+        - "gevent.threadpool"
+        - "gevent.thread"
+        - "gevent.threading"
+        - "gevent.select"
+        - "gevent.hub"
+        - "gevent.greenlet"
+        - "gevent.local"
+        - "gevent.event"
+        - "gevent.queue"
+        - "gevent.resolver"
+        - "gevent.subprocess"
+
+    - depends:
+        - "gevent.libuv"
+      when: "win32"
+
+    - depends:
+        - "gevent.libev"
+      when: "not win32"
+
+- module-name: "gevent._abstract_linkable"
+  implicit-imports:
+    - depends:
+        - "gevent.__abstract_linkable"
+        - "gevent._gevent_c_abstract_linkable"
+
+- module-name: "gevent._ffi"
+  implicit-imports:
+    - depends:
+        - "gevent._ffi.loop"
+        - "gevent._ffi.callback"
+        - "gevent._ffi.watcher"
+
+- module-name: "gevent._gevent_c_hub_local"
+  implicit-imports:
+    - depends:
+        - "gevent._gevent_c_greenlet_primitives"
+
+- module-name: "gevent._greenlet"
+  implicit-imports:
+    - depends:
+        - "gevent.__ident"
+
+- module-name: "gevent._hub_local"
+  implicit-imports:
+    - depends:
+        - "gevent.__hub_local"
+        - "gevent.__greenlet_primitives"
+        - "gevent._gevent_c_hub_local"
+
+- module-name: "gevent._hub_primitives"
+  implicit-imports:
+    - depends:
+        - "gevent.__hub_primitives"
+        - "gevent._gevent_cgreenlet"
+        - "gevent._gevent_c_hub_primitives"
+
+- module-name: "gevent._imap"
+  implicit-imports:
+    - depends:
+        - "gevent.__imap"
+        - "gevent._gevent_c_imap"
+- module-name: "gevent._semaphore"
+  implicit-imports:
+    - depends:
+        - "gevent._abstract_linkable"
+        - "gevent.__semaphore"
+        - "gevent._gevent_c_semaphore"
+
 - module-name: "gevent._util"
   anti-bloat:
     - description: "remove gevent release framework"
@@ -218,11 +352,118 @@
         "postreleaser_before": "'(lambda data: None)'"
         "prereleaser_middle": "'(lambda data: None)'"
 
+- module-name: "gevent._util"
+  anti-bloat:
+    - description: "remove gevent release framework"
+      change_function:
+        "postreleaser_before": "'(lambda data: None)'"
+        "prereleaser_middle": "'(lambda data: None)'"
+
+- module-name: "gevent._waiter"
+  implicit-imports:
+    - depends:
+        - "gevent.__waiter"
+        - "gevent._gevent_c_waiter"
+
+- module-name: "gevent.event"
+  implicit-imports:
+    - depends:
+        - "gevent._event"
+        - "gevent._gevent_cevent"
+
+- module-name: "gevent.greenlet"
+  implicit-imports:
+    - depends:
+        - "gevent._hub_local"
+        - "gevent._greenlet"
+        - "gevent._gevent_c_ident"
+
+- module-name: "gevent.hub"
+  implicit-imports:
+    - depends:
+        - "gevent._hub_primitives"
+        - "gevent._greenlet_primitives"
+        - "gevent._hub_local"
+        - "gevent._waiter"
+        - "gevent._util"
+        - "gevent._ident"
+        - "gevent.exceptions"
+
+- module-name: "gevent.libev"
+  implicit-imports:
+    - depends:
+        - "gevent.libev.corecext"
+        - "gevent.libev.corecffi"
+        - "gevent.libev.watcher"
+
+- module-name: "gevent.libuv"
+  implicit-imports:
+    - depends:
+        - "gevent._interfaces"
+        - "gevent._ffi"
+        - "gevent.libuv.loop"
+        - "gevent.libuv.watcher"
+
+- module-name: "gevent.libuv.loop"
+  implicit-imports:
+    - depends:
+        - "gevent.libuv._corecffi"
+        - "gevent._interfaces"
+
+- module-name: "gevent.local"
+  implicit-imports:
+    - depends:
+        - "gevent._local"
+        - "gevent._gevent_clocal"
+
+- module-name: "gevent.monkey"
+  implicit-imports:
+    - depends:
+        - "gevent.builtins"
+        - "gevent.time"
+        - "gevent.local"
+        - "gevent.ssl"
+        - "gevent.events"
+
+- module-name: "gevent.pool"
+  implicit-imports:
+    - depends:
+        - "gevent._imap"
+
+- module-name: "gevent.queue"
+  implicit-imports:
+    - depends:
+        - "gevent._queue"
+        - "gevent._gevent_cqueue"
+
+- module-name: "gevent.resolver"
+  implicit-imports:
+    - depends:
+        - "gevent.resolver.blocking"
+        - "gevent.resolver.cares"
+        - "gevent.resolver.thread"
+
 - module-name: "gooey"
   data-files:
     dirs:
       - "languages"
       - "images"
+
+- module-name: "gtk._gtk"
+  implicit-imports:
+    - depends:
+        - "pangocairo"
+        - "pango"
+        - "cairo"
+        - "gio"
+        - "atk"
+
+- module-name: "gtkunixprint"
+  implicit-imports:
+    - depends:
+        - "gobject"
+        - "cairo"
+        - "gtk"
 
 - module-name: "h5py"
   anti-bloat:
@@ -241,6 +482,11 @@
     - description: "workaround file reader check"
       replacements_plain:
         "path.exists()": "True"
+
+- module-name: "ipcqueue"
+  implicit-imports:
+    - depends:
+        - "_cffi_backend"
 
 - module-name: "jaraco.text"
   data-files:
@@ -291,6 +537,11 @@
         - ".html.clean"
         - ".html.diff"
         - ".etree"
+
+- module-name: "lxml.objectify"
+  implicit-imports:
+    - depends:
+        - "lxml.etree"
 
 - module-name: "matplotlib"
   anti-bloat:
@@ -349,6 +600,11 @@
     - description: "remove pytest testing framework"
       replacements:
         "imp.find_module('pytest')": "'None'"
+
+- module-name: "nacl._sodium"
+  implicit-imports:
+    - depends:
+        - "_cffi_backend"
 
 - module-name: "nose.core"
   data-files:
@@ -606,6 +862,17 @@
       replacements_plain:
         'if name == "testing":': "if False:"
 
+- module-name: "pango"
+  implicit-imports:
+    - depends:
+        - "gobject"
+
+- module-name: "pangocairo"
+  implicit-imports:
+    - depends:
+        - "pango"
+        - "cairo"
+
 - module-name: "pendulum"
   data-files:
     empty_dir_structures:
@@ -799,6 +1066,11 @@
           def __init__(self, name):
             pass
 
+- module-name: "reportlab.rl_config"
+  implicit-imports:
+    - depends:
+        - "reportlab.rl_settings"
+
 - module-name: "scipy._lib._docscrape"
   anti-bloat:
     - description: "remove sphinx reference"
@@ -870,6 +1142,13 @@
   implicit-imports:
     - depends:
         - "argparse"
+
+- module-name: "sip"
+  implicit-imports:
+    - depends:
+        - "enum"
+
+      when: "before_python30"
 
 - module-name: "skimage"
   data-files:
