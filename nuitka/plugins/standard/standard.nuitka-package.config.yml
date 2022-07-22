@@ -378,13 +378,6 @@
         "postreleaser_before": "'(lambda data: None)'"
         "prereleaser_middle": "'(lambda data: None)'"
 
-- module-name: "gevent._util"
-  anti-bloat:
-    - description: "remove gevent release framework"
-      change_function:
-        "postreleaser_before": "'(lambda data: None)'"
-        "prereleaser_middle": "'(lambda data: None)'"
-
 - module-name: "gevent._waiter"
   implicit-imports:
     - depends:
