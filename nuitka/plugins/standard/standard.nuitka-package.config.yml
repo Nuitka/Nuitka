@@ -1002,6 +1002,29 @@
         "from ._common import SUNOS": "'SUNOS = %r' % psutil.SUNOS"
         "from ._common import WINDOWS": "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: "pydantic"
+  implicit-imports:
+    - depends:
+        - "pydantic.typing"
+        - "pydantic.fields"
+        - "pydantic.utils"
+        - "pydantic.schema"
+        - "pydantic.env_settings"
+        - "pydantic.main"
+        - "pydantic.error_wrappers"
+        - "pydantic.validators"
+        - "pydantic.mypy"
+        - "pydantic.version"
+        - "pydantic.types"
+        - "pydantic.color"
+        - "pydantic.parse"
+        - "pydantic.json"
+        - "pydantic.datetime_parse"
+        - "pydantic.dataclasses"
+        - "pydantic.class_validators"
+        - "pydantic.networks"
+        - "pydantic.errors"
+
 - module-name: "pydantic.typing"
   implicit-imports:
     - depends:
@@ -1804,11 +1827,50 @@
     dirs:
       - "zones"
 
+- module-name: "uvicorn"
+  implicit-imports:
+    - depends:
+        - "uvicorn.loops"
+        - "uvicorn.lifespan"
+        - "uvicorn.protocols"
+
 - module-name: "uvicorn.config"
   implicit-imports:
     - depends:
         - "websockets.legacy.server"
+        - "uvicorn.logging"
 
+- module-name: "uvicorn.lifespan"
+  implicit-imports:
+    - depends:
+        - "uvicorn.lifespan.off"
+        - "uvicorn.lifespan.on"
+
+- module-name: "uvicorn.loops"
+  implicit-imports:
+    - depends:
+        - "uvicorn.loops.auto"
+        - "uvicorn.loops.uvloop"
+
+- module-name: "uvicorn.protocols"
+  implicit-imports:
+    - depends:
+        - "uvicorn.protocols.http"
+        - "uvicorn.protocols.websockets"
+
+- module-name: "uvicorn.protocols.http"
+  implicit-imports:
+    - depends:
+        - "uvicorn.protocols.http.auto"
+        - "uvicorn.protocols.http.h11_impl"
+        - "uvicorn.protocols.http.httptools_impl"
+
+- module-name: "uvicorn.protocols.websockets"
+  implicit-imports:
+    - depends:
+        - "uvicorn.protocols.websockets.auto"
+        - "uvicorn.protocols.websockets.websockets_impl"
+        - "uvicorn.protocols.websockets.wsproto_impl"
 - module-name: "vosk"
   dlls:
     - from_filenames:
