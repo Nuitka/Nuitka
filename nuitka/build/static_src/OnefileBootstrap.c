@@ -120,7 +120,13 @@ static void fatalError(char const *message) {
 
 static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand temporary files."); }
 
+#if _NUITKA_ONEFILE_COMPRESSION == 1
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
+#endif
+
+static void fatalErrorFindAttachedData(void) { fatalError("Error, couldn't find attached data."); }
+
+static void fatalErrorReadAttachedData(void) { fatalError("Error, couldn't read attached data."); }
 
 static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
 
@@ -294,13 +300,13 @@ static void readChunk(void *buffer, size_t size) {
     BOOL bool_res = ReadFile(exe_file, buffer, (DWORD)size, &read_size, NULL);
 
     if (bool_res == false || read_size != size) {
-        fatalErrorAttachedData();
+        fatalErrorReadAttachedData();
     }
 #else
     size_t read_size = fread(buffer, 1, size, exe_file);
 
     if (read_size != size) {
-        fatalErrorAttachedData();
+        fatalErrorReadAttachedData();
     }
 
 #endif
@@ -923,12 +929,12 @@ int main(int argc, char **argv) {
         res = SetFilePointer(exe_file, cert_table_addr - 8, NULL, FILE_BEGIN);
     }
     if (res == INVALID_SET_FILE_POINTER) {
-        fatalErrorAttachedData();
+        fatalErrorFindAttachedData();
     }
 #else
     int res = fseek(exe_file, -8, SEEK_END);
     if (res != 0) {
-        fatalErrorAttachedData();
+        fatalErrorFindAttachedData();
     }
 #endif
     stream_end_pos = getPosition();
@@ -944,12 +950,12 @@ int main(int argc, char **argv) {
 #if defined(_WIN32)
     res = SetFilePointer(exe_file, (LONG)start_pos, NULL, FILE_BEGIN);
     if (res == INVALID_SET_FILE_POINTER) {
-        fatalErrorAttachedData();
+        fatalErrorFindAttachedData();
     }
 #else
     res = fseek(exe_file, start_pos, SEEK_SET);
     if (res != 0) {
-        fatalErrorAttachedData();
+        fatalErrorFindAttachedData();
     }
 #endif
 
@@ -957,18 +963,18 @@ int main(int argc, char **argv) {
     readChunk(&header, sizeof(header));
 
     if (header[0] != 'K' || header[1] != 'A') {
-        fatalErrorAttachedData();
+        fatalErrorFindAttachedData();
     }
 
 // The 'X' stands for no compression, 'Y' is compressed, handle that.
 #if _NUITKA_ONEFILE_COMPRESSION == 1
     if (header[2] != 'Y') {
-        fatalErrorAttachedData();
+        fatalErrorFindAttachedData();
     }
     initZSTD();
 #else
     if (header[2] != 'X') {
-        fatalErrorAttachedData();
+        fatalErrorFindAttachedData();
     }
 #endif
 
@@ -1076,7 +1082,7 @@ int main(int argc, char **argv) {
         }
 
         if (file_size != 0) {
-            fatalErrorAttachedData();
+            fatalErrorReadAttachedData();
         }
 
         if (needs_write) {
