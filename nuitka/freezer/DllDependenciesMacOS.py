@@ -49,8 +49,11 @@ def detectBinaryPathDLLsMacOS(
     if _detected_python_rpath is None:
         if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
             _detected_python_rpath = os.path.normpath(
-                os.path.join(os.environ["CONDA_PYTHON_EXE"], "..", "..", "lib")
+                os.path.join(
+                    os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib"
+                )
             )
+
             if not os.path.isdir(_detected_python_rpath):
                 _detected_python_rpath = False
         else:
