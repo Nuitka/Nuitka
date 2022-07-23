@@ -22,6 +22,7 @@
 from nuitka import Options
 from nuitka.__past__ import long
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Utils import isWin32Windows
 
 # spell-checker: ignore fromlist
 
@@ -181,5 +182,8 @@ def getConstantDefaultPopulation():
 
         if Options.is_debug:
             result.append("__args__")
+
+    if isWin32Windows():
+        result.append("fileno")
 
     return result
