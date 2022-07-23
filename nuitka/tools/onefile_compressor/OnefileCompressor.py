@@ -78,7 +78,14 @@ def _openBinaryFileForAppending(onefile_output_filename):
     for attempt in range(1, max_attempts + 1):
         try:
             with open(onefile_output_filename, "ab") as output_file:
+                if attempt != 1:
+                    onefile_logger.warning(
+                        "Succeeded to open binary for payload attachment in attempt %d."
+                        % attempt
+                    )
+
                 yield output_file
+
                 return
         except OSError as e:
             # Only for Windows at this time, other platforms don't have the issue.
@@ -87,14 +94,14 @@ def _openBinaryFileForAppending(onefile_output_filename):
 
             if e.errno in (110, 13):
                 onefile_logger.warning(
-                    """
+                    """\
 Failed to open binary for payload attachment in attempt %d.
 Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
                     % attempt
                 )
             else:
                 onefile_logger.warning(
-                    """
+                    """\
 Failed to open binary for payload attachment in attempt %d with error code %d.
 Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a second of delay."""
                     % (attempt, e.errno)
@@ -102,13 +109,6 @@ Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a se
 
             time.sleep(1)
             continue
-        else:
-            if attempt != 1:
-                onefile_logger.warning(
-                    "Succeeded to open binary for payload attachment in attempt %d."
-                    % attempt
-                )
-            break
 
 
 def attachOnefilePayload(

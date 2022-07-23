@@ -151,6 +151,11 @@ def runOnefileCompressor(
 
         mapping["NUITKA_PROGRESS_BAR"] = "1" if Options.shallUseProgressBar() else "0"
 
+        onefile_logger.info(
+            "Using external Python '%s' to compress the payload."
+            % compressor_python.getPythonExe()
+        )
+
         with withEnvironmentVarsOverridden(mapping):
             subprocess.check_call(
                 [
