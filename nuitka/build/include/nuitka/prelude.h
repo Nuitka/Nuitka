@@ -434,7 +434,7 @@ extern PyObject **global_constants;
 #define const_str_plain_close global_constants[30]
 // 'throw'
 #define const_str_plain_throw global_constants[30]
-// 'throw'
+// 'send'
 #define const_str_plain_send global_constants[30]
 // 'sum'
 #define const_str_plain_sum global_constants[31]
@@ -514,6 +514,8 @@ extern PyObject **global_constants;
 #define const_str_plain___match_args__ global_constants[67]
 // '__args__'
 #define const_str_plain___args__ global_constants[67]
+// 'fileno'
+#define const_str_plain_fileno global_constants[67]
 
 #define _NUITKA_CONSTANTS_SIZE 27
 #define _NUITKA_CONSTANTS_HASH 0x27272727
