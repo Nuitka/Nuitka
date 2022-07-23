@@ -633,6 +633,32 @@ static PyObject *getExpandedTemplatePath(char const *template) {
 #endif
 #endif
 
+#ifdef _WIN32
+static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
+    PyObject *file_no_value = CALL_METHOD_NO_ARGS(file_handle, const_str_plain_fileno);
+
+    if (unlikely(file_no_value == NULL)) {
+        DROP_ERROR_OCCURRED();
+        return;
+    }
+
+    long file_number = PyLong_AsLong(file_no_value);
+
+    Py_DECREF(file_no_value);
+
+    if (unlikely(file_number == -1 && ERROR_OCCURRED())) {
+        DROP_ERROR_OCCURRED();
+        return;
+    }
+
+    // Casting from long to handle gives warnings if not using a suitable
+    // sized integer type in between.
+    if (std_handle_id != STD_INPUT_HANDLE) {
+        SetStdHandle(std_handle_id, (HANDLE)(intptr_t)file_number);
+    }
+}
+#endif
+
 static void setInputOutputHandles(void) {
     /* At least on Windows, we support disabling the console via linker flag, but now
        need to provide the NUL standard file handles manually in this case. */
@@ -653,6 +679,10 @@ static void setInputOutputHandles(void) {
 
             CHECK_OBJECT(stdin_file);
             Nuitka_SysSetObject("stdin", stdin_file);
+
+#ifdef _WIN32
+            setStdFileHandleNumber(STD_INPUT_HANDLE, stdin_file);
+#endif
         }
 
         PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
@@ -661,6 +691,10 @@ static void setInputOutputHandles(void) {
 
             CHECK_OBJECT(stdout_file);
             Nuitka_SysSetObject("stdout", stdout_file);
+
+#ifdef _WIN32
+            setStdFileHandleNumber(STD_OUTPUT_HANDLE, stdout_file);
+#endif
         }
 
         PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
@@ -670,6 +704,10 @@ static void setInputOutputHandles(void) {
             CHECK_OBJECT(stderr_file);
 
             Nuitka_SysSetObject("stderr", stderr_file);
+
+#ifdef _WIN32
+            setStdFileHandleNumber(STD_ERROR_HANDLE, stderr_file);
+#endif
         }
 
         Py_DECREF(nul_filename);
@@ -689,6 +727,10 @@ static void setInputOutputHandles(void) {
         }
 
         Nuitka_SysSetObject("stdout", stdout_file);
+
+#ifdef _WIN32
+        setStdFileHandleNumber(STD_OUTPUT_HANDLE, stdout_file);
+#endif
     }
 #endif
 
@@ -699,13 +741,17 @@ static void setInputOutputHandles(void) {
 #else
         PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
 #endif
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", false, encoding);
         if (unlikely(stderr_file == NULL)) {
             PyErr_PrintEx(1);
             Py_Exit(1);
         }
 
         Nuitka_SysSetObject("stderr", stderr_file);
+
+#ifdef _WIN32
+        setStdFileHandleNumber(STD_ERROR_HANDLE, stderr_file);
+#endif
     }
 #endif
 
