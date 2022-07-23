@@ -713,6 +713,17 @@ compiler, and not MinGW64. The MSVC is a cross compiler, and can use
 more memory than gcc on that platform. If you are not on Windows, that
 is not an option of course. Also using the 64 bits Python will work.
 
+Use a minimal virtualenv
+------------------------
+
+When you compile from a living installation, that may well have many
+optional dependencies of your software installed. Some software, will
+then have imports on these, and Nuitka will compile them as well. Not
+only may these be just the trouble makers, they also require more
+memory, so get rid of that. Of course you do have to check that your
+program has all needed dependencies before you attempt to compile, or
+else the compiled program will equally not run.
+
 Use LTO compilation or not
 --------------------------
 
