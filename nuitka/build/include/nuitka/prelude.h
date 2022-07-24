@@ -106,7 +106,7 @@ extern _PyRuntimeState _PyRuntime;
 // TODO: Might be useful too, allows access to Python configuration.
 // #include <internal/pycore_initconfig.h>
 
-#ifndef _NUITKA_EXPERIMENTAL_NOGIL
+#ifndef PY_NOGIL
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))

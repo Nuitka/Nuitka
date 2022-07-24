@@ -1488,7 +1488,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
         }
 #else
         /* Python 3 */
-#ifndef _NUITKA_EXPERIMENTAL_NOGIL
+#ifndef PY_NOGIL
         if (_PyDict_HasSplitTable((PyDictObject *)kw)) {
             PyDictObject *mp = (PyDictObject *)kw;
 
