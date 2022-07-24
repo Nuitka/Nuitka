@@ -1591,21 +1591,104 @@
     - depends:
         - ".python.keras"
 
+- module-name: "sklearn.cluster"
+  implicit-imports:
+    - depends:
+        - "sklearn.cluster._dbscan_inner"
+        - "sklearn.cluster._hierarchical"
+        - "sklearn.cluster._k_means"
+        - "sklearn.cluster._k_means_elkan"
+
 - module-name: "sklearn.datasets"
   data-files:
     dirs:
       - "data"
       - "descr"
 
+  implicit-imports:
+    - depends:
+        - "sklearn.datasets._svmlight_format"
+
+- module-name: "sklearn.decomposition"
+  implicit-imports:
+    - depends:
+        - "sklearn.decomposition.cdnmf_fast"
+        - "sklearn.decomposition._online_lda"
+
+- module-name: "sklearn.ensemble"
+  implicit-imports:
+    - depends:
+        - "sklearn.ensemble._gradient_boosting"
+
+- module-name: "sklearn.ensemble._hist_gradient_boosting"
+  implicit-imports:
+    - depends:
+        - "sklearn.ensemble._hist_gradient_boosting.histogram"
+        - "sklearn.ensemble._hist_gradient_boosting.splitting"
+        - "sklearn.ensemble._hist_gradient_boosting.types"
+        - "sklearn.ensemble._hist_gradient_boosting.utils"
+        - "sklearn.ensemble._hist_gradient_boosting._binning"
+        - "sklearn.ensemble._hist_gradient_boosting._gradient_boosting"
+        - "sklearn.ensemble._hist_gradient_boosting._loss"
+        - "sklearn.ensemble._hist_gradient_boosting._predictor"
+
+- module-name: "sklearn.externals"
+  implicit-imports:
+    - depends:
+        - "sklearn.externals.joblib"
+
+- module-name: "sklearn.externals.joblib"
+  implicit-imports:
+    - depends:
+        - "sklearn.externals.joblib.numpy_pickle"
+
+- module-name: "sklearn.feature_extraction"
+  implicit-imports:
+    - depends:
+        - "sklearn.feature_extraction._hashing"
+
+- module-name: "sklearn.linear_model"
+  implicit-imports:
+    - depends:
+        - "sklearn.linear_model.cd_fast"
+        - "sklearn.linear_model.sag_fast"
+        - "sklearn.linear_model.sgd_fast"
+
 - module-name: "sklearn.linear_model._sgd_fast"
   implicit-imports:
     - depends:
         - "sklearn.utils._weight_vector"
 
+- module-name: "sklearn.manifold"
+  implicit-imports:
+    - depends:
+        - "sklearn.manifold._barnes_hut_tsne"
+        - "sklearn.manifold._utils"
+
+
+- module-name: "sklearn.metrics"
+  implicit-imports:
+    - depends:
+        - "sklearn.metrics.pairwise_fast"
+
 - module-name: "sklearn.metrics._dist_metrics"
   implicit-imports:
     - depends:
         - "sklearn.utils._typedefs"
+
+- module-name: "sklearn.metrics.cluster"
+  implicit-imports:
+    - depends:
+        - "sklearn.metrics.cluster.expected_mutual_info_fast"
+
+- module-name: "sklearn.neighbors"
+  implicit-imports:
+    - depends:
+        - "sklearn.neighbors.ball_tree"
+        - "sklearn.neighbors.dist_metrics"
+        - "sklearn.neighbors.kd_tree"
+        - "sklearn.neighbors.quad_tree"
+        - "sklearn.neighbors.typedefs"
 
 - module-name: "sklearn.neighbors._ball_tree"
   implicit-imports:
@@ -1617,16 +1700,66 @@
     - depends:
         - "sklearn.neighbors._typedefs"
 
+- module-name: "sklearn.preprocessing"
+  implicit-imports:
+    - depends:
+        - "sklearn.preprocessing._csr_polynomial_expansion"
+
 - module-name: "sklearn.random_projection"
   anti-bloat:
     - description: "remove numpy testing framework"
       replacements:
         "from numpy.testing import assert_equal": "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
 
+- module-name: "sklearn.svm"
+  implicit-imports:
+    - depends:
+        - "sklearn.svm.liblinear"
+        - "sklearn.svm.libsvm"
+        - "sklearn.svm.libsvm_sparse"
+
+
+- module-name: "sklearn.tree"
+  implicit-imports:
+    - depends:
+        - "sklearn.tree._criterion"
+        - "sklearn.tree._splitter"
+        - "sklearn.tree._tree"
+        - "sklearn.tree._utils"
+
 - module-name: "sklearn.tree._tree"
   implicit-imports:
     - depends:
         - "sklearn.neighbors._quad_tree"
+
+- module-name: "sklearn.utils"
+  implicit-imports:
+    - depends:
+        - "sklearn.utils.arrayfuncs"
+        - "sklearn.utils.fast_dict"
+        - "sklearn.utils.graph_shortest_path"
+        - "sklearn.utils.lgamma"
+        - "sklearn.utils.murmurhash"
+        - "sklearn.utils.seq_dataset"
+        - "sklearn.utils.sparsefuncs_fast"
+        - "sklearn.utils.weight_vector"
+        - "sklearn.utils._cython_blas"
+        - "sklearn.utils._logistic_sigmoid"
+        - "sklearn.utils._weight_vector"
+        - "sklearn.utils._typedefs"
+        - "sklearn.utils._heap"
+        - "sklearn.utils._sorting"
+        - "sklearn.utils._vector_sentinel"
+        - "sklearn.utils._seq_dataset"
+        - "sklearn.utils._readonly_array_wrapper"
+        - "sklearn.utils._openmp_helpers"
+        - "sklearn.utils._fast_dict"
+        - "sklearn.utils._random"
+
+- module-name: "sklearn.utils._hough_transform"
+  implicit-imports:
+    - depends:
+        - "skimage.draw"
 
 - module-name: "sklearn.utils._testing"
   anti-bloat:
@@ -1640,6 +1773,12 @@
         "import pytest": "raise ImportError"
         "import unittest": ""
         "unittest.case.SkipTest": "None"
+
+- module-name: "sklearn.utils.sparsetools"
+  implicit-imports:
+    - depends:
+        - "sklearn.utils.sparsetools._graph_validation"
+        - "sklearn.utils.sparsetools._graph_tools"
 
 - module-name: "sound_lib"
   data-files:
