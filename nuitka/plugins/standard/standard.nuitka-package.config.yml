@@ -1437,7 +1437,6 @@
     dirs:
       - "data"
 
-- module-name: "pywt"
   implicit-imports:
     - depends:
         - "pywt._extensions"
