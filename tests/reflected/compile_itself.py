@@ -59,6 +59,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.Version import getCommercialVersion
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -66,7 +67,7 @@ tmp_dir = getTempDir()
 
 # Cannot detect this more automatic, so we need to list them, avoiding
 # the ones not needed.
-PACKAGE_LIST = (
+PACKAGE_LIST = [
     "nuitka",
     "nuitka/nodes",
     "nuitka/specs",
@@ -87,7 +88,10 @@ PACKAGE_LIST = (
     "nuitka/constants",
     "nuitka/containers",
     "nuitka/utils",
-)
+]
+
+if not getCommercialVersion():
+    PACKAGE_LIST.remove("nuitka/plugins/commercial")
 
 exe_suffix = ".exe" if os.name == "nt" else ".bin"
 
