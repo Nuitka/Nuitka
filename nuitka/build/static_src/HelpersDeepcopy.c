@@ -88,7 +88,7 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
     return result;
 #else
     /* Python 3 */
-#ifndef _NUITKA_EXPERIMENTAL_NOGIL
+#ifndef PY_NOGIL
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 

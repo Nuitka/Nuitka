@@ -179,7 +179,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
 
     if (value == NULL) {
         return NULL;
-#ifndef _NUITKA_EXPERIMENTAL_NOGIL
+#ifndef PY_NOGIL
     } else if (_PyDict_HasSplitTable(dict)) {
         return &dict->ma_values[ix];
 #endif
