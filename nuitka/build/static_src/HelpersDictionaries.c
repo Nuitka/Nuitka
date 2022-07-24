@@ -929,7 +929,7 @@ PyObject *DICT_COPY(PyObject *value) {
     return result;
 #else
     /* Python 3 */
-#ifndef _NUITKA_EXPERIMENTAL_NOGIL
+#ifndef PY_NOGIL
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
@@ -1032,7 +1032,7 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
     Py_ssize_t i = *pos;
     assert(i >= 0);
 
-#ifndef _NUITKA_EXPERIMENTAL_NOGIL
+#ifndef PY_NOGIL
     if (mp->ma_values) {
         if (i >= mp->ma_used) {
             return false;
