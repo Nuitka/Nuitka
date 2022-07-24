@@ -1187,6 +1187,8 @@ def activatePlugins():
     Returns:
         None
     """
+    # Many cases, often with UI related decisions, pylint: disable=too-many-branches
+
     loadPlugins()
 
     # ensure plugin is known and not both, enabled and disabled
@@ -1213,6 +1215,10 @@ def activatePlugins():
 
             if plugin_class.isRelevant():
                 _addActivePlugin(plugin_class, args=True)
+            elif plugin_class.isDeprecated():
+                plugin_class.warning(
+                    "This plugin has been deprecated, do not enable it anymore."
+                )
             else:
                 plugin_class.warning(
                     "Not relevant with this OS, or Nuitka arguments given, not activated."

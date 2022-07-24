@@ -15,26 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Details see below in class definition.
+""" Deprecated tensorflow plugin.
 """
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
 class NuitkaPluginTensorflow(NuitkaPluginBase):
-    """This class represents the main logic of the plugin.
-
-    This was a plugin to ensure tensorflow scripts compile and work well in
-    standalone mode.
-    """
+    """This plugin is now not doing anything anymore."""
 
     plugin_name = "tensorflow"
     plugin_desc = "Deprecated, was once required by the tensorflow package"
 
     @classmethod
-    def isRelevant(cls):
-        """This method is called one time only to check, whether the plugin might make sense at all.
-
-        Returns:
-            True if this is a standalone compilation.
-        """
-        return False
+    def isDeprecated(cls):
+        return True
