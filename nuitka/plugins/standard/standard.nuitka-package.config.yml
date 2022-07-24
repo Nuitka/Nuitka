@@ -1041,6 +1041,55 @@
     - depends:
         - ".region_*"
 
+- module-name: "PIL.Image"
+  implicit-imports:
+    - depends:
+        - "PIL.BlpImagePlugin"
+        - "PIL.BmpImagePlugin"
+        - "PIL.BufrStubImagePlugin"
+        - "PIL.CurImagePlugin"
+        - "PIL.DcxImagePlugin"
+        - "PIL.DdsImagePlugin"
+        - "PIL.EpsImagePlugin"
+        - "PIL.FitsStubImagePlugin"
+        - "PIL.FliImagePlugin"
+        - "PIL.FpxImagePlugin"
+        - "PIL.FtexImagePlugin"
+        - "PIL.GbrImagePlugin"
+        - "PIL.GifImagePlugin"
+        - "PIL.GribStubImagePlugin"
+        - "PIL.Hdf5StubImagePlugin"
+        - "PIL.IcnsImagePlugin"
+        - "PIL.IcoImagePlugin"
+        - "PIL.ImImagePlugin"
+        - "PIL.ImtImagePlugin"
+        - "PIL.IptcImagePlugin"
+        - "PIL.Jpeg2KImagePlugin"
+        - "PIL.JpegImagePlugin"
+        - "PIL.McIdasImagePlugin"
+        - "PIL.MicImagePlugin"
+        - "PIL.MpegImagePlugin"
+        - "PIL.MpoImagePlugin"
+        - "PIL.MspImagePlugin"
+        - "PIL.PalmImagePlugin"
+        - "PIL.PcdImagePlugin"
+        - "PIL.PcxImagePlugin"
+        - "PIL.PdfImagePlugin"
+        - "PIL.PixarImagePlugin"
+        - "PIL.PngImagePlugin"
+        - "PIL.PpmImagePlugin"
+        - "PIL.PsdImagePlugin"
+        - "PIL.SgiImagePlugin"
+        - "PIL.SpiderImagePlugin"
+        - "PIL.SunImagePlugin"
+        - "PIL.TgaImagePlugin"
+        - "PIL.TiffImagePlugin"
+        - "PIL.WebPImagePlugin"
+        - "PIL.WmfImagePlugin"
+        - "PIL.XbmImagePlugin"
+        - "PIL.XpmImagePlugin"
+        - "PIL.XVThumbImagePlugin"
+
 - module-name: "PIL.ImageShow"
   anti-bloat:
     - description: "remove IPython reference"
@@ -1243,6 +1292,23 @@
           def __init__(self, name):
             pass
 
+- module-name: "rapidfuzz"
+  implicit-imports:
+    - depends:
+        - "rapidfuzz.utils_cpp"
+        - "rapidfuzz.fuzz_cpp"
+        - "rapidfuzz.process_cdist_cpp"
+        - "rapidfuzz.process_cpp"
+        - "rapidfuzz.string_metric_cpp"
+
+- module-name: "rapidfuzz.distance"
+  implicit-imports:
+    - depends:
+        - "rapidfuzz.distance._initialize_cpp"
+        - "rapidfuzz.distance.Hamming_cpp"
+        - "rapidfuzz.distance.Indel_cpp"
+        - "rapidfuzz.distance.LCSseq_cpp"
+        - "rapidfuzz.distance.Levenshtein_cp"
 - module-name: "reportlab.rl_config"
   implicit-imports:
     - depends:
@@ -1370,6 +1436,13 @@
     patterns:
       - "io/_plugins/fits_plugin*.ini"
 
+- module-name: "skimage._shared"
+  implicit-imports:
+    - depends:
+        - "skimage._shared.geometry"
+        - "skimage._shared.interpolation"
+        - "skimage._shared.transform"
+
 - module-name: "skimage._shared.tester"
   anti-bloat:
     - description: "remove skimage testing framework"
@@ -1378,10 +1451,128 @@
           def __init__(self, name):
             pass
 
+- module-name: "skimage.draw"
+  implicit-imports:
+    - depends:
+        - "skimage.draw._draw"
+
+- module-name: "skimage.external.tifffile"
+  implicit-imports:
+    - depends:
+        - "skimage.external.tifffile._tifffile"
+
+- module-name: "skimage.feature"
+  implicit-imports:
+    - depends:
+        - "skimage.feature.brief_cy"
+        - "skimage.feature.censure_cy"
+        - "skimage.feature.corner_cy"
+        - "skimage.feature.orb_cy"
+        - "skimage.feature._cascade"
+        - "skimage.feature._haar"
+        - "skimage.feature._hessian_det_appx"
+        - "skimage.feature._hoghistogram"
+        - "skimage.feature._texture"
+
 - module-name: "skimage.feature._orb_descriptor_positions"
   data-files:
     patterns:
       - "orb_descriptor_positions.txt"
+
+- module-name: "skimage.feature.orb_cy"
+  implicit-imports:
+    - depends:
+        - "skimage.feature._orb_descriptor_positions"
+
+- module-name: "skimage.filters.rank"
+  implicit-imports:
+    - depends:
+        - "skimage.filters.rank.bilateral_cy"
+        - "skimage.filters.rank.core_cy"
+        - "skimage.filters.rank.core_cy_3d"
+        - "skimage.filters.rank.generic_cy"
+        - "skimage.filters.rank.percentile_cy"
+
+- module-name: "skimage.future.graph"
+  implicit-imports:
+    - depends:
+        - "skimage.future.graph._ncut_cy"
+
+- module-name: "skimage.graph"
+  implicit-imports:
+    - depends:
+        - "skimage.graph.heap"
+        - "skimage.graph._mcp"
+        - "skimage.graph._spath"
+
+- module-name: "skimage.io"
+  implicit-imports:
+    - depends:
+        - "skimage.io._plugins"
+
+- module-name: "skimage.io_plugins"
+  implicit-imports:
+    - depends:
+        - "skimage.io._plugins._colormixer"
+        - "skimage.io._plugins._histograms"
+        - "skimage.io._plugins.fits_plugin"
+        - "skimage.io._plugins.gdal_plugin"
+        - "skimage.io._plugins.gtk_plugin"
+        - "skimage.io._plugins.imageio_plugin"
+        - "skimage.io._plugins.imread_plugin"
+        - "skimage.io._plugins.matplotlib_plugin"
+        - "skimage.io._plugins.pil_plugin"
+        - "skimage.io._plugins.qt_plugin"
+        - "skimage.io._plugins.simpleitk_plugin"
+        - "skimage.io._plugins.skivi_plugin"
+        - "skimage.io._plugins.tifffile_plugin"
+        - "skimage.io._plugins.util"
+
+
+- module-name: "skimage.measure"
+  implicit-imports:
+    - depends:
+        - "skimage.measure._ccomp"
+        - "skimage.measure._find_contours_cy"
+        - "skimage.measure._marching_cubes_classic_cy"
+        - "skimage.measure._marching_cubes_lewiner_cy"
+        - "skimage.measure._moments_cy"
+        - "skimage.measure._pnpoly"
+
+- module-name: "skimage.morphology"
+  implicit-imports:
+    - depends:
+        - "skimage.morphology._convex_hull"
+        - "skimage.morphology._extrema_cy"
+        - "skimage.morphology._flood_fill_cy"
+        - "skimage.morphology._greyreconstruct"
+        - "skimage.morphology._max_tree"
+        - "skimage.morphology._skeletonize_3d_cy"
+        - "skimage.morphology._skeletonize_cy"
+        - "skimage.morphology._watershed"
+
+- module-name: "skimage.restoration"
+  implicit-imports:
+    - depends:
+        - "skimage.restoration._denoise_cy"
+        - "skimage.restoration._nl_means_denoising"
+        - "skimage.restoration._unwrap_1d"
+        - "skimage.restoration._unwrap_2d"
+        - "skimage.restoration._unwrap_3d"
+
+- module-name: "skimage.segmentation"
+  implicit-imports:
+    - depends:
+        - "skimage.segmentation._felzenszwalb_cy"
+        - "skimage.segmentation._quickshift_cy"
+        - "skimage.segmentation._slic"
+
+- module-name: "skimage.transform"
+  implicit-imports:
+    - depends:
+        - "skimage.transform._hough_transform"
+        - "skimage.transform._radon_transform"
+        - "skimage.transform._warps_cy"
 
 - module-name: "sklearn._distributor_init"
   dlls:
