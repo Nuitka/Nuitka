@@ -13,6 +13,11 @@
     - depends:
         - "_mysql_exceptions"
 
+- module-name: "_pytest._code.code"
+  implicit-imports:
+    - depends:
+        - "py._path.local"
+
 - module-name: "_ruamel_yaml"
   implicit-imports:
     - depends:
@@ -169,6 +174,10 @@
     empty_dirs:
       - "."
 
+- module-name: "curses"
+  implicit-imports:
+    - depends:
+        - "_curses"
 - module-name: "cv2"
   anti-bloat:
     - description: "workaround for colliding native module import"
@@ -192,6 +201,16 @@
         - "numpy"
         - "numpy.core"
 
+
+- module-name: "cytoolz.functoolz"
+  implicit-imports:
+    - depends:
+        - "cytoolz._signatures"
+
+- module-name: "cytoolz.itertoolz"
+  implicit-imports:
+    - depends:
+        - "cytoolz.utils"
 
 - module-name: "dask"
   data-files:
@@ -245,6 +264,11 @@
         - "engineio.async_drivers.sanic"
         - "engineio.async_drivers.threading"
         - "engineio.async_drivers.tornado"
+- module-name: "exchangelib"
+  implicit-imports:
+    - depends:
+        - "tzdata"
+
 - module-name: "falcon.app"
   implicit-imports:
     - depends:
@@ -502,6 +526,26 @@
         "run_tests": "'(lambda args=None: None)'"
       description: "remove h5py testing framework and interactive IPython completer"
 
+- module-name: "h5py.h5"
+  implicit-imports:
+    - depends:
+        - "h5py.defs"
+
+- module-name: "h5py.h5a"
+  implicit-imports:
+    - depends:
+        - "h5py._proxy"
+
+- module-name: "h5py.h5p"
+  implicit-imports:
+    - depends:
+        - "h5py.h5ac"
+
+- module-name: "h5py.h5s"
+  implicit-imports:
+    - depends:
+        - "h5py.utils"
+
 - module-name: "importlib_resources"
   data-files:
     patterns:
@@ -532,6 +576,28 @@
   data-files:
     dirs:
       - "data"
+
+- module-name: "kivy._clock"
+  implicit-imports:
+    - depends:
+        - "kivy.weakmethod"
+
+- module-name: "kivy.graphics.compiler"
+  implicit-imports:
+    - depends:
+        - "kivy.graphics.shader"
+
+- module-name: "kivy.graphics.instructions"
+  implicit-imports:
+    - depends:
+        - "kivy.graphics.buffer"
+        - "kivy.graphics.vertex"
+        - "kivy.graphics.vbo"
+
+- module-name: "kivy.graphics.vbo"
+  implicit-imports:
+    - depends:
+        - "kivy.graphics.compiler"
 
 - module-name: "kivymd"
   data-files:
@@ -674,6 +740,12 @@
         "install_repl_displayhook": "'(lambda: None)'"
         "uninstall_repl_displayhook": "'(lambda: None)'"
       when: "not use_ipython"
+
+- module-name: "mercurial.encoding"
+  implicit-imports:
+    - depends:
+        - "mercurial.charencode"
+        - "mercurial.cext.parsers"
 
 - module-name: "mmcv.utils"
   anti-bloat:
@@ -1319,6 +1391,18 @@
     dirs:
       - "colors"
       - "icons"
+- module-name: "pyreadstat._readstat_parser"
+  implicit-imports:
+    - depends:
+        - "pandas"
+
+- module-name: "pyreadstat.pyreadstat"
+  implicit-imports:
+    - depends:
+        - "pyreadstat._readstat_writer"
+        - "pyreadstat.worker"
+        - "multiprocessing"
+
 - module-name: "PySide2"
   options:
     checks:
