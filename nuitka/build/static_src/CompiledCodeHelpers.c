@@ -1567,6 +1567,49 @@ NUITKA_MAY_BE_UNUSED static void stripFilenameW(wchar_t *path) {
 
 #if defined(_NUITKA_EXE)
 
+#ifdef _WIN32
+void resolveFileSymbolicLinksW(wchar_t *filename, wchar_t *resolved_filename, size_t resolved_filename_size) {
+    // Resolve any symbolic links in the filename.
+    // Copies the resolved path over the top of the parameter.
+    HANDLE file_handle;
+    DWORD len;
+
+    // Open the file in the most non-exclusive way possible
+    file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+                              FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (unlikely(file_handle == INVALID_HANDLE_VALUE)) {
+        abort();
+    }
+
+    // Resolve the path, get the result with a drive letter
+    len = GetFinalPathNameByHandleW(file_handle, resolved_filename, resolved_filename_size,
+                                    FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+
+    CloseHandle(file_handle);
+
+    if (unlikely(len >= resolved_filename_size)) {
+        abort();
+    }
+}
+
+#else  // ifndef _WIN32
+
+void resolveFileSymbolicLinks(char *filename, char *resolved_filename, size_t resolved_filename_size) {
+    char *result;
+
+    if (resolved_filename_size < PATH_MAX) {
+        abort();
+    }
+
+    result = realpath(filename, resolved_filename);
+
+    if (result == NULL) {
+        abort();
+    }
+}
+#endif // _WIN32
+
 #ifndef _WIN32
 char const *getBinaryDirectoryHostEncoded(void) {
     static char binary_directory[MAXPATHLEN + 1];
@@ -1576,13 +1619,18 @@ char const *getBinaryDirectoryHostEncoded(void) {
         return binary_directory;
     }
 
+    char binary_filename[MAXPATHLEN + 1];
+
 #if defined(__APPLE__)
-    uint32_t bufsize = sizeof(binary_directory);
-    int res = _NSGetExecutablePath(binary_directory, &bufsize);
+    uint32_t bufsize = sizeof(binary_filename);
+    int res = _NSGetExecutablePath(binary_filename, &bufsize);
 
     if (unlikely(res != 0)) {
         abort();
     }
+
+    // Resolve any symlinks we were invoked via
+    resolveFileSymbolicLinks(binary_filename, binary_directory, sizeof(binary_directory));
 
     // On macOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
@@ -1597,12 +1645,15 @@ char const *getBinaryDirectoryHostEncoded(void) {
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-    size_t cb = sizeof(binary_directory);
-    int res = sysctl(mib, 4, binary_directory, &cb, NULL, 0);
+    size_t cb = sizeof(binary_filename);
+    int res = sysctl(mib, 4, binary_filename, &cb, NULL, 0);
 
     if (unlikely(res != 0)) {
         abort();
     }
+
+    // Resolve any symlinks we were invoked via
+    resolveFileSymbolicLinks(binary_filename, binary_directory, sizeof(binary_directory));
 
     /* We want the directory name, the above gives the full executable name. */
     copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
@@ -1611,12 +1662,15 @@ char const *getBinaryDirectoryHostEncoded(void) {
 
     /* The "readlink" call does not terminate result, so fill zeros there, then
      * it is a proper C string right away. */
-    memset(binary_directory, 0, sizeof(binary_directory));
-    ssize_t res = readlink("/proc/self/exe", binary_directory, sizeof(binary_directory) - 1);
+    memset(binary_filename, 0, sizeof(binary_filename));
+    ssize_t res = readlink("/proc/self/exe", binary_filename, sizeof(binary_filename) - 1);
 
     if (unlikely(res == -1)) {
         abort();
     }
+
+    // Resolve any symlinks we were invoked via
+    resolveFileSymbolicLinks(binary_filename, binary_directory, sizeof(binary_directory));
 
     copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
 #endif
@@ -1633,8 +1687,11 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
         binary_directory[0] = 0;
 
 #if defined(_WIN32)
-        DWORD res = GetModuleFileNameW(NULL, binary_directory, sizeof(binary_directory));
+        wchar_t binary_filename[MAXPATHLEN + 1];
+        DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename));
         assert(res != 0);
+
+        resolveFileSymbolicLinksW(binary_filename, binary_directory, sizeof(binary_directory));
 
         stripFilenameW(binary_directory);
 
