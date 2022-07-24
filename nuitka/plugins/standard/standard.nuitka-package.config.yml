@@ -1044,6 +1044,11 @@
         - "pango"
         - "cairo"
 
+- module-name: "passlib.hash"
+  implicit-imports:
+    - depends:
+        - "passlib.handlers.sha2_crypt"
+
 - module-name: "pendulum"
   data-files:
     empty_dir_structures:
@@ -1217,6 +1222,12 @@
         "from ._common import SUNOS": "'SUNOS = %r' % psutil.SUNOS"
         "from ._common import WINDOWS": "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: "pycparser.c_parser"
+  implicit-imports:
+    - depends:
+        - "pycparser.yacctab"
+        - "pycparser.lextab"
+
 - module-name: "pydantic"
   implicit-imports:
     - depends:
@@ -1244,6 +1255,28 @@
   implicit-imports:
     - depends:
         - "typing_extensions"
+
+- module-name: "pyglet"
+  implicit-imports:
+    - depends:
+        - "pyglet.app"
+        - "pyglet.canvas"
+        - "pyglet.clock"
+        - "pyglet.com"
+        - "pyglet.event"
+        - "pyglet.font"
+        - "pyglet.gl"
+        - "pyglet.graphics"
+        - "pyglet.input"
+        - "pyglet.image"
+        - "pyglet.lib"
+        - "pyglet.media"
+        - "pyglet.model"
+        - "pyglet.resource"
+        - "pyglet.sprite"
+        - "pyglet.shapes"
+        - "pyglet.text"
+        - "pyglet.window"
 
 - module-name: "pygsheets"
   data-files:
