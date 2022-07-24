@@ -288,6 +288,17 @@
         "def goahead(self, i):": "'def goahead(self, end):'"
         "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
 
+- module-name: "fitz.fitz"
+  implicit-imports:
+    - depends:
+        - "fitz._fitz"
+- module-name: "flask.app"
+  implicit-imports:
+    - depends:
+        - "jinja2.ext"
+        - "jinja2.ext.autoescape"
+        - "jinja2.ext.with_"
+
 - module-name: "frozendict"
   data-files:
     patterns:
@@ -883,6 +894,18 @@
         "import pandas.testing": ""
         "from pandas import api, arrays, errors, io, plotting, testing": "from pandas import api, arrays, errors, io, plotting"
 
+- module-name: "pandas._libs"
+  implicit-imports:
+    - depends:
+        - "pandas._libs.tslibs.np_datetime"
+        - "pandas._libs.tslibs.nattype"
+        - "pandas._libs.tslibs.base"
+
+- module-name: "pandas._libs.testing"
+  implicit-imports:
+    - depends:
+        - "cmath"
+
 - module-name: "pandas._libs.tslibs.fields"
   implicit-imports:
     - depends:
@@ -963,6 +986,12 @@
       replacements:
         'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': "'True'"
         "from distutils.version import LooseVersion": "''"
+
+- module-name: "pandas.core.window"
+  implicit-imports:
+    - depends:
+        - "pandas._libs.window"
+        - "pandas._libs.skiplist"
 
 - module-name: "pandas.io.excel._base"
   anti-bloat:
@@ -2509,6 +2538,11 @@
         - "uvicorn.protocols.websockets.auto"
         - "uvicorn.protocols.websockets.websockets_impl"
         - "uvicorn.protocols.websockets.wsproto_impl"
+- module-name: "uvloop.loop"
+  implicit-imports:
+    - depends:
+        - "uvloop._noop"
+
 - module-name: "vosk"
   dlls:
     - from_filenames:
