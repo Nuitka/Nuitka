@@ -135,7 +135,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             True or False
 
         """
-        return True
+        return not cls.isDeprecated()
+
+    @classmethod
+    def isDeprecated(cls):
+        return False
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
