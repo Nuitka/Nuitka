@@ -340,7 +340,8 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 
 #endif
 
-#if PYTHON_VERSION >= 0x340
+// TODO: Disabled for NOGIL until it becomes more ready.
+#if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL)
 
 #include <opcode.h>
 
