@@ -1041,6 +1041,11 @@
     - depends:
         - ".region_*"
 
+- module-name: "PIL._imagingtk"
+  implicit-imports:
+    - depends:
+        - "PIL._tkinter_finder"
+
 - module-name: "PIL.Image"
   implicit-imports:
     - depends:
@@ -1102,11 +1107,25 @@
       replacements:
         "import plistlib": "'if sys.platform == \"darwin\": import plistlib'"
 
+- module-name: "pkg_resources._vendor.jaraco"
+  implicit-imports:
+    - depends:
+        - "pkg_resources._vendor.jaraco.text"
+        - "pkg_resources._vendor.jaraco.functools"
+        - "pkg_resources._vendor.jaraco.context"
+
 - module-name: "pkg_resources._vendor.jaraco.text"
   anti-bloat:
     - description: "remove useless data file dependency"
       replacements_plain:
         "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()": ""
+
+- module-name: "pkg_resources._vendor.packaging"
+  implicit-imports:
+    - depends:
+        - "pkg_resources._vendor.packaging.version"
+        - "pkg_resources._vendor.packaging.specifiers"
+        - "pkg_resources._vendor.packaging.requirements"
 
 - module-name: "pkg_resources._vendor.pyparsing"
   anti-bloat:
@@ -1314,6 +1333,39 @@
     - depends:
         - "reportlab.rl_settings"
 
+- module-name: "requests_toolbelt._compat"
+  implicit-imports:
+    - depends:
+        - "urllib3"
+        - "urllib3._collections"
+        - "urllib3.connection"
+        - "urllib3.connection.appengine"
+        - "urllib3.connectionpool"
+        - "urllib3.contrib"
+        - "urllib3.contrib.appengine"
+        - "urllib3.exceptions"
+        - "urllib3.fields"
+        - "urllib3.filepost"
+        - "urllib3.packages"
+        - "urllib3.packages.six"
+        - "urllib3.packages.ssl_match_hostname"
+        - "urllib3.poolmanager"
+        - "urllib3.request"
+        - "urllib3.response"
+        - "urllib3.util"
+        - "urllib3.util.connection"
+        - "urllib3.util.queue"
+        - "urllib3.util.request"
+        - "urllib3.util.response"
+        - "urllib3.util.retry"
+        - "urllib3.util.ssl_"
+        - "urllib3.util.timeout"
+        - "urllib3.util.url"
+        - "urllib3.util.wait"
+        - "urllib.error"
+        - "urllib.parse"
+        - "urllib.request"
+        - "urllib.response"
 - module-name: "scipy._lib"
   implicit-imports:
     - depends:
@@ -2378,6 +2430,40 @@
   data-files:
     dirs:
       - "zones"
+
+- module-name: "urllib3"
+  implicit-imports:
+    - depends:
+        - "urllib3"
+        - "urllib3._collections"
+        - "urllib3.connection"
+        - "urllib3.connection.appengine"
+        - "urllib3.connectionpool"
+        - "urllib3.contrib"
+        - "urllib3.contrib.appengine"
+        - "urllib3.exceptions"
+        - "urllib3.fields"
+        - "urllib3.filepost"
+        - "urllib3.packages"
+        - "urllib3.packages.six"
+        - "urllib3.packages.ssl_match_hostname"
+        - "urllib3.poolmanager"
+        - "urllib3.request"
+        - "urllib3.response"
+        - "urllib3.util"
+        - "urllib3.util.connection"
+        - "urllib3.util.queue"
+        - "urllib3.util.request"
+        - "urllib3.util.response"
+        - "urllib3.util.retry"
+        - "urllib3.util.ssl_"
+        - "urllib3.util.timeout"
+        - "urllib3.util.url"
+        - "urllib3.util.wait"
+        - "urllib.error"
+        - "urllib.parse"
+        - "urllib.request"
+        - "urllib.response"
 
 - module-name: "uvicorn"
   implicit-imports:
