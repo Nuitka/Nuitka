@@ -61,7 +61,7 @@ NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
         }
     }
 
-#ifdef _NUITKA_EXPERIMENTAL_NOGIL
+#ifdef PY_NOGIL
     /* load eval breaker */
     uintptr_t b = _Py_atomic_load_uintptr(&tstate->eval_breaker);
 

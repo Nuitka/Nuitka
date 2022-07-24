@@ -28,7 +28,7 @@
 #include "nuitka/prelude.h"
 #endif
 
-#ifdef _NUITKA_EXPERIMENTAL_NOGIL
+#ifdef PY_NOGIL
 #define Py_BUILD_CORE
 #include "internal/pycore_generator.h"
 #undef Py_BUILD_CORE
@@ -97,7 +97,7 @@ static inline bool Nuitka_PyFrameHasCompleted(PyFrameObject *const frame) {
 }
 
 static inline bool Nuitka_PyGeneratorIsExecuting(PyGenObject const *gen) {
-#ifdef _NUITKA_EXPERIMENTAL_NOGIL
+#ifdef PY_NOGIL
     return gen->status == GEN_RUNNING;
 #elif PYTHON_VERSION < 0x3a0
     return gen->gi_running == 1;
@@ -112,7 +112,7 @@ static inline bool Nuitka_PyGeneratorIsExecuting(PyGenObject const *gen) {
 // what it does. It's unrelated to compiled generators, and used from coroutines
 // and asyncgen to interact with them.
 static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
-#if defined(_NUITKA_EXPERIMENTAL_NOGIL)
+#if defined(PY_NOGIL)
     PyObject *res;
 
     if (gen->status == GEN_CREATED) {
