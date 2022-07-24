@@ -573,12 +573,81 @@
         '(root / ".git").exists()"': "'None'"
         "test.__test__ = False": ""
 
+  implicit-imports:
+    - depends:
+        - "matplotlib.backend_managers"
+        - "matplotlib.backend_bases"
+        - "mpl_toolkits"
+
+
 - module-name: "matplotlib.backend_bases"
   anti-bloat:
     - description: "remove IPython reference"
       change_function:
         "_fix_ipython_backend2gui": "'(lambda cls: None)'"
       when: "not use_ipython"
+
+- module-name: "matplotlib.backends"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends._backend_agg"
+        - "matplotlib.backends._tkagg"
+        - "matplotlib.backends.backend_tkagg"
+        - "matplotlib.backends.backend_agg"
+
+- module-name: "matplotlib.backends.backend_cairo"
+  implicit-imports:
+    - depends:
+        - "cairo"
+        - "cairocffi"
+
+- module-name: "matplotlib.backends.backend_gtk3"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_gtk3agg"
+        - "gi"
+
+- module-name: "matplotlib.backends.backend_gtk3agg"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_gtk3"
+        - "gi"
+
+- module-name: "matplotlib.backends.backend_qt5"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_qt5agg"
+        - "PyQt5"
+
+- module-name: "matplotlib.backends.backend_qt5agg"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_qt5"
+        - "PyQt5"
+
+- module-name: "matplotlib.backends.backend_webagg"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_webagg_core"
+        - "tornado"
+
+- module-name: "matplotlib.backends.backend_webagg_core"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_webagg"
+        - "tornado"
+
+- module-name: "matplotlib.backends.backend_wx"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_wxagg"
+        - "wx"
+
+- module-name: "matplotlib.backends.backend_wxagg"
+  implicit-imports:
+    - depends:
+        - "matplotlib.backends.backend_wx"
+        - "wx"
 
 - module-name: "matplotlib.figure"
   anti-bloat:
@@ -1154,6 +1223,18 @@
     dirs:
       - "data"
 
+- module-name: "pywt"
+  implicit-imports:
+    - depends:
+        - "pywt._extensions"
+
+- module-name: "pywt._extensions"
+  implicit-imports:
+    - depends:
+        - "pywt._extensions._cwt"
+        - "pywt._extensions._dwt"
+        - "pywt._extensions._pywt"
+        - "pywt._extensions._swt"
 - module-name: "pywt._pytesttester"
   anti-bloat:
     - description: "remove pywt testing framework"
@@ -1166,6 +1247,11 @@
   implicit-imports:
     - depends:
         - "reportlab.rl_settings"
+
+- module-name: "scipy._lib"
+  implicit-imports:
+    - depends:
+        - "scipy._lib.messagestream"
 
 - module-name: "scipy._lib._docscrape"
   anti-bloat:
@@ -1203,6 +1289,37 @@
       replacements:
         "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
         "from numpy.testing import suppress_warnings": "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+
+- module-name: "scipy.linalg"
+  implicit-imports:
+    - depends:
+        - "scipy.linalg.cython_blas"
+        - "scipy.linalg.cython_lapack"
+
+- module-name: "scipy.sparse.csgraph"
+  implicit-imports:
+    - depends:
+        - "scipy.sparse.csgraph._validation"
+
+- module-name: "scipy.spatial"
+  implicit-imports:
+    - depends:
+        - "scipy.spatial.transform"
+
+- module-name: "scipy.spatial.transform"
+  implicit-imports:
+    - depends:
+        - "scipy.spatial.transform._rotation_groups"
+
+- module-name: "scipy.special"
+  implicit-imports:
+    - depends:
+        - "scipy.special._ufuncs_cxx"
+
+- module-name: "scipy.stats._stats"
+  implicit-imports:
+    - depends:
+        - "scipy.special.cython_special"
 
 - module-name: "scipy.stats.morestats"
   anti-bloat:
@@ -1349,6 +1466,62 @@
   implicit-imports:
     - depends:
         - "srsly.msgpack.util"
+
+- module-name: "statsmodels.nonparametric"
+  implicit-imports:
+    - depends:
+        - "statsmodels.nonparametric.linbin"
+        - "statsmodels.nonparametric._smoothers_lowess"
+
+- module-name: "statsmodels.tsa"
+  implicit-imports:
+    - depends:
+        - "statsmodels.tsa._exponential_smoothers"
+
+- module-name: "statsmodels.tsa.innovations"
+  implicit-imports:
+    - depends:
+        - "statsmodels.tsa.innovations._arma_innovations"
+
+- module-name: "statsmodels.tsa.kalmanf"
+  implicit-imports:
+    - depends:
+        - "statsmodels.tsa.kalmanf.kalman_loglike"
+
+- module-name: "statsmodels.tsa.regime_switching"
+  implicit-imports:
+    - depends:
+        - "statsmodels.tsa.regime_switching._hamilton_filter"
+        - "statsmodels.tsa.regime_switching._kim_smoother"
+
+- module-name: "statsmodels.tsa.statespace"
+  implicit-imports:
+    - depends:
+        - "statsmodels.tsa.statespace._filters"
+        - "statsmodels.tsa.statespace._initialization"
+        - "statsmodels.tsa.statespace._kalman_filter"
+        - "statsmodels.tsa.statespace._kalman_smoother"
+        - "statsmodels.tsa.statespace._representation"
+        - "statsmodels.tsa.statespace._simulation_smoother"
+        - "statsmodels.tsa.statespace._smoothers"
+        - "statsmodels.tsa.statespace._tools"
+
+- module-name: "statsmodels.tsa.statespace._filters"
+  implicit-imports:
+    - depends:
+        - "statsmodels.tsa.statespace._filters._conventional"
+        - "statsmodels.tsa.statespace._filters._inversions"
+        - "statsmodels.tsa.statespace._filters._univariate"
+        - "statsmodels.tsa.statespace._filters._univariate_diffuse"
+
+- module-name: "statsmodels.tsa.statespace._smoothers"
+  implicit-imports:
+    - depends:
+        - "statsmodels.tsa.statespace._smoothers._alternative"
+        - "statsmodels.tsa.statespace._smoothers._classical"
+        - "statsmodels.tsa.statespace._smoothers._conventional"
+        - "statsmodels.tsa.statespace._smoothers._univariate"
+        - "statsmodels.tsa.statespace._smoothers._univariate_diffuse"
 
 - module-name: "swagger_ui_bundle"
   data-files:
