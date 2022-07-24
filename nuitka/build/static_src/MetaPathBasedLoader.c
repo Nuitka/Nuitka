@@ -133,7 +133,7 @@ static void patchCodeObjectPaths(PyCodeObject *code_object, PyObject *module_pat
     code_object->co_filename = module_path;
     Py_INCREF(module_path);
 
-#ifndef _NUITKA_EXPERIMENTAL_NOGIL
+#ifndef PY_NOGIL
     Py_ssize_t consts_count = PyTuple_GET_SIZE(code_object->co_consts);
 
     for (Py_ssize_t i = 0; i < consts_count; i++) {
