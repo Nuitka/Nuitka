@@ -129,10 +129,10 @@
                             "type": "array",
                             "items": {
                                 "type": "string"
-                            },
-                            "when": {
-                                "type": "string"
                             }
+                        },
+                        "when": {
+                            "type": "string"
                         }
                     }
                 }

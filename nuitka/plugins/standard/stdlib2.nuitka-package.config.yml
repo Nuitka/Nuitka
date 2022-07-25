@@ -60,6 +60,10 @@
         "test": "'(lambda: None)'"
 
 - module-name: "Tkinter"
+  implicit-imports:
+    - depends:
+        - "_tkinter"
+
   options:
     checks:
       - macos_bundle_as_onefile: "yes"
