@@ -298,6 +298,11 @@ class Plugins(object):
                 continue
             seen.add(full_name)
 
+            # Ignore dependencies on self. TODO: Make this an error for the
+            # plugin.
+            if full_name == module.getFullName():
+                continue
+
             try:
                 _module_name, module_filename, _finding = Importing.locateModule(
                     module_name=full_name,
