@@ -39,6 +39,10 @@
       change_function:
         "_test": "'(lambda: None)'"
 
+- module-name: "ctypes"
+  implicit-imports:
+    - depends:
+        - "_ctypes"
 - module-name: "ctypes.util"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -224,6 +228,11 @@
       change_function:
         "test": "'(lambda: None)'"
 
+- module-name: "socket"
+  implicit-imports:
+    - depends:
+        - "_socket"
+
 - module-name: "tabnanny"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -264,6 +273,9 @@
               raise\n\
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
+  implicit-imports:
+    - depends:
+        - "_tkinter"
 
 - module-name: "tokenize"
   anti-bloat:
