@@ -908,11 +908,13 @@ except ImportError:
         for version in versions:
             big, major = version.split(".")
             numeric_version = int(big) * 256 + int(major) * 16
-            is_same_or_higher_version = numeric_version >= python_version
-            is_lower_version = numeric_version >= python_version
+            is_same_or_higher_version = python_version >= numeric_version
 
             context["python" + big + major + "_or_higher"] = is_same_or_higher_version
-            context["before_python" + big + major] = is_lower_version
+            context["before_python" + big + major] = not is_same_or_higher_version
+
+        context["before_python3"] = python_version < 0x300
+        context["python3_or_higher"] = python_version >= 0x300
 
         # We trust the yaml files, pylint: disable=eval-used
         result = eval(condition, context)
