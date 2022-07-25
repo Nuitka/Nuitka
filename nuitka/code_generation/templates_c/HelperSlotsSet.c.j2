@@ -17,12 +17,12 @@
 {#                                                                              #}
 {% from 'HelperSlotsCommon.c.j2' import goto_exit %}
 
-{% macro set_slot(props, operator, nb_slot, nb_islot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+{% macro set_slot(props, operator, nb_slot, nb_inplace_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
 
     {# TODO: Could and should in-line and specialize this per slot too. #}
-    {% set slot = nb_islot or nb_slot %}
+    {% set slot = nb_inplace_slot or nb_slot %}
     PyObject *x = {{ left.getSlotCallExpression(slot, "PySet_Type.tp_as_number->" + slot, operand1, operand2) }};
 
     assert(x != Py_NotImplemented);

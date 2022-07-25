@@ -464,8 +464,6 @@ bool createDirectory(filename_char_t *path) {
 
 #if defined(_WIN32)
 void removeDirectory(wchar_t const *path) {
-    // _putws(payload_path);
-
     SHFILEOPSTRUCTW fileop_struct = {
         NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
     SHFileOperationW(&fileop_struct);

@@ -75,7 +75,7 @@
     {{ goto_exit(props, exit_result_exception) }}
 {% endmacro %}
 {% macro concat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) %}
-{% if sq_islot and left.hasSlot(sq_islot) %}
+{% if sq_inplace_slot and left.hasSlot(sq_inplace_slot) %}
     {
         PyObject *o = {{ left.getSlotValueExpression(type1, "sq_inplace_concat") }}({{ operand1 }}, {{ operand2 }});
         {{ goto_exit(props, exit_result_object, "o") }}
@@ -129,8 +129,8 @@
             }
 {% endif %}
             {
-{% if sq_islot %}
-                {{ left.getSlotType(sq_slot) }} repeatfunc = {{ left.getSlotValueExpression(type1, sq_islot) }};
+{% if sq_inplace_slot %}
+                {{ left.getSlotType(sq_slot) }} repeatfunc = {{ left.getSlotValueExpression(type1, sq_inplace_slot) }};
                 if (repeatfunc == NULL) {
                     repeatfunc = {{ left.getSlotValueExpression(type1, sq_slot) }};
                 }
@@ -308,9 +308,9 @@
     {% set error_needed = 0 %}
 {% else %}
     {
-{% if sq_islot and (left == object_desc or left.hasSlot(sq_islot)) %}
+{% if sq_inplace_slot and (left == object_desc or left.hasSlot(sq_inplace_slot)) %}
         // Special case for "+" and "*", also works as sequence concat/repeat.
-        {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_islot) }};
+        {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_inplace_slot) }};
         if (sq_slot == NULL) {
             sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
         }
@@ -321,8 +321,8 @@
         {% set lslot_needed = 1 %}
 {% else %}
         // No sequence repeat slot {{ sq_slot }} available for this type.
-{% if sq_islot %}
-        // No inplace sequence repeat slot {{ sq_islot }} available for this type.
+{% if sq_inplace_slot %}
+        // No inplace sequence repeat slot {{ sq_inplace_slot }} available for this type.
 {% endif %}
         {% set lslot_needed = 0 %}
 {% endif %}
@@ -342,11 +342,11 @@
 {% if operator == "*" %}
 {% if right.type_name != "object" and right.hasSlot("sq_repeat")  %}
 {% if operator == "*" %}
-{% if sq_islot %}
+{% if sq_inplace_slot %}
     if ({{ left.getNoSequenceSlotAccessTestCode("type1") }}) {
 {% endif %}
         {{ repeat_operation(props, right, left, type2, type1, operand2, operand1, exit_result_object, exit_result_exception) }}
-{% if sq_islot %}
+{% if sq_inplace_slot %}
     }
 {% endif %}
 {% else %}
@@ -359,13 +359,13 @@
     {{ goto_exit(props, exit_result_object, "x") }}
 {% endif %}
 {% endif %}
-{% if not sq_islot %}
+{% if not sq_inplace_slot %}
 {% set error_needed = 0 %}
 {% endif %}
 {% else %}
 {% if right == object_desc or right.hasSlot(sq_slot) %}
     // Special case for "*", also work with sequence repeat from right argument.
-{% if sq_islot %}
+{% if sq_inplace_slot %}
     if ({{ left.getNoSequenceSlotAccessTestCode("type1") }})
 {% endif %}
     {
@@ -395,7 +395,7 @@
     NUITKA_CANNOT_GET_HERE("missing error exit annotation");
 {% endif %}
 {% endmacro %}
-{% macro call_binary_slot(props, operator, nb_slot, nb_islot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+{% macro call_binary_slot(props, operator, nb_slot, nb_inplace_slot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
 {% if left.isSimilarOrSameTypesAsOneOf(int_desc) or right.isSimilarOrSameTypesAsOneOf(int_desc) %}
     {{ int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
 {% elif left.isSimilarOrSameTypesAsOneOf(long_desc) or right.isSimilarOrSameTypesAsOneOf(long_desc) %}
@@ -413,7 +413,7 @@
 {% elif left.isSimilarOrSameTypesAsOneOf(list_desc) or right.isSimilarOrSameTypesAsOneOf(list_desc) %}
     {{ list_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
 {% elif left.isSimilarOrSameTypesAsOneOf(set_desc) or right.isSimilarOrSameTypesAsOneOf(set_desc) %}
-    {{ set_slot(props, operator, nb_slot, nb_islot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+    {{ set_slot(props, operator, nb_slot, nb_inplace_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
 {% else %}
     {{ 0/0 }}
 {% endif %}
