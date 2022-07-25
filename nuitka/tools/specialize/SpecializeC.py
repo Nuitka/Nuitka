@@ -347,9 +347,9 @@ def makeHelperOperations(
             sq_slot = None
 
         if inplace and sq_slot is not None:
-            sq_islot = sq_slot.replace("sq_", "sq_inplace_")
+            sq_inplace_slot = sq_slot.replace("sq_", "sq_inplace_")
         else:
-            sq_islot = None
+            sq_inplace_slot = None
 
         code = template.render(
             target=target,
@@ -358,11 +358,11 @@ def makeHelperOperations(
             op_code=op_code,
             operator=operator,
             nb_slot=_getNbSlotFromOperand(operator, op_code),
-            nb_islot=_getNbInplaceSlotFromOperand(operator, op_code)
+            nb_inplace_slot=_getNbInplaceSlotFromOperand(operator, op_code)
             if inplace
             else None,
             sq_slot=sq_slot,
-            sq_islot=sq_islot,
+            sq_inplace_slot=sq_inplace_slot,
             object_desc=object_desc,
             int_desc=int_desc,
             long_desc=long_desc,

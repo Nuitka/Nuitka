@@ -28,11 +28,11 @@
 #pragma warning(pop)
 #endif
 
-{% if left == object_desc or left.hasSlot(nb_islot) %}
-    {{ left.getSlotType(nb_islot)}} islot = {{left.getSlotValueExpression("type1", nb_islot) }};
+{% if left == object_desc or left.hasSlot(nb_inplace_slot) %}
+    {{ left.getSlotType(nb_inplace_slot)}} islot = {{left.getSlotValueExpression("type1", nb_inplace_slot) }};
 
     if (islot != NULL) {
-        PyObject *x = {{ left.getSlotCallExpression(nb_islot, "islot", "*operand1", "operand2") }};
+        PyObject *x = {{ left.getSlotCallExpression(nb_inplace_slot, "islot", "*operand1", "operand2") }};
 
         if (x != Py_NotImplemented) {
             {{ goto_exit(props, "exit_inplace_result_object", "x") }}
@@ -41,7 +41,7 @@
         Py_DECREF(x);
     }
 {% else %}
-    // No inplace number slot {{ nb_islot }} available for this type.
+    // No inplace number slot {{ nb_inplace_slot }} available for this type.
 {% endif %}
 
     {
@@ -216,7 +216,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
 
 {% if left.hasTypeSpecializationCode(right, nb_slot, sq_slot) %}
 {% set props = {"exits": {}} %}
-    {{ call_binary_slot(props, operator, nb_slot, nb_islot, left, right, "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+    {{ call_binary_slot(props, operator, nb_slot, nb_inplace_slot, left, right, "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
     exit_result_ok:
     return true;
@@ -239,7 +239,7 @@ static inline bool _INPLACE_OPERATION_{{op_code}}_{{left.getHelperCodeName()}}_{
         {# There is special code for same types. #}
         // return _BINARY_OPERATION_{{op_code}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}_INPLACE(operand1, operand2);
 
-        {{ call_binary_slot(props, operator, nb_slot, nb_islot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+        {{ call_binary_slot(props, operator, nb_slot, nb_inplace_slot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "*operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
 
         exit_result_ok:
         return true;
