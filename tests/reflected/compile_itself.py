@@ -475,7 +475,11 @@ def executePASS5():
     if result != 0:
         sys.exit(result)
 
-    os.unlink(os.path.join(tmp_dir, "nuitka" + getSharedLibrarySuffix(preferred=True)))
+    for preferred in True, False:
+        candidate = "nuitka" + getSharedLibrarySuffix(preferred=preferred)
+
+        deleteFile(candidate, must_exist=False)
+
     os.unlink(os.path.join(tmp_dir, "nuitka.pyi"))
     shutil.rmtree(os.path.join(tmp_dir, "nuitka.build"))
 
