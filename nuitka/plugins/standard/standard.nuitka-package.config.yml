@@ -153,6 +153,7 @@
   implicit-imports:
     - depends:
         - "chainer.distributions.utils"
+
 - module-name: "clr"
   dlls:
     - from_filenames:
@@ -178,6 +179,7 @@
   implicit-imports:
     - depends:
         - "_curses"
+
 - module-name: "cv2"
   anti-bloat:
     - description: "workaround for colliding native module import"
@@ -200,7 +202,6 @@
         - "cv2.cv2"
         - "numpy"
         - "numpy.core"
-
 
 - module-name: "cytoolz.functoolz"
   implicit-imports:
@@ -264,6 +265,7 @@
         - "engineio.async_drivers.sanic"
         - "engineio.async_drivers.threading"
         - "engineio.async_drivers.tornado"
+
 - module-name: "exchangelib"
   implicit-imports:
     - depends:
@@ -297,6 +299,7 @@
   implicit-imports:
     - depends:
         - "fastapi.routing"
+
 - module-name: "feedparser.html"
   anti-bloat:
     - change_function:
@@ -316,6 +319,7 @@
   implicit-imports:
     - depends:
         - "fitz._fitz"
+
 - module-name: "flask.app"
   implicit-imports:
     - depends:
@@ -399,6 +403,7 @@
     - depends:
         - "gevent.__imap"
         - "gevent._gevent_c_imap"
+
 - module-name: "gevent._semaphore"
   implicit-imports:
     - depends:
@@ -656,7 +661,6 @@
         - "matplotlib.backend_bases"
         - "mpl_toolkits"
 
-
 - module-name: "matplotlib.backend_bases"
   anti-bloat:
     - description: "remove IPython reference"
@@ -893,6 +897,7 @@
       # TODO: Clarify if entropy is needed for 1.18 or at all.
         - "numpy.random.entropy"
         - "numpy.random.mtrand"
+
 - module-name: "numpy.testing"
   anti-bloat:
     - description: "remove numpy testing framework"
@@ -1005,6 +1010,7 @@
         "round_trip_localpath": "'(lambda: None)'"
         "round_trip_pathlib": "'(lambda: None)'"
       description: "remove pytest testing framework"
+
 - module-name: "pandas.compat._optional"
   anti-bloat:
     - description: "remove useless distutils usage"
@@ -1391,6 +1397,7 @@
     dirs:
       - "colors"
       - "icons"
+
 - module-name: "pyreadstat._readstat_parser"
   implicit-imports:
     - depends:
@@ -1447,6 +1454,7 @@
         - "pywt._extensions._dwt"
         - "pywt._extensions._pywt"
         - "pywt._extensions._swt"
+
 - module-name: "pywt._pytesttester"
   anti-bloat:
     - description: "remove pywt testing framework"
@@ -1472,6 +1480,7 @@
         - "rapidfuzz.distance.Indel_cpp"
         - "rapidfuzz.distance.LCSseq_cpp"
         - "rapidfuzz.distance.Levenshtein_cp"
+
 - module-name: "reportlab.rl_config"
   implicit-imports:
     - depends:
@@ -1510,6 +1519,7 @@
         - "urllib.parse"
         - "urllib.request"
         - "urllib.response"
+
 - module-name: "scipy._lib"
   implicit-imports:
     - depends:
@@ -1723,7 +1733,6 @@
         - "skimage.io._plugins.tifffile_plugin"
         - "skimage.io._plugins.util"
 
-
 - module-name: "skimage.measure"
   implicit-imports:
     - depends:
@@ -1860,7 +1869,6 @@
         - "sklearn.manifold._barnes_hut_tsne"
         - "sklearn.manifold._utils"
 
-
 - module-name: "sklearn.metrics"
   implicit-imports:
     - depends:
@@ -1912,7 +1920,6 @@
         - "sklearn.svm.liblinear"
         - "sklearn.svm.libsvm"
         - "sklearn.svm.libsvm_sparse"
-
 
 - module-name: "sklearn.tree"
   implicit-imports:
@@ -2214,6 +2221,7 @@
     - depends:
         - "tensorflow.contrib.bigtable.python.ops._bigtable"
       when: "not win32"
+
 - module-name: "tensorflow.contrib.boosted_trees.python.ops"
   implicit-imports:
     - depends:
@@ -2689,6 +2697,7 @@
         - "uvicorn.protocols.websockets.auto"
         - "uvicorn.protocols.websockets.websockets_impl"
         - "uvicorn.protocols.websockets.wsproto_impl"
+
 - module-name: "uvloop.loop"
   implicit-imports:
     - depends:
