@@ -303,9 +303,25 @@ def formatYaml(path):
 
         string_io = StringIO()
         yaml.dump(new_data, string_io)
+
+        lastline = None
         for line in string_io.getvalue().splitlines():
+            # Duplicate new-lines are a no-go.
+            if lastline == "" and line == "":
+                continue
+
             if line.startswith("  "):
                 if not line.lstrip().startswith("#"):
                     line = line[2:]
+
+            if line.startswith("- module-name:"):
+                if (
+                    lastline != ""
+                    and not lastline.startswith("#")
+                    and not lastline == "---"
+                ):
+                    output_file.write("\n")
+
+            lastline = line
 
             output_file.write(line + "\n")

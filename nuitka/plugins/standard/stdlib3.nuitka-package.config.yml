@@ -43,6 +43,7 @@
   implicit-imports:
     - depends:
         - "_ctypes"
+
 - module-name: "ctypes.util"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -92,6 +93,7 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "test": "'(lambda: None)'"
+
 - module-name: "ftplib"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -134,6 +136,7 @@
     patterns:
       - "../*.pickle"
     when: "not debian_python"
+
 - module-name: "lib2to3.pgen2.literals"
   anti-bloat:
     - description: "remove module ability to run as a binary"

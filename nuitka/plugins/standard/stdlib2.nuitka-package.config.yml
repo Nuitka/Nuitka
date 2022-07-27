@@ -47,6 +47,7 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "test": "'(lambda: None)'"
+
 - module-name: "rexec"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -74,7 +75,6 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "_test": "'(lambda: None)'"
-
 
 - module-name: "xmllib"
   anti-bloat:
