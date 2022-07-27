@@ -2128,6 +2128,37 @@
         - "tensorboard"
         - "tensorflow_estimator"
 
+- module-name: "tensorflow._api.v1.compat.v2"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from . import test": "test = None"
+
+- module-name: "tensorflow._api.v2.__internal__"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from . import test": "test = None"
+        "from . import distribute": "distribute = None"
+
+- module-name: "tensorflow._api.v2.compat.v1"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from . import test": "test = None"
+
+- module-name: "tensorflow._api.v2.compat.v1.compat.v1"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from tensorflow._api.v2.compat.v1 import test": "test = None"
+
+- module-name: "tensorflow._api.v2.compat.v1.compat.v2"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from tensorflow._api.v2.compat.v2 import test": "test = None"
+
 - module-name: "tensorflow._api.v2.compat.v2"
   anti-bloat:
     - description: "remove useless tensorflow testing usage"
@@ -2138,7 +2169,9 @@
   anti-bloat:
     - description: "remove useless tensorflow testing usage"
       replacements_plain:
+        # TODO: Really need to make the "un-usable" a thing
         "from . import test": "test = None"
+        "from . import distribute": "distribute = None"
 
 - module-name: "tensorflow._api.v2.compat.v2.__internal__.distribute"
   anti-bloat:
@@ -2378,6 +2411,10 @@
         - "tensorflow.lite.toco.python._tensorflow_wrap_toco"
 
 - module-name: "tensorflow.python"
+  anti-bloat:
+    - description: "remove useless tensorflow testing usage"
+      replacements_plain:
+        "from tensorflow.python.platform import test": "test = None"
   implicit-imports:
     - depends:
         - "tensorflow.python._pywrap_tensorflow_internal"
