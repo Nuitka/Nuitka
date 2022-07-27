@@ -36,7 +36,7 @@ from nuitka.tools.quality.Git import (
 )
 from nuitka.tools.quality.ScanSources import isPythonFile
 from nuitka.tools.release.Documentation import extra_rst_keywords
-from nuitka.Tracing import general, my_print
+from nuitka.Tracing import general, my_print, tools_logger
 from nuitka.utils.Execution import (
     NuitkaCalledProcessError,
     check_call,
@@ -107,7 +107,7 @@ def _getRequiredVersion(tool):
         if line.startswith(tool + " =="):
             return line.split()[2]
 
-    sys.exit("Error, cannot find %r in requirements-devel.txt" % tool)
+    tools_logger.sysexit("Error, cannot find %r in requirements-devel.txt" % tool)
 
 
 def _checkRequiredVersion(tool, tool_call):
@@ -118,7 +118,7 @@ def _checkRequiredVersion(tool, tool_call):
             required_version = line.split()[2]
             break
     else:
-        sys.exit("Error, cannot find %r in requirements-devel.txt" % tool)
+        tools_logger.sysexit("Error, cannot find %r in requirements-devel.txt" % tool)
 
     tool_call = list(tool_call) + ["--version"]
 
@@ -147,7 +147,7 @@ def _checkRequiredVersion(tool, tool_call):
             break
 
     else:
-        sys.exit(
+        tools_logger.sysexit(
             "Error, couldn't determine version output of %r (%r)"
             % (tool, " ".join(tool_call))
         )
@@ -257,7 +257,7 @@ def _getPythonBinaryCall(binary_name):
         for message in messages:
             my_print(message, style="red")
 
-        sys.exit(
+        tools_logger.sysexit(
             "Error, cannot find %r version %r, not installed or wrong version for this Python?"
             % (binary_name, _getRequiredVersion(binary_name))
         )
