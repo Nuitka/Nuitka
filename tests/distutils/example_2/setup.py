@@ -25,7 +25,7 @@ from setuptools import find_packages, setup
 
 # use `python setup.py bdist_nuitka` to use nuitka or use
 # in the setup(..., build_with_nuitka=True, ...)
-# and bdist and build will allways use nuitka
+# and bdist and build will always use nuitka
 
 setup(
     name="bdist_nuitka_test_2",

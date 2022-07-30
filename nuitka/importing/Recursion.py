@@ -206,9 +206,61 @@ def isSameModulePath(path1, path2):
     return os.path.abspath(path1) == os.path.abspath(path2)
 
 
-def checkPluginSinglePath(plugin_filename, module_package):
+def _addIncludedModule(module):
     # Many branches, for the decision is very complex, pylint: disable=too-many-branches
 
+    if Options.isShowInclusion():
+        recursion_logger.info(
+            "Included '%s' as '%s'."
+            % (
+                module.getFullName(),
+                module,
+            )
+        )
+
+    ImportCache.addImportedModule(module)
+
+    if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
+        package_filename = module.getFilename()
+
+        if os.path.isdir(package_filename):
+            # Must be a namespace package.
+            assert python_version >= 0x300
+
+            package_dir = package_filename
+
+            # Only include it, if it contains actual modules, which will
+            # recurse to this one and find it again.
+        else:
+            package_dir = os.path.dirname(package_filename)
+
+            # Real packages will always be included.
+            ModuleRegistry.addRootModule(module)
+
+        if Options.isShowInclusion():
+            recursion_logger.info("Package directory '%s'." % package_dir)
+
+        for sub_path, sub_filename in listDir(package_dir):
+            if sub_filename in ("__init__.py", "__pycache__"):
+                continue
+
+            if Importing.isPackageDir(sub_path) and not os.path.exists(
+                sub_path + ".py"
+            ):
+                checkPluginSinglePath(sub_path, module_package=module.getFullName())
+            elif sub_path.endswith(".py"):
+                checkPluginSinglePath(sub_path, module_package=module.getFullName())
+
+    elif module.isCompiledPythonModule() or module.isUncompiledPythonModule():
+        ModuleRegistry.addRootModule(module)
+    elif module.isPythonExtensionModule():
+        if Options.isStandaloneMode():
+            ModuleRegistry.addRootModule(module)
+    else:
+        assert False, module
+
+
+def checkPluginSinglePath(plugin_filename, module_package):
     # The importing wants these to be unique.
     plugin_filename = os.path.abspath(plugin_filename)
 
@@ -248,70 +300,22 @@ def checkPluginSinglePath(plugin_filename, module_package):
             )
 
             if module:
-                if Options.isShowInclusion():
-                    recursion_logger.info(
-                        "Included '%s' as '%s'."
-                        % (
-                            module.getFullName(),
-                            module,
-                        )
-                    )
-
-                ImportCache.addImportedModule(module)
-
-                if module.isCompiledPythonPackage():
-                    package_filename = module.getFilename()
-
-                    if os.path.isdir(package_filename):
-                        # Must be a namespace package.
-                        assert python_version >= 0x300
-
-                        package_dir = package_filename
-
-                        # Only include it, if it contains actual modules, which will
-                        # recurse to this one and find it again.
-                    else:
-                        package_dir = os.path.dirname(package_filename)
-
-                        # Real packages will always be included.
-                        ModuleRegistry.addRootModule(module)
-
-                    if Options.isShowInclusion():
-                        recursion_logger.info("Package directory '%s'." % package_dir)
-
-                    for sub_path, sub_filename in listDir(package_dir):
-                        if sub_filename in ("__init__.py", "__pycache__"):
-                            continue
-
-                        assert sub_path != plugin_filename
-
-                        if Importing.isPackageDir(sub_path) and not os.path.exists(
-                            sub_path + ".py"
-                        ):
-                            checkPluginSinglePath(
-                                sub_path, module_package=module.getFullName()
-                            )
-                        elif sub_path.endswith(".py"):
-                            checkPluginSinglePath(
-                                sub_path, module_package=module.getFullName()
-                            )
-
-                elif module.isCompiledPythonModule():
-                    ModuleRegistry.addRootModule(module)
-                elif module.isPythonExtensionModule():
-                    if Options.isStandaloneMode():
-                        ModuleRegistry.addRootModule(module)
-
+                _addIncludedModule(module)
             else:
                 recursion_logger.warning(
                     "Failed to include module from '%s'." % plugin_filename
                 )
+        else:
+            recursion_logger.warning(
+                "Not allowed to include module '%s' due to '%s'."
+                % (module_name, reason)
+            )
 
 
 def checkPluginPath(plugin_filename, module_package):
     if Options.isShowInclusion():
         recursion_logger.info(
-            "Checking top level plug-in path %s %s" % (plugin_filename, module_package)
+            "Checking top level path '%s' '%s'." % (plugin_filename, module_package)
         )
 
     plugin_info = considerFilename(module_filename=plugin_filename)

@@ -78,7 +78,6 @@ from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
-    addToPATH,
     changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     createEnvironment,
@@ -92,6 +91,7 @@ from .SconsUtils import (
     initScons,
     isClangName,
     isGccName,
+    prepareEnvironment,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     scanSourceDir,
@@ -155,6 +155,9 @@ nuitka_python = getArgumentBool("nuitka_python", False)
 
 # The Debian Python, for which we know that some optimization can be done.
 debian_python = getArgumentBool("debian_python", False)
+
+# The Fedora Python, for which we know that some optimization can be done.
+fedora_python = getArgumentBool("fedora_python", False)
 
 # For the msys2 python, we can know a few things, it's not Win32 entirely.
 msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
@@ -305,43 +308,22 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+# Anaconda Python might use its own compiler.
+anaconda_python = getArgumentBool("anaconda_python", False)
+
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
-
-
-def printCompilerVersionOutput(*args):
-    if compiler_version_mode or show_scons_mode:
-        my_print("Scons:", *args)
-
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
-# Add environment specified compilers to the PATH variable.
-if "CC" in os.environ:
-    os.environ["CC"] = os.path.normpath(os.environ["CC"])
-
-    if os.path.isdir(os.environ["CC"]):
-        scons_logger.sysexit(
-            "Error, the CC variable must point to file, not directory."
-        )
-
-    if os.path.sep in os.environ["CC"]:
-        cc_dirname = os.path.dirname(os.environ["CC"])
-        if os.path.isdir(cc_dirname):
-            addToPATH(None, cc_dirname, prefix=True)
-
-    if win_target and isGccName(os.path.basename(os.environ["CC"])):
-        scons_details_logger.info(
-            "Environment CC seems to be a gcc, enabling mingw_mode."
-        )
-        mingw_mode = True
-
-    printCompilerVersionOutput("CC=%r" % os.environ["CC"])
+# Prepare environment for compiler detection.
+mingw_mode = prepareEnvironment(
+    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
+)
 
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
-
 
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
@@ -359,7 +341,7 @@ scons_details_logger.info(
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
-    env["CC"] = os.path.expanduser(os.environ["CC"])
+    env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
 
     scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
@@ -396,7 +378,7 @@ env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
 
 # Various flavors could influence builds.
-env.anaconda_python = getArgumentBool("anaconda_python", False)
+env.anaconda_python = anaconda_python
 env.pyenv_python = getArgumentBool("pyenv_python", False)
 env.apple_python = getArgumentBool("pyenv_python", False)
 
@@ -418,8 +400,10 @@ env.clangcl_mode = clangcl_mode
 # Python specific modes have to influence some decisions
 env.nuitka_python = nuitka_python
 env.debian_python = debian_python
+env.fedora_python = fedora_python
 env.msys2_mingw_python = msys2_mingw_python
 env.static_libpython = static_libpython
+env.python_version = python_version
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
@@ -573,13 +557,13 @@ if static_libpython:
     env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
 
-def detectHostMultiarch():
+def detectHostMultiArch():
     stdout = check_output("dpkg-architecture")
 
     for line in stdout.splitlines():
         line = line.strip()
 
-        if line.startswith(b"DEB_HOST_MULTIARCH="):
+        if line.startswith(b"DEB_HOST_MULTI_ARCH="):
             return line.split("=", 1)[1].decode("utf8")
 
     return None
@@ -589,14 +573,14 @@ if env.gcc_mode and debian_python:
     # TODO: Seems rather meaningless nowadays and hard codes this to not be
     # self compiled or so.
     if python_version == (3, 3):
-        host_multiarch = detectHostMultiarch()
+        host_multi_arch = detectHostMultiArch()
 
-        if host_multiarch is not None:
+        if host_multi_arch is not None:
             env.Append(
                 CCFLAGS=[
                     "-I"
                     + os.path.join(
-                        "/usr/include/", host_multiarch, "python" + python_abi_version
+                        "/usr/include/", host_multi_arch, "python" + python_abi_version
                     )
                 ]
             )
@@ -641,7 +625,7 @@ def _detectPythonHeaderPath():
 
     if win_target:
         scons_logger.sysexit(
-            """Error, you seem to be using the unsupported embedable CPython distribution."""
+            """Error, you seem to be using the unsupported embeddable CPython distribution."""
         )
     else:
         scons_logger.sysexit(
@@ -730,33 +714,22 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
-    if nuitka_python and "pgo-link" in experimental:
-        # With Nuitka-Python, we do not use the static link library actually, but
-        # instead we link against the object files, as otherwise gcc doesn't seem
-        # to want to pick the profiling information up. TODO: This is not showing
-        # any benefit over plain LTO yet.
-        pgo_dir = os.path.join(python_prefix, "lib/pgo")
-
-        env.Append(LINKFLAGS=["-fprofile-dir=%s" % pgo_dir])
-        env.Append(LINKFLAGS=["-fprofile-correction"])
-
-        for filename in check_output(["ar", "t", static_libpython]).splitlines():
-            filename = os.path.join(pgo_dir, filename)
-
-            if not filename.endswith(".o"):
-                continue
-
-            if os.path.basename(filename) in ("main.o", "python.o"):
-                continue
-
-            gcda_filename = filename[:-2] + ".gcda"
-
-            if os.path.exists(gcda_filename):
-                env.Append(
-                    LINKFLAGS=["-fprofile-use=%s" % os.path.basename(gcda_filename)]
-                )
-
-            env.Append(LIBS=[env.File(filename)])
+    if nuitka_python:
+        link_data = loadJsonFromFilename(os.path.join(python_prefix, "link.json"))
+        for lib in link_data["libraries"]:
+            # Need to prevent Scons from stripping .a from the passed in libs.
+            if os.path.isfile(lib):
+                env.Append(_LIBFLAGS=[lib])
+            elif lib.startswith(":") and lib.endswith(".a"):
+                env.Append(_LIBFLAGS=["-l" + lib])
+            else:
+                env.Append(LIBS=[lib])
+        env.Append(LIBPATH=link_data["library_dirs"])
+        for define, value in link_data["macros"]:
+            if value:
+                env.Append(CPPDEFINES=[define + "=" + value])
+            else:
+                env.Append(CPPDEFINES=[define])
     elif static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
 

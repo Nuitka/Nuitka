@@ -59,6 +59,11 @@
 #define Py_REFCNT(ob) (_PyObject_CAST(ob)->ob_refcnt)
 #endif
 
+// We are using this new macro on old code too.
+#ifndef Py_SET_REFCNT
+#define Py_SET_REFCNT(ob, refcnt) Py_REFCNT(ob) = refcnt
+#endif
+
 #if defined(_WIN32)
 // Windows is too difficult for API redefines.
 #define MIN_PYCORE_PYTHON_VERSION 0x380
@@ -101,9 +106,11 @@ extern _PyRuntimeState _PyRuntime;
 // TODO: Might be useful too, allows access to Python configuration.
 // #include <internal/pycore_initconfig.h>
 
+#ifndef PY_NOGIL
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))
+#endif
 
 #undef Py_BUILD_CORE
 
@@ -334,6 +341,19 @@ extern PyThreadState *_PyThreadState_Current;
 #define NuitkaType_HasFeatureClass(descr) (1)
 #endif
 
+// The digit types
+#if PYTHON_VERSION < 0x300
+#include <longintrepr.h>
+
+#if PYTHON_VERSION < 0x270
+// Not present in Python2.6 yet
+typedef signed int sdigit;
+#endif
+#endif
+
+// A long value that represents a signed digit on the helper interface.
+typedef long nuitka_digit;
+
 // Generated.
 // TODO: Move generated ones to separate file.
 #ifdef __IDE_ONLY__
@@ -414,7 +434,7 @@ extern PyObject **global_constants;
 #define const_str_plain_close global_constants[30]
 // 'throw'
 #define const_str_plain_throw global_constants[30]
-// 'throw'
+// 'send'
 #define const_str_plain_send global_constants[30]
 // 'sum'
 #define const_str_plain_sum global_constants[31]
@@ -494,6 +514,8 @@ extern PyObject **global_constants;
 #define const_str_plain___match_args__ global_constants[67]
 // '__args__'
 #define const_str_plain___args__ global_constants[67]
+// 'fileno'
+#define const_str_plain_fileno global_constants[67]
 
 #define _NUITKA_CONSTANTS_SIZE 27
 #define _NUITKA_CONSTANTS_HASH 0x27272727

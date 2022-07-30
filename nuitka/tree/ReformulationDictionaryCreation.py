@@ -57,11 +57,11 @@ from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -193,13 +193,13 @@ def getDictUnpackingHelper():
     args_variable = result.getVariableForAssignment(variable_name="args")
 
     final = (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_result_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
     )

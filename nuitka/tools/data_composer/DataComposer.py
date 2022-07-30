@@ -18,7 +18,6 @@
 """Data composer, crunch constants into binary blobs to load. """
 
 import binascii
-import ctypes
 import math
 import os
 import re
@@ -42,8 +41,13 @@ from nuitka.constants.Serialization import (
     BuiltinUnionTypeValue,
     ConstantStreamReader,
 )
-from nuitka.PythonVersions import python_version
-from nuitka.Tracing import datacomposer_logger
+from nuitka.PythonVersions import (
+    isPythonValidCLongLongValue,
+    isPythonValidCLongValue,
+    python_version,
+    sizeof_clonglong,
+)
+from nuitka.Tracing import data_composer_logger
 from nuitka.utils.FileOperations import listDir
 
 
@@ -57,17 +61,6 @@ def scanConstFiles(build_dir):
         result.append((fullpath, filename))
 
     return result
-
-
-sizeof_clong = ctypes.sizeof(ctypes.c_long)
-
-max_signed_long = 2 ** (sizeof_clong * 7) - 1
-min_signed_long = -(2 ** (sizeof_clong * 7))
-
-sizeof_clonglong = ctypes.sizeof(ctypes.c_longlong)
-
-max_signed_longlong = 2 ** (sizeof_clonglong * 8 - 1) - 1
-min_signed_longlong = -(2 ** (sizeof_clonglong * 8 - 1))
 
 
 # TODO: The determination of this should already happen in Building or in a
@@ -146,9 +139,9 @@ def _writeConstantValue(output, constant_value):
         for element in constant_value:
             _writeConstantValue(output, element)
     elif constant_type is long:
-        if min_signed_long <= constant_value <= max_signed_long:
+        if isPythonValidCLongValue(constant_value):
             output.write(b"l" + struct.pack("l", constant_value))
-        elif min_signed_longlong <= constant_value <= max_signed_longlong:
+        elif isPythonValidCLongLongValue(constant_value):
             output.write(b"q" + struct.pack("q", constant_value))
         else:
             output.write(b"g")
@@ -252,7 +245,7 @@ def _writeConstantValue(output, constant_value):
         if len(range_args) < 3:
             range_args.append(1)
 
-        output.write(struct.pack("iii", *range_args))
+        output.write(struct.pack("lll", *range_args))
     elif constant_type is complex:
         # Some float values do not transport well, use float streaming then.
         if (
@@ -329,14 +322,14 @@ def _writeConstantStream(constants_reader):
         old_size = result.tell()
         _writeConstantValue(result, constant_value)
 
-        if not datacomposer_logger.is_quiet:
+        if not data_composer_logger.is_quiet:
             new_size = result.tell()
 
             result.seek(old_size)
             type_char = result.read(1)
             result.seek(new_size)
 
-            datacomposer_logger.info(
+            data_composer_logger.info(
                 "Size of constant %r is %d with type %r"
                 % (constant_value, new_size - old_size, type_char)
             )
@@ -381,14 +374,14 @@ def _writeConstantsBlob(output_filename, desc):
 
         assert output.tell() == 8
 
-        datacomposer_logger.info(
+        data_composer_logger.info(
             "Total constants blob size without header %d." % data_size
         )
-        datacomposer_logger.info("Total constants blob CRC32 is %d." % crc32)
+        data_composer_logger.info("Total constants blob CRC32 is %d." % crc32)
 
 
 def main():
-    datacomposer_logger.is_quiet = (
+    data_composer_logger.is_quiet = (
         os.environ.get("NUITKA_DATACOMPOSER_VERBOSE", "0") != "1"
     )
 
@@ -406,7 +399,7 @@ def main():
     names = set()
 
     for fullpath, filename in const_files:
-        datacomposer_logger.info("Working on constant file %r." % filename)
+        data_composer_logger.info("Working on constant file %r." % filename)
 
         with open(fullpath, "rb") as const_file:
             constants_reader = ConstantStreamReader(const_file)
@@ -419,7 +412,7 @@ def main():
         assert name not in names, name
         names.add(name)
 
-        datacomposer_logger.info(
+        data_composer_logger.info(
             "Storing %r chunk with %s values size %r." % (name, count, len(part))
         )
 
@@ -429,7 +422,7 @@ def main():
 
         desc.append((name, part))
 
-    datacomposer_logger.info("Total amount of constants is %d." % total)
+    data_composer_logger.info("Total amount of constants is %d." % total)
 
     _writeConstantsBlob(output_filename=output_filename, desc=desc)
 

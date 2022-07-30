@@ -21,7 +21,7 @@
 import os
 
 from nuitka import Options, OutputDirectories
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
 
 from .FileOperations import copyFile, makePath, openTextFile
 from .Images import convertImageToIconFormat

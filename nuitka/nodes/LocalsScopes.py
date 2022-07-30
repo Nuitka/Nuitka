@@ -17,7 +17,7 @@
 #
 """ This module maintains the locals dict handles. """
 
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaOptimizationError
 from nuitka.utils.InstanceCounters import (
     counted_del,

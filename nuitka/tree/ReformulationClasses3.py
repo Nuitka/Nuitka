@@ -80,12 +80,12 @@ from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1, ExpressionTypeCheck
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -638,7 +638,7 @@ def buildClassNode3(provider, node, source_ref):
         provider=provider,
         tried=statements,
         final=tuple(
-            StatementReleaseVariable(variable=variable, source_ref=source_ref)
+            makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
             for variable in final
         ),
         source_ref=source_ref,
@@ -761,16 +761,16 @@ def getClassBasesMroConversionHelper():
     )
 
     final = (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=args_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_result_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
     )

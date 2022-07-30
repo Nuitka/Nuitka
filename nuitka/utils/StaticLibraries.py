@@ -21,7 +21,7 @@
 
 import os
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import (
     isAnacondaPython,
     isDebianPackagePython,

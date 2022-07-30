@@ -84,22 +84,29 @@ inline_copy_files = []
 no_byte_compile = []
 
 
-def addInlineCopy(name, do_byte_compile=True):
+def addDataFiles(data_files, base_path, do_byte_compile=True):
     patterns = (
-        "inline_copy/%s/*.py" % name,
-        "inline_copy/%s/*/*.py" % name,
-        "inline_copy/%s/*/*/*.py" % name,
-        "inline_copy/%s/*/*/*/*.py" % name,
-        "inline_copy/%s/*/*/*/*/*.py" % name,
-        "inline_copy/%s/LICENSE*",
-        "inline_copy/%s/*/LICENSE*",
-        "inline_copy/%s/READ*",
+        "%s/*.py" % base_path,
+        "%s/*/*.py" % base_path,
+        "%s/*/*/*.py" % base_path,
+        "%s/*/*/*/*.py" % base_path,
+        "%s/*/*/*/*/*.py" % base_path,
+        "%s/config*",
+        "%s/LICENSE*",
+        "%s/*/LICENSE*",
+        "%s/READ*",
     )
 
-    inline_copy_files.extend(patterns)
+    data_files.extend(patterns)
 
     if not do_byte_compile:
-        no_byte_compile.extend(patterns)
+        data_files.extend(patterns)
+
+
+def addInlineCopy(name, do_byte_compile=True):
+    addDataFiles(
+        inline_copy_files, "inline_copy/%s" % name, do_byte_compile=do_byte_compile
+    )
 
 
 addInlineCopy("appdirs")
@@ -139,6 +146,47 @@ if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-3.1.2")
 
+nuitka_packages = findNuitkaPackages()
+
+# Include extra files
+package_data = {
+    "": ["*.txt", "*.rst", "*.c", "*.h", "*.yml"],
+    "nuitka.build": [
+        "Backend.scons",
+        "Onefile.scons",
+        "static_src/*.c",
+        "static_src/*.cpp",
+        "static_src/*/*.c",
+        "static_src/*/*.h",
+        "inline_copy/zstd/*.h",
+        "inline_copy/zstd/*/*.h",
+        "inline_copy/zstd/*/*.c",
+        "static_src/*/*.asm",
+        "static_src/*/*.S",
+        "include/*.h",
+        "include/*/*.h",
+        "include/*/*/*.h",
+    ]
+    + inline_copy_files,
+    "nuitka.code_generation": ["templates_c/*.j2"],
+}
+
+
+if "nuitka.plugins.commercial" in nuitka_packages:
+    commercial_data_files = []
+
+    commercial_plugins_dir = os.path.join("nuitka", "plugins", "commercial")
+
+    for filename in os.listdir(commercial_plugins_dir):
+        if filename.endswith(".yml"):
+            inline_copy_files.append(filename)
+
+        fullname = os.path.join(commercial_plugins_dir, filename)
+
+        if os.path.isdir(fullname):
+            addDataFiles(commercial_data_files, filename, do_byte_compile=False)
+
+    package_data["nuitka.plugins.commercial"] = commercial_data_files
 
 orig_byte_compile = distutils.util.byte_compile
 
@@ -328,29 +376,8 @@ setup(
         # License
         "License :: OSI Approved :: Apache Software License",
     ],
-    packages=findNuitkaPackages(),
-    package_data={
-        # Include extra files
-        "": ["*.txt", "*.rst", "*.c", "*.h", "*.yml"],
-        "nuitka.build": [
-            "Backend.scons",
-            "Onefile.scons",
-            "static_src/*.c",
-            "static_src/*.cpp",
-            "static_src/*/*.c",
-            "static_src/*/*.h",
-            "inline_copy/zstd/*.h",
-            "inline_copy/zstd/*/*.h",
-            "inline_copy/zstd/*/*.c",
-            "static_src/*/*.asm",
-            "static_src/*/*.S",
-            "include/*.h",
-            "include/*/*.h",
-            "include/*/*/*.h",
-        ]
-        + inline_copy_files,
-        "nuitka.codegen": ["templates_c/*.j2"],
-    },
+    packages=nuitka_packages,
+    package_data=package_data,
     # metadata for upload to PyPI
     author="Kay Hayen",
     author_email="Kay.Hayen@gmail.com",

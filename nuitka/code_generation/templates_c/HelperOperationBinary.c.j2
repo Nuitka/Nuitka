@@ -1,0 +1,148 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperSlotsCommon.c.j2' import goto_exit %}
+{% from 'HelperSlotsInt.c.j2' import int_slot with context %}
+{% from 'HelperSlotsBinary.c.j2' import binary_operation, call_binary_slot with context %}
+{% macro binary_fallback_operation(props, target, left, right, type1, type2) %}
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    {% set props = {"exits": {}} %}
+    {{ binary_operation(props, operator, nb_slot, left, right, "type1", "type2", "operand1", "operand2", "exit_binary_result_object", "exit_binary_result_cbool_ok", "exit_binary_result_nbool", "exit_binary_exception") }}
+
+{% if "exit_binary_result_object" in props["exits"] %}
+exit_binary_result_object:
+    {{ target.getReturnFromObjectExpressionCode("obj_result") }}
+{% endif %}
+
+{% if "exit_binary_result_cbool_ok" in props["exits"] %}
+exit_binary_result_cbool_ok:
+    return cbool_result;
+{% endif %}
+
+{% if "exit_binary_exception" in props["exits"] %}
+{% if "all" not in props["exits"]["exit_binary_exception"] %}
+#if PYTHON_VERSION < 0x300
+{% endif %}
+exit_binary_exception:
+    return {{target.getExceptionResultIndicatorValue()}};
+{% if "all" not in props["exits"]["exit_binary_exception"] %}
+#endif
+{% endif %}
+{% endif %}
+{% endmacro %}
+{% if not left.hasTypeSpecializationCode(right, nb_slot, sq_slot) and left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
+static HEDLEY_NEVER_INLINE {{target.getTypeDecl()}} __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+{% set props = {"exits": {}} %}
+{% if left == object_desc %}
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if right == object_desc %}
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
+
+    {{ binary_fallback_operation(props, target, left, right, "type1", "type2") }}
+}
+{% endif %}
+static {{target.getTypeDecl()}} _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{ left.getCheckValueCode("operand1") }}
+    {{ right.getCheckValueCode("operand2") }}
+
+{% if left.type_name == "object" and right.type_name == "object" %}
+    {# CPython2 treats integer values with fast path. #}
+#if PYTHON_VERSION < 0x300
+    if ({{ left.getIntCheckExpression("operand1") }} && {{ right.getIntCheckExpression("operand2") }}) {
+        {{target.getTypeDecl()}} result;
+
+        {% set props = {"exits": {}} %}
+        {{ int_slot(props, operator, nb_slot, target, int_desc, int_desc, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+
+        exit_result_ok:
+        return result;
+
+{% if "exit_result_exception" in props["exits"] %}
+        exit_result_exception:
+        return {{target.getExceptionResultIndicatorValue()}};
+{% endif %}
+    }
+#endif
+{% endif %}
+
+{% if left.hasTypeSpecializationCode(right, nb_slot, sq_slot) %}
+    {% set props = {"exits": {}} %}
+    {{ target.getTypeDecl() }} result;
+
+    {{ call_binary_slot(props, operator, nb_slot, None, left, right, "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+
+    exit_result_ok:
+    return result;
+
+{% if "exit_result_exception" in props["exits"] %}
+    exit_result_exception:
+    return {{target.getExceptionResultIndicatorValue()}};
+{% endif %}
+{% elif left.getSameTypeType(right).hasSameTypeOperationSpecializationCode(right.getSameTypeType(left), nb_slot, sq_slot) %}
+{% set props = {"exits": {}} %}
+{% if left == object_desc %}
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if right == object_desc %}
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
+
+    if ({{ left.getTypeIdenticalCheckExpression(right, "type1", "type2") }}) {
+        {{target.getTypeDecl()}} result;
+
+        {# There is special code for same types. #}
+        // return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getSameTypeType(right).getHelperCodeName()}}_{{right.getSameTypeType(left).getHelperCodeName()}}(operand1, operand2);
+
+        {{ call_binary_slot(props, operator, nb_slot, nb_slot, left.getSameTypeType(right), right.getSameTypeType(left), "result", "operand1", "operand2", "exit_result_ok", "exit_result_exception") }}
+
+        exit_result_ok:
+        return result;
+
+{% if "exit_result_exception" in props["exits"] %}
+        exit_result_exception:
+        return {{target.getExceptionResultIndicatorValue()}};
+{% endif %}
+    }
+
+    return __BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
+{% else %}
+{% set props = {"exits": {}} %}
+{% if left == object_desc %}
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if right == object_desc %}
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
+
+    {{ binary_fallback_operation(props, target, left, right, "type1", "type2") }}
+{% endif %}
+}
+
+{{target.getTypeDecl()}} BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    return _BINARY_OPERATION_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}(operand1, operand2);
+}
