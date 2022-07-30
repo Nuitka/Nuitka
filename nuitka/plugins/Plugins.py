@@ -327,7 +327,7 @@ class Plugins(object):
 
             result.append((full_name, module_filename))
 
-        if result:
+        if result and Options.isShowInclusion():
             plugin.info(
                 "Implicit dependencies of module '%s' added '%s'."
                 % (module.getFullName(), ",".join(r[0] for r in result))
