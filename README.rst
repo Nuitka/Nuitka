@@ -713,6 +713,17 @@ compiler, and not MinGW64. The MSVC is a cross compiler, and can use
 more memory than gcc on that platform. If you are not on Windows, that
 is not an option of course. Also using the 64 bits Python will work.
 
+Use a minimal virtualenv
+------------------------
+
+When you compile from a living installation, that may well have many
+optional dependencies of your software installed. Some software, will
+then have imports on these, and Nuitka will compile them as well. Not
+only may these be just the trouble makers, they also require more
+memory, so get rid of that. Of course you do have to check that your
+program has all needed dependencies before you attempt to compile, or
+else the compiled program will equally not run.
+
 Use LTO compilation or not
 --------------------------
 
@@ -881,6 +892,39 @@ For debugging purposes, remove ``--windows-disable-console`` or use the
 options ``--windows-force-stdout-spec`` and
 ``--windows-force-stderr-spec`` with paths as documented for
 ``--windows-onefile-tempdir-spec`` above.
+
+Deep copying uncompiled functions
+=================================
+
+Sometimes people use this kind of code, which for packages on PyPI, we
+deal with by doing source code patches on the fly. If this is in your
+own code, here is what you can do:
+
+.. code:: python
+
+   def binder(func, name):
+      result = types.FunctionType(func.__code__, func.__globals__, name=func.__name__, argdefs=func.__defaults__, closure=func.__closure__)
+      result = functools.update_wrapper(result, func)
+      result.__kwdefaults__ = func.__kwdefaults__
+      result.__name__ = name
+      return result
+
+Compiled functions cannot be used to create uncompiled ones from, so the
+above code, will not work. However, there is a dedicated ``clone``
+method, that is specific to them, so use this instead.
+
+.. code:: python
+
+   def binder(func, name):
+      try:
+         result = func.clone()
+      except AttributeError:
+         result = types.FunctionType(func.__code__, func.__globals__, name=func.__name__, argdefs=func.__defaults__, closure=func.__closure__)
+         result = functools.update_wrapper(result, func)
+         result.__kwdefaults__ = func.__kwdefaults__
+
+      result.__name__ = name
+      return result
 
 ******
  Tips
@@ -1230,8 +1274,8 @@ branches:
    where my work for develop branch lives first. It is intended for
    testing only and recommended to base any of your own development on.
    When updating it, you very often will get merge conflicts. Simply
-   resolve those by doing ``git reset --hard origin/factory`` and switch
-   to the latest version.
+   resolve those by doing ``git fetch && git reset --hard
+   origin/factory`` and switch to the latest version.
 
 .. note::
 

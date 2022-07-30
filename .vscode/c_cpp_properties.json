@@ -43,6 +43,7 @@
         {
             "name": "Linux",
             "includePath": [
+                "/usr/include",
                 "${workspaceFolder}/nuitka/build/include",
                 "/usr/include/python3.9"
             ],
@@ -61,6 +62,7 @@
         {
             "name": "Linux-Python2.7",
             "includePath": [
+                "/usr/include",
                 "${workspaceFolder}/nuitka/build/include",
                 "/usr/include/python2.7"
             ],

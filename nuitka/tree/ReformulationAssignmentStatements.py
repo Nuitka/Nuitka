@@ -68,10 +68,7 @@ from nuitka.nodes.SubscriptNodes import (
     StatementDelSubscript,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import (
-    StatementReleaseVariable,
-    makeStatementDelVariable,
-)
+from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef,
@@ -79,6 +76,7 @@ from nuitka.nodes.VariableNameNodes import (
     StatementDelVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.Options import hasPythonFlagNoAnnotations, isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
@@ -351,7 +349,7 @@ not enough values to unpack (expected at least %d, got %%d)"""
                 provider=provider,
                 tried=statements,
                 final=(
-                    StatementReleaseVariable(
+                    makeStatementReleaseVariable(
                         variable=source_iter_var, source_ref=source_ref
                     ),
                 ),
@@ -391,7 +389,9 @@ not enough values to unpack (expected at least %d, got %%d)"""
 
         for element_var in element_vars:
             final_statements.append(
-                StatementReleaseVariable(variable=element_var, source_ref=source_ref)
+                makeStatementReleaseVariable(
+                    variable=element_var, source_ref=source_ref
+                )
             )
 
         return makeTryFinallyStatement(
@@ -583,7 +583,9 @@ def buildAssignNode(provider, node, source_ref):
         return makeTryFinallyStatement(
             provider=provider,
             tried=statements,
-            final=StatementReleaseVariable(variable=tmp_source, source_ref=source_ref),
+            final=makeStatementReleaseVariable(
+                variable=tmp_source, source_ref=source_ref
+            ),
             source_ref=source_ref,
         )
 
@@ -834,7 +836,7 @@ def _buildInplaceAssignAttributeNode(
         makeTryFinallyStatement(
             provider=provider,
             tried=(inplace_to_tmp, copy_back_from_tmp),
-            final=StatementReleaseVariable(
+            final=makeStatementReleaseVariable(
                 variable=tmp_variable, source_ref=source_ref
             ),
             source_ref=source_ref,
@@ -907,9 +909,15 @@ def _buildInplaceAssignSubscriptNode(
             provider=provider,
             tried=statements,
             final=(
-                StatementReleaseVariable(variable=tmp_variable1, source_ref=source_ref),
-                StatementReleaseVariable(variable=tmp_variable2, source_ref=source_ref),
-                StatementReleaseVariable(variable=tmp_variable3, source_ref=source_ref),
+                makeStatementReleaseVariable(
+                    variable=tmp_variable1, source_ref=source_ref
+                ),
+                makeStatementReleaseVariable(
+                    variable=tmp_variable2, source_ref=source_ref
+                ),
+                makeStatementReleaseVariable(
+                    variable=tmp_variable3, source_ref=source_ref
+                ),
             ),
             source_ref=source_ref,
         ),
@@ -940,7 +948,7 @@ def _buildInplaceAssignSliceNode(
     )
 
     final_statements = [
-        StatementReleaseVariable(variable=tmp_variable1, source_ref=source_ref)
+        makeStatementReleaseVariable(variable=tmp_variable1, source_ref=source_ref)
     ]
     statements = []
 
@@ -951,7 +959,7 @@ def _buildInplaceAssignSliceNode(
             )
         )
         final_statements.append(
-            StatementReleaseVariable(variable=tmp_variable2, source_ref=source_ref)
+            makeStatementReleaseVariable(variable=tmp_variable2, source_ref=source_ref)
         )
 
         lower_ref1 = ExpressionTempVariableRef(
@@ -972,7 +980,7 @@ def _buildInplaceAssignSliceNode(
             )
         )
         final_statements.append(
-            StatementReleaseVariable(variable=tmp_variable3, source_ref=source_ref)
+            makeStatementReleaseVariable(variable=tmp_variable3, source_ref=source_ref)
         )
 
         upper_ref1 = ExpressionTempVariableRef(
@@ -1072,7 +1080,7 @@ def _buildInplaceAssignSliceNode(
         )
 
     final_statements.append(
-        StatementReleaseVariable(variable=tmp_variable4, source_ref=source_ref)
+        makeStatementReleaseVariable(variable=tmp_variable4, source_ref=source_ref)
     )
 
     return (
@@ -1242,7 +1250,7 @@ def buildNamedExprNode(provider, node, source_ref):
             statement=makeTryFinallyStatement(
                 provider=provider,
                 tried=statements,
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=tmp_value, source_ref=source_ref
                 ),
                 source_ref=source_ref,

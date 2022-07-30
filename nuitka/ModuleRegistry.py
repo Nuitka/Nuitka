@@ -28,7 +28,7 @@
 import collections
 import os
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import areSamePaths
 
@@ -84,6 +84,8 @@ def replaceRootModule(old, new):
 
     for module in root_modules:
         new_root_modules.add(module if module is not old else new)
+
+    assert len(root_modules) == len(new_root_modules)
 
     root_modules = new_root_modules
 
@@ -201,6 +203,10 @@ def getDoneModules():
     return sorted(done_modules, key=lambda module: (module.getFullName(), module.kind))
 
 
+def hasDoneModule(module_name):
+    return any(module.getFullName() == module_name for module in done_modules)
+
+
 def getModuleInclusionInfos():
     return active_modules_info
 
@@ -250,3 +256,20 @@ def getModuleByName(module_name):
             return module
 
     return None
+
+
+module_influencing_plugins = {}
+
+
+def addModuleInfluencingCondition(
+    module_name, plugin_name, condition, control_tags, result
+):
+    if module_name not in module_influencing_plugins:
+        module_influencing_plugins[module_name] = OrderedSet()
+    module_influencing_plugins[module_name].add(
+        (plugin_name, "condition-used", (condition, tuple(control_tags), result))
+    )
+
+
+def getModuleInfluences(module_name):
+    return module_influencing_plugins.get(module_name, ())

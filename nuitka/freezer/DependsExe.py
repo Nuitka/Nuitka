@@ -23,7 +23,7 @@ We use depends.exe to investigate needed DLLs of Python DLLs.
 
 import os
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload
@@ -35,6 +35,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     withFileLock,
 )
+from nuitka.utils.SharedLibraries import getWindowsRunningProcessDLLPaths
 from nuitka.utils.Utils import getArchitecture
 
 
@@ -93,6 +94,13 @@ def _parseDependsExeOutput2(lines):
 
         # Skip missing DLLs, apparently not needed anyway.
         if "?" in line[: line.find("]")]:
+            # Let find it on currently loaded DLLs
+            currently_loaded_dll = getWindowsRunningProcessDLLPaths()
+
+            if dll_filename in currently_loaded_dll:
+                dll_filename = currently_loaded_dll[dll_filename]
+                continue
+
             # One exception are PythonXY.DLL
             if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
                 dll_filename = os.path.join(
@@ -129,9 +137,9 @@ def parseDependsExeOutput(filename):
     return _parseDependsExeOutput2(getFileContentByLine(filename, encoding="latin1"))
 
 
-def detectDLLsWithDependencyWalker(binary_filename, scan_dirs):
-    dwp_filename = binary_filename + ".dwp"
-    output_filename = binary_filename + ".depends"
+def detectDLLsWithDependencyWalker(binary_filename, source_dir, scan_dirs):
+    dwp_filename = os.path.join(source_dir, os.path.basename(binary_filename) + ".dwp")
+    output_filename = os.path.join(os.path.basename(binary_filename) + ".depends")
 
     # User query should only happen once if at all.
     with withFileLock(

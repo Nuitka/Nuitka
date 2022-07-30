@@ -1,0 +1,401 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperSlotsCommon.c.j2' import goto_exit, constant_int_exit_target, constant_float_exit_target %}
+
+{% macro int_core(props, operator, nb_slot, bool_mode, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception, exit_result_ok_cbool, exit_result_ok_clong, exit_result_ok_cfloat, exit_result_object, exit_result_ok_left, exit_result_ok_const_int_0, exit_result_ok_const_int_neg_1, exit_result_ok_const_float_0_0, exit_result_ok_const_float_minus_0_0) %}
+    {% set fall_through_needed = 1 %}
+
+    {{ left.getCheckValueCode(operand1) }}
+    {{ right.getCheckValueCode(operand2) }}
+
+    {# This is supposed to be Python2 only code with types no bigger than int, therefore this works always #}
+    const long a = {{ left.getAsLongValueExpression(operand1) }};
+    const long b = {{ right.getAsLongValueExpression(operand2) }};
+
+{% if operator in "+-" %}
+    const long x = (long)((unsigned long)a {{operator}} b);
+    bool no_overflow = ((x^a) >= 0 || (x^{{"~" if operator == "-" else ""}}b) >= 0);
+{% if bool_mode %}
+    bool t = !no_overflow || x != 0;
+
+    {{ goto_exit(props, exit_result_ok_cbool, "t") }}
+    {% set fall_through_needed = 0 %}
+{% else %}
+    if (likely(no_overflow)) {
+        {{ goto_exit(props, exit_result_ok_clong, "x") }}
+    }
+{% endif %}
+{% elif operator == "*" %}
+    const long longprod = (long)((unsigned long)a * b);
+    const double doubleprod = (double)a * (double)b;
+    const double doubled_longprod = (double)longprod;
+
+    if (likely(doubled_longprod == doubleprod)) {
+        {{ goto_exit(props, exit_result_ok_clong, "longprod") }}
+    } else {
+        const double diff = doubled_longprod - doubleprod;
+        const double absdiff = diff >= 0.0 ? diff : -diff;
+        const double absprod = doubleprod >= 0.0 ? doubleprod : -doubleprod;
+
+        if (likely(32.0 * absdiff <= absprod)) {
+            {{ goto_exit(props, exit_result_ok_clong, "longprod") }}
+        }
+    }
+{% elif operator == "//" or nb_slot == "nb_divide" %}
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
+
+        {{ goto_exit(props, exit_result_ok_clong, "a_div_b") }}
+    }
+{% elif operator=="/" and "true_div" in nb_slot %}
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "division by zero");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+{% if bool_mode %}
+    {{ goto_exit(props, exit_result_ok_cbool, "a == 0") }}
+    {% set fall_through_needed = 0 %}
+{% else %}
+    if (a == 0) {
+        if (b < 0) {
+            {{ goto_exit(props, exit_result_ok_const_float_minus_0_0) }}
+        } else {
+            {{ goto_exit(props, exit_result_ok_const_float_0_0) }}
+        }
+    }
+
+/* May need to resort to LONG code, which we currently do not
+ * specialize yet. TODO: Once we do that, call it here instead.
+ */
+#if DBL_MANT_DIG < WIDTH_OF_ULONG
+    if ((a >= 0 ? 0UL + a : 0UL - a) >> DBL_MANT_DIG || (b >= 0 ? 0UL + b : 0UL - b) >> DBL_MANT_DIG) {
+    } else
+#endif
+    {
+        double r = (double)a / (double)b;
+
+        {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+    }
+{% endif %}
+{% elif operator=="%" %}
+    /* TODO: Isn't this a very specific value only, of which we could
+     * hardcode the constant result. Not sure how well the C compiler
+     * optimizes UNARY_NEG_WOULD_OVERFLOW to this, but dividing by
+     * -1 has to be rare anyway.
+     */
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long r = a % b;
+
+        // Sign handling.
+        if (r != 0 && ((b ^ r) < 0) ) {
+            r += b;
+        }
+
+        {{ goto_exit(props, exit_result_ok_clong, "r") }}
+    }
+{% elif operator in "|^&" %}
+    const long r = a {{operator}} b;
+
+    {{ goto_exit(props, exit_result_ok_clong, "r") }}
+    {% set fall_through_needed = 0 %}
+{% elif operator == "<<" %}
+    if (unlikely(b < 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+    /* Short cut for zero shift or shifting zero. */
+    if (a == 0 || b == 0) {
+        {{ goto_exit(props, exit_result_ok_left) }}
+    } else if (b >= LONG_BIT) {
+        PyObject *operand1_long = PyLong_FromLong(a);
+        PyObject *operand2_long = PyLong_FromLong(b);
+
+        // TODO: Change this to using CLONG once we specialize that too.
+        PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+        Py_DECREF(operand1_long);
+        Py_DECREF(operand2_long);
+
+        {{ goto_exit(props, exit_result_object, "r") }}
+    } else {
+        long c = a << b;
+
+        if (a != Py_ARITHMETIC_RIGHT_SHIFT(long, c, b)) {
+            PyObject *operand1_long = PyLong_FromLong(a);
+            PyObject *operand2_long = PyLong_FromLong(b);
+
+            // TODO: Change this to using CLONG once we specialize that too.
+            PyObject *r = _BINARY_OPERATION_LSHIFT_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+            Py_DECREF(operand1_long);
+            Py_DECREF(operand2_long);
+
+            {{ goto_exit(props, exit_result_object, "r") }}
+        } else {
+            {{ goto_exit(props, exit_result_ok_clong, "c") }}
+        }
+    }
+    {% set fall_through_needed = 0 %}
+{% elif operator == ">>" %}
+    if (unlikely(b < 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative shift count");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    /* Short cut for zero shift or shifting zero. */
+    if (a == 0 || b == 0) {
+        {{ goto_exit(props, exit_result_ok_left) }}
+    } else if (b >= LONG_BIT) {
+        if (a < 0) {
+            {{ goto_exit(props, exit_result_ok_const_int_neg_1) }}
+        } else {
+            {{ goto_exit(props, exit_result_ok_const_int_0) }}
+        }
+    } else {
+        long r = Py_ARITHMETIC_RIGHT_SHIFT(long, a, b);
+
+        {{ goto_exit(props, exit_result_ok_clong, "r") }}
+    }
+    {% set fall_through_needed = 0 %}
+{% elif operator == "**" %}
+    if (b < 0) {
+        // TODO: Use CFLOAT once available.
+        PyObject *operand1_float = PyFloat_FromDouble(a);
+        PyObject *operand2_float = PyFloat_FromDouble(b);
+
+        PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
+
+        Py_DECREF(operand1_float);
+        Py_DECREF(operand2_float);
+
+        {{ goto_exit(props, exit_result_object, "r") }}
+    } else {
+        long temp = a;
+        long ix = 1;
+        long bb = b;
+
+        while (bb > 0) {
+            long prev = ix;
+            if (bb & 1) {
+                ix = (unsigned long)ix * temp;
+                if (temp == 0) {
+                    break;
+                }
+                if (ix / temp != prev) {
+                    PyObject *operand1_long = PyLong_FromLong(a);
+                    PyObject *operand2_long = PyLong_FromLong(b);
+
+                    PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                    Py_DECREF(operand1_long);
+                    Py_DECREF(operand2_long);
+
+                    {{ goto_exit(props, exit_result_object, "r") }}
+                }
+            }
+            bb >>= 1;
+            if (bb==0) {
+                break;
+            }
+            prev = temp;
+            temp = (unsigned long)temp * temp;
+
+            if (prev != 0 && temp / prev != prev) {
+                PyObject *operand1_long = PyLong_FromLong(a);
+                PyObject *operand2_long = PyLong_FromLong(b);
+
+                PyObject *r = _BINARY_OPERATION_POW_OBJECT_LONG_LONG(operand1_long, operand2_long);
+
+                Py_DECREF(operand1_long);
+                Py_DECREF(operand2_long);
+
+                {{ goto_exit(props, exit_result_object, "r") }}
+            }
+        }
+
+        {{ goto_exit(props, exit_result_ok_clong, "ix") }}
+    }
+    {% set fall_through_needed = 0 %}
+{% elif operator == "divmod" %}
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    if (likely(b != -1 || !UNARY_NEG_WOULD_OVERFLOW(a))) {
+        long a_div_b = a / b;
+        long a_mod_b = (long)(a - (unsigned long)a_div_b * b);
+
+        if (a_mod_b && (b ^ a_mod_b) < 0) {
+            a_mod_b += b;
+            a_div_b -= 1;
+        }
+
+        PyObject *r = Py_BuildValue("(ll)", a_div_b, a_mod_b);
+        {{ goto_exit(props, exit_result_object, "r") }}
+    }
+{% else %}
+#error Operator {{operator}} not implemented
+{% endif %}
+{% if fall_through_needed %}
+    {
+        PyObject *operand1_object = {{ left.getAsObjectValueExpression(operand1) }};
+        PyObject *operand2_object = {{ right.getAsObjectValueExpression(operand2) }};
+
+        PyObject *r = {{ left.getSlotCallExpression(nb_slot, "PyLong_Type.tp_as_number->"+nb_slot, "operand1_object", "operand2_object") }};
+        assert(r != Py_NotImplemented);
+
+        {{ left.releaseAsObjectValueStatement("operand1_object") }}
+        {{ right.releaseAsObjectValueStatement("operand2_object") }}
+
+        {{ goto_exit(props, exit_result_object, "r") }}
+    }
+{% endif %}
+{% endmacro %}
+
+{% macro int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+    {% set bool_mode = target and target.type_name in ("nuitka_bool", "nbool") %}
+
+    // Not every code path will make use of all possible results.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    NUITKA_MAY_BE_UNUSED bool cbool_result;
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    {{ int_core(props, operator, nb_slot, bool_mode, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception, "exit_result_ok_cbool", "exit_result_ok_clong", "exit_result_ok_cfloat", "exit_result_object", "exit_result_ok_left", "exit_result_ok_const_int_0", "exit_result_ok_const_int_neg_1", "exit_result_ok_const_float_0_0", "exit_result_ok_const_float_minus_0_0") }}
+
+{# // {{ props }} #}
+
+{% if "exit_result_ok_cbool" in props["exits"] %}
+exit_result_ok_cbool:
+{% if target %}
+    {{ target.getAssignFromBoolExpressionCode(result, "cbool_result", give_ref=1) }}
+{% else %}
+    {# TODO: Check the reference we were handed down. #}
+
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    {{ operand1 }} = PyInt_FromLong(cbool_result);
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_clong" in props["exits"] %}
+exit_result_ok_clong:
+{% if target %}
+    {{ (target if target != object_desc else int_desc).getAssignFromLongExpressionCode(result, "clong_result") }}
+{% else %}
+    {# TODO: Check the reference we were handed down. #}
+
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    {{ operand1 }} = PyInt_FromLong(clong_result);
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_cfloat" in props["exits"] %}
+exit_result_ok_cfloat:
+{% if target %}
+    {{ target.getAssignFromFloatExpressionCode(result, "cfloat_result") }}
+{% else %}
+    {# TODO: Check the reference we were handed down. #}
+
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+
+    {{ left.getAssignFromFloatExpressionCode(operand1, "cfloat_result") }}
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_left" in props["exits"] %}
+exit_result_ok_left:
+{% if target %}
+    {{ target.getAssignConversionCode(result, left, operand1) }}
+{% endif %}
+    {# Nothing to do in case of in-place. #}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_object" in props["exits"] %}
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+{% if target %}
+    {{ target.getAssignFromObjectExpressionCode(result, "obj_result") }}
+{% else %}
+    {# TODO: Check the reference we were handed down and do it in-place really. #}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+
+    {{ operand1 }} = obj_result;
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_const_int_0" in props["exits"] %}
+{{ constant_int_exit_target(props, target, result, left, operand1, "exit_result_ok_const_int_0", 0, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_const_int_neg_1" in props["exits"] %}
+{{ constant_int_exit_target(props, target, result, left, operand1, "exit_result_ok_const_int_neg_1", -1, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_const_float_0_0" in props["exits"] %}
+{{ constant_float_exit_target(props, target, result, left, operand1, "exit_result_ok_const_float_0_0", 0.0, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_const_float_minus_0_0" in props["exits"] %}
+{{ constant_float_exit_target(props, target, result, left, operand1, "exit_result_ok_const_float_minus_0_0", -0.0, exit_result_ok) }}
+{% endif %}
+
+{% endmacro %}

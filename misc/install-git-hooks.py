@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 import stat
 
 from nuitka.tools.Basics import goHome
+from nuitka.Tracing import tools_logger
 from nuitka.utils.Execution import getExecutablePath
 from nuitka.utils.FileOperations import (
     getFileContents,
@@ -53,23 +54,25 @@ def main():
                 git_path = None
 
         if git_path is None:
-            sys.exit(
+            tools_logger.sysexit(
                 """\
 Error, cannot locate 'git.exe' which we need to install git hooks. Add it to
 PATH while executing this will be sufficient."""
             )
 
-        sh_path = os.path.join(os.path.dirname(git_path), "sh.exe")
-
-        if not os.path.exists(sh_path):
-            sh_path = os.path.join(
-                os.path.dirname(git_path), "..", "..", "bin", "sh.exe"
+        for candidate in (
+            "sh.exe",
+            os.path.join("..", "bin", "sh.exe"),
+            os.path.join("..", "..", "bin", "sh.exe"),
+        ):
+            sh_path = os.path.normpath(
+                os.path.join(os.path.dirname(git_path), candidate)
             )
 
-        sh_path = os.path.normpath(sh_path)
-
-        if not os.path.exists(sh_path):
-            sys.exit(
+            if os.path.exists(sh_path):
+                break
+        else:
+            tools_logger.sysexit(
                 """\
 Error, cannot locate 'sh.exe' near 'git.exe' which we need to install git hooks,
 please improve this script."""
@@ -92,7 +95,7 @@ please improve this script."""
                     hook_contents[10:],
                 )
 
-            # Also use sys.executable to make sure we find autoformat.
+            # Also use "sys.executable" to make sure we find auto-format tool.
             hook_contents = hook_contents.replace(
                 "./bin/autoformat-nuitka-source",
                 "'%s' ./bin/autoformat-nuitka-source" % sys.executable,

@@ -62,7 +62,7 @@ from nuitka.Caching import (
     getCachedImportedModulesNames,
     hasCachedImportedModulesNames,
 )
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import CodeTooComplexCode
 from nuitka.freezer.Standalone import detectEarlyImports
 from nuitka.importing import Importing
@@ -197,7 +197,7 @@ from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
-from .SourceReading import (
+from .SourceHandling import (
     checkPythonVersionFromCode,
     readSourceCodeFromFilename,
 )
@@ -421,14 +421,21 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
         assert closure_variable.isModuleVariable()
 
+        # Special case, since Python 3.5 it is allowed to use global on the "__class__"
+        # variable as well, but it's not changing visibility of implicit "__class__" of
+        # functions, and as such it will just not be registered.
         if (
-            python_version < 0x340
-            and provider.isExpressionClassBody()
+            provider.isExpressionClassBody()
             and closure_variable.getName() == "__class__"
         ):
-            SyntaxErrors.raiseSyntaxError("cannot make __class__ global", source_ref)
-
-        provider.getLocalsScope().registerClosureVariable(variable=closure_variable)
+            if python_version < 0x340:
+                SyntaxErrors.raiseSyntaxError(
+                    "cannot make __class__ global", source_ref
+                )
+        else:
+            provider.getLocalsScope().registerClosureVariable(
+                variable=closure_variable,
+            )
 
     # Drop this, not really part of our tree.
     return None

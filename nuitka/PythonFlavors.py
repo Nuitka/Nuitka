@@ -29,6 +29,7 @@ import sys
 
 from nuitka.utils.FileOperations import isPathBelowOrSameAs
 from nuitka.utils.Utils import (
+    isFedoraBasedLinux,
     isLinux,
     isMacOS,
     isWin32Windows,
@@ -175,6 +176,16 @@ def isDebianPackagePython():
                 return False
             else:
                 return True
+
+
+def isFedoraPackagePython():
+    """Is the Python from a Fedora package."""
+    if not isFedoraBasedLinux():
+        return False
+
+    system_prefix_path = getSystemPrefixPath()
+
+    return system_prefix_path == "/usr"
 
 
 def isCPythonOfficialPackage():

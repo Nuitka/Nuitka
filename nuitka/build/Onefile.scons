@@ -63,7 +63,6 @@ from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
     addClangClPathFromMSVC,
-    addToPATH,
     changeKeyboardInterruptToErrorExit,
     createDefinitionsFile,
     createEnvironment,
@@ -76,6 +75,7 @@ from .SconsUtils import (
     initScons,
     isClangName,
     isGccName,
+    prepareEnvironment,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
     setArguments,
@@ -84,7 +84,7 @@ from .SconsUtils import (
 )
 
 # spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
-# spell-checker: ignore cxxflags,ldflags
+# spell-checker: ignore cxxflags,ldflags,libpath,linkflags
 
 # Set the arguments.
 setArguments(ARGUMENTS)
@@ -100,9 +100,6 @@ source_dir = getArgumentRequired("source_dir")
 # should be used.
 nuitka_src = getArgumentRequired("nuitka_src")
 static_src = os.path.join(source_dir, "static")
-
-# The name of executable or extension module that we produce.
-result_basepath = getArgumentRequired("result_name")
 
 # The name of executable that we produce
 result_exe = getArgumentDefaulted("result_exe", None)
@@ -194,9 +191,6 @@ compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
-# Onefile compression is optional.
-onefile_compression = getArgumentBool("onefile_compression", False)
-
 # Onefile bootstrap is optional.
 onefile_splash_screen = getArgumentBool("onefile_splash_screen", False)
 
@@ -206,6 +200,8 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
+# Anaconda Python might use its own compiler.
+anaconda_python = getArgumentBool("anaconda_python", False)
 
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
@@ -219,25 +215,12 @@ def printCompilerVersionOutput(*args):
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
-# Add environment specified compilers to the PATH variable.
-if "CC" in os.environ:
-    os.environ["CC"] = os.path.normpath(os.environ["CC"])
+# Prepare environment for compiler detection.
+mingw_mode = prepareEnvironment(
+    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
+)
 
-    if os.path.isdir(os.environ["CC"]):
-        sys.exit("Error, the CC variable must point to file, not directory.")
-
-    cc_dirname = os.path.dirname(os.environ["CC"])
-
-    if win_target and isGccName(os.path.basename(os.environ["CC"])):
-        if show_scons_mode:
-            my_print("Scons: Environment CC seems to be a gcc, enable mingw_mode.")
-        mingw_mode = True
-
-    if os.path.isdir(cc_dirname):
-        addToPATH(None, cc_dirname, prefix=True)
-
-    printCompilerVersionOutput("CC=%r" % os.environ["CC"])
-
+# TODO: Merge to prepareEnvironment as well.
 if "CXX" in os.environ:
     os.environ["CXX"] = os.path.normpath(os.environ["CXX"])
 
@@ -255,8 +238,6 @@ if "CXX" in os.environ:
         os.environ["PATH"] = os.pathsep.join(
             [cxx_dirname] + os.environ["PATH"].split(os.pathsep)
         )
-
-    printCompilerVersionOutput("CXX=%r" % os.environ["CXX"])
 
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
@@ -277,7 +258,6 @@ scons_details_logger.info(
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
-    env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
 
     scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
@@ -313,6 +293,8 @@ env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
 
+env.anaconda_python = anaconda_python
+
 # Requested or user provided, detect if it's clang even from environment
 if isClangName(env.the_cc_name):
     clang_mode = True
@@ -332,6 +314,7 @@ env.clangcl_mode = clangcl_mode
 # for Onefile.
 env.nuitka_python = False
 env.debian_python = False
+env.fedora_python = False
 env.msys2_mingw_python = False
 env.static_libpython = None
 
@@ -595,19 +578,21 @@ if env.msvc_mode and not disable_ccache:
 def createBuildDefinitionsFile():
     onefile_definitions = {}
 
-    if "ONEFILE_TEMP_SPEC" in os.environ:
-        onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ[
-            "ONEFILE_TEMP_SPEC"
-        ]
-        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 1
-    else:
-        onefile_definitions["_NUITKA_ONEFILE_TEMP"] = 0
+    onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ[
+        "_NUITKA_ONEFILE_TEMP_SPEC"
+    ]
+    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = int(
+        os.environ["_NUITKA_ONEFILE_TEMP"]
+    )
 
-    if onefile_compression:
-        onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = 1
+    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = int(
+        os.environ["_NUITKA_ONEFILE_COMPRESSION"]
+    )
 
     if onefile_splash_screen:
         onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
+
+        # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
 
     setProductVersionDefinitions(onefile_definitions)

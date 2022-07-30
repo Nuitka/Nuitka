@@ -94,6 +94,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyObject *funct
     return CALL_FUNCTION(function_object, const_tuple_empty, named_args);
 }
 
+// Call built-in functions with using defaulted values.
+extern PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args);
+
 #include "nuitka/helper/calling2.h"
 
 // For exception test formatting and call code mostly.

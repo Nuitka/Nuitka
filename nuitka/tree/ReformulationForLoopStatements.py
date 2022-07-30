@@ -34,8 +34,8 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -148,8 +148,10 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     )
 
     cleanup_statements = [
-        StatementReleaseVariable(variable=tmp_value_variable, source_ref=source_ref),
-        StatementReleaseVariable(variable=tmp_iter_variable, source_ref=source_ref),
+        makeStatementReleaseVariable(
+            variable=tmp_value_variable, source_ref=source_ref
+        ),
+        makeStatementReleaseVariable(variable=tmp_iter_variable, source_ref=source_ref),
     ]
 
     if else_block is not None:

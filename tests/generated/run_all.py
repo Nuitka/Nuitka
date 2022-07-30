@@ -47,6 +47,9 @@ from nuitka.tools.specialize.SpecializePython import (
 from nuitka.tools.specialize.SpecializePython import (
     python2_str_methods as str_method_names,
 )
+from nuitka.tools.specialize.SpecializePython import (
+    python3_bytes_methods as bytes_method_names,
+)
 from nuitka.tools.testing.Common import (
     compareWithCPython,
     createSearchMode,
@@ -136,6 +139,22 @@ def main():
 
         method_arguments[str_method_name] = spec.getArgumentNames()
 
+    for bytes_method_name in bytes_method_names:
+        spec = getattr(
+            nuitka.specs.BuiltinBytesOperationSpecs,
+            "bytes_%s_spec" % bytes_method_name,
+            None,
+        )
+
+        if spec is None:
+            my_print(
+                "Warning, bytes function '%s' has no spec." % bytes_method_name,
+                style="yellow",
+            )
+            continue
+
+        method_arguments[bytes_method_name] = spec.getArgumentNames()
+
     for dict_method_name in dict_method_names:
         spec = getattr(
             nuitka.specs.BuiltinDictOperationSpecs,
@@ -163,6 +182,11 @@ def main():
             str_method_name
             for str_method_name in str_method_names
             if str_method_name in method_arguments
+        ],
+        "bytes_method_names": [
+            bytes_method_name
+            for bytes_method_name in bytes_method_names
+            if bytes_method_name in method_arguments
         ],
         "method_arguments": method_arguments,
         "inplace_operations": tuple(

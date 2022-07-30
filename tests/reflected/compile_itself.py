@@ -59,6 +59,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.Version import getCommercialVersion
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
@@ -66,7 +67,7 @@ tmp_dir = getTempDir()
 
 # Cannot detect this more automatic, so we need to list them, avoiding
 # the ones not needed.
-PACKAGE_LIST = (
+PACKAGE_LIST = [
     "nuitka",
     "nuitka/nodes",
     "nuitka/specs",
@@ -75,9 +76,9 @@ PACKAGE_LIST = (
     "nuitka/importing",
     "nuitka/build",
     "nuitka/freezer",
-    "nuitka/codegen",
-    "nuitka/codegen/templates",
-    "nuitka/codegen/c_types",
+    "nuitka/code_generation",
+    "nuitka/code_generation/templates",
+    "nuitka/code_generation/c_types",
     "nuitka/optimizations",
     "nuitka/finalizations",
     "nuitka/plugins",
@@ -87,7 +88,10 @@ PACKAGE_LIST = (
     "nuitka/constants",
     "nuitka/containers",
     "nuitka/utils",
-)
+]
+
+if not getCommercialVersion():
+    PACKAGE_LIST.remove("nuitka/plugins/commercial")
 
 exe_suffix = ".exe" if os.name == "nt" else ".bin"
 
@@ -273,6 +277,8 @@ def executePASS1():
     for filename in (
         "nuitka/build/Backend.scons",
         "nuitka/plugins/standard/standard.nuitka-package.config.yml",
+        "nuitka/plugins/standard/stdlib3.nuitka-package.config.yml",
+        "nuitka/plugins/standard/stdlib2.nuitka-package.config.yml",
     ):
         shutil.copyfile(
             os.path.join(base_dir, filename),
@@ -280,8 +286,8 @@ def executePASS1():
         )
 
     copyTree(
-        os.path.join(base_dir, "nuitka", "codegen", "templates_c"),
-        os.path.join("nuitka", "codegen", "templates_c"),
+        os.path.join(base_dir, "nuitka", "code_generation", "templates_c"),
+        os.path.join("nuitka", "code_generation", "templates_c"),
     )
 
     copyTree(
@@ -469,7 +475,11 @@ def executePASS5():
     if result != 0:
         sys.exit(result)
 
-    os.unlink(os.path.join(tmp_dir, "nuitka" + getSharedLibrarySuffix(preferred=True)))
+    for preferred in True, False:
+        candidate = "nuitka" + getSharedLibrarySuffix(preferred=preferred)
+
+        deleteFile(candidate, must_exist=False)
+
     os.unlink(os.path.join(tmp_dir, "nuitka.pyi"))
     shutil.rmtree(os.path.join(tmp_dir, "nuitka.build"))
 

@@ -22,16 +22,13 @@ to read their contents.
 """
 
 import hashlib
+from binascii import crc32
 
 from .FileOperations import openTextFile
 
 
-class Hash(object):
-    def __init__(self):
-        self.hash = hashlib.md5()
-
-    def updateFromBytes(self, value):
-        self.hash.update(value)
+class HashBase(object):
+    __slots__ = ("hash",)
 
     def updateFromValues(self, *values):
         for value in values:
@@ -51,13 +48,24 @@ class Hash(object):
     def updateFromFile(self, filename):
         # TODO: Read in chunks
         with openTextFile(filename, "rb") as input_file:
-            while 1:
-                chunk = input_file.read(1024 * 64)
+            self.updateFromFileHandle(input_file)
 
-                if not chunk:
-                    break
+    def updateFromFileHandle(self, file_handle):
+        while 1:
+            chunk = file_handle.read(1024 * 64)
 
-                self.updateFromBytes(chunk)
+            if not chunk:
+                break
+
+            self.updateFromBytes(chunk)
+
+
+class Hash(HashBase):
+    def __init__(self):
+        self.hash = hashlib.md5()
+
+    def updateFromBytes(self, value):
+        self.hash.update(value)
 
     def asDigest(self):
         return self.hash.digest()
@@ -88,3 +96,14 @@ def getHashFromValues(*values):
     result.updateFromValues(*values)
 
     return result.asHexDigest()
+
+
+class HashCRC32(HashBase):
+    def __init__(self):
+        self.hash = 0
+
+    def updateFromBytes(self, value):
+        self.hash = crc32(value, self.hash)
+
+    def asDigest(self):
+        return self.hash

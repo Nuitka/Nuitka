@@ -1228,7 +1228,7 @@ static int free_list_generators_count = 0;
 static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator) {
     // Revive temporarily.
     assert(Py_REFCNT(generator) == 0);
-    Py_REFCNT(generator) = 1;
+    Py_SET_REFCNT(generator, 1);
 
     // Save the current exception, if any, we must preserve it.
     PyObject *save_exception_type, *save_exception_value;
@@ -1247,7 +1247,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     Nuitka_Generator_release_closure(generator);
 
     // Allow for above code to resurrect the generator.
-    Py_REFCNT(generator) -= 1;
+    Py_SET_REFCNT(generator, Py_REFCNT(generator) - 1);
     if (Py_REFCNT(generator) >= 1) {
         return;
     }

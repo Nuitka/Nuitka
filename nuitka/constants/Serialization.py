@@ -32,8 +32,8 @@ from nuitka.Builtins import (
 )
 
 # TODO: Move to constants
-from nuitka.codegen.Namify import namifyConstant
-from nuitka.containers.oset import OrderedSet
+from nuitka.code_generation.Namify import namifyConstant
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import openTextFile
 

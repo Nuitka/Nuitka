@@ -28,6 +28,12 @@
 #include "nuitka/prelude.h"
 #endif
 
+#ifdef PY_NOGIL
+#define Py_BUILD_CORE
+#include "internal/pycore_generator.h"
+#undef Py_BUILD_CORE
+#endif
+
 // This function takes no reference to value, and publishes a StopIteration
 // exception with it.
 #if PYTHON_VERSION >= 0x300
@@ -91,7 +97,9 @@ static inline bool Nuitka_PyFrameHasCompleted(PyFrameObject *const frame) {
 }
 
 static inline bool Nuitka_PyGeneratorIsExecuting(PyGenObject const *gen) {
-#if PYTHON_VERSION < 0x3a0
+#ifdef PY_NOGIL
+    return gen->status == GEN_RUNNING;
+#elif PYTHON_VERSION < 0x3a0
     return gen->gi_running == 1;
 #else
     PyFrameObject *frame = gen->gi_frame;
@@ -104,7 +112,42 @@ static inline bool Nuitka_PyGeneratorIsExecuting(PyGenObject const *gen) {
 // what it does. It's unrelated to compiled generators, and used from coroutines
 // and asyncgen to interact with them.
 static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
-#if PYTHON_VERSION >= 0x3a0
+#if defined(PY_NOGIL)
+    PyObject *res;
+
+    if (gen->status == GEN_CREATED) {
+        if (unlikely(arg != Py_None)) {
+            char const *msg = "generator raised StopIteration";
+            if (PyCoro_CheckExact(gen)) {
+                msg = "coroutine raised StopIteration";
+            } else if (PyAsyncGen_CheckExact(gen)) {
+                msg = "async generator raised StopIteration";
+            }
+
+            _PyErr_FormatFromCause(PyExc_RuntimeError, "%s", msg);
+            return NULL;
+        }
+        arg = NULL;
+    }
+
+    res = PyEval2_EvalGen(gen, arg);
+
+    if (likely(res != NULL)) {
+        assert(gen->status == GEN_SUSPENDED);
+        return res;
+    }
+
+    if (likely(gen->return_value == Py_None)) {
+        gen->return_value = NULL;
+        PyErr_SetNone(PyAsyncGen_CheckExact(gen) ? PyExc_StopAsyncIteration : PyExc_StopIteration);
+        return NULL;
+    } else if (gen->return_value != NULL) {
+        Nuitka_SetStopIterationValue(gen->return_value);
+        return NULL;
+    } else {
+        return gen_wrap_exception(gen);
+    }
+#elif PYTHON_VERSION >= 0x3a0
     PyObject *result;
 
     PySendResult res = PyIter_Send((PyObject *)gen, arg, &result);
@@ -297,7 +340,8 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 
 #endif
 
-#if PYTHON_VERSION >= 0x340
+// TODO: Disabled for NOGIL until it becomes more ready.
+#if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL)
 
 #include <opcode.h>
 

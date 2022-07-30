@@ -27,7 +27,7 @@ import sys
 import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 
 from nuitka.__past__ import Iterable, unicode
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import (
     decideModuleSourceRef,
     locateModule,

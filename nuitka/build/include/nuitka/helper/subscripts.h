@@ -69,6 +69,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
     CHECK_OBJECT(source);
     CHECK_OBJECT(const_subscript);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
+    return PyObject_GetItem(source, const_subscript);
+#else
     PyTypeObject *type = Py_TYPE(source);
     PyMappingMethods *mapping_methods = type->tp_as_mapping;
 
@@ -167,12 +170,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
     }
 
     return result;
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObject *subscript) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(subscript);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
+    return PyObject_GetItem(source, subscript);
+#else
     PyTypeObject *type = Py_TYPE(source);
     PyMappingMethods *mapping = type->tp_as_mapping;
 
@@ -218,6 +225,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
 
     formatNotSubscriptableError(source);
     return NULL;
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyObject *source, PyObject *const_subscript,
@@ -225,6 +233,16 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyObject *source, PyObject 
     CHECK_OBJECT(source);
     CHECK_OBJECT(const_subscript);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
+    PyObject *item = PyObject_GetItem(source, const_subscript);
+
+    if (item) {
+        Py_DECREF(item);
+        return true;
+    } else {
+        return false;
+    }
+#else
     PyTypeObject *type = Py_TYPE(source);
     PyMappingMethods *mapping_methods = type->tp_as_mapping;
 
@@ -323,12 +341,24 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyObject *source, PyObject 
     }
 
     return false;
+
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subscript) {
     CHECK_OBJECT(source);
     CHECK_OBJECT(subscript);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
+    PyObject *item = PyObject_GetItem(source, subscript);
+
+    if (item) {
+        Py_DECREF(item);
+        return true;
+    } else {
+        return false;
+    }
+#else
     PyTypeObject *type = Py_TYPE(source);
     PyMappingMethods *mapping = type->tp_as_mapping;
 
@@ -380,6 +410,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subsc
 #endif
 
     return false;
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject *subscript, Py_ssize_t int_subscript,
@@ -388,6 +419,10 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
     CHECK_OBJECT(target);
     CHECK_OBJECT(subscript);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
+    int res = PyObject_SetItem(target, subscript, value);
+    return res == 0;
+#else
     PyMappingMethods *mapping_methods = Py_TYPE(target)->tp_as_mapping;
 
     if (mapping_methods != NULL && mapping_methods->mp_ass_subscript) {
@@ -446,6 +481,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
 
         return false;
     }
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subscript, PyObject *value) {
@@ -453,6 +489,10 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subsc
     CHECK_OBJECT(target);
     CHECK_OBJECT(subscript);
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT
+    int res = PyObject_SetItem(target, subscript, value);
+    return res == 0;
+#else
     PyMappingMethods *mapping_methods = Py_TYPE(target)->tp_as_mapping;
 
     if (mapping_methods != NULL && mapping_methods->mp_ass_subscript) {
@@ -488,6 +528,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subsc
     }
 
     return true;
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static bool DEL_SUBSCRIPT(PyObject *target, PyObject *subscript) {

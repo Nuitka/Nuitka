@@ -36,6 +36,7 @@ from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
 from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.Utils import isLinux, isMacOS
 
 from .SconsUtils import decodeData, getExecutablePath, isGccName
 
@@ -160,6 +161,9 @@ def myDetect(self, progs):
         if blocked_tool in progs:
             return None
 
+    # Note: Actually, with our inline copy, this is maybe not supposed to
+    # happen at all
+
     return orig_detect(self, progs)
 
 
@@ -169,6 +173,15 @@ orig_detect = Environment.Detect
 
 def getEnhancedToolDetect():
     SCons.Tool.gcc.detect_version = myDetectVersion
+
+    # Allow CondaCC to be detected if it is in PATH.
+    if isLinux():
+        SCons.Tool.gcc.compilers.insert(0, "x86_64-conda-linux-gnu-gcc")
+
+    if isMacOS() and "CONDA_TOOLCHAIN_BUILD" in os.environ:
+        SCons.Tool.gcc.compilers.insert(
+            0, "%s-clang" % os.environ["CONDA_TOOLCHAIN_BUILD"]
+        )
 
     return myDetect
 

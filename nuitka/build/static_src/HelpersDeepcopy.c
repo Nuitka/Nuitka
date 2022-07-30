@@ -41,6 +41,23 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
     CHECK_OBJECT(value);
     assert(PyDict_CheckExact(value));
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+    PyObject *result = DICT_COPY(value);
+
+    Py_ssize_t pos = 0;
+    PyObject *dict_key, *dict_value;
+
+    while (Nuitka_DictNext(value, &pos, &dict_key, &dict_value)) {
+        PyObject *dict_value_copy = DEEP_COPY(dict_value);
+
+        if (dict_value_copy != dict_value) {
+            DICT_SET_ITEM(value, dict_key, dict_value_copy);
+        }
+    }
+
+    return result;
+#else
+
     if (((PyDictObject *)value)->ma_used == 0) {
         return PyDict_New();
     }
@@ -71,6 +88,7 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
     return result;
 #else
     /* Python 3 */
+#ifndef PY_NOGIL
     if (_PyDict_HasSplitTable((PyDictObject *)value)) {
         PyDictObject *mp = (PyDictObject *)value;
 
@@ -103,7 +121,9 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
         Nuitka_GC_Track(result);
 
         return (PyObject *)result;
-    } else {
+    } else
+#endif
+    {
         PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
 
         PyDictObject *mp = (PyDictObject *)value;
@@ -132,6 +152,7 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
 
         return result;
     }
+#endif
 #endif
 }
 

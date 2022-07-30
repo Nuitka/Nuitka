@@ -167,6 +167,13 @@ def makePath(path):
             os.makedirs(path)
 
 
+def makeContainingPath(filename):
+    target_dir = os.path.dirname(filename)
+
+    if not os.path.isdir(target_dir):
+        makePath(target_dir)
+
+
 def isPathExecutable(path):
     """Is the given path executable."""
     return os.path.isfile(path) and os.access(path, os.X_OK)

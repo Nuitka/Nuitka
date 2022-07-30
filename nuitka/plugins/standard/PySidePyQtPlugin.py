@@ -23,8 +23,7 @@ own dependencies.
 
 import os
 
-from nuitka.containers.oset import OrderedSet
-from nuitka.freezer.IncludedEntryPoints import makeExeEntryPoint
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental, isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
@@ -811,7 +810,7 @@ Prefix = .
 
             for filename, filename_relative in listDir(qt_web_engine_dir):
                 if filename_relative.startswith("QtWebEngineProcess"):
-                    yield makeExeEntryPoint(
+                    yield self.makeExeEntryPoint(
                         source_path=filename,
                         dest_path=os.path.join(
                             self._getWebEngineTargetDir(), filename_relative

@@ -24,13 +24,25 @@ import re
 import sys
 
 from nuitka import Options
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 from nuitka.__past__ import unicode
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
-from .Execution import executeToolChecked, withEnvironmentVarOverridden
-from .FileOperations import copyFile, getFileList, withMadeWritableFileMode
-from .Utils import isAlpineLinux, isMacOS, isWin32Windows
+from .Execution import (
+    executeToolChecked,
+    withEnvironmentPathAdded,
+    withEnvironmentVarOverridden,
+)
+from .FileOperations import (
+    addFileExecutablePermission,
+    copyFile,
+    getFileList,
+    makeContainingPath,
+    withMadeWritableFileMode,
+)
+from .Utils import isAlpineLinux, isLinux, isMacOS, isWin32Windows
 from .WindowsResources import (
     RT_MANIFEST,
     VsFixedFileInfoStructure,
@@ -46,7 +58,7 @@ def locateDLLFromFilesystem(name, paths):
                 return os.path.join(root, name)
 
 
-_ldconfig_usage = "The 'ldconfig' is used to analyse dependencies on ELF using systems and required to be found."
+_ldconfig_usage = "The 'ldconfig' is used to analyze dependencies on ELF using systems and required to be found."
 
 
 def locateDLL(dll_name):
@@ -62,10 +74,7 @@ def locateDLL(dll_name):
     if isMacOS() and not os.path.exists(dll_name):
         return None
 
-    if isWin32Windows():
-        return os.path.abspath(dll_name)
-
-    if isMacOS():
+    if isWin32Windows() or isMacOS():
         return os.path.abspath(dll_name)
 
     if os.path.sep in dll_name:
@@ -150,7 +159,7 @@ def _removeSxsFromDLL(filename):
         deleteWindowsResources(filename, RT_MANIFEST, res_names)
 
 
-def getWindowsDLLVersion(filename):
+def _getDLLVersionWindows(filename):
     """Return DLL version information from a file.
 
     If not present, it will be (0, 0, 0, 0), otherwise it will be
@@ -209,7 +218,7 @@ def getWindowsDLLVersion(filename):
     file_info = ctypes.POINTER(VsFixedFileInfoStructure)()
     uLen = ctypes.c_uint32(ctypes.sizeof(file_info))
 
-    b = VerQueryValueA(res, br"\\", ctypes.byref(file_info), ctypes.byref(uLen))
+    b = VerQueryValueA(res, b"\\\\", ctypes.byref(file_info), ctypes.byref(uLen))
     if not b:
         return (0, 0, 0, 0)
 
@@ -244,24 +253,59 @@ def _getSharedLibraryRPATHElf(filename):
     return None
 
 
-otool_usage = (
-    "The 'otool' is used to analyse dependencies on macOS and required to be found."
-)
+_otool_output_cache = {}
 
-_otool_l_cache = {}
+
+def _getOToolCommandOutput(otool_option, filename):
+    filename = os.path.abspath(filename)
+
+    command = ("otool", otool_option, filename)
+
+    if otool_option == "-L":
+        cache_key = command, os.environ.get("DYLD_LIBRARY_PATH")
+    else:
+        cache_key = command
+
+    if cache_key not in _otool_output_cache:
+        _otool_output_cache[cache_key] = executeToolChecked(
+            logger=postprocessing_logger,
+            command=command,
+            absence_message="The 'otool' is used to analyze dependencies on macOS and required to be found.",
+        )
+
+    return _otool_output_cache[cache_key]
 
 
 def getOtoolListing(filename):
-    filename = os.path.abspath(filename)
+    return _getOToolCommandOutput("-l", filename)
 
-    if filename not in _otool_l_cache:
-        _otool_l_cache[filename] = executeToolChecked(
-            logger=postprocessing_logger,
-            command=("otool", "-l", filename),
-            absence_message=otool_usage,
-        )
 
-    return _otool_l_cache[filename]
+def getOtoolDependencyOutput(filename, package_specific_dirs):
+    with withEnvironmentPathAdded("DYLD_LIBRARY_PATH", *package_specific_dirs):
+        return _getOToolCommandOutput("-L", filename)
+
+
+def _getDLLVersionMacOS(filename):
+    output = _getOToolCommandOutput("-D", filename).splitlines()
+
+    if len(output) < 2:
+        return None
+
+    dll_id = output[1].strip()
+
+    if str is not bytes:
+        dll_id = dll_id.decode("utf8")
+
+    output = _getOToolCommandOutput("-L", filename).splitlines()
+    for line in output:
+        if str is not bytes:
+            line = line.decode("utf8")
+
+        if dll_id in line and "version" in line:
+            version_string = re.search(r"current version (.*)\)", line).group(1)
+            return tuple(int(x) for x in version_string.split("."))
+
+    return None
 
 
 def _getSharedLibraryRPATHDarwin(filename):
@@ -545,13 +589,108 @@ def makeMacOSThinBinary(filename):
         )
 
 
-def copyDllFile(source_path, dest_path):
+def copyDllFile(source_path, dist_dir, dest_path, executable):
     """Copy an extension/DLL file making some adjustments on the way."""
 
-    copyFile(source_path=source_path, dest_path=dest_path)
+    target_filename = os.path.join(dist_dir, dest_path)
+    makeContainingPath(target_filename)
+
+    copyFile(source_path=source_path, dest_path=target_filename)
 
     if isWin32Windows() and python_version < 0x300:
-        _removeSxsFromDLL(dest_path)
+        _removeSxsFromDLL(target_filename)
 
     if isMacOS() and Options.getMacOSTargetArch() != "universal":
-        makeMacOSThinBinary(dest_path)
+        makeMacOSThinBinary(target_filename)
+
+    if isLinux():
+        # Path must be normalized for this to be correct, but entry points enforced that.
+        count = dest_path.count(os.path.sep)
+
+        rpath = os.path.join("$ORIGIN", *([".."] * count))
+        setSharedLibraryRPATH(target_filename, rpath)
+
+    if executable:
+        addFileExecutablePermission(target_filename)
+
+
+def getDLLVersion(filename):
+    """Determine version of the DLL filename."""
+    if isMacOS():
+        return _getDLLVersionMacOS(filename)
+    elif isWin32Windows():
+        return _getDLLVersionWindows(filename)
+
+
+def getWindowsRunningProcessModuleFilename(handle):
+    """Runtime lookup of filename of a module in the current Python process."""
+
+    import ctypes.wintypes
+
+    MAX_PATH = 4096
+    buf = ctypes.create_unicode_buffer(MAX_PATH)
+
+    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
+    GetModuleFileName.argtypes = (
+        ctypes.wintypes.HANDLE,
+        ctypes.wintypes.LPWSTR,
+        ctypes.wintypes.DWORD,
+    )
+    GetModuleFileName.restype = ctypes.wintypes.DWORD
+
+    res = GetModuleFileName(handle, buf, MAX_PATH)
+    if res == 0:
+        # Windows only code, pylint: disable=I0021,undefined-variable
+        raise WindowsError(
+            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+        )
+
+    return os.path.normcase(buf.value)
+
+
+def _getWindowsRunningProcessModuleHandles():
+    """Return list of process module handles for running process."""
+    import ctypes.wintypes
+
+    try:
+        EnumProcessModulesProc = ctypes.windll.psapi.EnumProcessModules
+    except AttributeError:
+        EnumProcessModulesProc = ctypes.windll.kernel32.EnumProcessModules
+
+    EnumProcessModulesProc.restype = ctypes.wintypes.BOOL
+    EnumProcessModulesProc.argtypes = [
+        ctypes.wintypes.HANDLE,
+        ctypes.POINTER(ctypes.wintypes.HANDLE),
+        ctypes.wintypes.LONG,
+        ctypes.POINTER(ctypes.wintypes.ULONG),
+    ]
+
+    # Very unlikely that this is not sufficient for CPython.
+    handles = (ctypes.wintypes.HANDLE * 1024)()
+    needed = ctypes.wintypes.ULONG()
+
+    res = EnumProcessModulesProc(
+        ctypes.windll.kernel32.GetCurrentProcess(),
+        handles,
+        ctypes.sizeof(handles),
+        ctypes.byref(needed),
+    )
+
+    if not res:
+        # Windows only code, pylint: disable=I0021,undefined-variable
+        raise WindowsError(
+            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+        )
+
+    return tuple(handle for handle in handles if handle is not None)
+
+
+def getWindowsRunningProcessDLLPaths():
+    result = OrderedDict()
+
+    for handle in _getWindowsRunningProcessModuleHandles():
+        filename = getWindowsRunningProcessModuleFilename(handle)
+
+        result[os.path.basename(filename)] = filename
+
+    return result

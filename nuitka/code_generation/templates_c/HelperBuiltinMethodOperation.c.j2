@@ -1,0 +1,49 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix}}({{builtin_type.getVariableDecl(builtin_arg_name)}} {{formatArgumentDeclaration(arg_types, arg_names, starting=False)}}) {
+    {{builtin_type.getCheckValueCode(builtin_arg_name)}}
+
+{% for arg_type, arg_name in zip(arg_types, arg_names) %}
+{# Specific hack for hard to default value. #}
+{% if method_name == "decode" and builtin_type.type_name == "str" and arg_name == "encoding" and len(arg_names) == 2 %}
+    if (encoding == NULL) {
+        encoding = PyString_FromString(PyUnicode_GetDefaultEncoding());
+    } else {
+        Py_INCREF(encoding);
+    }
+{% else %}
+    {{arg_type.getCheckValueCode(arg_name)}}
+{% endif %}
+{% endfor %}
+
+    PyObject *called = {{builtin_type.type_name}}_builtin_{{method_name}};
+    CHECK_OBJECT(called);
+
+{% if len(arg_names) > 0 %}
+    PyObject *args[{{len(arg_names)+1}}] = { {{builtin_arg_name}}, {{",".join(arg_names)}} };
+    PyObject *result = CALL_METHODDESCR_WITH_ARGS{{len(arg_names)+1}}(called, args);
+{% else %}
+    PyObject *result = CALL_METHODDESCR_WITH_SINGLE_ARG(called, {{builtin_arg_name}});
+{% endif %}
+
+{% if method_name == "decode" and builtin_type.type_name == "str" and len(arg_names) == 2 %}
+    Py_DECREF(encoding);
+{% endif %}
+
+    return result;
+}

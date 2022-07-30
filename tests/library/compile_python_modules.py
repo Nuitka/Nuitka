@@ -62,6 +62,8 @@ search_mode = createSearchMode()
 
 tmp_dir = getTempDir()
 
+# spell-checker: ignore idnadata,tweedie
+
 ignore_list = (
     "__phello__.foo.py",  # Triggers error for "." in module name
     "idnadata",  # Avoid too complex code for main program.
@@ -72,7 +74,7 @@ ignore_list = (
     "cheshire_tomography.py",
 )
 
-nosyntax_errors = (
+late_syntax_errors = (
     # No syntax error with Python2 compileall, but run time only:
     "_identifier.py",
     "bench.py",
@@ -99,18 +101,31 @@ def action(stage_dir, _root, path):
         "--remove-output",
         "--quiet",
         "--nofollow-imports",
-        "--enable-plugin=pylint-warnings",
+        "--no-progressbar",
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
-    command.append(path)
+    suffix = getSharedLibrarySuffix(preferred=True)
+
+    if os.path.basename(path) == "__init__.py":
+        source_filename = os.path.dirname(path)
+        target_filename = os.path.basename(source_filename) + suffix
+    else:
+        source_filename = path
+        target_filename = os.path.basename(source_filename)[:-3] + suffix
+
+    target_filename = target_filename.replace("(", "").replace(")", "")
+
+    command.append(source_filename)
 
     try:
         subprocess.check_call(command)
     except subprocess.CalledProcessError:
-        if os.path.basename(path) in nosyntax_errors:
-            my_print("Syntax error is known unreliable with file file.")
+        basename = os.path.basename(path)
+
+        if basename in late_syntax_errors:
+            my_print("Syntax error is known unreliable with file %s." % basename)
         else:
             my_print("Falling back to full comparison due to error exit.")
 
@@ -119,11 +134,6 @@ def action(stage_dir, _root, path):
             )
     else:
         my_print("OK")
-
-        suffix = getSharedLibrarySuffix(preferred=True)
-
-        target_filename = os.path.basename(path)[:-3] + suffix
-        target_filename = target_filename.replace("(", "").replace(")", "")
 
         os.unlink(os.path.join(stage_dir, target_filename))
 
