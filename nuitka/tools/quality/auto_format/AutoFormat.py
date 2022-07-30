@@ -613,7 +613,7 @@ def autoFormatFile(
 
 @contextlib.contextmanager
 def withFileOpenedAndAutoFormatted(filename):
-    my_print("Creating %r ..." % filename)
+    my_print("Auto-format %r ..." % filename)
 
     tmp_filename = filename + ".tmp"
     with openTextFile(tmp_filename, "w") as output:
