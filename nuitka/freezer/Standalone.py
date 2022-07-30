@@ -29,7 +29,6 @@ import sys
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.Bytecodes import compileSourceToBytecode
-from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.importing import ImportCache
@@ -57,10 +56,8 @@ from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
-from nuitka.utils.ThreadedExecutor import ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
-    getCPUCoreCount,
     getOS,
     isDebianBasedLinux,
     isMacOS,
@@ -597,94 +594,6 @@ def _detectBinaryDLLs(
         assert False, getOS()
 
 
-_not_found_dlls = set()
-
-
-def _detectUsedDLLs(source_dir, standalone_entry_points, use_cache, update_cache):
-    setupProgressBar(
-        stage="Detecting used DLLs",
-        unit="DLL",
-        total=len(standalone_entry_points),
-    )
-
-    def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
-        try:
-            used_dlls = _detectBinaryDLLs(
-                is_main_executable=count == 0,
-                source_dir=source_dir,
-                original_filename=original_filename,
-                binary_filename=binary_filename,
-                package_name=package_name,
-                use_cache=use_cache,
-                update_cache=update_cache,
-            )
-        except NuitkaForbiddenDLLEncounter:
-            inclusion_logger.info(
-                "Not including forbidden DLL '%s'." % original_filename
-            )
-
-            return None, None, None
-
-        # Allow plugins to prevent inclusion, this may discard things from used_dlls.
-        Plugins.removeDllDependencies(
-            dll_filename=binary_filename, dll_filenames=used_dlls
-        )
-
-        for dll_filename in sorted(tuple(used_dlls)):
-            if not os.path.isfile(dll_filename):
-                if _not_found_dlls:
-                    general.warning(
-                        """\
-Dependency '%s' could not be found, expect runtime issues. If this is \
-working with Python, report a Nuitka bug."""
-                        % dll_filename
-                    )
-
-                    _not_found_dlls.add(dll_filename)
-
-                used_dlls.remove(dll_filename)
-
-        reportProgressBar(binary_filename)
-
-        return binary_filename, package_name, used_dlls
-
-    result = OrderedDict()
-
-    with ThreadPoolExecutor(max_workers=getCPUCoreCount() * 3) as worker_pool:
-        workers = []
-
-        for count, standalone_entry_point in enumerate(standalone_entry_points):
-            workers.append(
-                worker_pool.submit(
-                    addDLLInfo,
-                    count,
-                    source_dir,
-                    standalone_entry_point.source_path,
-                    standalone_entry_point.dest_path,
-                    standalone_entry_point.package_name,
-                )
-            )
-
-        for binary_filename, package_name, used_dlls in waitWorkers(workers):
-            # Ignore forbidden DLLs.
-            if binary_filename is None:
-                continue
-
-            for dll_filename in used_dlls:
-                # We want these to be absolute paths. Solve that in the parts
-                # where _detectBinaryDLLs is platform specific.
-                assert os.path.isabs(dll_filename), dll_filename
-
-                if dll_filename not in result:
-                    result[dll_filename] = (package_name, [])
-
-                result[dll_filename][1].append(binary_filename)
-
-    closeProgressBar()
-
-    return result
-
-
 def copyDllsUsed(dist_dir, standalone_entry_points):
     # This is complex, because we also need to handle OS specifics.
 
@@ -748,29 +657,48 @@ def _decideTargetPath(dll_filename):
 
 
 def _detectUsedDLLs(standalone_entry_point, source_dir):
-    used_dlls = _detectBinaryDLLs(
-        is_main_executable=standalone_entry_point.kind == "executable",
-        source_dir=source_dir,
-        original_filename=standalone_entry_point.source_path,
-        binary_filename=standalone_entry_point.source_path,
-        package_name=standalone_entry_point.package_name,
-        use_cache=not Options.shallNotUseDependsExeCachedResults(),
-        update_cache=not Options.shallNotStoreDependsExeCachedResults(),
-    )
-
-    for used_dll in used_dlls:
-        addIncludedEntryPoint(
-            makeDllEntryPoint(
-                logger=inclusion_logger,
-                source_path=used_dll,
-                dest_path=_decideTargetPath(used_dll),
-                package_name=None,
-            )
+    binary_filename = standalone_entry_point.source_path
+    try:
+        used_dlls = _detectBinaryDLLs(
+            is_main_executable=standalone_entry_point.kind == "executable",
+            source_dir=source_dir,
+            original_filename=standalone_entry_point.source_path,
+            binary_filename=standalone_entry_point.source_path,
+            package_name=standalone_entry_point.package_name,
+            use_cache=not Options.shallNotUseDependsExeCachedResults(),
+            update_cache=not Options.shallNotStoreDependsExeCachedResults(),
         )
+    except NuitkaForbiddenDLLEncounter:
+        inclusion_logger.info("Not including forbidden DLL '%s'." % binary_filename)
+    else:
+        # Allow plugins can prevent inclusion, this may discard things from used_dlls.
+        Plugins.removeDllDependencies(
+            dll_filename=binary_filename, dll_filenames=used_dlls
+        )
+
+        for used_dll in used_dlls:
+            addIncludedEntryPoint(
+                makeDllEntryPoint(
+                    logger=inclusion_logger,
+                    source_path=used_dll,
+                    dest_path=_decideTargetPath(used_dll),
+                    package_name=None,
+                )
+            )
 
 
 def detectUsedDLLs(standalone_entry_points, source_dir):
+    setupProgressBar(
+        stage="Detecting used DLLs",
+        unit="DLL",
+        total=len(standalone_entry_points),
+    )
+
     for standalone_entry_point in standalone_entry_points:
+        reportProgressBar(standalone_entry_point.dest_path)
+
         _detectUsedDLLs(
             standalone_entry_point=standalone_entry_point, source_dir=source_dir
         )
+
+    closeProgressBar()
