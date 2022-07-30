@@ -115,7 +115,18 @@ Bug Fixes
 
 -  Python3.10: Fix, the reformulation of ``match`` statements could
    create nodes that are used twice, causing code generation to assert.
-   Fixed in 0.9.3 already.
+   Fixed in 0.9.4 already.
+
+-  Fix, module objects removed from ``sys.modules`` but still used could
+   lack a reference to themselves, and therefore crash due to working on
+   a released module variables dictionary. Fixed in 0.9.5 already.
+
+-  Fix, the MSVC compiles code generated for SciPy 1.8 wrongly. Added a
+   workaround for that code to avoid triggering it. Fixed in 0.9.6
+   already.
+
+-  Fix, calls to ``str.format`` where the result is not used, could
+   crash the compiler during code generation. Fixed in 0.9.6 already.
 
 -  macOS: For DLLs also consider ``lib`` directory of Anaconda root
    environment, some of them are not otherwise visible.
@@ -126,8 +137,23 @@ Bug Fixes
 -  Fix, ``xrange`` with large values didn't work on all platforms. This
    affected at least Python2 on macOS, but potentially others as well.
 
+-  Windows: When scanning for installed Pythons to e.g. run Scons or
+   onefile compression, it was attempting to use installations that got
+   deleted manually and could crash.
+
+-  macOS: Fix, DLL conflicts are now resolved by checking the version
+   information too, also all cases that previously errored out after a
+   conflict was reported, will now work.
+
 New Features
 ============
+
+-  Onefile: Recognize a non-changing path for ``--onefile-tempdir-spec``
+   and then use cached mode. This mode is not faster, but it is not
+   going to change files already there, leaving the binaries there
+   intact. In the future it may also become faster to execute, but right
+   now checking the validity of the file takes about as long as
+   re-creating it, therefore no gain yet.
 
 -  Use ``CondaCC`` from environment variables for Linux and macOS, in
    case it is installed. This can be done with e.g. ``conda install
@@ -140,6 +166,25 @@ New Features
 -  Added method for resolving DLL conflicts on macOS too. However, it
    appears that this is not all that is needed to address remaining
    issues there.
+
+-  Added option for user provided Yaml files, which can be used to
+   provide package configuration to Nuitka, to e.g. add DLLs, data
+   files, do some anti-bloat work, or add missing dependencies locally.
+   The documentation for this does not yet exist though.
+
+-  Added ``nuitka-project-else`` to avoid repeating conditions in Nuitka
+   project configuration, this can e.g. be used like this:
+
+   .. code:: python
+
+      # nuitka-project-if: os.getenv("TEST_VARIANT", "pyside2") == "pyside2":
+      #   nuitka-project: --enable-plugin=no-qt
+      # nuitka-project-else:
+      #   nuitka-project: --enable-plugin=no-qt
+      #   nuitka-project: --noinclude-data-file=*.svg
+
+   Previously, the inverted condition had to be used in another
+   ``nuitka-project-if`` which is no big deal, but less readable.
 
 Optimization
 ============
@@ -175,14 +220,64 @@ Optimization
 -  Added specialized nodes for ``dict.popitem`` as well. With this, now
    all dictionary methods are specialized.
 
+-  Also optimize ``str.format`` after refactoring the call code to make
+   it easier to fallback to variable argument calls during code
+   generation if it cannot be statically optimized.
+
 -  Added specialized nodes for ``str.expandtabs``, ``str.translate``,
    ``str.ljust``, ``str.rjust``, ``str.center``, ``str.zfill``, and
    ``str.splitlines``. While these are barely performance relevant, this
-   completes all ``str`` methods, but ``removeprefix`` and
+   completes all ``str`` methods, except ``removeprefix`` and
    ``removesuffix`` that are Python3.9 or higher.
+
+-  Added type shape for result of ``str.index`` operation as well, this
+   was missing so far.
+
+-  Also optimize calls through variables containing constant values
+   (where it will become an exception) and built-ins, where they unlock
+   optimization to built-in function calls.
+
+-  Also optimize ``str``, ``bytes`` and ``dict`` method calls through
+   variables.
+
+-  For generated attribute nodes, avoid local imports. While these were
+   easier to generate, they can only be slow at runtime.
+
+-  For the ``str`` built-in annotate its value as ``str`` derived.
+   Unfortunately that does not allow too much optimization, since that
+   can still change many things.
 
 Organisational
 ==============
+
+-  Plugins: Major changes to the Yaml file content, cleaning up some of
+   the DLL configuration to more easy to use.
+
+   The DLL configuration has two flavors, one from code and one from
+   filename matching, and these got separated into distinct items. How
+   paths get provided got simplified, with a relative path now being
+   used consistently and with sane defaults, deriving the destination
+   path from where the module lives. Also what we called patterns, are
+   actually prefixes, as there is still the platform specific DLL file
+   naming appended.
+
+-  Plugins: Move options handling to dedicated plugin called
+   ``options-nanny`` that is always enabled, giving also much cleaner
+   Yaml configuration with a new section added specifically for these.
+   It controls advice or required use of ``--disable-console`` and the
+   like. Some packages, e.g. ``wx`` are known to crash on macOS when the
+   console is enabled, so this advice is now done with sane
+   configuration.
+
+-  Plugins: Also for Yaml configuration where is now a consistent
+   ``when`` field, that allows checking Python version, OS, Nuitka modes
+   such as standalone, and only apply configuration when matching this
+   criterion, with that the anti-bloat options to allow certain bloat,
+   should now have proper effect as well.
+
+-  The use of ``AppImage`` on Linux is no more. The performance for
+   startup was always slower, while having lost the main benefit of
+   avoiding IO at startup, due to new cached mode.
 
 -  More clear wording in the issue template that ``python -m nuitka
    --version`` output is really required.
@@ -201,9 +296,6 @@ Organisational
 -  Reports: Added included DLLs for standalone mode to compilation
    report.
 
--  Plugins: Move options handling to dedicated plugin called
-   ``options-nanny`` that is always enabled.
-
 -  Plugins: Make the ``implicit-imports`` dependency sections a list,
    for consistency with other blocks.
 
@@ -213,11 +305,28 @@ Organisational
    ``python39_or_higher``, ``before_python39``), usage of Anaconda
    (``anaconda``) or certain OS (e.g. ``macos``).
 
+-  UI: Used options and included DLLs were added to the compilation
+   report, aiming at making it more useful for debugging.
+
 -  Quality: Re-enabled string normalization from black, the issues with
    changes that are breaking to Python2 have been worked around.
 
 Cleanups
 ========
+
+-  Standalone: Major cleanup of the dependency analysis for standalone.
+   There is no longer a distinction between entry points (main binary,
+   extension modules) and DLLs that they depend on. The OS specific
+   parts got broken out into dedicated modules as well and decisions are
+   now taken immediately.
+
+-  Plugins: Also cleanup the ``zmq`` plugin, which was one the last
+   holdouts of now removed plugin method, moving parts to the Yaml
+   configuration. We no longer have ``considerExtraDlls`` which used to
+   work on the standalone folder, but instead only code that provides
+   included DLL or binary objects from ``getExtraDlls`` which gives
+   Nuitka much needed control over DLL copying. This was a long battle
+   finally won, and allows many new features to come.
 
 -  UI: Avoid changing whitespace in warnings, where we have intended
    line breaks, e.g. in case of duplicate DLLs. Went over all warnings
@@ -242,16 +351,18 @@ Cleanups
 -  Added spellchecker ignores for all attribute and argument names of
    generated fixed attribute nodes.
 
+-  In auto-format make sure the imports float to the top. That very much
+   cleans up generated attribute nodes code, allowing also to combine
+   the many ones it makes, but also cleans up some of our existing code.
+
 Tests
 =====
 
--  Added generated test to cover ``bytes`` method operations as well.
+-  Added generated test to cover ``bytes`` method. This would have found
+   the issue with ``decode`` potentially.
 
 -  Enhanced standalone test for ``ctypes`` on Linux to actually have
    something to test.
-
--  Added generated test to cover ``bytes`` method. This would have found
-   the issue with ``decode`` potentially.
 
 Summary
 =======
@@ -347,6 +458,12 @@ Bug Fixes
 -  Standalone: Fix, implicit dependencies assigned to ``imageio`` on PIL
    plugins should actually be assigned to ``PIL.Image`` that actually
    loads them, so it works outside of ``imageio`` too.
+
+-  Fix, the type shape of ``str.count`` was wrong.
+
+-  Onefile: Fix, the bootstrap binary needs to protect against ``EITR``
+   from ``waitpid`` on Linux or else a signal received can make it
+   believe the child exited when it did not.
 
 New Features
 ============
