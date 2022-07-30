@@ -26,12 +26,13 @@ some handling of defaults.
 # spell-checker: ignore uiaccess,noannotations,reexecution,etherium
 # spell-checker: ignore nodocstrings,noasserts,nowarnings,norandomization
 
+import fnmatch
 import os
 import shlex
 import sys
 
 from nuitka import Progress, Tracing
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OptionParsing import isPyenvPython, parseOptions
 from nuitka.PythonFlavors import (
     isAnacondaPython,
@@ -56,7 +57,7 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
-    getCoreCount,
+    getCPUCoreCount,
     getOS,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
@@ -86,10 +87,22 @@ def _checkSpec(value, arg_name):
             % (arg_name, value)
         )
 
+    if "%PRODUCT%" in value and not getWindowsProductName():
+        Tracing.options_logger.sysexit(
+            "Using value '%%PRODUCT%%' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
+    if "%VERSION%" in value and not (
+        getWindowsFileVersion() or getWindowsProductVersion()
+    ):
+        Tracing.options_logger.sysexit(
+            "Using value '%%VERSION%%' in '%s=%s' value without being specified."
+            % (arg_name, value)
+        )
+
 
 def _checkOnefileTargetSpec():
-    options.is_onefile_tempdir = True
-
     _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
 
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
@@ -697,7 +710,7 @@ but errors may happen."""
             """\
 Using very slow fallback for ordered sets, please install '%s' \
 PyPI package for best Python compile time performance."""
-            % ('ordered-set' if python_version >= 0x3A0 else 'orderedset')
+            % ("ordered-set" if python_version >= 0x3A0 else "orderedset")
         )
 
     if shallUsePythonDebug() and not isDebugPython():
@@ -881,6 +894,12 @@ def getShallNotIncludeDataFilePatterns():
     """*list*, items of ``--noinclude-data-files=``"""
 
     return options.data_files_inhibited
+
+
+def getShallNotIncludeDllFilePatterns():
+    """*list*, items of ``--noinclude-dlls=``"""
+
+    return options.dll_files_inhibited
 
 
 def shallWarnImplicitRaises():
@@ -1088,7 +1107,7 @@ def getJobLimit():
         if options.low_memory:
             return 1
         else:
-            return getCoreCount()
+            return getCPUCoreCount()
 
     return int(options.jobs)
 
@@ -1228,14 +1247,24 @@ def isAcceleratedMode():
 
 
 def isOnefileTempDirMode():
-    """:returns: bool derived from ``--onefile-tempdir`` and OS
+    """:returns: bool derived from ``--onefile-tempdir-spec``
 
     Notes:
-        On all but Linux, using a bootstrap binary that does unpack is mandatory,
-        but on Linux, the AppImage tool is used by default, this enforces using
-        a bootstrap binary there too.
+        Using cached onefile execution when the spec doesn't contain
+        volatile things.
     """
-    return not isLinux() or options.is_onefile_tempdir
+    spec = getOnefileTempDirSpec()
+
+    for candidate in (
+        "%TEMP%",
+        "%PID",
+        "%TIME%",
+        "%PROGRAM%",
+    ):
+        if candidate in spec:
+            return True
+
+    return False
 
 
 def isPgoMode():
@@ -1430,10 +1459,6 @@ def getMacOSAppProtectedResourcesAccesses():
         yield macos_protected_resource.split(":", 1)
 
 
-def getAppImageCompression():
-    return options.app_image_compression
-
-
 _python_flags = None
 
 
@@ -1541,11 +1566,6 @@ def hasPythonFlagPackageMode():
 def shallFreezeAllStdlib():
     """*bool* = **not** shallFollowStandardLibrary"""
     return not shallFollowStandardLibrary()
-
-
-def getWindowsDependencyTool():
-    """*str*, value of ``--windows-dependency-tool=``"""
-    return options.dependency_tool
 
 
 def shallNotUseDependsExeCachedResults():
@@ -1677,3 +1697,16 @@ def getCompilationReportFilename():
 def getUserProvidedYamlFiles():
     """*list* files with user provided Yaml files"""
     return options.user_yaml_files
+
+
+def _getWarningMnemonicsDisabled():
+    return sum([_splitShellPattern(x) for x in options.nowarn_mnemonics], [])
+
+
+def shallDisplayWarningMnemonic(mnemonic):
+    """*bool*" derived from --nowarn-mnemonic"""
+    for pattern in _getWarningMnemonicsDisabled():
+        if fnmatch.fnmatch(mnemonic, pattern):
+            return False
+
+    return True

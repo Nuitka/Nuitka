@@ -144,7 +144,7 @@ static PyMethodDef Nuitka_Method_methods[] = {
     {"__deepcopy__", (PyCFunction)Nuitka_Method_deepcopy, METH_O, NULL},
     {NULL}};
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
 static PyObject *Nuitka_Method_tp_vectorcall(struct Nuitka_MethodObject *method, PyObject *const *stack, size_t nargsf,
                                              PyObject *kwnames) {
     assert(Nuitka_Method_Check((PyObject *)method));
@@ -478,7 +478,7 @@ PyTypeObject Nuitka_Method_Type = {
     sizeof(struct Nuitka_MethodObject),
     0,
     (destructor)Nuitka_Method_tp_dealloc, /* tp_dealloc */
-#if PYTHON_VERSION < 0x380
+#if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     0, /* tp_print */
 #else
     offsetof(struct Nuitka_MethodObject, m_vectorcall), /* tp_vectorcall_offset */
@@ -573,7 +573,7 @@ PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *ob
 
     result->m_weakrefs = NULL;
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     result->m_vectorcall = (vectorcallfunc)Nuitka_Method_tp_vectorcall;
 #endif
 

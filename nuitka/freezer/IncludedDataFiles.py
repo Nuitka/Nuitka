@@ -25,8 +25,8 @@ for dependency analysis.
 import fnmatch
 import os
 
-from nuitka.containers.odict import OrderedDict
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
     getShallIncludeDataDirs,
     getShallIncludeDataFiles,
@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
     getFileList,
     isRelativePath,
     makePath,
+    openTextFile,
     putTextFileContents,
     relpath,
     resolveShellPatternToFilenames,
@@ -181,6 +182,11 @@ def makeIncludedDataDirectory(
 def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
     assert isRelativePath(dest_path), dest_path
 
+    # Handle lists of bytes here already by converting to single bytes value.
+    if type(data) is list:
+        if str is not bytes and all(type(element) is bytes for element in data):
+            data = b"\n".join(data)
+
     return IncludedDataFile(
         kind="data_blob",
         source_path=None,
@@ -192,17 +198,17 @@ def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
     )
 
 
-included_datafiles = []
+_included_data_files = []
 
 
 def addIncludedDataFile(included_datafile):
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
-    included_datafiles.append(included_datafile)
+    _included_data_files.append(included_datafile)
 
 
 def getIncludedDataFiles():
-    return included_datafiles
+    return _included_data_files
 
 
 def _addIncludedDataFilesFromFileOptions():
@@ -410,7 +416,11 @@ def _handleDataFile(included_datafile):
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
         makePath(os.path.dirname(dest_path))
 
-        putTextFileContents(filename=dest_path, contents=included_datafile.data)
+        if type(included_datafile.data) is bytes:
+            with openTextFile(filename=dest_path, mode="wb") as output_file:
+                output_file.write(included_datafile.data)
+        else:
+            putTextFileContents(filename=dest_path, contents=included_datafile.data)
     elif included_datafile.kind == "data_file":
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 

@@ -136,7 +136,7 @@ Insist on PyLint to be installed. Default is %default.""",
                 if isPythonFile(filename)
                 if not isIgnoredFile(filename)
             ]
-        else:
+        elif options.unpushed:
             positional_args = [
                 filename
                 for filename in getUnpushedPaths()

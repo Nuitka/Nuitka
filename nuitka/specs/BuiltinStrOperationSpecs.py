@@ -157,12 +157,21 @@ str_decode_spec = StrMethodSpec(
     "decode", arg_names=("encoding", "errors"), default_count=2
 )
 
-# 'center' missing.
-# 'count' missing.
-# 'expandtabs' missing.
-# 'format' missing.
-# 'ljust' missing.
-# 'rjust' missing.
-# 'splitlines' missing.
-# 'translate' missing.
-# 'zfill' missing.
+str_expandtabs_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
+    "expandtabs", arg_names=("tabsize",), default_count=1
+)
+
+str_center_spec = StrMethodSpecNoKeywords(
+    "center", arg_names=("width", "fillchar"), default_count=1
+)
+str_ljust_spec = StrMethodSpecNoKeywords(
+    "ljust", arg_names=("width", "fillchar"), default_count=1
+)
+str_rjust_spec = StrMethodSpecNoKeywords(
+    "rjust", arg_names=("width", "fillchar"), default_count=1
+)
+str_zfill_spec = StrMethodSpecNoKeywords("zfill", arg_names=("width",))
+str_translate_spec = StrMethodSpecNoKeywords("translate", arg_names=("table",))
+str_splitlines_spec = (StrMethodSpecNoKeywords if str is bytes else StrMethodSpec)(
+    "splitlines", arg_names=("keepends"), default_count=1
+)

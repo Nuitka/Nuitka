@@ -37,14 +37,12 @@ from nuitka.nodes.NodeMakingHelpers import (
 )
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import (
-    StatementReleaseVariable,
-    makeStatementDelVariable,
-)
+from nuitka.nodes.VariableDelNodes import makeStatementDelVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     makeExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version,
@@ -87,16 +85,18 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             source_ref,
         ) in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
-
                 variable = node.takeVariableForClosure(variable_name=non_local_name)
-
-                node.getLocalsScope().registerClosureVariable(variable)
 
                 if variable.isModuleVariable() and user_provided:
                     raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (non_local_name),
                         source_ref,
                     )
+
+                if node.isExpressionClassBody() and non_local_name == "__class__":
+                    pass
+                else:
+                    node.getLocalsScope().registerClosureVariable(variable)
 
                 variable.addVariableUser(node)
 
@@ -198,7 +198,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                         source_ref=node.source_ref,
                                     ),
                                 ),
-                                final=StatementReleaseVariable(
+                                final=makeStatementReleaseVariable(
                                     variable=tmp_variable, source_ref=node.source_ref
                                 ),
                                 source_ref=node.source_ref,

@@ -1,0 +1,315 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperSlotsCommon.c.j2' import goto_exit, constant_int_exit_target, constant_float_exit_target %}
+
+{% macro float_core(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_object, exit_result_exception, exit_result_ok_cfloat, exit_result_ok_left, exit_result_ok_right, exit_result_ok_const_float_1_0, exit_result_ok_const_float_0_0, exit_result_ok_const_float_minus_1_0) %}
+    {{ left.getCheckValueCode(operand1) }}
+    {{ right.getCheckValueCode(operand2) }}
+
+
+{% if operator in "+-*" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
+    double r = a {{operator}} b;
+
+    {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+{% elif operator == "//" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
+    if (unlikely(b == 0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "integer division or modulo by zero");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    {
+        double mod = fmod(a, b);
+        double div = (a - mod) / b;
+
+        if (mod) {
+            if ((a < 0) != (mod < 0)) {
+                div -= 1.0;
+            }
+        }
+
+        double floordiv;
+        if (div) {
+            floordiv = floor(div);
+            if (div - floordiv > 0.5) {
+                floordiv += 1.0;
+            }
+        } else {
+            floordiv = copysign(0.0, a/b);
+        }
+
+        {{ goto_exit(props, exit_result_ok_cfloat, "floordiv") }}
+    }
+{% elif operator == "/" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
+    if (unlikely(b == 0.0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float division by zero");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    {
+        double r = a {{operator}} b;
+
+        {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+    }
+{% elif operator == "%" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
+    if (unlikely(b == 0.0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    {
+        double mod = fmod(a, b);
+        if (mod) {
+            if ((b < 0) != (mod < 0)) {
+                mod += b;
+            }
+        } else {
+            mod = copysign(0.0, b);
+        }
+
+        {{ goto_exit(props, exit_result_ok_cfloat, "mod") }}
+    }
+{% elif operator == "divmod" %}
+    const double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
+    if (unlikely(b == 0.0)) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "float modulo");
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    {
+        double mod = fmod(a, b);
+        double div = (a - mod) / b;
+
+        if (mod) {
+            if ((b < 0) != (mod < 0)) {
+                mod += b;
+                div -= 1.0;
+            }
+        } else {
+            mod = copysign(0.0, b);
+        }
+
+        double floordiv;
+        if (div) {
+            floordiv = floor(div);
+            if (div - floordiv > 0.5) {
+                floordiv += 1.0;
+            }
+        } else {
+            floordiv = copysign(0.0, a/b);
+        }
+
+        PyObject *r = Py_BuildValue("(dd)", floordiv, mod);
+
+        {{ goto_exit(props, exit_result_object, "r") }}
+    }
+{% elif operator == "**" %}
+    double a = {{ left.getAsDoubleValueExpression(operand1) }};
+    const double b = {{ right.getAsDoubleValueExpression(operand2) }};
+
+    if (b == 0) {
+        {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
+    }
+
+    if (Py_IS_NAN(a)) {
+        {{ goto_exit(props, exit_result_ok_left) }}
+    }
+
+    if (Py_IS_NAN(b)) {
+        if (a == 1.0) {
+            {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
+        } else {
+            {{ goto_exit(props, exit_result_ok_right) }}
+        }
+    }
+
+    if (Py_IS_INFINITY(b)) {
+        a = fabs(a);
+        if (a == 1.0) {
+            {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
+        } else if ((b > 0.0) == (a > 1.0)) {
+            long r = (long)fabs(b);
+
+            {# TODO: Should this be ok_clong then? #}
+            {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+        } else {
+            {{ goto_exit(props, exit_result_ok_const_float_0_0) }}
+        }
+    }
+
+    if (Py_IS_INFINITY(a)) {
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        double r;
+
+        if (b > 0.0) {
+            r = b_is_odd ? a : fabs(a);
+        } else {
+            r = b_is_odd ? copysign(0.0, a) : 0.0;
+        }
+
+        {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+    }
+
+    if (a == 0.0) {
+        if (unlikely(b < 0.0)) {
+            SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ZeroDivisionError, "0.0 cannot be raised to a negative power");
+            {{ goto_exit(props, exit_result_exception) }}
+        }
+
+        bool b_is_odd = DOUBLE_IS_ODD_INTEGER(b);
+        double r = b_is_odd ? a : 0.0;
+
+        {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+    }
+
+    {
+        bool negate_result = false;
+
+        if (a < 0.0) {
+            if (unlikely(b != floor(b))) {
+                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "negative number cannot be raised to a fractional power");
+                {{ goto_exit(props, exit_result_exception) }}
+            }
+
+            a = -a;
+            negate_result = DOUBLE_IS_ODD_INTEGER(b);
+        }
+
+        if (a == 1.0) {
+            if (negate_result) {
+                {{ goto_exit(props, exit_result_ok_const_float_minus_1_0) }}
+            } else {
+                {{ goto_exit(props, exit_result_ok_const_float_1_0) }}
+            }
+        } else {
+            errno = 0;
+            double r = pow(a, b);
+
+            if (unlikely(errno != 0)) {
+                PyErr_SetFromErrno(errno == ERANGE ? PyExc_OverflowError : PyExc_ValueError);
+                {{ goto_exit(props, exit_result_exception) }}
+            }
+
+            r = negate_result ? -r : r;
+
+            {{ goto_exit(props, exit_result_ok_cfloat, "r") }}
+        }
+    }
+{% else %}
+#error Operator {{operator}} not implemented in {{name}}
+{% endif %}
+
+{% endmacro %}
+
+{% macro float_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+    // Not every code path will make use of all possible results.
+    NUITKA_MAY_BE_UNUSED PyObject *obj_result;
+    NUITKA_MAY_BE_UNUSED long clong_result;
+    NUITKA_MAY_BE_UNUSED double cfloat_result;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+    {{ float_core(props, operator, nb_slot, target, left, right, result, operand1, operand2, "exit_result_object", exit_result_exception, "exit_result_ok_cfloat", "exit_result_ok_left", "exit_result_ok_right", "exit_result_ok_const_float_1_0", "exit_result_ok_const_float_0_0", "exit_result_ok_const_float_minus_1_0") }}
+
+{% if "exit_result_ok_cfloat" in props["exits"] %}
+exit_result_ok_cfloat:
+{% if target %}
+    {{ target.getAssignFromFloatExpressionCode(result, "cfloat_result") }}
+{% else %}
+    {# TODO: Check the reference we were handed down. #}
+    if (Py_REFCNT({{ operand1 }}) == 1) {
+        PyFloat_AS_DOUBLE({{ operand1 }}) = cfloat_result;
+    } else {
+        // We got an object handed, that we have to release.
+        Py_DECREF({{ operand1 }});
+
+        {{ left.getAssignFromFloatExpressionCode(operand1, "cfloat_result") }}
+    }
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_object" in props["exits"] %}
+exit_result_object:
+    if (unlikely(obj_result == NULL)) {
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+{% if target %}
+    {{ target.getAssignFromObjectExpressionCode(result, "obj_result") }}
+{% else %}
+    {# TODO: Check the reference we were handed down and do it in-place really. #}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+
+    {{ operand1 }} = obj_result;
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_left" in props["exits"] %}
+exit_result_ok_left:
+{% if target %}
+    {{ target.getAssignConversionCode(result, left, operand1) }}
+{% endif %}
+    {# Nothing to do in case of in-place. #}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_right" in props["exits"] %}
+exit_result_ok_right:
+{% if target %}
+    {{ target.getAssignConversionCode(result, right, operand2) }}
+{% else %}
+    // We got an object handed, that we have to release.
+    Py_DECREF({{ operand1 }});
+    {{ left.getAssignConversionCode(operand1, right, operand2) }}
+{% endif %}
+    {{ goto_exit(props, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_const_float_0_0" in props["exits"] %}
+{{ constant_float_exit_target(props, target, result, left, operand1, "exit_result_ok_const_float_0_0", 0.0, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_const_float_1_0" in props["exits"] %}
+{{ constant_float_exit_target(props, target, result, left, operand1, "exit_result_ok_const_float_1_0", 1.0, exit_result_ok) }}
+{% endif %}
+
+{% if "exit_result_ok_const_float_minus_1_0" in props["exits"] %}
+{{ constant_float_exit_target(props, target, result, left, operand1, "exit_result_ok_const_float_minus_1_0", -1.0, exit_result_ok) }}
+{% endif %}
+
+{% endmacro %}

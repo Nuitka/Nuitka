@@ -23,7 +23,7 @@ import sys
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     WindowsError,
 )
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version_str
 
 from .Execution import (
@@ -39,6 +39,12 @@ class InstalledPython(object):
     def __init__(self, python_exe, python_version):
         self.python_exe = python_exe
         self.python_version = python_version
+
+    def __repr__(self):
+        return "<InstalledPython '%s' version '%s'>" % (
+            self.python_exe,
+            self.python_version,
+        )
 
     def getPythonExe(self):
         return self.python_exe
@@ -161,7 +167,8 @@ def _getPythonInstallPathsWindows(python_version):
                         seen.add(candidate)
 
 
-def _findPythons(python_version):
+def findPythons(python_version):
+    """Find all Python installations for a specific version."""
     result = OrderedSet()
 
     if python_version == python_version_str:
@@ -193,7 +200,7 @@ def findInstalledPython(python_versions, module_name, module_version):
         python_version_str in python_versions
         and python_version_str not in _installed_pythons
     ):
-        _installed_pythons[python_version_str] = _findPythons(python_version_str)
+        _installed_pythons[python_version_str] = findPythons(python_version_str)
 
     # Attempt to prefer scanned versions.
     for python_version in python_versions:
@@ -206,7 +213,7 @@ def findInstalledPython(python_versions, module_name, module_version):
     # Attempt to find so far not scanned versions.
     for python_version in python_versions:
         if python_version not in _installed_pythons:
-            _installed_pythons[python_version] = _findPythons(python_version)
+            _installed_pythons[python_version] = findPythons(python_version)
 
             for candidate in _installed_pythons.get(python_version, ()):
                 if candidate.checkUsability(

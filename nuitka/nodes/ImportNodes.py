@@ -29,7 +29,7 @@ modules being added. After optimization it will be asked about used modules.
 import sys
 
 from nuitka.__past__ import long, unicode, xrange
-from nuitka.codegen.Reports import onMissingTrust
+from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename,
     isPackageDir,
@@ -60,6 +60,7 @@ from .ConstantRefNodes import (
     ExpressionConstantSysVersionInfoRef,
     makeConstantRefNode,
 )
+from .CtypesNodes import ExpressionCtypesCdllRef
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
@@ -107,6 +108,9 @@ hard_modules = frozenset(
         "sysconfig",
         # "cStringIO",
         "io",
+        "ctypes",
+        "ctypes.wintypes",
+        "ctypes.macholib",
     )
 )
 
@@ -201,6 +205,8 @@ else:
 
     trust_node_factory[("os", "uname")] = ExpressionOsUnameRef
 
+module_ctypes_trust = {"CDLL": trust_node}
+
 hard_modules_trust = {
     "os": module_os_trust,
     "sys": module_sys_trust,
@@ -224,7 +230,10 @@ hard_modules_trust = {
         "resource_stream": trust_node,
     },
     "importlib.resources": {"read_binary": trust_node, "read_text": trust_node},
+    "ctypes": module_ctypes_trust,
     "site": {},
+    "ctypes.wintypes": {},
+    "ctypes.macholib": {},
 }
 
 
@@ -251,6 +260,7 @@ trust_node_factory[
 trust_node_factory[
     ("importlib.resources", "read_text")
 ] = ExpressionImportlibResourcesReadTextRef
+trust_node_factory[("ctypes", "CDLL")] = ExpressionCtypesCdllRef
 
 
 def _checkHardModules():
@@ -290,8 +300,18 @@ def makeExpressionImportModuleNameHard(
         )
 
 
+# These modules can cause issues if imported during compile time.
+hard_modules_trust_with_side_effects = set(["site"])
+if not isWin32Windows():
+    # Crashing on anything but Windows.
+    hard_modules_trust_with_side_effects.add("ctypes.wintypes")
+
+
 def isHardModuleWithoutSideEffect(module_name):
-    return module_name in hard_modules and module_name != "site"
+    return (
+        module_name in hard_modules
+        and module_name not in hard_modules_trust_with_side_effects
+    )
 
 
 class ExpressionImportAllowanceMixin(object):
@@ -446,7 +466,7 @@ class ExpressionImportModuleHard(
         if self.finding != "not-found" and isHardModuleWithoutSideEffect(
             self.module_name
         ):
-            __import__(self.module_name)
+            __import__(self.module_name.asString())
             self.module = sys.modules[self.value_name]
 
             self.is_package = hasattr(self.module, "__path__")

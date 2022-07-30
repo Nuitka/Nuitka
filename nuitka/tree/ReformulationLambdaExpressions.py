@@ -40,8 +40,8 @@ from nuitka.nodes.GeneratorNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
@@ -148,7 +148,7 @@ def buildLambdaNode(provider, node, source_ref):
             body = makeTryFinallyStatement(
                 provider=provider,
                 tried=statements,
-                final=StatementReleaseVariable(
+                final=makeStatementReleaseVariable(
                     variable=tmp_return_value, source_ref=source_ref
                 ),
                 source_ref=source_ref,

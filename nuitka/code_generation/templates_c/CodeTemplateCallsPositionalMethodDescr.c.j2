@@ -1,0 +1,129 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
+{% if args_count == 1 %}
+PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
+    PyObject *const *args = &arg; // For easier code compatibility.
+{% else %}
+PyObject *CALL_METHODDESCR_WITH_ARGS{{args_count}}(PyObject *called, PyObject *const *args) {
+{% endif %}
+    CHECK_OBJECT(called);
+    {{ CHECK_OBJECTS(args, args_count) }}
+
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
+    assert (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL));
+    vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+    assert(func != NULL);
+{% if args_count == 0 %}
+    PyObject *result = func(called, NULL, 0, NULL);
+{% else %}
+    PyObject *result = func(called, args, {{args_count}}, NULL);
+{% endif %}
+
+    return Nuitka_CheckFunctionResult(result);
+#else
+    PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
+    PyMethodDef *method_def = called_descr->d_method;
+
+    // Try to be fast about wrapping the arguments.
+    int flags = method_def->ml_flags & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
+
+    if ({{ unlikely_or_likely_from(args_count != 1) }}(flags & METH_NOARGS)) {
+        PyCFunction method = method_def->ml_meth;
+        PyObject *self = args[0];
+
+        PyObject *result = (*method)(self, NULL);
+
+        return Nuitka_CheckFunctionResult(result);
+    } else if ({{ unlikely_if(args_count != 1) }}(flags & METH_O)) {
+{% if args_count == 2 %}
+        PyCFunction method = method_def->ml_meth;
+        PyObject *self = args[0];
+
+        PyObject *result = (*method)(self, args[1]);
+
+        return Nuitka_CheckFunctionResult(result);
+{% else %}
+        SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError,
+            "%s() takes exactly one argument ({{args_count}} given)",
+                method_def->ml_name
+        );
+        return NULL;
+{% endif %}
+    } else if (flags & METH_VARARGS) {
+        PyCFunction method = method_def->ml_meth;
+        PyObject *self = args[0];
+
+        PyObject *result;
+
+#if PYTHON_VERSION < 0x360
+        PyObject *pos_args = MAKE_TUPLE(args+1, {{args_count-1}});
+
+        if (flags & METH_KEYWORDS) {
+            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+        } else {
+            result = (*method)(self, pos_args);
+        }
+
+        Py_DECREF(pos_args);
+#else
+        if (flags == (METH_VARARGS|METH_KEYWORDS)) {
+            PyObject *pos_args = MAKE_TUPLE(args+1, {{args_count-1}});
+            result = (*(PyCFunctionWithKeywords)method)(self, pos_args, NULL);
+            Py_DECREF(pos_args);
+        } else if (flags == METH_FASTCALL) {
+#if PYTHON_VERSION < 0x370
+            result = (*(_PyCFunctionFast)method)(self, (PyObject **)args+1, {{args_count-1}}, NULL);
+#else
+            PyObject *pos_args = MAKE_TUPLE(args+1, {{args_count-1}});
+            result = (*(_PyCFunctionFast)method)(self, &pos_args, {{args_count}});
+            Py_DECREF(pos_args);
+#endif
+        } else {
+            PyObject *pos_args = MAKE_TUPLE(args+1, {{args_count-1}});
+            result = (*method)(self, pos_args);
+            Py_DECREF(pos_args);
+        }
+#endif
+        return Nuitka_CheckFunctionResult(result);
+    }
+
+
+#if 0
+    PRINT_NEW_LINE();
+    PRINT_STRING("FALLBACK");
+    PRINT_ITEM(called);
+    PRINT_NEW_LINE();
+#endif
+
+{# TODO: How come the PyCFunction call does not cover all cases, that should
+   be doable. #}
+
+{% if args_count == 0 %}
+    PyObject *result = CALL_FUNCTION(called, const_tuple_empty, NULL);
+{% else %}
+    PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+
+    PyObject *result = CALL_FUNCTION(called, pos_args, NULL);
+
+    Py_DECREF(pos_args);
+{% endif %}
+
+    return result;
+#endif
+}

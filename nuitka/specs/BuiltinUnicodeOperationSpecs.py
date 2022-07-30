@@ -113,9 +113,9 @@ unicode_count_spec = UnicodeMethodSpecNoKeywords(
     "count", arg_names=("sub", "start", "end"), default_count=2
 )
 
-# unicode_format_spec = UnicodeMethodSpec(
-#     "format", list_star_arg="args", dict_star_arg="pairs"
-# )
+unicode_format_spec = UnicodeMethodSpec(
+    "format", list_star_arg="args", dict_star_arg="pairs"
+)
 
 unicode_capitalize_spec = UnicodeMethodSpecNoKeywords("capitalize", arg_names=())
 unicode_upper_spec = UnicodeMethodSpecNoKeywords("upper", arg_names=())
@@ -132,4 +132,23 @@ unicode_istitle_spec = UnicodeMethodSpecNoKeywords("istitle", arg_names=())
 
 unicode_encode_spec = UnicodeMethodSpec(
     "encode", arg_names=("encoding", "errors"), default_count=2
+)
+
+unicode_expandtabs_spec = UnicodeMethodSpecNoKeywords(
+    "expandtabs", arg_names=("tabsize",), default_count=1
+)
+
+unicode_center_spec = UnicodeMethodSpecNoKeywords(
+    "center", arg_names=("width", "fillchar"), default_count=1
+)
+unicode_ljust_spec = UnicodeMethodSpecNoKeywords(
+    "ljust", arg_names=("width", "fillchar"), default_count=1
+)
+unicode_rjust_spec = UnicodeMethodSpecNoKeywords(
+    "rjust", arg_names=("width", "fillchar"), default_count=1
+)
+unicode_zfill_spec = UnicodeMethodSpecNoKeywords("zfill", arg_names=("width",))
+unicode_translate_spec = UnicodeMethodSpecNoKeywords("translate", arg_names=("table",))
+unicode_splitlines_spec = UnicodeMethodSpecNoKeywords(
+    "splitlines", arg_names=("keepends"), default_count=1
 )

@@ -919,9 +919,9 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         case ';': {
             // (x)range objects
 #if PYTHON_VERSION < 0x300
-            int start = unpackValueInt(&data);
-            int stop = unpackValueInt(&data);
-            int step = unpackValueInt(&data);
+            long start = unpackValueLong(&data);
+            long stop = unpackValueLong(&data);
+            long step = unpackValueLong(&data);
 
             PyObject *s = MAKE_XRANGE(start, stop, step);
 #else

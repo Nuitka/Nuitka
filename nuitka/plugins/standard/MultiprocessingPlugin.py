@@ -31,7 +31,7 @@ from nuitka.ModuleRegistry import (
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.ModuleNames import ModuleName
 
 

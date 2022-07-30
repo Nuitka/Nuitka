@@ -140,7 +140,7 @@ branches.""",
             yes_branch = self.subnode_expression_yes
 
             # If it's aborting, it doesn't contribute to merging.
-            if yes_branch.willRaiseException(BaseException):
+            if truth_value is not True and yes_branch.willRaiseException(BaseException):
                 branch_yes_collection = None
         else:
             branch_yes_collection = None
@@ -159,7 +159,7 @@ branches.""",
             no_branch = self.subnode_expression_no
 
             # If it's aborting, it doesn't contribute to merging.
-            if no_branch.willRaiseException(BaseException):
+            if truth_value is not False and no_branch.willRaiseException(BaseException):
                 branch_no_collection = None
         else:
             branch_no_collection = None
@@ -778,7 +778,7 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
 def makeNotExpression(expression):
     # These are invertible with bool type shape.
     if expression.isExpressionComparison() and expression.getTypeShape() is tshape_bool:
-        return expression.makeInverseComparision()
+        return expression.makeInverseComparison()
     else:
         return ExpressionOperationNot(
             operand=expression, source_ref=expression.getSourceReference()

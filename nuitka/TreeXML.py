@@ -117,3 +117,11 @@ def dump(tree):
     value = toString(tree).rstrip()
 
     Tracing.printLine(value)
+
+
+def appendTreeElement(parent, *args, **kwargs):
+    element = Element(*args, **kwargs)
+
+    parent.append(element)
+
+    return element

@@ -59,7 +59,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 
 def displayError(dirname, filename):
@@ -101,6 +101,8 @@ def main():
             "cpython_cache",
             # To understand what is slow.
             "timing",
+            # Don't care here, this is mostly for coverage.
+            "--nowarn-mnemonic=debian-dist-packages",
         ]
 
         # skip each test if their respective requirements are not met
@@ -141,11 +143,11 @@ def main():
                 continue
 
         if filename == "TkInterUsing.py":
-            if getOS() == "Darwin":
+            if isMacOS():
                 reportSkip("Not working macOS yet", ".", filename)
                 continue
 
-            if getOS() == "Windows":
+            if isWin32Windows() == "Windows":
                 reportSkip("Can hang on Windows CI.", ".", filename)
                 continue
 
@@ -168,10 +170,8 @@ def main():
 
         if filename == "PandasUsing.py":
             extra_flags.append("plugin_enable:numpy")
+            extra_flags.append("plugin_enable:no-qt")
             extra_flags.append("plugin_disable:pylint-warnings")
-            extra_flags.append("plugin_disable:pyqt5")
-            extra_flags.append("plugin_disable:pyside2")
-            extra_flags.append("plugin_disable:pyside6")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
@@ -198,16 +198,6 @@ def main():
             if python_version < (2, 7) or ((3,) <= python_version < (3, 7)):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
-
-            # For the plug-in information
-            if filename.startswith("PySide2"):
-                extra_flags.append("plugin_enable:pyside6")
-            elif filename.startswith("PySide6"):
-                extra_flags.append("plugin_enable:pyside6")
-            elif filename.startswith("PyQt5"):
-                extra_flags.append("plugin_enable:pyqt5")
-            elif filename.startswith("PyQt6"):
-                extra_flags.append("plugin_enable:pyqt6")
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename

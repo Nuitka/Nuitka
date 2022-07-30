@@ -17,6 +17,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# nuitka-project: --standalone
+# nuitka-project: --enable-plugin=pyqt5
+
 from PyQt5.QtNetwork import QSslSocket
 
 # nuitka-skip-unless-imports: PyQt5.QtGui

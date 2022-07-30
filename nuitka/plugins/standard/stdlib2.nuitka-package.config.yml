@@ -1,0 +1,83 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# too many spelling things, spell-checker: disable
+---
+- module-name: "audiodev"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "BaseHTTPServer"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "Bastion"
+  anti-bloat:
+    - change_function:
+        "_test": "'(lambda: None)'"
+      description: "remove module ability to run as a binary"
+
+- module-name: "Cookie"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+  implicit-imports:
+    - depends:
+        - "_bootlocale"
+
+- module-name: "fpformat"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "mhlib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "modulefinder"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "rexec"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "StringIO"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
+
+- module-name: "Tkinter"
+  implicit-imports:
+    - depends:
+        - "_tkinter"
+
+  options:
+    checks:
+      - macos_bundle_as_onefile: "yes"
+        console: "recommend"
+
+- module-name: "xml.sax.xmlreader"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "_test": "'(lambda: None)'"
+
+- module-name: "xmllib"
+  anti-bloat:
+    - description: "remove module ability to run as a binary"
+      change_function:
+        "test": "'(lambda: None)'"
