@@ -28,7 +28,7 @@ with these config files.
 import os
 import pkgutil
 
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import getUserProvidedYamlFiles
 from nuitka.Tracing import general
 
@@ -148,7 +148,20 @@ def getYamlPackageConfiguration():
 
     if _package_config is None:
         _package_config = parsePackageYaml(
-            "nuitka.plugins.standard", "standard.nuitka-package.config.yml"
+            "nuitka.plugins.standard",
+            "standard.nuitka-package.config.yml",
+        )
+        _package_config.update(
+            parsePackageYaml(
+                "nuitka.plugins.standard",
+                "stdlib2.nuitka-package.config.yml",
+            )
+        )
+        _package_config.update(
+            parsePackageYaml(
+                "nuitka.plugins.standard",
+                "stdlib3.nuitka-package.config.yml",
+            )
         )
 
         try:

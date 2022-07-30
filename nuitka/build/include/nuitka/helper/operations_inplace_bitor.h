@@ -25,47 +25,52 @@
 /* C helpers for type in-place "|" (BITOR) operations */
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool BINARY_OPERATION_BITOR_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_LONG_LONG(PyObject **operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "LONG" to Python2 'long', Python3 'int'. */
-extern bool BINARY_OPERATION_BITOR_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_OBJECT_LONG(PyObject **operand1, PyObject *operand2);
 
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "OBJECT" to any Python object. */
-extern bool BINARY_OPERATION_BITOR_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_LONG_OBJECT(PyObject **operand1, PyObject *operand2);
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "INT" to Python2 'int'. */
-extern bool BINARY_OPERATION_BITOR_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_INT_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "OBJECT" corresponds to any Python object and "INT" to Python2 'int'. */
-extern bool BINARY_OPERATION_BITOR_OBJECT_INT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_OBJECT_INT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "INT" corresponds to Python2 'int' and "OBJECT" to any Python object. */
-extern bool BINARY_OPERATION_BITOR_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_INT_OBJECT(PyObject **operand1, PyObject *operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
-/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
-extern bool BINARY_OPERATION_BITOR_INT_LONG_INPLACE(PyObject **operand1, PyObject *operand2);
+/* Code referring to "INT" corresponds to Python2 'int' and "CLONG" to C platform long value. */
+extern bool INPLACE_OPERATION_BITOR_INT_CLONG(PyObject **operand1, long operand2);
 #endif
 
 #if PYTHON_VERSION < 0x300
 /* Code referring to "LONG" corresponds to Python2 'long', Python3 'int' and "INT" to Python2 'int'. */
-extern bool BINARY_OPERATION_BITOR_LONG_INT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_LONG_INT(PyObject **operand1, PyObject *operand2);
+#endif
+
+#if PYTHON_VERSION < 0x300
+/* Code referring to "INT" corresponds to Python2 'int' and "LONG" to Python2 'long', Python3 'int'. */
+extern bool INPLACE_OPERATION_BITOR_INT_LONG(PyObject **operand1, PyObject *operand2);
 #endif
 
 /* Code referring to "SET" corresponds to Python 'set' and "SET" to Python 'set'. */
-extern bool BINARY_OPERATION_BITOR_SET_SET_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_SET_SET(PyObject **operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "SET" to Python 'set'. */
-extern bool BINARY_OPERATION_BITOR_OBJECT_SET_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_OBJECT_SET(PyObject **operand1, PyObject *operand2);
 
 /* Code referring to "SET" corresponds to Python 'set' and "OBJECT" to any Python object. */
-extern bool BINARY_OPERATION_BITOR_SET_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_SET_OBJECT(PyObject **operand1, PyObject *operand2);
 
 /* Code referring to "OBJECT" corresponds to any Python object and "OBJECT" to any Python object. */
-extern bool BINARY_OPERATION_BITOR_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
+extern bool INPLACE_OPERATION_BITOR_OBJECT_OBJECT(PyObject **operand1, PyObject *operand2);

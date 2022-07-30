@@ -25,11 +25,10 @@ should attempt to make run time detections.
 
 import __future__
 
+import ctypes
 import os
 import re
 import sys
-
-from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 
 
 def getSupportedPythonVersions():
@@ -136,31 +135,12 @@ def needsDuplicateArgumentColOffset():
 
 
 def getRunningPythonDLLPath():
-    import ctypes.wintypes
-
-    MAX_PATH = 4096
-    buf = ctypes.create_unicode_buffer(MAX_PATH)
-
-    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
-    GetModuleFileName.argtypes = (
-        ctypes.wintypes.HANDLE,
-        ctypes.wintypes.LPWSTR,
-        ctypes.wintypes.DWORD,
+    from nuitka.utils.SharedLibraries import (
+        getWindowsRunningProcessModuleFilename,
     )
-    GetModuleFileName.restype = ctypes.wintypes.DWORD
 
     # We trust ctypes internals here, pylint: disable=protected-access
-    res = GetModuleFileName(ctypes.pythonapi._handle, buf, MAX_PATH)
-    if res == 0:
-        # Windows only code, pylint: disable=I0021,undefined-variable
-        raise WindowsError(
-            ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
-        )
-
-    dll_path = os.path.normcase(buf.value)
-    assert os.path.exists(dll_path), dll_path
-
-    return dll_path
+    return getWindowsRunningProcessModuleFilename(ctypes.pythonapi._handle)
 
 
 def getTargetPythonDLLPath():
@@ -188,8 +168,6 @@ def getTargetPythonDLLPath():
 def isStaticallyLinkedPython():
     # On Windows, there is no way to detect this from sysconfig.
     if os.name == "nt":
-        import ctypes
-
         return ctypes.pythonapi is None
 
     try:
@@ -320,3 +298,39 @@ def getImportlibSubPackages():
 def isDebugPython():
     """Is this a debug build of Python."""
     return hasattr(sys, "gettotalrefcount")
+
+
+def isPythonValidDigitValue(value):
+    if python_version < 0x270:
+        bits_per_digit = 15
+    elif python_version < 0x300:
+        bits_per_digit = sys.long_info.bits_per_digit
+    else:
+        bits_per_digit = sys.int_info.bits_per_digit
+
+    boundary = (2**bits_per_digit) - 1
+
+    # Note:Digits in long objects do not use 2-complement, but a boolean sign.
+    return -boundary <= value <= boundary
+
+
+sizeof_clong = ctypes.sizeof(ctypes.c_long)
+
+# TODO: We could be more aggressive here, there are issues with using full
+# values, in some contexts, but that can probably be sorted out.
+_max_signed_long = 2 ** (sizeof_clong * 7) - 1
+_min_signed_long = -(2 ** (sizeof_clong * 7))
+
+# Used by data composer to write Python long values.
+sizeof_clonglong = ctypes.sizeof(ctypes.c_longlong)
+
+_max_signed_longlong = 2 ** (sizeof_clonglong * 8 - 1) - 1
+_min_signed_longlong = -(2 ** (sizeof_clonglong * 8 - 1))
+
+
+def isPythonValidCLongValue(value):
+    return _min_signed_long <= value <= _max_signed_long
+
+
+def isPythonValidCLongLongValue(value):
+    return _min_signed_longlong <= value <= _max_signed_longlong

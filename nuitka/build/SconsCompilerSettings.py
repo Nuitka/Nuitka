@@ -25,7 +25,7 @@ import re
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import openTextFile, putTextFileContents
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import isFedoraBasedLinux, isMacOS, isWin32Windows
 
 from .DataComposerInterface import getConstantBlobFilename
 from .SconsHacks import myDetectVersion
@@ -143,9 +143,12 @@ def _enableLtoSettings(
     ):
         lto_mode = True
         reason = "known to be supported (Debian)"
-    elif env.gcc_mode and env.the_cc_name == "gnu-cc":
+    elif env.gcc_mode and "gnu-cc" in env.the_cc_name and env.anaconda_python:
         lto_mode = True
         reason = "known to be supported (CondaCC)"
+    elif isMacOS() and env.gcc_mode and env.clang_mode:
+        lto_mode = True
+        reason = "known to be supported (macOS clang)"
     elif env.mingw_mode and env.clang_mode:
         lto_mode = False
         reason = "known to not be supported (new MinGW64 Clang)"
@@ -641,6 +644,10 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
     # For shell API usage to lookup app folders we need this.
     if env.msvc_mode:
         env.Append(LIBS=["Shell32"])
+
+    # Since Fedora 36, the system Python will not link otherwise.
+    if isFedoraBasedLinux():
+        env.Append(CCFLAGS=["-fPIC"])
 
 
 def _enablePgoSettings(env, pgo_mode):

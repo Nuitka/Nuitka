@@ -23,10 +23,13 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
+from nuitka.tools.quality.auto_format.AutoFormat import (
+    withFileOpenedAndAutoFormatted,
+)
 from nuitka.tools.release.Debian import updateDebianChangelog
 from nuitka.tools.release.Release import getBranchName
 from nuitka.Tracing import my_print
-from nuitka.utils.FileOperations import openTextFile
+from nuitka.utils.FileOperations import getFileContents, openTextFile
 
 
 def getBumpedVersion(mode, old_version):
@@ -127,3 +130,9 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
 
     # Debian is currently in not freeze, change to "experimental" once that changes.
     updateDebianChangelog(old_version, new_version, "unstable")
+
+    if mode == "release":
+        with withFileOpenedAndAutoFormatted("Changelog.rst") as changelog_file:
+            changelog_file.write(
+                getFileContents("Changelog.rst").replace(" (Draft)", "")
+            )

@@ -69,19 +69,11 @@ class NuitkaPluginNumpy(NuitkaPluginBase):
     """
 
     plugin_name = "numpy"  # Nuitka knows us by this name
-    plugin_desc = "Required for numpy, scipy, pandas, etc."
+    plugin_desc = "Required for numpy."
 
-    def __init__(self, include_matplotlib, include_scipy):
+    def __init__(self, include_scipy):
         self.include_numpy = True  # For consistency
         self.include_scipy = include_scipy
-
-        # Information about matplotlib install.
-        self.matplotlib_info = None
-
-        if include_matplotlib:
-            self.warning(
-                "The option '--noinclude-matplotlib' is deprecated, matplotlib as its own plugin now."
-            )
 
     @classmethod
     def isRelevant(cls):
@@ -101,17 +93,6 @@ class NuitkaPluginNumpy(NuitkaPluginBase):
             default=True,
             help="""\
 Should scipy, sklearn or skimage when used be not included with numpy, Default is %default.""",
-        )
-
-        # TODO: This is deprecated, remove it eventually.
-        from optparse import SUPPRESS_HELP
-
-        group.add_option(
-            "--noinclude-matplotlib",
-            action="store_true",
-            dest="include_matplotlib",
-            default=False,
-            help=SUPPRESS_HELP,
         )
 
     def getExtraDlls(self, module):
@@ -261,10 +242,5 @@ class NuitkaPluginDetectorNumpy(NuitkaPluginBase):
             None
         """
         module_name = module.getFullName()
-        if module_name.hasOneOfNamespaces(
-            "numpy", "scipy", "skimage", "pandas", "sklearn"
-        ):
-            self.warnUnusedPlugin(
-                "Numpy support for at least '%s'."
-                % module_name.getTopLevelPackageName()
-            )
+        if module_name == "numpy":
+            self.warnUnusedPlugin("Numpy may miss DLLs otherwise.")

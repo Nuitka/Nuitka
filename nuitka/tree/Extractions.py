@@ -22,7 +22,7 @@ know the variables written by a piece of code ahead of abstractly executing a
 loop.
 """
 
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 
 from .Operations import VisitorNoopMixin, visitTree
 

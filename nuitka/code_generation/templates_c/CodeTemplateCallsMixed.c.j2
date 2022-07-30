@@ -1,0 +1,143 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperObjectTools.c.j2' import CHECK_OBJECTS %}
+{% if not has_dict_values %}
+PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
+{% elif args_count == 0 and has_dict_values %}
+PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyObject *called, PyObject *const *kw_values, PyObject *kw_names) {
+{% elif not has_tuple_arg %}
+PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values, PyObject *kw_names) {
+{% else %}
+PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values, PyObject *kw_names) {
+    assert(PyTuple_CheckExact(pos_args));
+    PyObject *const *args = &PyTuple_GET_ITEM(pos_args, 0);
+{% endif %}
+    {{ CHECK_OBJECTS(args, args_count) }}
+    CHECK_OBJECT(kw_names);
+    assert(PyTuple_CheckExact(kw_names));
+
+    Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
+
+    {# The dict values might be joined and separately, check them too. #}
+{% if has_dict_values %}
+    CHECK_OBJECTS(kw_values, PyTuple_GET_SIZE(kw_names));
+{% else %}
+    CHECK_OBJECTS(&args[{{args_count}}], nkwargs);
+{% endif %}
+
+    if (Nuitka_Function_Check(called)) {
+        if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+            return NULL;
+        }
+
+        struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)called;
+
+{% if args_count == 0 %}
+        {# TODO: Add more specialized entry point for KwSplit only. #}
+        PyObject *result = Nuitka_CallFunctionPosArgsKwSplit(function, NULL, {{args_count}}, kw_values, kw_names);
+{% elif not has_dict_values %}
+        PyObject *result = Nuitka_CallFunctionVectorcall(function, args, {{args_count}}, &PyTuple_GET_ITEM(kw_names, 0), nkwargs);
+{% else %}
+        PyObject *result = Nuitka_CallFunctionPosArgsKwSplit(function, args, {{args_count}}, kw_values, kw_names);
+{% endif %}
+
+        Py_LeaveRecursiveCall();
+
+        return result;
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
+    } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
+        vectorcallfunc func = *((vectorcallfunc *)(((char *)called) + Py_TYPE(called)->tp_vectorcall_offset));
+
+        if (likely(func != NULL)) {
+{% if args_count == 0 %}
+            PyObject *result = func(called, kw_values, 0, kw_names);
+{% elif not has_dict_values %}
+            PyObject *result = func(called, args, {{args_count}}, kw_names);
+{% else %}
+            NUITKA_DYNAMIC_ARRAY_DECL(vectorcall_args, PyObject *, {{args_count}} + nkwargs);
+
+            memcpy(vectorcall_args, args, {{args_count}}*sizeof(PyObject *));
+            memcpy(&vectorcall_args[{{args_count}}], kw_values, nkwargs*sizeof(PyObject *));
+
+            PyObject *result = func(called, vectorcall_args, {{args_count}}, kw_names);
+{% endif %}
+
+            return Nuitka_CheckFunctionResult(result);
+        }
+#endif
+    }
+
+#if 0
+    PRINT_STRING("FALLBACK");
+    PRINT_ITEM(called);
+    PRINT_NEW_LINE();
+#endif
+
+    ternaryfunc call_slot = Py_TYPE(called)->tp_call;
+
+    if (unlikely(call_slot == NULL)) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object is not callable", called);
+
+        return NULL;
+    }
+
+    if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
+        return NULL;
+    }
+
+{% if args_count == 0 %}
+    PyObject *pos_args = const_tuple_empty;
+{% elif not has_tuple_arg or not has_dict_values %}
+    PyObject *pos_args = MAKE_TUPLE(args, {{args_count}});
+{% endif %}
+
+    PyObject *named_args = _PyDict_NewPresized(nkwargs);
+
+    for (Py_ssize_t i = 0; i < nkwargs; i++) {
+        PyObject *key = PyTuple_GET_ITEM(kw_names, i);
+
+{% if not has_dict_values %}
+        PyObject *value = args[{{args_count}}+i];
+{% else %}
+        PyObject *value = kw_values[i];
+{% endif %}
+
+        CHECK_OBJECT(key);
+        CHECK_OBJECT(value);
+
+        PyDict_SetItem(named_args, key, value);
+    }
+
+    PyObject *result = (*call_slot)(called, pos_args, named_args);
+
+{% if args_count != 0 and not has_tuple_arg %}
+    Py_DECREF(pos_args);
+{% endif %}
+    Py_DECREF(named_args);
+
+{% if args_count != 0 %}
+    CHECK_OBJECTS(args, {{args_count}});
+{% endif %}
+{% if has_dict_values %}
+    CHECK_OBJECTS(kw_values, nkwargs);
+{% endif %}
+
+    Py_LeaveRecursiveCall();
+
+    return Nuitka_CheckFunctionResult(result);
+}

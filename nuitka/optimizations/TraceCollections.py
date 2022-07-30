@@ -29,12 +29,12 @@ from contextlib import contextmanager
 
 from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninitialized
-from nuitka.tree.SourceReading import readSourceLine
+from nuitka.tree.SourceHandling import readSourceLine
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -763,7 +763,10 @@ class TraceCollectionBase(object):
 
         for variable, version in iterItems(collection2.variable_actives):
             if variable not in variable_versions:
-                variable_versions[variable] = 0, version
+                if version != 0:
+                    variable_versions[variable] = 0, version
+                else:
+                    variable_versions[variable] = 0
             else:
                 other = variable_versions[variable]
 
@@ -772,9 +775,11 @@ class TraceCollectionBase(object):
                 else:
                     variable_versions[variable] = other
 
+        # That would not be fast, pylint: disable=consider-using-dict-items
         for variable in variable_versions:
             if variable not in collection2.variable_actives:
-                variable_versions[variable] = variable_versions[variable], 0
+                if variable_versions[variable] != 0:
+                    variable_versions[variable] = variable_versions[variable], 0
 
         self.variable_actives = {}
 

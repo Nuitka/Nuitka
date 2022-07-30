@@ -31,11 +31,9 @@ from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
 from .VariableAssignNodes import makeStatementAssignmentVariable
-from .VariableDelNodes import (
-    StatementReleaseVariable,
-    makeStatementDelVariable,
-)
+from .VariableDelNodes import makeStatementDelVariable
 from .VariableRefNodes import ExpressionTempVariableRef
+from .VariableReleaseNodes import makeStatementReleaseVariable
 
 
 class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
@@ -628,7 +626,9 @@ class StatementReleaseLocals(StatementBase):
     def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             statements = [
-                StatementReleaseVariable(variable=variable, source_ref=self.source_ref)
+                makeStatementReleaseVariable(
+                    variable=variable, source_ref=self.source_ref
+                )
                 for variable in self.locals_scope.getPropagationVariables().values()
             ]
 

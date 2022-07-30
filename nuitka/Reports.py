@@ -19,15 +19,25 @@
 
 """
 
+import os
+import sys
+
 from nuitka import TreeXML
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
+from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
-from nuitka.ModuleRegistry import getDoneModules, getModuleInclusionInfos
+from nuitka.ModuleRegistry import (
+    getDoneModules,
+    getModuleInclusionInfos,
+    getModuleInfluences,
+)
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
 
 
 def writeCompilationReport(report_filename):
+    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
+
     active_modules_info = getModuleInclusionInfos()
 
     root = TreeXML.Element("nuitka-compilation-report")
@@ -35,14 +45,30 @@ def writeCompilationReport(report_filename):
     for module in getDoneModules():
         active_module_info = active_modules_info[module]
 
-        root.append(
-            TreeXML.Element(
-                "module",
-                name=module.getFullName(),
-                kind=module.__class__.__name__,
-                reason=active_module_info.reason,
-            )
+        module_xml_node = TreeXML.Element(
+            "module",
+            name=module.getFullName(),
+            kind=module.__class__.__name__,
+            reason=active_module_info.reason,
         )
+
+        for plugin_name, influence, detail in getModuleInfluences(module.getFullName()):
+            influence_xml_node = TreeXML.Element(
+                "plugin-influence", name=plugin_name, influence=influence
+            )
+
+            if influence == "condition-used":
+                condition, condition_tags_used, condition_result = detail
+
+                influence_xml_node.attrib["condition"] = condition
+                influence_xml_node.attrib["tags_used"] = ",".join(condition_tags_used)
+                influence_xml_node.attrib["result"] = str(condition_result).lower()
+            else:
+                assert False, influence
+
+            module_xml_node.append(influence_xml_node)
+
+        root.append(module_xml_node)
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
@@ -65,14 +91,45 @@ def writeCompilationReport(report_filename):
                 )
             )
 
-    search_path = getPackageSearchPath(None)
+    for standalone_entry_point in getStandaloneEntryPoints():
+        if standalone_entry_point.kind == "executable":
+            continue
 
-    root.append(
-        TreeXML.Element(
-            "search_path",
-            dirs=":".join(search_path),
+        kind = standalone_entry_point.kind
+
+        if kind.endswith("_ignored"):
+            ignored = True
+            kind = kind.replace("_ignored", "")
+        else:
+            ignored = False
+
+        root.append(
+            TreeXML.Element(
+                "included_" + kind,
+                name=os.path.basename(standalone_entry_point.dest_path),
+                dest_path=standalone_entry_point.dest_path,
+                source_path=standalone_entry_point.source_path,
+                package=standalone_entry_point.source_path,
+                ignored="yes" if ignored else "no"
+                # TODO: No reason yet.
+            )
         )
+
+    search_path_element = TreeXML.appendTreeElement(
+        root,
+        "search_path",
     )
+
+    for search_path in getPackageSearchPath(None):
+        search_path_element.append(TreeXML.Element("path", value=search_path))
+
+    options_element = TreeXML.appendTreeElement(
+        root,
+        "command_line",
+    )
+
+    for arg in sys.argv[1:]:
+        options_element.append(TreeXML.Element("option", value=arg))
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 

@@ -27,9 +27,10 @@ import sys
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import listDllFilesFromDirectory
 from nuitka.utils.SharedLibraries import getPyWin32Dir
-from nuitka.utils.Utils import isLinux, isWin32Windows
+from nuitka.utils.Utils import isFreeBSD, isLinux, isWin32Windows
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
 
@@ -66,9 +67,9 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         dll_dir = os.path.join(module_directory, relative_path)
 
         if os.path.exists(dll_dir):
-            for pattern in dll_config.get("prefixes"):
+            for prefix in dll_config.get("prefixes"):
                 for dll_filename, filename in listDllFilesFromDirectory(
-                    dll_dir, prefix=pattern
+                    dll_dir, prefix=prefix
                 ):
                     yield self.makeDllEntryPoint(
                         source_path=dll_filename,
@@ -165,7 +166,11 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 self.reportFileCount(full_name, found)
 
         # TODO: This is legacy code, ideally moved to yaml config over time.
-        if full_name == "uuid" and isLinux():
+        if (
+            full_name == "uuid"
+            and (isLinux() or isFreeBSD())
+            and python_version < 0x300
+        ):
             uuid_dll_path = self.locateDLL("uuid")
 
             if uuid_dll_path is not None:

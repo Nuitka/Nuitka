@@ -25,9 +25,9 @@ nuitka.Options.is_full_compat = False
 
 # isort:start
 
-import nuitka.codegen.ComparisonCodes
-import nuitka.codegen.HelperDefinitions
-import nuitka.codegen.Namify
+import nuitka.code_generation.BinaryOperationHelperDefinitions
+import nuitka.code_generation.ComparisonCodes
+import nuitka.code_generation.Namify
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
@@ -91,7 +91,7 @@ def processTypeShapeAttribute(
         attribute_shape_operations[key] = present
 
         if present:
-            attribute_shape_args[key] = arg_names
+            attribute_shape_args[key] = tuple(arg_names)
             attribute_shape_arg_tests[key] = arg_tests
 
             if len(arg_counts) > 1:
@@ -119,7 +119,7 @@ def processTypeShapeAttribute(
         attribute_shape_operations[key] = present
 
         if present:
-            attribute_shape_args[key] = arg_names
+            attribute_shape_args[key] = tuple(arg_names)
             attribute_shape_arg_tests[key] = arg_tests
 
             if len(arg_counts) > 1:
@@ -166,15 +166,32 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 
 
 def emitGenerationWarning(emit, template_name):
+    attribute_code_names = set(attribute_information.keys())
+    attribute_code_names = set(
+        attribute_name.replace("_", "") for attribute_name in attribute_information
+    )
+
+    attribute_arg_names = set(sum(attribute_shape_args.values(), ()))
+
     emit(
-        '''"""Specialized attribute nodes
+        '''
+# pylint: disable=too-many-lines
+# pylint: disable=line-too-long
+
+"""Specialized attribute nodes
 
 WARNING, this code is GENERATED. Modify the template %s instead!
+
+spell-checker: ignore %s
+spell-checker: ignore %s
 """
 
-# pylint: disable=too-many-lines
 '''
-        % template_name
+        % (
+            template_name,
+            " ".join(sorted(attribute_code_names)),
+            " ".join(sorted(attribute_arg_names)),
+        )
     )
 
 

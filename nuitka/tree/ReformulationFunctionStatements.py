@@ -51,7 +51,6 @@ from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
     StatementAssignmentVariableName,
@@ -60,6 +59,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.Options import hasPythonFlagNoAnnotations
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -647,7 +647,9 @@ def _wrapFunctionWithSpecialNestedArgs(
                 provider=outer_body,
                 tried=statements,
                 final=[
-                    StatementReleaseVariable(variable=variable, source_ref=source_ref)
+                    makeStatementReleaseVariable(
+                        variable=variable, source_ref=source_ref
+                    )
                     for variable in sorted(
                         outer_body.getTempVariables(),
                         key=lambda variable: variable.getName(),
@@ -781,7 +783,7 @@ def addFunctionVariableReleases(function):
             continue
 
         releases.append(
-            StatementReleaseVariable(variable=variable, source_ref=source_ref)
+            makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
         )
 
     if releases:

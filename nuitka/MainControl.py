@@ -56,9 +56,9 @@ from nuitka.Progress import (
     setupProgressBar,
 )
 from nuitka.PythonFlavors import (
-    isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
+    isFedoraPackagePython,
     isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
@@ -85,7 +85,6 @@ from nuitka.utils.FileOperations import (
     getDirectoryRealPath,
     getExternalUsePath,
     makePath,
-    putTextFileContents,
     removeDirectory,
     resetDirectory,
 )
@@ -98,14 +97,19 @@ from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, LoaderCodes, Reports
+from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
 from .freezer.Onefile import packDistFolderToOnefile
-from .freezer.Standalone import checkFreezingModuleSet, copyDllsUsed
+from .freezer.Standalone import (
+    checkFreezingModuleSet,
+    copyDllsUsed,
+    detectUsedDLLs,
+)
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
 from .Reports import writeCompilationReport
-from .tree import Building
+from .tree.Building import buildMainModuleTree
+from .tree.SourceHandling import writeSourceCode
 
 
 def _createNodeTree(filename):
@@ -120,7 +124,7 @@ def _createNodeTree(filename):
     # Many cases to deal with, pylint: disable=too-many-branches
 
     # First, build the raw node tree from the source code.
-    main_module = Building.buildMainModuleTree(
+    main_module = buildMainModuleTree(
         filename=filename,
         is_main=not Options.shallMakeModule(),
     )
@@ -169,8 +173,8 @@ def _createNodeTree(filename):
 
         if kind != "absolute":
             inclusion_logger.sysexit(
-                "Error, failed to locate package %r you asked to include."
-                % package_name.asString()
+                "Error, failed to locate package '%s' you asked to include."
+                % package_name
             )
 
         Recursion.checkPluginPath(
@@ -296,9 +300,6 @@ def pickSourceFilenames(source_dir, modules):
     return module_filenames
 
 
-standalone_entry_points = []
-
-
 def makeSourceDirectory():
     """Get the full list of modules imported, create code for all of them."""
     # We deal with a lot of details here, but rather one by one, and split makes
@@ -338,10 +339,9 @@ def makeSourceDirectory():
         if "*" in any_case_module or "{" in any_case_module:
             continue
 
-        for module in ModuleRegistry.getDoneModules():
-            if module.getFullName() == any_case_module:
-                break
-        else:
+        if not ModuleRegistry.hasDoneModule(
+            any_case_module
+        ) and not ModuleRegistry.hasRootModule(any_case_module):
             general.warning(
                 "Did not follow import to unused '%s', consider include options."
                 % any_case_module
@@ -402,7 +402,7 @@ def makeSourceDirectory():
 
         source_code = CodeGeneration.generateModuleCode(
             module=module,
-            data_filename=os.path.basename(c_filename + "onst"),  # Really .const
+            data_filename=os.path.basename(c_filename[:-2] + ".const"),
         )
 
         writeSourceCode(filename=c_filename, source_code=source_code)
@@ -496,6 +496,7 @@ def _runCPgoBinary():
     else:
         _exit_code = _runPgoBinary()
 
+        # gcc file suffix, spell-checker: ignore gcda
         gcc_constants_pgo_filename = os.path.join(
             OutputDirectories.getSourceDirectoryPath(), "__constants.gcda"
         )
@@ -576,11 +577,11 @@ def runSconsBackend(quiet):
     if isDebianPackagePython():
         options["debian_python"] = asBoolStr(True)
 
+    if isFedoraPackagePython():
+        options["fedora_python"] = asBoolStr(True)
+
     if isMSYS2MingwPython():
         options["msys2_mingw_python"] = asBoolStr(True)
-
-    if isAnacondaPython():
-        options["anaconda_python"] = asBoolStr(True)
 
     if isApplePython():
         options["apple_python"] = asBoolStr(True)
@@ -709,25 +710,6 @@ def runSconsBackend(quiet):
     return result
 
 
-def writeSourceCode(filename, source_code):
-    # Prevent accidental overwriting. When this happens the collision detection
-    # or something else has failed.
-    assert not os.path.isfile(filename), filename
-
-    putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
-
-
-def writeBinaryData(filename, binary_data):
-    # Prevent accidental overwriting. When this happens the collision detection
-    # or something else has failed.
-    assert not os.path.isfile(filename), filename
-
-    assert type(binary_data) is bytes
-
-    with open(filename, "wb") as output_file:
-        output_file.write(binary_data)
-
-
 def callExecPython(args, clean_path, add_path):
     old_python_path = os.environ.get("PYTHONPATH")
 
@@ -757,6 +739,7 @@ def executeMain(binary_filename, clean_path):
 
 
 def executeModule(tree, clean_path):
+    """Execute the extension module just created."""
 
     if python_version < 0x340:
         python_command_template = """\
@@ -814,7 +797,7 @@ def compileTree():
 
         # This should take all bytecode values, even ones needed for frozen or
         # not produce anything.
-        loader_code = LoaderCodes.getMetapathLoaderBodyCode(bytecode_accessor)
+        loader_code = LoaderCodes.getMetaPathLoaderBodyCode(bytecode_accessor)
 
         writeSourceCode(
             filename=os.path.join(source_dir, "__loader.c"), source_code=loader_code
@@ -975,13 +958,17 @@ def main():
 
             setMainEntryPoint(binary_filename)
 
+            for module in ModuleRegistry.getDoneModules():
+                addIncludedEntryPoints(Plugins.considerExtraDlls(module))
+
+            detectUsedDLLs(
+                standalone_entry_points=getStandaloneEntryPoints(),
+                source_dir=OutputDirectories.getSourceDirectoryPath(),
+            )
+
             dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
-            for module in ModuleRegistry.getDoneModules():
-                addIncludedEntryPoints(Plugins.considerExtraDlls(dist_dir, module))
-
             copyDllsUsed(
-                source_dir=OutputDirectories.getSourceDirectoryPath(),
                 dist_dir=dist_dir,
                 standalone_entry_points=getStandaloneEntryPoints(),
             )
@@ -989,7 +976,7 @@ def main():
             Plugins.onStandaloneDistributionFinished(dist_dir)
 
             if Options.isOnefileMode():
-                packDistFolderToOnefile(dist_dir, binary_filename)
+                packDistFolderToOnefile(dist_dir)
 
                 if Options.isRemoveBuildDir():
                     general.info("Removing dist folder %r." % dist_dir)

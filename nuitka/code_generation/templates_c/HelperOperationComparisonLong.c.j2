@@ -1,0 +1,157 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperLongTools.c.j2' import declare_long_access with context %}
+static {{target.getTypeDecl()}} COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+    {{ left.getCheckValueCode("operand1") }}
+    {{ right.getCheckValueCode("operand2") }}
+
+    {{ declare_long_access(left, "operand1") }}
+    {{ declare_long_access(right, "operand2") }}
+
+    bool r;
+
+{% if operand == "==" %}
+{% if left == right == long_desc %}
+    if (operand1_long_object == operand2_long_object) {
+        r = true;
+    } else
+{% endif %}
+    if ( {{ left.getLongValueSizeExpression("operand1") }} != {{ right.getLongValueSizeExpression("operand2") }} ) {
+        r = false;
+    } else {
+        Py_ssize_t i = {{ left.getLongValueDigitCountExpression("operand1") }};
+        r = true;
+
+        while (--i >= 0) {
+            if ({{ left.getLongValueDigitExpression("operand1", "i") }} != {{ right.getLongValueDigitExpression("operand2", "i") }}) {
+                r = false;
+                break;
+            }
+        }
+    }
+{% elif operand == "!=" %}
+{% if left == right == long_desc %}
+    if (operand1_long_object == operand2_long_object) {
+        r = false;
+    } else
+{% endif %}
+    if ( {{ left.getLongValueSizeExpression("operand1") }} != {{ right.getLongValueSizeExpression("operand2") }} ) {
+        r = true;
+    } else {
+        Py_ssize_t i = {{ left.getLongValueDigitCountExpression("operand1") }};
+        r = false;
+        while (--i >= 0) {
+            if ({{ left.getLongValueDigitExpression("operand1", "i") }} != {{ right.getLongValueDigitExpression("operand2", "i") }}) {
+                r = true;
+                break;
+            }
+        }
+    }
+{% elif operand == "<=" %}
+{% if left == right == long_desc %}
+    if (operand1_long_object == operand2_long_object) {
+        r = true;
+    } else
+{% endif %}
+    if ( {{ left.getLongValueSizeExpression("operand1") }} != {{ right.getLongValueSizeExpression("operand2") }} ) {
+        r = {{ left.getLongValueSizeExpression("operand1") }} - {{ right.getLongValueSizeExpression("operand2") }} < 0;
+    } else {
+        Py_ssize_t i = {{ left.getLongValueDigitCountExpression("operand1") }};
+        r = true;
+        while (--i >= 0) {
+            if ({{ left.getLongValueDigitExpression("operand1", "i") }} != {{ right.getLongValueDigitExpression("operand2", "i") }}) {
+                r = {{ left.getLongValueDigitExpression("operand1", "i") }} < {{ right.getLongValueDigitExpression("operand2", "i") }};
+                if ({{ left.getLongValueIsNegativeTestExpression("operand1") }}) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+{% elif operand == ">=" %}
+{% if left == right == long_desc %}
+    if (operand1_long_object == operand2_long_object) {
+        r = true;
+    } else
+{% endif %}
+    if ( {{ left.getLongValueSizeExpression("operand1") }} != {{ right.getLongValueSizeExpression("operand2") }} ) {
+        r = {{ left.getLongValueSizeExpression("operand1") }} - {{ right.getLongValueSizeExpression("operand2") }} > 0;
+    } else {
+        Py_ssize_t i = {{ left.getLongValueDigitCountExpression("operand1") }};
+        r = true;
+        while (--i >= 0) {
+            if ({{ left.getLongValueDigitExpression("operand1", "i") }} != {{ right.getLongValueDigitExpression("operand2", "i") }}) {
+                r = {{ left.getLongValueDigitExpression("operand1", "i") }} > {{ right.getLongValueDigitExpression("operand2", "i") }};
+                if ({{ left.getLongValueIsNegativeTestExpression("operand1") }}) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+{% elif operand == "<" %}
+{% if left == right == long_desc %}
+    if (operand1_long_object == operand2_long_object) {
+        r = false;
+    } else
+{% endif %}
+    if ( {{ left.getLongValueSizeExpression("operand1") }} != {{ right.getLongValueSizeExpression("operand2") }} ) {
+        r = {{ left.getLongValueSizeExpression("operand1") }} - {{ right.getLongValueSizeExpression("operand2") }} < 0;
+    } else {
+        Py_ssize_t i = {{ left.getLongValueDigitCountExpression("operand1") }};
+        r = false;
+        while (--i >= 0) {
+            if ({{ left.getLongValueDigitExpression("operand1", "i") }} != {{ right.getLongValueDigitExpression("operand2", "i") }}) {
+                r = {{ left.getLongValueDigitExpression("operand1", "i") }} < {{ right.getLongValueDigitExpression("operand2", "i") }};
+                if ({{ left.getLongValueIsNegativeTestExpression("operand1") }}) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+{% elif operand == ">" %}
+{% if left == right == long_desc %}
+    if (operand1_long_object == operand2_long_object) {
+        r = false;
+    } else
+{% endif %}
+    if ( {{ left.getLongValueSizeExpression("operand1") }} != {{ right.getLongValueSizeExpression("operand2") }} ) {
+        r = {{ left.getLongValueSizeExpression("operand1") }} - {{ right.getLongValueSizeExpression("operand2") }} > 0;
+    } else {
+        Py_ssize_t i = {{ left.getLongValueDigitCountExpression("operand1") }};
+        r = false;
+        while (--i >= 0) {
+            if ({{ left.getLongValueDigitExpression("operand1", "i") }} != {{ right.getLongValueDigitExpression("operand2", "i") }}) {
+                r = {{ left.getLongValueDigitExpression("operand1", "i") }} > {{ right.getLongValueDigitExpression("operand2", "i") }};
+                if ({{ left.getLongValueIsNegativeTestExpression("operand1") }}) {
+                    r = !r;
+                }
+                break;
+            }
+        }
+    }
+{% else %}
+# error unknown operand {{operand}}
+{% endif %}
+
+    // Convert to target type.
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+}
