@@ -24,9 +24,10 @@ added, and whose dependencies will also be included.
 """
 
 import collections
+import fnmatch
 import os
 
-from nuitka.Options import isShowInclusion
+from nuitka.Options import getShallNotIncludeDllFilePatterns, isShowInclusion
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
@@ -149,6 +150,9 @@ Ignoring non-identical DLLs for '%s', '%s' different from '%s'. Using first one 
 
 
 def addIncludedEntryPoint(entry_point):
+    # Checking here if user or DLL version conflicts require it to be ignored,
+    # which has a couple of decisions to make, pylint: disable=too-many-branches
+
     for count, standalone_entry_point in enumerate(standalone_entry_points):
         if standalone_entry_point.kind.endswith("_ignored"):
             continue
@@ -213,7 +217,13 @@ def addIncludedEntryPoint(entry_point):
                 entry_point = _makeIgnoredEntryPoint(entry_point)
                 break
 
+            # Ought to be impossible to get here.
             assert False, (old_dll_version, new_dll_version)
+
+    if not entry_point.kind.endswith("_ignored"):
+        for noinclude_dll_pattern in getShallNotIncludeDllFilePatterns():
+            if fnmatch.fnmatch(entry_point.dest_path, noinclude_dll_pattern):
+                entry_point = _makeIgnoredEntryPoint(entry_point)
 
     standalone_entry_points.append(entry_point)
 
