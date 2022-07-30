@@ -100,7 +100,7 @@ def raiseSyntaxError(reason, source_ref, display_file=True, display_line=True):
 
     def readSource():
         # Cyclic dependency.
-        from .SourceReading import readSourceLine
+        from .SourceHandling import readSourceLine
 
         return readSourceLine(source_ref)
 

@@ -15,12 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+# pylint: disable=too-many-lines
+# pylint: disable=line-too-long
+
 """Specialized attribute nodes
 
 WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
+
+spell-checker: ignore capitalize casefold center clear copy count decode encode endswith expandtabs find format formatmap get haskey hex index isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem replace rfind rindex rjust rpartition rsplit rstrip setdefault split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore args chars count default encoding end errors fillchar iterable keepends key maxsplit new old pairs prefix sep start sub suffix table tabsize width
 """
 
-# pylint: disable=too-many-lines
 
 from nuitka.specs.BuiltinBytesOperationSpecs import bytes_decode_spec
 from nuitka.specs.BuiltinDictOperationSpecs import (
@@ -34,6 +39,7 @@ from nuitka.specs.BuiltinDictOperationSpecs import (
     dict_itervalues_spec,
     dict_keys_spec,
     dict_pop_spec,
+    dict_popitem_spec,
     dict_setdefault_spec,
     dict_update_spec,
     dict_values_spec,
@@ -44,10 +50,12 @@ from nuitka.specs.BuiltinDictOperationSpecs import (
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.BuiltinStrOperationSpecs import (
     str_capitalize_spec,
+    str_center_spec,
     str_count_spec,
     str_decode_spec,
     str_encode_spec,
     str_endswith_spec,
+    str_expandtabs_spec,
     str_find_spec,
     str_format_spec,
     str_index_spec,
@@ -59,24 +67,30 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_istitle_spec,
     str_isupper_spec,
     str_join_spec,
+    str_ljust_spec,
     str_lower_spec,
     str_lstrip_spec,
     str_partition_spec,
     str_replace_spec,
     str_rfind_spec,
     str_rindex_spec,
+    str_rjust_spec,
     str_rpartition_spec,
     str_rsplit_spec,
     str_rstrip_spec,
     str_split_spec,
+    str_splitlines_spec,
     str_startswith_spec,
     str_strip_spec,
     str_swapcase_spec,
     str_title_spec,
+    str_translate_spec,
     str_upper_spec,
+    str_zfill_spec,
 )
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
+from .AttributeNodes import makeExpressionAttributeLookup
 from .BytesNodes import (
     ExpressionBytesOperationDecode1,
     ExpressionBytesOperationDecode2,
@@ -96,6 +110,7 @@ from .DictionaryNodes import (
     ExpressionDictOperationKeys,
     ExpressionDictOperationPop2,
     ExpressionDictOperationPop3,
+    ExpressionDictOperationPopitem,
     ExpressionDictOperationSetdefault2,
     ExpressionDictOperationSetdefault3,
     ExpressionDictOperationUpdate2,
@@ -110,6 +125,8 @@ from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from .StrNodes import (
     ExpressionStrOperationCapitalize,
+    ExpressionStrOperationCenter2,
+    ExpressionStrOperationCenter3,
     ExpressionStrOperationCount2,
     ExpressionStrOperationCount3,
     ExpressionStrOperationCount4,
@@ -122,6 +139,8 @@ from .StrNodes import (
     ExpressionStrOperationEndswith2,
     ExpressionStrOperationEndswith3,
     ExpressionStrOperationEndswith4,
+    ExpressionStrOperationExpandtabs1,
+    ExpressionStrOperationExpandtabs2,
     ExpressionStrOperationFind2,
     ExpressionStrOperationFind3,
     ExpressionStrOperationFind4,
@@ -137,6 +156,8 @@ from .StrNodes import (
     ExpressionStrOperationIstitle,
     ExpressionStrOperationIsupper,
     ExpressionStrOperationJoin,
+    ExpressionStrOperationLjust2,
+    ExpressionStrOperationLjust3,
     ExpressionStrOperationLower,
     ExpressionStrOperationLstrip1,
     ExpressionStrOperationLstrip2,
@@ -149,6 +170,8 @@ from .StrNodes import (
     ExpressionStrOperationRindex2,
     ExpressionStrOperationRindex3,
     ExpressionStrOperationRindex4,
+    ExpressionStrOperationRjust2,
+    ExpressionStrOperationRjust3,
     ExpressionStrOperationRpartition,
     ExpressionStrOperationRsplit1,
     ExpressionStrOperationRsplit2,
@@ -158,6 +181,8 @@ from .StrNodes import (
     ExpressionStrOperationSplit1,
     ExpressionStrOperationSplit2,
     ExpressionStrOperationSplit3,
+    ExpressionStrOperationSplitlines1,
+    ExpressionStrOperationSplitlines2,
     ExpressionStrOperationStartswith2,
     ExpressionStrOperationStartswith3,
     ExpressionStrOperationStartswith4,
@@ -165,7 +190,9 @@ from .StrNodes import (
     ExpressionStrOperationStrip2,
     ExpressionStrOperationSwapcase,
     ExpressionStrOperationTitle,
+    ExpressionStrOperationTranslate,
     ExpressionStrOperationUpper,
+    ExpressionStrOperationZfill,
 )
 
 attribute_classes = {}
@@ -173,7 +200,7 @@ attribute_typed_classes = set()
 
 
 class ExpressionAttributeLookupFixedCapitalize(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'capitalize' of an object. spell-checker: ignore capitalize
+    """Looking up an attribute value 'capitalize' of an object.
 
     Typically code like: source.capitalize
     """
@@ -261,9 +288,15 @@ class ExpressionAttributeLookupStrCapitalize(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -293,7 +326,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesCapitalize)
 
 
 class ExpressionAttributeLookupFixedCasefold(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'casefold' of an object. spell-checker: ignore casefold
+    """Looking up an attribute value 'casefold' of an object.
 
     Typically code like: source.casefold
     """
@@ -351,7 +384,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrCasefold)
 
 
 class ExpressionAttributeLookupFixedCenter(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'center' of an object. spell-checker: ignore center
+    """Looking up an attribute value 'center' of an object.
 
     Typically code like: source.center
     """
@@ -412,7 +445,53 @@ class ExpressionAttributeLookupStrCenter(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationCenter is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationCenter(width, fillchar, source_ref):
+            if fillchar is not None:
+                return ExpressionStrOperationCenter3(
+                    str_arg=str_arg,
+                    width=width,
+                    fillchar=fillchar,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionStrOperationCenter2(
+                    str_arg=str_arg, width=width, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationCenter,
+            builtin_spec=str_center_spec,
+        )
+
+        return result, "new_expression", "Call to 'center' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrCenter)
@@ -439,7 +518,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesCenter)
 
 
 class ExpressionAttributeLookupFixedClear(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'clear' of an object. spell-checker: ignore clear
+    """Looking up an attribute value 'clear' of an object.
 
     Typically code like: source.clear
     """
@@ -519,9 +598,15 @@ class ExpressionAttributeLookupDictClear(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -531,7 +616,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictClear)
 
 
 class ExpressionAttributeLookupFixedCopy(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'copy' of an object. spell-checker: ignore copy
+    """Looking up an attribute value 'copy' of an object.
 
     Typically code like: source.copy
     """
@@ -609,9 +694,15 @@ class ExpressionAttributeLookupDictCopy(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -621,7 +712,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictCopy)
 
 
 class ExpressionAttributeLookupFixedCount(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'count' of an object. spell-checker: ignore count
+    """Looking up an attribute value 'count' of an object.
 
     Typically code like: source.count
     """
@@ -722,9 +813,15 @@ class ExpressionAttributeLookupStrCount(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -754,7 +851,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesCount)
 
 
 class ExpressionAttributeLookupFixedDecode(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'decode' of an object. spell-checker: ignore decode
+    """Looking up an attribute value 'decode' of an object.
 
     Typically code like: source.decode
     """
@@ -854,9 +951,15 @@ class ExpressionAttributeLookupStrDecode(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -918,9 +1021,15 @@ class ExpressionAttributeLookupBytesDecode(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        bytes_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, bytes_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -930,7 +1039,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesDecode)
 
 
 class ExpressionAttributeLookupFixedEncode(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'encode' of an object. spell-checker: ignore encode
+    """Looking up an attribute value 'encode' of an object.
 
     Typically code like: source.encode
     """
@@ -1020,9 +1129,15 @@ class ExpressionAttributeLookupStrEncode(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1032,7 +1147,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrEncode)
 
 
 class ExpressionAttributeLookupFixedEndswith(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'endswith' of an object. spell-checker: ignore endswith
+    """Looking up an attribute value 'endswith' of an object.
 
     Typically code like: source.endswith
     """
@@ -1133,9 +1248,15 @@ class ExpressionAttributeLookupStrEndswith(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1165,7 +1286,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesEndswith)
 
 
 class ExpressionAttributeLookupFixedExpandtabs(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'expandtabs' of an object. spell-checker: ignore expandtabs
+    """Looking up an attribute value 'expandtabs' of an object.
 
     Typically code like: source.expandtabs
     """
@@ -1226,7 +1347,50 @@ class ExpressionAttributeLookupStrExpandtabs(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationExpandtabs is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationExpandtabs(tabsize, source_ref):
+            if tabsize is not None:
+                return ExpressionStrOperationExpandtabs2(
+                    str_arg=str_arg, tabsize=tabsize, source_ref=source_ref
+                )
+            else:
+                return ExpressionStrOperationExpandtabs1(
+                    str_arg=str_arg, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationExpandtabs,
+            builtin_spec=str_expandtabs_spec,
+        )
+
+        return result, "new_expression", "Call to 'expandtabs' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrExpandtabs)
@@ -1253,7 +1417,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesExpandtabs)
 
 
 class ExpressionAttributeLookupFixedFind(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'find' of an object. spell-checker: ignore find
+    """Looking up an attribute value 'find' of an object.
 
     Typically code like: source.find
     """
@@ -1354,9 +1518,15 @@ class ExpressionAttributeLookupStrFind(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1386,7 +1556,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesFind)
 
 
 class ExpressionAttributeLookupFixedFormat(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'format' of an object. spell-checker: ignore format
+    """Looking up an attribute value 'format' of an object.
 
     Typically code like: source.format
     """
@@ -1467,9 +1637,15 @@ class ExpressionAttributeLookupStrFormat(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1479,7 +1655,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrFormat)
 
 
 class ExpressionAttributeLookupFixedFormatmap(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'format_map' of an object. spell-checker: ignore format_map
+    """Looking up an attribute value 'format_map' of an object.
 
     Typically code like: source.format_map
     """
@@ -1536,64 +1712,8 @@ class ExpressionAttributeLookupStrFormatmap(
 attribute_typed_classes.add(ExpressionAttributeLookupStrFormatmap)
 
 
-class ExpressionAttributeLookupFixedFromkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'fromkeys' of an object. spell-checker: ignore fromkeys
-
-    Typically code like: source.fromkeys
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_FROMKEYS"
-    attribute_name = "fromkeys"
-
-    def computeExpression(self, trace_collection):
-        subnode_expression = self.subnode_expression
-
-        if subnode_expression.hasShapeDictionaryExact():
-            return trace_collection.computedExpressionResult(
-                expression=ExpressionAttributeLookupDictFromkeys(
-                    expression=subnode_expression, source_ref=self.source_ref
-                ),
-                change_tags="new_expression",
-                change_desc="Attribute lookup 'fromkeys' on dict shape resolved.",
-            )
-
-        return subnode_expression.computeExpressionAttribute(
-            lookup_node=self,
-            attribute_name="fromkeys",
-            trace_collection=trace_collection,
-        )
-
-    def mayRaiseException(self, exception_type):
-        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
-            exception_type=exception_type, attribute_name="fromkeys"
-        )
-
-
-attribute_classes["fromkeys"] = ExpressionAttributeLookupFixedFromkeys
-
-
-class ExpressionAttributeLookupDictFromkeys(
-    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedFromkeys
-):
-    """Attribute Fromkeys lookup on a dict.
-
-    Typically code like: some_dict.fromkeys
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_FROMKEYS"
-    attribute_name = "fromkeys"
-
-    def computeExpression(self, trace_collection):
-        return self, None, None
-
-    # No computeExpressionCall as dict operation ExpressionDictOperationFromkeys is not yet implemented
-
-
-attribute_typed_classes.add(ExpressionAttributeLookupDictFromkeys)
-
-
 class ExpressionAttributeLookupFixedGet(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'get' of an object. spell-checker: ignore get
+    """Looking up an attribute value 'get' of an object.
 
     Typically code like: source.get
     """
@@ -1678,9 +1798,15 @@ class ExpressionAttributeLookupDictGet(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1690,7 +1816,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictGet)
 
 
 class ExpressionAttributeLookupFixedHaskey(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'has_key' of an object. spell-checker: ignore has_key
+    """Looking up an attribute value 'has_key' of an object.
 
     Typically code like: source.has_key
     """
@@ -1770,9 +1896,15 @@ class ExpressionAttributeLookupDictHaskey(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1782,7 +1914,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictHaskey)
 
 
 class ExpressionAttributeLookupFixedHex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'hex' of an object. spell-checker: ignore hex
+    """Looking up an attribute value 'hex' of an object.
 
     Typically code like: source.hex
     """
@@ -1840,7 +1972,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesHex)
 
 
 class ExpressionAttributeLookupFixedIndex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'index' of an object. spell-checker: ignore index
+    """Looking up an attribute value 'index' of an object.
 
     Typically code like: source.index
     """
@@ -1941,9 +2073,15 @@ class ExpressionAttributeLookupStrIndex(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -1973,7 +2111,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIndex)
 
 
 class ExpressionAttributeLookupFixedIsalnum(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isalnum' of an object. spell-checker: ignore isalnum
+    """Looking up an attribute value 'isalnum' of an object.
 
     Typically code like: source.isalnum
     """
@@ -2059,9 +2197,15 @@ class ExpressionAttributeLookupStrIsalnum(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -2091,7 +2235,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsalnum)
 
 
 class ExpressionAttributeLookupFixedIsalpha(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isalpha' of an object. spell-checker: ignore isalpha
+    """Looking up an attribute value 'isalpha' of an object.
 
     Typically code like: source.isalpha
     """
@@ -2177,9 +2321,15 @@ class ExpressionAttributeLookupStrIsalpha(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -2209,7 +2359,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsalpha)
 
 
 class ExpressionAttributeLookupFixedIsascii(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isascii' of an object. spell-checker: ignore isascii
+    """Looking up an attribute value 'isascii' of an object.
 
     Typically code like: source.isascii
     """
@@ -2297,7 +2447,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsascii)
 
 
 class ExpressionAttributeLookupFixedIsdecimal(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isdecimal' of an object. spell-checker: ignore isdecimal
+    """Looking up an attribute value 'isdecimal' of an object.
 
     Typically code like: source.isdecimal
     """
@@ -2355,7 +2505,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsdecimal)
 
 
 class ExpressionAttributeLookupFixedIsdigit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isdigit' of an object. spell-checker: ignore isdigit
+    """Looking up an attribute value 'isdigit' of an object.
 
     Typically code like: source.isdigit
     """
@@ -2441,9 +2591,15 @@ class ExpressionAttributeLookupStrIsdigit(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -2473,7 +2629,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsdigit)
 
 
 class ExpressionAttributeLookupFixedIsidentifier(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isidentifier' of an object. spell-checker: ignore isidentifier
+    """Looking up an attribute value 'isidentifier' of an object.
 
     Typically code like: source.isidentifier
     """
@@ -2531,7 +2687,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsidentifier)
 
 
 class ExpressionAttributeLookupFixedIslower(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'islower' of an object. spell-checker: ignore islower
+    """Looking up an attribute value 'islower' of an object.
 
     Typically code like: source.islower
     """
@@ -2617,9 +2773,15 @@ class ExpressionAttributeLookupStrIslower(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -2649,7 +2811,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIslower)
 
 
 class ExpressionAttributeLookupFixedIsnumeric(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isnumeric' of an object. spell-checker: ignore isnumeric
+    """Looking up an attribute value 'isnumeric' of an object.
 
     Typically code like: source.isnumeric
     """
@@ -2707,7 +2869,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsnumeric)
 
 
 class ExpressionAttributeLookupFixedIsprintable(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isprintable' of an object. spell-checker: ignore isprintable
+    """Looking up an attribute value 'isprintable' of an object.
 
     Typically code like: source.isprintable
     """
@@ -2765,7 +2927,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupStrIsprintable)
 
 
 class ExpressionAttributeLookupFixedIsspace(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isspace' of an object. spell-checker: ignore isspace
+    """Looking up an attribute value 'isspace' of an object.
 
     Typically code like: source.isspace
     """
@@ -2851,9 +3013,15 @@ class ExpressionAttributeLookupStrIsspace(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -2883,7 +3051,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsspace)
 
 
 class ExpressionAttributeLookupFixedIstitle(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'istitle' of an object. spell-checker: ignore istitle
+    """Looking up an attribute value 'istitle' of an object.
 
     Typically code like: source.istitle
     """
@@ -2969,9 +3137,15 @@ class ExpressionAttributeLookupStrIstitle(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3001,7 +3175,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIstitle)
 
 
 class ExpressionAttributeLookupFixedIsupper(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'isupper' of an object. spell-checker: ignore isupper
+    """Looking up an attribute value 'isupper' of an object.
 
     Typically code like: source.isupper
     """
@@ -3087,9 +3261,15 @@ class ExpressionAttributeLookupStrIsupper(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3119,7 +3299,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesIsupper)
 
 
 class ExpressionAttributeLookupFixedItems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'items' of an object. spell-checker: ignore items
+    """Looking up an attribute value 'items' of an object.
 
     Typically code like: source.items
     """
@@ -3204,9 +3384,15 @@ class ExpressionAttributeLookupDictItems(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3216,7 +3402,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictItems)
 
 
 class ExpressionAttributeLookupFixedIteritems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'iteritems' of an object. spell-checker: ignore iteritems
+    """Looking up an attribute value 'iteritems' of an object.
 
     Typically code like: source.iteritems
     """
@@ -3296,9 +3482,15 @@ class ExpressionAttributeLookupDictIteritems(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3308,7 +3500,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictIteritems)
 
 
 class ExpressionAttributeLookupFixedIterkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'iterkeys' of an object. spell-checker: ignore iterkeys
+    """Looking up an attribute value 'iterkeys' of an object.
 
     Typically code like: source.iterkeys
     """
@@ -3388,9 +3580,15 @@ class ExpressionAttributeLookupDictIterkeys(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3400,7 +3598,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictIterkeys)
 
 
 class ExpressionAttributeLookupFixedItervalues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'itervalues' of an object. spell-checker: ignore itervalues
+    """Looking up an attribute value 'itervalues' of an object.
 
     Typically code like: source.itervalues
     """
@@ -3480,9 +3678,15 @@ class ExpressionAttributeLookupDictItervalues(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3492,7 +3696,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictItervalues)
 
 
 class ExpressionAttributeLookupFixedJoin(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'join' of an object. spell-checker: ignore join
+    """Looking up an attribute value 'join' of an object.
 
     Typically code like: source.join
     """
@@ -3580,9 +3784,15 @@ class ExpressionAttributeLookupStrJoin(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3612,7 +3822,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesJoin)
 
 
 class ExpressionAttributeLookupFixedKeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'keys' of an object. spell-checker: ignore keys
+    """Looking up an attribute value 'keys' of an object.
 
     Typically code like: source.keys
     """
@@ -3697,9 +3907,15 @@ class ExpressionAttributeLookupDictKeys(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3709,7 +3925,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictKeys)
 
 
 class ExpressionAttributeLookupFixedLjust(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'ljust' of an object. spell-checker: ignore ljust
+    """Looking up an attribute value 'ljust' of an object.
 
     Typically code like: source.ljust
     """
@@ -3770,7 +3986,53 @@ class ExpressionAttributeLookupStrLjust(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationLjust is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationLjust(width, fillchar, source_ref):
+            if fillchar is not None:
+                return ExpressionStrOperationLjust3(
+                    str_arg=str_arg,
+                    width=width,
+                    fillchar=fillchar,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionStrOperationLjust2(
+                    str_arg=str_arg, width=width, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationLjust,
+            builtin_spec=str_ljust_spec,
+        )
+
+        return result, "new_expression", "Call to 'ljust' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrLjust)
@@ -3797,7 +4059,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesLjust)
 
 
 class ExpressionAttributeLookupFixedLower(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'lower' of an object. spell-checker: ignore lower
+    """Looking up an attribute value 'lower' of an object.
 
     Typically code like: source.lower
     """
@@ -3883,9 +4145,15 @@ class ExpressionAttributeLookupStrLower(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -3915,7 +4183,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesLower)
 
 
 class ExpressionAttributeLookupFixedLstrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'lstrip' of an object. spell-checker: ignore lstrip
+    """Looking up an attribute value 'lstrip' of an object.
 
     Typically code like: source.lstrip
     """
@@ -4008,9 +4276,15 @@ class ExpressionAttributeLookupStrLstrip(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -4040,7 +4314,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesLstrip)
 
 
 class ExpressionAttributeLookupFixedMaketrans(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'maketrans' of an object. spell-checker: ignore maketrans
+    """Looking up an attribute value 'maketrans' of an object.
 
     Typically code like: source.maketrans
     """
@@ -4128,7 +4402,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesMaketrans)
 
 
 class ExpressionAttributeLookupFixedPartition(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'partition' of an object. spell-checker: ignore partition
+    """Looking up an attribute value 'partition' of an object.
 
     Typically code like: source.partition
     """
@@ -4216,9 +4490,15 @@ class ExpressionAttributeLookupStrPartition(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -4248,7 +4528,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesPartition)
 
 
 class ExpressionAttributeLookupFixedPop(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'pop' of an object. spell-checker: ignore pop
+    """Looking up an attribute value 'pop' of an object.
 
     Typically code like: source.pop
     """
@@ -4333,9 +4613,15 @@ class ExpressionAttributeLookupDictPop(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -4345,7 +4631,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictPop)
 
 
 class ExpressionAttributeLookupFixedPopitem(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'popitem' of an object. spell-checker: ignore popitem
+    """Looking up an attribute value 'popitem' of an object.
 
     Typically code like: source.popitem
     """
@@ -4394,14 +4680,56 @@ class ExpressionAttributeLookupDictPopitem(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as dict operation ExpressionDictOperationPopitem is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, dict_arg, trace_collection):
+        def wrapExpressionDictOperationPopitem(source_ref):
+            return ExpressionDictOperationPopitem(
+                dict_arg=dict_arg, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationPopitem,
+            builtin_spec=dict_popitem_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'popitem' of dictionary recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupDictPopitem)
 
 
 class ExpressionAttributeLookupFixedReplace(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'replace' of an object. spell-checker: ignore replace
+    """Looking up an attribute value 'replace' of an object.
 
     Typically code like: source.replace
     """
@@ -4498,9 +4826,15 @@ class ExpressionAttributeLookupStrReplace(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -4530,7 +4864,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesReplace)
 
 
 class ExpressionAttributeLookupFixedRfind(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rfind' of an object. spell-checker: ignore rfind
+    """Looking up an attribute value 'rfind' of an object.
 
     Typically code like: source.rfind
     """
@@ -4631,9 +4965,15 @@ class ExpressionAttributeLookupStrRfind(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -4663,7 +5003,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRfind)
 
 
 class ExpressionAttributeLookupFixedRindex(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rindex' of an object. spell-checker: ignore rindex
+    """Looking up an attribute value 'rindex' of an object.
 
     Typically code like: source.rindex
     """
@@ -4764,9 +5104,15 @@ class ExpressionAttributeLookupStrRindex(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -4796,7 +5142,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRindex)
 
 
 class ExpressionAttributeLookupFixedRjust(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rjust' of an object. spell-checker: ignore rjust
+    """Looking up an attribute value 'rjust' of an object.
 
     Typically code like: source.rjust
     """
@@ -4857,7 +5203,53 @@ class ExpressionAttributeLookupStrRjust(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationRjust is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationRjust(width, fillchar, source_ref):
+            if fillchar is not None:
+                return ExpressionStrOperationRjust3(
+                    str_arg=str_arg,
+                    width=width,
+                    fillchar=fillchar,
+                    source_ref=source_ref,
+                )
+            else:
+                return ExpressionStrOperationRjust2(
+                    str_arg=str_arg, width=width, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationRjust,
+            builtin_spec=str_rjust_spec,
+        )
+
+        return result, "new_expression", "Call to 'rjust' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrRjust)
@@ -4884,7 +5276,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRjust)
 
 
 class ExpressionAttributeLookupFixedRpartition(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rpartition' of an object. spell-checker: ignore rpartition
+    """Looking up an attribute value 'rpartition' of an object.
 
     Typically code like: source.rpartition
     """
@@ -4972,9 +5364,15 @@ class ExpressionAttributeLookupStrRpartition(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5004,7 +5402,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRpartition)
 
 
 class ExpressionAttributeLookupFixedRsplit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rsplit' of an object. spell-checker: ignore rsplit
+    """Looking up an attribute value 'rsplit' of an object.
 
     Typically code like: source.rsplit
     """
@@ -5101,9 +5499,15 @@ class ExpressionAttributeLookupStrRsplit(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5133,7 +5537,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRsplit)
 
 
 class ExpressionAttributeLookupFixedRstrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'rstrip' of an object. spell-checker: ignore rstrip
+    """Looking up an attribute value 'rstrip' of an object.
 
     Typically code like: source.rstrip
     """
@@ -5226,9 +5630,15 @@ class ExpressionAttributeLookupStrRstrip(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5258,7 +5668,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesRstrip)
 
 
 class ExpressionAttributeLookupFixedSetdefault(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'setdefault' of an object. spell-checker: ignore setdefault
+    """Looking up an attribute value 'setdefault' of an object.
 
     Typically code like: source.setdefault
     """
@@ -5343,9 +5753,15 @@ class ExpressionAttributeLookupDictSetdefault(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5355,7 +5771,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictSetdefault)
 
 
 class ExpressionAttributeLookupFixedSplit(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'split' of an object. spell-checker: ignore split
+    """Looking up an attribute value 'split' of an object.
 
     Typically code like: source.split
     """
@@ -5452,9 +5868,15 @@ class ExpressionAttributeLookupStrSplit(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5484,7 +5906,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesSplit)
 
 
 class ExpressionAttributeLookupFixedSplitlines(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'splitlines' of an object. spell-checker: ignore splitlines
+    """Looking up an attribute value 'splitlines' of an object.
 
     Typically code like: source.splitlines
     """
@@ -5545,7 +5967,50 @@ class ExpressionAttributeLookupStrSplitlines(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationSplitlines is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationSplitlines(keepends, source_ref):
+            if keepends is not None:
+                return ExpressionStrOperationSplitlines2(
+                    str_arg=str_arg, keepends=keepends, source_ref=source_ref
+                )
+            else:
+                return ExpressionStrOperationSplitlines1(
+                    str_arg=str_arg, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationSplitlines,
+            builtin_spec=str_splitlines_spec,
+        )
+
+        return result, "new_expression", "Call to 'splitlines' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrSplitlines)
@@ -5572,7 +6037,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesSplitlines)
 
 
 class ExpressionAttributeLookupFixedStartswith(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'startswith' of an object. spell-checker: ignore startswith
+    """Looking up an attribute value 'startswith' of an object.
 
     Typically code like: source.startswith
     """
@@ -5673,9 +6138,15 @@ class ExpressionAttributeLookupStrStartswith(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5705,7 +6176,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesStartswith)
 
 
 class ExpressionAttributeLookupFixedStrip(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'strip' of an object. spell-checker: ignore strip
+    """Looking up an attribute value 'strip' of an object.
 
     Typically code like: source.strip
     """
@@ -5798,9 +6269,15 @@ class ExpressionAttributeLookupStrStrip(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5830,7 +6307,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesStrip)
 
 
 class ExpressionAttributeLookupFixedSwapcase(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'swapcase' of an object. spell-checker: ignore swapcase
+    """Looking up an attribute value 'swapcase' of an object.
 
     Typically code like: source.swapcase
     """
@@ -5918,9 +6395,15 @@ class ExpressionAttributeLookupStrSwapcase(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -5950,7 +6433,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesSwapcase)
 
 
 class ExpressionAttributeLookupFixedTitle(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'title' of an object. spell-checker: ignore title
+    """Looking up an attribute value 'title' of an object.
 
     Typically code like: source.title
     """
@@ -6036,9 +6519,15 @@ class ExpressionAttributeLookupStrTitle(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6068,7 +6557,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesTitle)
 
 
 class ExpressionAttributeLookupFixedTranslate(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'translate' of an object. spell-checker: ignore translate
+    """Looking up an attribute value 'translate' of an object.
 
     Typically code like: source.translate
     """
@@ -6129,7 +6618,45 @@ class ExpressionAttributeLookupStrTranslate(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationTranslate is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationTranslate(table, source_ref):
+            return ExpressionStrOperationTranslate(
+                str_arg=str_arg, table=table, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationTranslate,
+            builtin_spec=str_translate_spec,
+        )
+
+        return result, "new_expression", "Call to 'translate' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrTranslate)
@@ -6156,7 +6683,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesTranslate)
 
 
 class ExpressionAttributeLookupFixedUpdate(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'update' of an object. spell-checker: ignore update
+    """Looking up an attribute value 'update' of an object.
 
     Typically code like: source.update
     """
@@ -6248,9 +6775,15 @@ class ExpressionAttributeLookupDictUpdate(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6260,7 +6793,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictUpdate)
 
 
 class ExpressionAttributeLookupFixedUpper(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'upper' of an object. spell-checker: ignore upper
+    """Looking up an attribute value 'upper' of an object.
 
     Typically code like: source.upper
     """
@@ -6346,9 +6879,15 @@ class ExpressionAttributeLookupStrUpper(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6378,7 +6917,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupBytesUpper)
 
 
 class ExpressionAttributeLookupFixedValues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'values' of an object. spell-checker: ignore values
+    """Looking up an attribute value 'values' of an object.
 
     Typically code like: source.values
     """
@@ -6463,9 +7002,15 @@ class ExpressionAttributeLookupDictValues(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6475,7 +7020,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictValues)
 
 
 class ExpressionAttributeLookupFixedViewitems(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewitems' of an object. spell-checker: ignore viewitems
+    """Looking up an attribute value 'viewitems' of an object.
 
     Typically code like: source.viewitems
     """
@@ -6555,9 +7100,15 @@ class ExpressionAttributeLookupDictViewitems(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6567,7 +7118,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewitems)
 
 
 class ExpressionAttributeLookupFixedViewkeys(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewkeys' of an object. spell-checker: ignore viewkeys
+    """Looking up an attribute value 'viewkeys' of an object.
 
     Typically code like: source.viewkeys
     """
@@ -6647,9 +7198,15 @@ class ExpressionAttributeLookupDictViewkeys(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6659,7 +7216,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewkeys)
 
 
 class ExpressionAttributeLookupFixedViewvalues(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'viewvalues' of an object. spell-checker: ignore viewvalues
+    """Looking up an attribute value 'viewvalues' of an object.
 
     Typically code like: source.viewvalues
     """
@@ -6739,9 +7296,15 @@ class ExpressionAttributeLookupDictViewvalues(
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(
-            call_node, variable_ref_node, trace_collection
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
         )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -6751,7 +7314,7 @@ attribute_typed_classes.add(ExpressionAttributeLookupDictViewvalues)
 
 
 class ExpressionAttributeLookupFixedZfill(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value 'zfill' of an object. spell-checker: ignore zfill
+    """Looking up an attribute value 'zfill' of an object.
 
     Typically code like: source.zfill
     """
@@ -6812,7 +7375,45 @@ class ExpressionAttributeLookupStrZfill(
     def computeExpression(self, trace_collection):
         return self, None, None
 
-    # No computeExpressionCall as str operation ExpressionStrOperationZfill is not yet implemented
+    @staticmethod
+    def _computeExpressionCall(call_node, str_arg, trace_collection):
+        def wrapExpressionStrOperationZfill(width, source_ref):
+            return ExpressionStrOperationZfill(
+                str_arg=str_arg, width=width, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionStrOperationZfill,
+            builtin_spec=str_zfill_spec,
+        )
+
+        return result, "new_expression", "Call to 'zfill' of str recognized."
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrZfill)

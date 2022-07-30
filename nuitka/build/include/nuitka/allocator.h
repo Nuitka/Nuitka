@@ -27,7 +27,7 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *tp, Py_ssize_t 
 
     Py_TYPE(op) = tp;
     Py_SIZE(op) = size;
-    Py_REFCNT(op) = 1;
+    Py_SET_REFCNT(op, 1);
 
     // TODO: Above assignments might replace this actually.
     op = PyObject_INIT_VAR(op, tp, nitems);

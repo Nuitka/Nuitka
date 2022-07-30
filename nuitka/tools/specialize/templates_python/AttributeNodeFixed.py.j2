@@ -58,7 +58,7 @@
 {% set attribute_name_class = attribute_name.replace("_", "").title() %}
 
 class ExpressionAttributeLookupFixed{{attribute_name_class}}(ExpressionAttributeLookupFixedBase):
-    """Looking up an attribute value '{{attribute_name}}' of an object. spell-checker: ignore {{attribute_name}}
+    """Looking up an attribute value '{{attribute_name}}' of an object.
 
     Typically code like: source.{{attribute_name}}
     """
@@ -210,7 +210,15 @@ class ExpressionAttributeLookupDict{{attribute_name_class}}(SideEffectsFromChild
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(call_node, variable_ref_node, trace_collection)
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -307,7 +315,15 @@ class ExpressionAttributeLookupStr{{attribute_name_class}}(SideEffectsFromChildr
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(call_node, variable_ref_node, trace_collection)
+        str_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, str_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
@@ -401,7 +417,15 @@ class ExpressionAttributeLookupBytes{{attribute_name_class}}(SideEffectsFromChil
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
     ):
-        return self._computeExpressionCall(call_node, variable_ref_node, trace_collection)
+        bytes_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, bytes_node, trace_collection)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)

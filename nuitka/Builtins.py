@@ -23,7 +23,7 @@ import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
 from nuitka.__past__ import builtins
-from nuitka.containers.odict import OrderedDict
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import python_version
 
 

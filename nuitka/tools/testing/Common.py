@@ -38,7 +38,7 @@ from nuitka.PythonVersions import (
     isDebugPython,
 )
 from nuitka.Tracing import OurLogger, my_print
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output, getNullInput, getNullOutput
 from nuitka.utils.FileOperations import (
@@ -842,7 +842,9 @@ def reportSkip(reason, dirname, filename):
     my_print("Skipped, %s (%s)." % (case, reason))
 
 
-def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr, explain=False):
+def executeReferenceChecked(
+    prefix, names, tests_skipped=(), tests_stderr=(), explain=False
+):
     gc.disable()
 
     extract_number = lambda name: int(name.replace(prefix, ""))

@@ -1,0 +1,420 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% from 'HelperSlotsCommon.c.j2' import goto_exit %}
+{% from 'HelperSlotsInt.c.j2' import int_slot with context %}
+{% from 'HelperSlotsLong.c.j2' import long_slot with context %}
+{% from 'HelperSlotsFloat.c.j2' import float_slot %}
+{% from 'HelperSlotsStr.c.j2' import str_slot %}
+{% from 'HelperSlotsUnicode.c.j2' import unicode_slot %}
+{% from 'HelperSlotsBytes.c.j2' import bytes_slot %}
+{% from 'HelperSlotsTuple.c.j2' import tuple_slot %}
+{% from 'HelperSlotsList.c.j2' import list_slot %}
+{% from 'HelperSlotsSet.c.j2' import set_slot %}
+{% macro operation_unsupported_error_exit(props, operator, left, right, type1, type2, exit_result_exception) %}
+{% set args = [] %}
+{% if left == object_desc %}
+{% do args.append("%s->tp_name" % type1) %}
+{% endif %}
+{% if right == object_desc %}
+{% do args.append("%s->tp_name" % type2) %}
+{% endif %}
+{% set left_name_2 = "'%s'" % ("%s" if left == object_desc else left.getTypeName2()) %}
+{% set left_name_3 = "'%s'" % ("%s" if left == object_desc else left.getTypeName3()) %}
+{% set right_name_2 = "'%s'" % ("%s" if right == object_desc else right.getTypeName2()) %}
+{% set right_name_3 = "'%s'" % ("%s" if right == object_desc else right.getTypeName3()) %}
+{% if (left_name_2 == left_name_3 and right_name_2 == right_name_3) or left.python_requirement or right.python_requirement %}
+{% if left.python_requirement == "PYTHON_VERSION < 0x300" or right.python_requirement == "PYTHON_VERSION < 0x300" %}
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
+{% else %}
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
+{% endif %}
+{% else %}
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_2 }} and {{ right_name_2 }}"{{ "," + ",".join(args) if args else "" }});
+#else
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for {{ left.getOperationErrorMessageName(operator) }}: {{ left_name_3 }} and {{ right_name_3 }}"{{ "," + ",".join(args) if args else "" }});
+#endif
+{% endif %}
+    {{ goto_exit(props, exit_result_exception) }}
+{% endmacro %}
+{% macro cannot_fit_to_index_size_error_exit(props, left, right, type2, exit_result_exception) %}
+{% if right == object_desc %}
+    PyErr_Format(PyExc_OverflowError, "cannot fit '%s' into an index-sized integer", {{ type2 }}->tp_name);
+{% else %}
+{% set right_name_2 = right.getTypeName2() %}
+{% set right_name_3 = right.getTypeName3() %}
+{% if right_name_2 == right_name_3 or left.python_requirement or right.python_requirement %}
+{% if left.python_requirement == "PYTHON_VERSION < 0x300" or right.python_requirement == "PYTHON_VERSION < 0x300" %}
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer");
+{% else %}
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer");
+{% endif %}
+{% else %}
+#if PYTHON_VERSION < 0x300
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_2 }}' into an index-sized integer");
+#else
+    PyErr_Format(PyExc_OverflowError, "cannot fit '{{ right_name_3 }}' into an index-sized integer");
+#endif
+{% endif %}
+{% endif %}
+    {{ goto_exit(props, exit_result_exception) }}
+{% endmacro %}
+{% macro concat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) %}
+{% if sq_inplace_slot and left.hasSlot(sq_inplace_slot) %}
+    {
+        PyObject *o = {{ left.getSlotValueExpression(type1, "sq_inplace_concat") }}({{ operand1 }}, {{ operand2 }});
+        {{ goto_exit(props, exit_result_object, "o") }}
+    }
+{% endif %}
+    {
+{% if left != object_desc and right != object_desc and right.hasSlot(sq_slot) and right.hasPreferredSlot(left, sq_slot) %}
+        PyObject *o = {{ right.getSlotValueExpression(type1, "sq_concat") }}({{ operand1 }}, {{ operand2 }});
+{% else %}
+        PyObject *o = {{ left.getSlotValueExpression(type1, "sq_concat") }}({{ operand1 }}, {{ operand2 }});
+{% endif %}
+        {{ goto_exit(props, exit_result_object, "o") }}
+    }
+{% endmacro %}
+{% macro repeat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) %}
+    {# This is the SEQUENCE_REPEAT() helper specialized #}
+    if (unlikely(!{{ right.getIndexCheckExpression(operand2) }})) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", {{operand2}});
+
+        {{ goto_exit(props, exit_result_exception) }}
+    }
+
+    {
+{% if right.needsIndexConversion() %}
+        PyObject *index_value = PyNumber_Index({{ operand2 }});
+
+        if (unlikely(index_value == NULL)) {
+            {{ goto_exit(props, exit_result_exception) }}
+        }
+{% else %}
+        PyObject *index_value = {{ operand2 }};
+{% endif %}
+
+        {
+{% if right.type_name == "int" %}
+            Py_ssize_t count = PyInt_AS_LONG(index_value);
+{% else %}
+{% if right.type_name == "long" %}
+            Py_ssize_t count = CONVERT_LONG_TO_REPEAT_FACTOR(index_value);
+{% else %}
+            Py_ssize_t count = CONVERT_TO_REPEAT_FACTOR(index_value);
+{% endif %}
+
+{% if right.needsIndexConversion() %}
+            Py_DECREF(index_value);
+{% endif %}
+
+            /* Above conversion indicates an error as -1 */
+            if (unlikely(count == -1)) {
+                {{ cannot_fit_to_index_size_error_exit(props, left, right, type2, exit_result_exception) }}
+            }
+{% endif %}
+            {
+{% if sq_inplace_slot %}
+                {{ left.getSlotType(sq_slot) }} repeatfunc = {{ left.getSlotValueExpression(type1, sq_inplace_slot) }};
+                if (repeatfunc == NULL) {
+                    repeatfunc = {{ left.getSlotValueExpression(type1, sq_slot) }};
+                }
+{% else %}
+                {{ left.getSlotType(sq_slot) }} repeatfunc = {{ left.getSlotValueExpression(type1, sq_slot) }};
+{% endif %}
+                PyObject *r = (*repeatfunc)({{ operand1 }}, count);
+
+                {{ goto_exit(props, exit_result_object, "r") }}
+            }
+        }
+    }
+{% endmacro %}
+{% macro binary_operation(props, operator, nb_slot, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_cbool_ok, exit_result_nbool, exit_result_exception) %}
+{% set slot1_relevant = left == object_desc or left.hasSlot(nb_slot) %}
+{% set slot2_relevant = right == object_desc or (left != right and right.hasSlot(nb_slot)) %}
+{% set error_needed = 1 %}
+{% set slot1_ignored = slot1_relevant and left != object_desc and right != object_desc and right.hasPreferredSlot(left, nb_slot) %}
+{% set slot1_relevant = slot1_relevant and not slot1_ignored %}
+{% set slot2_ignored = slot2_relevant and left != object_desc and right != object_desc and left.hasPreferredSlot(right, nb_slot) %}
+{% set slot2_relevant = slot2_relevant and not slot2_ignored %}
+{% if slot1_relevant %}
+    {{ left.getSlotType(nb_slot) }} slot1 = {{ left.getSlotValueExpression(type1, nb_slot) }};
+{% elif slot1_ignored %}
+    // Slot1 ignored on purpose, type2 takes precedence.
+{% endif %}
+{% if slot2_relevant %}
+    {{ left.getSlotType(nb_slot) }} slot2 = NULL;
+
+    if (!({{ left.getTypeIdenticalCheckExpression(right, type1, type2) }})) {
+        // Different types, need to consider second value slot.
+
+        slot2 = {{ right.getSlotValueExpression(type2, nb_slot) }};
+
+{% if slot1_relevant and (left == object_desc or right == object_desc)  %}
+        if (slot1 == slot2) {
+            slot2 = NULL;
+        }
+{% endif %}
+    }
+{% elif slot2_ignored %}
+    // Slot2 ignored on purpose, type1 takes precedence.
+{% endif %}
+
+{% if slot1_relevant %}
+    if (slot1 != NULL) {
+{% if slot2_relevant and right == object_desc %}
+        if (slot2 != NULL) {
+            if ({{ left.getTypeSubTypeCheckExpression(right, type2, type1) }}) {
+                PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot2", operand1, operand2) }};
+
+                if (x != Py_NotImplemented) {
+                    {{ goto_exit(props, exit_result_object, "x") }}
+                }
+
+                Py_DECREF(x);
+                slot2 = NULL;
+            }
+        }
+
+{% endif %}
+        PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot1", operand1, operand2) }};
+
+        if (x != Py_NotImplemented) {
+            {{ goto_exit(props, exit_result_object, "x") }}
+        }
+
+        Py_DECREF(x);
+    }
+{% endif %}
+
+{% if slot2_relevant %}
+    if (slot2 != NULL) {
+        PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot2", operand1, operand2) }};
+
+        if (x != Py_NotImplemented) {
+            {{ goto_exit(props, exit_result_object, "x") }}
+        }
+
+        Py_DECREF(x);
+    }
+{% endif %}
+
+{% if operator != "@" %}
+{% if not left.isKnownToNotCoerce(right) or not right.isKnownToNotCoerce(left) %}
+#if PYTHON_VERSION < 0x300
+    if (!{{ left.getNewStyleNumberTypeCheckExpression(type1) }} || !{{ right.getNewStyleNumberTypeCheckExpression(type2)}} ) {
+{% if not left.isKnownToNotCoerce(right) %}
+        coercion c1 = {{ left.getSlotValueExpression(type1, "nb_coerce") }};
+
+        if (c1 != NULL) {
+            PyObject *coerced1 = {{ operand1 }};
+            PyObject *coerced2 = {{ operand2 }};
+
+            int err = c1(&coerced1, &coerced2);
+
+            if (unlikely(err < 0)) {
+                {{ goto_exit(props, exit_result_exception, None, "py2") }}
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    {{ left.getSlotType(nb_slot) }} slot = mv->{{ nb_slot }};
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot", "coerced1", "coerced2") }};
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        {{ goto_exit(props, exit_result_object, "x") }}
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+{% endif %}
+{% if not right.isKnownToNotCoerce(left) %}
+        coercion c2 = {{ right.getSlotValueExpression(type2, "nb_coerce") }};
+
+        if (c2 != NULL) {
+            PyObject *coerced1 = {{ operand1 }};
+            PyObject *coerced2 = {{ operand2 }};
+
+            int err = c2(&coerced2, &coerced1);
+
+            if (unlikely(err < 0)) {
+                {{ goto_exit(props, exit_result_exception, None, "py2") }}
+            }
+
+            if (err == 0) {
+                PyNumberMethods *mv = Py_TYPE(coerced1)->tp_as_number;
+
+                if (likely(mv == NULL)) {
+                    {{ left.getSlotType(nb_slot)}} slot = mv->{{ nb_slot }};
+
+                    if (likely(slot != NULL)) {
+                        PyObject *x = {{ left.getSlotCallExpression(nb_slot, "slot", "coerced1", "coerced2") }};
+
+                        Py_DECREF(coerced1);
+                        Py_DECREF(coerced2);
+
+                        {{ goto_exit(props, exit_result_object, "x") }}
+                    }
+                }
+
+                // nb_coerce took a reference.
+                Py_DECREF(coerced1);
+                Py_DECREF(coerced2);
+            }
+        }
+{% endif %}
+    }
+#endif
+{% else %}
+// Statically recognized that coercion is not possible with these types
+{% endif %}
+{% else %}
+// Statically recognized that coercion is not possible with Python3 only operator '@'
+{% endif %}
+
+{# There might be a sq_slot specialization that saves the day. #}
+{% if operator in "+*" %}
+{% if left.type_name != "object" and left.hasSlot(sq_slot)  %}
+{% if operator == "*" %}
+    {{ repeat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) }}
+{% else %}
+    {{ concat_operation(props, left, right, type1, type2, operand1, operand2, exit_result_object, exit_result_exception) }}
+{% endif %}
+    {% set error_needed = 0 %}
+{% else %}
+    {
+{% if sq_inplace_slot and (left == object_desc or left.hasSlot(sq_inplace_slot)) %}
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_inplace_slot) }};
+        if (sq_slot == NULL) {
+            sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
+        }
+        {% set lslot_needed = 1 %}
+{% elif left == object_desc or left.hasSlot(sq_slot) %}
+        // Special case for "+" and "*", also works as sequence concat/repeat.
+        {{ left.getSlotType(sq_slot) }} sq_slot = {{ left.getSlotValueExpression(type1, sq_slot) }};
+        {% set lslot_needed = 1 %}
+{% else %}
+        // No sequence repeat slot {{ sq_slot }} available for this type.
+{% if sq_inplace_slot %}
+        // No inplace sequence repeat slot {{ sq_inplace_slot }} available for this type.
+{% endif %}
+        {% set lslot_needed = 0 %}
+{% endif %}
+{% if lslot_needed == 1 %}
+
+        if (sq_slot != NULL) {
+{% if operator == "+" %}
+            PyObject *result = sq_slot({{ operand1 }}, {{ operand2 }});
+{% else %}
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, {{ operand1 }}, {{ operand2 }});
+{% endif %}
+
+            {{ goto_exit(props, exit_result_object, "result") }}
+        }
+{% endif %}
+    }
+{% if operator == "*" %}
+{% if right.type_name != "object" and right.hasSlot("sq_repeat")  %}
+{% if operator == "*" %}
+{% if sq_inplace_slot %}
+    if ({{ left.getNoSequenceSlotAccessTestCode("type1") }}) {
+{% endif %}
+        {{ repeat_operation(props, right, left, type2, type1, operand2, operand1, exit_result_object, exit_result_exception) }}
+{% if sq_inplace_slot %}
+    }
+{% endif %}
+{% else %}
+    {{ target.getTypeDecl() }} x = SLOT_sq_repeat_{{target.getHelperCodeName()}}_{{right.getHelperCodeName()}}_{{left.getHelperCodeName()}}(operand2, operand1);
+{% if target and target.type_name == "cbool" %}
+    {{ goto_exit(props, exit_result_ok_cbool, "x") }}
+{% elif target and target.type_name == "nbool" %}
+    {{ goto_exit(props, exit_result_nbool, "x") }}
+{% else %}
+    {{ goto_exit(props, exit_result_object, "x") }}
+{% endif %}
+{% endif %}
+{% if not sq_inplace_slot %}
+{% set error_needed = 0 %}
+{% endif %}
+{% else %}
+{% if right == object_desc or right.hasSlot(sq_slot) %}
+    // Special case for "*", also work with sequence repeat from right argument.
+{% if sq_inplace_slot %}
+    if ({{ left.getNoSequenceSlotAccessTestCode("type1") }})
+{% endif %}
+    {
+        {{ right.getSlotType(sq_slot) }} sq_slot = {{ right.getSlotValueExpression(type2, sq_slot) }};
+        {% set rslot_needed = 1 %}
+{% else %}
+        // No sequence repeat slot {{ sq_slot }} available for this type.
+        {% set rslot_needed = 0 %}
+{% endif %}
+{% if rslot_needed == 1 %}
+
+        if (sq_slot != NULL) {
+            PyObject *result = SEQUENCE_REPEAT(sq_slot, {{ operand2 }}, {{ operand1 }});
+
+            {{ goto_exit(props, exit_result_object, "result") }}
+        }
+    }
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% if error_needed == 1 %}
+    {{ operation_unsupported_error_exit(props, operator, left, right, type1, type2, exit_result_exception) }}
+{% else %}
+    NUITKA_CANNOT_GET_HERE("missing error exit annotation");
+{% endif %}
+{% endmacro %}
+{% macro call_binary_slot(props, operator, nb_slot, nb_inplace_slot, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) %}
+{% if left.isSimilarOrSameTypesAsOneOf(int_desc) or right.isSimilarOrSameTypesAsOneOf(int_desc) %}
+    {{ int_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(long_desc) or right.isSimilarOrSameTypesAsOneOf(long_desc) %}
+    {{ long_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(float_desc) or right.isSimilarOrSameTypesAsOneOf(float_desc) %}
+    {{ float_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(str_desc) or right.isSimilarOrSameTypesAsOneOf(str_desc) %}
+    {{ str_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(unicode_desc) or right.isSimilarOrSameTypesAsOneOf(unicode_desc) %}
+    {{ unicode_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(bytes_desc) or right.isSimilarOrSameTypesAsOneOf(bytes_desc) %}
+    {{ bytes_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(tuple_desc) or right.isSimilarOrSameTypesAsOneOf(tuple_desc) %}
+    {{ tuple_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(list_desc) or right.isSimilarOrSameTypesAsOneOf(list_desc) %}
+    {{ list_slot(props, operator, nb_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% elif left.isSimilarOrSameTypesAsOneOf(set_desc) or right.isSimilarOrSameTypesAsOneOf(set_desc) %}
+    {{ set_slot(props, operator, nb_slot, nb_inplace_slot, target, left, right, result, operand1, operand2, exit_result_ok, exit_result_exception) }}
+{% else %}
+    {{ 0/0 }}
+{% endif %}
+{% endmacro %}

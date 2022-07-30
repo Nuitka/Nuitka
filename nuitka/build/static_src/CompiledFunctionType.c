@@ -419,6 +419,21 @@ static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) 
     return result;
 }
 
+static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
+    struct Nuitka_FunctionObject *result =
+        Nuitka_Function_New(function->m_c_code, function->m_name,
+#if PYTHON_VERSION >= 0x300
+                            function->m_qualname,
+#endif
+                            function->m_code_object, function->m_defaults,
+#if PYTHON_VERSION >= 0x300
+                            function->m_kwdefaults, function->m_annotations,
+#endif
+                            function->m_module, function->m_doc, function->m_closure, function->m_closure_given);
+
+    return (PyObject *)result;
+}
+
 #define MAX_FUNCTION_FREE_LIST_COUNT 100
 static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
@@ -475,6 +490,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
 }
 
 static PyMethodDef Nuitka_Function_methods[] = {{"__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL},
+                                                {"clone", (PyCFunction)Nuitka_Function_clone, METH_NOARGS, NULL},
                                                 {NULL}};
 
 static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw);
@@ -484,7 +500,7 @@ PyTypeObject Nuitka_Function_Type = {
     sizeof(struct Nuitka_FunctionObject),               /* tp_basicsize */
     sizeof(struct Nuitka_CellObject *),                 /* tp_itemsize */
     (destructor)Nuitka_Function_tp_dealloc,             /* tp_dealloc */
-#if PYTHON_VERSION < 0x380
+#if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     0, /* tp_print */
 #else
     offsetof(struct Nuitka_FunctionObject, m_vectorcall), /* tp_vectorcall_offset */
@@ -758,7 +774,7 @@ void Nuitka_Function_EnableConstReturnGeneric(struct Nuitka_FunctionObject *func
     function->m_c_code = _Nuitka_FunctionEmptyCodeGenericImpl;
 }
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kw_names);
 #endif
@@ -874,7 +890,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     static long Nuitka_Function_counter = 0;
     result->m_counter = Nuitka_Function_counter++;
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
     result->m_vectorcall = (vectorcallfunc)Nuitka_Function_tp_vectorcall;
 #endif
 
@@ -1193,6 +1209,27 @@ static inline bool checkKeywordType(PyObject *arg_name) {
 #endif
 }
 
+static inline bool RICH_COMPARE_EQ_CBOOL_ARG_NAMES(PyObject *operand1, PyObject *operand2) {
+    // Compare with argument name. We know our type, but from the outside, it
+    // can be a derived type, or in case of Python2, a unicode value to compare
+    // with a string. These half sided comparisons will make the switch to the
+    // special one immediately if possible though.
+
+#if PYTHON_VERSION < 0x300
+    nuitka_bool result = RICH_COMPARE_EQ_NBOOL_STR_OBJECT(operand1, operand2);
+#else
+    nuitka_bool result = RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(operand1, operand2);
+#endif
+
+    // Should be close to impossible, we will have to ignore it though.
+    if (unlikely(result == NUITKA_BOOL_EXCEPTION)) {
+        DROP_ERROR_OCCURRED();
+        return false;
+    }
+
+    return result == NUITKA_BOOL_TRUE;
+}
+
 #if PYTHON_VERSION < 0x300
 static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw)
 #else
@@ -1249,7 +1286,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1271,7 +1308,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -1364,7 +1401,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
                 // TODO: Could do better here, STR/UNICODE key knowledge being there.
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
@@ -1386,7 +1423,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -1424,9 +1461,12 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
     assert(star_dict_index != -1);
 
-    if (kw == NULL) {
+    if (kw == NULL || ((PyDictObject *)kw)->ma_used == 0) {
         python_pars[star_dict_index] = PyDict_New();
-    } else if (((PyDictObject *)kw)->ma_used > 0) {
+    } else {
+#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+        python_pars[star_dict_index] = PyDict_Copy(kw);
+#else
 #if PYTHON_VERSION < 0x300
         python_pars[star_dict_index] = _PyDict_NewPresized(((PyDictObject *)kw)->ma_used);
 
@@ -1448,6 +1488,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
         }
 #else
         /* Python 3 */
+#ifndef PY_NOGIL
         if (_PyDict_HasSplitTable((PyDictObject *)kw)) {
             PyDictObject *mp = (PyDictObject *)kw;
 
@@ -1487,7 +1528,9 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
             Nuitka_GC_Track(split_copy);
 
             python_pars[star_dict_index] = (PyObject *)split_copy;
-        } else {
+        } else
+#endif
+        {
             python_pars[star_dict_index] = PyDict_New();
 
             PyDictObject *mp = (PyDictObject *)kw;
@@ -1521,8 +1564,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
             }
         }
 #endif
-    } else {
-        python_pars[star_dict_index] = PyDict_New();
+#endif
     }
 
     return true;
@@ -2432,7 +2474,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = kw_arg_start; i < keywords_count; i++) {
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = kw_values[pos];
                     Py_INCREF(python_pars[i]);
@@ -2453,7 +2495,7 @@ static Py_ssize_t handleVectorcallKeywordArgs(struct Nuitka_FunctionObject const
             for (Py_ssize_t i = 0; i < kw_arg_start; i++) {
                 PyObject **varnames = function->m_varnames;
 
-                if (RICH_COMPARE_EQ_CBOOL_OBJECT_OBJECT(varnames[i], key)) {
+                if (RICH_COMPARE_EQ_CBOOL_ARG_NAMES(varnames[i], key)) {
                     pos_only_error = true;
                     break;
                 }
@@ -2703,7 +2745,7 @@ static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function,
     }
 }
 
-#if PYTHON_VERSION >= 0x380
+#if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
 static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *function, PyObject *const *stack,
                                                size_t nargsf, PyObject *kw_names) {
     assert(kw_names == NULL || PyTuple_CheckExact(kw_names));

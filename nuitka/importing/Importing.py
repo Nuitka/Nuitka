@@ -45,7 +45,7 @@ import zipfile
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iter_modules
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version

@@ -31,6 +31,7 @@ import sys
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
@@ -136,8 +137,9 @@ def _setupSconsEnvironment():
     Python DLL lives, in case it needs to be copied, and then also the
     "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
 
-    We also need to preserve PYTHONPATH and PYTHONHOME, but remove it potentially
-    as well, so not to confuse the other Python binary used to run scons.
+    We also need to preserve "PYTHONPATH" and "PYTHONHOME", but remove it
+    potentially as well, so not to confuse the other Python binary used to run
+    scons.
     """
 
     # For Python2, avoid unicode working directory.
@@ -378,6 +380,9 @@ def setCommonOptions(options):
     if Options.isUnstriped():
         options["unstriped_mode"] = asBoolStr(True)
 
+    if isAnacondaPython():
+        options["anaconda_python"] = asBoolStr(True)
+
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
         options["cpp_defines"] = ",".join(
@@ -448,5 +453,12 @@ def setCommonOptions(options):
 
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
+
+    if getOS() != "Windows" and isNuitkaPython():
+        # Override environment CC and CXX to match build compiler.
+        import sysconfig
+
+        env_values["CC"] = sysconfig.get_config_var("CC").split()[0]
+        env_values["CXX"] = sysconfig.get_config_var("CXX").split()[0]
 
     return env_values

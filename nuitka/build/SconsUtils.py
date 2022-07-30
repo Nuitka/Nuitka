@@ -30,35 +30,36 @@ from nuitka.__past__ import basestring, unicode
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
+from nuitka.utils.Utils import isLinux
 
 
 def initScons():
     # Avoid localized outputs.
     os.environ["LANG"] = "C"
 
-    def nosync(self):
+    def no_sync(self):
         # That's a noop, pylint: disable=unused-argument
         pass
 
-    # Avoid scons writing the scons file at all.
+    # Avoid scons writing the scons database at all, spell-checker: ignore dblite
     import SCons.dblite  # pylint: disable=I0021,import-error
 
-    SCons.dblite.dblite.sync = nosync
+    SCons.dblite.dblite.sync = no_sync
 
 
 def setupScons(env, source_dir):
     env["BUILD_DIR"] = source_dir
 
-    # Store the file signatures database with the rest of the source files
-    # and make it version dependent on the Python version of Scons, as its
-    # pickle is being used.
-    sconsign_dir = os.path.abspath(
+    # Store the file signatures database with the rest of the source files and
+    # make it version dependent on the Python version of running Scons, as its
+    # pickle is being used, spell-checker: ignore sconsign
+    sconsign_filename = os.path.abspath(
         os.path.join(
             source_dir, ".sconsign-%d%s" % (sys.version_info[0], sys.version_info[1])
         )
     )
 
-    env.SConsignFile(sconsign_dir)
+    env.SConsignFile(sconsign_filename)
 
 
 scons_arguments = {}
@@ -130,12 +131,43 @@ def _enableExperimentalSettings(env, experimental_flags):
             # Allowing for nice names on command line, but using identifiers for C.
             experiment = experiment.upper().replace("-", "_")
 
+            # Experimental without a value is done as mere define, otherwise
+            # the value is passed. spell-checker: ignore cppdefines
             if value:
                 env.Append(CPPDEFINES=[("_NUITKA_EXPERIMENTAL_%s" % experiment, value)])
             else:
                 env.Append(CPPDEFINES=["_NUITKA_EXPERIMENTAL_%s" % experiment])
 
     env.experimental_flags = experimental_flags
+
+
+def prepareEnvironment(mingw_mode, anaconda_python, python_prefix):
+    # Add environment specified compilers to the PATH variable.
+    if "CC" in os.environ:
+        scons_details_logger.info("CC=%r" % os.environ["CC"])
+
+        os.environ["CC"] = os.path.normpath(os.path.expanduser(os.environ["CC"]))
+
+        if os.path.isdir(os.environ["CC"]):
+            scons_logger.sysexit(
+                "Error, the 'CC' variable must point to file, not directory."
+            )
+
+        if os.path.sep in os.environ["CC"]:
+            cc_dirname = os.path.dirname(os.environ["CC"])
+            if os.path.isdir(cc_dirname):
+                addToPATH(None, cc_dirname, prefix=True)
+
+        if win_target and isGccName(os.path.basename(os.environ["CC"])):
+            scons_details_logger.info(
+                "Environment CC seems to be a gcc, enabling mingw_mode."
+            )
+            mingw_mode = True
+    else:
+        if isLinux() and anaconda_python:
+            addToPATH(None, os.path.join(python_prefix, "bin"), prefix=True)
+
+    return mingw_mode
 
 
 def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
@@ -150,6 +182,7 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
             "Installed MSVC versions are %s."
             % ",".join(repr(v) for v in SCons.Tool.MSCommon.vc.get_installed_vcs()),
         )
+
     # If we are on Windows, and MinGW is not enforced, lets see if we can
     # find "cl.exe", and if we do, disable automatic scan.
     if (
@@ -179,7 +212,8 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
         # Extra tools configuration for scons.
         tools=tools,
         # The shared libraries should not be named "lib...", because CPython
-        # requires the filename "module_name.so" to load it.
+        # requires the filename "module_name.so/pyd" to load it, with no
+        # prefix at all, spell-checker: ignore SHLIBPREFIX
         SHLIBPREFIX="",
         # Under windows, specify the target architecture is needed for Scons
         # to pick up MSVC.
@@ -294,6 +328,8 @@ def writeSconsReport(env, source_dir):
             if key.startswith(("_", "CONFIGURE")):
                 continue
 
+            # Ignore problematic and useless values
+            # spell-checker: ignore MSVSSCONS,IDLSUFFIXES,DSUFFIXES
             if key in ("MSVSSCONS", "BUILD_DIR", "IDLSUFFIXES", "DSUFFIXES"):
                 continue
 
@@ -381,6 +417,7 @@ def addClangClPathFromMSVC(env):
     env["CC"] = "clang-cl"
     env["LINK"] = "lld-link"
 
+    # Version information is outdated now, spell-checker: ignore ccversion
     env["CCVERSION"] = None
 
 
@@ -453,6 +490,7 @@ def scanSourceDir(env, dirname, plugins):
 
     for filename in sorted(os.listdir(dirname)):
         if filename.endswith(".h") and plugins and not added_path:
+            # Adding path for source paths on the fly, spell-checker: ignore cpppath
             env.Append(CPPPATH=[dirname])
             added_path = True
 

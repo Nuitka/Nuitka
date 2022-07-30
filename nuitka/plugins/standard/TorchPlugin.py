@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Details see below in class definition.
+""" Deprecated torch plugin.
 """
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
@@ -24,9 +24,8 @@ class NuitkaPluginTorch(NuitkaPluginBase):
     """This plugin is now not doing anything anymore."""
 
     plugin_name = "torch"
-    plugin_desc = "Deprecated, was once required by the torch / torchvision packages"
+    plugin_desc = "Deprecated, was once required by the torch package"
 
     @classmethod
-    def isRelevant(cls):
-        # Only to prevent build scripts that reference it from crashing.
-        return False
+    def isDeprecated(cls):
+        return True

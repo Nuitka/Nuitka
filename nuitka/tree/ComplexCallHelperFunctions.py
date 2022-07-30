@@ -69,11 +69,11 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinType1,
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableDelNodes import StatementReleaseVariable
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
+from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.PythonVersions import (
     getComplexCallSequenceErrorTemplate,
     python_version,
@@ -651,16 +651,16 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
     )
 
     final = (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_dict_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_keys_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     )
@@ -783,13 +783,13 @@ def _makeStarDictArgumentMergeToKwStatement(
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key_xxx")
 
     final = [
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_keys_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     ]
@@ -876,13 +876,13 @@ def _makeStarDictArgumentMergeToKwStatement(
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
     final += (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     )
@@ -2095,19 +2095,19 @@ def getFunctionCallHelperDictionaryUnpacking():
     )
 
     final = (
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_result_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_item_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_iter2_variable, source_ref=internal_source_ref
         ),
-        StatementReleaseVariable(
+        makeStatementReleaseVariable(
             variable=tmp_key_variable, source_ref=internal_source_ref
         ),
     )

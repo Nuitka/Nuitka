@@ -6,7 +6,7 @@ Source: https://nuitka.net/
 # No spell checking for this file, spell-checker: disable
 
 Files: *
-Copyright: 2021 Kay Hayen
+Copyright: 2022 Kay Hayen
            2020 Batakrishna Sahu
            2020 Jan Teske
            2020 Jorj McKie
@@ -52,7 +52,7 @@ License: Apache+Nuitka_test_origin
  On Debian GNU/Linux systems, the complete text of the Apache 2.0 license
  can be found in `/usr/share/common-licenses/Apache-2.0'.
 
-Files: nuitka/containers/odict.py
+Files: nuitka/containers/OrderedDicts.py
 Copyright: 2008 by Armin Ronacher and PEP 273 authors
 License: BSD-3-clause
  Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ License: BSD-3-clause
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Files: nuitka/containers/OrderedSetFallback.py
+Files: nuitka/containers/OrderedSetsFallback.py
 Copyright: 2009 Raymond Hettinger
 License: MIT+Hettinger
  Permission is hereby granted, free of charge, to any person obtaining

@@ -29,11 +29,11 @@ it being used.
 import ast
 import functools
 import inspect
-import os
 import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
     makeIncludedDataFile,
@@ -41,20 +41,28 @@ from nuitka.freezer.IncludedDataFiles import (
     makeIncludedGeneratedDataFile,
     makeIncludedPackageDataFiles,
 )
-from nuitka.freezer.IncludedEntryPoints import makeDllEntryPoint
-from nuitka.ModuleRegistry import getModuleInclusionInfoByName
-from nuitka.Options import isStandaloneMode
+from nuitka.freezer.IncludedEntryPoints import (
+    makeDllEntryPoint,
+    makeExeEntryPoint,
+)
+from nuitka.ModuleRegistry import (
+    addModuleInfluencingCondition,
+    getModuleInclusionInfoByName,
+)
+from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
+from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
-from nuitka.utils.FileOperations import copyFile, makePath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
+from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 warned_unused_plugins = set()
 
 # Trigger names for shared use.
-postload_trigger_name = "postLoad"
-preload_trigger_name = "preLoad"
+post_module_load_trigger_name = "postLoad"
+pre_module_load_trigger_name = "preLoad"
 
 
 def makeTriggerModuleName(module_name, trigger_name):
@@ -67,11 +75,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     Derive your plugin from "NuitkaPluginBase" please.
     For instructions, see https://github.com/Nuitka/Nuitka/blob/orsiris/UserPlugin-Creation.rst
 
-    Plugins allow to adapt Nuitka's behaviour in a number of ways as explained
+    Plugins allow to adapt Nuitka's behavior in a number of ways as explained
     below at the individual methods.
 
     It is used to deal with special requirements some packages may have (e.g. PyQt
-    and tkinter), data files to be included (e.g. certifi), inserting hidden
+    and tkinter), data files to be included (e.g. "certifi"), inserting hidden
     code, coping with otherwise undetectable needs, or issuing messages in
     certain situations.
 
@@ -127,7 +135,11 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             True or False
 
         """
-        return True
+        return not cls.isDeprecated()
+
+    @classmethod
+    def isDeprecated(cls):
+        return False
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -291,7 +303,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def hasPreModuleLoadCode(module_name):
         return (
             getModuleInclusionInfoByName(
-                makeTriggerModuleName(module_name, preload_trigger_name)
+                makeTriggerModuleName(module_name, pre_module_load_trigger_name)
             )
             is not None
         )
@@ -300,7 +312,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def hasPostModuleLoadCode(module_name):
         return (
             getModuleInclusionInfoByName(
-                makeTriggerModuleName(module_name, postload_trigger_name)
+                makeTriggerModuleName(module_name, post_module_load_trigger_name)
             )
             is not None
         )
@@ -417,11 +429,22 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         return locateDLLsInDirectory(directory)
 
-    @classmethod
-    def makeDllEntryPoint(cls, source_path, dest_path, package_name):
+    def makeDllEntryPoint(self, source_path, dest_path, package_name):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeDllEntryPoint(
-            source_path=source_path, dest_path=dest_path, package_name=package_name
+            logger=self,
+            source_path=source_path,
+            dest_path=dest_path,
+            package_name=package_name,
+        )
+
+    def makeExeEntryPoint(self, source_path, dest_path, package_name):
+        """Create an entry point, as expected to be provided by getExtraDlls."""
+        return makeExeEntryPoint(
+            logger=self,
+            source_path=source_path,
+            dest_path=dest_path,
+            package_name=package_name,
         )
 
     def reportFileCount(self, module_name, count, section=None):
@@ -434,24 +457,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             )
 
             self.info(msg)
-
-    def considerExtraDlls(self, dist_dir, module):
-        """Provide a tuple of names of binaries to be included.
-
-        Args:
-            dist_dir: the distribution folder
-            module: the module object needing the binaries
-        Returns:
-            tuple
-        """
-        # TODO: This "dist_dir" should no longer be here, as this API is obsolete, pylint: disable=unused-argument
-        for included_entry_point in self.getExtraDlls(module):
-            # Copy to the dist directory, which normally should not be a plugin task, but is for now.
-            makePath(os.path.dirname(included_entry_point.dest_path))
-
-            copyFile(included_entry_point.source_path, included_entry_point.dest_path)
-
-            yield included_entry_point
 
     def getExtraDlls(self, module):
         """Provide IncludedEntryPoint named tuples describing extra needs of the module.
@@ -875,6 +880,61 @@ except ImportError:
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def evaluateCondition(self, full_name, condition, control_tags=()):
+        # Note: Caching makes no sense yet, this should all be very fast and
+        # cache themselves. TODO: Allow plugins to contribute their own control
+        # tag values during creation and during certain actions.
+        context = TagContext(logger=self, full_name=full_name)
+        context.update(control_tags)
+
+        context.update(
+            {
+                "macos": isMacOS(),
+                "win32": isWin32Windows(),
+                "linux": isLinux(),
+                "anaconda": isAnacondaPython(),
+                "debian_python": isDebianPackagePython(),
+                "standalone": isStandaloneMode(),
+                "module_mode": shallMakeModule(),
+                # TODO: Allow to provide this.
+                "deployment": False,
+                # Module dependent
+                "main_module": full_name.getBasename() == "__main__",
+            }
+        )
+
+        versions = getSupportedPythonVersions()
+
+        for version in versions:
+            big, major = version.split(".")
+            numeric_version = int(big) * 256 + int(major) * 16
+            is_same_or_higher_version = python_version >= numeric_version
+
+            context["python" + big + major + "_or_higher"] = is_same_or_higher_version
+            context["before_python" + big + major] = not is_same_or_higher_version
+
+        context["before_python3"] = python_version < 0x300
+        context["python3_or_higher"] = python_version >= 0x300
+
+        # We trust the yaml files, pylint: disable=eval-used
+        result = eval(condition, context)
+
+        if type(result) is not bool:
+            self.sysexit(
+                "Error, condition '%s' for module '%s' did not evaluate to boolean result."
+                % (condition, full_name)
+            )
+
+        addModuleInfluencingCondition(
+            module_name=full_name,
+            plugin_name=self.plugin_name,
+            condition=condition,
+            control_tags=context.used_tags,
+            result=result,
+        )
+
+        return result
+
     @classmethod
     def warning(cls, message):
         plugins_logger.warning(cls.plugin_name + ": " + message)
@@ -902,3 +962,27 @@ def standalone_only(func):
                 return None
 
     return wrapped
+
+
+class TagContext(dict):
+    def __init__(self, logger, full_name, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+
+        self.logger = logger
+        self.full_name = full_name
+
+        self.used_tags = OrderedSet()
+
+    def __getitem__(self, key):
+        try:
+            self.used_tags.add(key)
+
+            return dict.__getitem__(self, key)
+        except KeyError:
+            if key.startswith("use_"):
+                return False
+
+            self.logger.sysexit(
+                "Control tag '%s' in module configuration of '%s' is unknown."
+                % (key, self.full_name)
+            )

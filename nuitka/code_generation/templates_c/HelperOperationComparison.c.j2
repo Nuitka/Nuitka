@@ -1,0 +1,352 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% macro comparison_fallback(op_code, target, left, right, type1, type2, operand1, operand2) %}
+{# For non-identical types, or for "OBJECT_OBJECT", do the full work. #}
+{% if left != right or left.type_name == "object" %}
+{# CPython2 treats integer values with fast path. #}
+{% if left.type_name == "object" == right.type_name %}
+#if PYTHON_VERSION < 0x300
+    if ({{left.getIntCheckExpression("operand1")}} && {{right.getIntCheckExpression("operand2")}}) {
+        {{int_desc.getTypeComparisonSpecializationCode(int_desc, op_code, target, "operand1", "operand2")}}
+    }
+#endif
+{% endif %}
+
+{% if op_code in ("EQ", "GE", "LE", "NE") and left.type_name == "object" and right.type_name == "object" %}
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && {{left.getMostSpecificType(right).getSaneTypeCheckCode("operand1")}}) {
+        bool r = {% if op_code == "NE" %} false {% else %} true {%endif %};
+        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+        {{target.getTakeReferenceStatement("result")}}
+        return result;
+    }
+{% endif %}
+
+#if PYTHON_VERSION < 0x300
+    if (unlikely(Py_EnterRecursiveCall((char *)" in cmp"))) {
+        return {{target.getExceptionResultIndicatorValue()}};
+    }
+#else
+    if (unlikely(Py_EnterRecursiveCall((char *)" in comparison"))) {
+        return {{target.getExceptionResultIndicatorValue()}};
+    }
+#endif
+
+{# TODO: Make these optional too #}
+{% if left == object_desc %}
+    PyTypeObject *type1 = {{ left.getTypeValueExpression("operand1") }};
+{% endif %}
+{% if right == object_desc %}
+    PyTypeObject *type2 = {{ right.getTypeValueExpression("operand2") }};
+{% endif %}
+
+#if PYTHON_VERSION < 0x300
+    // If the types are equal, we may get away immediately except for instances.
+    if ({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}}
+          && !{{left.getMostSpecificType(right).getInstanceCheckCode("operand1")}}
+          ) {
+
+{% if left.getMostSpecificType(right) == left %}
+        richcmpfunc frich = {{left.getSlotValueExpression("type1", "tp_richcompare")}};
+{% else %}
+        richcmpfunc frich = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
+{% endif %}
+
+        if (frich != NULL) {
+            PyObject *result = (*frich)(operand1, operand2, Py_{{op_code}});
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                {{ target.getReturnFromObjectExpressionCode("result") }}
+            }
+
+            Py_DECREF(result);
+        }
+
+        // No rich comparison worked, but maybe compare works.
+{% if left.getMostSpecificType(right) == left %}
+        cmpfunc fcmp = {{left.getSlotValueExpression("type1", "tp_compare")}};
+{% else %}
+        cmpfunc fcmp = {{right.getSlotValueExpression("type2", "tp_compare")}};
+{% endif %}
+
+        if (fcmp != NULL) {
+            int c = (*fcmp)(operand1, operand2);
+            c = adjust_tp_compare(c);
+
+            Py_LeaveRecursiveCall();
+
+            if (c == -2) {
+                return {{target.getExceptionResultIndicatorValue()}};
+            }
+
+            switch(Py_{{op_code}}) {
+            case Py_LT:
+                c = c < 0;
+                break;
+            case Py_LE:
+                c = c <= 0;
+                break;
+            case Py_EQ:
+                c = c == 0;
+                break;
+            case Py_NE:
+                c = c != 0;
+                break;
+            case Py_GT:
+                c = c > 0;
+                break;
+            case Py_GE:
+                c = c >= 0;
+                break;
+            default:
+                NUITKA_CANNOT_GET_HERE("wrong op_code");
+            }
+
+            bool r = c != 0;
+            {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+            {{target.getTakeReferenceStatement("result")}}
+            return result;
+        }
+    }
+
+    // Fast path was not successful or not taken
+    richcmpfunc f;
+
+    if ({{left.getTypeNonIdenticalCheckExpression(right, "type1", "type2")}} && {{left.getRealSubTypeCheckCode(right, "type2", "type1")}}) {
+        f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_{{reversed_args_op_code}});
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                {{ target.getReturnFromObjectExpressionCode("result") }}
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = {{left.getSlotValueExpression("type1", "tp_richcompare")}};
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_{{op_code}});
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            {{ target.getReturnFromObjectExpressionCode("result") }}
+        }
+
+        Py_DECREF(result);
+    }
+
+    f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
+    if (f != NULL) {
+        PyObject *result = (*f)(operand2, operand1, Py_{{reversed_args_op_code}});
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            {{ target.getReturnFromObjectExpressionCode("result") }}
+        }
+
+        Py_DECREF(result);
+    }
+
+    int c;
+
+    if ({{left.getInstanceCheckCode("operand1")}}) {
+        cmpfunc fcmp = {{left.getSlotValueExpression("type1", "tp_compare")}};
+        c = (*fcmp)(operand1, operand2);
+    } else if ({{right.getInstanceCheckCode("operand2")}}) {
+        cmpfunc fcmp = {{right.getSlotValueExpression("type2", "tp_compare")}};
+        c = (*fcmp)(operand1, operand2);
+    } else {
+        c = try_3way_compare(operand1, operand2);
+    }
+
+    if (c >= 2) {
+        if ({{left.getTypeIdenticalCheckExpression(right, "type1", "type2")}}) {
+            Py_uintptr_t aa = (Py_uintptr_t)operand1;
+            Py_uintptr_t bb = (Py_uintptr_t)operand2;
+
+            c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+        } else if (operand1 == Py_None) {
+            // None is smaller than everything else
+            c = -1;
+        } else if (operand2 == Py_None) {
+            // None is smaller than everything else
+            c = 1;
+        } else if (PyNumber_Check(operand1)) {
+            // different type: compare type names but numbers are smaller than
+            // others.
+            if (PyNumber_Check(operand2)) {
+                // Both numbers, need to make a decision based on types.
+                Py_uintptr_t aa = (Py_uintptr_t){{ left.getTypeValueVariableExpression("type1") }};
+                Py_uintptr_t bb = (Py_uintptr_t){{ right.getTypeValueVariableExpression("type2") }};
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            } else {
+                c = -1;
+            }
+        } else if (PyNumber_Check(operand2)) {
+            c = 1;
+        } else {
+            // Banking on C compile to optimize "strcmp".
+            int s = strcmp({{ left.getTypeNameExpression("type1") }}, {{ right.getTypeNameExpression("type2") }});
+
+            if (s < 0) {
+                c = -1;
+            } else if (s > 0) {
+                c = 1;
+            } else {
+                // Same type name need to make a decision based on type address.
+                Py_uintptr_t aa = (Py_uintptr_t){{ left.getTypeValueVariableExpression("type1") }};
+                Py_uintptr_t bb = (Py_uintptr_t){{ right.getTypeValueVariableExpression("type2") }};
+
+                c = (aa < bb) ? -1 : (aa > bb) ? 1 : 0;
+            }
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(c <= -2)) {
+        return {{target.getExceptionResultIndicatorValue()}};
+    }
+
+    switch(Py_{{op_code}}) {
+    case Py_LT:
+        c = c < 0;
+        break;
+    case Py_LE:
+        c = c <= 0;
+        break;
+    case Py_EQ:
+        c = c == 0;
+        break;
+    case Py_NE:
+        c = c != 0;
+        break;
+    case Py_GT:
+        c = c > 0;
+        break;
+    case Py_GE:
+        c = c >= 0;
+        break;
+    }
+
+    bool r = c != 0;
+    {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+    {{target.getTakeReferenceStatement("result")}}
+    return result;
+#else
+    bool checked_reverse_op = false;
+    richcmpfunc f;
+
+    if ({{left.getTypeNonIdenticalCheckExpression(right, "type1", "type2")}} && {{ left.getTypeSubTypeCheckExpression(right, "type2", "type1") }}) {
+        f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
+
+        if (f != NULL) {
+            checked_reverse_op = true;
+
+            PyObject *result = (*f)(operand2, operand1, Py_{{reversed_args_op_code}});
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                {{ target.getReturnFromObjectExpressionCode("result") }}
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    f = {{left.getSlotValueExpression("type1", "tp_richcompare")}};
+
+    if (f != NULL) {
+        PyObject *result = (*f)(operand1, operand2, Py_{{op_code}});
+
+        if (result != Py_NotImplemented) {
+            Py_LeaveRecursiveCall();
+
+            {{ target.getReturnFromObjectExpressionCode("result") }}
+        }
+
+        Py_DECREF(result);
+    }
+
+    if (checked_reverse_op == false) {
+        f = {{right.getSlotValueExpression("type2", "tp_richcompare")}};
+
+        if (f != NULL) {
+            PyObject *result = (*f)(operand2, operand1, Py_{{reversed_args_op_code}});
+
+            if (result != Py_NotImplemented) {
+                Py_LeaveRecursiveCall();
+
+                {{ target.getReturnFromObjectExpressionCode("result") }}
+            }
+
+            Py_DECREF(result);
+        }
+    }
+
+    Py_LeaveRecursiveCall();
+
+    // If it is not implemented, do pointer identity checks as "==" and "!=" and
+    // otherwise give an error
+    switch(Py_{{op_code}}) {
+    case Py_EQ: {
+        bool r = operand1 == operand2;
+        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+        {{target.getTakeReferenceStatement("result")}}
+        return result;
+    }
+    case Py_NE: {
+        bool r = operand1 != operand2;
+        {{target.getTypeDecl()}} result = {{target.getToValueFromBoolExpression("r")}};
+        {{target.getTakeReferenceStatement("result")}}
+        return result;
+    }
+    default:
+        {{target.getReturnUnorderableTypeErrorCode(operator, left, right, "type1", "type2")}}
+    }
+#endif
+{% endif %}
+{% endmacro %}
+{{target.getTypeDecl()}} RICH_COMPARE_{{op_code}}_{{target.getHelperCodeName()}}_{{left.getHelperCodeName()}}_{{right.getHelperCodeName()}}({{left.getVariableDecl("operand1")}}, {{right.getVariableDecl("operand2")}}) {
+
+{# Divert to more special implementation immediately if possible. #}
+{% if left.getTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2") %}
+{% if left != right and object_desc in (left, right) %}
+    if ({{left.getTypeIdenticalCheckExpression(right, left.getTypeValueExpression("operand1"), right.getTypeValueExpression("operand2"))}}) {
+        {{left.getTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2")}}
+    }
+
+    {{ comparison_fallback(op_code, target, left, right, type1, type2, operand1, operand2) }}
+{% else %}
+    {{left.getTypeComparisonSpecializationCode(right, op_code, target, "operand1", "operand2")}}
+{% endif %}
+{% else %}
+{{ comparison_fallback(op_code, target, left, right, type1, type2, operand1, operand2) }}
+{% endif %}
+}

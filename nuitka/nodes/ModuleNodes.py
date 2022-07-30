@@ -24,7 +24,7 @@ together and cross-module optimizations are the most difficult to tackle.
 import os
 
 from nuitka import Options, Variables
-from nuitka.containers.oset import OrderedSet
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename,
     locateModule,
@@ -35,7 +35,7 @@ from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.Operations import DetectUsedModules, visitTree
-from nuitka.tree.SourceReading import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
