@@ -29,7 +29,7 @@ import os
 from nuitka import Options
 from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 
 _main_module = None
 
@@ -125,7 +125,7 @@ def getResultFullpath(onefile):
                 )
         elif output_filename is not None:
             result = output_filename
-        elif getOS() == "Windows":
+        elif isWin32OrPosixWindows():
             result += ".exe"
         elif (
             not Options.isStandaloneMode()

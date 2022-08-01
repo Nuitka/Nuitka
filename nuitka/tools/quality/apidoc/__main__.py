@@ -35,7 +35,7 @@ from nuitka.utils.Execution import (
     withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import getFileContents, withTemporaryFile
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isWin32OrPosixWindows
 
 
 def main():
@@ -63,7 +63,7 @@ Default is %default.""",
     doxygen_path = getExecutablePath("doxygen")
 
     # Extra ball on Windows, check default installation PATH too.
-    if not doxygen_path and getOS() == "Windows":
+    if not doxygen_path and isWin32OrPosixWindows():
         with withEnvironmentPathAdded("PATH", r"C:\Program Files\Doxygen\bin"):
             doxygen_path = getExecutablePath("doxygen")
 
@@ -79,9 +79,9 @@ Default is %default.""",
         doxy_config = getFileContents("doc/Doxyfile.template")
 
         with withTemporaryFile(
-            suffix=".bat" if getOS() == "Windows" else ".sh", delete=False
+            suffix=".bat" if isWin32OrPosixWindows() else ".sh", delete=False
         ) as doxy_batch_file:
-            if getOS() == "Windows":
+            if isWin32OrPosixWindows():
                 doxy_batch_file.write(
                     "%s -m doxypypy.doxypypy -a -c %%1" % sys.executable
                 )

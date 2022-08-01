@@ -32,7 +32,12 @@ from nuitka.Options import shallUseStaticLibPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContents, isPathBelow
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getOS, isNetBSD, isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import (
+    isNetBSD,
+    isPosixWindows,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 
 
 def getStandardLibraryPaths():
@@ -99,7 +104,7 @@ def getStandardLibraryPaths():
             if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
 
-        if getOS() == "Windows" and not shallUseStaticLibPython():
+        if isWin32OrPosixWindows() and not shallUseStaticLibPython():
             import _ctypes
 
             stdlib_paths.add(os.path.dirname(_ctypes.__file__))

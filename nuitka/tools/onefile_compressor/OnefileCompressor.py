@@ -26,6 +26,7 @@ import sys
 import time
 from contextlib import contextmanager
 
+from nuitka.__past__ import to_byte
 from nuitka.Progress import (
     closeProgressBar,
     enableProgressBar,
@@ -35,7 +36,11 @@ from nuitka.Progress import (
 from nuitka.Tracing import onefile_logger
 from nuitka.utils.FileOperations import getFileList
 from nuitka.utils.Hashing import HashCRC32
-from nuitka.utils.Utils import isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import (
+    isPosixWindows,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 
 
 def getCompressorFunction(expect_compression):
@@ -114,7 +119,7 @@ Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a se
 def attachOnefilePayload(
     dist_dir, onefile_output_filename, start_binary, expect_compression, file_checksums
 ):
-    # Somewhat detail rich, pylint: disable=too-many-locals
+    # Somewhat detail rich, pylint: disable=too-many-locals,too-many-statements
     compression_indicator, compressor = getCompressorFunction(
         expect_compression=expect_compression
     )
@@ -158,12 +163,16 @@ def attachOnefilePayload(
                 compressed_file.write(filename_encoded)
                 payload_size += len(filename_encoded)
 
+                file_flags = 0
+                if not isWin32OrPosixWindows() and os.access(filename_full, os.X_OK):
+                    file_flags += 1
+
                 with open(filename_full, "rb") as input_file:
                     input_file.seek(0, 2)
                     input_size = input_file.tell()
                     input_file.seek(0, 0)
 
-                    file_header = struct.pack("Q", input_size)
+                    file_header = struct.pack("Qc", input_size, to_byte(file_flags))
                     if file_checksums:
                         hash_crc32 = HashCRC32()
                         hash_crc32.updateFromFileHandle(input_file)

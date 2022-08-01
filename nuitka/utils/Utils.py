@@ -132,7 +132,7 @@ def getLinuxDistribution():
 
 
 def getWindowsRelease():
-    if getOS() != "Windows":
+    if not isWin32OrPosixWindows():
         return None
 
     import platform
@@ -161,6 +161,10 @@ def isWin32Windows():
 def isPosixWindows():
     """The MSYS2 variant of Python does have posix only, not Win32."""
     return os.name == "posix" and getOS() == "Windows"
+
+
+def isWin32OrPosixWindows():
+    return isWin32Windows() or isPosixWindows()
 
 
 def isLinux():
