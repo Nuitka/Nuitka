@@ -328,6 +328,9 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         "packaging",  # Not performance relevant.
         "appdirs",  # Not performance relevant.
         "dropbox.team_log",  # Too large generated code
+        "asyncua.ua.object_ids",  # Too large generated code
+        "asyncua.ua.uaerrors._auto",  # Too large generated code
+        "asyncua.server.standard_address_space.standard_address_space_services",  # Too large generated code
     )
 
     def decideCompilation(self, module_name):
