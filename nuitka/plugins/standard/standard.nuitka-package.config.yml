@@ -781,6 +781,18 @@
     - depends:
         - "_cffi_backend"
 
+- module-name: "networkx"
+  anti-bloat:
+    - description: "remove networkx.testing usage"
+      replacements_plain:
+        "from networkx.testing.test import run as test": "test = None"
+
+- module-name: "networkx.utils.decorators"
+  anti-bloat:
+    - description: "required for decorator compatibility"
+      replacements_plain:
+        "func.__defaults__ = f.__defaults__": ""
+
 - module-name: "nose.core"
   data-files:
     patterns:
