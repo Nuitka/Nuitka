@@ -428,6 +428,8 @@ extern PyObject **global_constants;
 #define const_str_plain_getattr global_constants[28]
 // 'range'
 #define const_str_plain_range global_constants[29]
+// 'rb'
+#define const_str_plain_rb global_constants[29]
 // 'open'
 #define const_str_plain_open global_constants[30]
 // 'close'
@@ -516,6 +518,10 @@ extern PyObject **global_constants;
 #define const_str_plain___args__ global_constants[67]
 // 'fileno'
 #define const_str_plain_fileno global_constants[67]
+// '/'
+#define const_str_slash global_constants[67]
+// '\\'
+#define const_str_backslash global_constants[67]
 
 #define _NUITKA_CONSTANTS_SIZE 27
 #define _NUITKA_CONSTANTS_HASH 0x27272727
@@ -567,6 +573,11 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #define TRACE_FILE_OPEN(x, y, z, a, b, c, d, e, r) (false)
 #endif
 #define TRACE_FILE_READ(x, y) (false)
+
+#define TRACE_FILE_EXISTS(x, y) (false)
+#define TRACE_FILE_ISFILE(x, y) (false)
+#define TRACE_FILE_ISDIR(x, y) (false)
+
 #endif
 
 #if _NUITKA_EXPERIMENTAL_INIT_PROGRAM

@@ -114,3 +114,60 @@ PyObject *GET_FILE_BYTES(PyObject *filename) {
     Py_DECREF(read_method);
     return result;
 }
+
+static PyObject *IMPORT_HARD_OS_PATH(void) {
+    static PyObject *os_path = NULL;
+
+    if (os_path == NULL) {
+        os_path = PyObject_GetAttrString(IMPORT_HARD_OS(), "path");
+
+        CHECK_OBJECT(os_path);
+    }
+
+    return os_path;
+}
+
+PyObject *OS_PATH_FILE_EXISTS(PyObject *filename) {
+    PyObject *result;
+
+    if (TRACE_FILE_EXISTS(filename, &result)) {
+        return result;
+    }
+
+    PyObject *exists_func = PyObject_GetAttrString(IMPORT_HARD_OS_PATH(), "exists");
+
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(exists_func, filename);
+
+    Py_DECREF(exists_func);
+    return result;
+}
+
+PyObject *OS_PATH_FILE_ISFILE(PyObject *filename) {
+    PyObject *result;
+
+    if (TRACE_FILE_ISFILE(filename, &result)) {
+        return result;
+    }
+
+    PyObject *isfile_func = PyObject_GetAttrString(IMPORT_HARD_OS_PATH(), "isfile");
+
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(isfile_func, filename);
+
+    Py_DECREF(isfile_func);
+    return result;
+}
+
+PyObject *OS_PATH_FILE_ISDIR(PyObject *filename) {
+    PyObject *result;
+
+    if (TRACE_FILE_ISDIR(filename, &result)) {
+        return result;
+    }
+
+    PyObject *isdir_func = PyObject_GetAttrString(IMPORT_HARD_OS_PATH(), "isdir");
+
+    result = CALL_FUNCTION_WITH_SINGLE_ARG(isdir_func, filename);
+
+    Py_DECREF(isdir_func);
+    return result;
+}
