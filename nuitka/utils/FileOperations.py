@@ -409,6 +409,43 @@ def listDllFilesFromDirectory(path, prefix=""):
                 break
 
 
+def listExeFilesFromDirectory(path, prefix=""):
+    """Give a sorted listing of EXE filenames in a path.
+
+    Args:
+        path: directory to create a DLL listing from
+        prefix: shell pattern to match filename start against, can be None
+
+    Returns:
+        Sorted list of tuples of full filename, and basename of
+        DLLs in that directory.
+
+    Notes:
+        Typically the full name and the basename are both needed
+        so this function simply does both, for ease of use on the
+        calling side.
+    """
+
+    # Accept None value as well.
+    prefix = prefix or ""
+
+    # On Windows, we check exe suffixes, on other platforms we shell all filenames,
+    # matching the prefix, but they have to the executable bit set.
+    if isWin32OrPosixWindows():
+        pattern_list = [prefix + "*." + suffix for suffix in ("exe", "bin")]
+    else:
+        pattern_list = [prefix + "*"]
+
+    for fullpath, filename in listDir(path):
+        for pattern in pattern_list:
+            if fnmatch.fnmatch(filename, pattern):
+                if not isWin32OrPosixWindows() and not os.access(fullpath, os.X_OK):
+                    continue
+
+                yield fullpath, filename
+                break
+
+
 def getSubDirectoriesWithDlls(path):
     """Get all directories below a given path.
 
