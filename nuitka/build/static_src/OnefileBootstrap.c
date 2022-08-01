@@ -409,6 +409,13 @@ static uint32_t readPayloadChecksumValue(void) {
 }
 #endif
 
+static unsigned char readPayloadFileFlagsValue(void) {
+    unsigned char result;
+    readPayloadChunk(&result, 1);
+
+    return result;
+}
+
 static unsigned long long readPayloadSizeValue(void) {
     unsigned long long result;
     readPayloadChunk(&result, sizeof(unsigned long long));
@@ -416,7 +423,7 @@ static unsigned long long readPayloadSizeValue(void) {
     return result;
 }
 
-static filename_char_t readPayloadChar(void) {
+static filename_char_t readPayloadFilenameCharacter(void) {
     filename_char_t result;
 
     readPayloadChunk(&result, sizeof(filename_char_t));
@@ -430,7 +437,7 @@ static filename_char_t *readPayloadFilename(void) {
     filename_char_t *w = buffer;
 
     for (;;) {
-        *w = readPayloadChar();
+        *w = readPayloadFilenameCharacter();
 
         if (*w == 0) {
             break;
@@ -1030,6 +1037,7 @@ int main(int argc, char **argv) {
 
         // _putws(target_path);
         unsigned long long file_size = readPayloadSizeValue();
+        unsigned char file_flags = readPayloadFileFlagsValue();
 
         bool needs_write = true;
 
@@ -1082,6 +1090,37 @@ int main(int argc, char **argv) {
         if (file_size != 0) {
             fatalErrorReadAttachedData();
         }
+
+#if !defined(_WIN32)
+        if (file_flags & 1 && needs_write) {
+            int fd = fileno(target_file);
+
+            struct stat stat_buffer;
+            int res = fstat(fd, &stat_buffer);
+
+            if (res == -1) {
+                printError("fstat");
+            }
+
+            // User shall be able to execute if at least.
+            stat_buffer.st_mode |= S_IXUSR;
+
+            // Follow read flags for group, others according to umask.
+            if ((stat_buffer.st_mode & S_IRGRP) != 0) {
+                stat_buffer.st_mode |= S_IXOTH;
+            }
+
+            if ((stat_buffer.st_mode & S_IRGRP) != 0) {
+                stat_buffer.st_mode |= S_IXOTH;
+            }
+
+            res = fchmod(fd, stat_buffer.st_mode);
+
+            if (res == -1) {
+                printError("fchmod");
+            }
+        }
+#endif
 
         if (needs_write) {
             closeFile(target_file);
@@ -1165,8 +1204,6 @@ int main(int argc, char **argv) {
     cleanupChildProcess();
 #else
     int exit_code;
-
-    chmod(first_filename, 0700);
 
     pid_t pid = fork();
 

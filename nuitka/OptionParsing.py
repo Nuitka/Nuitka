@@ -52,6 +52,7 @@ from nuitka.utils.Utils import (
     getWindowsRelease,
     isLinux,
     isPosixWindows,
+    isWin32OrPosixWindows,
     withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
@@ -118,7 +119,7 @@ def _getVersionInformationValues():
         else:
             yield "Distribution: %s %s" % (dist_name, dist_version)
 
-    if getOS() == "Windows":
+    if isWin32OrPosixWindows():
         yield "WindowsRelease: %s" % getWindowsRelease()
 
 
@@ -631,7 +632,7 @@ include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % "<program_name>"
-    + (".exe" if getOS() == "Windows" else ".bin"),
+    + (".exe" if isWin32OrPosixWindows() else ".bin"),
 )
 
 output_group.add_option(
@@ -1510,7 +1511,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     values["Linux_Distribution_Base"] = dist_info[1] or dist_info[0]
     values["Linux_Distribution_Version"] = dist_info[2]
 
-    if getOS() == "Windows":
+    if isWin32OrPosixWindows():
         values["WindowsRelease"] = getWindowsRelease()
 
     arg = arg.format(**values)
