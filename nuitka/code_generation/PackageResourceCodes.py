@@ -25,10 +25,12 @@ from .CallCodes import (
     getCallCodePosArgsQuick,
 )
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
 from .ImportCodes import getImportModuleNameHardCode
+from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generatePkglibGetDataCallCode(to_name, expression, emit, context):
@@ -358,12 +360,10 @@ def generateOsUnameCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "os_uname_value", expression, emit, context
     ) as result_name:
-        resource_stream_function = context.allocateTempName(
-            "os_uname_function", unique=True
-        )
+        os_uname_function = context.allocateTempName("os_uname_function", unique=True)
 
         getImportModuleNameHardCode(
-            to_name=resource_stream_function,
+            to_name=os_uname_function,
             module_name="os",
             import_name="uname",
             needs_check=False,
@@ -373,9 +373,48 @@ def generateOsUnameCallCode(to_name, expression, emit, context):
 
         getCallCodeNoArgs(
             to_name=result_name,
-            called_name=resource_stream_function,
+            called_name=os_uname_function,
             expression=expression,
             needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
+
+
+def generateOsPathExistsCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_FILE_EXISTS",
+        arg_desc=(("exists_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateOsPathIsfileCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_FILE_ISFILE",
+        arg_desc=(("isfile_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateOsPathIsdirCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_FILE_ISDIR",
+        arg_desc=(("isdir_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )

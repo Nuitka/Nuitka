@@ -66,6 +66,9 @@ extern PyObject *IMPORT_HARD_IMPORTLIB_METADATA(void);
 /* C helper for hard import of module "io" import. */
 extern PyObject *IMPORT_HARD_IO(void);
 
+/* C helper for hard import of module "ntpath" import. */
+extern PyObject *IMPORT_HARD_NTPATH(void);
+
 /* C helper for hard import of module "os" import. */
 extern PyObject *IMPORT_HARD_OS(void);
 
@@ -74,6 +77,9 @@ extern PyObject *IMPORT_HARD_PKG_RESOURCES(void);
 
 /* C helper for hard import of module "pkgutil" import. */
 extern PyObject *IMPORT_HARD_PKGUTIL(void);
+
+/* C helper for hard import of module "posixpath" import. */
+extern PyObject *IMPORT_HARD_POSIXPATH(void);
 
 /* C helper for hard import of module "site" import. */
 extern PyObject *IMPORT_HARD_SITE(void);
