@@ -26,6 +26,7 @@ deeper that what it normally could. The import expression node can lead to
 modules being added. After optimization it will be asked about used modules.
 """
 
+import os
 import sys
 
 from nuitka.__past__ import long, unicode, xrange
@@ -83,6 +84,9 @@ from .PackageMetadataNodes import (
 from .PackageResourceNodes import (
     ExpressionImportlibResourcesReadBinaryRef,
     ExpressionImportlibResourcesReadTextRef,
+    ExpressionOsPathExistsRef,
+    ExpressionOsPathIsdirRef,
+    ExpressionOsPathIsfileRef,
     ExpressionOsUnameRef,
     ExpressionPkglibGetDataRef,
     ExpressionPkgResourcesResourceStreamRef,
@@ -94,6 +98,9 @@ from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 hard_modules = frozenset(
     (
         "os",
+        "ntpath",
+        "posixpath",
+        # TODO: Add mac path package too
         "sys",
         "types",
         "typing",
@@ -113,6 +120,10 @@ hard_modules = frozenset(
         "ctypes.macholib",
     )
 )
+
+hard_modules_aliases = {
+    "os.path": os.path.__name__,
+}
 
 # Lets put here, hard modules that are kind of backports only.
 hard_modules_non_stdlib = frozenset(
@@ -198,6 +209,12 @@ module_typing_trust = {
 
 module_os_trust = {"name": trust_constant}
 
+module_os_path_trust = {"exists": trust_node, "isfile": trust_node, "isdir": trust_node}
+trust_node_factory[(os.path.__name__, "exists")] = ExpressionOsPathExistsRef
+trust_node_factory[(os.path.__name__, "isfile")] = ExpressionOsPathIsfileRef
+trust_node_factory[(os.path.__name__, "isdir")] = ExpressionOsPathIsdirRef
+
+
 if isWin32Windows():
     module_os_trust["uname"] = trust_not_exist
 else:
@@ -209,6 +226,8 @@ module_ctypes_trust = {"CDLL": trust_node}
 
 hard_modules_trust = {
     "os": module_os_trust,
+    "ntpath": module_os_path_trust if os.path.__name__ == "ntpath" else {},
+    "posixpath": module_os_path_trust if os.path.__name__ == "posixpath" else {},
     "sys": module_sys_trust,
     "types": {},
     "typing": module_typing_trust,
@@ -567,6 +586,8 @@ class ExpressionImportModuleHard(
 
         if self.module is not None and self.allowed:
             full_name = self.value_name.getChildNamed(attribute_name)
+
+            full_name = ModuleName(hard_modules_aliases.get(full_name, full_name))
 
             if isHardModule(full_name):
                 new_node = ExpressionImportModuleHard(

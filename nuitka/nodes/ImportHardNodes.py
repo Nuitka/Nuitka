@@ -44,7 +44,7 @@ class ExpressionImportHardBase(ExpressionBase):
 
         # Expect to find them and to match the name of course.
         assert self.finding != "not-found", self.module_name
-        assert _module_name == self.module_name
+        assert _module_name == self.module_name, _module_name
 
     def getUsedModule(self):
         return self.module_name, self.module_filename, self.finding

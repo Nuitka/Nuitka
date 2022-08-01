@@ -263,6 +263,11 @@ extern PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool 
 // Small helper to read file contents with few arguments in C.
 extern PyObject *GET_FILE_BYTES(PyObject *filename);
 
+// Small helpers to check file attributes
+extern PyObject *OS_PATH_FILE_EXISTS(PyObject *filename);
+extern PyObject *OS_PATH_FILE_ISFILE(PyObject *filename);
+extern PyObject *OS_PATH_FILE_ISDIR(PyObject *filename);
+
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR(PyObject *value);
 
