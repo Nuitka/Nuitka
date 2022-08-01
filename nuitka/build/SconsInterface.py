@@ -43,7 +43,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
-from nuitka.utils.Utils import getOS, isMacOS
+from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
 
 from .SconsCaching import checkCachingSuccess
 from .SconsUtils import flushSconsReports
@@ -374,7 +374,7 @@ def setCommonOptions(options):
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()
 
-    if getOS() == "Windows" or isMacOS():
+    if isWin32OrPosixWindows() or isMacOS():
         options["noelf_mode"] = asBoolStr(True)
 
     if Options.isUnstriped():
@@ -454,7 +454,7 @@ def setCommonOptions(options):
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
 
-    if getOS() != "Windows" and isNuitkaPython():
+    if isNuitkaPython() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.
         import sysconfig
 

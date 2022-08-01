@@ -53,7 +53,7 @@ from nuitka.utils.FileOperations import (
     renameFile,
     withPreserveFileMode,
 )
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isWin32OrPosixWindows
 
 from .YamlFormatter import formatYaml
 
@@ -397,7 +397,7 @@ def _cleanupClangFormat(filename):
     )
 
     # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
-    if not clang_format_path and getOS() == "Windows":
+    if not clang_format_path and isWin32OrPosixWindows():
         with withEnvironmentPathAdded(
             "PATH",
             r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",

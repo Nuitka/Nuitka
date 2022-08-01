@@ -44,7 +44,7 @@ from nuitka.Tracing import general, my_print, options_logger
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import getOS, isMacOS, isWin32Windows
+from .Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -136,7 +136,7 @@ def relpath(path, start="."):
     except ValueError:
         # On Windows, paths on different devices prevent it to work. Use that
         # full path then.
-        if getOS() == "Windows":
+        if isWin32OrPosixWindows():
             return os.path.abspath(path)
         raise
 

@@ -30,7 +30,7 @@ from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath
-from .Utils import getArchitecture, getOS, isWin32Windows
+from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
@@ -38,7 +38,7 @@ _executable_command_cache = {}
 
 def _getExecutablePath(filename, search_path):
     # Append ".exe" suffix  on Windows if not already present.
-    if getOS() == "Windows" and not filename.lower().endswith(".exe"):
+    if isWin32OrPosixWindows() and not filename.lower().endswith(".exe"):
         filename += ".exe"
 
     # Now check in each path element, much like the shell will.
