@@ -17,6 +17,7 @@
 #
 """ Nodes the represent ways to access package data for pkglib, pkg_resources, etc. """
 
+import os
 
 from nuitka.Options import shallMakeModule
 from nuitka.specs.BuiltinParameterSpecs import (
@@ -27,10 +28,12 @@ from nuitka.specs.BuiltinParameterSpecs import (
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionBase,
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
     ExpressionNoSideEffectsMixin,
 )
 from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
     ExpressionBytesShapeExactMixin,
     ExpressionStrShapeExactMixin,
 )
@@ -388,3 +391,86 @@ class ExpressionOsUnameCall(
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionOsPathTestCallBase(
+    ExpressionBoolShapeExactMixin,
+    ExpressionChildHavingBase,
+):
+    named_child = "path"
+
+    def __init__(self, path, source_ref):
+        ExpressionChildHavingBase.__init__(self, value=path, source_ref=source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionOsPathExistsCall(ExpressionOsPathTestCallBase):
+    kind = "EXPRESSION_OS_PATH_EXISTS_CALL"
+
+
+class ExpressionOsPathIsfileCall(ExpressionOsPathTestCallBase):
+    kind = "EXPRESSION_OS_PATH_ISFILE_CALL"
+
+
+class ExpressionOsPathIsdirCall(ExpressionOsPathTestCallBase):
+    kind = "EXPRESSION_OS_PATH_ISDIR_CALL"
+
+
+class ExpressionOsPathTestRefBase(ExpressionImportModuleNameHardExists):
+    """Base class for function reference like os.path.exists"""
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExists.__init__(
+            self,
+            module_name=os.path.__name__,
+            import_name=self.spec.name.split(".")[-1],
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=self.call_node_class,
+            builtin_spec=self.spec,
+        )
+
+        return result, "new_expression", "Call to '%s' recognized." % self.spec.name
+
+
+class ExpressionOsPathExistsRef(ExpressionOsPathTestRefBase):
+    """Function reference os.path.exists"""
+
+    kind = "EXPRESSION_OS_PATH_EXISTS_REF"
+
+    spec = BuiltinParameterSpec("os.path.exists", ("path",), default_count=0)
+
+    call_node_class = ExpressionOsPathExistsCall
+
+
+class ExpressionOsPathIsfileRef(ExpressionOsPathTestRefBase):
+    """Function reference os.path.isfile"""
+
+    kind = "EXPRESSION_OS_PATH_ISFILE_REF"
+
+    spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_count=0)
+
+    call_node_class = ExpressionOsPathIsfileCall
+
+
+class ExpressionOsPathIsdirRef(ExpressionOsPathTestRefBase):
+    """Function reference os.path.isdir"""
+
+    kind = "EXPRESSION_OS_PATH_ISDIR_REF"
+
+    spec = BuiltinParameterSpec("os.path.isdir", ("path",), default_count=0)
+
+    call_node_class = ExpressionOsPathIsdirCall

@@ -153,6 +153,8 @@
         "inplace",
         "iolddiv",
         "ipython",
+        "isfile",
+        "startswith",
         "isgenerator",
         "isort",
         "iteritems",
@@ -278,6 +280,10 @@
     "esbonio.sphinx.confDir": "",
     "cSpell.spellCheckOnlyWorkspaceFiles": true,
     "yaml.schemas": {
-        "misc/nuitka-package-config-schema.json": ["standard.nuitka-package.config.yml", "stdlib2.standard.nuitka-package.config.yml", "stdlib3.standard.nuitka-package.config.yml"]
+        "misc/nuitka-package-config-schema.json": [
+            "standard.nuitka-package.config.yml",
+            "stdlib2.standard.nuitka-package.config.yml",
+            "stdlib3.standard.nuitka-package.config.yml"
+        ]
     }
 }
