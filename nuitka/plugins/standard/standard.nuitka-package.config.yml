@@ -1643,7 +1643,7 @@
     - dest_path: "shapely"
       by_code:
         setup_code: "import shapely.geos"
-        dll_filename_code: "shapely.geos._lgeos._name"
+        filename_code: "shapely.geos._lgeos._name"
 
 - module-name: "shiboken6"
   implicit-imports:
