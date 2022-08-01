@@ -66,6 +66,7 @@ from nuitka.utils.Utils import (
     isLinux,
     isMacOS,
     isOpenBSD,
+    isWin32OrPosixWindows,
     isWin32Windows,
 )
 
@@ -554,7 +555,7 @@ def commentArgs():
         )
 
     # TODO: Not all of these are usable with MSYS2 really, split those off.
-    if getOS() != "Windows":
+    if not isWin32OrPosixWindows():
         # Too many Windows specific options clearly
         if (
             getWindowsIconExecutablePath()

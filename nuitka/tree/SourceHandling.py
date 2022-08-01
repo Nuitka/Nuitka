@@ -32,7 +32,7 @@ from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import general, my_print
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isWin32OrPosixWindows
 
 from .SyntaxErrors import raiseSyntaxError
 
@@ -200,7 +200,7 @@ def checkPythonVersionFromCode(source_code):
     if shebang is not None:
         binary, _args = parseShebang(shebang)
 
-        if getOS() != "Windows":
+        if not isWin32OrPosixWindows():
             try:
                 if os.path.samefile(sys.executable, binary):
                     return True
