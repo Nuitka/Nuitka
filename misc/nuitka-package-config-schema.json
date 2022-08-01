@@ -59,6 +59,17 @@
                                 },
                                 "prefixes": {
                                     "type": "array"
+                                },
+                                "executable": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        }
+                                    ]
                                 }
                             }
                         },
@@ -69,8 +80,19 @@
                                 "setup_code": {
                                     "type": "string"
                                 },
-                                "dll_filename_code": {
+                                "filename_code": {
                                     "type": "string"
+                                },
+                                "executable": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        }
+                                    ]
                                 }
                             }
                         },

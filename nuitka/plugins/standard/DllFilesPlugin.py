@@ -28,7 +28,10 @@ import sys
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import listDllFilesFromDirectory
+from nuitka.utils.FileOperations import (
+    listDllFilesFromDirectory,
+    listExeFilesFromDirectory,
+)
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import isFreeBSD, isLinux, isWin32Windows
 from nuitka.utils.Yaml import getYamlPackageConfiguration
@@ -67,20 +70,37 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         dll_dir = os.path.join(module_directory, relative_path)
 
         if os.path.exists(dll_dir):
+            exe = dll_config.get("prefixes", "no") == "yes"
+
             for prefix in dll_config.get("prefixes"):
-                for dll_filename, filename in listDllFilesFromDirectory(
-                    dll_dir, prefix=prefix
-                ):
-                    yield self.makeDllEntryPoint(
-                        source_path=dll_filename,
-                        dest_path=os.path.normpath(
-                            os.path.join(
-                                dest_path,
-                                filename,
-                            )
-                        ),
-                        package_name=full_name,
-                    )
+                if exe:
+                    for exe_filename, filename in listExeFilesFromDirectory(
+                        dll_dir, prefix=prefix
+                    ):
+                        yield self.makeExeEntryPoint(
+                            source_path=exe_filename,
+                            dest_path=os.path.normpath(
+                                os.path.join(
+                                    dest_path,
+                                    filename,
+                                )
+                            ),
+                            package_name=full_name,
+                        )
+                else:
+                    for dll_filename, filename in listDllFilesFromDirectory(
+                        dll_dir, prefix=prefix
+                    ):
+                        yield self.makeDllEntryPoint(
+                            source_path=dll_filename,
+                            dest_path=os.path.normpath(
+                                os.path.join(
+                                    dest_path,
+                                    filename,
+                                )
+                            ),
+                            package_name=full_name,
+                        )
 
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
         module_filename = self.locateModule(full_name)
@@ -92,24 +112,36 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 dest_path = os.path.join(full_name.asPath(), "..")
 
         setup_codes = dll_config.get("setup_code")
-        dll_filename_code = dll_config.get("dll_filename_code")
+        filename_code = dll_config.get("filename_code")
 
-        dll_filename = self.queryRuntimeInformationMultiple(
+        filename = self.queryRuntimeInformationMultiple(
             "%s_%s" % (full_name.asString().replace(".", "_"), count),
             setup_codes=setup_codes,
-            values=(("dll_filename", dll_filename_code),),
-        ).dll_filename
+            values=(("filename", filename_code),),
+        ).filename
 
-        yield self.makeDllEntryPoint(
-            source_path=dll_filename,
-            dest_path=os.path.normpath(
-                os.path.join(
-                    dest_path,
-                    os.path.relpath(dll_filename, os.path.dirname(module_filename)),
-                )
-            ),
-            package_name=full_name,
-        )
+        if dll_config.get("prefixes", "no") == "yes":
+            yield self.makeExeEntryPoint(
+                source_path=filename,
+                dest_path=os.path.normpath(
+                    os.path.join(
+                        dest_path,
+                        os.path.relpath(filename, os.path.dirname(module_filename)),
+                    )
+                ),
+                package_name=full_name,
+            )
+        else:
+            yield self.makeDllEntryPoint(
+                source_path=filename,
+                dest_path=os.path.normpath(
+                    os.path.join(
+                        dest_path,
+                        os.path.relpath(filename, os.path.dirname(module_filename)),
+                    )
+                ),
+                package_name=full_name,
+            )
 
     def _handleDllConfig(self, dll_config, full_name, count):
         dest_path = dll_config.get("dest_path")
