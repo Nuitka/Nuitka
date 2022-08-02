@@ -23,6 +23,7 @@
 
 import os
 import sys
+import tempfile
 from optparse import OptionParser
 
 from nuitka.freezer.DllDependenciesWin32 import (
@@ -43,7 +44,7 @@ def main():
 
     for filename in positional_args:
         my_print("Filename: %s" % filename)
-        my_print("Version Information: %s" % getDLLVersion(filename))
+        my_print("Version Information: %s" % (getDLLVersion(filename),))
 
         my_print("SXS information (manifests):")
         sxs = getSxsFromDLL(filename=filename, with_data=True)
@@ -57,7 +58,7 @@ def main():
         ):
             r = detectBinaryPathDLLsWindowsDependencyWalker(
                 is_main_executable=False,
-                source_dir="notexist",
+                source_dir=tempfile.gettempdir(),
                 original_dir=os.path.dirname(filename),
                 binary_filename=filename,
                 package_name=None,
