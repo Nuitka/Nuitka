@@ -1031,13 +1031,13 @@ not use compiled code while it exists."""
         if report_filename:
             writeCompilationReport(report_filename)
 
+        run_filename = OutputDirectories.getResultRunFilename(
+            onefile=Options.isOnefileMode()
+        )
+
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():
-            run_filename = OutputDirectories.getResultRunFilename(
-                onefile=Options.isOnefileMode()
-            )
-
-            general.info("Launching %r." % run_filename)
+            general.info("Launching '%s'" % run_filename)
 
             if Options.shallMakeModule():
                 executeModule(
@@ -1048,4 +1048,10 @@ not use compiled code while it exists."""
                 executeMain(
                     binary_filename=run_filename,
                     clean_path=Options.shallClearPythonPathEnvironment(),
+                )
+        else:
+            if run_filename != final_filename:
+                general.info(
+                    "Execute it by launching '%s', the batch file needs to set environment."
+                    % run_filename
                 )
