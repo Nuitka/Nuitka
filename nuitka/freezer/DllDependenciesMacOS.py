@@ -146,9 +146,9 @@ def _resolveBinaryPathDLLsMacOS(
                     break
             else:
                 # This is only a guess, might be missing package specific directories.
-                resolved_path = os.path.join(original_dir, path[7:])
+                resolved_path = os.path.normpath(os.path.join(original_dir, path[7:]))
         elif path.startswith("@loader_path/"):
-            resolved_path = os.path.join(original_dir, path[13:])
+            resolved_path = os.path.normpath(os.path.join(original_dir, path[13:]))
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
@@ -161,8 +161,8 @@ def _resolveBinaryPathDLLsMacOS(
                 raise NuitkaForbiddenDLLEncounter(binary_filename, "pyside6")
 
             inclusion_logger.sysexit(
-                "Error, failed to resolve DLL path %s (for %s), please report the bug."
-                % (path, binary_filename)
+                "Error, failed to find path %s (resolved DLL to %s) for %s, please report the bug."
+                % (path, resolved_path, binary_filename)
             )
 
         # Some libraries depend on themselves.

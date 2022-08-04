@@ -781,6 +781,18 @@
     - depends:
         - "_cffi_backend"
 
+- module-name: "networkx"
+  anti-bloat:
+    - description: "remove networkx.testing usage"
+      replacements_plain:
+        "from networkx.testing.test import run as test": "test = None"
+
+- module-name: "networkx.utils.decorators"
+  anti-bloat:
+    - description: "required for decorator compatibility"
+      replacements_plain:
+        "func.__defaults__ = f.__defaults__": ""
+
 - module-name: "nose.core"
   data-files:
     patterns:
@@ -1078,11 +1090,21 @@
         "LooseVersion(xlrd.__version__)": "'xlrd.__version__'"
         "from distutils.version import LooseVersion": "''"
 
+- module-name: "pandas.io.formats"
+  data-files:
+    dirs:
+      - "templates"
+
 - module-name: "pandas.io.formats.printing"
   anti-bloat:
     - change_function:
         "enable_data_resource_formatter": "'(lambda enable: None)'"
       description: "remove IPython reference"
+
+- module-name: "pandas.io.formats.style"
+  implicit-imports:
+    - depends:
+        - "jinja2"
 
 - module-name: "pandas.io.orc"
   anti-bloat:
