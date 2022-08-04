@@ -127,7 +127,9 @@ def getNameSpacePathExpression(package, source_ref):
                         constant="NUITKA_PACKAGE_%s" % "_".join(parts[: count + 1]),
                         source_ref=source_ref,
                     ),
-                    makeConstantRefNode(constant="/notexist", source_ref=source_ref),
+                    makeConstantRefNode(
+                        constant=os.path.sep + "not_existing", source_ref=source_ref
+                    ),
                 )
 
                 if parts[count + 1 :]:
