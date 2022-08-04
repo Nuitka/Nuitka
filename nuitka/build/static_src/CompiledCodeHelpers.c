@@ -31,11 +31,15 @@
 
 static void _initBuiltinTypeMethods(void) {
 #if PYTHON_VERSION < 0x300
+    NUITKA_PRINT_TRACE("main(): Calling _initStrBuiltinMethods().");
     _initStrBuiltinMethods();
 #else
+    NUITKA_PRINT_TRACE("main(): Calling _initBytesBuiltinMethods().");
     _initBytesBuiltinMethods();
 #endif
+    NUITKA_PRINT_TRACE("main(): Calling _initUnicodeBuiltinMethods().");
     _initUnicodeBuiltinMethods();
+    NUITKA_PRINT_TRACE("main(): Calling _initDictBuiltinMethods().");
     _initDictBuiltinMethods();
 }
 
@@ -1803,7 +1807,9 @@ static char const *getDllDirectory(void) {
 static void _initDeepCopy(void);
 
 void _initBuiltinModule(void) {
+    NUITKA_PRINT_TRACE("main(): Calling _initBuiltinTypeMethods().");
     _initBuiltinTypeMethods();
+    NUITKA_PRINT_TRACE("main(): Calling _initDeepCopy().");
     _initDeepCopy();
 
 #if _NUITKA_MODULE
