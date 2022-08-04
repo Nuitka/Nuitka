@@ -1078,6 +1078,11 @@
         "LooseVersion(xlrd.__version__)": "'xlrd.__version__'"
         "from distutils.version import LooseVersion": "''"
 
+- module-name: "pandas.io.formats"
+  data-files:
+    dirs:
+      - "templates"
+
 - module-name: "pandas.io.formats.printing"
   anti-bloat:
     - change_function:
