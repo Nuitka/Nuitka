@@ -682,7 +682,7 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
                     logger=inclusion_logger,
                     source_path=used_dll,
                     dest_path=_decideTargetPath(used_dll),
-                    package_name=None,
+                    package_name=standalone_entry_point.package_name,
                 )
             )
 
