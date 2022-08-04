@@ -15,23 +15,24 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Standard plug-in to resolve pkg_resource actions at compile time rather than runtime.
+""" Standard plug-in to handle pkg_resource special needs.
 
 Nuitka can detect some things that "pkg_resources" may not even be able to during
-runtime, e.g. right now checking pip installed versions, is not a thing, while
-some packages in their code, e.g. derive their __version__ value from that.
+runtime, but that is done by nodes and optimization. But there are other things,
+that need special case, e.g. the registration of the loader class.
 """
 
 
 import re
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import withNoDeprecationWarning
 
 
 class NuitkaPluginResources(NuitkaPluginBase):
     plugin_name = "pkg-resources"
-    plugin_desc = "Resolve version numbers at compile time."
+    plugin_desc = "Workarounds for 'pkg_resources'."
 
     def __init__(self):
         with withNoDeprecationWarning():
@@ -41,6 +42,13 @@ class NuitkaPluginResources(NuitkaPluginBase):
                 self.pkg_resources = None
             else:
                 self.pkg_resources = pkg_resources
+
+        try:
+            import importlib_metadata
+        except (ImportError, SyntaxError, RuntimeError):
+            self.metadata = None
+        else:
+            self.metadata = importlib_metadata
 
     @staticmethod
     def isAlwaysEnabled():
@@ -97,3 +105,43 @@ sys.exit(%(module_name)s.%(main_name)s)
                 return self._handleEasyInstallEntryScript(*match.groups())
 
         return source_code
+
+    def createPostModuleLoadCode(self, module):
+        """Create code to load after a module was successfully imported.
+
+        For pkg_resources we need to register a provider.
+        """
+        if module.getFullName() != "pkg_resources":
+            return
+
+        if python_version >= 0x300:
+            code = """\
+from __future__ import absolute_import
+
+import os
+from pkg_resources import register_loader_type, EggProvider
+
+class NuitkaProvider(EggProvider):
+    def _has(self, path):
+        return os.path.exists(path)
+
+    def _isdir(self, path):
+        return os.path.isdir(path)
+
+    def _listdir(self, path):
+        return os.listdir(path)
+
+    def get_resource_stream(self, manager, resource_name):
+        return open(self._fn(self.module_path, resource_name), 'rb')
+
+    def _get(self, path):
+        with open(path, 'rb') as stream:
+            return stream.read()
+
+register_loader_type(__loader__.__class__, NuitkaProvider)
+"""
+
+            yield (
+                code,
+                """Registering Nuitka loader with "pkg_resources".""",
+            )
