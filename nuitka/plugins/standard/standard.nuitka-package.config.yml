@@ -1084,6 +1084,11 @@
         "enable_data_resource_formatter": "'(lambda enable: None)'"
       description: "remove IPython reference"
 
+- module-name: "pandas.io.formats.style"
+  implicit-imports:
+    - depends:
+        - "jinja2"
+
 - module-name: "pandas.io.orc"
   anti-bloat:
     - description: "remove useless distutils usage"
