@@ -2828,6 +2828,19 @@
     dirs:
       - "schemas"
 
+- module-name: "zmq"
+  dlls:
+    # Do not look at this one, using dest_path and suffixes is not
+    # needed at all normally, but this one is trange and for old PyZMQ
+    # only.
+    - from_filenames:
+        prefixes:
+          - "libzmq"
+        suffixes:
+          - "pyd"
+      dest_path: "."
+      when: "win32"
+
 - module-name: "zmq.backend"
   implicit-imports:
     - depends:
