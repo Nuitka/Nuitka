@@ -72,10 +72,12 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         if os.path.exists(dll_dir):
             exe = dll_config.get("prefixes", "no") == "yes"
 
+            suffixes = dll_config.get("suffixes")
+
             for prefix in dll_config.get("prefixes"):
                 if exe:
                     for exe_filename, filename in listExeFilesFromDirectory(
-                        dll_dir, prefix=prefix
+                        dll_dir, prefix=prefix, suffixes=suffixes
                     ):
                         yield self.makeExeEntryPoint(
                             source_path=exe_filename,
@@ -89,7 +91,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                         )
                 else:
                     for dll_filename, filename in listDllFilesFromDirectory(
-                        dll_dir, prefix=prefix
+                        dll_dir, prefix=prefix, suffixes=suffixes
                     ):
                         yield self.makeDllEntryPoint(
                             source_path=dll_filename,
