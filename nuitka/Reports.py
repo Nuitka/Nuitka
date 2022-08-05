@@ -31,6 +31,7 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfos,
     getModuleInfluences,
 )
+from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
 
@@ -130,6 +131,23 @@ def writeCompilationReport(report_filename):
 
     for arg in sys.argv[1:]:
         options_element.append(TreeXML.Element("option", value=arg))
+
+    active_plugins_element = TreeXML.appendTreeElement(
+        root,
+        "plugins",
+    )
+
+    for plugin in getActivePlugins():
+        if plugin.isDetector():
+            continue
+
+        active_plugins_element.append(
+            TreeXML.Element(
+                "plugin",
+                name=plugin.plugin_name,
+                user_enabled="no" if plugin.isAlwaysEnabled() else "yes",
+            )
+        )
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 
