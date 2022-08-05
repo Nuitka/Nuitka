@@ -60,6 +60,9 @@
                                 "prefixes": {
                                     "type": "array"
                                 },
+                                "suffixes": {
+                                    "type": "array"
+                                },
                                 "executable": {
                                     "type": "string",
                                     "oneOf": [

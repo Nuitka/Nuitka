@@ -380,12 +380,13 @@ def getSubDirectories(path, ignore_dirs=()):
     return result
 
 
-def listDllFilesFromDirectory(path, prefix=""):
+def listDllFilesFromDirectory(path, prefix=None, suffixes=None):
     """Give a sorted listing of DLLs filenames in a path.
 
     Args:
         path: directory to create a DLL listing from
         prefix: shell pattern to match filename start against, can be None
+        suffixes: shell patch to match filename end against, defaults to all platform ones
 
     Returns:
         Sorted list of tuples of full filename, and basename of
@@ -400,7 +401,9 @@ def listDllFilesFromDirectory(path, prefix=""):
     # Accept None value as well.
     prefix = prefix or ""
 
-    pattern_list = [prefix + "*." + suffix for suffix in ("dll", "so.*", "so", "dylib")]
+    suffixes = suffixes or ("dll", "so.*", "so", "dylib")
+
+    pattern_list = [prefix + "*." + suffix for suffix in suffixes]
 
     for fullpath, filename in listDir(path):
         for pattern in pattern_list:
@@ -409,12 +412,13 @@ def listDllFilesFromDirectory(path, prefix=""):
                 break
 
 
-def listExeFilesFromDirectory(path, prefix=""):
+def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
     """Give a sorted listing of EXE filenames in a path.
 
     Args:
         path: directory to create a DLL listing from
         prefix: shell pattern to match filename start against, can be None
+        suffixes: shell patch to match filename end against, can be None
 
     Returns:
         Sorted list of tuples of full filename, and basename of
@@ -431,8 +435,11 @@ def listExeFilesFromDirectory(path, prefix=""):
 
     # On Windows, we check exe suffixes, on other platforms we shell all filenames,
     # matching the prefix, but they have to the executable bit set.
-    if isWin32OrPosixWindows():
-        pattern_list = [prefix + "*." + suffix for suffix in ("exe", "bin")]
+    if suffixes is None and isWin32OrPosixWindows():
+        suffixes = "exe", "bin"
+
+    if suffixes:
+        pattern_list = [prefix + "*." + suffix for suffix in suffixes]
     else:
         pattern_list = [prefix + "*"]
 
