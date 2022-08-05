@@ -71,8 +71,6 @@ def _makeDllOrExeEntryPoint(
             "Error, attempting to include file '%s' that does not exist." % source_path
         )
 
-    assert os.path.exists(source_path), source_path
-
     return _makeIncludedEntryPoint(
         logger=logger,
         kind=kind,

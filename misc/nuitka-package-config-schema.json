@@ -98,6 +98,9 @@
                         },
                         "dest_path": {
                             "type": "string"
+                        },
+                        "when": {
+                            "type": "string"
                         }
                     }
                 }
