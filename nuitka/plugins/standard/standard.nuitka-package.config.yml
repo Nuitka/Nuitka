@@ -249,6 +249,11 @@
       replacements:
         'load_module(str("_traceback_no_io"), traceback)': "'__import__(\"traceback\")'"
 
+- module-name: "enchant"
+  data-files:
+    dirs:
+      - "data"
+
 - module-name: "engineio"
   implicit-imports:
     - depends:
