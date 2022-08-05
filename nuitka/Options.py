@@ -181,10 +181,9 @@ def parseArgs():
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
-    if not shallDumpBuiltTreeXML():
-        Tracing.options_logger.info(
-            "Used command line options: %s" % " ".join(sys.argv[1:])
-        )
+    Tracing.options_logger.info(
+        "Used command line options: %s" % " ".join(sys.argv[1:])
+    )
 
     if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
         Tracing.general.sysexit(
@@ -629,8 +628,7 @@ to work. You can selectively add them with '--follow-import-to=name' though."""
         )
 
     if (
-        not shallDumpBuiltTreeXML()
-        and not standalone_mode
+        not standalone_mode
         and not options.follow_all
         and not options.follow_none
         and not options.follow_modules
@@ -681,7 +679,6 @@ make sure that is intended."""
     if (
         options.static_libpython == "auto"
         and not shallMakeModule()
-        and not shallDumpBuiltTreeXML()
         and not shallUseStaticLibPython()
         and getSystemStaticLibPythonPath() is not None
     ):
@@ -755,9 +752,9 @@ def shallRunInDebugger():
     return options.debugger
 
 
-def shallDumpBuiltTreeXML():
-    """:returns: bool derived from ``--xml``"""
-    return options.dump_xml
+def getXMLDumpOutputFilename():
+    """:returns: str derived from ``--xml``"""
+    return options.xml_output
 
 
 def shallOnlyExecCCompilerCall():
