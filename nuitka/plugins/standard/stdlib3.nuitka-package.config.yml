@@ -14,6 +14,21 @@
       change_function:
         "main": "'(lambda: None)'"
 
+- module-name: "asyncio.base_events"
+  implicit-imports:
+    - depends:
+        - "concurrent.futures"
+
+- module-name: "asyncio.futures"
+  implicit-imports:
+    - depends:
+        - "concurrent.futures"
+
+- module-name: "asyncio.tasks"
+  implicit-imports:
+    - depends:
+        - "concurrent.futures"
+
 - module-name: "base64"
   anti-bloat:
     - description: "remove module ability to run as a binary"
