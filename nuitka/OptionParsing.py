@@ -532,10 +532,11 @@ dump_group = OptionGroup(parser, "Dump options for internal tree")
 
 dump_group.add_option(
     "--xml",
-    action="store_true",
-    dest="dump_xml",
-    default=False,
-    help="Dump the final result of optimization as XML, then exit.",
+    action="store",
+    dest="xml_output",
+    metavar="XML_OUTPUT",
+    default=None,
+    help="Write the final result of optimization in XML form to given filename.",
 )
 
 

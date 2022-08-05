@@ -23,8 +23,6 @@ XML tree to ASCII or output it.
 
 from nuitka.__past__ import StringIO
 
-from . import Tracing
-
 
 def _indent(elem, level=0, more_sibs=False):
     i = "\n"
@@ -113,15 +111,16 @@ def fromString(text):
     return xml_module.parse(StringIO(text)).getroot()
 
 
-def dump(tree):
-    value = toString(tree).rstrip()
-
-    Tracing.printLine(value)
-
-
 def appendTreeElement(parent, *args, **kwargs):
     element = Element(*args, **kwargs)
 
     parent.append(element)
 
     return element
+
+
+def dumpTreeXMLToFile(tree, output_file):
+    """Write an XML node tree to a file."""
+
+    value = toString(tree).rstrip()
+    output_file.write(value)
