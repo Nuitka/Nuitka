@@ -139,7 +139,13 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
     @classmethod
     def isDeprecated(cls):
+        """Is this a deprecated plugin, i.e. one that has no use anymore."""
         return False
+
+    @classmethod
+    def isDetector(cls):
+        """Is this a detection plugin, i.e. one which is only there to inform."""
+        return hasattr(cls, "detector_for")
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
