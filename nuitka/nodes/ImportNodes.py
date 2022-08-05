@@ -118,6 +118,8 @@ hard_modules = frozenset(
         "ctypes",
         "ctypes.wintypes",
         "ctypes.macholib",
+        # TODO: Once generation of nodes for functions exists.
+        # "platform",
     )
 )
 
@@ -224,11 +226,14 @@ else:
 
 module_ctypes_trust = {"CDLL": trust_node}
 
+# module_platform_trust = {"python_implementation": trust_function}
+
 hard_modules_trust = {
     "os": module_os_trust,
     "ntpath": module_os_path_trust if os.path.__name__ == "ntpath" else {},
     "posixpath": module_os_path_trust if os.path.__name__ == "posixpath" else {},
     "sys": module_sys_trust,
+    #     "platform": module_platform_trust,
     "types": {},
     "typing": module_typing_trust,
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
