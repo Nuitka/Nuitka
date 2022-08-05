@@ -1103,7 +1103,10 @@ class NuitkaPluginDetectorPySide2Plugins(NuitkaPluginBase):
     detector_for = NuitkaPluginPySide2Plugins
 
     def onModuleDiscovered(self, module):
-        if module.getFullName() == NuitkaPluginPySide2Plugins.binding_name + ".QtCore":
+        if (
+            module.getFullName() == NuitkaPluginPySide2Plugins.binding_name + ".QtCore"
+            and getActiveQtPlugin() is None
+        ):
             self.warnUnusedPlugin("Making callbacks work and include Qt plugins.")
 
 
