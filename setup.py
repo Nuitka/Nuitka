@@ -20,7 +20,9 @@
 This applies a few tricks. First, the Nuitka version is read from
 the source code. Second, the packages are scanned from the filesystem,
 and third, the byte code compilation is avoided for inline copies of
-scons with mismatching Python major versions.
+scons with mismatching Python major versions. Also a binary distribution
+is enforced, to avoid being cached with wrong inline copies for the
+Python version.
 
 spellchecker: ignore chdir,pythonw,tqdm,distutil,atomicwrites,markupsafe,wininst,distclass
 """
