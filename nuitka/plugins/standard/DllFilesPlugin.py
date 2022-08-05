@@ -144,6 +144,12 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             )
 
     def _handleDllConfig(self, dll_config, full_name, count):
+        if dll_config.get("when"):
+            if not self.evaluateCondition(
+                full_name=full_name, condition=dll_config.get("when")
+            ):
+                return
+
         dest_path = dll_config.get("dest_path")
 
         found = False
