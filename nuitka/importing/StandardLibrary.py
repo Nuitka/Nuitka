@@ -314,6 +314,7 @@ _stdlib_no_auto_inclusion_list = (
     "asyncio.test_utils",
     # strange OS specific extensions
     "_distutils_system_mod",
+    "concurrent",
 )
 
 if not isWin32Windows():
