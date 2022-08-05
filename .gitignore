@@ -22,6 +22,7 @@ __pycache__/
 *.dist
 *.app
 *.key
+*.xml
 *.optimization.log
 *.inclusion.log
 *.strace
