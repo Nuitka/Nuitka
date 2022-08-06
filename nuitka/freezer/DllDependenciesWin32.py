@@ -98,6 +98,9 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
 
 
 def _getScanDirectories(package_name, original_dir):
+    # TODO: Move PyWin32 specific stuff to yaml dll section
+    # pylint: disable=too-many-branches
+
     cache_key = package_name, original_dir
 
     if cache_key in _scan_dir_cache:
@@ -137,8 +140,13 @@ def _getScanDirectories(package_name, original_dir):
     for scan_dir in scan_dirs:
         scan_dir = getDirectoryRealPath(scan_dir)
 
-        # Not a directory, or no DLLs, no use.
-        if not os.path.isdir(scan_dir) or not any(listDllFilesFromDirectory(scan_dir)):
+        # Not a directory, or no DLLs, or not accessible, no use.
+        try:
+            if not os.path.isdir(scan_dir) or not any(
+                listDllFilesFromDirectory(scan_dir)
+            ):
+                continue
+        except OSError:
             continue
 
         result.append(os.path.realpath(scan_dir))
