@@ -164,6 +164,9 @@ def makeIncludedDataDirectory(
     ):
         filename_relative = os.path.relpath(filename, source_path)
 
+        if filename_relative.endswith((".py", ".pyc", ".pyi", ".so", ".pyd")):
+            continue
+
         filename_dest = os.path.join(dest_path, filename_relative)
 
         included_datafile = makeIncludedDataFile(
