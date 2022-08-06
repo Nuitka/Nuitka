@@ -281,9 +281,7 @@
     "cSpell.spellCheckOnlyWorkspaceFiles": true,
     "yaml.schemas": {
         "misc/nuitka-package-config-schema.json": [
-            "standard.nuitka-package.config.yml",
-            "stdlib2.standard.nuitka-package.config.yml",
-            "stdlib3.standard.nuitka-package.config.yml"
+            "*.nuitka-package.config.yml",
         ]
     }
 }
