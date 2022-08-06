@@ -27,7 +27,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import assumeYesForDownloads
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Download import getCachedDownload
-from nuitka.utils.Execution import executeProcess
+from nuitka.utils.Execution import executeProcess, withEnvironmentVarOverridden
 from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
@@ -167,19 +167,20 @@ SxS
     # TODO: At least exit code should be checked, output goes to a filename,
     # but errors might be interesting potentially.
 
-    _stdout, _stderr, _exit_code = executeProcess(
-        command=(
-            depends_exe,
-            "-c",
-            "-ot%s" % output_filename,
-            "-d:%s" % dwp_filename,
-            "-f1",
-            "-pa1",
-            "-ps1",
-            binary_filename,
-        ),
-        external_cwd=True,
-    )
+    with withEnvironmentVarOverridden("PATH", ""):
+        _stdout, _stderr, _exit_code = executeProcess(
+            command=(
+                depends_exe,
+                "-c",
+                "-ot%s" % output_filename,
+                "-d:%s" % dwp_filename,
+                "-f1",
+                "-pa1",
+                "-ps1",
+                binary_filename,
+            ),
+            external_cwd=True,
+        )
 
     if not os.path.exists(output_filename):
         inclusion_logger.sysexit(
