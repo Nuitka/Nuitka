@@ -70,6 +70,16 @@
     patterns:
       - "global.dat"
 
+- module-name: "backports.zoneinfo._common"
+  implicit-imports:
+    - depends:
+        - "tzdata.zoneinfo"
+
+- module-name: "backports.zoneinfo._czoneinfo"
+  implicit-imports:
+    - depends:
+        - "._common"
+
 - module-name: "boto3"
   data-files:
     dirs:
@@ -2645,6 +2655,15 @@
   data-files:
     dirs:
       - "zones"
+
+- module-name: "tzdata.zoneinfo"
+  data-files:
+    dirs:
+      - "."
+
+  implicit-imports:
+    - depends:
+        - ".*"
 
 - module-name: "urllib3"
   implicit-imports:
