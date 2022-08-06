@@ -242,7 +242,13 @@ def formatYaml(path):
     new_data = []
     for entry in data:
         sorted_entry = dict(
-            [(key, entry[key]) for key in MASTER_KEYS if key in entry.keys()]
+            (key, value)
+            for key, value in sorted(
+                entry.items(),
+                key=lambda item: MASTER_KEYS.index(item[0])
+                if item[0] in MASTER_KEYS
+                else 1000,
+            )
         )
 
         if "data-files" in sorted_entry:
