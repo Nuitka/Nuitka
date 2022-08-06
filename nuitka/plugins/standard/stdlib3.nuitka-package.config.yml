@@ -8,6 +8,11 @@
     - depends:
         - "asyncio"
 
+- module-name: "_zoneinfo"
+  implicit-imports:
+    - depends:
+        - "zoneinfo._common"
+
 - module-name: "ast"
   anti-bloat:
     - description: "remove module ability to run as a binary"
@@ -329,3 +334,8 @@
     - description: "remove module ability to run as a binary"
       change_function:
         "main": "'(lambda: None)'"
+
+- module-name: "zoneinfo._common"
+  implicit-imports:
+    - depends:
+        - "tzdata.zoneinfo"
