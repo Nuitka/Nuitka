@@ -262,9 +262,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
         conditions.append(
             ExpressionSubscriptCheck(
                 expression=make_against(),
-                subscript=makeConstantRefNode(
-                    constant=key.value, source_ref=source_ref
-                ),
+                subscript=buildNode(provider, key, source_ref),
                 source_ref=source_ref,
             )
         )
@@ -274,9 +272,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
             provider=provider,
             make_against=lambda: ExpressionSubscriptLookup(
                 expression=make_against(),
-                subscript=makeConstantRefNode(
-                    constant=key.value, source_ref=source_ref
-                ),
+                subscript=buildNode(provider, key, source_ref),
                 source_ref=source_ref,
             ),
             pattern=kwd_pattern,
