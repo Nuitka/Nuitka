@@ -1,0 +1,120 @@
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
+""" Nodes that build and operate on str.
+
+"""
+
+from abc import abstractmethod
+
+from .ConstantRefNodes import makeConstantRefNode
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
+)
+from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
+    ExpressionBytesShapeExactMixin,
+    ExpressionIntShapeExactMixin,
+    ExpressionListShapeExactMixin,
+    ExpressionStrOrUnicodeExactMixin,
+    ExpressionStrShapeExactMixin,
+    ExpressionTupleShapeExactMixin,
+)
+from .NodeBases import SideEffectsFromChildrenMixin
+from .NodeMetaClasses import NodeCheckMetaClass
+
+
+def getStrOperationClasses():
+    """Return all str operation nodes, for use by code generation."""
+    return (
+        cls
+        for kind, cls in NodeCheckMetaClass.kinds.items()
+        if kind.startswith("EXPRESSION_STR_OPERATION_")
+    )
+
+{% for operation_name, arg_name, shape, is_base in specifications %}
+class ExpressionStrOperation{{ operation_name }}(
+    Expression{{ shape }}ShapeExactMixin, ExpressionChildrenHavingBase
+):
+    {% if not is_base%}
+    """This operation represents s.{{ operation_name.lower() }}({{arg_name}})."""
+
+    kind = "EXPRESSION_STR_OPERATION_{{ operation_name.upper() }}"
+    {% endif %}
+    named_children = ("str_arg", "{{ arg_name.lower() }}")
+    {% if operation_name == "Strip2Base" %}
+    @abstractmethod
+    def getSimulator(self):
+        """Compile time simulation"""
+    {% endif %}
+    def __init__(self, str_arg, {{ arg_name }}, source_ref):
+        assert str_arg is not None
+        assert {{ arg_name }} is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={"str_arg": str_arg, "{{ arg_name }}": {{ arg_name }}},
+            source_ref=source_ref,
+        )
+
+    def computeExpression(self, trace_collection):
+        str_arg = self.subnode_str_arg
+        {{ arg_name }} = self.subnode_{{ arg_name }}
+        if str_arg.isCompileTimeConstant() and {{ arg_name }}.isCompileTimeConstant():
+        {% if operation_name == "Strip2Base" %}
+            simulator = self.getSimulator()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: simulator(
+                    str_arg.getCompileTimeConstant(),
+                    chars.getCompileTimeConstant(),
+                ),
+                description="Built-in 'str.strip' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        # TODO: Only if the sep is not a string
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Only if chars is not correct shape
+        return True
+
+        {% else %}
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: str_arg.getCompileTimeConstant().{{ operation_name.lower() }}(
+                    {{ arg_name }}.getCompileTimeConstant()
+                ),
+                description="Built-in 'str.{{ operation_name.lower() }}' with constant values.",
+                user_provided=str_arg.user_provided,
+            )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+        {% endif %}
+    {% if operation_name in ["Partition", "Rpartition"]%}
+    @staticmethod
+    def getIterationLength():
+        return 3
+    {% endif %}
+{% endfor %}
