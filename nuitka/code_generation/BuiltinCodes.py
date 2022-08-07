@@ -331,7 +331,7 @@ def generateBuiltinBoolCode(to_name, expression, emit, context):
     getErrorExitBoolCode(
         condition="%s == -1" % res_name,
         release_name=arg_name,
-        needs_check=expression.mayRaiseException(BaseException),
+        needs_check=expression.subnode_value.mayRaiseExceptionBool(BaseException),
         emit=emit,
         context=context,
     )
