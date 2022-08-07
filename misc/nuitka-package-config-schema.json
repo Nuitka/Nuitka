@@ -114,14 +114,14 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "description": {
+                            "type": "string"
+                        },
                         "context": {
                             "type": "array",
                             "items": {
                                 "type": "string"
                             }
-                        },
-                        "description": {
-                            "type": "string"
                         },
                         "module_code": {
                             "type": "string"
