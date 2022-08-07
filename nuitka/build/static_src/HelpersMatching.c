@@ -37,8 +37,9 @@ PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed) {
     PyObject *match_args = NULL;
     PyTypeObject *type = Py_TYPE(matched);
 
-    // First, the positional subpatterns:
+    // First, the positional sub-patterns:
     match_args = LOOKUP_ATTRIBUTE((PyObject *)type, const_str_plain___match_args__);
+    Py_ssize_t actual;
 
     if (match_args) {
         if (unlikely(!PyTuple_CheckExact(match_args))) {
@@ -47,6 +48,8 @@ PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed) {
             Py_DECREF(match_args);
             return NULL;
         }
+
+        actual = PyTuple_GET_SIZE(match_args);
     } else if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED()) {
         if (PyType_HasFeature(type, _Py_TPFLAGS_MATCH_SELF)) {
             if (max_allowed > 1) {
@@ -59,11 +62,11 @@ PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed) {
             PyObject *elements[1] = {matched};
             return MAKE_TUPLE(elements, 1);
         }
+
+        actual = 0;
     } else {
         return NULL;
     }
-
-    Py_ssize_t actual = PyTuple_GET_SIZE(match_args);
 
     if (max_allowed > actual) {
         FORMAT_MATCH_MISMATCH_ERROR(type, max_allowed, actual);
