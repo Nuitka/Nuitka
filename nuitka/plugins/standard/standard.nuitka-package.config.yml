@@ -1002,23 +1002,24 @@
         - "osgeo._osr"
 
 - module-name: "panda3d"
+  data-files:
+    dest_path: "."
+    dirs:
+      - "etc"
+
   dlls:
     - dest_path: "."
       from_filenames:
         prefixes:
-        - "libpandagl"
-        - "libpandadx9"
-        - "libp3tinydisplay"
-        - "libp3assimp"
-        - "libp3ffmpeg"
-        - "libp3fmod_audio"
-        - "libp3openal_audio"
-        - "libp3ptloader"
-        - "libpandaegg"
-  data-files:
-    - dest_path: "."
-      dirs:
-      - "etc"
+          - "libpandagl"
+          - "libpandadx9"
+          - "libp3tinydisplay"
+          - "libp3assimp"
+          - "libp3ffmpeg"
+          - "libp3fmod_audio"
+          - "libp3openal_audio"
+          - "libp3ptloader"
+          - "libpandaegg"
 
 - module-name: "pandas"
   anti-bloat:
