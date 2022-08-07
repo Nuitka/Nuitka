@@ -172,6 +172,11 @@ class ExpressionBuiltinBool(ExpressionBoolShapeExactMixin, ExpressionBuiltinType
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseException(
+            exception_type
+        ) or self.subnode_value.mayRaiseExceptionBool(exception_type)
+
 
 class ExpressionBuiltinUnicodeBase(
     ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
