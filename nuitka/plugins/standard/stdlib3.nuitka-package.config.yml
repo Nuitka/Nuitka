@@ -215,10 +215,10 @@
 - module-name: "pydoc"
   anti-bloat:
     - description: "remove module ability to display GUI with tkinter and topics data"
-      change_function:
-        "gui": "'(lambda : None)'"
       replacements:
         "import pydoc_data.topics": "'raise ImportError'"
+      change_function:
+        "gui": "'(lambda : None)'"
 
 - module-name: "quopri"
   anti-bloat:
@@ -285,7 +285,6 @@
     - description: "enhanced tk-inter in case of missing tcl"
       context:
         - "import textwrap"
-      when: "not deployment"
       replacements:
         "self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)": |
           textwrap.indent("""
@@ -296,6 +295,7 @@
               raise\n\
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
+      when: "not deployment"
   implicit-imports:
     - depends:
         - "_tkinter"

@@ -197,7 +197,6 @@
         - "import textwrap"
         - "import pkgutil"
         - "from nuitka.utils.Importing import getSharedLibrarySuffix"
-      when: "standalone"
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
         # Before OpenCV 4.6
@@ -207,6 +206,7 @@
       replacements_plain:
         ? "load_first_config([\n"
         : "if False: (["
+      when: "standalone"
   implicit-imports:
     - depends:
         - "cv2.cv2"
@@ -317,18 +317,18 @@
 
 - module-name: "feedparser.html"
   anti-bloat:
-    - change_function:
-        "__parse_starttag": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))"
-        "goahead": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))"
+    - description: "use SGML code more naturally"
       context:
         - "import inspect"
         - "import textwrap"
         - "import sgmllib"
-      description: "use SGML code more naturally"
       replacements:
         "__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__": "'pass'"
         "def goahead(self, i):": "'def goahead(self, end):'"
         "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
+      change_function:
+        "__parse_starttag": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))"
+        "goahead": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))"
 
 - module-name: "fitz.fitz"
   implicit-imports:
@@ -541,10 +541,11 @@
 
 - module-name: "h5py"
   anti-bloat:
-    - change_function:
+    - description: "remove h5py testing framework and interactive IPython completer"
+
+      change_function:
         "enable_ipython_completer": "'(lambda: None)'"
         "run_tests": "'(lambda args=None: None)'"
-      description: "remove h5py testing framework and interactive IPython completer"
 
 - module-name: "h5py.h5"
   implicit-imports:
@@ -662,14 +663,13 @@
 - module-name: "matplotlib"
   anti-bloat:
     - description: "remove setuptools and pytest testing framework reference"
+      replacements:
+        '(root / ".git").exists()"': "'None'"
+        "test.__test__ = False": ""
       change_function:
         "_init_tests": "'None'"
         "test": "'None'"
         "_get_version": "'(lambda : _version.version)'"
-      replacements:
-        '(root / ".git").exists()"': "'None'"
-        "test.__test__ = False": ""
-
   implicit-imports:
     - depends:
         - "matplotlib.backend_managers"
@@ -829,10 +829,10 @@
 - module-name: "numba.cuda"
   anti-bloat:
     - description: "remove numba testing reference"
-      change_function:
-        "test": "un-callable"
       replacements_plain:
         "from numba import runtests": ""
+      change_function:
+        "test": "un-callable"
 
 - module-name: "numba.misc.inspection"
   anti-bloat:
@@ -1017,18 +1017,21 @@
 
 - module-name: "pandas._testing"
   anti-bloat:
-    - change_function:
+    - description: "remove pytest testing framework"
+
+      change_function:
         "ensure_clean": "'(lambda: None)'"
         # TODO: See pandas._testing._io TODO as well.
         "external_error_raised": "'(lambda: None)'"
         "network": "'(lambda: None)'"
         "round_trip_localpath": "'(lambda: None)'"
         "round_trip_pathlib": "'(lambda: None)'"
-      description: "remove pytest testing framework"
 
 - module-name: "pandas._testing._io"
   anti-bloat:
-    - change_function:
+    - description: "remove pytest testing framework"
+
+      change_function:
         "network": "'(lambda: None)'"
         # TODO: Actually it would be nice to specify "uncallable" rather than
         # wrong signature for cases, where the function is not usable
@@ -1036,7 +1039,6 @@
         # some test code is run an attempts to use it.
         "round_trip_localpath": "'(lambda: None)'"
         "round_trip_pathlib": "'(lambda: None)'"
-      description: "remove pytest testing framework"
 
 - module-name: "pandas.compat._optional"
   anti-bloat:
@@ -1112,9 +1114,10 @@
 
 - module-name: "pandas.io.formats.printing"
   anti-bloat:
-    - change_function:
+    - description: "remove IPython reference"
+
+      change_function:
         "enable_data_resource_formatter": "'(lambda enable: None)'"
-      description: "remove IPython reference"
 
 - module-name: "pandas.io.formats.style"
   implicit-imports:
@@ -1655,10 +1658,10 @@
 
 - module-name: "shapely.geos"
   dlls:
-    - dest_path: "shapely"
-      by_code:
+    - by_code:
         setup_code: "import shapely.geos"
         filename_code: "shapely.geos._lgeos._name"
+      dest_path: "shapely"
 
 - module-name: "shiboken6"
   implicit-imports:
@@ -2166,7 +2169,6 @@
         "_site.ENABLE_USER_SITE": "False"
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
         "from ._api.v2 import test": "test = None"
-
   implicit-imports:
     - depends:
         - "tensorboard"
@@ -2533,10 +2535,10 @@
 - module-name: "tensorflow.python.ops.distributions.distribution"
   anti-bloat:
     - description: "remove useless function copying"
-      change_function:
-        "_copy_fn": "'(lambda fn: fn)'"
       replacements:
         "class_attr_value.__doc__ = _update_docstring": "'class_attr_value___doc__ = _update_docstring'"
+      change_function:
+        "_copy_fn": "'(lambda fn: fn)'"
 
 - module-name: "tensorflow_core"
   anti-bloat:
@@ -2639,17 +2641,19 @@
 
 - module-name: "tqdm"
   anti-bloat:
-    - change_function:
+    - description: "remove IPython reference"
+
+      change_function:
         "tnrange": "'(lambda *args, **kwargs: None)'"
         "tqdm_notebook": "'(lambda *args, **kwargs: None)'"
       when: "not use_ipython"
-      description: "remove IPython reference"
 
 - module-name: "tqdm.autonotebook"
   anti-bloat:
     - description: "remove IPython reference"
-      when: "not use_ipython"
       module_code: "from .std import tqdm, trange\n"
+
+      when: "not use_ipython"
 
 - module-name: "tzdata"
   data-files:
@@ -2755,6 +2759,13 @@
         prefixes:
           - "libvosk"
 
+- module-name: "vtk"
+  import-hacks:
+    # This module aliases itself to another package, for which we will
+    # not find packages in unless added.
+    - package-path:
+        - "vtkmodules"
+
 - module-name: "vtkmodules"
   implicit-imports:
     - depends:
@@ -2799,6 +2810,13 @@
       - "css"
     patterns:
       - "VERSION"
+
+- module-name: "win32com"
+  import-hacks:
+    # This package adds another directory to the search path of itself,
+    # which we will not find packages in unless added.
+    - package-dir:
+        - "win32comext"
 
 - module-name: "wx"
   options:

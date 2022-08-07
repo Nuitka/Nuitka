@@ -17,9 +17,10 @@
 
 - module-name: "Bastion"
   anti-bloat:
-    - change_function:
+    - description: "remove module ability to run as a binary"
+
+      change_function:
         "_test": "'(lambda: None)'"
-      description: "remove module ability to run as a binary"
 
 - module-name: "Cookie"
   anti-bloat:
@@ -67,8 +68,9 @@
 
   options:
     checks:
-      - macos_bundle_as_onefile: "yes"
-        console: "recommend"
+      - console: "recommend"
+
+        macos_bundle_as_onefile: "yes"
 
 - module-name: "xml.sax.xmlreader"
   anti-bloat:
