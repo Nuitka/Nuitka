@@ -34,6 +34,7 @@ from .ContainerMakingNodes import makeExpressionMakeList
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase,
     ExpressionChildTupleHavingBase,
     ExpressionNoSideEffectsMixin,
 )
@@ -44,6 +45,9 @@ pkg_resources_require_spec = BuiltinParameterSpec(
 )
 pkg_resources_get_distribution_spec = BuiltinParameterSpec(
     "pkg_resources.get_distribution", ("dist",), default_count=0
+)
+pkg_resources_iter_entry_points_spec = BuiltinParameterSpec(
+    "pkg_resources.iter_entry_points", ("group", "name"), default_count=1
 )
 
 
@@ -201,7 +205,7 @@ class ExpressionPkgResourcesGetDistributionRef(ExpressionImportModuleNameHardExi
         return (
             result,
             "new_expression",
-            "Call to 'pkg_resources.require' recognized.",
+            "Call to 'pkg_resources.get_distribution' recognized.",
         )
 
 
@@ -507,7 +511,7 @@ class ExpressionPkgResourcesDistributionValueRef(
 ):
     kind = "EXPRESSION_PKG_RESOURCES_DISTRIBUTION_VALUE_REF"
 
-    __slots__ = ("distribution", "computed_attribute")
+    __slots__ = ("distribution", "computed_attributes")
 
     preserved_attributes = ("py_version", "platform", "version", "project_name")
 
@@ -530,7 +534,7 @@ class ExpressionPkgResourcesDistributionValueRef(
         ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.distribution = distribution
-        self.computed_attribute = None
+        self.computed_attributes = {}
 
     def finalize(self):
         del self.distribution
@@ -548,26 +552,205 @@ class ExpressionPkgResourcesDistributionValueRef(
         return self, None, None
 
     def isKnownToHaveAttribute(self, attribute_name):
-        if self.computed_attribute is None:
-            self.computed_attribute = hasattr(self.distribution, attribute_name)
+        if attribute_name not in self.computed_attributes:
+            self.computed_attributes[attribute_name] = hasattr(
+                self.distribution, attribute_name
+            )
 
-        return self.computed_attribute
+        return self.computed_attributes[attribute_name]
 
     def getKnownAttributeValue(self, attribute_name):
         return getattr(self.distribution, attribute_name)
 
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
-        if self.computed_attribute is None:
-            self.computed_attribute = hasattr(self.distribution, attribute_name)
-
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.computed_attribute or isCompileTimeConstantValue(
+        if not self.isKnownToHaveAttribute(
+            attribute_name
+        ) or isCompileTimeConstantValue(
             getattr(self.distribution, attribute_name, None)
         ):
             return trace_collection.getCompileTimeComputationResult(
                 node=lookup_node,
                 computation=lambda: getattr(self.distribution, attribute_name),
+                description="Attribute '%s' pre-computed." % (attribute_name),
+            )
+
+        return lookup_node, None, None
+
+
+class ExpressionPkgResourcesIterEntryPointsRef(ExpressionImportModuleNameHardExists):
+    """Function reference pkg_resources.iter_entry_points"""
+
+    kind = "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExists.__init__(
+            self,
+            module_name="pkg_resources",
+            import_name="iter_entry_points",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionPkgResourcesIterEntryPointsCall,
+            builtin_spec=pkg_resources_iter_entry_points_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'pkg_resources.iter_entry_points' recognized.",
+        )
+
+
+class ExpressionPkgResourcesIterEntryPointsCall(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_CALL"
+
+    named_children = "group", "name"
+
+    __slots__ = ("attempted",)
+
+    def __init__(self, group, name, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self, values={"group": group, "name": name}, source_ref=source_ref
+        )
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def _replaceWithCompileTimeValue(self, trace_collection):
+        iter_entry_points = _getPkgResourcesModule().iter_entry_points
+        DistributionNotFound = _getPkgResourcesModule().DistributionNotFound
+
+        group = self.subnode_group.getCompileTimeConstant()
+        if self.subnode_name is not None:
+            name = self.subnode_name.getCompileTimeConstant()
+        else:
+            name = None
+
+        try:
+            # Get entry point from generator, we cannot delay.
+            entry_points = tuple(iter_entry_points(group=group, name=name))
+        except DistributionNotFound:
+            inclusion_logger.warning(
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                % (group, self.source_ref.getAsString())
+            )
+
+            self.attempted = True
+
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            inclusion_logger.sysexit(
+                "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
+                % (group, self.source_ref.getAsString(), repr(e))
+            )
+        else:
+            result = makeExpressionMakeList(
+                elements=tuple(
+                    ExpressionPkgResourcesEntryPointValueRef(
+                        entry_point=entry_point, source_ref=self.source_ref
+                    )
+                    for entry_point in entry_points
+                ),
+                source_ref=self.source_ref,
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time predicted 'pkg_resources.iter_entry_points' result",
+            )
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not pkg_resources_iter_entry_points_spec.isCompileTimeComputable(
+                (self.subnode_group, self.subnode_name)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        with withNoDeprecationWarning():
+            return self._replaceWithCompileTimeValue(trace_collection)
+
+
+class ExpressionPkgResourcesEntryPointValueRef(
+    ExpressionNoSideEffectsMixin, ExpressionBase
+):
+    kind = "EXPRESSION_PKG_RESOURCES_ENTRY_POINT_VALUE_REF"
+
+    __slots__ = ("entry_point", "computed_attributes")
+
+    preserved_attributes = ("name", "module_name", "attrs", "extras")
+
+    def __init__(self, entry_point, source_ref):
+        with withNoDeprecationWarning():
+            EntryPoint = importFromCompileTime(
+                "pkg_resources", must_exist=True
+            ).EntryPoint
+
+            preserved_attributes = self.preserved_attributes
+
+            entry_point = EntryPoint(
+                **dict((key, getattr(entry_point, key)) for key in preserved_attributes)
+            )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.entry_point = entry_point
+        self.computed_attributes = {}
+
+    def finalize(self):
+        del self.entry_point
+        del self.computed_attributes
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def getTruthValue():
+        return True
+
+    def computeExpressionRaw(self, trace_collection):
+        # Cannot compute any further, this is already the best.
+        return self, None, None
+
+    def isKnownToHaveAttribute(self, attribute_name):
+        if attribute_name not in self.computed_attributes:
+            self.computed_attributes[attribute_name] = hasattr(
+                self.entry_point, attribute_name
+            )
+
+        return self.computed_attributes[attribute_name]
+
+    def getKnownAttributeValue(self, attribute_name):
+        return getattr(self.entry_point, attribute_name)
+
+    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        # If it raises, or the attribute itself is a compile time constant,
+        # then do execute it.
+        if not self.isKnownToHaveAttribute(
+            attribute_name
+        ) or isCompileTimeConstantValue(
+            getattr(self.entry_point, attribute_name, None)
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=lookup_node,
+                computation=lambda: getattr(self.entry_point, attribute_name),
                 description="Attribute '%s' pre-computed." % (attribute_name),
             )
 
