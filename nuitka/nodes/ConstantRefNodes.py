@@ -377,7 +377,7 @@ class ExpressionConstantBoolRefBase(
     @staticmethod
     def computeExpressionBool(trace_collection):
         # Best case already, None indicated no action.
-        return None, None
+        return None, None, None
 
     @staticmethod
     def getDetails():
