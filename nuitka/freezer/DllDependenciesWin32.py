@@ -137,8 +137,8 @@ def _getScanDirectories(package_name, original_dir):
     for scan_dir in scan_dirs:
         scan_dir = getDirectoryRealPath(scan_dir)
 
-        # No DLLs, no use.
-        if not any(listDllFilesFromDirectory(scan_dir)):
+        # Not a directory, or no DLLs, no use.
+        if not os.path.isdir(scan_dir) or not any(listDllFilesFromDirectory(scan_dir)):
             continue
 
         result.append(os.path.realpath(scan_dir))
