@@ -162,6 +162,7 @@ _linux_dll_ignore_list = (
     # might be provided by glibc - it may vary between the package versions
     # and between Linux distros. It might or might not be a problem in the
     # future, but it should be enough for now.
+    "linux-vdso.so.1",
     "ld-linux-x86-64.so",
     "libc.so",
     "libpthread.so",
