@@ -97,6 +97,39 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
         )
 
 
+def generatePkgResourcesEntryPointValueCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_point_value", expression, emit, context
+    ) as result_name:
+        entry_point_class_name = context.allocateTempName(
+            "entry_point_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_point_class_name,
+            module_name="pkg_resources",
+            import_name="EntryPoint",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(getattr(expression.entry_point, kw_name))
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=entry_point_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+
+
 def generatePkgResourcesRequireCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "require_value", expression, emit, context
@@ -155,6 +188,43 @@ def generatePkgResourcesGetDistributionCallCode(to_name, expression, emit, conte
             called_name=get_distribution_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generatePkgResourcesIterEntryPointsCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "iter_entry_points_value", expression, emit, context
+    ) as result_name:
+        group_arg_name, name_arg_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        iter_entry_points_function_name = context.allocateTempName(
+            "iter_entry_points_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=iter_entry_points_function_name,
+            module_name="pkg_resources",
+            import_name="iter_entry_points",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=iter_entry_points_function_name,
+            expression=expression,
+            arg_names=(
+                group_arg_name,
+                name_arg_name,
+            )
+            if name_arg_name is not None
+            else (group_arg_name,),
             needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,

@@ -79,6 +79,7 @@ from .PackageMetadataNodes import (
     ExpressionImportlibMetadataBackportVersionRef,
     ExpressionImportlibMetadataVersionRef,
     ExpressionPkgResourcesGetDistributionRef,
+    ExpressionPkgResourcesIterEntryPointsRef,
     ExpressionPkgResourcesRequireRef,
 )
 from .PackageResourceNodes import (
@@ -250,6 +251,7 @@ hard_modules_trust = {
     "pkg_resources": {
         "require": trust_node,
         "get_distribution": trust_node,
+        "iter_entry_points": trust_node,
         "resource_string": trust_node,
         "resource_stream": trust_node,
     },
@@ -266,6 +268,10 @@ trust_node_factory[("pkg_resources", "require")] = ExpressionPkgResourcesRequire
 trust_node_factory[
     ("pkg_resources", "get_distribution")
 ] = ExpressionPkgResourcesGetDistributionRef
+trust_node_factory[
+    ("pkg_resources", "iter_entry_points")
+] = ExpressionPkgResourcesIterEntryPointsRef
+
 trust_node_factory[
     ("pkg_resources", "resource_string")
 ] = ExpressionPkgResourcesResourceStringRef
