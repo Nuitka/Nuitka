@@ -718,7 +718,7 @@ class ExpressionBase(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # None indicates no replacement action.
-        return None, None
+        return None, None, None
 
     @staticmethod
     def onContentEscapes(trace_collection):
@@ -1192,8 +1192,13 @@ Predicted '%s' on compiled time constant values."""
 
         # Dealt with through dedicated nodes.
         assert type(constant) is not bool
+        truth_value = bool(constant)
 
-        return bool(constant), "Predicted compile time constant truth value."
+        result = makeConstantReplacementNode(
+            constant=truth_value, node=self, user_provided=False
+        )
+
+        return truth_value, result, "Predicted compile time constant truth value."
 
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
