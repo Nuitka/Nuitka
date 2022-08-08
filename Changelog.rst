@@ -10,6 +10,56 @@ Nuitka blog.
  Nuitka Release 1.1 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Compatibility: Register Nuitka meta path based loader with
+   ``pkg_resources`` such that checking resource presence with
+   ``has_resource`` works too. This should also add support for using
+   ``jinja2.PackageLoader``, previously only ``jinja2.FileSystemLoader``
+   worked. Fixed in 1.0.1 already.
+
+-  Standalone: Enhanced dependency scan of dependent DLLs to forward
+   containing package. This fixed at least PySide on macOS. Fixed in
+   1.0.1 already.
+
+-  macOS: Enhanced dependency detection to use normalized paths and
+   therefore to work more often. Fixed in 1.0.1 already.
+
+-  Standalone: Added support for the ``networkx`` package which needed a
+   workaround for a function decorator trying to copy default values.
+   Fixed in 1.0.1 already.
+
+-  Standalone: Include data files for ``pandas.io.format`` package. This
+   one has Jinja2 template files that will be needed when using this
+   package.
+
+-  Python3.10: Fix, could crash in case a class was not giving match
+   args, but the user did attempt to match them. This happened e.g. with
+   ``range`` objects. Fixed in 1.0.2 already.
+
+-  Standalone: Added data files needed for ``pyenchant`` package. Fixed
+   in 1.0.2 already.
+
+-  Python3.10: Fix, matching sequence with ``as`` assignments in them
+   didn't check for sub-pattern given. Fixed in 1.0.2 already.
+
+-  Standalone: Fix, do not attempt to list non-existent ``PATH`` entries
+   on Windows. Fixed in 1.0.2 already.
+
+Optimization
+============
+
+-  Avoid compilation of large generated codes in the ``asyncua``
+   package.
+
+Organisational
+==============
+
+-  UI: Output the ``.cmd`` file created if any on Windows, e.g. when run
+   in a virtualenv or for uninstalled Python versions, it will otherwise
+   not run in accelerated mode.
+
 This release is not done yet.
 
 ********************
@@ -245,7 +295,7 @@ New Features
    ``nuitka-project-if`` which is no big deal, but less readable.
 
 -  Added support for deep copying uncompiled functions. There is now a
-   section in the user manual that explains how to clone compiled
+   section in the User Manual that explains how to clone compiled
    functions. This allows a workaround like this:
 
    .. code:: python
