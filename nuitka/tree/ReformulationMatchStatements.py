@@ -80,16 +80,48 @@ def _buildCaseBodyCode(provider, case, source_ref):
     return body_code, guard_condition
 
 
-def _buildMatchAs(provider, variable_name, source_value, source_ref):
-    assert "." not in variable_name, variable_name
-    assert "!" not in variable_name, variable_name
+def _buildMatchAs(provider, pattern, make_against, source_ref):
+    variable_name = pattern.name
 
-    return StatementAssignmentVariableName(
-        provider=provider,
-        variable_name=variable_name,
-        source=source_value,
-        source_ref=source_ref,
-    )
+    if variable_name is None:
+        # case _:
+
+        # Assigns to nothing and should be last one in a match
+        # statement, anything after that will be syntax error. TODO: This
+        # ought to only happen once, Python raises it, we do not yet:
+        # SyntaxError: name capture 'var' makes remaining patterns
+        # unreachable
+        assignments = None
+        conditions = None
+    else:
+
+        assert "." not in variable_name, variable_name
+        assert "!" not in variable_name, variable_name
+
+        if pattern.pattern is not None:
+            conditions, assignments = _buildMatch(
+                provider=provider,
+                pattern=pattern.pattern,
+                make_against=make_against,
+                source_ref=source_ref,
+            )
+
+            if assignments is None:
+                assignments = []
+        else:
+            assignments = []
+            conditions = None
+
+        assignments.append(
+            StatementAssignmentVariableName(
+                provider=provider,
+                variable_name=variable_name,
+                source=make_against(),
+                source_ref=source_ref,
+            )
+        )
+
+    return conditions, assignments
 
 
 def _buildMatchValue(provider, make_against, pattern, source_ref):
@@ -378,27 +410,12 @@ def _buildMatch(provider, pattern, make_against, source_ref):
         )
 
     elif pattern.__class__ is ast.MatchAs:
-        conditions = None
-
-        # default match only current with or without a name assigned. TODO: This ought to only
-        # happen once, Python raises it, we do not yet: SyntaxError: name capture 'var' makes
-        # remaining patterns unreachable
-        if pattern.name is None:
-            # case _:
-            # Assigns to nothing and should be last one in a match statement, anything
-            # after that will be syntax error.
-            assignments = None
-        else:
-            # case var:
-            # Assigns to var and should be last one in a match statement, anything
-            # after that will be syntax error.
-            assignment = _buildMatchAs(
-                provider=provider,
-                variable_name=pattern.name,
-                source_value=make_against(),
-                source_ref=source_ref,
-            )
-            assignments = (assignment,)
+        conditions, assignments = _buildMatchAs(
+            provider=provider,
+            pattern=pattern,
+            make_against=make_against,
+            source_ref=source_ref,
+        )
 
     elif pattern.__class__ is ast.MatchValue or pattern.__class__ is ast.MatchSingleton:
         conditions = [
