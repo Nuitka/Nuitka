@@ -128,6 +128,13 @@ def makeIncludedEmptyDirectories(source_path, dest_paths, reason, tracer, tags):
 def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     assert isRelativePath(dest_path), dest_path
 
+    # Refuse directories, these must be kept distinct.
+    if os.path.isdir(source_path):
+        tracer.sysexit(
+            "Error, cannot include directory '%s' as a data file. Data directories have their own options."
+            % source_path
+        )
+
     return IncludedDataFile(
         kind="data_file",
         source_path=source_path,
