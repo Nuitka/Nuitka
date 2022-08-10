@@ -46,17 +46,30 @@ void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_s
     buffer[n] = 0;
 }
 
-void appendStringSafe(char *buffer, char const *source, size_t buffer_size) {
-    if (strlen(source) + strlen(buffer) >= buffer_size) {
-        abort();
+void copyStringSafeW(wchar_t *buffer, wchar_t const *source, size_t buffer_size) {
+    while (*source != 0) {
+        if (buffer_size < 1) {
+            abort();
+        }
+
+        *buffer++ = *source++;
+        buffer_size -= 1;
     }
-    strcat(buffer, source);
+
+    *buffer = 0;
 }
 
-void appendCharSafe(char *buffer, char c, size_t buffer_size) {
+void appendStringSafe(char *target, char const *source, size_t buffer_size) {
+    if (strlen(source) + strlen(target) >= buffer_size) {
+        abort();
+    }
+    strcat(target, source);
+}
+
+void appendCharSafe(char *target, char c, size_t buffer_size) {
     char source[2] = {c, 0};
 
-    appendStringSafe(buffer, source, buffer_size);
+    appendStringSafe(target, source, buffer_size);
 }
 
 void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size) {

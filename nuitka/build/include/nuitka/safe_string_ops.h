@@ -21,9 +21,11 @@
 /* Safe to use function to copy a string, will abort program for overflow. */
 extern void copyStringSafe(char *buffer, char const *source, size_t buffer_size);
 extern void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size);
+extern void copyStringSafeW(wchar_t *buffer, wchar_t const *source, size_t buffer_size);
+
 /* Safe to use function to append a string, will abort program for overflow. */
-extern void appendCharSafe(char *buffer, char c, size_t buffer_size);
-extern void appendStringSafe(char *buffer, char const *source, size_t buffer_size);
+extern void appendCharSafe(char *target, char c, size_t buffer_size);
+extern void appendStringSafe(char *target, char const *source, size_t buffer_size);
 
 /* Safe to use functions to append a wide char string, will abort program for overflow. */
 extern void appendCharSafeW(wchar_t *target, char c, size_t buffer_size);
