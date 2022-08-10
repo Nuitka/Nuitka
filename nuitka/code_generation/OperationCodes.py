@@ -64,6 +64,7 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
 
 
 def generateOperationNotCode(to_name, expression, emit, context):
+    # TODO: We badly need to support target boolean C type here, or else an object is created from the argument.
     (arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
