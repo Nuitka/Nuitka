@@ -70,7 +70,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         dll_dir = os.path.join(module_directory, relative_path)
 
         if os.path.exists(dll_dir):
-            exe = dll_config.get("prefixes", "no") == "yes"
+            exe = dll_config.get("executable", "no") == "yes"
 
             suffixes = dll_config.get("suffixes")
 
@@ -105,14 +105,6 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                         )
 
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
-        module_filename = self.locateModule(full_name)
-
-        if dest_path is None:
-            if os.path.isdir(module_filename):
-                dest_path = full_name.asPath()
-            else:
-                dest_path = os.path.join(full_name.asPath(), "..")
-
         setup_codes = dll_config.get("setup_code")
         filename_code = dll_config.get("filename_code")
 
@@ -122,26 +114,35 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             values=(("filename", filename_code),),
         ).filename
 
-        if dll_config.get("prefixes", "no") == "yes":
+        module_filename = self.locateModule(full_name)
+
+        if dest_path is None:
+            if os.path.isdir(module_filename):
+                dest_path = full_name.asPath()
+            else:
+                dest_path = os.path.join(full_name.asPath(), "..")
+
+            dest_path = os.path.join(
+                dest_path, os.path.relpath(filename, os.path.dirname(module_filename))
+            )
+        else:
+            dest_path = os.path.join(
+                dest_path,
+                os.path.basename(filename),
+            )
+
+        dest_path = os.path.normpath(dest_path)
+
+        if dll_config.get("executable", "no") == "yes":
             yield self.makeExeEntryPoint(
                 source_path=filename,
-                dest_path=os.path.normpath(
-                    os.path.join(
-                        dest_path,
-                        os.path.relpath(filename, os.path.dirname(module_filename)),
-                    )
-                ),
+                dest_path=dest_path,
                 package_name=full_name,
             )
         else:
             yield self.makeDllEntryPoint(
                 source_path=filename,
-                dest_path=os.path.normpath(
-                    os.path.join(
-                        dest_path,
-                        os.path.relpath(filename, os.path.dirname(module_filename)),
-                    )
-                ),
+                dest_path=dest_path,
                 package_name=full_name,
             )
 
