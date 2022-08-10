@@ -313,9 +313,12 @@ include_group.add_option(
     metavar="MODULE/PACKAGE",
     default=[],
     help="""\
-Include the content of that directory, no matter if it's used by the given main
-program in a visible form. Overrides all other inclusion options. Can be given
-multiple times. Default empty.""",
+Include also the code found in that directory, considering as if
+they are each given as a main file. Overrides all other inclusion
+options. You ought to prefer other inclusion options, that go by
+names, rather than filenames, as this always includes too much,
+and find things through being in "sys.path". Can be given multiple
+times. Default empty.""",
 )
 
 include_group.add_option(
