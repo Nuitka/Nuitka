@@ -203,3 +203,26 @@ b = TracingLessThan("b", 1)
 c = TracingLessThan("c", 0)
 
 print(a < b < c)
+
+# Partial type knowledge:
+print("*" * 80)
+print("Partial type knowledge in comparisons:")
+
+
+def compareDigitsSuccess(x):
+    return 2 < len(x) < 1000
+
+
+def compareDigitsFirstFalse(x):
+    return 3 < len(x) < 1000
+
+
+def compareDigitsSecondFalse(x):
+    return 2 < len(x) < 3
+
+
+v = [20] * 3
+
+print(compareDigitsSuccess(v))
+print(compareDigitsFirstFalse(v))
+print(compareDigitsSecondFalse(v))
