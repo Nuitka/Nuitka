@@ -56,10 +56,12 @@ NUITKA_MAY_BE_UNUSED static int CHECK_IF_TRUE(PyObject *object) {
 NUITKA_MAY_BE_UNUSED static int CHECK_IF_FALSE(PyObject *object) {
     int result = CHECK_IF_TRUE(object);
 
-    if (result == 0)
+    if (result == 0) {
         return 1;
-    if (result == 1)
+    }
+    if (result == 1) {
         return 0;
+    }
     return -1;
 }
 
