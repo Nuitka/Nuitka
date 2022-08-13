@@ -200,6 +200,14 @@ class PythonModuleBase(NodeBase):
 
             return result
 
+    @staticmethod
+    def isStatement():
+        return False
+
+    @staticmethod
+    def isExpression():
+        return False
+
 
 class CompiledPythonModule(
     ChildrenHavingMixin,
