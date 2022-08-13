@@ -370,6 +370,13 @@ class Plugins(object):
                 )
 
     @classmethod
+    def getPackageExtraScanPaths(cls, package_name, package_dir):
+        for plugin in getActivePlugins():
+            for path in plugin.getPackageExtraScanPaths(package_name, package_dir):
+                if os.path.isdir(path):
+                    yield path
+
+    @classmethod
     def considerImplicitImports(cls, module, signal_change):
         for plugin in getActivePlugins():
             key = (module.getFullName(), plugin)

@@ -552,10 +552,8 @@ def getPackageSearchPath(package_name):
         def getPackageDirCandidates(element):
             yield os.path.join(element, package_name.asPath()), False
 
-            # Hack for PyWin32. TODO: Move this "__path__" extensions to be
-            # plug-in decisions.
-            if package_name == "win32com":
-                yield os.path.join(element, "win32comext"), True
+            for extra_path in Plugins.getPackageExtraScanPaths(package_name, element):
+                yield extra_path, True
 
         result = []
         for element in getPackageSearchPath(None):
