@@ -23,6 +23,7 @@ import os
 import pkgutil
 
 from nuitka import Options
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
@@ -144,7 +145,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
         if config:
             # TODO: Ought to become a list universally.
-            if type(config) is dict:
+            if type(config) in (dict, OrderedDict):
                 config = [config]
 
             for entry in config:
