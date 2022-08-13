@@ -51,6 +51,18 @@ class ExpressionBase(NodeBase):
     __slots__ = ("code_generated",)
 
     @staticmethod
+    def isExpression():
+        return True
+
+    @staticmethod
+    def isStatement():
+        return False
+
+    @staticmethod
+    def isStatementsSequence():
+        return False
+
+    @staticmethod
     def getTypeShape():
         return tshape_unknown
 

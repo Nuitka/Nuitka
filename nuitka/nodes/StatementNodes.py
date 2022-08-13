@@ -58,11 +58,17 @@ class StatementsSequence(StatementChildHavingBase):
         for s in self.subnode_statements:
             s.finalize()
 
-    # Overloading name based automatic check, so that derived ones know it too.
-    def isStatementsSequence(self):
-        # Virtual method, pylint: disable=no-self-use
-
+    @staticmethod
+    def isStatementsSequence():
         return True
+
+    @staticmethod
+    def isStatement():
+        return False
+
+    @staticmethod
+    def isExpression():
+        return False
 
     def trimStatements(self, statement):
         assert statement.parent is self
