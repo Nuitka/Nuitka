@@ -2854,7 +2854,7 @@
   import-hacks:
     # This package adds another directory to the search path of itself,
     # which we will not find packages in unless added.
-    - package-dir:
+    - package-dirs:
         - "win32comext"
 
 - module-name: "wx"
@@ -2929,3 +2929,10 @@
         "_skip_under_py2": "'(lambda test_method: None)'"
         "_skip_under_py3k": "'(lambda test_method: None)'"
       when: "not use_unittest"
+
+- module-name: "win32ui"
+  implicit-imports:
+    - pre-import-code:
+        # That is a namespace module only, but it seems the extension modules needs it,
+        # despite the DLLs being present.
+        - "import pywin32_system32"

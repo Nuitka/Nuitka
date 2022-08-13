@@ -264,6 +264,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 "win32transaction",
                 "win32ts",
                 "win32wnet",
+                "win32ui",
             )
             and isWin32Windows()
         ):
