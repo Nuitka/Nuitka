@@ -26,7 +26,11 @@ from contextlib import contextmanager
 
 from nuitka.__past__ import unicode
 from nuitka.utils.Execution import check_call, executeProcess
-from nuitka.utils.FileOperations import removeDirectory, withDirectoryChange
+from nuitka.utils.FileOperations import (
+    getDirectoryRealPath,
+    removeDirectory,
+    withDirectoryChange,
+)
 
 from .Common import my_print
 
@@ -92,7 +96,7 @@ def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None
         my_print("Creating a virtualenv:")
 
     if python is None:
-        python = sys.executable
+        python = getDirectoryRealPath(sys.executable)
 
     if base_dir is not None:
         env_dir = os.path.join(base_dir, env_name)
