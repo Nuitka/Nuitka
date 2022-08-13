@@ -243,9 +243,10 @@ def getDirectoryRealPath(path):
     """
     path = os.path.realpath(path)
 
-    # Attempt to resolve Windows symlinks on Python2
-    if os.name == "nt" and not os.path.isdir(path) and os.path.exists(path):
-        path = _getRealPathWindows(path)
+    # Attempt to resolve Windows symlinks older Python
+    if os.name == "nt":
+        if os.path.islink(path) or (not os.path.isdir(path) and os.path.exists(path)):
+            path = _getRealPathWindows(path)
 
     return path
 
