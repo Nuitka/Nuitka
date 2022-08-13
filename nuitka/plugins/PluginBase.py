@@ -340,6 +340,20 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def getPackageExtraScanPaths(self, package_name, package_dir):
+        """Provide other directories to consider submodules to live in.
+
+        Args:
+            module_name: full module name
+            package_dir: directory of the package
+
+        Returns:
+            Iterable list of directories, non-existent ones are ignored.
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def onModuleEncounter(self, module_name, module_filename, module_kind):
         """Help decide whether to include a module.
 

@@ -159,6 +159,18 @@
                                 "type": "string"
                             }
                         },
+                        "pre-import-code": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "post-import-code": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "when": {
                             "type": "string"
                         }
@@ -237,7 +249,7 @@
                                 "type": "string"
                             }
                         },
-                        "package-dir": {
+                        "package-dirs": {
                             "type": "array",
                             "items": {
                                 "type": "string"
