@@ -30,6 +30,7 @@
 
 from __future__ import print_function
 
+import sys
 # Python3 changed module name.
 if str is bytes:
     import Tkinter as tkinter
@@ -41,7 +42,17 @@ else:
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL
 except tkinter.TclError as e:
-    print("TCLError exception happened.")
     assert "connect to display" in str(e) or "no display" in str(e), str(e)
+    print("TCLError exception happened.")
+    sys.exit(0)
 else:
-    print("OK")
+    print("Imported tkinter module.")
+
+try:
+    import tkinter.tix
+except ImportError:
+    print("No tix found.")
+else:
+    print("Imported tkinter tix module.")
+
+print("OK.")
