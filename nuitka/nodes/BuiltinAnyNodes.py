@@ -35,11 +35,7 @@ class ExpressionBuiltinAny(
 ):
     """Builtin Any Node class.
 
-    Args:
-        ExpressionBase: 'any - expression'
-
-    Returns:
-        Node that represents built-in 'any' call.
+    Node that represents built-in 'any' call.
 
     """
 
