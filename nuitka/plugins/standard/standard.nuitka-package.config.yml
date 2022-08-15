@@ -2809,7 +2809,7 @@
   import-hacks:
     # This module aliases itself to another package, for which we will
     # not find packages in unless added.
-    - package-path:
+    - package-paths:
         - "vtkmodules"
 
 - module-name: "vtkmodules"

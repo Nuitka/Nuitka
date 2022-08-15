@@ -288,8 +288,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
             for item in self._getImportsByFullname(module=module, full_name=full_name):
                 yield item
 
-    @staticmethod
-    def _getPackageExtraScanPaths(package_dir, config):
+    def _getPackageExtraScanPaths(self, package_dir, config):
         if "package-dirs" in config:
             for config_package_dir in config.get("package-dirs"):
                 yield os.path.normpath(
@@ -297,6 +296,16 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 )
 
                 yield package_dir
+
+        if "package-paths" in config:
+            for config_package_name in config.get("package-paths"):
+                module_filename = self.locateModule(config_package_name)
+
+                if module_filename is not None:
+                    if os.path.isfile(module_filename):
+                        yield os.path.dirname(module_filename)
+                    else:
+                        yield module_filename
 
     def getPackageExtraScanPaths(self, package_name, package_dir):
         config = self.config.get(package_name, section="import-hacks")
