@@ -96,7 +96,13 @@ def withVirtualenv(env_name, base_dir=None, python=None, delete=True, style=None
         my_print("Creating a virtualenv:")
 
     if python is None:
-        python = getDirectoryRealPath(sys.executable)
+        python = sys.executable
+
+    # Avoid symlinks on Windows, they won't work for virtualenv e.g.
+    python = os.path.join(
+        getDirectoryRealPath(os.path.dirname(python)),
+        os.path.basename(python),
+    )
 
     if base_dir is not None:
         env_dir = os.path.join(base_dir, env_name)
