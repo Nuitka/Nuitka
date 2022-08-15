@@ -149,6 +149,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def isUnknownOrVeryTrustedTrace():
+        return False
+
+    @staticmethod
     def isEscapeTrace():
         return False
 
@@ -386,6 +390,10 @@ class ValueTraceUnknown(ValueTraceBase):
         return True
 
     @staticmethod
+    def isUnknownOrVeryTrustedTrace():
+        return True
+
+    @staticmethod
     def isTraceThatNeedsEscape():
         return False
 
@@ -544,6 +552,12 @@ class ValueTraceAssignUnescapable(ValueTraceAssign):
     @staticmethod
     def isTraceThatNeedsEscape():
         return False
+
+
+class ValueTraceAssignVeryTrusted(ValueTraceAssignUnescapable):
+    @staticmethod
+    def isUnknownOrVeryTrustedTrace():
+        return True
 
 
 class ValueTraceAssignUnescapablePropagated(ValueTraceAssignUnescapable):

@@ -197,6 +197,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
 
     def _considerSpecialization(self, old_source):
         # Specialize if possible, might have become that way only recently.
+        # return driven, pylint: disable=too-many-return-statements
         source = self.subnode_source
 
         if source is old_source:
@@ -218,6 +219,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
                 "Assignment source of '%s' is now compile time constant."
                 % self.getVariableName(),
             )
+
         if source.isExpressionVariableRef():
             result = StatementAssignmentVariableFromVariable(
                 source=source,
@@ -233,7 +235,8 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
                 "new_statements",
                 "Assignment source is now variable reference.",
             )
-        elif source.isExpressionTempVariableRef():
+
+        if source.isExpressionTempVariableRef():
             result = StatementAssignmentVariableFromTempVariable(
                 source=source,
                 variable=self.variable,
@@ -263,6 +266,22 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
                 result,
                 "new_statements",
                 "Assignment source is now known to be iterator.",
+            )
+
+        if source.isExpressionImportModuleHard():
+            result = StatementAssignmentVariableHardValue(
+                source=source,
+                variable=self.variable,
+                version=self.variable_version,
+                source_ref=self.source_ref,
+            )
+
+            self._transferState(result)
+
+            return (
+                result,
+                "new_statements",
+                "Assignment source is now known to be hard import.",
             )
 
         return self, None, None
@@ -690,6 +709,44 @@ class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBa
         return self, None, None
 
 
+class StatementAssignmentVariableHardValue(StatementAssignmentVariableBase):
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE_HARD_VALUE"
+
+    @staticmethod
+    def getReleaseEscape():
+        return ControlFlowDescriptionNoEscape
+
+    def computeStatement(self, trace_collection):
+        # TODO: Way too ugly to have global trace kinds just here, and needs to
+        # be abstracted somehow. But for now we let it live here.
+        variable = self.variable
+
+        # Let assignment source may re-compute first.
+        source = trace_collection.onExpression(self.subnode_source)
+
+        # No assignment will occur, if the assignment source raises, so give up
+        # on this, and return it as the only side effect.
+        if source.willRaiseException(BaseException):
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression=source, node=self
+            )
+
+            del self.parent
+
+            return (
+                result,
+                "new_raise",
+                """\
+Assignment raises exception in assigned value, removed assignment.""",
+            )
+
+        self.variable_trace = trace_collection.onVariableSetToVeryTrustedValue(
+            variable=variable, version=self.variable_version, assign_node=self
+        )
+
+        return self, None, None
+
+
 class StatementAssignmentVariableFromVariable(StatementAssignmentVariableBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE"
 
@@ -820,6 +877,10 @@ def makeStatementAssignmentVariable(source, variable, source_ref, version=None):
         )
     elif source.getTypeShape().isShapeIterator():
         return StatementAssignmentVariableIterator(
+            source=source, variable=variable, version=version, source_ref=source_ref
+        )
+    elif source.isExpressionImportModuleHard():
+        return StatementAssignmentVariableHardValue(
             source=source, variable=variable, version=version, source_ref=source_ref
         )
     else:

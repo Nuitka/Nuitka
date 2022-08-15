@@ -46,6 +46,7 @@ from .ValueTraces import (
     ValueTraceAssign,
     ValueTraceAssignUnescapable,
     ValueTraceAssignUnescapablePropagated,
+    ValueTraceAssignVeryTrusted,
     ValueTraceDeleted,
     ValueTraceEscaped,
     ValueTraceInit,
@@ -115,7 +116,7 @@ class CollectionUpdateMixin(object):
         return version
 
 
-class CollectionStartpointMixin(CollectionUpdateMixin):
+class CollectionStartPointMixin(CollectionUpdateMixin):
     """Mixin to use in start points of collections.
 
     These are modules, functions, etc. typically entry points.
@@ -255,7 +256,7 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
 
         return trace
 
-    def _initVariableUninit(self, variable):
+    def _initVariableUninitialized(self, variable):
         trace = ValueTraceUninitialized(owner=self.owner, previous=None)
 
         self.addVariableTrace(variable, 0, trace)
@@ -298,14 +299,14 @@ class CollectionStartpointMixin(CollectionUpdateMixin):
             # TODO: That's not happening, maybe just assert against it.
             result = self._initVariableInit(variable)
         elif variable.isLocalVariable():
-            result = self._initVariableUninit(variable)
+            result = self._initVariableUninitialized(variable)
         elif variable.isModuleVariable():
             result = self.initVariableModule(variable)
         elif variable.isTempVariable():
-            result = self._initVariableUninit(variable)
+            result = self._initVariableUninitialized(variable)
         elif variable.isLocalsDictVariable():
             if variable.getOwner().getTypeShape() is tshape_dict:
-                result = self._initVariableUninit(variable)
+                result = self._initVariableUninitialized(variable)
             else:
                 result = self.initVariableUnknown(variable)
         else:
@@ -423,10 +424,24 @@ class TraceCollectionBase(object):
 
             self.markCurrentVariableTrace(variable, version)
 
-    def markActiveVariableAsUnknown(self, variable):
+    def markClosureVariableAsUnknown(self, variable):
         current = self.getVariableCurrentTrace(variable)
 
         if not current.isUnknownTrace():
+            version = variable.allocateTargetNumber()
+
+            self.addVariableTrace(
+                variable,
+                version,
+                ValueTraceUnknown(owner=self.owner, previous=current),
+            )
+
+            self.markCurrentVariableTrace(variable, version)
+
+    def markActiveVariableAsUnknown(self, variable):
+        current = self.getVariableCurrentTrace(variable)
+
+        if not current.isUnknownOrVeryTrustedTrace():
             version = variable.allocateTargetNumber()
 
             self.addVariableTrace(
@@ -509,7 +524,7 @@ class TraceCollectionBase(object):
                     str is not bytes
                     and variable.hasWritersOutsideOf(self.owner) is not False
                 ):
-                    self.markActiveVariableAsUnknown(variable)
+                    self.markClosureVariableAsUnknown(variable)
                 elif variable.hasAccessesOutsideOf(self.owner) is not False:
                     self.markActiveVariableAsEscaped(variable)
 
@@ -525,7 +540,11 @@ class TraceCollectionBase(object):
         pass
 
     def removeAllKnowledge(self):
-        self.markActiveVariablesAsUnknown()
+        for variable in self.getActiveVariables():
+            if variable.isTempVariable():
+                continue
+
+            self.markActiveVariableAsUnknown(variable)
 
     def onVariableSet(self, variable, version, assign_node):
         variable_trace = ValueTraceAssign(
@@ -543,6 +562,20 @@ class TraceCollectionBase(object):
 
     def onVariableSetToUnescapableValue(self, variable, version, assign_node):
         variable_trace = ValueTraceAssignUnescapable(
+            owner=self.owner,
+            assign_node=assign_node,
+            previous=self.getVariableCurrentTrace(variable),
+        )
+
+        self.addVariableTrace(variable, version, variable_trace)
+
+        # Make references point to it.
+        self.markCurrentVariableTrace(variable, version)
+
+        return variable_trace
+
+    def onVariableSetToVeryTrustedValue(self, variable, version, assign_node):
+        variable_trace = ValueTraceAssignVeryTrusted(
             owner=self.owner,
             assign_node=assign_node,
             previous=self.getVariableCurrentTrace(variable),
@@ -994,7 +1027,7 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
         Tracing.printSeparator()
 
 
-class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
+class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
         "variable_versions",
         "variable_traces",
@@ -1014,7 +1047,7 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
             or function_body.isExpressionAsyncgenObjectBody()
         ), function_body
 
-        CollectionStartpointMixin.__init__(self)
+        CollectionStartPointMixin.__init__(self)
 
         TraceCollectionBase.__init__(
             self,
@@ -1055,7 +1088,7 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
         if locals_scope is not None:
             if not locals_scope.isMarkedForPropagation():
                 for locals_dict_variable in locals_scope.variables.values():
-                    self._initVariableUninit(locals_dict_variable)
+                    self._initVariableUninitialized(locals_dict_variable)
             else:
                 function_body.locals_scope = None
 
@@ -1063,7 +1096,7 @@ class TraceCollectionFunction(CollectionStartpointMixin, TraceCollectionBase):
         trusted_node = self.very_trusted_module_variables.get(variable)
 
         if trusted_node is None:
-            return CollectionStartpointMixin.initVariableModule(self, variable)
+            return CollectionStartPointMixin.initVariableModule(self, variable)
 
         assign_trace = ValueTraceAssign(
             self.owner, assign_node=trusted_node.getParent(), previous=None
@@ -1095,7 +1128,7 @@ class TraceCollectionPureFunction(TraceCollectionFunction):
         TraceCollectionFunction.onUsedFunction(self, function_body=function_body)
 
 
-class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
+class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
     __slots__ = (
         "variable_versions",
         "variable_traces",
@@ -1110,7 +1143,7 @@ class TraceCollectionModule(CollectionStartpointMixin, TraceCollectionBase):
     def __init__(self, module, very_trusted_module_variables):
         assert module.isCompiledPythonModule(), module
 
-        CollectionStartpointMixin.__init__(self)
+        CollectionStartPointMixin.__init__(self)
 
         TraceCollectionBase.__init__(
             self, owner=module, name="module:" + module.getFullName(), parent=None
