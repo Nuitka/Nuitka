@@ -873,6 +873,7 @@ setStatementDispatchDict(
         "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_HARD_VALUE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_ATTRIBUTE": generateAssignmentAttributeCode,
         "STATEMENT_ASSIGNMENT_SUBSCRIPT": generateAssignmentSubscriptCode,
         "STATEMENT_ASSIGNMENT_SLICE": generateAssignmentSliceCode,
