@@ -1663,28 +1663,6 @@
       change_function:
         "test": "'(lambda: None)'"
 
-- module-name: "shapely.geos"
-  anti-bloat:
-    - description: "change geos DLL location"
-      replacements_plain:
-        '_lgeos = load_dll("geos_c.dll")': '_lgeos = load_dll("geos_c.dll", fallbacks=[os.path.join(os.path.dirname(__file__), "geos_c.dll")])'
-      when: "win32"
-    - description: "avoid runtime Anaconda environment influence"
-      replacements_plain:
-        "os.getenv('CONDA_PREFIX', '')": "''"
-  dlls:
-    # PyPI has it contained.
-    - by_code:
-        setup_code: "import shapely.geos"
-        filename_code: "shapely.geos._lgeos._name"
-      when: "not anaconda and not win32"
-    # Anaconda or Win32 are forced to specific path.
-    - by_code:
-        setup_code: "import shapely.geos, os"
-        filename_code: "shapely.geos._lgeos._name"
-      dest_path: "shapely"
-      when: "anaconda or win32"
-
 - module-name: "shapely.geometry.base"
   anti-bloat:
     - description: "remove doctest usage"
@@ -1697,17 +1675,39 @@
       change_function:
         "_test": "'(lambda: None)'"
 
+- module-name: "shapely.geometry.multilinestring"
+  anti-bloat:
+    - description: "remove doctest usage"
+      change_function:
+        "_test": "'(lambda: None)'"
+
 - module-name: "shapely.geometry.multipolygon"
   anti-bloat:
     - description: "remove doctest usage"
       change_function:
         "_test": "'(lambda: None)'"
 
-- module-name: "shapely.geometry.multilinestring"
+- module-name: "shapely.geos"
+  dlls:
+    # PyPI has it contained.
+    - by_code:
+        setup_code: "import shapely.geos"
+        filename_code: "shapely.geos._lgeos._name"
+      when: "not anaconda and not win32"
+    # Anaconda or Win32 are forced to specific path.
+    - by_code:
+        setup_code: "import shapely.geos, os"
+        filename_code: "shapely.geos._lgeos._name"
+      dest_path: "shapely"
+      when: "anaconda or win32"
   anti-bloat:
-    - description: "remove doctest usage"
-      change_function:
-        "_test": "'(lambda: None)'"
+    - description: "change geos DLL location"
+      replacements_plain:
+        '_lgeos = load_dll("geos_c.dll")': '_lgeos = load_dll("geos_c.dll", fallbacks=[os.path.join(os.path.dirname(__file__), "geos_c.dll")])'
+      when: "win32"
+    - description: "avoid runtime Anaconda environment influence"
+      replacements_plain:
+        "os.getenv('CONDA_PREFIX', '')": "''"
 
 - module-name: "shiboken6"
   implicit-imports:
@@ -2864,6 +2864,13 @@
     - package-dirs:
         - "win32comext"
 
+- module-name: "win32ui"
+  implicit-imports:
+    - pre-import-code:
+        # That is a namespace module only, but it seems the extension modules needs it,
+        # despite the DLLs being present.
+        - "import pywin32_system32"
+
 - module-name: "wx"
   options:
     checks:
@@ -2936,10 +2943,3 @@
         "_skip_under_py2": "'(lambda test_method: None)'"
         "_skip_under_py3k": "'(lambda test_method: None)'"
       when: "not use_unittest"
-
-- module-name: "win32ui"
-  implicit-imports:
-    - pre-import-code:
-        # That is a namespace module only, but it seems the extension modules needs it,
-        # despite the DLLs being present.
-        - "import pywin32_system32"
