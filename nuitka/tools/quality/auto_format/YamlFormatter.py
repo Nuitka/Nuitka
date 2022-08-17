@@ -287,7 +287,7 @@ def formatYaml(path):
 
     new_data = []
     for entry in data:
-        sorted_entry = entry  # _reorderDictionary(entry, MASTER_KEYS)
+        sorted_entry = _reorderDictionary(entry, MASTER_KEYS)
 
         if "data-files" in sorted_entry:
             sorted_entry["data-files"] = _reorderDictionary(
@@ -321,7 +321,7 @@ def formatYaml(path):
 
         new_data.append(sorted_entry)
 
-    # new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
+    new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
 
     with open(path, "w", encoding="utf-8") as output_file:
         output_file.write(YAML_HEADER)
