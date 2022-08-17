@@ -557,6 +557,9 @@ def _get_win_folder_with_jna(csidl_name):
 
 if system == "win32":
     try:
+        # Nuitka: Lets not use pywin32, ctypes will do for us more reliable.
+        raise ImportError
+
         import win32com.shell
         _get_win_folder = _get_win_folder_with_pywin32
     except ImportError:
