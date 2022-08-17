@@ -130,10 +130,7 @@ branches.""",
                 parent=trace_collection, name="conditional expression yes branch"
             )
 
-            branch_yes_collection.computeBranch(branch=yes_branch)
-
-            # May have just gone away, so fetch it again.
-            yes_branch = self.subnode_expression_yes
+            yes_branch = branch_yes_collection.onExpression(yes_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if truth_value is not True and yes_branch.willRaiseException(BaseException):
@@ -149,10 +146,7 @@ branches.""",
                 parent=trace_collection, name="conditional expression no branch"
             )
 
-            branch_no_collection.computeBranch(branch=no_branch)
-
-            # May have just gone away, so fetch it again.
-            no_branch = self.subnode_expression_no
+            no_branch = branch_no_collection.onExpression(no_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if truth_value is not False and no_branch.willRaiseException(BaseException):
@@ -311,10 +305,7 @@ branches."""
                 name="boolean %s right branch" % self.conditional_kind,
             )
 
-            branch_yes_collection.computeBranch(branch=right)
-
-            # May have just gone away, so fetch it again.
-            right = self.subnode_right
+            right = branch_yes_collection.onExpression(right)
 
             # If it's aborting, it doesn't contribute to merging.
             if right.willRaiseException(BaseException):
@@ -660,10 +651,7 @@ branches.""",
                 parent=trace_collection, name="conditional yes branch"
             )
 
-            branch_yes_collection.computeBranch(branch=yes_branch)
-
-            # May have just gone away, so fetch it again.
-            yes_branch = self.subnode_yes_branch
+            yes_branch = branch_yes_collection.computeBranch(branch=yes_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if yes_branch is None or yes_branch.isStatementAborting():
@@ -677,10 +665,7 @@ branches.""",
                 parent=trace_collection, name="conditional no branch"
             )
 
-            branch_no_collection.computeBranch(branch=no_branch)
-
-            # May have just gone away, so fetch it again.
-            no_branch = self.subnode_no_branch
+            no_branch = branch_no_collection.computeBranch(branch=no_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if no_branch is None or no_branch.isStatementAborting():

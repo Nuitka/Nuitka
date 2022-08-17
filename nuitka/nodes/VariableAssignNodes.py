@@ -268,7 +268,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
                 "Assignment source is now known to be iterator.",
             )
 
-        if source.isExpressionImportModuleHard():
+        if source.hasVeryTrustedValue():
             result = StatementAssignmentVariableHardValue(
                 source=source,
                 variable=self.variable,
@@ -879,7 +879,7 @@ def makeStatementAssignmentVariable(source, variable, source_ref, version=None):
         return StatementAssignmentVariableIterator(
             source=source, variable=variable, version=version, source_ref=source_ref
         )
-    elif source.isExpressionImportModuleHard():
+    elif source.hasVeryTrustedValue():
         return StatementAssignmentVariableHardValue(
             source=source, variable=variable, version=version, source_ref=source_ref
         )

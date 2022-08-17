@@ -998,13 +998,14 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
         self.variable_traces = parent.variable_traces
 
     def computeBranch(self, branch):
-        if branch.isStatementsSequence():
-            result = branch.computeStatementsSequence(trace_collection=self)
+        assert branch.isStatementsSequence()
 
-            if result is not branch:
-                branch.parent.replaceChild(branch, result)
-        else:
-            self.onExpression(expression=branch)
+        result = branch.computeStatementsSequence(self)
+
+        if result is not branch:
+            branch.parent.replaceChild(branch, result)
+
+        return result
 
     def initVariable(self, variable):
         variable_trace = self.parent.initVariable(variable)
