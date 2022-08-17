@@ -86,6 +86,7 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
             # Need to compute the replacement still.
             return replacement.computeExpressionRaw(trace_collection)
 
+        # TODO: Split exec locals variable references out to distinct node type.
         no_exec = not self.locals_scope.isUnoptimizedFunctionScope()
 
         # if we can be sure if doesn't have a value set, go to the fallback directly.
@@ -113,18 +114,35 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
             # Need to compute the replacement still.
             return result.computeExpressionRaw(trace_collection)
-        else:
-            trace_collection.onExceptionRaiseExit(BaseException)
 
-            branch_fallback = TraceCollectionBranch(
-                parent=trace_collection, name="fallback node usage"
-            )
+        trace_collection.onExceptionRaiseExit(BaseException)
 
-            branch_fallback.computeBranch(self.subnode_fallback)
+        branch_fallback = TraceCollectionBranch(
+            parent=trace_collection, name="fallback node usage"
+        )
 
-            trace_collection.mergeBranches(branch_fallback, None)
+        if (
+            self.variable_trace.isUnknownTrace()
+            and self.subnode_fallback.isExpressionVariableRef()
+        ):
+            fallback_variable_trace = self.subnode_fallback.variable_trace
 
-            return self, None, None
+            if fallback_variable_trace is not None:
+                trusted_node = (
+                    self.subnode_fallback.variable_trace.getAttributeNodeVeryTrusted()
+                )
+
+                if trusted_node is not None:
+                    return trace_collection.computedExpressionResultRaw(
+                        expression=self.subnode_fallback,
+                        change_tags="var_usage",
+                        change_desc="Hard value referenced in class not considering class dictionary.",
+                    )
+
+        branch_fallback.onExpression(self.subnode_fallback)
+        trace_collection.mergeBranches(branch_fallback, None)
+
+        return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
