@@ -59,6 +59,9 @@ class InstalledPython(object):
         exec(code.replace("print", "catch_print"), context)
 
     def checkUsability(self, module_name, module_version):
+        # very many cases and return driven
+        # pylint: disable=too-many-branches,too-many-return-statements
+
         if module_name is None:
             return True
 
@@ -73,6 +76,8 @@ class InstalledPython(object):
             try:
                 output = check_output([self.python_exe, "-c", test_code])
             except NuitkaCalledProcessError:
+                return False
+            except OSError:
                 return False
 
             output = output.splitlines()
