@@ -54,6 +54,7 @@ data_file_tags = []
 
 
 def addDataFileTags(pattern):
+    assert ":" in pattern, pattern
     data_file_tags.append(pattern)
 
 
@@ -107,21 +108,11 @@ class IncludedDataFile(object):
             assert False
 
 
-def makeIncludedEmptyDirectories(source_path, dest_paths, reason, tracer, tags):
-    for dest_path in dest_paths:
-        assert not os.path.isabs(dest_path)
+def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
+    dest_path = os.path.join(dest_path, ".keep_dir.txt")
 
-    # Require that to not be empty.
-    assert dest_paths
-
-    return IncludedDataFile(
-        kind="empty_dirs",
-        source_path=source_path,
-        dest_path=dest_paths,
-        data=None,
-        reason=reason,
-        tracer=tracer,
-        tags=tags,
+    return makeIncludedGeneratedDataFile(
+        data="", dest_path=dest_path, reason=reason, tracer=tracer, tags=tags
     )
 
 
@@ -353,15 +344,7 @@ def _reportDataFiles():
             tracer.info("Included %d data files due to %s." % (count, reason))
         else:
             for kind, dest_path in _data_file_traces[key]:
-                if kind == "empty_dirs":
-                    tracer.info(
-                        "Included empty directories '%s' due to %s."
-                        % (
-                            ",".join(dest_path),
-                            reason,
-                        )
-                    )
-                elif kind == "data_blob":
+                if kind == "data_blob":
                     tracer.info(
                         "Included data file '%s' due to %s."
                         % (
@@ -404,15 +387,7 @@ def _handleDataFile(included_datafile):
 
     _data_file_traces[key].append((included_datafile.kind, included_datafile.dest_path))
 
-    if included_datafile.kind == "empty_dirs":
-        for sub_dir in included_datafile.dest_path:
-            created_dir = os.path.join(dist_dir, sub_dir)
-
-            makePath(created_dir)
-            putTextFileContents(
-                filename=os.path.join(created_dir, ".keep_dir.txt"), contents=""
-            )
-    elif included_datafile.kind == "data_blob":
+    if included_datafile.kind == "data_blob":
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
         makePath(os.path.dirname(dest_path))
 
