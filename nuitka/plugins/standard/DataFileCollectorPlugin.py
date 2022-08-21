@@ -49,7 +49,8 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         return True
 
     def _considerDataFiles(self, module, data_file_config):
-        # Many cases to deal with, pylint: disable=too-many-branches
+        # Many details and cases to deal with
+        # pylint: disable=too-many-branches,too-many-locals
 
         module_name = module.getFullName()
         module_folder = module.getCompileTimeDirectory()
@@ -98,14 +99,12 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     % module_name
                 )
 
-            yield self.makeIncludedEmptyDirectories(
-                source_path=target_dir,
-                dest_paths=tuple(
-                    os.path.join(target_dir, empty_dir) for empty_dir in empty_dirs
-                ),
-                reason="empty dir needed for %r" % module_name.asString(),
-                tags="config",
-            )
+            for empty_dir in empty_dirs:
+                yield self.makeIncludedEmptyDirectory(
+                    dest_path=os.path.join(target_dir, empty_dir),
+                    reason="empty dir needed for %r" % module_name.asString(),
+                    tags="config",
+                )
 
         empty_dir_structures = data_file_config.get("empty_dir_structures")
         if empty_dir_structures is not None:
@@ -115,8 +114,11 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     % module_name
                 )
 
-            # TODO: This ignored dest_path, which is unused, but not consistent.
-            yield self._getSubDirectoryFolders(module, sub_dirs=empty_dir_structures)
+            # TODO: This ignored config dest_path, which is unused, but not consistent.
+            for included_data_file in self._getSubDirectoryFolders(
+                module, sub_dirs=empty_dir_structures
+            ):
+                yield included_data_file
 
         dirs = data_file_config.get("dirs")
         if dirs is not None:
@@ -187,7 +189,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
             module: module object
             sub_dirs: sub folder name(s) - tuple
         Returns:
-            makeIncludedEmptyDirectories of found dirnames.
+            makeIncludedEmptyDirectory of found dirnames.
         """
 
         module_dir = module.getCompileTimeDirectory()
@@ -237,9 +239,9 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
             dir_name = os.path.dirname(target)
             item_set.add(dir_name)
 
-        return self.makeIncludedEmptyDirectories(
-            source_path=module_dir,
-            dest_paths=item_set,
-            reason="Subdirectories of module %s" % module.getFullName(),
-            tags="config",
-        )
+        for dest_path in item_set:
+            yield self.makeIncludedEmptyDirectory(
+                dest_path=dest_path,
+                reason="Subdirectories of module %s" % module.getFullName(),
+                tags="config",
+            )

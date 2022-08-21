@@ -1503,6 +1503,13 @@
           def __init__(self, name):
             pass
 
+- module-name: "pyzbar"
+  dlls:
+    - from_filenames:
+        prefixes:
+          - "libiconv"
+          - "libzbar"
+
 - module-name: "rapidfuzz"
   implicit-imports:
     - depends:
