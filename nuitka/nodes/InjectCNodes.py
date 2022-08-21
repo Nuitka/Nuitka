@@ -36,6 +36,10 @@ class StatementInjectCBase(StatementBase):
     def computeStatement(self, trace_collection):
         return self, None, None
 
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
 
 class StatementInjectCCode(StatementInjectCBase):
     kind = "STATEMENT_INJECT_C_CODE"
