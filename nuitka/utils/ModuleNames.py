@@ -195,7 +195,7 @@ class ModuleName(str):
         """Match a module name to a list of patterns
 
         Args:
-            patters:
+            patterns:
                 List of patterns that comply with fnmatch.fnmatch description
                 or also is below the package. So "*.tests" will matches to also
                 "something.tests.MyTest", thereby allowing to match whole
