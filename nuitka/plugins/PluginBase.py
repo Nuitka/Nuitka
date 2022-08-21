@@ -37,7 +37,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
     makeIncludedDataDirectory,
     makeIncludedDataFile,
-    makeIncludedEmptyDirectories,
+    makeIncludedEmptyDirectory,
     makeIncludedGeneratedDataFile,
     makeIncludedPackageDataFiles,
 )
@@ -580,10 +580,9 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             normalize=normalize,
         )
 
-    def makeIncludedEmptyDirectories(self, source_path, dest_paths, reason, tags):
-        return makeIncludedEmptyDirectories(
-            source_path=source_path,
-            dest_paths=dest_paths,
+    def makeIncludedEmptyDirectory(self, dest_path, reason, tags):
+        return makeIncludedEmptyDirectory(
+            dest_path=dest_path,
             reason=reason,
             tracer=self,
             tags=tags,
