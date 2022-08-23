@@ -1256,8 +1256,13 @@
 - module-name: "pkg_resources"
   anti-bloat:
     - description: "avoid using plistlib dependency on non-macOS"
-      replacements:
-        "import plistlib": "'if sys.platform == \"darwin\": import plistlib'"
+      replacements_plain:
+        "import plistlib": ""
+      when: "not macos"
+    - description: "avoid requiring entry points at runtime"
+      replacements_plain:
+        "def load(self, require=True,": "def load(self, require=False,"
+        "if not require or args or kwargs:": "if False:"
 
 - module-name: "pkg_resources._vendor.jaraco"
   implicit-imports:
