@@ -285,6 +285,8 @@ _stdlib_no_auto_inclusion_list = (
     "venv",
     "py_compile",
     "msilib",
+    # tzdata is not always needed
+    "zoneinfo",
     # tkinter under all its names
     "Tkinter",
     "tkinter",
