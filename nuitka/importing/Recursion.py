@@ -455,4 +455,10 @@ def considerUsedModules(module, signal_change):
                 % (e, module.getFullName().asString(), source_ref.getAsString())
             )
 
-    Plugins.considerImplicitImports(module=module, signal_change=signal_change)
+    try:
+        Plugins.considerImplicitImports(module=module, signal_change=signal_change)
+    except NuitkaForbiddenImportEncounter as e:
+        recursion_logger.sysexit(
+            "Error, forbidden import of '%s' done implicitly by module '%s'."
+            % (e, module.getFullName().asString())
+        )
