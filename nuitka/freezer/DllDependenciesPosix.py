@@ -114,13 +114,6 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         # been seen with Qt at least.
         filename = os.path.normpath(filename)
 
-        # If we encounter a valid relative path, resolve it to an absolute one.
-        if not os.path.isabs(filename):
-            inclusion_logger.sysexit(
-                "Error: Found a dependency with a relative path. Was a dependency copied to dist early? "
-                + filename
-            )
-
         # Do not include kernel DLLs on the ignore list.
         filename_base = os.path.basename(filename)
         if any(
@@ -128,6 +121,13 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
             for entry in _linux_dll_ignore_list
         ):
             continue
+
+        # Do not allow relative paths for shared libraries
+        if not os.path.isabs(filename):
+            inclusion_logger.sysexit(
+                "Error: Found a dependency with a relative path. Was a dependency copied to dist early? "
+                + filename
+            )
 
         result.add(filename)
 
