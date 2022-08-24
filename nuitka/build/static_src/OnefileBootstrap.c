@@ -66,7 +66,9 @@
 #else
 #define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
 #define _NUITKA_ONEFILE_TEMP 0
+#define _NUITKA_ONEFILE_AUTO_UPDATE 1
 #define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
+#define _NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC "https://..."
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION == 1
@@ -174,15 +176,17 @@ static void fatalErrorTempFileCreate(filename_char_t const *filename) {
 }
 
 static void fatalErrorSpec(filename_char_t const *spec) {
-    fprintf(stderr, "Error, couldn't runtime expand directory spec '" FILENAME_FORMAT_STR "'.\n", spec);
+    fprintf(stderr, "Error, couldn't runtime expand spec '" FILENAME_FORMAT_STR "'.\n", spec);
     abort();
 }
 
 // Have a type for file type different on Linux and Win32.
 #if defined(_WIN32)
 #define FILE_HANDLE HANDLE
+#define FILE_HANDLE_NULL INVALID_HANDLE_VALUE
 #else
 #define FILE_HANDLE FILE *
+#define FILE_HANDLE_NULL NULL
 #endif
 
 static FILE_HANDLE createFileForWriting(filename_char_t const *filename) {
@@ -546,6 +550,98 @@ static int waitpid_retried(pid_t pid, int *status) {
 }
 #endif
 
+#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
+#if defined(_WIN32)
+static filename_char_t *downloadFileSyncW(filename_char_t const *url) {
+    static filename_char_t output_filename[4096];
+
+    HRESULT res = URLDownloadToCacheFileW(NULL, // lpUnkcaller
+                                          url,  // szURL
+                                          // TODO: Needs to unique by using PID probably.
+                                          output_filename,                                   // cached filename
+                                          sizeof(output_filename) / sizeof(filename_char_t), // filename size
+                                          0, NULL);
+
+    if (res == S_OK) {
+        return output_filename;
+    } else {
+        return NULL;
+    }
+}
+#endif
+
+static filename_char_t *downloadFileSync(char const *url) {
+#if defined(_WIN32)
+    static filename_char_t url_wide[4096] = {0};
+    appendStringSafeW(url_wide, url, sizeof(url_wide) / sizeof(filename_char_t));
+
+    return downloadFileSyncW(url_wide);
+#else
+    return NULL;
+#endif
+}
+
+// Return buffer with contents.
+static char *downloadTextContentsSync(filename_char_t const *url) {
+    char *result = NULL;
+
+#if defined(_WIN32)
+    filename_char_t const *downloaded_filename = downloadFileSyncW(url);
+
+    if (downloaded_filename != NULL) {
+        FILE_HANDLE file_handle =
+            CreateFileW(downloaded_filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+        // Error is surprising though, but could be a race.
+        if (file_handle == NULL) {
+            return NULL;
+        }
+
+        DWORD file_size = GetFileSize(file_handle, NULL);
+
+        result = (char *)malloc(file_size + 1);
+
+        DWORD read_size;
+        BOOL bool_res = ReadFile(file_handle, result, file_size, &read_size, NULL);
+
+        CloseHandle(file_handle);
+
+        if (bool_res == false || read_size != file_size) {
+            free(result);
+            result = NULL;
+        }
+
+        return result;
+    }
+#else
+    char const *downloaded_filename = downloadFileSync(url);
+
+    if (downloaded_filename != NULL) {
+        FILE_HANDLE file_handle = fopen(downloaded_filename, "rb");
+
+        if (file_handle != NULL) {
+            int res = fseek(file_handle, 0, SEEK_END);
+
+            if (res == 0) {
+                int file_size = ftell(file_handle);
+
+                result = (char *)malloc(file_size + 1);
+
+                if (fread(result, 1, file_size, file_handle) != file_size) {
+                    free(result);
+                    result = NULL;
+                }
+            }
+
+            fclose(file_handle);
+        }
+    }
+#endif
+
+    return NULL;
+}
+#endif
+
 static void cleanupChildProcess(void) {
 
     // Cause KeyboardInterrupt in the child process.
@@ -589,33 +685,36 @@ static void cleanupChildProcess(void) {
 static char *convertUnicodePathToAnsi(wchar_t const *path) {
     // first get short path as otherwise, conversion might not be reliable
     DWORD l = GetShortPathNameW(path, NULL, 0);
-    wchar_t *shortPath = (wchar_t *)malloc(sizeof(wchar_t) * (l + 1));
-    if (shortPath == NULL) {
+    wchar_t *short_path = (wchar_t *)malloc(sizeof(wchar_t) * (l + 1));
+    if (short_path == NULL) {
         fatalErrorMemory();
     }
 
-    l = GetShortPathNameW(path, shortPath, l);
+    l = GetShortPathNameW(path, short_path, l);
     if (unlikely(l == 0)) {
-        goto err_shortPath;
+        goto err_short_path;
     }
 
     size_t i;
-    if (unlikely(wcstombs_s(&i, NULL, 0, shortPath, _TRUNCATE) != 0)) {
-        goto err_shortPath;
+    if (unlikely(wcstombs_s(&i, NULL, 0, short_path, _TRUNCATE) != 0)) {
+        goto err_short_path;
     }
-    char *ansiPath = (char *)malloc(i);
-    if (ansiPath == NULL) {
+    char *ansi_path = (char *)malloc(i);
+    if (ansi_path == NULL) {
         fatalErrorMemory();
     }
-    if (unlikely(wcstombs_s(&i, ansiPath, i, shortPath, _TRUNCATE) != 0)) {
-        goto err_ansiPath;
+    if (unlikely(wcstombs_s(&i, ansi_path, i, short_path, _TRUNCATE) != 0)) {
+        goto err_ansi_path;
     }
-    return ansiPath;
 
-err_ansiPath:
-    free(ansiPath);
-err_shortPath:
-    free(shortPath);
+    free(short_path);
+
+    return ansi_path;
+
+err_ansi_path:
+    free(ansi_path);
+err_short_path:
+    free(short_path);
     return NULL;
 }
 #endif
@@ -838,6 +937,121 @@ static uint32_t getFileChecksum(filename_char_t const *filename) {
 }
 #endif
 
+#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
+
+#include <ctype.h>
+
+static char *trimWhitespace(char *str) {
+
+    // Trim leading space
+    while (isspace((unsigned char)*str)) {
+        str++;
+    }
+
+    if (*str == 0) {
+        return str;
+    }
+
+    // Trim trailing space
+    char *end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end)) {
+        end--;
+    }
+
+    // Write new null terminator character
+    end[1] = 0;
+
+    return str;
+}
+
+static char *getAutoUpdateUrl(void) {
+
+    filename_char_t download_url[4096];
+#if defined(_WIN32)
+    wchar_t const *url_pattern = L"" _NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC;
+    bool bool_res = expandTemplatePathW(download_url, url_pattern, sizeof(download_url) / sizeof(wchar_t));
+#else
+    char const *url_pattern = "" _NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC;
+    bool bool_res = expandTemplatePath(download_url, url_pattern, sizeof(download_url));
+#endif
+    if (unlikely(bool_res == false)) {
+        fatalErrorSpec(url_pattern);
+    }
+    char *download_info = downloadTextContentsSync(download_url);
+
+    if (download_info != NULL) {
+        char *download_line = strtok(download_info, "\n");
+
+        while (download_line != NULL) {
+            download_line = trimWhitespace(download_line);
+
+            char *sep = strchr(download_line, '=');
+
+            if (sep != NULL) {
+                *sep = 0;
+
+                char *key = trimWhitespace(download_line);
+
+                if (strcmp(key, "url") == 0) {
+                    char *value = trimWhitespace(sep + 1);
+
+                    if (strlen(value) == 0) {
+                        return NULL;
+                    }
+
+                    return value;
+                }
+            }
+
+            download_line = strtok(NULL, "\n");
+        }
+    }
+
+    return NULL;
+}
+
+static void _checkAutoUpdates(void) {
+    char *update_url = getAutoUpdateUrl();
+
+    if (update_url != NULL) {
+        if ((strncmp(update_url, "https://", strlen("https://")) == 0) ||
+            (strncmp(update_url, "http://", strlen("http://")) == 0)) {
+
+            filename_char_t *downloaded_binary = downloadFileSync(update_url);
+
+            if (downloaded_binary != NULL) {
+            }
+        }
+    }
+}
+
+#if defined(_WIN32)
+DWORD WINAPI doAutoUpdateThread(LPVOID lpParam) {
+    _checkAutoUpdates();
+    return 0;
+}
+#else
+#include <pthread.h>
+
+void *doAutoUpdateThread(void *ptr) {
+    _checkAutoUpdates();
+    return NULL;
+}
+
+pthread_t auto_update_thread;
+
+#endif
+
+static void checkAutoUpdates(void) {
+#if defined(_WIN32)
+    CreateThread(NULL, 0, doAutoUpdateThread, NULL, 0, NULL);
+#else
+    pthread_create(&auto_update_thread, NULL, doAutoUpdateThread, NULL);
+#endif
+}
+
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     int argc = __argc;
@@ -885,6 +1099,12 @@ int main(int argc, char **argv) {
     }
 #else
     signal(SIGINT, ourConsoleCtrlHandler);
+#endif
+
+#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
+    NUITKA_PRINT_TIMING("ONEFILE: Checking for auto update.");
+
+    checkAutoUpdates();
 #endif
 
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
@@ -1058,7 +1278,7 @@ int main(int argc, char **argv) {
         }
 #endif
 
-        FILE_HANDLE target_file;
+        FILE_HANDLE target_file = FILE_HANDLE_NULL;
 
         if (needs_write) {
             target_file = createFileForWriting(target_path);
@@ -1080,7 +1300,7 @@ int main(int argc, char **argv) {
             // do not have to fully decode.
             readPayloadChunk(chunk, chunk_size);
 
-            if (needs_write) {
+            if (target_file != FILE_HANDLE_NULL) {
                 writeToFile(target_file, chunk, chunk_size);
             }
 
@@ -1092,7 +1312,7 @@ int main(int argc, char **argv) {
         }
 
 #if !defined(_WIN32)
-        if (file_flags & 1 && needs_write) {
+        if ((file_flags & 1) && (target_file != FILE_HANDLE_NULL)) {
             int fd = fileno(target_file);
 
             struct stat stat_buffer;
@@ -1122,7 +1342,7 @@ int main(int argc, char **argv) {
         }
 #endif
 
-        if (needs_write) {
+        if (target_file != FILE_HANDLE_NULL) {
             closeFile(target_file);
         }
     }

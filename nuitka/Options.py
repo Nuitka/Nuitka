@@ -102,6 +102,13 @@ def _checkSpec(value, arg_name):
             % (arg_name, value)
         )
 
+    if value.count("%") % 2 != 0:
+        Tracing.options_logger.warning(
+            """Unmatched '%%' is suspicious for '%s=%s' and may \
+not do what you want it to do."""
+            % (arg_name, value)
+        )
+
 
 def _checkOnefileTargetSpec():
     _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
@@ -112,13 +119,6 @@ def _checkOnefileTargetSpec():
 Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
 you cannot unpack the onefile payload into the same directory as the binary,
 as that would overwrite it and cause locking issues as well."""
-        )
-
-    if options.onefile_tempdir_spec.count("%") % 2 != 0:
-        Tracing.options_logger.warning(
-            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may \
-not do what you want it to do: '%s'"""
-            % options.onefile_tempdir_spec
         )
 
     if options.onefile_tempdir_spec.count("%") == 0:
@@ -141,6 +141,20 @@ very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
             """Using an relative to the executable should be avoided unless you are targeting a \
 very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
+        )
+
+
+def _checkAutoUpdateUrlSpec():
+    _checkSpec(options.auto_update_url_spec, arg_name="--auto-update-url-spec")
+
+    if not options.auto_update_url_spec.startswith(
+        (
+            "http://",
+            "https://",
+        )
+    ):
+        Tracing.optimization_logger.sysexit(
+            "Error, only 'https://' and 'http://' URLs are allowed."
         )
 
 
@@ -226,6 +240,10 @@ def parseArgs():
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
+
+    # Check auto update URL spec
+    if options.auto_update_url_spec:
+        _checkAutoUpdateUrlSpec()
 
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
@@ -1307,9 +1325,15 @@ def getPythonPgoUnseenModulePolicy():
 
 
 def getOnefileTempDirSpec():
+    """*str* = ``--onefile-tempdir-spec``"""
     return (
         options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
     )
+
+
+def getAutoUpdateUrlSpec():
+    """*str* = ``--onefile-tempdir-spec``"""
+    return options.auto_update_url_spec
 
 
 def getIconPaths():

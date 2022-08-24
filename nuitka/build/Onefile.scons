@@ -595,6 +595,20 @@ def createBuildDefinitionsFile():
         # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
 
+    onefile_auto_update_url_spec = os.environ.get(
+        "_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"
+    )
+
+    if onefile_auto_update_url_spec:
+        onefile_definitions[
+            "_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"
+        ] = onefile_auto_update_url_spec
+        onefile_definitions["_NUITKA_ONEFILE_AUTO_UPDATE"] = 1
+
+        # spell-checker: ignore Urlmon
+        if env.msvc_mode:
+            env.Append(LIBS=["Urlmon"])
+
     setProductVersionDefinitions(onefile_definitions)
 
     createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
