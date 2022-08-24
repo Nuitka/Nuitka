@@ -25,7 +25,11 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build import SconsInterface
-from nuitka.Options import getOnefileTempDirSpec, isOnefileTempDirMode
+from nuitka.Options import (
+    getAutoUpdateUrlSpec,
+    getOnefileTempDirSpec,
+    isOnefileTempDirMode,
+)
 from nuitka.OutputDirectories import getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessingResources
@@ -78,6 +82,8 @@ def _runOnefileScons(quiet, onefile_compression):
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
     env_values["_NUITKA_ONEFILE_TEMP"] = "1" if isOnefileTempDirMode() else "0"
     env_values["_NUITKA_ONEFILE_COMPRESSION"] = "1" if onefile_compression else "0"
+
+    env_values["_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"] = getAutoUpdateUrlSpec() or ""
 
     with withEnvironmentVarsOverridden(env_values):
         result = SconsInterface.runScons(

@@ -278,6 +278,7 @@ accepts shell pattern. Default empty.""",
 
 parser.add_option_group(warnings_group)
 
+
 include_group = OptionGroup(
     parser, "Control the inclusion of modules and packages in result"
 )
@@ -354,11 +355,10 @@ include_group.add_option(
     help=SUPPRESS_HELP,
 )
 
-
 parser.add_option_group(include_group)
 
-follow_group = OptionGroup(parser, "Control the following into imported modules")
 
+follow_group = OptionGroup(parser, "Control the following into imported modules")
 
 follow_group.add_option(
     "--follow-stdlib",
@@ -495,6 +495,7 @@ Default empty.""",
 
 parser.add_option_group(dll_group)
 
+
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
 
 execute_group.add_option(
@@ -531,6 +532,7 @@ ought to not need PYTHONPATH anymore.""",
 )
 
 parser.add_option_group(execute_group)
+
 
 dump_group = OptionGroup(parser, "Dump options for internal tree")
 
@@ -621,6 +623,7 @@ is incompatible for modules that normally can be loaded into any package.""",
 
 
 parser.add_option_group(compilation_group)
+
 
 output_group = OptionGroup(parser, "Output choices")
 
@@ -821,8 +824,8 @@ parser.add_option(
 
 parser.add_option_group(debug_group)
 
-c_compiler_group = OptionGroup(parser, "Backend C compiler choice")
 
+c_compiler_group = OptionGroup(parser, "Backend C compiler choice")
 
 c_compiler_group.add_option(
     "--clang",
@@ -905,6 +908,7 @@ Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).""",
 
 parser.add_option_group(c_compiler_group)
 
+
 pgo_group = OptionGroup(parser, "PGO compilation choices")
 
 pgo_group.add_option(
@@ -966,6 +970,7 @@ launch it through a script that prepares it to run. Default use created program.
 
 
 parser.add_option_group(pgo_group)
+
 
 tracing_group = OptionGroup(parser, "Tracing features")
 
@@ -1068,6 +1073,7 @@ Where to output --verbose, should be a filename. Default is standard output.""",
 
 parser.add_option_group(tracing_group)
 
+
 os_group = OptionGroup(parser, "General OS controls")
 
 os_group.add_option(
@@ -1121,6 +1127,7 @@ Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your progra
 
 
 parser.add_option_group(os_group)
+
 
 windows_group = OptionGroup(parser, "Windows specific controls")
 
@@ -1248,16 +1255,6 @@ added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 )
 
 windows_group.add_option(
-    "--windows-onefile-tempdir",
-    "--onefile-tempdir",
-    action="store_true",
-    dest="is_onefile_tempdir",
-    metavar="ONEFILE_TEMPDIR",
-    default=False,
-    help=SUPPRESS_HELP,
-)
-
-windows_group.add_option(
     "--onefile-tempdir-spec",
     action="store",
     dest="onefile_tempdir_spec",
@@ -1268,6 +1265,7 @@ Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e.
 )
 
 parser.add_option_group(windows_group)
+
 
 macos_group = OptionGroup(parser, "macOS specific controls")
 
@@ -1371,6 +1369,7 @@ the option can be specified multiple times. Default empty.""",
 
 parser.add_option_group(macos_group)
 
+
 linux_group = OptionGroup(parser, "Linux specific controls")
 
 linux_group.add_option(
@@ -1384,6 +1383,7 @@ linux_group.add_option(
 )
 
 parser.add_option_group(linux_group)
+
 
 plugin_group = OptionGroup(parser, "Plugin control")
 
@@ -1433,9 +1433,6 @@ plugin_group.add_option(
 Show list of all available plugins and exit. Defaults to off.""",
 )
 
-
-parser.add_option_group(plugin_group)
-
 plugin_group.add_option(
     "--user-plugin",
     action="append",
@@ -1454,6 +1451,21 @@ plugin_group.add_option(
 Show source changes to original Python file content before compilation. Mostly
 intended for developing plugins. Default False.""",
 )
+
+parser.add_option_group(plugin_group)
+
+auto_updates_group = OptionGroup(parser, "Automatic updates from the web")
+
+auto_updates_group.add_option(
+    "--auto-update-url-spec",
+    action="store",
+    dest="auto_update_url_spec",
+    metavar="AUTO_UPDATE_URL_SPEC",
+    default=None,
+    help="URL to check for automatic updates. (Not implemented yet). Default empty.",
+)
+
+parser.add_option_group(auto_updates_group)
 
 
 def _considerPluginOptions(logger):
