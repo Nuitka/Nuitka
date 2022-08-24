@@ -210,7 +210,7 @@ Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
     Py_XINCREF(EXC_TYPE_F(%(context_identifier)s));
     EXC_VALUE_F(%(context_identifier)s) = EXC_VALUE(thread_state);
     Py_XINCREF(EXC_VALUE_F(%(context_identifier)s));
-    EXC_TRACEBACK_F(%(context_identifier)s) = EXC_TRACEBACK(thread_state);
+    ASSIGN_EXC_TRACEBACK_F(%(context_identifier)s, EXC_TRACEBACK(thread_state));
     Py_XINCREF(EXC_TRACEBACK_F(%(context_identifier)s));
 }
 

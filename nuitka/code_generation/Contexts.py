@@ -218,30 +218,19 @@ class TempMixin(object):
         # For finally handlers of Python3, which have conditions on assign and
         # use.
         if preserver_id not in self.preserver_variable_declaration:
+            needs_init = Options.is_debug and python_version >= 0x300
 
-            debug = Options.is_debug and python_version >= 0x300
-
-            if debug:
-                preserver_obj_init = "NULL"
+            if needs_init:
+                preserver_obj_init = "Nuitka_ExceptionStackItem_Empty"
             else:
                 preserver_obj_init = None
 
-            self.preserver_variable_declaration[preserver_id] = (
-                self.variable_storage.addVariableDeclarationTop(
-                    "PyObject *",
-                    "exception_preserved_type_%d" % preserver_id,
-                    preserver_obj_init,
-                ),
-                self.variable_storage.addVariableDeclarationTop(
-                    "PyObject *",
-                    "exception_preserved_value_%d" % preserver_id,
-                    preserver_obj_init,
-                ),
-                self.variable_storage.addVariableDeclarationTop(
-                    "PyTracebackObject *",
-                    "exception_preserved_tb_%d" % preserver_id,
-                    preserver_obj_init,
-                ),
+            self.preserver_variable_declaration[
+                preserver_id
+            ] = self.variable_storage.addVariableDeclarationTop(
+                "struct Nuitka_ExceptionStackItem",
+                "exception_preserved_%d" % preserver_id,
+                preserver_obj_init,
             )
 
         return self.preserver_variable_declaration[preserver_id]
