@@ -446,6 +446,11 @@ class Plugins(object):
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
 
+        standalone_binary = OutputDirectories.getResultFullpath(onefile=False)
+
+        for plugin in getActivePlugins():
+            plugin.onStandaloneBinary(standalone_binary)
+
     @staticmethod
     def onOnefileFinished(filename):
         """Let plugins post-process the onefile executable in onefile mode"""

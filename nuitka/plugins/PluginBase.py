@@ -656,6 +656,18 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def onStandaloneBinary(self, filename):
+        """Called after successfully creating a standalone binary.
+
+        Args:
+            filename: the created standalone binary
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def onFinalResult(self, filename):
         """Called after successfully finishing a compilation.
 
