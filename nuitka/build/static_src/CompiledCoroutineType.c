@@ -1443,9 +1443,9 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
 #endif
 
 #if PYTHON_VERSION >= 0x370
-    result->m_exc_state.exc_type = NULL;
-    result->m_exc_state.exc_value = NULL;
-    result->m_exc_state.exc_traceback = NULL;
+    result->m_exc_state.exception_type = NULL;
+    result->m_exc_state.exception_value = NULL;
+    result->m_exc_state.exception_tb = NULL;
 #endif
 
     static long Nuitka_Coroutine_counter = 0;

@@ -1179,9 +1179,9 @@ PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *na
     result->m_closed = false;
 
 #if PYTHON_VERSION >= 0x370
-    result->m_exc_state.exc_type = NULL;
-    result->m_exc_state.exc_value = NULL;
-    result->m_exc_state.exc_traceback = NULL;
+    result->m_exc_state.exception_type = NULL;
+    result->m_exc_state.exception_value = NULL;
+    result->m_exc_state.exception_tb = NULL;
 #endif
 
     static long Nuitka_Asyncgen_counter = 0;
