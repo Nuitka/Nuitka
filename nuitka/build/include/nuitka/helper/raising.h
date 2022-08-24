@@ -24,8 +24,10 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
     PyThreadState *thread_state = PyThreadState_GET();
 
     // Normalize existing exception first.
+#if PYTHON_VERSION < 0x3b0
     NORMALIZE_EXCEPTION(&EXC_TYPE(thread_state), &EXC_VALUE(thread_state),
                         (PyTracebackObject **)&EXC_TRACEBACK(thread_state));
+#endif
 
     PyObject *old_exc_value = EXC_VALUE(thread_state);
 
@@ -33,8 +35,9 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
         PyObject *current = old_exc_value;
         while (true) {
             PyObject *context = PyException_GetContext(current);
-            if (!context)
+            if (context == NULL) {
                 break;
+            }
 
             CHECK_OBJECT(context);
             Py_DECREF(context);
@@ -52,8 +55,10 @@ NUITKA_MAY_BE_UNUSED static void CHAIN_EXCEPTION(PyObject *exception_value) {
         Py_INCREF(old_exc_value);
         PyException_SetContext(exception_value, old_exc_value);
 
+#if PYTHON_VERSION < 0x3b0
         CHECK_OBJECT(EXC_TRACEBACK(thread_state));
         ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(old_exc_value, (PyTracebackObject *)EXC_TRACEBACK(thread_state));
+#endif
     }
 }
 #endif

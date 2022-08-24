@@ -67,7 +67,7 @@ struct Nuitka_AsyncgenObject {
     Generator_Status m_status;
 
 #if PYTHON_VERSION >= 0x370
-    _PyErr_StackItem m_exc_state;
+    struct Nuitka_ExceptionStackItem m_exc_state;
 #endif
 
     // The label index to resume after yield.
@@ -117,27 +117,31 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncge
 
     PyThreadState *thread_state = PyThreadState_GET();
 
+#if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(thread_state);
+#endif
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
+#if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+#endif
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SAVE_ASYNCGEN_EXCEPTION: Enter\n");
     PRINT_EXCEPTION(saved_exception_type, saved_exception_value, saved_exception_traceback);
 #endif
 
-    CHECK_OBJECT_X(saved_exception_type);
-    CHECK_OBJECT_X(saved_exception_value);
-    CHECK_OBJECT_X(saved_exception_traceback);
-
 #if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
     EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
 #else
-    EXC_TYPE(thread_state) = asyncgen->m_exc_state.exc_type;
-    EXC_VALUE(thread_state) = asyncgen->m_exc_state.exc_value;
-    EXC_TRACEBACK(thread_state) = asyncgen->m_exc_state.exc_traceback;
+#if PYTHON_VERSION < 0x3b0
+    EXC_TYPE(thread_state) = asyncgen->m_exc_state.exception_type;
+#endif
+    EXC_VALUE(thread_state) = asyncgen->m_exc_state.exception_value;
+#if PYTHON_VERSION < 0x3b0
+    EXC_TRACEBACK(thread_state) = (PyObject *)asyncgen->m_exc_state.exception_tb;
+#endif
 #endif
 
 #if _DEBUG_EXCEPTIONS
@@ -145,18 +149,18 @@ static inline void SAVE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncge
     PRINT_EXCEPTION(EXC_TYPE(thread_state), EXC_VALUE(thread_state), EXC_TRACEBACK(thread_state));
 #endif
 
-    CHECK_OBJECT_X(EXC_TYPE(thread_state));
-    CHECK_OBJECT_X(EXC_VALUE(thread_state));
-    CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
-
 #if PYTHON_VERSION < 0x370
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 #else
-    asyncgen->m_exc_state.exc_type = saved_exception_type;
-    asyncgen->m_exc_state.exc_value = saved_exception_value;
-    asyncgen->m_exc_state.exc_traceback = saved_exception_traceback;
+#if PYTHON_VERSION < 0x3b0
+    asyncgen->m_exc_state.exception_type = saved_exception_type;
+#endif
+    asyncgen->m_exc_state.exception_value = saved_exception_value;
+#if PYTHON_VERSION < 0x3b0
+    asyncgen->m_exc_state.exception_tb = (PyTracebackObject *)saved_exception_traceback;
+#endif
 #endif
 }
 
@@ -165,18 +169,18 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
     // the one that enters should be there.
     PyThreadState *thread_state = PyThreadState_GET();
 
+#if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_type = EXC_TYPE(thread_state);
+#endif
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
+#if PYTHON_VERSION < 0x3b0
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+#endif
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("RESTORE_ASYNCGEN_EXCEPTION: Enter\n");
     PRINT_EXCEPTION(saved_exception_type, saved_exception_value, saved_exception_traceback);
 #endif
-
-    CHECK_OBJECT_X(saved_exception_type);
-    CHECK_OBJECT_X(saved_exception_value);
-    CHECK_OBJECT_X(saved_exception_traceback);
 
 #if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
@@ -187,13 +191,21 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 #else
-    EXC_TYPE(thread_state) = asyncgen->m_exc_state.exc_type;
-    EXC_VALUE(thread_state) = asyncgen->m_exc_state.exc_value;
-    EXC_TRACEBACK(thread_state) = asyncgen->m_exc_state.exc_traceback;
+#if PYTHON_VERSION < 0x3b0
+    EXC_TYPE(thread_state) = asyncgen->m_exc_state.exception_type;
+#endif
+    EXC_VALUE(thread_state) = asyncgen->m_exc_state.exception_value;
+#if PYTHON_VERSION < 0x3b0
+    EXC_TRACEBACK(thread_state) = (PyObject *)asyncgen->m_exc_state.exception_tb;
+#endif
 
-    asyncgen->m_exc_state.exc_type = saved_exception_type;
-    asyncgen->m_exc_state.exc_value = saved_exception_value;
-    asyncgen->m_exc_state.exc_traceback = saved_exception_traceback;
+#if PYTHON_VERSION < 0x3b0
+    asyncgen->m_exc_state.exception_type = saved_exception_type;
+#endif
+    asyncgen->m_exc_state.exception_value = saved_exception_value;
+#if PYTHON_VERSION < 0x3b0
+    asyncgen->m_exc_state.exception_tb = (PyTracebackObject *)saved_exception_traceback;
+#endif
 #endif
 
 #if _DEBUG_EXCEPTIONS
@@ -201,9 +213,13 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
     PRINT_EXCEPTION(EXC_TYPE(thread_state), EXC_VALUE(thread_state), EXC_TRACEBACK(thread_state));
 #endif
 
+#if PYTHON_VERSION < 0x3b0
     CHECK_OBJECT_X(EXC_TYPE(thread_state));
+#endif
     CHECK_OBJECT_X(EXC_VALUE(thread_state));
+#if PYTHON_VERSION < 0x3b0
     CHECK_OBJECT_X(EXC_TRACEBACK(thread_state));
+#endif
 }
 
 #endif
