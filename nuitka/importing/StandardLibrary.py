@@ -273,6 +273,7 @@ _stdlib_no_auto_inclusion_list = (
     "argparse",
     "telnetlib",
     "smtplib",
+    "smntpd",
     "nntplib",
     "http",
     "wsgiref",
@@ -316,7 +317,11 @@ _stdlib_no_auto_inclusion_list = (
     "asyncio.test_utils",
     # strange OS specific extensions
     "_distutils_system_mod",
+    # async libraries
     "concurrent",
+    "asyncio",
+    "asyncore",
+    "asynchat",
 )
 
 if not isWin32Windows():
