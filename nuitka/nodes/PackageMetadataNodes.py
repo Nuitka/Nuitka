@@ -159,6 +159,8 @@ class ExpressionPkgResourcesRequireCall(ExpressionChildTupleHavingBase):
                 source_ref=self.source_ref,
             )
 
+            trace_collection.onExceptionRaiseExit(BaseException)
+
             return (
                 result,
                 "new_expression",
@@ -547,6 +549,10 @@ class ExpressionPkgResourcesDistributionValueRef(
     def getTruthValue():
         return True
 
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
     def computeExpressionRaw(self, trace_collection):
         # Cannot compute any further, this is already the best.
         return self, None, None
@@ -577,6 +583,9 @@ class ExpressionPkgResourcesDistributionValueRef(
             )
 
         return lookup_node, None, None
+
+    def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
+        return not self.isKnownToHaveAttribute(attribute_name)
 
 
 class ExpressionPkgResourcesIterEntryPointsRef(ExpressionImportModuleNameHardExists):
