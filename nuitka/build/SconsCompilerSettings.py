@@ -733,7 +733,7 @@ def switchFromGccToGpp(env):
     if env.gcc_version is None:
         scons_logger.sysexit(
             """\
-Error, failed to detect gcc version of backend compiler %r.
+Error, failed to detect gcc version of backend compiler '%s'.
 """
             % env.the_compiler
         )
