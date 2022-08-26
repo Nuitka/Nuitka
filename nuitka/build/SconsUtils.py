@@ -422,7 +422,12 @@ def addClangClPathFromMSVC(env):
 
 
 def isGccName(cc_name):
-    return "gcc" in cc_name or "g++" in cc_name or "gnu-cc" in cc_name
+    return (
+        "gcc" in cc_name
+        or "g++" in cc_name
+        or "gnu-cc" in cc_name
+        or "gnu-gcc" in cc_name
+    )
 
 
 def isClangName(cc_name):
