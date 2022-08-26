@@ -41,18 +41,8 @@ from nuitka.utils.Utils import isPosixWindows, isWin32Windows
 def getCompressorFunction(expect_compression):
     # spell-checker: ignore zstd, closefd
 
-    try:
+    if expect_compression:
         from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
-    except ImportError:
-        assert not expect_compression
-
-        @contextmanager
-        def useSameFile(output_file):
-            yield output_file
-
-        return b"X", useSameFile
-    else:
-        assert expect_compression
 
         compressor_context = ZstdCompressor(level=22)
 
@@ -66,6 +56,13 @@ def getCompressorFunction(expect_compression):
         onefile_logger.info("Using compression for onefile payload.")
 
         return b"Y", useCompressedFile
+    else:
+
+        @contextmanager
+        def useSameFile(output_file):
+            yield output_file
+
+        return b"X", useSameFile
 
 
 @contextmanager
