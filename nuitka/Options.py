@@ -312,13 +312,13 @@ standalone where there is a sane default used inside the dist folder."""
 
             if not icon_index.isdigit() or int(icon_index) < 0:
                 Tracing.options_logger.sysexit(
-                    "Error, icon number in %r not valid."
+                    "Error, icon number in '%s#%s' not valid."
                     % (icon_path + "#" + icon_index)
                 )
 
         if not os.path.exists(icon_path):
             Tracing.options_logger.sysexit(
-                "Error, icon path %r does not exist." % icon_path
+                "Error, icon path '%s' does not exist." % icon_path
             )
 
         if getWindowsIconExecutablePath():
@@ -1332,12 +1332,6 @@ def getIconPaths():
             if os.path.exists(icon):
                 result.append(icon)
                 break
-        else:
-            Tracing.options_logger.sysexit(
-                """\
-Error, none of the default icons '%s' exist, making '--linux-onefile-icon' required."""
-                % ", ".join(default_icons)
-            )
 
     return result
 
