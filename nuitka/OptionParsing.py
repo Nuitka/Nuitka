@@ -1041,7 +1041,7 @@ tracing_group.add_option(
     dest="compilation_report_filename",
     default=None,
     help="""\
-Report module inclusion in an XML output file. Default is off.""",
+Report module, data file, compilation details in an XML output file. Default is off.""",
 )
 
 tracing_group.add_option(
