@@ -79,7 +79,7 @@ jobs:
         if: matrix.python_version == '3.9'
 
   mac-python2:
-    runs-on: macos-10.15
+    runs-on: macos-11
     strategy:
       matrix:
         python_version:
