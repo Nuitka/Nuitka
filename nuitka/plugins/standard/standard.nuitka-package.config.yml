@@ -1067,6 +1067,7 @@
     - description: "remove useless distutils usage"
       replacements:
         'LooseVersion(__version__) >= LooseVersion("1.17.0")': "'__version__ >= \"1.17.0\"'"
+        'LooseVersion(_np_version) >= LooseVersion("1.17.0")': "'_np_version >= \"1.17.0\"'"
         "from distutils.version import LooseVersion": "''"
 
 - module-name: "pandas.core.arrays._arrow_utils"
