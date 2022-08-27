@@ -757,8 +757,11 @@ elif not module_mode:
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
 
-        if env.gcc_mode and not clang_mode:
-            env.Append(LINKFLAGS=["-export-dynamic"])
+        if env.gcc_mode:
+            if clang_mode:
+                env.Append(LINKFLAGS=["-Wl,--export-dynamic"])
+            else:
+                env.Append(LINKFLAGS=["-export-dynamic"])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if isNetBSD():
