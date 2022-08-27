@@ -1052,6 +1052,9 @@
     - description: "remove useless distutils usage"
       replacements:
         # TODO: Smells not only like regexp, must be one.
+        'LooseVersion("1.14")': "'\"1.14\"'"
+        'LooseVersion("1.15")': "'\"1.15\"'"
+        'LooseVersion("1.16")': "'\"1.16\"'"
         'LooseVersion("1.17")': "'\"1.17\"'"
         'LooseVersion("1.18")': "'\"1.18\"'"
         'LooseVersion("1.19")': "'\"1.19\"'"
