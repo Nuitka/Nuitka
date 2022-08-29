@@ -53,7 +53,7 @@ from nuitka.utils.FileOperations import (
     renameFile,
     withPreserveFileMode,
 )
-from nuitka.utils.Utils import isWin32OrPosixWindows
+from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
 
 from .YamlFormatter import formatYaml
 
@@ -403,6 +403,15 @@ def _cleanupClangFormat(filename):
             r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files\LLVM\bin",
+        ):
+            clang_format_path = getExecutablePath("clang-format")
+
+    if not clang_format_path and isMacOS():
+        with withEnvironmentPathAdded(
+            "PATH",
+            os.path.expanduser(
+                "~/.vscode-server/extensions/ms-vscode.cpptools-1.11.5-darwin-arm64/LLVM/bin"
+            ),
         ):
             clang_format_path = getExecutablePath("clang-format")
 
