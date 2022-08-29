@@ -12,6 +12,9 @@ on:
       - release/**
       - hotfix/**
 
+permissions:
+  contents: read
+
 jobs:
   linux:
     runs-on: ubuntu-18.04
