@@ -59,12 +59,16 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 "$ORIGIN", os.path.dirname(sys.executable)
             )
 
+    # Single one, might be wrong for Anaconda, which uses multiple ones on at least
+    # macOS.
+    python_rpaths = (_detected_python_rpath,) if _detected_python_rpath else ()
+
     # TODO: Actually would be better to pass it as env to the created process instead.
     with withEnvironmentPathAdded(
         "LD_LIBRARY_PATH",
         *getLdLibraryPath(
             package_name=package_name,
-            python_rpath=_detected_python_rpath,
+            python_rpaths=python_rpaths,
             original_dir=original_dir,
         )
     ):

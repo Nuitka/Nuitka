@@ -34,7 +34,27 @@ from nuitka.utils.SharedLibraries import (
 from .DllDependenciesCommon import getLdLibraryPath
 
 # Detected Python rpath is cached.
-_detected_python_rpath = None
+_detected_python_rpaths = None
+
+
+def _detectPythonRpaths():
+    result = []
+
+    if isAnacondaPython() and "CONDA_PREFIX" in os.environ:
+        candidate = os.path.normpath(os.path.join(os.environ["CONDA_PREFIX"], "lib"))
+
+        if os.path.isdir(candidate):
+            result.append(candidate)
+
+    if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
+        candidate = os.path.normpath(
+            os.path.join(os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib")
+        )
+
+        if os.path.isdir(candidate):
+            result.append(candidate)
+
+    return tuple(result)
 
 
 def detectBinaryPathDLLsMacOS(
@@ -43,26 +63,15 @@ def detectBinaryPathDLLsMacOS(
     assert os.path.exists(binary_filename), binary_filename
 
     # This is for Anaconda, which puts required libraries of packages in this folder.
-    # pylint: disable=global-statement
-    global _detected_python_rpath
-    global _detected_python_rpath
-    if _detected_python_rpath is None:
-        if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
-            _detected_python_rpath = os.path.normpath(
-                os.path.join(
-                    os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib"
-                )
-            )
-
-            if not os.path.isdir(_detected_python_rpath):
-                _detected_python_rpath = False
-        else:
-            _detected_python_rpath = False
-
-    python_rpath = _detected_python_rpath if _detected_python_rpath else None
+    # do it only once, pylint: disable=global-statement
+    global _detected_python_rpaths
+    if _detected_python_rpaths is None:
+        _detected_python_rpaths = _detectPythonRpaths()
 
     package_specific_dirs = getLdLibraryPath(
-        package_name=package_name, python_rpath=python_rpath, original_dir=original_dir
+        package_name=package_name,
+        python_rpaths=_detected_python_rpaths,
+        original_dir=original_dir,
     )
 
     # This is recursive potentially and might add more and more.

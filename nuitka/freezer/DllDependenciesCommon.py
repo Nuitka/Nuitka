@@ -27,14 +27,14 @@ from nuitka.utils.FileOperations import getSubDirectoriesWithDlls
 _ld_library_cache = {}
 
 
-def getLdLibraryPath(package_name, python_rpath, original_dir):
-    key = package_name, python_rpath, original_dir
+def getLdLibraryPath(package_name, python_rpaths, original_dir):
+    key = package_name, tuple(python_rpaths), original_dir
 
     if key not in _ld_library_cache:
 
         ld_library_path = OrderedSet()
-        if python_rpath:
-            ld_library_path.add(python_rpath)
+        if python_rpaths:
+            ld_library_path.update(python_rpaths)
 
         ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
         if original_dir is not None:
