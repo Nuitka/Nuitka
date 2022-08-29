@@ -334,20 +334,21 @@ def executePostProcessing():
         python_abi_version = python_version_str + getPythonABI()
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
         python_lib_path = os.path.join(sys.prefix, "lib")
+        python_dll_path = os.path.join(python_lib_path, python_dll_filename)
 
-        # Note: For CPython and potentially others, the rpath for the Python
-        # library needs to be set.
-
+        # Note: For CPython, and potentially others, the rpath for the Python
+        # library needs to be set, so it will be detected as a dependency
+        # without tricks.
         callInstallNameTool(
             filename=result_filename,
             mapping=(
                 (
                     python_dll_filename,
-                    os.path.join(python_lib_path, python_dll_filename),
+                    python_dll_path,
                 ),
                 (
                     "@rpath/Python3.framework/Versions/%s/Python3" % python_version_str,
-                    os.path.join(python_lib_path, python_dll_filename),
+                    python_dll_path,
                 ),
             ),
             id_path=None,
