@@ -111,7 +111,8 @@ def writeCompilationReport(report_filename):
                 dest_path=standalone_entry_point.dest_path,
                 source_path=standalone_entry_point.source_path,
                 package=standalone_entry_point.package_name or "",
-                ignored="yes" if ignored else "no"
+                ignored="yes" if ignored else "no",
+                reason=standalone_entry_point.reason
                 # TODO: No reason yet.
             )
         )

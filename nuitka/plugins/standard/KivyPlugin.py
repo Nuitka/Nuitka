@@ -130,6 +130,7 @@ except ImportError:
                     source_path=full_path,
                     dest_path=target_filename,
                     package_name=full_name,
+                    reason="needed by 'kivy'",
                 )
 
             self.reportFileCount(full_name, len(kivy_dlls))

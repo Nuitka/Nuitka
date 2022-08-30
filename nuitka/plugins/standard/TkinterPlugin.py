@@ -258,8 +258,8 @@ The Tcl library dir. See comments for Tk library dir.""",
                 yield self.makeDllEntryPoint(
                     source_path=filename,
                     dest_path=os.path.join("tkinterdnd2", dest_path),
-                    package_name="tkinterdnd2"
-                    # reason="tkinterdnd2 package DLL",
+                    package_name="tkinterdnd2",
+                    reason="tkinterdnd2 package DLL",
                 )
 
 

@@ -94,4 +94,5 @@ class NuitkaPluginZmq(NuitkaPluginBase):
                         "pyzmq.libs", os.path.basename(dll_filename)
                     ),
                     package_name="zmq",
+                    reason="needed as a workaround for old 'zmq'",
                 )
