@@ -902,7 +902,7 @@ def getExternalUsePath(filename, only_dirname=False):
     Returns:
         Path that is a absolute and (on Windows) short filename pointing at the same file.
     Notes:
-        This is only os.path.abspath except on Windows, where is coverts
+        This is only "os.path.abspath" except on Windows, where is converts
         to a short path too.
     """
 

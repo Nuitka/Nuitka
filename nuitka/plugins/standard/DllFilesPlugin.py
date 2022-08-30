@@ -147,12 +147,6 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             )
 
     def _handleDllConfig(self, dll_config, full_name, count):
-        if dll_config.get("when"):
-            if not self.evaluateCondition(
-                full_name=full_name, condition=dll_config.get("when")
-            ):
-                return
-
         dest_path = dll_config.get("dest_path")
 
         found = False
@@ -186,25 +180,27 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
     def getExtraDlls(self, module):
         # TODO: Need to move all code here into configuration file usage.
-        # until then, pylint: disable=too-many-locals
 
         full_name = module.getFullName()
 
         # Checking for config, but also allowing fall through for cases that have to
         # have some code still here.
-        config = self.config.get(full_name, section="dlls")
-        if config:
-            found = 0
+        found = 0
 
-            for count, dll_config in enumerate(config, start=1):
+        for count, dll_config in enumerate(
+            self.config.get(full_name, section="dlls"), start=1
+        ):
+            if self.evaluateCondition(
+                full_name=full_name, condition=dll_config.get("when", "True")
+            ):
                 for dll_entry_point in self._handleDllConfig(
                     dll_config=dll_config, full_name=full_name, count=count
                 ):
                     yield dll_entry_point
                     found += 1
 
-            if found > 0:
-                self.reportFileCount(full_name, found)
+        if found > 0:
+            self.reportFileCount(full_name, found)
 
         # TODO: This is legacy code, ideally moved to yaml config over time.
         if (

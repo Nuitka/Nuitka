@@ -113,24 +113,18 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         """Provides names of modules to imported implicitly."""
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
-        config = self.config.get(full_name, section="implicit-imports")
-
         # Checking for config, but also allowing fall through.
-        if config:
-            for entry in config:
-                if entry.get("when"):
-                    if not self.evaluateCondition(
-                        full_name=full_name, condition=entry.get("when")
-                    ):
-                        continue
-
+        for entry in self.config.get(full_name, section="implicit-imports"):
+            if self.evaluateCondition(
+                full_name=full_name, condition=entry.get("when", "True")
+            ):
                 for dependency in self._handleImplicitImportsConfig(
                     config=entry, module=module
                 ):
                     yield dependency
 
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
-        elif full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
+        if full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
             crypto_module_name = full_name.getTopLevelPackageName()
 
             if full_name == crypto_module_name + ".Cipher._mode_ofb":
@@ -308,16 +302,10 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                         yield module_filename
 
     def getPackageExtraScanPaths(self, package_name, package_dir):
-        config = self.config.get(package_name, section="import-hacks")
-
-        if config:
-            for entry in config:
-                if entry.get("when"):
-                    if not self.evaluateCondition(
-                        full_name=package_name, condition=entry.get("when")
-                    ):
-                        continue
-
+        for entry in self.config.get(package_name, section="import-hacks"):
+            if self.evaluateCondition(
+                full_name=package_name, condition=entry.get("when", "True")
+            ):
                 for item in self._getPackageExtraScanPaths(
                     package_dir=package_dir, config=entry
                 ):
@@ -341,17 +329,11 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     def createPreModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        config = self.config.get(full_name, section="implicit-imports")
-
-        if config:
-            for entry in config:
-                if entry.get("when"):
-                    if not self.evaluateCondition(
-                        full_name=full_name, condition=entry.get("when")
-                    ):
-                        continue
-
-                if "pre-import-code" in entry:
+        for entry in self.config.get(full_name, section="implicit-imports"):
+            if "pre-import-code" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
                     code = "\n".join(entry.get("pre-import-code"))
 
                     # TODO: Add a description to the Yaml file.
@@ -360,17 +342,11 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     def createPostModuleLoadCode(self, module):
         full_name = module.getFullName()
 
-        config = self.config.get(full_name, section="implicit-imports")
-
-        if config:
-            for entry in config:
-                if entry.get("when"):
-                    if not self.evaluateCondition(
-                        full_name=full_name, condition=entry.get("when")
-                    ):
-                        continue
-
-                if "post-import-code" in entry:
+        for entry in self.config.get(full_name, section="implicit-imports"):
+            if "post-import-code" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
                     code = "\n".join(entry.get("post-import-code"))
 
                     # TODO: Add a description to the Yaml file.
