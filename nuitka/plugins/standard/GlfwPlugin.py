@@ -114,6 +114,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
                 source_path=dll_filename,
                 dest_path=os.path.join("glfw", os.path.basename(dll_filename)),
                 package_name="glfw.library",
+                reason="needed by 'glfw'",
             )
 
     def createPreModuleLoadCode(self, module):

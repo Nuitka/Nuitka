@@ -708,14 +708,15 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         )
 
         for used_dll in used_dlls:
-            addIncludedEntryPoint(
-                makeDllEntryPoint(
-                    logger=inclusion_logger,
-                    source_path=used_dll,
-                    dest_path=_decideTargetPath(used_dll),
-                    package_name=standalone_entry_point.package_name,
-                )
+            dll_entry_point = makeDllEntryPoint(
+                logger=inclusion_logger,
+                source_path=used_dll,
+                dest_path=_decideTargetPath(used_dll),
+                package_name=standalone_entry_point.package_name,
+                reason="Used by '%s'" % standalone_entry_point.dest_path,
             )
+
+            addIncludedEntryPoint(dll_entry_point)
 
 
 def detectUsedDLLs(standalone_entry_points, source_dir):

@@ -448,22 +448,24 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         return locateDLLsInDirectory(directory)
 
-    def makeDllEntryPoint(self, source_path, dest_path, package_name):
+    def makeDllEntryPoint(self, source_path, dest_path, package_name, reason):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeDllEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
             package_name=package_name,
+            reason=reason,
         )
 
-    def makeExeEntryPoint(self, source_path, dest_path, package_name):
+    def makeExeEntryPoint(self, source_path, dest_path, package_name, reason):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeExeEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
             package_name=package_name,
+            reason=reason,
         )
 
     def reportFileCount(self, module_name, count, section=None):

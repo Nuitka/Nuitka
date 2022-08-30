@@ -91,5 +91,8 @@ if not os.environ.get("GI_TYPELIB_PATH="):
 
             if gtk_dll_path is not None:
                 yield self.makeDllEntryPoint(
-                    gtk_dll_path, os.path.basename(gtk_dll_path), None
+                    source_path=gtk_dll_path,
+                    dest_path=os.path.basename(gtk_dll_path),
+                    package_name=None,
+                    reason="needed by 'gi._gi'",
                 )

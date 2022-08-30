@@ -88,6 +88,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                                 )
                             ),
                             package_name=full_name,
+                            reason="Yaml config of '%s'" % full_name.asString(),
                         )
                 else:
                     for dll_filename, filename in listDllFilesFromDirectory(
@@ -102,6 +103,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                                 )
                             ),
                             package_name=full_name,
+                            reason="Yaml config of '%s'" % full_name.asString(),
                         )
 
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
@@ -138,12 +140,14 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 source_path=filename,
                 dest_path=dest_path,
                 package_name=full_name,
+                reason="Yaml config of '%s'" % full_name.asString(),
             )
         else:
             yield self.makeDllEntryPoint(
                 source_path=filename,
                 dest_path=dest_path,
                 package_name=full_name,
+                reason="Yaml config of '%s'" % full_name.asString(),
             )
 
     def _handleDllConfig(self, dll_config, full_name, count):
@@ -212,7 +216,10 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
             if uuid_dll_path is not None:
                 yield self.makeDllEntryPoint(
-                    uuid_dll_path, os.path.basename(uuid_dll_path), None
+                    source_path=uuid_dll_path,
+                    dest_path=os.path.basename(uuid_dll_path),
+                    package_name=None,
+                    reason="needed by uuid package",
                 )
         elif full_name == "iptc" and isLinux():
             import iptc.util  # pylint: disable=I0021,import-error
@@ -221,13 +228,19 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
 
             yield self.makeDllEntryPoint(
-                xtwrapper_dll_path, os.path.basename(xtwrapper_dll_path), None
+                source_path=xtwrapper_dll_path,
+                dest_path=os.path.basename(xtwrapper_dll_path),
+                package_name=None,
+                reason="needed by 'iptc'",
             )
         elif full_name == "coincurve._libsecp256k1" and isWin32Windows():
             yield self.makeDllEntryPoint(
-                os.path.join(module.getCompileTimeDirectory(), "libsecp256k1.dll"),
-                os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
-                full_name.getPackageName(),
+                source_path=os.path.join(
+                    module.getCompileTimeDirectory(), "libsecp256k1.dll"
+                ),
+                dest_path=os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
+                package_name=full_name.getPackageName(),
+                reason="needed by 'coincurve._libsecp256k1'",
             )
         # TODO: This should be its own plugin.
         elif (
@@ -278,5 +291,8 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
                     if os.path.exists(pythoncom_dll_path):
                         yield self.makeDllEntryPoint(
-                            pythoncom_dll_path, pythoncom_filename, None
+                            source_path=pythoncom_dll_path,
+                            dest_path=pythoncom_filename,
+                            package_name=None,
+                            reason="needed by '%s'" % full_name.asString(),
                         )

@@ -398,6 +398,7 @@ import %(binding_name)s.QtCore
                         filename_relative,
                     ),
                     package_name=self.binding_package_name,
+                    reason="qt plugin",
                 )
 
     def _getChildNamed(self, *child_names):
@@ -740,6 +741,7 @@ Prefix = .
                             source_path=filename,
                             dest_path=basename,
                             package_name=full_name,
+                            reason="needed by '%s'" % full_name.asString(),
                         )
 
                         count += 1
@@ -762,8 +764,8 @@ Prefix = .
                             qml_target_dir,
                             filename_relative,
                         ),
-                        package_name=full_name
-                        # reason="Qt QML plugin DLL",
+                        package_name=full_name,
+                        reason="Qt QML plugin DLL",
                     )
 
                 # Also copy required OpenGL DLLs on Windows
@@ -781,6 +783,8 @@ Prefix = .
                                 source_path=filename,
                                 dest_path=basename,
                                 package_name=full_name,
+                                reason="needed by OpenGL for '%s'"
+                                % full_name.asString(),
                             )
 
                     self.reportFileCount(full_name, count, section="OpenGL")
@@ -793,6 +797,7 @@ Prefix = .
                         source_path=dll_path,
                         dest_path=os.path.basename(dll_path),
                         package_name=full_name,
+                        reason="needed by '%s'" % full_name.asString(),
                     )
 
                 dll_path = self.locateDLL("ssl")
@@ -801,6 +806,7 @@ Prefix = .
                         source_path=dll_path,
                         dest_path=os.path.basename(dll_path),
                         package_name=full_name,
+                        reason="needed by '%s'" % full_name.asString(),
                     )
         elif self.isQtWebEngineModule(full_name) and not self.web_engine_done_binaries:
             self.web_engine_done_binaries = True  # prevent multiple copies
@@ -816,6 +822,7 @@ Prefix = .
                             self._getWebEngineTargetDir(), filename_relative
                         ),
                         package_name=full_name,
+                        reason="needed by '%s'" % full_name.asString(),
                     )
 
                     break

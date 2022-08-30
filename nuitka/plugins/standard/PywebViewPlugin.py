@@ -84,6 +84,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
                         )
                     ),
                     package_name=module.getFullName(),
+                    reason="needed by 'webview'",
                 )
 
     def considerDataFiles(self, module):

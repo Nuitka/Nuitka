@@ -23,7 +23,7 @@ import re
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import getSystemPrefixPath
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import listDir, listDllFilesFromDirectory
 from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 sklearn_mods = [
@@ -59,8 +59,8 @@ else:
 class NuitkaPluginNumpy(NuitkaPluginBase):
     """This class represents the main logic of the plugin.
 
-    This is a plugin to ensure scripts using numpy, scipy, pandas,
-    scikit-learn, etc. work well in standalone mode.
+    This is a plugin to ensure scripts using numpy, scipy work well in
+    standalone mode.
 
     While there already are relevant entries in the "ImplicitImports.py" plugin,
     this plugin copies any additional binary or data files required by many
@@ -115,6 +115,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
                     source_path=full_path,
                     dest_path=target_filename,
                     package_name=full_name,
+                    reason="core binary of 'numpy'",
                 )
 
             self.reportFileCount(full_name, len(numpy_binaries))
@@ -129,6 +130,7 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
                     source_path=source_path,
                     dest_path=target_filename,
                     package_name=full_name,
+                    reason="core binary of 'scipy'",
                 )
 
             self.reportFileCount(full_name, len(scipy_binaries))
@@ -143,23 +145,18 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
         Returns:
             tuple of abspaths of binaries.
         """
-        numpy_core_dir = os.path.join(numpy_dir, "core")
-
-        # first look in numpy/.libs for binaries
-        libdir = os.path.join(numpy_dir, ".libs" if not isMacOS() else ".dylibs")
-        if os.path.isdir(libdir):
-            for full_path, filename in listDir(libdir):
+        # First look in numpy folder for binaries, this is for PyPI package.
+        numpy_lib_dir = os.path.join(numpy_dir, ".libs" if not isMacOS() else ".dylibs")
+        if os.path.isdir(numpy_lib_dir):
+            for full_path, filename in listDir(numpy_lib_dir):
                 yield full_path, filename
 
-        # Then look for libraries in numpy.core package path
-        # should already return the MKL files in ordinary cases
-        re_anylib = re.compile(r"\w+\.(?:dll|so|dylib)", re.IGNORECASE)
-
-        for full_path, filename in listDir(numpy_core_dir):
-            if not re_anylib.match(filename):
-                continue
-
-            yield full_path, filename
+        # Then look for libraries in numpy.core package path should already
+        # return the MKL files in ordinary cases
+        numpy_core_dir = os.path.join(numpy_dir, "core")
+        if os.path.exists(numpy_core_dir):
+            for full_path, filename in listDllFilesFromDirectory(numpy_core_dir):
+                yield full_path, filename
 
         # Also look for MKL libraries in folder "above" numpy.
         # This should meet the layout of Anaconda installs.
@@ -170,9 +167,10 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
         else:
             lib_dir = os.path.join(base_prefix, "lib")
 
+        # TODO: This doesn't actually match many files on macOS and seems not needed
+        # there, check if it has an impact on Windows, where maybe DLL detection is
+        # weaker.
         if os.path.isdir(lib_dir):
-            re_mkllib = re.compile(r"^(?:lib)?mkl\w+\.(?:dll|so|dylib)", re.IGNORECASE)
-
             for full_path, filename in listDir(lib_dir):
                 if isWin32Windows():
                     if not (
@@ -181,6 +179,10 @@ Should scipy, sklearn or skimage when used be not included with numpy, Default i
                     ):
                         continue
                 else:
+                    re_mkllib = re.compile(
+                        r"^(?:lib)?mkl[_\w]+\.(?:dll|so|dylib)", re.IGNORECASE
+                    )
+
                     if not re_mkllib.match(filename):
                         continue
 
