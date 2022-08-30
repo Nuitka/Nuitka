@@ -23,7 +23,6 @@ import os
 import pkgutil
 
 from nuitka import Options
-from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
@@ -143,20 +142,10 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     def considerDataFiles(self, module):
         full_name = module.getFullName()
 
-        config = self.config.get(full_name, section="data-files")
-
-        if config:
-            # TODO: Ought to become a list universally.
-            if type(config) in (dict, OrderedDict):
-                config = [config]
-
-            for entry in config:
-                if entry.get("when"):
-                    if not self.evaluateCondition(
-                        full_name=full_name, condition=entry.get("when")
-                    ):
-                        continue
-
+        for entry in self.config.get(full_name, section="data-files"):
+            if self.evaluateCondition(
+                full_name=full_name, condition=entry.get("when", "True")
+            ):
                 for included_data_file in self._considerDataFiles(
                     module=module, data_file_config=entry
                 ):

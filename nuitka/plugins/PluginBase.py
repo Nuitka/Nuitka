@@ -914,6 +914,11 @@ except ImportError:
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
+        if condition == "True":
+            return True
+        if condition == "False":
+            return False
+
         context = TagContext(logger=self, full_name=full_name)
         context.update(control_tags)
 

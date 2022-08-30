@@ -198,15 +198,6 @@ which can and should be a top level package and then one choice, "error",
     def _onModuleSourceCode(self, module_name, anti_bloat_config, source_code):
         # Complex dealing with many cases, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-        # Allow disabling config for a module with matching control tags.
-        if anti_bloat_config.get("when"):
-            if not self.evaluateCondition(
-                full_name=module_name,
-                condition=anti_bloat_config.get("when"),
-                control_tags=self.control_tags,
-            ):
-                return source_code
-
         description = anti_bloat_config.get("description", "description not given")
 
         # To allow detection if it did anything.
@@ -319,10 +310,13 @@ which can and should be a top level package and then one choice, "error",
         return source_code
 
     def onModuleSourceCode(self, module_name, source_code):
-        config = self.config.get(module_name, section="anti-bloat")
-
-        if config:
-            for anti_bloat_config in config:
+        for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
+            if self.evaluateCondition(
+                full_name=module_name,
+                condition=anti_bloat_config.get("when", "True"),
+                # Allow disabling config for a module with matching control tags.
+                control_tags=self.control_tags,
+            ):
                 source_code = self._onModuleSourceCode(
                     module_name=module_name,
                     anti_bloat_config=anti_bloat_config,
