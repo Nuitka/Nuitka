@@ -27,7 +27,8 @@ import sys
 import time
 
 print("Hello world, will you kill me?")
-print(sys.version_info)
+print("Running", sys.version_info)
+
 try:
     time.sleep(10)
 except KeyboardInterrupt:
