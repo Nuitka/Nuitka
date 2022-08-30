@@ -103,7 +103,7 @@ def _getCPythonResults(cpython_cmd, send_kill):
         if send_kill:
             # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
             executeAfterTimePassed(
-                1.0, lambda: killProcess("Uncompiled Python program", process.pid)
+                2.0, lambda: killProcess("Uncompiled Python program", process.pid)
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
