@@ -196,7 +196,8 @@ def parseArgs():
         Tracing.setQuiet()
 
     Tracing.options_logger.info(
-        "Used command line options: %s" % " ".join(sys.argv[1:])
+        "Used command line options: %s"
+        % " ".join(('"%s"' % arg) if " " in arg else arg for arg in sys.argv[1:])
     )
 
     if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
