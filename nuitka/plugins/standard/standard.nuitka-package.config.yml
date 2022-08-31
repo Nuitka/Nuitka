@@ -766,6 +766,14 @@
         - "mercurial.charencode"
         - "mercurial.cext.parsers"
 
+- module-name: "mkl._mklinit"
+  dlls:
+    - by_code:
+        setup_code: "import os;import sys"
+        filename_code: "os.path.join(sys.prefix, 'lib', 'libmkl_mc3.1.dylib')"
+      dest_path: "."
+      when: "anaconda and macos"
+
 - module-name: "mmcv.utils"
   anti-bloat:
     - description: "remove mmcv testing framework"
