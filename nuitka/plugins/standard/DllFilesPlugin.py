@@ -116,9 +116,12 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             values=(("filename", filename_code),),
         ).filename
 
-        module_filename = self.locateModule(full_name)
+        # Expecting absolute paths internally for DLL sources.
+        filename = os.path.abspath(filename)
 
         if dest_path is None:
+            module_filename = self.locateModule(full_name)
+
             if os.path.isdir(module_filename):
                 dest_path = full_name.asPath()
             else:
