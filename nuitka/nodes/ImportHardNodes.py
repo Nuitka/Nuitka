@@ -66,6 +66,13 @@ class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
 
         self.module_guaranteed = module_guaranteed
 
+    def getDetails(self):
+        return {
+            "module_name": self.module_name,
+            "import_name": self.import_name,
+            "module_guaranteed": self.module_guaranteed,
+        }
+
     # Derived ones have the same interface.
     @staticmethod
     def isExpressionImportModuleNameHard():
@@ -94,13 +101,6 @@ class ExpressionImportModuleNameHardMaybeExists(ExpressionImportModuleNameHardBa
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD_MAYBE_EXISTS"
 
-    def getDetails(self):
-        return {
-            "module_name": self.module_name,
-            "import_name": self.import_name,
-            "module_guaranteed": self.module_guaranteed,
-        }
-
     def computeExpressionRaw(self, trace_collection):
         trace_collection.onExceptionRaiseExit(AttributeError)
 
@@ -122,13 +122,6 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD_EXISTS"
-
-    def getDetails(self):
-        return {
-            "module_name": self.module_name,
-            "import_name": self.import_name,
-            "module_guaranteed": self.module_guaranteed,
-        }
 
     def computeExpressionRaw(self, trace_collection):
         if not self.module_guaranteed:
@@ -153,3 +146,13 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
             call_kw=call_kw,
             trace_collection=trace_collection,
         )
+
+
+class ExpressionImportModuleNameHardExistsSpecificBase(
+    ExpressionImportModuleNameHardExists
+):
+    """Base class for nodes that hard coded import names, e.g. of "importlib.import_module" name."""
+
+    @staticmethod
+    def getDetails():
+        return {}

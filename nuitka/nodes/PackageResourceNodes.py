@@ -37,7 +37,7 @@ from .ExpressionShapeMixins import (
     ExpressionBytesShapeExactMixin,
     ExpressionStrShapeExactMixin,
 )
-from .ImportHardNodes import ExpressionImportModuleNameHardExists
+from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 from .NodeBases import SideEffectsFromChildrenMixin
 
 pkgutil_get_data_spec = BuiltinParameterSpec(
@@ -65,13 +65,13 @@ importlib_resources_read_text_spec = BuiltinParameterSpec(
 )
 
 
-class ExpressionPkglibGetDataRef(ExpressionImportModuleNameHardExists):
+class ExpressionPkglibGetDataRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference pkgutil.get_data"""
 
     kind = "EXPRESSION_PKGLIB_GET_DATA_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="pkgutil",
             import_name="get_data",
@@ -115,13 +115,15 @@ class ExpressionPkglibGetDataCall(
         return self, None, None
 
 
-class ExpressionPkgResourcesResourceStringRef(ExpressionImportModuleNameHardExists):
+class ExpressionPkgResourcesResourceStringRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference pkg_resources.resource_string"""
 
     kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="pkg_resources",
             import_name="resource_string",
@@ -173,13 +175,15 @@ class ExpressionPkgResourcesResourceStringCall(
         return self, None, None
 
 
-class ExpressionPkgResourcesResourceStreamRef(ExpressionImportModuleNameHardExists):
+class ExpressionPkgResourcesResourceStreamRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference pkg_resources.resource_stream"""
 
     kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STREAM_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="pkg_resources",
             import_name="resource_stream",
@@ -223,13 +227,15 @@ class ExpressionPkgResourcesResourceStreamCall(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionImportlibResourcesReadBinaryRef(ExpressionImportModuleNameHardExists):
+class ExpressionImportlibResourcesReadBinaryRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference importlib.resources.read_binary"""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="importlib.resources",
             import_name="read_binary",
@@ -275,13 +281,15 @@ class ExpressionImportlibResourcesReadBinaryCall(
         return self, None, None
 
 
-class ExpressionImportlibResourcesReadTextRef(ExpressionImportModuleNameHardExists):
+class ExpressionImportlibResourcesReadTextRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference importlib.resources.read_text"""
 
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="importlib.resources",
             import_name="read_text",
@@ -347,13 +355,13 @@ os_uname_spec = BuiltinParameterSpec(
 
 
 # TODO: These types of nodes need a better organisation and potentially be generated.
-class ExpressionOsUnameRef(ExpressionImportModuleNameHardExists):
+class ExpressionOsUnameRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference os.uname"""
 
     kind = "EXPRESSION_OS_UNAME_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="os",
             import_name="uname",
@@ -420,11 +428,11 @@ class ExpressionOsPathIsdirCall(ExpressionOsPathTestCallBase):
     kind = "EXPRESSION_OS_PATH_ISDIR_CALL"
 
 
-class ExpressionOsPathTestRefBase(ExpressionImportModuleNameHardExists):
+class ExpressionOsPathTestRefBase(ExpressionImportModuleNameHardExistsSpecificBase):
     """Base class for function reference like os.path.exists"""
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name=os.path.__name__,
             import_name=self.spec.name.split(".")[-1],
