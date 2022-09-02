@@ -70,6 +70,7 @@ from .ExpressionBases import (
 from .ImportHardNodes import (
     ExpressionImportHardBase,
     ExpressionImportModuleNameHardExists,
+    ExpressionImportModuleNameHardExistsSpecificBase,
     ExpressionImportModuleNameHardMaybeExists,
 )
 from .LocalsScopes import GlobalsDictHandle
@@ -742,11 +743,13 @@ importlib_import_module_spec = BuiltinParameterSpec(
 )
 
 
-class ExpressionImportlibImportModuleRef(ExpressionImportModuleNameHardExists):
+class ExpressionImportlibImportModuleRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     kind = "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="importlib",
             import_name="import_module",

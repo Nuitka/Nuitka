@@ -38,7 +38,7 @@ from .ExpressionBases import (
     ExpressionChildTupleHavingBase,
     ExpressionNoSideEffectsMixin,
 )
-from .ImportHardNodes import ExpressionImportModuleNameHardExists
+from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 pkg_resources_require_spec = BuiltinParameterSpec(
     "pkg_resources.require", (), default_count=0, list_star_arg="requirements"
@@ -62,13 +62,15 @@ def _getPkgResourcesModule():
     return importFromCompileTime("pkg_resources", must_exist=True)
 
 
-class ExpressionPkgResourcesRequireRef(ExpressionImportModuleNameHardExists):
+class ExpressionPkgResourcesRequireRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference pkg_resources.require"""
 
     kind = "EXPRESSION_PKG_RESOURCES_REQUIRE_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="pkg_resources",
             import_name="require",
@@ -179,13 +181,15 @@ class ExpressionPkgResourcesRequireCall(ExpressionChildTupleHavingBase):
             return self._replaceWithCompileTimeValue(trace_collection)
 
 
-class ExpressionPkgResourcesGetDistributionRef(ExpressionImportModuleNameHardExists):
+class ExpressionPkgResourcesGetDistributionRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference pkg_resources.get_distribution"""
 
     kind = "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="pkg_resources",
             import_name="get_distribution",
@@ -279,13 +283,15 @@ importlib_metadata_version_spec = BuiltinParameterSpec(
 )
 
 
-class ExpressionImportlibMetadataVersionRef(ExpressionImportModuleNameHardExists):
+class ExpressionImportlibMetadataVersionRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference importlib.metadata.version"""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="importlib.metadata",
             import_name="version",
@@ -312,14 +318,14 @@ class ExpressionImportlibMetadataVersionRef(ExpressionImportModuleNameHardExists
 
 
 class ExpressionImportlibMetadataBackportVersionRef(
-    ExpressionImportModuleNameHardExists
+    ExpressionImportModuleNameHardExistsSpecificBase
 ):
     """Function reference importlib_metadata.version"""
 
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="importlib_metadata",
             import_name="version",
@@ -588,13 +594,15 @@ class ExpressionPkgResourcesDistributionValueRef(
         return not self.isKnownToHaveAttribute(attribute_name)
 
 
-class ExpressionPkgResourcesIterEntryPointsRef(ExpressionImportModuleNameHardExists):
+class ExpressionPkgResourcesIterEntryPointsRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     """Function reference pkg_resources.iter_entry_points"""
 
     kind = "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="pkg_resources",
             import_name="iter_entry_points",
