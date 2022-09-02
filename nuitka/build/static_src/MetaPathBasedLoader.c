@@ -574,12 +574,12 @@ static PyObject *_nuitka_loader_find_module(PyObject *self, PyObject *args, PyOb
     return Py_None;
 }
 
-static char const *_kwlist_get_data[] = {"filename", NULL};
+static char const *_kw_list_get_data[] = {"filename", NULL};
 
 static PyObject *_nuitka_loader_get_data(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *filename;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:get_data", (char **)_kwlist_get_data, &filename);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:get_data", (char **)_kw_list_get_data, &filename);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1150,12 +1150,12 @@ static PyObject *_nuitka_loader_load_module(PyObject *self, PyObject *args, PyOb
     return IMPORT_EMBEDDED_MODULE(name);
 }
 
-static char const *_kwlist_is_package[] = {"fullname", NULL};
+static char const *_kw_list_is_package[] = {"fullname", NULL};
 
 static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:is_package", (char **)_kwlist_is_package, &module_name);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:is_package", (char **)_kw_list_is_package, &module_name);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1181,12 +1181,12 @@ static PyObject *_nuitka_loader_is_package(PyObject *self, PyObject *args, PyObj
     return result;
 }
 
-static char const *_kwlist_iter_modules[] = {"package", NULL};
+static char const *_kw_list_iter_modules[] = {"package", NULL};
 
 static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, PyObject *args, PyObject *kwds) {
     PyObject *prefix;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", (char **)_kwlist_iter_modules, &prefix);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", (char **)_kw_list_iter_modules, &prefix);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1411,14 +1411,14 @@ static PyObject *createModuleSpecViaPathFinder(PyObject *module_name, char const
 }
 #endif
 
-static char const *_kwlist_find_spec[] = {"fullname", "is_package", "path", NULL};
+static char const *_kw_list_find_spec[] = {"fullname", "is_package", "path", NULL};
 
 static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused1; // We ignore "is_package"
     PyObject *unused2; // We ignore "path"
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|OO:find_spec", (char **)_kwlist_find_spec, &module_name,
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|OO:find_spec", (char **)_kw_list_find_spec, &module_name,
                                           &unused1, &unused2);
 
     if (unlikely(res == 0)) {
@@ -1479,12 +1479,12 @@ static PyObject *_nuitka_loader_find_spec(PyObject *self, PyObject *args, PyObje
 }
 
 #if PYTHON_VERSION >= 0x350
-static char const *_kwlist_create_module[] = {"spec", NULL};
+static char const *_kw_list_create_module[] = {"spec", NULL};
 
 static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *spec;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:create_module", (char **)_kwlist_create_module, &spec);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:create_module", (char **)_kw_list_create_module, &spec);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1507,12 +1507,12 @@ static PyObject *_nuitka_loader_create_module(PyObject *self, PyObject *args, Py
     return result;
 }
 
-static char const *_kwlist_exec_module[] = {"module", NULL};
+static char const *_kw_list_exec_module[] = {"module", NULL};
 
 static PyObject *_nuitka_loader_exec_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:exec_module", (char **)_kwlist_exec_module, &module);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:exec_module", (char **)_kw_list_exec_module, &module);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1557,7 +1557,7 @@ static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *ar
     PyObject *module_name;
 
     int res =
-        PyArg_ParseTupleAndKeywords(args, kwds, "O:get_resource_reader", (char **)_kwlist_exec_module, &module_name);
+        PyArg_ParseTupleAndKeywords(args, kwds, "O:get_resource_reader", (char **)_kw_list_exec_module, &module_name);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1676,13 +1676,13 @@ PyObject *Nuitka_Distribution_New(struct Nuitka_MetaPathBasedLoaderEntry const *
     return (PyObject *)result;
 }
 
-static char const *_kwlist_find_distributions[] = {"context", NULL};
+static char const *_kw_list_find_distributions[] = {"context", NULL};
 
 static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *context;
 
     int res =
-        PyArg_ParseTupleAndKeywords(args, kwds, "O:find_distributions", (char **)_kwlist_find_distributions, &context);
+        PyArg_ParseTupleAndKeywords(args, kwds, "O:find_distributions", (char **)_kw_list_find_distributions, &context);
 
     if (unlikely(res == 0)) {
         return NULL;

@@ -69,7 +69,7 @@ static PyObject *Nuitka_ResourceReader_resource_path(struct Nuitka_ResourceReade
                                                      PyObject *kwds) {
     PyObject *resource;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:resource_path", (char **)_kwlist_get_data, &resource);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:resource_path", (char **)_kw_list_get_data, &resource);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -82,7 +82,7 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
                                                      PyObject *kwds) {
     PyObject *resource;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:open_resource", (char **)_kwlist_get_data, &resource);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:open_resource", (char **)_kw_list_get_data, &resource);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -93,21 +93,21 @@ static PyObject *Nuitka_ResourceReader_open_resource(struct Nuitka_ResourceReade
     return BUILTIN_OPEN_BINARY_READ_SIMPLE(filename);
 }
 
-#if PYTHON_VERSION >= 0x390 && defined(_NUITKA_EXPERIMENTAL_RESOURCE_READER_FILES)
+#if PYTHON_VERSION >= 0x390
 
 #include "MetaPathBasedLoaderResourceReaderFiles.c"
 
 static PyObject *Nuitka_ResourceReader_files(struct Nuitka_ResourceReaderObject *reader, PyObject *args,
                                              PyObject *kwds) {
 
-    return Nuitka_ResourceReaderFiles_New(reader->m_loader_entry);
+    return Nuitka_ResourceReaderFiles_New(reader->m_loader_entry, const_str_empty);
 }
 #endif
 
 static PyMethodDef Nuitka_ResourceReader_methods[] = {
     {"resource_path", (PyCFunction)Nuitka_ResourceReader_resource_path, METH_VARARGS | METH_KEYWORDS, NULL},
     {"open_resource", (PyCFunction)Nuitka_ResourceReader_open_resource, METH_VARARGS | METH_KEYWORDS, NULL},
-#if PYTHON_VERSION >= 0x390 && defined(_NUITKA_EXPERIMENTAL_RESOURCE_READER_FILES)
+#if PYTHON_VERSION >= 0x390
     {"files", (PyCFunction)Nuitka_ResourceReader_files, METH_NOARGS, NULL},
 #endif
     {NULL}};
