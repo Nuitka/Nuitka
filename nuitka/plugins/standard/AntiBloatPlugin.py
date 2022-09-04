@@ -98,7 +98,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         for custom_choice in custom_choices:
             if ":" not in custom_choice:
                 self.sysexit(
-                    "Error, malformed value  '%s' for '--noinclude-custom-mode' used."
+                    "Error, malformed value '%s' for '--noinclude-custom-mode' used."
                     % custom_choice
                 )
 
