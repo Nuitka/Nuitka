@@ -59,7 +59,7 @@ class SearchModeBase(object):
 
     @classmethod
     def _match(cls, dirname, filename, candidate):
-        # Circular dependency.
+        # Cyclic dependency.
         from .Common import getStartDir
 
         parts = [dirname, filename]
