@@ -280,7 +280,9 @@
         "virtualenv",
         "visitproc",
         "vmprof",
+        "wargv",
         "winlibs",
+        "wmain",
         "zstandard",
         "zstd"
     ],
