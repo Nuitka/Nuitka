@@ -140,7 +140,7 @@ The Tcl library dir. See comments for Tk library dir.""",
         yield self.makeIncludedPackageDataFiles(
             package_name="tkinterdnd2",
             package_directory=module.getCompileTimeDirectory(),
-            pattern=os.path.join("tkinterdnd2", "tkdnd", platform_rep, "**"),
+            pattern=os.path.join("tkdnd", platform_rep, "**"),
             reason="Tcl needed for 'tkinterdnd2' usage",
             tags="tcl",
         )

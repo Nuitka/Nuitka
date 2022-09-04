@@ -425,10 +425,19 @@ data_group.add_option(
     metavar="PACKAGE",
     default=[],
     help="""\
-Include data files of the given package name. Can use patterns. By default
-Nuitka does not unless hard coded and vital for operation of a package. This
-will include all non-DLL, non-extension modules in the distribution. Default
-empty.""",
+Include data files for the given package name. DLLs and extension modules
+are not data files and never included like this. Can use patterns for
+module names and patterns for the filenames below. By default Nuitka
+does not include them, unless through configuration due to being vital
+for operation of a package. With a "*" pattern for package name, you
+can change that, but will include way too many files.
+This will only include non-DLL, non-extension modules in the package
+directory. After a ":" optionally a filename pattern can be given as
+well, selecting only matching files. Examples:
+"--include-package-data=package_name" (all files)
+"--include-package-data=package_name=*.txt" (only certain type)
+"--include-package-data=package_name=some_filename.dat (concrete file)
+Default empty.""",
 )
 
 data_group.add_option(

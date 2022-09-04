@@ -398,7 +398,7 @@ standalone where there is a sane default used inside the dist folder."""
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
 
-    for module_pattern in getShallIncludePackageData():
+    for module_pattern, _filename_pattern in getShallIncludePackageData():
         if (
             module_pattern.startswith("-")
             or "/" in module_pattern
@@ -880,8 +880,22 @@ def getMustIncludePackages():
 
 
 def getShallIncludePackageData():
-    """*list*, items of ``--include-package-data=``"""
-    return sum([_splitShellPattern(x) for x in options.package_data], [])
+    """*iterable of (module pattern, filename pattern)*, derived from ``--include-package-data=``
+
+    The filename pattern can be None if not given. Empty values give None too.
+    """
+    for package_data_pattern in sum(
+        [_splitShellPattern(x) for x in options.package_data], []
+    ):
+        if ":" in package_data_pattern:
+            module_pattern, filename_pattern = package_data_pattern.split(":", 1)
+            # Empty equals None.
+            filename_pattern = filename_pattern or None
+        else:
+            module_pattern = package_data_pattern
+            filename_pattern = None
+
+        yield module_pattern, filename_pattern
 
 
 def getShallIncludeDataFiles():
