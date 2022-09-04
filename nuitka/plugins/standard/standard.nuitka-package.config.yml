@@ -1594,6 +1594,27 @@
         - "urllib.request"
         - "urllib.response"
 
+- module-name: "rich.jupyter"
+  anti-bloat:
+    - description: "remove IPython reference"
+      change_function:
+        "display": "un-callable"
+      when: "not use_ipython"
+
+- module-name: "rich.live"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "self.console.is_jupyter": "False"
+      when: "not use_ipython"
+
+- module-name: "rich.pretty"
+  anti-bloat:
+    - description: "remove IPython reference"
+      replacements_plain:
+        "get_ipython()": "raise NameError"
+      when: "not use_ipython"
+
 - module-name: "scipy._lib"
   implicit-imports:
     - depends:
