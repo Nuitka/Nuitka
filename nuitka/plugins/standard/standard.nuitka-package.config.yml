@@ -1391,6 +1391,16 @@
     - depends:
         - "typing_extensions"
 
+- module-name: "pyfiglet"
+  implicit-imports:
+    - depends:
+        - ".fonts"
+
+- module-name: "pyfiglet.fonts"
+  data-files:
+    dirs:
+      - "."
+
 - module-name: "pyglet"
   implicit-imports:
     - depends:
