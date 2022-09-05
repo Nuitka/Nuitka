@@ -24,6 +24,8 @@ to read their contents.
 import hashlib
 from binascii import crc32
 
+from nuitka.__past__ import unicode
+
 from .FileOperations import openTextFile
 
 
@@ -35,7 +37,7 @@ class HashBase(object):
             if type(value) is int:
                 value = str(int)
 
-            if type(value) is str:
+            if type(value) in (str, unicode):
                 if str is not bytes:
                     value = value.encode("utf8")
 
