@@ -82,7 +82,8 @@ def _makeDllOrExeEntryPoint(
 
     if not os.path.isfile(source_path):
         logger.sysexit(
-            "Error, attempting to include file '%s' that does not exist." % source_path
+            "Error, attempting to include file '%s' (%s) that does not exist."
+            % (source_path, reason)
         )
 
     return _makeIncludedEntryPoint(
