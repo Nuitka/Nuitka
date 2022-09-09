@@ -54,19 +54,16 @@ from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ModuleNames import (
+    ModuleName,
+    makeTriggerModuleName,
+    post_module_load_trigger_name,
+    pre_module_load_trigger_name,
+)
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 warned_unused_plugins = set()
-
-# Trigger names for shared use.
-post_module_load_trigger_name = "postLoad"
-pre_module_load_trigger_name = "preLoad"
-
-
-def makeTriggerModuleName(module_name, trigger_name):
-    return ModuleName(module_name + "-" + trigger_name)
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
