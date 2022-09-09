@@ -180,8 +180,16 @@ def getEnhancedToolDetect():
     return myDetect
 
 
-def makeGccUseLinkerFile(source_dir, source_files, env):
-    tmp_linker_filename = os.path.join(source_dir, "@link_input.txt")
+def makeGccUseLinkerFile(source_files, module_mode, env):
+    tmp_linker_filename = os.path.join(env.source_dir, "@link_input.txt")
+
+    # Note: For Windows, it's done in mingw.py because of its use of
+    # a class rather than a string here, that is not working for the
+    # monkey patching.
+    if os.name != "nt":
+        env["SHLINKCOM"] = env["SHLINKCOM"].replace(
+            "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+        )
 
     env["LINKCOM"] = env["LINKCOM"].replace(
         "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
@@ -189,7 +197,9 @@ def makeGccUseLinkerFile(source_dir, source_files, env):
 
     with openTextFile(tmp_linker_filename, "w") as tmpfile:
         for filename in source_files:
-            filename = ".".join(filename.split(".")[:-1]) + ".o"
+            filename = ".".join(filename.split(".")[:-1]) + (
+                ".os" if module_mode and os.name != "nt" else ".o"
+            )
 
             if os.name == "nt":
                 filename = filename.replace(os.path.sep, "/")

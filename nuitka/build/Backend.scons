@@ -990,7 +990,11 @@ if module_mode and python_sysflag_verbose:
 # which can make linking fail with many modules otherwise. Most needed on Windows,
 # but useful on other platforms too.
 if env.gcc_mode:
-    makeGccUseLinkerFile(source_dir=source_dir, source_files=source_files, env=env)
+    makeGccUseLinkerFile(
+        source_files=source_files,
+        module_mode=module_mode,
+        env=env,
+    )
 
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)
