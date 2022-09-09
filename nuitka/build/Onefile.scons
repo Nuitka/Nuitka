@@ -59,7 +59,7 @@ from .SconsCompilerSettings import (
     setupCCompiler,
     switchFromGccToGpp,
 )
-from .SconsHacks import getEnhancedToolDetect
+from .SconsHacks import getEnhancedToolDetect, makeGccUseLinkerFile
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
@@ -618,6 +618,16 @@ def createBuildDefinitionsFile():
 
 
 createBuildDefinitionsFile()
+
+# Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
+# which can make linking fail with many modules otherwise. Most needed on Windows,
+# but useful on other platforms too.
+if env.gcc_mode:
+    makeGccUseLinkerFile(
+        source_files=source_files,
+        module_mode=module_mode,
+        env=env,
+    )
 
 writeSconsReport(
     env=env,
