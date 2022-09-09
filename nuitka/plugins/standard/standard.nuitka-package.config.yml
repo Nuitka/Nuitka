@@ -2715,6 +2715,11 @@
     - depends:
         - "torchvision.image"
 
+- module-name: "torchvision.ops._register_onnx_ops"
+  implicit-imports:
+    - depends:
+        - "torch.onnx.symbolic_opset8"
+
 - module-name: "tornado.httputil"
   anti-bloat:
     - description: "remove doctest usage"
