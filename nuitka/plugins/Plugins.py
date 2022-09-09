@@ -41,14 +41,15 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Importing import importFileAsModule
-from nuitka.utils.ModuleNames import ModuleName, checkModuleName
-
-from .PluginBase import (
-    NuitkaPluginBase,
+from nuitka.utils.ModuleNames import (
+    ModuleName,
+    checkModuleName,
     makeTriggerModuleName,
     post_module_load_trigger_name,
     pre_module_load_trigger_name,
 )
+
+from .PluginBase import NuitkaPluginBase
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()

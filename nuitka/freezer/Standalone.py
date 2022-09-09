@@ -512,15 +512,17 @@ def checkFreezingModuleSet():
     problem_modules = OrderedSet()
 
     if isDebianBasedLinux():
-        message = (
-            "Standard with Python package from Debian installation may not be working."
-        )
+        message = "Standalone with Python package from Debian installation may not be working."
         mnemonic = "debian-dist-packages"
 
         def checkModulePath(module):
-            if "dist-packages" in module.getCompileTimeFilename().split("/"):
-                module_name = module.getFullName()
+            module_filename = module.getCompileTimeFilename()
+            module_name = module.getFullName()
 
+            if (
+                "dist-packages" in module_filename.split("/")
+                and not module_name.isFakeModuleName()
+            ):
                 package_name = module_name.getTopLevelPackageName()
 
                 if package_name is not None:

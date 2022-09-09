@@ -32,6 +32,19 @@ def checkModuleName(value):
     )
 
 
+# Trigger names for shared use.
+post_module_load_trigger_name = "-postLoad"
+pre_module_load_trigger_name = "-preLoad"
+
+trigger_names = (pre_module_load_trigger_name, post_module_load_trigger_name)
+
+
+def makeTriggerModuleName(module_name, trigger_name):
+    assert trigger_name in trigger_names
+
+    return ModuleName(module_name + trigger_name)
+
+
 class ModuleName(str):
     def __init__(self, value):
         assert checkModuleName(value), value
@@ -238,6 +251,9 @@ class ModuleName(str):
 
         # No match result
         return False, None
+
+    def isFakeModuleName(self):
+        return str(self).endswith(trigger_names)
 
     # Reject APIs being used. TODO: Maybe make this a decorator for reuse.
     # TODO: Add rsplit and subscript operations too.
