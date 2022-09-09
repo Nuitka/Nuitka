@@ -23,6 +23,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.FileOperations import getSubDirectoriesWithDlls
+from nuitka.utils.ModuleNames import ModuleName
 
 _ld_library_cache = {}
 
@@ -59,5 +60,9 @@ def getPackageSpecificDLLDirectories(package_name):
             scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
 
         scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
+
+    # TODO: Move this to plugins DLLs section.
+    if package_name == "torchvision":
+        scan_dirs.update(getPackageSpecificDLLDirectories(ModuleName("torch")))
 
     return scan_dirs
