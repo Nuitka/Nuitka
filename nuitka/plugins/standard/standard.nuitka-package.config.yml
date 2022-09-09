@@ -1477,6 +1477,12 @@
         - "pyreadstat.worker"
         - "multiprocessing"
 
+- module-name: "pyrect"
+  anti-bloat:
+    - description: "remove doctest reference"
+      replacements_plain:
+        "import doctest": ""
+
 - module-name: "PySide2"
   options:
     checks:
