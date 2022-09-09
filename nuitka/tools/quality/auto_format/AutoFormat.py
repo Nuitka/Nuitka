@@ -48,12 +48,13 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
+    listDir,
     openTextFile,
     putTextFileContents,
     renameFile,
     withPreserveFileMode,
 )
-from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
+from nuitka.utils.Utils import isWin32OrPosixWindows
 
 from .YamlFormatter import formatYaml
 
@@ -406,14 +407,19 @@ def _cleanupClangFormat(filename):
         ):
             clang_format_path = getExecutablePath("clang-format")
 
-    if not clang_format_path and isMacOS():
-        with withEnvironmentPathAdded(
-            "PATH",
-            os.path.expanduser(
-                "~/.vscode-server/extensions/ms-vscode.cpptools-1.11.5-darwin-arm64/LLVM/bin"
-            ),
+    # Search Visual Code C++ extension for LLVM path.
+    if not clang_format_path:
+        for extension_path, extension_filename in listDir(
+            os.path.expanduser("~/.vscode-server/extensions")
         ):
-            clang_format_path = getExecutablePath("clang-format")
+            if extension_filename.startswith("ms-vscode.cpptools-"):
+                with withEnvironmentPathAdded(
+                    "PATH",
+                    os.path.join(extension_path, "LLVM/bin"),
+                ):
+                    clang_format_path = getExecutablePath("clang-format")
+
+                break
 
     if clang_format_path:
         subprocess.call(
