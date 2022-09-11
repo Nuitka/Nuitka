@@ -1501,6 +1501,13 @@
       - description: "PySide6 is a GUI framework"
         console: "recommend"
 
+- module-name: "pytorch_lightning.utilities.model_helpers"
+  anti-bloat:
+    - description: "remove unittest reference"
+      replacements_plain:
+        "from unittest.mock import Mock": ""
+        "isinstance(instance_attr, Mock)": "False"
+
 - module-name: "pytz"
   data-files:
     dirs:
@@ -2710,6 +2717,13 @@
         : |-
           @classmethod
           def _dp_init_subclass
+
+- module-name: "torchmetrics.utilities.checks"
+  anti-bloat:
+    - description: "remove unittest reference"
+      replacements_plain:
+        "from unittest.mock import Mock": ""
+        "isinstance(instance_attr, Mock)": "False"
 
 - module-name: "torchvision"
   dlls:
