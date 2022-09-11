@@ -119,8 +119,11 @@
 - module-name: "certifi.core"
   anti-bloat:
     - description: "avoid using importlib.resources without need"
-      replacements:
-        "from importlib.resources import path as get_path, read_text": "'raise ImportError'"
+      replacements_plain:
+        # Make sure to use fallback to file using code, old ones use import attempts,
+        # now ones check versions first.
+        "from importlib.resources import path as get_path, read_text": "raise ImportError"
+        "sys.version_info": "(0,)"
 
 - module-name: "cffi.api"
   anti-bloat:
