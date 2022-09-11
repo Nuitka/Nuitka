@@ -23,6 +23,7 @@ that to be done and causing massive degradations.
 """
 
 import ast
+import re
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
@@ -256,6 +257,15 @@ which can and should be a top level package and then one choice, "error",
         ).items():
             old = source_code
             source_code = source_code.replace(replace_src, replace_dst)
+
+            if old != source_code:
+                change_count += 1
+
+        for replace_src, replace_dst in anti_bloat_config.get(
+            "replacements_re", {}
+        ).items():
+            old = source_code
+            source_code = re.sub(replace_src, replace_dst, source_code)
 
             if old != source_code:
                 change_count += 1

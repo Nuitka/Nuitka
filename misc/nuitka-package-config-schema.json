@@ -126,10 +126,13 @@
                         "module_code": {
                             "type": "string"
                         },
-                        "replacements": {
+                        "replacements_plain": {
                             "type": "object"
                         },
-                        "replacements_plain": {
+                        "replacements_re": {
+                            "type": "object"
+                        },
+                        "replacements": {
                             "type": "object"
                         },
                         "change_function": {

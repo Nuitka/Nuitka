@@ -200,15 +200,15 @@
         - "import textwrap"
         - "import pkgutil"
         - "from nuitka.utils.Importing import getSharedLibrarySuffix"
+      replacements_plain:
+        ? "load_first_config([\n"
+        : "if False: (["
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
         # Before OpenCV 4.6
         'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
         # After OpenCV 4.6
         'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
-      replacements_plain:
-        ? "load_first_config([\n"
-        : "if False: (["
       when: "standalone"
   implicit-imports:
     - depends:
@@ -993,10 +993,10 @@
     - description: "remove manual version file import"
       context:
         - "import orderedmultidict.__version__"
-      replacements:
-        "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
       replacements_plain:
         "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
+      replacements:
+        "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
 
 - module-name: "osgeo"
   data-files:
