@@ -677,6 +677,11 @@ if win_target:
                 env.Append(CPPDEFINES=[define + "=" + value])
             else:
                 env.Append(CPPDEFINES=[define])
+
+        if "link_flags" in link_data:
+            env.Append(LINKFLAGS=link_data["link_flags"])
+        if "compile_flags" in link_data:
+            env.Append(CFLAGS=link_data["compile_flags"])
     elif env.gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:
@@ -730,6 +735,11 @@ elif not module_mode:
                 env.Append(CPPDEFINES=[define + "=" + value])
             else:
                 env.Append(CPPDEFINES=[define])
+
+        if "link_flags" in link_data:
+            env.Append(LINKFLAGS=link_data["link_flags"])
+        if "compile_flags" in link_data:
+            env.Append(CFLAGS=link_data["compile_flags"])
     elif static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
 

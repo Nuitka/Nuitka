@@ -18,6 +18,7 @@
 """DLL dependency scan methods for macOS. """
 
 import os
+import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
@@ -145,6 +146,7 @@ def _resolveBinaryPathDLLsMacOS(
 
     rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
     rpaths.update(package_specific_dirs)
+    print(rpaths)
 
     for path in paths:
         if path.startswith("@rpath/"):
@@ -161,6 +163,14 @@ def _resolveBinaryPathDLLsMacOS(
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
+        elif not os.path.isabs(path) and not os.path.exists(path):
+            # If it's a relative path and we still haven't found it,
+            # try searching from the running interpreter.
+            possible_path = os.path.join(os.path.dirname(sys.executable), path)
+            if os.path.exists(possible_path):
+                resolved_path = os.path.normpath(possible_path)
+            else:
+                resolved_path = path
         else:
             resolved_path = path
 
