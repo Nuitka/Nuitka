@@ -86,7 +86,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                         dest_path=os.path.normpath(
                             os.path.join(target_dir, os.path.basename(filename))
                         ),
-                        reason="package data for %r" % module_name.asString(),
+                        reason="package data for '%s'" % module_name.asString(),
                         tags="config",
                     )
 
