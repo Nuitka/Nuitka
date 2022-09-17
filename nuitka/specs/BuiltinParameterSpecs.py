@@ -20,6 +20,7 @@
 """
 import math
 
+from nuitka import Options
 from nuitka.__past__ import builtins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import optimization_logger
@@ -73,6 +74,21 @@ class BuiltinParameterSpec(ParameterSpec):
                 return False
 
         return True
+
+    @staticmethod
+    def isUserProvided(values):
+        if Options.is_debug:
+            for value in values:
+                if (
+                    value is not None
+                    and not value.isExpressionConstantRef()
+                    and getattr(value, "user_provided", True)
+                ):
+                    return False
+
+            return True
+        else:
+            return False
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really

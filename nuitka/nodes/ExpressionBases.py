@@ -1547,6 +1547,7 @@ class ExpressionSpecBasedComputationMixin(object):
             computation=lambda: self.builtin_spec.simulateCall(given_values),
             description="Built-in call to '%s' pre-computed."
             % (self.builtin_spec.getName()),
+            user_provided=self.builtin_spec.isUserProvided(given_values),
         )
 
 
