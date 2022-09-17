@@ -17,13 +17,14 @@
 #
 """DLL dependency scan methods for macOS. """
 
+import json
 import os
 import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import areSamePaths, isPathBelow
 from nuitka.utils.SharedLibraries import (
@@ -146,7 +147,6 @@ def _resolveBinaryPathDLLsMacOS(
 
     rpaths = _detectBinaryRPathsMacOS(original_dir, binary_filename)
     rpaths.update(package_specific_dirs)
-    print(rpaths)
 
     for path in paths:
         if path.startswith("@rpath/"):
@@ -163,14 +163,19 @@ def _resolveBinaryPathDLLsMacOS(
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
-        elif not os.path.isabs(path) and not os.path.exists(path):
-            # If it's a relative path and we still haven't found it,
-            # try searching from the running interpreter.
-            possible_path = os.path.join(os.path.dirname(sys.executable), path)
-            if os.path.exists(possible_path):
-                resolved_path = os.path.normpath(possible_path)
-            else:
-                resolved_path = path
+        elif isNuitkaPython() and not os.path.isabs(path) and not os.path.exists(path):
+            # Since Nuitka Python statically links all packages, some of them have proprietary
+            # dependencies that cannot be statically built and must instead be linked to the
+            # python executable. Due to how the python executable is linked, we end up with
+            # relative paths to dependencies, so we need to scan the Nuitka Python library directories
+            # for a matching dll.
+            with open(os.path.join(sys.prefix, "link.json")) as f:
+                link_data = json.load(f)
+            for libdir in link_data["library_dirs"]:
+                possible_path = os.path.join(libdir, path)
+                if os.path.exists(possible_path):
+                    resolved_path = os.path.normpath(possible_path)
+                    break
         else:
             resolved_path = path
 
