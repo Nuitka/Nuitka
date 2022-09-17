@@ -2740,6 +2740,27 @@
     - depends:
         - "uvloop._noop"
 
+- module-name: "vibora"
+  anti-bloat:
+    - description: "remove test code"
+      replacements_plain:
+        "from .tests import *": ""
+
+- module-name: "vibora.protocol.cprotocol"
+  implicit-imports:
+    - depends:
+        - "vibora.protocol.cwebsocket"
+
+- module-name: "vibora.responses.responses"
+  implicit-imports:
+    - depends:
+        - "vibora.constants"
+
+- module-name: "vibora.router.router"
+  implicit-imports:
+    - depends:
+        - "vibora.router.parser"
+
 - module-name: "vosk"
   dlls:
     - from_filenames:
