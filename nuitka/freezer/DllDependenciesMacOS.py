@@ -18,13 +18,15 @@
 """DLL dependency scan methods for macOS. """
 
 import os
+import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import areSamePaths, isPathBelow
+from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     getOtoolDependencyOutput,
@@ -139,6 +141,8 @@ def _parseOtoolListingOutput(output):
 def _resolveBinaryPathDLLsMacOS(
     original_dir, binary_filename, paths, package_specific_dirs
 ):
+    # Quite a few variations to consider, pylint: disable=too-many-branches
+
     had_self = False
 
     result = OrderedDict()
@@ -161,6 +165,18 @@ def _resolveBinaryPathDLLsMacOS(
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
+        elif isNuitkaPython() and not os.path.isabs(path) and not os.path.exists(path):
+            # Since Nuitka Python statically links all packages, some of them have proprietary
+            # dependencies that cannot be statically built and must instead be linked to the
+            # python executable. Due to how the python executable is linked, we end up with
+            # relative paths to dependencies, so we need to scan the Nuitka Python library directories
+            # for a matching dll.
+            link_data = loadJsonFromFilename(os.path.join(sys.prefix, "link.json"))
+            for library_dir in link_data["library_dirs"]:
+                possible_path = os.path.join(library_dir, path)
+                if os.path.exists(possible_path):
+                    resolved_path = os.path.normpath(possible_path)
+                    break
         else:
             resolved_path = path
 
