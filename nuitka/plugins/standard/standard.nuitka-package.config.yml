@@ -1001,6 +1001,26 @@
         - "osgeo._ogr"
         - "osgeo._osr"
 
+- module-name: "panda3d"
+  data-files:
+    dest_path: "."
+    dirs:
+      - "etc"
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - "libpandagl"
+          - "libpandadx9"
+          - "libp3tinydisplay"
+          - "libp3assimp"
+          - "libp3ffmpeg"
+          - "libp3fmod_audio"
+          - "libp3openal_audio"
+          - "libp3ptloader"
+          - "libpandaegg"
+      dest_path: "."
+
 - module-name: "pandas"
   anti-bloat:
     - description: "remove pandas testing framework"
