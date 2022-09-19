@@ -532,7 +532,7 @@ def makeCLiteral(value):
 def createDefinitionsFile(source_dir, filename, definitions):
     build_definitions_filename = os.path.join(source_dir, filename)
 
-    with openTextFile(build_definitions_filename, "w") as f:
+    with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
         for key, value in sorted(definitions.items()):
             if type(value) is int:
                 f.write("#define %s %s\n" % (key, value))
