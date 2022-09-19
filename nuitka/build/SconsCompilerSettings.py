@@ -50,7 +50,7 @@ from .SconsUtils import (
 
 
 def _detectWindowsSDK(env):
-    # Check if there is a WindowsSDK installed.
+    # Check if there is a Windows SDK installed.
     if env.msvc_mode or env.clangcl_mode:
         if "WindowsSDKVersion" not in env:
             if "WindowsSDKVersion" in os.environ:
