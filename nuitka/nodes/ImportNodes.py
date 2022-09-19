@@ -1097,7 +1097,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         )
 
                     self.type_shape = tshape_module_builtin
-                    self.builtin_module = __import__(imported_module_name)
+                    self.builtin_module = __import__(imported_module_name.asString())
 
             else:
                 # TODO: This doesn't preserve side effects.

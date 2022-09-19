@@ -591,6 +591,16 @@
     patterns:
       - "Lorem ipsum.txt"
 
+- module-name: "jarowinkler"
+  implicit-imports:
+    - depends:
+        - "jarowinkler._initialize_cpp"
+
+- module-name: "jsonrpcserver.main"
+  data-files:
+    patterns:
+      - "*.json"
+
 - module-name: "jsonschema"
   data-files:
     dirs:
@@ -1576,20 +1586,21 @@
 - module-name: "rapidfuzz"
   implicit-imports:
     - depends:
-        - "rapidfuzz.utils_cpp"
-        - "rapidfuzz.fuzz_cpp"
-        - "rapidfuzz.process_cdist_cpp"
-        - "rapidfuzz.process_cpp"
-        - "rapidfuzz.string_metric_cpp"
+        - ".utils_cpp"
+        - ".fuzz_cpp"
+        - ".process_cdist_cpp"
+        - ".process_cpp"
+        - ".string_metric_cpp"
 
 - module-name: "rapidfuzz.distance"
   implicit-imports:
     - depends:
-        - "rapidfuzz.distance._initialize_cpp"
-        - "rapidfuzz.distance.Hamming_cpp"
-        - "rapidfuzz.distance.Indel_cpp"
-        - "rapidfuzz.distance.LCSseq_cpp"
-        - "rapidfuzz.distance.Levenshtein_cp"
+        - "._initialize_cpp"
+        - ".Hamming_cpp"
+        - ".Indel_cpp"
+        - ".LCSseq_cpp"
+        - ".Levenshtein_cpp"
+        - ".DamerauLevenshtein_cpp"
 
 - module-name: "reportlab.rl_config"
   implicit-imports:
@@ -2894,6 +2905,27 @@
   implicit-imports:
     - depends:
         - "uvloop._noop"
+
+- module-name: "vibora"
+  anti-bloat:
+    - description: "remove test code"
+      replacements_plain:
+        "from .tests import *": ""
+
+- module-name: "vibora.protocol.cprotocol"
+  implicit-imports:
+    - depends:
+        - "vibora.protocol.cwebsocket"
+
+- module-name: "vibora.responses.responses"
+  implicit-imports:
+    - depends:
+        - "vibora.constants"
+
+- module-name: "vibora.router.router"
+  implicit-imports:
+    - depends:
+        - "vibora.router.parser"
 
 - module-name: "vosk"
   dlls:
