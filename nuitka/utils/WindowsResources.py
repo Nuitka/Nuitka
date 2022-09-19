@@ -598,7 +598,6 @@ def addVersionInfoResource(
 
     assert product_version
     assert file_version
-    assert "CompanyName" in string_values
 
     if "FileDescription" not in string_values:
         string_values["FileDescription"] = "Description"
