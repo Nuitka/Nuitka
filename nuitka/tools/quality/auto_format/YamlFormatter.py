@@ -38,6 +38,10 @@ OPTIONS_KEYS = None
 OPTIONS_CHECKS_KEYS = None
 IMPORT_HACK_KEYS = None
 
+SINGLE_QUOTE = "'"
+DOUBLE_QUOTE = '"'
+STANDARD_QUOTE = SINGLE_QUOTE
+
 YAML_HEADER = """\
 # yamllint disable rule:line-length
 # yamllint disable rule:indentation
@@ -115,10 +119,10 @@ def _decideStrFormat(string):
         quote_right = string.rfind('"')
 
         if single_quote_left == -1 and not quote_left == -1:
-            return "'"
+            return SINGLE_QUOTE
 
         elif quote_left == -1 and not single_quote_left == -1:
-            return '"'
+            return DOUBLE_QUOTE
 
         elif (
             single_quote_left == -1
@@ -126,16 +130,16 @@ def _decideStrFormat(string):
             and quote_left == -1
             and quote_right == -1
         ):
-            return '"'
+            return DOUBLE_QUOTE
 
         elif single_quote_left > quote_left and single_quote_right < quote_right:
-            return "'"
+            return SINGLE_QUOTE
 
         elif single_quote_left < quote_left and single_quote_right > quote_right:
-            return '"'
+            return DOUBLE_QUOTE
 
         else:
-            return '"'
+            return STANDARD_QUOTE
 
     else:
         return ""
