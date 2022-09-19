@@ -303,15 +303,29 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
             "Error, no such Python binary %r, should be full path." % scons_python
         )
 
-    if options.output_filename is not None and (
-        (isStandaloneMode() and not isOnefileMode()) or shallMakeModule()
-    ):
-        Tracing.options_logger.sysexit(
-            """\
+    output_filename = getOutputFilename()
+
+    if output_filename is not None:
+        if (isStandaloneMode() and not isOnefileMode()) or shallMakeModule():
+            Tracing.options_logger.sysexit(
+                """\
 Error, may only specify output filename for acceleration and onefile mode,
 but not for module mode where filenames are mandatory, and not for
 standalone where there is a sane default used inside the dist folder."""
-        )
+            )
+
+        output_dir = os.path.dirname(output_filename) or "."
+
+        if not os.path.isdir(output_dir):
+            Tracing.options_logger.sysexit(
+                """\
+Error, specified output directory does not exist, you have to create
+it before using it: '%s' (from --output-filename='%s')."""
+                % (
+                    output_dir,
+                    output_filename,
+                )
+            )
 
     if isLinux():
         if len(getIconPaths()) > 1:
