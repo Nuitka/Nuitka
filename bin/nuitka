@@ -31,6 +31,7 @@ import sys
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
 # isort:start
+
 import nuitka.__main__  # false alarm, pylint: disable=I0021,no-name-in-module
 
 # Remove the nuitka package directory again, it might contain other stuff that we

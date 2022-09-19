@@ -42,6 +42,7 @@ sys.path.insert(
 )
 
 # isort:start
+
 from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     addExtendedExtraOptions,

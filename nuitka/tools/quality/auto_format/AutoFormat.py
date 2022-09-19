@@ -303,7 +303,7 @@ def _cleanupImportSortOrder(filename):
     if start_index is not None:
         contents = getFileContents(filename)
 
-        contents = "\n".join(parts[: start_index + 1]) + "\n" + contents
+        contents = "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
 
         putTextFileContents(filename, contents=contents)
 

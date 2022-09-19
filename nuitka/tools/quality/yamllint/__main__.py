@@ -31,6 +31,7 @@ sys.path.insert(
 )
 
 # isort:start
+
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
