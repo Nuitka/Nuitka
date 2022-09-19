@@ -302,7 +302,17 @@ class OurLogger(object):
         closeProgressBar()
 
         if message:
-            self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
+            if exit_code != 0:
+                self.my_print(
+                    "FATAL: %s" % message,
+                    style="red",
+                    file=sys.stderr,
+                )
+            else:
+                self.my_print(
+                    message,
+                    file=sys.stderr,
+                )
 
         sys.exit(exit_code)
 
