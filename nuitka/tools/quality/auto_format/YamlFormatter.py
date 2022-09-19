@@ -115,31 +115,34 @@ def _decideStrFormat(string):
     ):
         single_quote_left = string.find("'")
         single_quote_right = string.rfind("'")
-        quote_left = string.find('"')
-        quote_right = string.rfind('"')
+        double_quote_left = string.find('"')
+        double_quote_right = string.rfind('"')
 
-        if single_quote_left == -1 and not quote_left == -1:
+        if single_quote_left == -1 and not double_quote_left == -1:
             return SINGLE_QUOTE
 
-        elif quote_left == -1 and not single_quote_left == -1:
+        elif double_quote_left == -1 and not single_quote_left == -1:
             return DOUBLE_QUOTE
 
         elif (
             single_quote_left == -1
             and single_quote_right == -1
-            and quote_left == -1
-            and quote_right == -1
+            and double_quote_left == -1
+            and double_quote_right == -1
         ):
-            return DOUBLE_QUOTE
+            return STANDARD_QUOTE
 
-        elif single_quote_left > quote_left and single_quote_right < quote_right:
+        elif (
+            single_quote_left > double_quote_left
+            and single_quote_right < double_quote_right
+        ):
             return SINGLE_QUOTE
 
-        elif single_quote_left < quote_left and single_quote_right > quote_right:
+        elif (
+            single_quote_left < double_quote_left
+            and single_quote_right > double_quote_right
+        ):
             return DOUBLE_QUOTE
-
-        else:
-            return STANDARD_QUOTE
 
     else:
         return ""
