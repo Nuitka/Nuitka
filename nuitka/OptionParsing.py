@@ -637,6 +637,7 @@ parser.add_option_group(compilation_group)
 output_group = OptionGroup(parser, "Output choices")
 
 output_group.add_option(
+    "--output-filename",
     "-o",
     action="store",
     dest="output_filename",
@@ -1226,6 +1227,7 @@ filename of the binary.""",
 
 windows_group.add_option(
     "--windows-file-version",
+    "--file-version",
     action="store",
     dest="windows_file_version",
     metavar="WINDOWS_FILE_VERSION",
