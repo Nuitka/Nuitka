@@ -210,7 +210,7 @@ def findInstalledPython(python_versions, module_name, module_version):
     # Attempt to prefer scanned versions.
     for python_version in python_versions:
         for candidate in _installed_pythons.get(python_version, ()):
-            if candidate.checkUsability(
+            if module_name is None or candidate.checkUsability(
                 module_name=module_name, module_version=module_version
             ):
                 return candidate
@@ -221,7 +221,7 @@ def findInstalledPython(python_versions, module_name, module_version):
             _installed_pythons[python_version] = findPythons(python_version)
 
             for candidate in _installed_pythons.get(python_version, ()):
-                if candidate.checkUsability(
+                if module_name is None or candidate.checkUsability(
                     module_name=module_name, module_version=module_version
                 ):
                     return candidate

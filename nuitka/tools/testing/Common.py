@@ -40,7 +40,12 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.Execution import check_output, getNullInput, getNullOutput
+from nuitka.utils.Execution import (
+    check_output,
+    createProcess,
+    getNullInput,
+    getNullOutput,
+)
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getExternalUsePath,
@@ -1826,3 +1831,58 @@ def getPythonSysPath():
         _sys_path_path = _sys_path_path.strip()
 
     return _sys_path_path
+
+
+_web_server_process = None
+_web_server_port = 27272
+_web_server_hostname = "localhost"
+
+
+def getLocalWebServerUrl():
+    return "http://%s:%d" % (_web_server_hostname, _web_server_port)
+
+
+def getLocalWebServerDir(base_dir):
+    global _web_server_process  # singleton, pylint: disable=global-statement
+
+    web_dir = os.path.join(getTempDir(), "local-web-server", base_dir)
+
+    if _web_server_process is None:
+        web_server_directory_supporting_pythons = ("3.10", "3.9", "3.8", "3.7")
+
+        web_server_python = findInstalledPython(
+            python_versions=web_server_directory_supporting_pythons,
+            module_name=None,
+            module_version=None,
+        )
+
+        if web_server_python is None:
+            return None
+
+        os.makedirs(web_dir)
+
+        command = [
+            web_server_python.getPythonExe(),
+            "-m",
+            "http.server",
+            "--bind",
+            _web_server_hostname,
+            "--dir",
+            web_dir,
+            str(_web_server_port),
+        ]
+
+        test_logger.my_print(" ".join(command))
+
+        _web_server_process = createProcess(
+            command,
+            stdout=sys.stderr,
+            stderr=sys.stderr,
+        )
+
+        def killWebServerProcess():
+            _web_server_process.kill()
+
+        atexit.register(killWebServerProcess)
+
+    return web_dir
