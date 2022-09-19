@@ -49,7 +49,6 @@ IMPORT_HACK_KEYS = None
 
 SINGLE_QUOTE = "'"
 DOUBLE_QUOTE = '"'
-STANDARD_QUOTE = SINGLE_QUOTE
 
 YAML_HEADER = """\
 # yamllint disable rule:line-length
@@ -105,50 +104,53 @@ def _initNuitkaPackageSchema():
     )
 
 
-def _decideStrFormat(string):
+def _decideStrFormat(string_value):
     """
     take the character that is not closest to the beginning or end
     """
     # Singleton, pylint: disable=too-many-return-statements
     if (
-        string not in MASTER_KEYS
-        and string not in DATA_FILES_KEYS
-        and string not in DLLS_KEYS
-        and string not in DLLS_BY_CODE_KEYS
-        and string not in DLLS_FROM_FILENAMES_KEYS
-        and string not in ANTI_BLOAT_KEYS
-        and string not in IMPLICIT_IMPORTS_KEYS
-        and string not in OPTIONS_KEYS
-        and string not in IMPORT_HACK_KEYS
-        and string not in OPTIONS_CHECKS_KEYS
+        string_value not in MASTER_KEYS
+        and string_value not in DATA_FILES_KEYS
+        and string_value not in DLLS_KEYS
+        and string_value not in DLLS_BY_CODE_KEYS
+        and string_value not in DLLS_FROM_FILENAMES_KEYS
+        and string_value not in ANTI_BLOAT_KEYS
+        and string_value not in IMPLICIT_IMPORTS_KEYS
+        and string_value not in OPTIONS_KEYS
+        and string_value not in IMPORT_HACK_KEYS
+        and string_value not in OPTIONS_CHECKS_KEYS
     ):
-        single_quote_left = string.find("'")
-        single_quote_right = string.rfind("'")
-        quote_left = string.find('"')
-        quote_right = string.rfind('"')
+        single_quote_left_pos = string_value.find("'")
+        single_quote_right_pos = string_value.rfind("'")
+        double_quote_left_pos = string_value.find('"')
+        double_quote_right_pos = string_value.rfind('"')
 
-        if single_quote_left == -1 and not quote_left == -1:
+        if single_quote_left_pos == -1 and not double_quote_left_pos == -1:
             return SINGLE_QUOTE
 
-        elif quote_left == -1 and not single_quote_left == -1:
+        elif double_quote_left_pos == -1 and not single_quote_left_pos == -1:
             return DOUBLE_QUOTE
 
         elif (
-            single_quote_left == -1
-            and single_quote_right == -1
-            and quote_left == -1
-            and quote_right == -1
+            single_quote_left_pos == -1
+            and single_quote_right_pos == -1
+            and double_quote_left_pos == -1
+            and double_quote_right_pos == -1
         ):
-            return DOUBLE_QUOTE
+            if "\n" in string_value:
+                return DOUBLE_QUOTE
+            else:
+                return SINGLE_QUOTE
 
-        elif single_quote_left > quote_left and single_quote_right < quote_right:
+        elif (
+            single_quote_left_pos > double_quote_left_pos
+            and single_quote_right_pos < double_quote_right_pos
+        ):
             return SINGLE_QUOTE
 
-        elif single_quote_left < quote_left and single_quote_right > quote_right:
-            return DOUBLE_QUOTE
-
         else:
-            return STANDARD_QUOTE
+            return DOUBLE_QUOTE
 
     else:
         return ""
