@@ -29,6 +29,7 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
+from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
 from .PythonAPICodes import generateCAPIObjectCode
 
@@ -95,6 +96,30 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
             emit=emit,
             context=context,
         )
+
+
+def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, context):
+    distribution = expression.distribution
+    metadata = (
+        distribution.read_text("METADATA") or distribution.read_text("METADATA") or ""
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "distribution_value", expression, emit, context
+    ) as value_name:
+
+        emit(
+            """%(to_name)s = Nuitka_Distribution_New("%(name)s", %(metadata)s);"""
+            % {
+                "to_name": value_name,
+                "name": distribution.metadata["Name"],
+                "metadata": context.getConstantCode(constant=str(metadata)),
+            }
+        )
+
+        getErrorExitCode(check_name=value_name, emit=emit, context=context)
+
+        context.addCleanupTempName(value_name)
 
 
 def generatePkgResourcesEntryPointValueCode(to_name, expression, emit, context):
@@ -289,6 +314,38 @@ def generateImportlibMetadataBackportVersionCallCode(
         getCallCodePosArgsQuick(
             to_name=result_name,
             called_name=version_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataDistributionCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "distribution_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        get_distribution_function_name = context.allocateTempName(
+            "distribution_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=get_distribution_function_name,
+            module_name=expression.importlib_metadata_name,
+            import_name="distribution",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=get_distribution_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
             needs_check=expression.mayRaiseException(BaseException),

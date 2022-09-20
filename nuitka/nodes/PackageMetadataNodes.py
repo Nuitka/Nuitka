@@ -525,9 +525,7 @@ class ExpressionPkgResourcesDistributionValueRef(
 
     def __init__(self, distribution, source_ref):
         with withNoDeprecationWarning():
-            Distribution = importFromCompileTime(
-                "pkg_resources", must_exist=True
-            ).Distribution
+            Distribution = _getPkgResourcesModule().Distribution
 
             preserved_attributes = self.preserved_attributes
             if not isStandaloneMode():
@@ -592,6 +590,39 @@ class ExpressionPkgResourcesDistributionValueRef(
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
         return not self.isKnownToHaveAttribute(attribute_name)
+
+
+class ExpressionImportlibMetadataDistributionValueRef(
+    ExpressionNoSideEffectsMixin, ExpressionBase
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_VALUE_REF"
+
+    __slots__ = ("distribution", "computed_attributes")
+
+    def __init__(self, distribution, source_ref):
+        ExpressionBase.__init__(self, source_ref=source_ref)
+
+        self.distribution = distribution
+        self.computed_attributes = {}
+
+    def finalize(self):
+        del self.distribution
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def getTruthValue():
+        return True
+
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+
+    def computeExpressionRaw(self, trace_collection):
+        # Cannot compute any further, this is already the best.
+        return self, None, None
 
 
 class ExpressionPkgResourcesIterEntryPointsRef(
@@ -715,9 +746,7 @@ class ExpressionPkgResourcesEntryPointValueRef(
 
     def __init__(self, entry_point, source_ref):
         with withNoDeprecationWarning():
-            EntryPoint = importFromCompileTime(
-                "pkg_resources", must_exist=True
-            ).EntryPoint
+            EntryPoint = _getPkgResourcesModule().EntryPoint
 
             preserved_attributes = self.preserved_attributes
 
@@ -772,3 +801,154 @@ class ExpressionPkgResourcesEntryPointValueRef(
             )
 
         return lookup_node, None, None
+
+
+importlib_metadata_distribution_spec = BuiltinParameterSpec(
+    "importlib.metadata.distribution", ("distribution_name",), default_count=0
+)
+
+
+class ExpressionImportlibMetadataDistributionRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib.metadata.distribution"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib.metadata",
+            import_name="distribution",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibMetadataDistributionCall,
+            builtin_spec=importlib_metadata_version_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib.metadata.distribution' recognized.",
+        )
+
+
+class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase):
+    named_child = "dist"
+
+    __slots__ = ("attempted",)
+
+    def __init__(self, dist, source_ref):
+        ExpressionChildHavingBase.__init__(self, value=dist, source_ref=source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def _getImportlibMetadataModule(self):
+        return importFromCompileTime(self.importlib_meta_name, must_exist=True)
+
+    def _replaceWithCompileTimeValue(self, trace_collection):
+        distribution_func = self._getImportlibMetadataModule().distribution
+        PackageNotFoundError = self._getImportlibMetadataModule().PackageNotFoundError
+
+        arg = self.subnode_dist.getCompileTimeConstant()
+
+        try:
+            distribution = distribution_func(arg)
+        except PackageNotFoundError:
+            inclusion_logger.warning(
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                % (arg, self.source_ref.getAsString())
+            )
+
+            self.attempted = True
+
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            inclusion_logger.sysexit(
+                "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
+                % (arg, self.source_ref.getAsString(), repr(e))
+            )
+        else:
+            result = ExpressionImportlibMetadataDistributionValueRef(
+                distribution=distribution, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Compile time predicted '%s.distribution' result"
+                % self.importlib_meta_name,
+            )
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_metadata_distribution_spec.isCompileTimeComputable(
+                (self.subnode_dist,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        return self._replaceWithCompileTimeValue(trace_collection)
+
+
+class ExpressionImportlibMetadataDistributionCall(
+    ExpressionImportlibMetadataDistributionCallBase
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL"
+    importlib_meta_name = "importlib.metadata"
+
+
+class ExpressionImportlibMetadataBackportDistributionCall(
+    ExpressionImportlibMetadataDistributionCallBase
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL"
+    importlib_meta_name = "importlib_metadata"
+
+
+class ExpressionImportlibMetadataBackportDistributionRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib_metadata.distribution"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib_metadata",
+            import_name="distribution",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibMetadataBackportDistributionCall,
+            builtin_spec=importlib_metadata_version_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib_metadata.distribution' recognized.",
+        )

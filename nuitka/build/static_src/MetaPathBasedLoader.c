@@ -1251,43 +1251,6 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
     return result;
 }
 
-#if PYTHON_VERSION >= 0x300
-// Used in module template too, therefore exported.
-PyObject *getImportLibBootstrapModule(void) {
-    static PyObject *importlib = NULL;
-    if (importlib == NULL) {
-        importlib = PyImport_ImportModule("importlib._bootstrap");
-    }
-
-    return importlib;
-}
-#endif
-
-#if PYTHON_VERSION >= 0x340
-
-static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
-    PyObject *module;
-    PyObject *unused;
-
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kwlist, &module, &unused);
-
-    if (unlikely(res == 0)) {
-        return NULL;
-    }
-
-    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module), Nuitka_GetFilenameObject(module));
-}
-
-static PyObject *getModuleSpecClass(PyObject *importlib_module) {
-    static PyObject *module_spec_class = NULL;
-
-    if (module_spec_class == NULL) {
-        module_spec_class = PyObject_GetAttrString(importlib_module, "ModuleSpec");
-    }
-
-    return module_spec_class;
-}
-
 static PyObject *getModuleDirectory(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
 #if defined(_NUITKA_FREEZER_HAS_FILE_PATH)
 #if defined(_WIN32)
@@ -1332,6 +1295,43 @@ static PyObject *getModuleDirectory(struct Nuitka_MetaPathBasedLoaderEntry const
 #endif
 
     return dir_name;
+}
+
+#if PYTHON_VERSION >= 0x300
+// Used in module template too, therefore exported.
+PyObject *getImportLibBootstrapModule(void) {
+    static PyObject *importlib = NULL;
+    if (importlib == NULL) {
+        importlib = PyImport_ImportModule("importlib._bootstrap");
+    }
+
+    return importlib;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x340
+
+static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *module;
+    PyObject *unused;
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kwlist, &module, &unused);
+
+    if (unlikely(res == 0)) {
+        return NULL;
+    }
+
+    return PyUnicode_FromFormat("<module '%s' from %R>", PyModule_GetName(module), Nuitka_GetFilenameObject(module));
+}
+
+static PyObject *getModuleSpecClass(PyObject *importlib_module) {
+    static PyObject *module_spec_class = NULL;
+
+    if (module_spec_class == NULL) {
+        module_spec_class = PyObject_GetAttrString(importlib_module, "ModuleSpec");
+    }
+
+    return module_spec_class;
 }
 
 static PyObject *getModuleFileValue(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
@@ -1587,95 +1587,6 @@ static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *ar
 
 #if _NUITKA_EXPERIMENTAL_METADATA
 
-struct Nuitka_DistributionObject {
-    /* Python object folklore: */
-    PyObject_HEAD
-
-        /* The loader entry, to know this is about exactly. */
-        struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
-};
-
-static void Nuitka_Distribution_tp_dealloc(struct Nuitka_DistributionObject *distribution) {
-    Nuitka_GC_UnTrack(distribution);
-
-    PyObject_GC_Del(distribution);
-}
-
-static PyObject *Nuitka_Distribution_tp_repr(struct Nuitka_DistributionObject *loader) {
-    return Nuitka_String_FromFormat("<nuitka_distribution for '%s'>", loader->m_loader_entry->name);
-}
-
-static int Nuitka_Distribution_tp_traverse(struct Nuitka_DistributionObject *loader, visitproc visit, void *arg) {
-    return 0;
-}
-
-static PyObject *_nuitka_distribution_metainfo(struct Nuitka_DistributionObject *distribution) {
-    CHECK_OBJECT(distribution);
-
-    PyObject *result = Nuitka_String_FromString("");
-
-    return result;
-}
-
-static PyMethodDef Nuitka_Distribution_methods[] = {
-    {"metainfo", (PyCFunction)_nuitka_distribution_metainfo, METH_NOARGS, NULL},
-
-    {NULL, NULL}};
-
-static PyObject *Nuitka_Distribution_get_version(struct Nuitka_DistributionObject *distribution) {
-    CHECK_OBJECT(distribution);
-
-    // TODO: Don't lie, but this will allow some things to proceed.
-    return Nuitka_String_FromString("0.0.0");
-}
-
-static PyGetSetDef Nuitka_Distribution_getsetlist[] = {
-    {(char *)"version", (getter)Nuitka_Distribution_get_version, (setter)NULL, NULL}, {NULL}};
-
-static PyTypeObject Nuitka_Distribution_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "nuitka_distribution",
-    sizeof(struct Nuitka_DistributionObject),      /* tp_basicsize */
-    0,                                             /* tp_itemsize */
-    (destructor)Nuitka_Distribution_tp_dealloc,    /* tp_dealloc */
-    0,                                             /* tp_print */
-    0,                                             /* tp_getattr */
-    0,                                             /* tp_setattr */
-    0,                                             /* tp_reserved */
-    (reprfunc)Nuitka_Distribution_tp_repr,         /* tp_repr */
-    0,                                             /* tp_as_number */
-    0,                                             /* tp_as_sequence */
-    0,                                             /* tp_as_mapping */
-    0,                                             /* tp_hash */
-    0,                                             /* tp_call */
-    0,                                             /* tp_str */
-    PyObject_GenericGetAttr,                       /* tp_getattro */
-    0,                                             /* tp_setattro */
-    0,                                             /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,       /* tp_flags */
-    0,                                             /* tp_doc */
-    (traverseproc)Nuitka_Distribution_tp_traverse, /* tp_traverse */
-    0,                                             /* tp_clear */
-    0,                                             /* tp_richcompare */
-    0,                                             /* tp_weaklistoffset */
-    0,                                             /* tp_iter */
-    0,                                             /* tp_iternext */
-    Nuitka_Distribution_methods,                   /* tp_methods */
-    0,                                             /* tp_members */
-    Nuitka_Distribution_getsetlist,                /* tp_getset */
-};
-
-PyObject *Nuitka_Distribution_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
-    struct Nuitka_DistributionObject *result;
-
-    result = (struct Nuitka_DistributionObject *)PyObject_GC_New(struct Nuitka_DistributionObject,
-                                                                 &Nuitka_Distribution_Type);
-    Nuitka_GC_Track(result);
-
-    result->m_loader_entry = entry;
-
-    return (PyObject *)result;
-}
-
 static char const *_kw_list_find_distributions[] = {"context", NULL};
 
 static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -1872,10 +1783,6 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 
     PyType_Ready(&Nuitka_Loader_Type);
 
-#if _NUITKA_EXPERIMENTAL_METADATA
-    PyType_Ready(&Nuitka_Distribution_Type);
-#endif
-
 #if PYTHON_VERSION >= 0x370
     PyType_Ready(&Nuitka_ResourceReader_Type);
 #endif
@@ -1916,3 +1823,6 @@ void setEarlyFrozenModulesFileAttribute(void) {
 }
 
 #endif
+
+// The importlib distribution class is implemented in a separate file.
+#include "MetaPathBasedLoaderImportlibMetadataDistribution.c"

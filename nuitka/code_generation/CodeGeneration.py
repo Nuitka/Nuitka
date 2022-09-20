@@ -249,6 +249,8 @@ from .OperationCodes import (
 )
 from .PackageResourceCodes import (
     generateImportlibMetadataBackportVersionCallCode,
+    generateImportlibMetadataDistributionCallCode,
+    generateImportlibMetadataDistributionValueCode,
     generateImportlibMetadataVersionCallCode,
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
@@ -819,6 +821,9 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_VALUE_REF": generateImportlibMetadataDistributionValueCode,
         "EXPRESSION_OS_UNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_EXISTS_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_ISFILE_REF": generateImportModuleNameHardCode,
@@ -835,6 +840,8 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL": generateImportlibResourcesReadTextCallCode,
         "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL": generateImportlibMetadataVersionCallCode,
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL": generateImportlibMetadataBackportVersionCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL": generateImportlibMetadataDistributionCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL": generateImportlibMetadataDistributionCallCode,
         "EXPRESSION_OS_UNAME_CALL": generateOsUnameCallCode,
         "EXPRESSION_OS_PATH_EXISTS_CALL": generateOsPathExistsCallCode,
         "EXPRESSION_OS_PATH_ISFILE_CALL": generateOsPathIsfileCallCode,
