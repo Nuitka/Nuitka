@@ -497,6 +497,28 @@ def _isMacOSFramework(path):
     return isMacOS() and os.path.isdir(path) and path.endswith(".framework")
 
 
+def isLink(path):
+    result = os.path.islink(path)
+
+    # Special handling for Junctions.
+    if not result and isWin32Windows():
+        import ctypes.wintypes
+
+        GetFileAttributesW = ctypes.windll.kernel32.GetFileAttributesW
+        GetFileAttributesW.restype = ctypes.wintypes.DWORD
+        GetFileAttributesW.argtypes = (ctypes.wintypes.LPCWSTR,)
+
+        INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
+        FILE_ATTRIBUTE_REPARSE_POINT = 0x00400
+
+        result = GetFileAttributesW(path)
+
+        if result != INVALID_FILE_ATTRIBUTES:
+            result = bool(result & FILE_ATTRIBUTE_REPARSE_POINT)
+
+    return result
+
+
 def deleteFile(path, must_exist):
     """Delete a file, potentially making sure it exists.
 
@@ -508,7 +530,7 @@ def deleteFile(path, must_exist):
         possible.
     """
     with withFileLock("deleting file %s" % path):
-        if os.path.islink(path) or os.path.isfile(path):
+        if isLink(path) or os.path.isfile(path):
             try:
                 os.unlink(path)
             except OSError:
