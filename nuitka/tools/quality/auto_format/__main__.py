@@ -67,6 +67,42 @@ def main():
 Defaults to off.""",
     )
 
+    parser.add_option(
+        "--yaml",
+        action="store_true",
+        dest="yaml",
+        default=False,
+        help="""Format only matching Yaml files
+Defaults to off.""",
+    )
+
+    parser.add_option(
+        "--python",
+        action="store_true",
+        dest="python",
+        default=False,
+        help="""Format only matching Python files
+Defaults to off.""",
+    )
+
+    parser.add_option(
+        "--c",
+        action="store_true",
+        dest="c",
+        default=False,
+        help="""Format only matching C files
+Defaults to off.""",
+    )
+
+    parser.add_option(
+        "--rst",
+        action="store_true",
+        dest="rst",
+        default=False,
+        help="""Format only matching rst files
+Defaults to off.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if options.from_commit:
@@ -115,7 +151,15 @@ Defaults to off.""",
         for filename in wrapWithProgressBar(
             filenames, stage="Auto format", unit="files"
         ):
-            if autoFormatFile(filename, git_stage=False, check_only=options.check_only):
+            if autoFormatFile(
+                filename,
+                git_stage=False,
+                check_only=options.check_only,
+                limit_yaml=options.yaml,
+                limit_c=options.c,
+                limit_python=options.python,
+                limit_rst=options.rst,
+            ):
                 result += 1
 
         # Tool is named without separator, spellchecker: ignore autoformat

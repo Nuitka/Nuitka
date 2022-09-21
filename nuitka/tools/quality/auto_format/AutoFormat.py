@@ -482,7 +482,15 @@ def _transferBOM(source_filename, target_filename):
 
 
 def autoFormatFile(
-    filename, git_stage, check_only=False, effective_filename=None, trace=True
+    filename,
+    git_stage,
+    check_only=False,
+    effective_filename=None,
+    trace=True,
+    limit_yaml=False,
+    limit_python=False,
+    limit_c=False,
+    limit_rst=False,
 ):
     """Format source code with external tools
 
@@ -500,7 +508,8 @@ def autoFormatFile(
         None
     """
 
-    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # This does a lot of distinctions
+    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -554,6 +563,19 @@ def autoFormatFile(
     if not (is_python or is_c or is_cpp or is_txt or is_rst):
         my_print("Ignored file type.")
         return
+
+    if limit_yaml or limit_python or limit_c or limit_rst:
+        if is_package_config_yaml and not limit_yaml:
+            return
+
+        if (is_c or is_cpp) and not limit_c:
+            return
+
+        if is_python and not limit_python:
+            return
+
+        if is_rst and not limit_rst:
+            return
 
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"
