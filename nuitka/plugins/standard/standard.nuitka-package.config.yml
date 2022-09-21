@@ -289,6 +289,11 @@
     - depends:
         - 'tzdata'
 
+- module-name: 'facenet_pytorch.models.mtcnn'
+  data-files:
+    dirs:
+      - '../data'
+
 - module-name: 'falcon.app'
   implicit-imports:
     - depends:
