@@ -16954,9 +16954,8 @@ Organisational
    g++ and MinGW compilers, plus adequate errors messages are given, if
    the compiler version is too low.
 
--  There is now a ``--unstripped`` (since renamed to ``--unstriped``)
-   option that just keeps the debug information in the file, but doesn't
-   keep the assertions.
+-  There is now a ``--unstripped`` option that just keeps the debug
+   information in the file, but doesn't keep the assertions.
 
    This will be helpful when looking at generated assembler code from
    Nuitka to not have the distortions that ``--debug`` causes (reduced

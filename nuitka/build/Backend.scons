@@ -200,8 +200,8 @@ disable_console = getArgumentBool("disable_console", False)
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
 
-# Unstriped mode: Do not remove debug symbols.
-unstriped_mode = getArgumentBool("unstriped_mode", False)
+# Unstripped mode: Do not remove debug symbols.
+unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
@@ -369,7 +369,7 @@ env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
-env.unstriped_mode = debug_mode or unstriped_mode
+env.unstripped_mode = debug_mode or unstripped_mode
 env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.source_dir = source_dir

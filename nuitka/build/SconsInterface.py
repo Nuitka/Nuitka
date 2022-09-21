@@ -380,8 +380,8 @@ def setCommonOptions(options):
     if isWin32OrPosixWindows() or isMacOS():
         options["noelf_mode"] = asBoolStr(True)
 
-    if Options.isUnstriped():
-        options["unstriped_mode"] = asBoolStr(True)
+    if Options.isUnstripped():
+        options["unstripped_mode"] = asBoolStr(True)
 
     if isAnacondaPython():
         options["anaconda_python"] = asBoolStr(True)

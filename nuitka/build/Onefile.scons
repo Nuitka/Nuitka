@@ -140,8 +140,8 @@ noelf_mode = getArgumentBool("noelf_mode", False)
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
-# Unstriped mode: Do not remove debug symbols.
-unstriped_mode = getArgumentBool("unstriped_mode", False)
+# Unstripped mode: Do not remove debug symbols.
+unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
@@ -286,7 +286,7 @@ env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
-env.unstriped_mode = debug_mode or unstriped_mode
+env.unstripped_mode = debug_mode or unstripped_mode
 env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.source_dir = source_dir

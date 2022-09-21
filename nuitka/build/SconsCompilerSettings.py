@@ -699,7 +699,7 @@ def _enablePgoSettings(env, pgo_mode):
 
 
 def _enableDebugSystemSettings(env, job_count):
-    if env.unstriped_mode:
+    if env.unstripped_mode:
         # Use debug format, so we get good tracebacks from it.
         if env.gcc_mode:
             env.Append(LINKFLAGS=["-g"])
