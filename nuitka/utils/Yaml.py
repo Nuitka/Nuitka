@@ -63,7 +63,7 @@ class Yaml(object):
 
             self.data[module_name] = item
 
-    def __rep__(self):
+    def __repr__(self):
         return "<Yaml %s>" % self.name
 
     def get(self, name, section):

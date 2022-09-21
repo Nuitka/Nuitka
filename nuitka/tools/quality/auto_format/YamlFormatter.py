@@ -24,8 +24,17 @@ import json
 import sys
 
 from nuitka.__past__ import StringIO
-from nuitka.utils.FileOperations import getFileContents, openTextFile
-from nuitka.utils.Yaml import getYamlPackageConfigurationSchemaFilename
+from nuitka.Tracing import tools_logger
+from nuitka.utils.FileOperations import (
+    getFileContents,
+    openTextFile,
+    renameFile,
+)
+from nuitka.utils.Yaml import (
+    Yaml,
+    getYamlPackageConfigurationSchemaFilename,
+    parseYaml,
+)
 
 MASTER_KEYS = None
 DATA_FILES_KEYS = None
@@ -186,6 +195,17 @@ def _reorderDictionaryList(entry_list, key_order):
     return result
 
 
+def deepCompareYamlFiles(path1, path2):
+    yaml1 = Yaml(path1, parseYaml(getFileContents(path1)))
+    yaml2 = Yaml(path2, parseYaml(getFileContents(path2)))
+
+    import deepdiff
+
+    diff = deepdiff.diff.DeepDiff(yaml1.items(), yaml2.items(), ignore_order=True)
+
+    return diff
+
+
 def formatYaml(path):
     """
     format and sort a yaml file
@@ -327,7 +347,9 @@ def formatYaml(path):
 
     new_data = sorted(new_data, key=lambda d: d["module-name"].lower())
 
-    with open(path, "w", encoding="utf-8") as output_file:
+    tmp_path = path + ".tmp"
+
+    with open(tmp_path, "w", encoding="utf-8") as output_file:
         output_file.write(YAML_HEADER)
 
         string_io = StringIO()
@@ -354,3 +376,11 @@ def formatYaml(path):
             lastline = line
 
             output_file.write(line + "\n")
+
+    diff = deepCompareYamlFiles(path, tmp_path)
+    if diff:
+        tools_logger.sysexit(
+            "Error, auto-format for Yaml file %s is changing contents %s" % (path, diff)
+        )
+
+    renameFile(tmp_path, path)

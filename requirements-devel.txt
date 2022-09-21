@@ -26,6 +26,7 @@ yamllint == 1.26.3 ; python_version >= '3.7'
 rstfmt == 0.0.11 ; python_version >= '3.7'
 jsonschema == 4.6.0 ; python_version >= '3.7'
 ruamel.yaml == 0.17.21 ; python_version >= '3.7'
+deepdiff==5.8.1 ; python_version >= '3.7'
 
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
