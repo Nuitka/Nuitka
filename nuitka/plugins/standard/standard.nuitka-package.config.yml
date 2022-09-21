@@ -2769,6 +2769,12 @@
           - 'libjpeg'
           - 'libpng*'
 
+- module-name: 'torchvision.extension'
+  implicit-imports:
+    - depends:
+        # This is really only a DLL, but named according to extension module rules.
+        - '._C'
+
 - module-name: 'torchvision.io.image'
   implicit-imports:
     - depends:
