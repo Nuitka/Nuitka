@@ -273,7 +273,7 @@ class OurLogger(object):
         style = style or self.base_style
 
         if sys.stderr.isatty():
-            width = _getTerminalSize()
+            width = _getTerminalSize() or 10000
         else:
             width = 10000
 
