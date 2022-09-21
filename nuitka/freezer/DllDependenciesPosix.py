@@ -23,6 +23,7 @@
 import os
 import sys
 
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATH
@@ -151,7 +152,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     return sub_result
 
 
-_linux_dll_ignore_list = (
+_linux_dll_ignore_list = [
     # Do not include kernel / glibc specific libraries. This list has been
     # assembled by looking what are the most common .so files provided by
     # glibc packages from ArchLinux, Debian Stretch and CentOS.
@@ -202,4 +203,9 @@ _linux_dll_ignore_list = (
     # The DRM layer should also be taken from the OS in question and won't
     # allow loading native drivers otherwise.
     "libdrm.so",
-)
+]
+
+if isAnacondaPython():
+    # Anaconda has these with e.g. torchvision, and insists on them being very new,
+    # so they have to be included.
+    _linux_dll_ignore_list.remove("libstdc++.so")
