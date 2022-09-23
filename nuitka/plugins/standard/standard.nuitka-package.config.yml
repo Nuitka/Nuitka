@@ -1552,6 +1552,103 @@
       replacements_plain:
         'import doctest': ''
 
+- module-name: 'pyscf.agf2._agf2'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libagf2'
+
+- module-name: 'pyscf.ao2mo'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libao2mo'
+
+- module-name: 'pyscf.cc._ccsd'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libcc'
+
+- module-name: 'pyscf.df.df_jk'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libri'
+
+- module-name: 'pyscf.dft'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libdft'
+
+- module-name: 'pyscf.dft.libxc'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libxc_itrf'
+
+- module-name: 'pyscf.dft.xcfun'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libxcfun_itrf'
+
+- module-name: 'pyscf.fci'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libfci'
+
+- module-name: 'pyscf.gto'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libcgto'
+
+- module-name: 'pyscf.lib.numpy_helper'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libnp_helper'
+
+- module-name: 'pyscf.mcscf'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libmcscf'
+
+- module-name: 'pyscf.mrpt.nevpt2'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libmcscf'
+
+- module-name: 'pyscf.pbc'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libpbc'
+
+- module-name: 'pyscf.scf._vhf'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libcvhf'
+
 - module-name: 'PySide2'
   options:
     checks:
