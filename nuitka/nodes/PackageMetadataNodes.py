@@ -127,7 +127,7 @@ class ExpressionPkgResourcesRequireCall(ExpressionChildTupleHavingBase):
             distributions = require(*args)
         except ResolutionError:
             inclusion_logger.warning(
-                "Cannot find requirement '%s' at '%s', expect potential run time problem. Could also be dead code."
+                "Cannot find requirement '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (",".join(repr(s) for s in args), self.source_ref.getAsString())
             )
 
@@ -239,7 +239,7 @@ class ExpressionPkgResourcesGetDistributionCall(ExpressionChildHavingBase):
             distribution = get_distribution(arg)
         except DistributionNotFound:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (arg, self.source_ref.getAsString())
             )
 
@@ -388,7 +388,7 @@ class ExpressionImportlibMetadataVersionCall(ExpressionChildHavingBase):
             distribution = version(arg)
         except PackageNotFoundError:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (arg, self.source_ref.getAsString())
             )
 
@@ -468,7 +468,7 @@ class ExpressionImportlibMetadataBackportVersionCall(ExpressionChildHavingBase):
             distribution = version(arg)
         except PackageNotFoundError:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (arg, self.source_ref.getAsString())
             )
 
@@ -690,7 +690,7 @@ class ExpressionPkgResourcesIterEntryPointsCall(ExpressionChildrenHavingBase):
             entry_points = tuple(iter_entry_points(group=group, name=name))
         except DistributionNotFound:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (group, self.source_ref.getAsString())
             )
 
@@ -869,7 +869,7 @@ class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase)
             distribution = distribution_func(arg)
         except PackageNotFoundError:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, could also be dead code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (arg, self.source_ref.getAsString())
             )
 
