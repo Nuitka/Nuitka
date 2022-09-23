@@ -246,6 +246,12 @@
     patterns:
       - 'dask.yaml'
 
+- module-name: 'datatree'
+  anti-bloat:
+    - description: 'remove useless metadata usage'
+      replacements_plain:
+        '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
+
 - module-name: 'dipy'
   anti-bloat:
     - description: 'remove dipy and numpy testing framework'
