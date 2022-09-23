@@ -258,6 +258,11 @@
       replacements_plain:
         'from .testing import setup_test': ''
 
+- module-name: 'distributed.config'
+  data-files:
+    patterns:
+      - 'distributed.yaml'
+
 - module-name: 'distributed.scheduler'
   anti-bloat:
     - description: 'remove cython support'
