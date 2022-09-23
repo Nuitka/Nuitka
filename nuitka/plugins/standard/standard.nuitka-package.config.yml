@@ -960,12 +960,28 @@
           test = None
           bench = None
 
+        class suppress_warnings:
+          def __init__(self, forwarding_rule="always"):
+            pass
+
+          def filter(self, category=Warning, message="", module=None):
+            pass
+
+          def __enter__(self):
+            return self
+
+          def __exit__(self, *exc_info):
+            pass
+
+          def __call__(self, func):
+            def new_func(*args, **kwargs):
+              with self:
+                return func(*args, **kwargs)
+
+            return new_func
+
         def assert_allclose(*args, **kwargs):
           return True
-
-        @contextmanager
-        def suppress_warnings(forwarding_rule="always"):
-          yield
 
         @contextmanager
         def _assert_warns_context(warning_class, name=None):
