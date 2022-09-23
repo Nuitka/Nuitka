@@ -823,6 +823,8 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_METADATA_REF": generateImportModuleNameHardCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_METADATA_REF": generateImportModuleNameHardCode,
         "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_VALUE_REF": generateImportlibMetadataDistributionValueCode,
         "EXPRESSION_OS_UNAME_REF": generateImportModuleNameHardCode,
         "EXPRESSION_OS_PATH_EXISTS_REF": generateImportModuleNameHardCode,

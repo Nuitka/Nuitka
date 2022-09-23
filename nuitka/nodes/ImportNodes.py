@@ -78,8 +78,10 @@ from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .PackageMetadataNodes import (
     ExpressionImportlibMetadataBackportDistributionRef,
+    ExpressionImportlibMetadataBackportMetadataRef,
     ExpressionImportlibMetadataBackportVersionRef,
     ExpressionImportlibMetadataDistributionRef,
+    ExpressionImportlibMetadataMetadataRef,
     ExpressionImportlibMetadataVersionRef,
     ExpressionPkgResourcesGetDistributionRef,
     ExpressionPkgResourcesIterEntryPointsRef,
@@ -242,8 +244,16 @@ hard_modules_trust = {
     "typing": module_typing_trust,
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
     "importlib": module_importlib_trust,
-    "importlib.metadata": {"version": trust_node, "distribution": trust_node},
-    "importlib_metadata": {"version": trust_node, "distribution": trust_node},
+    "importlib.metadata": {
+        "version": trust_node,
+        "distribution": trust_node,
+        "metadata": trust_node,
+    },
+    "importlib_metadata": {
+        "version": trust_node,
+        "distribution": trust_node,
+        "metadata": trust_node,
+    },
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
@@ -293,6 +303,12 @@ trust_node_factory[
 trust_node_factory[
     ("importlib_metadata", "distribution")
 ] = ExpressionImportlibMetadataBackportDistributionRef
+trust_node_factory[
+    ("importlib.metadata", "metadata")
+] = ExpressionImportlibMetadataMetadataRef
+trust_node_factory[
+    ("importlib_metadata", "metadata")
+] = ExpressionImportlibMetadataBackportMetadataRef
 trust_node_factory[
     ("importlib.resources", "read_binary")
 ] = ExpressionImportlibResourcesReadBinaryRef

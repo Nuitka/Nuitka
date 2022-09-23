@@ -30,6 +30,7 @@ from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Importing import importFromCompileTime
 from nuitka.utils.Utils import withNoDeprecationWarning
 
+from .AttributeNodes import makeExpressionAttributeLookup
 from .ContainerMakingNodes import makeExpressionMakeList
 from .ExpressionBases import (
     ExpressionBase,
@@ -832,7 +833,7 @@ class ExpressionImportlibMetadataDistributionRef(
         result = extractBuiltinArgs(
             node=call_node,
             builtin_class=ExpressionImportlibMetadataDistributionCall,
-            builtin_spec=importlib_metadata_version_spec,
+            builtin_spec=importlib_metadata_distribution_spec,
         )
 
         return (
@@ -843,24 +844,26 @@ class ExpressionImportlibMetadataDistributionRef(
 
 
 class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase):
-    named_child = "dist"
+    named_child = "distribution_name"
 
     __slots__ = ("attempted",)
 
-    def __init__(self, dist, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=dist, source_ref=source_ref)
+    def __init__(self, distribution_name, source_ref):
+        ExpressionChildHavingBase.__init__(
+            self, value=distribution_name, source_ref=source_ref
+        )
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
 
     def _getImportlibMetadataModule(self):
-        return importFromCompileTime(self.importlib_meta_name, must_exist=True)
+        return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
 
     def _replaceWithCompileTimeValue(self, trace_collection):
         distribution_func = self._getImportlibMetadataModule().distribution
         PackageNotFoundError = self._getImportlibMetadataModule().PackageNotFoundError
 
-        arg = self.subnode_dist.getCompileTimeConstant()
+        arg = self.subnode_distribution_name.getCompileTimeConstant()
 
         try:
             distribution = distribution_func(arg)
@@ -889,14 +892,14 @@ class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase)
                 result,
                 "new_expression",
                 "Compile time predicted '%s.distribution' result"
-                % self.importlib_meta_name,
+                % self.importlib_metadata_name,
             )
 
     def computeExpression(self, trace_collection):
         if (
             self.attempted
             or not importlib_metadata_distribution_spec.isCompileTimeComputable(
-                (self.subnode_dist,)
+                (self.subnode_distribution_name,)
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
@@ -910,14 +913,14 @@ class ExpressionImportlibMetadataDistributionCall(
     ExpressionImportlibMetadataDistributionCallBase
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL"
-    importlib_meta_name = "importlib.metadata"
+    importlib_metadata_name = "importlib.metadata"
 
 
 class ExpressionImportlibMetadataBackportDistributionCall(
     ExpressionImportlibMetadataDistributionCallBase
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL"
-    importlib_meta_name = "importlib_metadata"
+    importlib_metadata_name = "importlib_metadata"
 
 
 class ExpressionImportlibMetadataBackportDistributionRef(
@@ -952,3 +955,75 @@ class ExpressionImportlibMetadataBackportDistributionRef(
             "new_expression",
             "Call to 'importlib_metadata.distribution' recognized.",
         )
+
+
+importlib_metadata_metadata_spec = BuiltinParameterSpec(
+    "importlib.metadata.metadata", ("distribution_name",), default_count=0
+)
+
+
+class ExpressionImportlibMetadataMetadataRefBase(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name=self.importlib_metadata_name,
+            import_name="metadata",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # Calls to metadata are inlined manually through the distribution
+        # nodes.
+        def makeMetadataCall(distribution_name, source_ref):
+            return makeExpressionAttributeLookup(
+                expression=self.importlib_metadata_distribution_call_class(
+                    distribution_name=distribution_name, source_ref=source_ref
+                ),
+                attribute_name="metadata",
+                source_ref=self.source_ref,
+            )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=makeMetadataCall,
+            builtin_spec=importlib_metadata_metadata_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to '%s.metadata' recognized." % self.importlib_metadata_name,
+        )
+
+
+class ExpressionImportlibMetadataMetadataRef(
+    ExpressionImportlibMetadataMetadataRefBase
+):
+    """Function reference importlib.metadata.metadata"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_METADATA_REF"
+
+    importlib_metadata_name = "importlib.metadata"
+    importlib_metadata_distribution_call_class = (
+        ExpressionImportlibMetadataDistributionCall
+    )
+
+
+class ExpressionImportlibMetadataBackportMetadataRef(
+    ExpressionImportlibMetadataMetadataRefBase
+):
+    """Function reference importlib_metadata.metadata"""
+
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_METADATA_REF"
+
+    importlib_metadata_name = "importlib_metadata"
+    importlib_metadata_distribution_call_class = (
+        ExpressionImportlibMetadataBackportDistributionCall
+    )
