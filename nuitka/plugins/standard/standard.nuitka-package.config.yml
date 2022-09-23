@@ -194,6 +194,15 @@
         - '_curses'
 
 - module-name: 'cv2'
+  data-files:
+    dirs:
+      - 'qt/fonts'
+  dlls:
+    - from_filenames:
+        relative_path: 'qt/plugins/platforms'
+        prefixes:
+          - 'lib'
+      when: 'linux'
   anti-bloat:
     - description: 'workaround for colliding native module import'
       context:
@@ -215,6 +224,12 @@
         - 'cv2.cv2'
         - 'numpy'
         - 'numpy.core'
+    - pre-import-code:
+        - |
+          import os
+          os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(os.path.dirname(__file__), 'qt/plugins')
+          os.environ['QT_QPA_FONTDIR'] = os.path.join(os.path.dirname(__file__), 'qt/fonts')
+      when: 'linux and standalone'
 
 - module-name: 'cytoolz.functoolz'
   implicit-imports:
