@@ -109,6 +109,14 @@ not do what you want it to do."""
             % (arg_name, value)
         )
 
+    for candidate in ("%PROGRAM%", "%CACHE_DIR%", "%HOME%", "%TEMP%"):
+        if candidate in value[1:]:
+            Tracing.options_logger.sysexit(
+                """Absolute runtime path of '%s' can only be at the \
+start of '%s=%s', using it in the middle is not allowed."""
+                % (candidate, arg_name, value)
+            )
+
 
 def _checkOnefileTargetSpec():
     _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
