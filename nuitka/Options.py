@@ -1309,7 +1309,6 @@ def isOnefileTempDirMode():
     spec = getOnefileTempDirSpec()
 
     for candidate in (
-        "%TEMP%",
         "%PID",
         "%TIME%",
         "%PROGRAM%",
