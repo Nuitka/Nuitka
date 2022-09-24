@@ -47,8 +47,74 @@ Bug Fixes
 -  Standalone: Fix, do not attempt to list non-existent ``PATH`` entries
    on Windows. Fixed in 1.0.2 already.
 
+-  Standalone: Fix, on newer Linux, ``linux-vdso.so.1`` appears in
+   output of ``ldd`` in a way that suggests it may exist, which of
+   course it does not, this is a kernel virtual DLL. Fixed in 1.0.3
+   already.
+
+-  Fix, comparison expressions could give wrong results as a regression
+   of the new release. Fixed in 1.0.3 already.
+
+-  Fix, on older Python (before 3.6), could crash on data files in the
+   Yaml config. Fixed in 1.0.4 already.
+
+-  Fix, binary operations could give wrong results as a regression of
+   the new release. Fixed in 1.0.4 already.
+
+-  Standalone: Added support for ``pyzbar`` package. Fixed in 1.0.5
+   already.
+
+-  Standalone: Fix, empty directory structures were not working anymore
+   due to a regression in the last release. Fixed in 1.0.5 already.
+
+-  Windows: Fix, detected Pythons from registry mail fail to execute,
+   because they were e.g. manually deleted. This could e.g. affect
+   onefile compression. Fixed in 1.0.5 already.
+
+-  Onefile: Fix, using too old ``zstandard`` without finding another
+   Python with a suitable one, lead to runtime unpacking errors. Fixed
+   in 1.0.6 already.
+
+-  Fix, the inline copy of Jinja2 imports ``logging`` for no good
+   reason, which can lead to errors for users who have a module of the
+   same name hiding it. Fixed in 1.0.6 already.
+
+-  Fix, disable LTO for Anaconda Python, it is known to not work work.
+   Fixed in 1.0.6 already.
+
+-  Fix, no need to insist on icon path for Linux onefile anymore. Fixed
+   in 1.0.6 already.
+
+-  Standalone: Fix, new ``certifi`` was not working on Windows and 3.10
+   anymore. Fixed in 1.0.7 already.
+
+-  Standalone: Added support for more ``rapidfuzz`` implicit
+   dependencies. Fixed in 1.0.8 already.
+
+-  Standalone: Added support for ``vibora``. Fixed in 1.0.8 already.
+
+-  Fix, must not expose module name objects to Python import hooks.
+   Fixed in 1.0.8 already.
+
+-  Fix, calls to bound methods of string values generated incorrect
+   calls. Fixed in 1.0.8 already.
+
+New Features
+============
+
+-  Onefile: Added support including other binaries than the main
+   executable in the payload. So far on non-Windows, we only made the
+   main binary executable, hard coded, and nothing else. But Some
+   things, e.g. Qt web engine, do require binaries to be used, and these
+   no longer have the issue of missing x-bit on macOS and Linux now.
+
 Optimization
 ============
+
+-  Add support for ``os.path`` hard module imports along with
+   specialized nodes for file tests ``os.path.exists``,
+   ``os.path.isfile``, and ``os.path.isdir`` aiming at tracking used
+   files, producing warnings about missing files in the future.
 
 -  Avoid compilation of large generated codes in the ``asyncua``
    package.
@@ -59,6 +125,17 @@ Organisational
 -  UI: Output the ``.cmd`` file created if any on Windows, e.g. when run
    in a virtualenv or for uninstalled Python versions, it will otherwise
    not run in accelerated mode.
+
+-  UI: Enhanced description of ``--include-plugin-directory`` which is
+   frequently misunderstood. That option barely does what people want it
+   to do. Point them to using the other options that are easy to use and
+   will work.
+
+-  UI: Specified needed Python version for use in ``--python-for-scons``
+   so users can know ahead of time what versions are suitable.
+
+-  Reports: Added information about data files including, optimization
+   times per module.
 
 This release is not done yet.
 
