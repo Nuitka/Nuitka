@@ -319,9 +319,9 @@ include_group.add_option(
 Include also the code found in that directory, considering as if
 they are each given as a main file. Overrides all other inclusion
 options. You ought to prefer other inclusion options, that go by
-names, rather than filenames, as this always includes too much,
-and find things through being in "sys.path". Can be given multiple
-times. Default empty.""",
+names, rather than filenames, those find things through being in
+"sys.path". This option is for very special use cases only. Can
+be given multiple times. Default empty.""",
 )
 
 include_group.add_option(
