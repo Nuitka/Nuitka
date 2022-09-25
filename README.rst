@@ -880,9 +880,9 @@ which you expect to be inside the onefile binary, access them like this.
 
 .. code:: python
 
-   # This will find a file near your onefile.exe
+   # This will find a file *near* your onefile.exe
    open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
-   # This will find a file inside your onefile.exe
+   # This will find a file *inside* your onefile.exe
    open(os.path.join(os.path.dirname(__file__), "user-provided-file.txt"))
 
 Standalone: Finding files
@@ -991,6 +991,15 @@ Table with supported variables:
 +------------------+--------------------------------+------------------------------------------+
 | {Flavor}         | Variant of Python              | e.g. Debian Python, Anaconda Python      |
 +------------------+--------------------------------+------------------------------------------+
+
+The use of ``{MAIN_DIRECTORY}`` is recommended when you want to specify
+a filename relative to the main script, e.g. for use in data file
+options or user package configuration yaml files,
+
+.. code:: python
+
+   # nuitka-project: --include-data-files={MAIN_DIRECTORY}/my_icon.png=my_icon.png
+   # nuitka-project: --user-package-configuration-file={MAIN_DIRECTORY}/user.nuitka-package.config.yml
 
 Python command line flags
 =========================
