@@ -81,10 +81,12 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                 pattern = os.path.join(module_folder, pattern)
 
                 for filename in resolveShellPatternToFilenames(pattern):
+                    filename_base = os.path.relpath(filename, module_folder)
+
                     yield self.makeIncludedDataFile(
                         source_path=filename,
                         dest_path=os.path.normpath(
-                            os.path.join(target_dir, os.path.basename(filename))
+                            os.path.join(target_dir, filename_base)
                         ),
                         reason="package data for '%s'" % module_name.asString(),
                         tags="config",

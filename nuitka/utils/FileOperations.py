@@ -998,7 +998,7 @@ def resolveShellPatternToFilenames(pattern):
 
             if glob2 is None:
                 options_logger.sysexit(
-                    "Using pattern with ** is not supported before Python 3.5 unless glob2 is installed."
+                    "Using pattern with '**' is not supported before Python 3.5 unless glob2 is installed."
                 )
 
             result = glob2.glob(pattern)
