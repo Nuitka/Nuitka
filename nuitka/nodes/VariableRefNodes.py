@@ -589,7 +589,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        return None, None
+        return None, None, None
 
     def hasShapeDictionaryExact(self):
         return (

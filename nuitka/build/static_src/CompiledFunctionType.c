@@ -212,7 +212,7 @@ static PyObject *Nuitka_Function_get_defaults(struct Nuitka_FunctionObject *obje
     return result;
 }
 
-static void onUpdatedDefaultsValue(struct Nuitka_FunctionObject *function) {
+static void _onUpdatedCompiledFunctionDefaultsValue(struct Nuitka_FunctionObject *function) {
     if (function->m_defaults == Py_None) {
         function->m_defaults_given = 0;
     } else {
@@ -230,27 +230,12 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
         return -1;
     }
 
-// TODO: Do we actually need this ever, probably not, as we don't generate argument
-// parsing per function anymore.
-#ifndef _NUITKA_PLUGIN_DILL_ENABLED
-    if (object->m_defaults == Py_None && value != Py_None) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
-        return -1;
-    }
-
-    if (object->m_defaults != Py_None &&
-        (value == Py_None || PyTuple_GET_SIZE(object->m_defaults) != PyTuple_GET_SIZE(value))) {
-        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes");
-        return -1;
-    }
-#endif
-
     PyObject *old = object->m_defaults;
     Py_INCREF(value);
     object->m_defaults = value;
     Py_DECREF(old);
 
-    onUpdatedDefaultsValue(object);
+    _onUpdatedCompiledFunctionDefaultsValue(object);
 
     return 0;
 }
@@ -831,7 +816,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
     assert(defaults == Py_None || (PyTuple_Check(defaults) && PyTuple_GET_SIZE(defaults) > 0));
     result->m_defaults = defaults;
 
-    onUpdatedDefaultsValue(result);
+    _onUpdatedCompiledFunctionDefaultsValue(result);
 
 #if PYTHON_VERSION >= 0x300
     assert(kwdefaults == NULL || (PyDict_Check(kwdefaults) && DICT_SIZE(kwdefaults) > 0));

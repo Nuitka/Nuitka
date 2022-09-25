@@ -66,6 +66,7 @@ from nuitka.utils.Utils import (
     isLinux,
     isMacOS,
     isOpenBSD,
+    isWin32OrPosixWindows,
     isWin32Windows,
 )
 
@@ -101,6 +102,21 @@ def _checkSpec(value, arg_name):
             % (arg_name, value)
         )
 
+    if value.count("%") % 2 != 0:
+        Tracing.options_logger.warning(
+            """Unmatched '%%' is suspicious for '%s=%s' and may \
+not do what you want it to do."""
+            % (arg_name, value)
+        )
+
+    for candidate in ("%PROGRAM%", "%CACHE_DIR%", "%HOME%", "%TEMP%"):
+        if candidate in value[1:]:
+            Tracing.options_logger.sysexit(
+                """Absolute runtime path of '%s' can only be at the \
+start of '%s=%s', using it in the middle is not allowed."""
+                % (candidate, arg_name, value)
+            )
+
 
 def _checkOnefileTargetSpec():
     _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
@@ -111,13 +127,6 @@ def _checkOnefileTargetSpec():
 Error, using '.' as a value for '--onefile-tempdir-spec' is not supported,
 you cannot unpack the onefile payload into the same directory as the binary,
 as that would overwrite it and cause locking issues as well."""
-        )
-
-    if options.onefile_tempdir_spec.count("%") % 2 != 0:
-        Tracing.options_logger.warning(
-            """Unmatched '%%' is suspicious for '--onefile-tempdir-spec' and may \
-not do what you want it to do: '%s'"""
-            % options.onefile_tempdir_spec
         )
 
     if options.onefile_tempdir_spec.count("%") == 0:
@@ -140,6 +149,20 @@ very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
             """Using an relative to the executable should be avoided unless you are targeting a \
 very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
+        )
+
+
+def _checkAutoUpdateUrlSpec():
+    _checkSpec(options.auto_update_url_spec, arg_name="--auto-update-url-spec")
+
+    if not options.auto_update_url_spec.startswith(
+        (
+            "http://",
+            "https://",
+        )
+    ):
+        Tracing.optimization_logger.sysexit(
+            "Error, only 'https://' and 'http://' URLs are allowed."
         )
 
 
@@ -180,10 +203,10 @@ def parseArgs():
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
-    if not shallDumpBuiltTreeXML():
-        Tracing.options_logger.info(
-            "Used command line options: %s" % " ".join(sys.argv[1:])
-        )
+    Tracing.options_logger.info(
+        "Used command line options: %s"
+        % " ".join(('"%s"' % arg) if " " in arg else arg for arg in sys.argv[1:])
+    )
 
     if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
         Tracing.general.sysexit(
@@ -226,6 +249,10 @@ def parseArgs():
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
+
+    # Check auto update URL spec
+    if options.auto_update_url_spec:
+        _checkAutoUpdateUrlSpec()
 
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
@@ -284,15 +311,29 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
             "Error, no such Python binary %r, should be full path." % scons_python
         )
 
-    if options.output_filename is not None and (
-        (isStandaloneMode() and not isOnefileMode()) or shallMakeModule()
-    ):
-        Tracing.options_logger.sysexit(
-            """\
+    output_filename = getOutputFilename()
+
+    if output_filename is not None:
+        if (isStandaloneMode() and not isOnefileMode()) or shallMakeModule():
+            Tracing.options_logger.sysexit(
+                """\
 Error, may only specify output filename for acceleration and onefile mode,
 but not for module mode where filenames are mandatory, and not for
 standalone where there is a sane default used inside the dist folder."""
-        )
+            )
+
+        output_dir = os.path.dirname(output_filename) or "."
+
+        if not os.path.isdir(output_dir):
+            Tracing.options_logger.sysexit(
+                """\
+Error, specified output directory does not exist, you have to create
+it before using it: '%s' (from --output-filename='%s')."""
+                % (
+                    output_dir,
+                    output_filename,
+                )
+            )
 
     if isLinux():
         if len(getIconPaths()) > 1:
@@ -379,7 +420,7 @@ standalone where there is a sane default used inside the dist folder."""
             "Conflicting options '--follow-imports' and '--nofollow-imports' given."
         )
 
-    for module_pattern in getShallIncludePackageData():
+    for module_pattern, _filename_pattern in getShallIncludePackageData():
         if (
             module_pattern.startswith("-")
             or "/" in module_pattern
@@ -554,7 +595,7 @@ def commentArgs():
         )
 
     # TODO: Not all of these are usable with MSYS2 really, split those off.
-    if getOS() != "Windows":
+    if not isWin32OrPosixWindows():
         # Too many Windows specific options clearly
         if (
             getWindowsIconExecutablePath()
@@ -628,8 +669,7 @@ to work. You can selectively add them with '--follow-import-to=name' though."""
         )
 
     if (
-        not shallDumpBuiltTreeXML()
-        and not standalone_mode
+        not standalone_mode
         and not options.follow_all
         and not options.follow_none
         and not options.follow_modules
@@ -680,7 +720,6 @@ make sure that is intended."""
     if (
         options.static_libpython == "auto"
         and not shallMakeModule()
-        and not shallDumpBuiltTreeXML()
         and not shallUseStaticLibPython()
         and getSystemStaticLibPythonPath() is not None
     ):
@@ -754,9 +793,9 @@ def shallRunInDebugger():
     return options.debugger
 
 
-def shallDumpBuiltTreeXML():
-    """:returns: bool derived from ``--xml``"""
-    return options.dump_xml
+def getXMLDumpOutputFilename():
+    """:returns: str derived from ``--xml``"""
+    return options.xml_output
 
 
 def shallOnlyExecCCompilerCall():
@@ -863,8 +902,22 @@ def getMustIncludePackages():
 
 
 def getShallIncludePackageData():
-    """*list*, items of ``--include-package-data=``"""
-    return sum([_splitShellPattern(x) for x in options.package_data], [])
+    """*iterable of (module pattern, filename pattern)*, derived from ``--include-package-data=``
+
+    The filename pattern can be None if not given. Empty values give None too.
+    """
+    for package_data_pattern in sum(
+        [_splitShellPattern(x) for x in options.package_data], []
+    ):
+        if ":" in package_data_pattern:
+            module_pattern, filename_pattern = package_data_pattern.split(":", 1)
+            # Empty equals None.
+            filename_pattern = filename_pattern or None
+        else:
+            module_pattern = package_data_pattern
+            filename_pattern = None
+
+        yield module_pattern, filename_pattern
 
 
 def getShallIncludeDataFiles():
@@ -934,17 +987,17 @@ def shallUsePythonDebug():
     return options.python_debug or sys.flags.debug
 
 
-def isUnstriped():
-    """:returns: bool derived from ``--unstriped`` or ``--profile``
+def isUnstripped():
+    """:returns: bool derived from ``--unstripped`` or ``--profile``
 
     A binary is called stripped when debug information is not present, an
-    unstriped when it is present. For profiling and debugging it will be
+    unstripped when it is present. For profiling and debugging it will be
     necessary, but it doesn't enable debug checks like ``--debug`` does.
 
-    Passed to Scons as ``unstriped_mode`` to it can ask the linker to
+    Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstriped or options.profile
+    return options.unstripped or options.profile
 
 
 def isProfile():
@@ -1256,7 +1309,6 @@ def isOnefileTempDirMode():
     spec = getOnefileTempDirSpec()
 
     for candidate in (
-        "%TEMP%",
         "%PID",
         "%TIME%",
         "%PROGRAM%",
@@ -1309,9 +1361,15 @@ def getPythonPgoUnseenModulePolicy():
 
 
 def getOnefileTempDirSpec():
+    """*str* = ``--onefile-tempdir-spec``"""
     return (
         options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
     )
+
+
+def getAutoUpdateUrlSpec():
+    """*str* = ``--onefile-tempdir-spec``"""
+    return options.auto_update_url_spec
 
 
 def getIconPaths():

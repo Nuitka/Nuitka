@@ -41,14 +41,15 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Importing import importFileAsModule
-from nuitka.utils.ModuleNames import ModuleName, checkModuleName
-
-from .PluginBase import (
-    NuitkaPluginBase,
+from nuitka.utils.ModuleNames import (
+    ModuleName,
+    checkModuleName,
     makeTriggerModuleName,
     post_module_load_trigger_name,
     pre_module_load_trigger_name,
 )
+
+from .PluginBase import NuitkaPluginBase
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
@@ -370,6 +371,13 @@ class Plugins(object):
                 )
 
     @classmethod
+    def getPackageExtraScanPaths(cls, package_name, package_dir):
+        for plugin in getActivePlugins():
+            for path in plugin.getPackageExtraScanPaths(package_name, package_dir):
+                if os.path.isdir(path):
+                    yield path
+
+    @classmethod
     def considerImplicitImports(cls, module, signal_change):
         for plugin in getActivePlugins():
             key = (module.getFullName(), plugin)
@@ -438,6 +446,11 @@ class Plugins(object):
         """Let plugins post-process the distribution folder in standalone mode"""
         for plugin in getActivePlugins():
             plugin.onStandaloneDistributionFinished(dist_dir)
+
+        standalone_binary = OutputDirectories.getResultFullpath(onefile=False)
+
+        for plugin in getActivePlugins():
+            plugin.onStandaloneBinary(standalone_binary)
 
     @staticmethod
     def onOnefileFinished(filename):
@@ -1340,7 +1353,7 @@ def getPluginOptions(plugin_name):
         if "[REQUIRED]" in option.help:
             if not arg_value:
                 plugins_logger.sysexit(
-                    "Error, required plugin argument %r of Nuitka plugin %s not given."
+                    "Error, required plugin argument '%s' of Nuitka plugin '%s' not given."
                     % (option_name, plugin_name)
                 )
 

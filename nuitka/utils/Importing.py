@@ -152,7 +152,7 @@ def getSharedLibrarySuffix(preferred):
 def _importFromFolder(logger, module_name, path, must_exist, message):
     """Import a module from a folder by adding it temporarily to sys.path"""
 
-    # Circular dependency here
+    # Cyclic dependency here
     from .FileOperations import isPathBelow
 
     if module_name in sys.modules:

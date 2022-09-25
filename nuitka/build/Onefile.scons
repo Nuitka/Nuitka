@@ -49,6 +49,7 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
 )
 
 from nuitka.Tracing import my_print, scons_details_logger, setQuiet
+from nuitka.utils.Utils import isLinux
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -58,7 +59,7 @@ from .SconsCompilerSettings import (
     setupCCompiler,
     switchFromGccToGpp,
 )
-from .SconsHacks import getEnhancedToolDetect
+from .SconsHacks import getEnhancedToolDetect, makeGccUseLinkerFile
 from .SconsProgress import enableSconsProgressBar, setSconsProgressBarTotal
 from .SconsSpawn import enableSpawnMonitoring
 from .SconsUtils import (
@@ -139,8 +140,8 @@ noelf_mode = getArgumentBool("noelf_mode", False)
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
-# Unstriped mode: Do not remove debug symbols.
-unstriped_mode = getArgumentBool("unstriped_mode", False)
+# Unstripped mode: Do not remove debug symbols.
+unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
@@ -285,7 +286,7 @@ env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
-env.unstriped_mode = debug_mode or unstriped_mode
+env.unstripped_mode = debug_mode or unstripped_mode
 env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
@@ -595,12 +596,38 @@ def createBuildDefinitionsFile():
         # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
 
+    onefile_auto_update_url_spec = os.environ.get(
+        "_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"
+    )
+
+    if onefile_auto_update_url_spec:
+        onefile_definitions[
+            "_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"
+        ] = onefile_auto_update_url_spec
+        onefile_definitions["_NUITKA_ONEFILE_AUTO_UPDATE"] = 1
+
+        # spell-checker: ignore Urlmon,pthread
+        if env.msvc_mode:
+            env.Append(LIBS=["Urlmon"])
+        if isLinux():
+            env.Append(LIBS=["pthread"])
+
     setProductVersionDefinitions(onefile_definitions)
 
     createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 
 
 createBuildDefinitionsFile()
+
+# Hack to make Scons use tempfile for gcc linking, to avoid line length limits,
+# which can make linking fail with many modules otherwise. Most needed on Windows,
+# but useful on other platforms too.
+if env.gcc_mode:
+    makeGccUseLinkerFile(
+        source_files=source_files,
+        module_mode=module_mode,
+        env=env,
+    )
 
 writeSconsReport(
     env=env,

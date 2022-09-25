@@ -59,6 +59,20 @@
                                 },
                                 "prefixes": {
                                     "type": "array"
+                                },
+                                "suffixes": {
+                                    "type": "array"
+                                },
+                                "executable": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        }
+                                    ]
                                 }
                             }
                         },
@@ -69,12 +83,26 @@
                                 "setup_code": {
                                     "type": "string"
                                 },
-                                "dll_filename_code": {
+                                "filename_code": {
                                     "type": "string"
+                                },
+                                "executable": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "yes"
+                                        },
+                                        {
+                                            "const": "no"
+                                        }
+                                    ]
                                 }
                             }
                         },
                         "dest_path": {
+                            "type": "string"
+                        },
+                        "when": {
                             "type": "string"
                         }
                     }
@@ -86,22 +114,25 @@
                     "type": "object",
                     "additionalProperties": false,
                     "properties": {
+                        "description": {
+                            "type": "string"
+                        },
                         "context": {
                             "type": "array",
                             "items": {
                                 "type": "string"
                             }
                         },
-                        "description": {
-                            "type": "string"
-                        },
                         "module_code": {
                             "type": "string"
                         },
-                        "replacements": {
+                        "replacements_plain": {
                             "type": "object"
                         },
-                        "replacements_plain": {
+                        "replacements_re": {
+                            "type": "object"
+                        },
+                        "replacements": {
                             "type": "object"
                         },
                         "change_function": {
@@ -126,6 +157,18 @@
                     "additionalProperties": false,
                     "properties": {
                         "depends": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "pre-import-code": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "post-import-code": {
                             "type": "array",
                             "items": {
                                 "type": "string"
@@ -192,6 +235,27 @@
                                 "when": {
                                     "type": "string"
                                 }
+                            }
+                        }
+                    }
+                }
+            },
+            "import-hacks": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "package-paths": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "package-dirs": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
                             }
                         }
                     }

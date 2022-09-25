@@ -23,18 +23,19 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import locateModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.FileOperations import getSubDirectoriesWithDlls
+from nuitka.utils.ModuleNames import ModuleName
 
 _ld_library_cache = {}
 
 
-def getLdLibraryPath(package_name, python_rpath, original_dir):
-    key = package_name, python_rpath, original_dir
+def getLdLibraryPath(package_name, python_rpaths, original_dir):
+    key = package_name, tuple(python_rpaths), original_dir
 
     if key not in _ld_library_cache:
 
         ld_library_path = OrderedSet()
-        if python_rpath:
-            ld_library_path.add(python_rpath)
+        if python_rpaths:
+            ld_library_path.update(python_rpaths)
 
         ld_library_path.update(getPackageSpecificDLLDirectories(package_name))
         if original_dir is not None:
@@ -59,5 +60,9 @@ def getPackageSpecificDLLDirectories(package_name):
             scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
 
         scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
+
+    # TODO: Move this to plugins DLLs section.
+    if package_name == "torchvision":
+        scan_dirs.update(getPackageSpecificDLLDirectories(ModuleName("torch")))
 
     return scan_dirs

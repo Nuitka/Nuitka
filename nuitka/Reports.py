@@ -30,7 +30,9 @@ from nuitka.ModuleRegistry import (
     getDoneModules,
     getModuleInclusionInfos,
     getModuleInfluences,
+    getModuleOptimizationTimingInfos,
 )
+from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
 
@@ -38,12 +40,12 @@ from nuitka.utils.FileOperations import putTextFileContents
 def writeCompilationReport(report_filename):
     # Many details to work with, pylint: disable=too-many-branches,too-many-locals
 
-    active_modules_info = getModuleInclusionInfos()
+    active_modules_infos = getModuleInclusionInfos()
 
     root = TreeXML.Element("nuitka-compilation-report")
 
     for module in getDoneModules():
-        active_module_info = active_modules_info[module]
+        active_module_info = active_modules_infos[module]
 
         module_xml_node = TreeXML.Element(
             "module",
@@ -67,6 +69,19 @@ def writeCompilationReport(report_filename):
                 assert False, influence
 
             module_xml_node.append(influence_xml_node)
+
+        for timing_info in sorted(
+            getModuleOptimizationTimingInfos(module.getFullName())
+        ):
+            timing_xml_node = TreeXML.Element(
+                "optimization-time",
+            )
+
+            # Going via attrib, because pass is a keyword in Python.
+            timing_xml_node.attrib["pass"] = str(timing_info.pass_number)
+            timing_xml_node.attrib["time"] = "%.2f" % timing_info.time_used
+
+            module_xml_node.append(timing_xml_node)
 
         root.append(module_xml_node)
 
@@ -109,8 +124,9 @@ def writeCompilationReport(report_filename):
                 name=os.path.basename(standalone_entry_point.dest_path),
                 dest_path=standalone_entry_point.dest_path,
                 source_path=standalone_entry_point.source_path,
-                package=standalone_entry_point.source_path,
-                ignored="yes" if ignored else "no"
+                package=standalone_entry_point.package_name or "",
+                ignored="yes" if ignored else "no",
+                reason=standalone_entry_point.reason
                 # TODO: No reason yet.
             )
         )
@@ -130,6 +146,23 @@ def writeCompilationReport(report_filename):
 
     for arg in sys.argv[1:]:
         options_element.append(TreeXML.Element("option", value=arg))
+
+    active_plugins_element = TreeXML.appendTreeElement(
+        root,
+        "plugins",
+    )
+
+    for plugin in getActivePlugins():
+        if plugin.isDetector():
+            continue
+
+        active_plugins_element.append(
+            TreeXML.Element(
+                "plugin",
+                name=plugin.plugin_name,
+                user_enabled="no" if plugin.isAlwaysEnabled() else "yes",
+            )
+        )
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 

@@ -44,7 +44,7 @@ from nuitka.Tracing import general, my_print, options_logger
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import getOS, isMacOS, isWin32Windows
+from .Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -136,7 +136,7 @@ def relpath(path, start="."):
     except ValueError:
         # On Windows, paths on different devices prevent it to work. Use that
         # full path then.
-        if getOS() == "Windows":
+        if isWin32OrPosixWindows():
             return os.path.abspath(path)
         raise
 
@@ -243,9 +243,10 @@ def getDirectoryRealPath(path):
     """
     path = os.path.realpath(path)
 
-    # Attempt to resolve Windows symlinks on Python2
-    if os.name == "nt" and not os.path.isdir(path) and os.path.exists(path):
-        path = _getRealPathWindows(path)
+    # Attempt to resolve Windows symlinks older Python
+    if os.name == "nt":
+        if os.path.islink(path) or (not os.path.isdir(path) and os.path.exists(path)):
+            path = _getRealPathWindows(path)
 
     return path
 
@@ -380,12 +381,13 @@ def getSubDirectories(path, ignore_dirs=()):
     return result
 
 
-def listDllFilesFromDirectory(path, prefix=""):
+def listDllFilesFromDirectory(path, prefix=None, suffixes=None):
     """Give a sorted listing of DLLs filenames in a path.
 
     Args:
         path: directory to create a DLL listing from
         prefix: shell pattern to match filename start against, can be None
+        suffixes: shell patch to match filename end against, defaults to all platform ones
 
     Returns:
         Sorted list of tuples of full filename, and basename of
@@ -400,11 +402,54 @@ def listDllFilesFromDirectory(path, prefix=""):
     # Accept None value as well.
     prefix = prefix or ""
 
-    pattern_list = [prefix + "*." + suffix for suffix in ("dll", "so.*", "so", "dylib")]
+    suffixes = suffixes or ("dll", "so.*", "so", "dylib")
+
+    pattern_list = [prefix + "*." + suffix for suffix in suffixes]
 
     for fullpath, filename in listDir(path):
         for pattern in pattern_list:
             if fnmatch.fnmatch(filename, pattern):
+                yield fullpath, filename
+                break
+
+
+def listExeFilesFromDirectory(path, prefix=None, suffixes=None):
+    """Give a sorted listing of EXE filenames in a path.
+
+    Args:
+        path: directory to create a DLL listing from
+        prefix: shell pattern to match filename start against, can be None
+        suffixes: shell patch to match filename end against, can be None
+
+    Returns:
+        Sorted list of tuples of full filename, and basename of
+        DLLs in that directory.
+
+    Notes:
+        Typically the full name and the basename are both needed
+        so this function simply does both, for ease of use on the
+        calling side.
+    """
+
+    # Accept None value as well.
+    prefix = prefix or ""
+
+    # On Windows, we check exe suffixes, on other platforms we shell all filenames,
+    # matching the prefix, but they have to the executable bit set.
+    if suffixes is None and isWin32OrPosixWindows():
+        suffixes = "exe", "bin"
+
+    if suffixes:
+        pattern_list = [prefix + "*." + suffix for suffix in suffixes]
+    else:
+        pattern_list = [prefix + "*"]
+
+    for fullpath, filename in listDir(path):
+        for pattern in pattern_list:
+            if fnmatch.fnmatch(filename, pattern):
+                if not isWin32OrPosixWindows() and not os.access(fullpath, os.X_OK):
+                    continue
+
                 yield fullpath, filename
                 break
 
@@ -452,6 +497,28 @@ def _isMacOSFramework(path):
     return isMacOS() and os.path.isdir(path) and path.endswith(".framework")
 
 
+def isLink(path):
+    result = os.path.islink(path)
+
+    # Special handling for Junctions.
+    if not result and isWin32Windows():
+        import ctypes.wintypes
+
+        GetFileAttributesW = ctypes.windll.kernel32.GetFileAttributesW
+        GetFileAttributesW.restype = ctypes.wintypes.DWORD
+        GetFileAttributesW.argtypes = (ctypes.wintypes.LPCWSTR,)
+
+        INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF
+        FILE_ATTRIBUTE_REPARSE_POINT = 0x00400
+
+        result = GetFileAttributesW(path)
+
+        if result != INVALID_FILE_ATTRIBUTES:
+            result = bool(result & FILE_ATTRIBUTE_REPARSE_POINT)
+
+    return result
+
+
 def deleteFile(path, must_exist):
     """Delete a file, potentially making sure it exists.
 
@@ -463,7 +530,7 @@ def deleteFile(path, must_exist):
         possible.
     """
     with withFileLock("deleting file %s" % path):
-        if os.path.islink(path) or os.path.isfile(path):
+        if isLink(path) or os.path.isfile(path):
             try:
                 os.unlink(path)
             except OSError:
@@ -857,7 +924,7 @@ def getExternalUsePath(filename, only_dirname=False):
     Returns:
         Path that is a absolute and (on Windows) short filename pointing at the same file.
     Notes:
-        This is only os.path.abspath except on Windows, where is coverts
+        This is only "os.path.abspath" except on Windows, where is converts
         to a short path too.
     """
 
@@ -931,7 +998,7 @@ def resolveShellPatternToFilenames(pattern):
 
             if glob2 is None:
                 options_logger.sysexit(
-                    "Using pattern with ** is not supported before Python 3.5 unless glob2 is installed."
+                    "Using pattern with '**' is not supported before Python 3.5 unless glob2 is installed."
                 )
 
             result = glob2.glob(pattern)

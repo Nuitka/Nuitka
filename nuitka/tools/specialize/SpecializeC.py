@@ -25,7 +25,6 @@ nuitka.Options.is_full_compat = False
 
 # isort:start
 
-
 import os
 
 import nuitka.specs.BuiltinBytesOperationSpecs

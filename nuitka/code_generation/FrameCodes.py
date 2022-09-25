@@ -455,21 +455,15 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         preserver_id = statement.getPreserverId()
 
         assert preserver_id != 0, statement
-        (
-            exception_preserved_type,
-            exception_preserved_value,
-            exception_preserved_tb,
-        ) = context.addExceptionPreserverVariables(preserver_id)
+        exception_preserved = context.addExceptionPreserverVariables(preserver_id)
 
         emit(
             """\
 // Preserve existing published exception id %(preserver_id)d.
-GET_CURRENT_EXCEPTION(&%(exception_preserved_type)s, &%(exception_preserved_value)s, &%(exception_preserved_tb)s);
+%(exception_preserved)s = GET_CURRENT_EXCEPTION();
 """
             % {
-                "exception_preserved_type": exception_preserved_type,
-                "exception_preserved_value": exception_preserved_value,
-                "exception_preserved_tb": exception_preserved_tb,
+                "exception_preserved": exception_preserved,
                 "preserver_id": preserver_id,
             }
         )
@@ -486,21 +480,15 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);"""
     else:
         preserver_id = statement.getPreserverId()
 
-        (
-            exception_preserved_type,
-            exception_preserved_value,
-            exception_preserved_tb,
-        ) = context.addExceptionPreserverVariables(preserver_id)
+        exception_preserved = context.addExceptionPreserverVariables(preserver_id)
 
         emit(
             """\
 // Restore previous exception id %(preserver_id)d.
-SET_CURRENT_EXCEPTION(%(exception_preserved_type)s, %(exception_preserved_value)s, %(exception_preserved_tb)s);
+SET_CURRENT_EXCEPTION(&%(exception_preserved)s);
 """
             % {
-                "exception_preserved_type": exception_preserved_type,
-                "exception_preserved_value": exception_preserved_value,
-                "exception_preserved_tb": exception_preserved_tb,
+                "exception_preserved": exception_preserved,
                 "preserver_id": preserver_id,
             }
         )

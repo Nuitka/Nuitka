@@ -32,6 +32,7 @@ from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeStatementExpressionOnlyReplacementNode,
     wrapExpressionWithNodeSideEffects,
+    wrapExpressionWithSideEffects,
     wrapStatementWithSideEffects,
 )
 from .OperatorNodesUnary import ExpressionOperationNot
@@ -45,24 +46,19 @@ class ConditionalValueComputeMixin(object):
     def _computeConditionTruthValue(self, trace_collection):
         condition = self.subnode_condition
 
-        truth_value, message = condition.computeExpressionBool(trace_collection)
-        if truth_value is not None:
-            assert type(truth_value) is bool, truth_value
+        truth_value, replacement, message = condition.computeExpressionBool(
+            trace_collection
+        )
+        if replacement is not None:
+            assert replacement.isExpression()
 
-            new_condition = wrapExpressionWithNodeSideEffects(
-                new_node=makeConstantReplacementNode(
-                    constant=truth_value, node=condition, user_provided=False
-                ),
-                old_node=condition,
-            )
-
-            self.replaceChild(condition, new_condition)
+            self.replaceChild(condition, replacement)
 
             trace_collection.signalChange(
                 tags="new_constant", source_ref=self.source_ref, message=message
             )
 
-            return truth_value, new_condition
+            return truth_value, replacement
         else:
             # Query the truth value after the expression is evaluated, once it is
             # evaluated in onExpression, it is known.
@@ -134,10 +130,7 @@ branches.""",
                 parent=trace_collection, name="conditional expression yes branch"
             )
 
-            branch_yes_collection.computeBranch(branch=yes_branch)
-
-            # May have just gone away, so fetch it again.
-            yes_branch = self.subnode_expression_yes
+            yes_branch = branch_yes_collection.onExpression(yes_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if truth_value is not True and yes_branch.willRaiseException(BaseException):
@@ -153,10 +146,7 @@ branches.""",
                 parent=trace_collection, name="conditional expression no branch"
             )
 
-            branch_no_collection.computeBranch(branch=no_branch)
-
-            # May have just gone away, so fetch it again.
-            no_branch = self.subnode_expression_no
+            no_branch = branch_no_collection.onExpression(no_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if truth_value is not False and no_branch.willRaiseException(BaseException):
@@ -315,10 +305,7 @@ branches."""
                 name="boolean %s right branch" % self.conditional_kind,
             )
 
-            branch_yes_collection.computeBranch(branch=right)
-
-            # May have just gone away, so fetch it again.
-            right = self.subnode_right
+            right = branch_yes_collection.onExpression(right)
 
             # If it's aborting, it doesn't contribute to merging.
             if right.willRaiseException(BaseException):
@@ -362,6 +349,70 @@ branches."""
             return True
 
         return False
+
+    def computeExpressionBool(self, trace_collection):
+        truth_value = self.subnode_right.getTruthValue()
+
+        if not self.mayRaiseException(BaseException) and self.mayRaiseExceptionBool(
+            BaseException
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        if truth_value is None:
+            # No action
+            pass
+        elif truth_value is True:
+            if self.isExpressionConditionalOr():
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeConstantReplacementNode(
+                        constant=True, node=self.subnode_right, user_provided=False
+                    ),
+                    old_node=self,
+                    side_effects=(
+                        ExpressionBuiltinBool(
+                            value=self.subnode_left, source_ref=self.source_ref
+                        ),
+                    ),
+                )
+
+                return True, result, "Predicted right hand side of 'or' to be true."
+            else:
+                # TODO: There are no side effects after something else, which
+                # would be needed, but for constant values, this works well.
+                if not self.subnode_right.mayHaveSideEffects():
+                    return (
+                        self.subnode_left.getTruthValue(),
+                        self.subnode_left,
+                        "Predicted right hand side of 'and' to be true.",
+                    )
+        elif truth_value is False:
+            if self.isExpressionConditionalAnd():
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeConstantReplacementNode(
+                        constant=False, node=self.subnode_right, user_provided=False
+                    ),
+                    old_node=self,
+                    side_effects=(
+                        ExpressionBuiltinBool(
+                            value=self.subnode_left, source_ref=self.source_ref
+                        ),
+                    ),
+                )
+
+                return False, result, "Predicted right hand side of 'and' to be false."
+            else:
+                # TODO: There are no side effects after something else, which
+                # would be needed, but for constant values, this works well.
+                if not self.subnode_right.mayHaveSideEffects():
+                    return (
+                        self.subnode_left.getTruthValue(),
+                        self.subnode_left,
+                        "Predicted right hand side of 'or' to be false.",
+                    )
+                else:
+                    truth_value = self.subnode_left.getTruthValue()
+
+        return truth_value, None, None
 
     def mayRaiseExceptionBool(self, exception_type):
         # The and/or bool will be working on either side.
@@ -600,10 +651,7 @@ branches.""",
                 parent=trace_collection, name="conditional yes branch"
             )
 
-            branch_yes_collection.computeBranch(branch=yes_branch)
-
-            # May have just gone away, so fetch it again.
-            yes_branch = self.subnode_yes_branch
+            yes_branch = branch_yes_collection.computeBranch(branch=yes_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if yes_branch is None or yes_branch.isStatementAborting():
@@ -617,10 +665,7 @@ branches.""",
                 parent=trace_collection, name="conditional no branch"
             )
 
-            branch_no_collection.computeBranch(branch=no_branch)
-
-            # May have just gone away, so fetch it again.
-            no_branch = self.subnode_no_branch
+            no_branch = branch_no_collection.computeBranch(branch=no_branch)
 
             # If it's aborting, it doesn't contribute to merging.
             if no_branch is None or no_branch.isStatementAborting():

@@ -200,8 +200,8 @@ disable_console = getArgumentBool("disable_console", False)
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getArgumentBool("uninstalled_python", False)
 
-# Unstriped mode: Do not remove debug symbols.
-unstriped_mode = getArgumentBool("unstriped_mode", False)
+# Unstripped mode: Do not remove debug symbols.
+unstripped_mode = getArgumentBool("unstripped_mode", False)
 
 # Target arch, uses for compiler choice and quick linking of constants binary
 # data.
@@ -369,7 +369,7 @@ env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
-env.unstriped_mode = debug_mode or unstriped_mode
+env.unstripped_mode = debug_mode or unstripped_mode
 env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
@@ -677,6 +677,11 @@ if win_target:
                 env.Append(CPPDEFINES=[define + "=" + value])
             else:
                 env.Append(CPPDEFINES=[define])
+
+        if "link_flags" in link_data:
+            env.Append(LINKFLAGS=link_data["link_flags"])
+        if "compile_flags" in link_data:
+            env.Append(CFLAGS=link_data["compile_flags"])
     elif env.gcc_mode and static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
     else:
@@ -730,6 +735,11 @@ elif not module_mode:
                 env.Append(CPPDEFINES=[define + "=" + value])
             else:
                 env.Append(CPPDEFINES=[define])
+
+        if "link_flags" in link_data:
+            env.Append(LINKFLAGS=link_data["link_flags"])
+        if "compile_flags" in link_data:
+            env.Append(CFLAGS=link_data["compile_flags"])
     elif static_libpython:
         env.Append(LIBS=[env.File(static_libpython)])
 
@@ -757,8 +767,11 @@ elif not module_mode:
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(LIBS=["dl", "pthread", "util", "rt", "m"])
 
-        if env.gcc_mode and not clang_mode:
-            env.Append(LINKFLAGS=["-export-dynamic"])
+        if env.gcc_mode:
+            if clang_mode:
+                env.Append(LINKFLAGS=["-Wl,--export-dynamic"])
+            else:
+                env.Append(LINKFLAGS=["-export-dynamic"])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if isNetBSD():
@@ -987,7 +1000,11 @@ if module_mode and python_sysflag_verbose:
 # which can make linking fail with many modules otherwise. Most needed on Windows,
 # but useful on other platforms too.
 if env.gcc_mode:
-    makeGccUseLinkerFile(source_dir=source_dir, source_files=source_files, env=env)
+    makeGccUseLinkerFile(
+        source_files=source_files,
+        module_mode=module_mode,
+        env=env,
+    )
 
 # Plugin contributed C defines should be used too.
 env.Append(CPPDEFINES=cpp_defines)

@@ -103,7 +103,7 @@ def _getCPythonResults(cpython_cmd, send_kill):
         if send_kill:
             # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
             executeAfterTimePassed(
-                1.0, lambda: killProcess("Uncompiled Python program", process.pid)
+                2.0, lambda: killProcess("Uncompiled Python program", process.pid)
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
@@ -641,6 +641,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
                     nuitka_cmd1
                 )
 
+                python_path_used = os.environ["PYTHONPATH"]
+
             if exit_nuitka1 != 0:
                 if (
                     not expect_failure
@@ -649,12 +651,12 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
                 ):
                     sys.exit(
                         """\
-Error, failed to take coverage with '%s'.
+Error, failed to take coverage with '%s' (PYTHONPATH was '%s').
 
 Stderr was:
 %s
 """
-                        % (os.environ["PYTHON"], stderr_nuitka1)
+                        % (nuitka_cmd1, python_path_used, stderr_nuitka1)
                     )
 
                 exit_nuitka = exit_nuitka1

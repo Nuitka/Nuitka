@@ -48,13 +48,21 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    getPythonABI,
+    python_version,
+    python_version_str,
+)
 from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
+from nuitka.utils.SharedLibraries import (
+    callInstallNameTool,
+    copyDllFile,
+    setSharedLibraryRPATH,
+)
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
@@ -504,15 +512,17 @@ def checkFreezingModuleSet():
     problem_modules = OrderedSet()
 
     if isDebianBasedLinux():
-        message = (
-            "Standard with Python package from Debian installation may not be working."
-        )
+        message = "Standalone with Python package from Debian installation may not be working."
         mnemonic = "debian-dist-packages"
 
         def checkModulePath(module):
-            if "dist-packages" in module.getCompileTimeFilename().split("/"):
-                module_name = module.getFullName()
+            module_filename = module.getCompileTimeFilename()
+            module_name = module.getFullName()
 
+            if (
+                "dist-packages" in module_filename.split("/")
+                and not module_name.isFakeModuleName()
+            ):
                 package_name = module_name.getTopLevelPackageName()
 
                 if package_name is not None:
@@ -647,6 +657,29 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             ]
         )
 
+    if (
+        isMacOS()
+        and not Options.shallMakeModule()
+        and not Options.shallUseStaticLibPython()
+    ):
+        python_abi_version = python_version_str + getPythonABI()
+        python_dll_filename = "libpython" + python_abi_version + ".dylib"
+
+        # Note: For Anaconda, and potentially others, the rpath for the
+        # Python library needs to be replaces with executable path relative
+        # search.
+        callInstallNameTool(
+            filename=os.path.join(dist_dir, standalone_entry_points[0].dest_path),
+            mapping=(
+                (
+                    "@rpath/" + python_dll_filename,
+                    "@executable_path/" + python_dll_filename,
+                ),
+            ),
+            id_path=None,
+            rpath=None,
+        )
+
     Plugins.onCopiedDLLs(
         dist_dir=dist_dir, standalone_entry_points=copy_standalone_entry_points
     )
@@ -677,14 +710,15 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         )
 
         for used_dll in used_dlls:
-            addIncludedEntryPoint(
-                makeDllEntryPoint(
-                    logger=inclusion_logger,
-                    source_path=used_dll,
-                    dest_path=_decideTargetPath(used_dll),
-                    package_name=standalone_entry_point.package_name,
-                )
+            dll_entry_point = makeDllEntryPoint(
+                logger=inclusion_logger,
+                source_path=used_dll,
+                dest_path=_decideTargetPath(used_dll),
+                package_name=standalone_entry_point.package_name,
+                reason="Used by '%s'" % standalone_entry_point.dest_path,
             )
+
+            addIncludedEntryPoint(dll_entry_point)
 
 
 def detectUsedDLLs(standalone_entry_points, source_dir):

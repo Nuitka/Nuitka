@@ -29,12 +29,12 @@ version.
 
 import os
 import re
-import subprocess
 
 import SCons.Tool.gcc  # pylint: disable=I0021,import-error
 from SCons.Script import Environment  # pylint: disable=I0021,import-error
 
 from nuitka.Tracing import scons_details_logger
+from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import openTextFile
 from nuitka.utils.Utils import isLinux, isMacOS
 
@@ -88,32 +88,27 @@ _blocked_tools = (
 )
 
 
-def _myDetectVersion(env, clvar):
-    clvar0 = os.path.basename(clvar[0])
-
-    if isGccName(clvar0) or "clang" in clvar0:
-        command = clvar + ("-dumpversion",)
+def _myDetectVersion(cc):
+    if isGccName(cc) or "clang" in cc:
+        command = (
+            cc,
+            "-dumpversion",
+        )
     else:
-        command = clvar + ("--version",)
+        command = (
+            cc,
+            "--version",
+        )
 
-    # pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
-    pipe = SCons.Action._subproc(  # pylint: disable=protected-access
-        env, command, stdin="devnull", stderr="devnull", stdout=subprocess.PIPE
-    )
+    stdout, stderr, exit_code = executeProcess(command)
 
-    line = pipe.stdout.readline()
-    # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
-    # So continue with reading to let the child process actually terminate.
-    while pipe.stdout.readline():
-        pass
-
-    ret = pipe.wait()
-    if ret != 0:
+    if exit_code != 0:
         scons_details_logger.info(
-            "Error, error exit from '%s' (%d) gave %r."
-            % (command, ret, pipe.stderr.read())
+            "Error, error exit from '%s' (%d) gave %r." % (command, exit_code, stderr)
         )
         return None
+
+    line = stdout.splitlines()[0]
 
     if str is not bytes and type(line) is bytes:
         line = decodeData(line)
@@ -132,7 +127,6 @@ def _myDetectVersion(env, clvar):
     return version
 
 
-# From gcc.py of Scons
 def myDetectVersion(env, cc):
     """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
     cc = env.subst(cc)
@@ -147,7 +141,7 @@ def myDetectVersion(env, cc):
         return None
 
     if cc not in v_cache:
-        v_cache[cc] = _myDetectVersion(env, (cc,))
+        v_cache[cc] = _myDetectVersion(cc)
 
         scons_details_logger.info("CC %r version check gives %r" % (cc, v_cache[cc]))
 
@@ -186,8 +180,16 @@ def getEnhancedToolDetect():
     return myDetect
 
 
-def makeGccUseLinkerFile(source_dir, source_files, env):
-    tmp_linker_filename = os.path.join(source_dir, "@link_input.txt")
+def makeGccUseLinkerFile(source_files, module_mode, env):
+    tmp_linker_filename = os.path.join(env.source_dir, "@link_input.txt")
+
+    # Note: For Windows, it's done in mingw.py because of its use of
+    # a class rather than a string here, that is not working for the
+    # monkey patching.
+    if os.name != "nt":
+        env["SHLINKCOM"] = env["SHLINKCOM"].replace(
+            "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
+        )
 
     env["LINKCOM"] = env["LINKCOM"].replace(
         "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
@@ -195,7 +197,9 @@ def makeGccUseLinkerFile(source_dir, source_files, env):
 
     with openTextFile(tmp_linker_filename, "w") as tmpfile:
         for filename in source_files:
-            filename = ".".join(filename.split(".")[:-1]) + ".o"
+            filename = ".".join(filename.split(".")[:-1]) + (
+                ".os" if module_mode and os.name != "nt" else ".o"
+            )
 
             if os.name == "nt":
                 filename = filename.replace(os.path.sep, "/")

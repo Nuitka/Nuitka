@@ -34,6 +34,8 @@ from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.MatchNodes import ExpressionMatchArgs
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.ReturnNodes import makeStatementReturnConstant
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptCheck,
     ExpressionSubscriptLookup,
@@ -50,7 +52,12 @@ from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 
 from .ReformulationBooleanExpressions import makeAndNode, makeOrNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-from .TreeHelpers import buildNode, buildStatementsNode, makeStatementsSequence
+from .TreeHelpers import (
+    buildNode,
+    buildStatementsNode,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+)
 
 
 def _makeMatchComparison(left, right, source_ref):
@@ -262,9 +269,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
         conditions.append(
             ExpressionSubscriptCheck(
                 expression=make_against(),
-                subscript=makeConstantRefNode(
-                    constant=key.value, source_ref=source_ref
-                ),
+                subscript=buildNode(provider, key, source_ref),
                 source_ref=source_ref,
             )
         )
@@ -274,9 +279,7 @@ def _buildMatchMapping(provider, pattern, make_against, source_ref):
             provider=provider,
             make_against=lambda: ExpressionSubscriptLookup(
                 expression=make_against(),
-                subscript=makeConstantRefNode(
-                    constant=key.value, source_ref=source_ref
-                ),
+                subscript=buildNode(provider, key, source_ref),
                 source_ref=source_ref,
             ),
             pattern=kwd_pattern,
@@ -305,8 +308,14 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
         )
     ]
 
-    assert not (pattern.patterns and pattern.kwd_patterns), ast.dump(pattern)
-    assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), ast.dump(pattern)
+    assert not (pattern.patterns and pattern.kwd_patterns), (
+        source_ref,
+        ast.dump(pattern),
+    )
+    assert len(pattern.kwd_attrs) == len(pattern.kwd_patterns), (
+        source_ref,
+        ast.dump(pattern),
+    )
 
     for count, pos_pattern in enumerate(pattern.patterns):
         # TODO: Not reusing Match args, is very wasteful for performance, but
@@ -366,26 +375,86 @@ def _buildMatchClass(provider, pattern, make_against, source_ref):
     return conditions, assignments
 
 
-def _buildMatch(provider, pattern, make_against, source_ref):
-    if pattern.__class__ is ast.MatchOr:
-        or_condition_list = []
-        for or_pattern in pattern.patterns:
-            or_conditions, or_assignments = _buildMatch(
-                provider=provider,
-                pattern=or_pattern,
-                make_against=make_against,
-                source_ref=source_ref,
-            )
-            assert not or_assignments
+def _buildMatchOr(provider, pattern, make_against, source_ref):
+    # Slightly complicated, due to using an outline body, pylint: disable=too-many-locals
 
-            or_condition_list.append(
-                makeAndNode(values=or_conditions, source_ref=source_ref)
-            )
+    or_condition_list = []
+    or_assignments_list = []
 
+    for or_pattern in pattern.patterns:
+        or_conditions, or_assignments = _buildMatch(
+            provider=provider,
+            pattern=or_pattern,
+            make_against=make_against,
+            source_ref=source_ref,
+        )
+
+        or_condition_list.append(
+            makeAndNode(values=or_conditions, source_ref=source_ref)
+        )
+
+        # TODO: Inconsistency somewhere, can return empty.
+        or_assignments_list.append(or_assignments or None)
+
+    if all(or_assignments is None for or_assignments in or_assignments_list):
         condition = makeOrNode(values=or_condition_list, source_ref=source_ref)
         conditions = (condition,)
         assignments = None
+    else:
+        body = None
 
+        for or_condition, or_assignments in zip(
+            reversed(or_condition_list), reversed(or_assignments_list)
+        ):
+            assert or_assignments is not None, (source_ref, or_assignments_list)
+            statements = list(or_assignments)
+            statements.append(
+                makeStatementReturnConstant(constant=True, source_ref=source_ref)
+            )
+
+            if body is None:
+                body = makeStatementConditional(
+                    condition=or_condition,
+                    yes_branch=makeStatementsSequence(
+                        statements=statements, allow_none=False, source_ref=source_ref
+                    ),
+                    no_branch=makeStatementReturnConstant(
+                        constant=False, source_ref=source_ref
+                    ),
+                    source_ref=source_ref,
+                )
+            else:
+                body = makeStatementConditional(
+                    condition=or_condition,
+                    yes_branch=makeStatementsSequence(
+                        statements=statements, allow_none=False, source_ref=source_ref
+                    ),
+                    no_branch=body,
+                    source_ref=source_ref,
+                )
+
+        body = makeStatementsSequenceFromStatement(body)
+
+        outline_body = ExpressionOutlineBody(
+            provider=provider, name="match_or", source_ref=source_ref
+        )
+
+        outline_body.setChild("body", body)
+
+        conditions = (outline_body,)
+        assignments = None
+
+    return conditions, assignments
+
+
+def _buildMatch(provider, pattern, make_against, source_ref):
+    if pattern.__class__ is ast.MatchOr:
+        conditions, assignments = _buildMatchOr(
+            provider=provider,
+            pattern=pattern,
+            make_against=make_against,
+            source_ref=source_ref,
+        )
     elif pattern.__class__ is ast.MatchClass:
         conditions, assignments = _buildMatchClass(
             provider=provider,
@@ -400,7 +469,6 @@ def _buildMatch(provider, pattern, make_against, source_ref):
             make_against=make_against,
             source_ref=source_ref,
         )
-
     elif pattern.__class__ is ast.MatchSequence:
         conditions, assignments = _buildMatchSequence(
             provider=provider,
@@ -408,7 +476,6 @@ def _buildMatch(provider, pattern, make_against, source_ref):
             make_against=make_against,
             source_ref=source_ref,
         )
-
     elif pattern.__class__ is ast.MatchAs:
         conditions, assignments = _buildMatchAs(
             provider=provider,
@@ -416,7 +483,6 @@ def _buildMatch(provider, pattern, make_against, source_ref):
             make_against=make_against,
             source_ref=source_ref,
         )
-
     elif pattern.__class__ is ast.MatchValue or pattern.__class__ is ast.MatchSingleton:
         conditions = [
             _buildMatchValue(

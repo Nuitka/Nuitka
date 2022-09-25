@@ -54,19 +54,16 @@ from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
-from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.ModuleNames import (
+    ModuleName,
+    makeTriggerModuleName,
+    post_module_load_trigger_name,
+    pre_module_load_trigger_name,
+)
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
 warned_unused_plugins = set()
-
-# Trigger names for shared use.
-post_module_load_trigger_name = "postLoad"
-pre_module_load_trigger_name = "preLoad"
-
-
-def makeTriggerModuleName(module_name, trigger_name):
-    return ModuleName(module_name + "-" + trigger_name)
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -139,7 +136,13 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
     @classmethod
     def isDeprecated(cls):
+        """Is this a deprecated plugin, i.e. one that has no use anymore."""
         return False
+
+    @classmethod
+    def isDetector(cls):
+        """Is this a detection plugin, i.e. one which is only there to inform."""
+        return hasattr(cls, "detector_for")
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -334,6 +337,20 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
+    def getPackageExtraScanPaths(self, package_name, package_dir):
+        """Provide other directories to consider submodules to live in.
+
+        Args:
+            module_name: full module name
+            package_dir: directory of the package
+
+        Returns:
+            Iterable list of directories, non-existent ones are ignored.
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def onModuleEncounter(self, module_name, module_filename, module_kind):
         """Help decide whether to include a module.
 
@@ -387,7 +404,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """Provide a filename / -path for a to-be-imported module.
 
         Args:
-            importing: module object that asked for it (tracing only)
             module_name: (str or ModuleName) full name of module
         Returns:
             filename for module
@@ -429,22 +445,24 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         """
         return locateDLLsInDirectory(directory)
 
-    def makeDllEntryPoint(self, source_path, dest_path, package_name):
+    def makeDllEntryPoint(self, source_path, dest_path, package_name, reason):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeDllEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
             package_name=package_name,
+            reason=reason,
         )
 
-    def makeExeEntryPoint(self, source_path, dest_path, package_name):
+    def makeExeEntryPoint(self, source_path, dest_path, package_name, reason):
         """Create an entry point, as expected to be provided by getExtraDlls."""
         return makeExeEntryPoint(
             logger=self,
             source_path=source_path,
             dest_path=dest_path,
             package_name=package_name,
+            reason=reason,
         )
 
     def reportFileCount(self, module_name, count, section=None):
@@ -630,6 +648,18 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
         Args:
             filename: the created bootstrap binary, will be modified later
+
+        Returns:
+            None
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
+    def onStandaloneBinary(self, filename):
+        """Called after successfully creating a standalone binary.
+
+        Args:
+            filename: the created standalone binary
 
         Returns:
             None
@@ -883,6 +913,11 @@ except ImportError:
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
+        if condition == "True":
+            return True
+        if condition == "False":
+            return False
+
         context = TagContext(logger=self, full_name=full_name)
         context.update(control_tags)
 

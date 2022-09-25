@@ -23,6 +23,7 @@
 import os
 import sys
 
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATH
@@ -59,12 +60,16 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
                 "$ORIGIN", os.path.dirname(sys.executable)
             )
 
+    # Single one, might be wrong for Anaconda, which uses multiple ones on at least
+    # macOS.
+    python_rpaths = (_detected_python_rpath,) if _detected_python_rpath else ()
+
     # TODO: Actually would be better to pass it as env to the created process instead.
     with withEnvironmentPathAdded(
         "LD_LIBRARY_PATH",
         *getLdLibraryPath(
             package_name=package_name,
-            python_rpath=_detected_python_rpath,
+            python_rpaths=python_rpaths,
             original_dir=original_dir,
         )
     ):
@@ -114,13 +119,6 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
         # been seen with Qt at least.
         filename = os.path.normpath(filename)
 
-        # If we encounter a valid relative path, resolve it to an absolute one.
-        if not os.path.isabs(filename):
-            inclusion_logger.sysexit(
-                "Error: Found a dependency with a relative path. Was a dependency copied to dist early? "
-                + filename
-            )
-
         # Do not include kernel DLLs on the ignore list.
         filename_base = os.path.basename(filename)
         if any(
@@ -128,6 +126,13 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
             for entry in _linux_dll_ignore_list
         ):
             continue
+
+        # Do not allow relative paths for shared libraries
+        if not os.path.isabs(filename):
+            inclusion_logger.sysexit(
+                "Error: Found a dependency with a relative path. Was a dependency copied to dist early? "
+                + filename
+            )
 
         result.add(filename)
 
@@ -147,7 +152,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     return sub_result
 
 
-_linux_dll_ignore_list = (
+_linux_dll_ignore_list = [
     # Do not include kernel / glibc specific libraries. This list has been
     # assembled by looking what are the most common .so files provided by
     # glibc packages from ArchLinux, Debian Stretch and CentOS.
@@ -198,4 +203,9 @@ _linux_dll_ignore_list = (
     # The DRM layer should also be taken from the OS in question and won't
     # allow loading native drivers otherwise.
     "libdrm.so",
-)
+]
+
+if isAnacondaPython():
+    # Anaconda has these with e.g. torchvision, and insists on them being very new,
+    # so they have to be included.
+    _linux_dll_ignore_list.remove("libstdc++.so")

@@ -31,11 +31,15 @@
 
 static void _initBuiltinTypeMethods(void) {
 #if PYTHON_VERSION < 0x300
+    NUITKA_PRINT_TRACE("main(): Calling _initStrBuiltinMethods().");
     _initStrBuiltinMethods();
 #else
+    NUITKA_PRINT_TRACE("main(): Calling _initBytesBuiltinMethods().");
     _initBytesBuiltinMethods();
 #endif
+    NUITKA_PRINT_TRACE("main(): Calling _initUnicodeBuiltinMethods().");
     _initUnicodeBuiltinMethods();
+    NUITKA_PRINT_TRACE("main(): Calling _initDictBuiltinMethods().");
     _initDictBuiltinMethods();
 }
 
@@ -1563,6 +1567,55 @@ NUITKA_MAY_BE_UNUSED static void stripFilenameW(wchar_t *path) {
 
 #if defined(_NUITKA_EXE)
 
+#ifdef _WIN32
+static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *filename, DWORD resolved_filename_size) {
+#if defined(_NUITKA_EXPERIMENTAL_SYMLINKS)
+    // Resolve any symbolic links in the filename.
+    // Copies the resolved path over the top of the parameter.
+
+    // Open the file in the most non-exclusive way possible
+    HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (unlikely(file_handle == INVALID_HANDLE_VALUE)) {
+        abort();
+    }
+
+    // Resolve the path, get the result with a drive letter
+    DWORD len = GetFinalPathNameByHandleW(file_handle, resolved_filename, resolved_filename_size,
+                                          FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+
+    CloseHandle(file_handle);
+
+    if (unlikely(len >= resolved_filename_size)) {
+        abort();
+    }
+#else
+    copyStringSafeW(resolved_filename, filename, resolved_filename_size);
+#endif
+}
+
+#else
+
+static void resolveFileSymbolicLink(char *resolved_filename, char const *filename, size_t resolved_filename_size) {
+#if defined(_NUITKA_EXPERIMENTAL_SYMLINKS)
+    assert(resolved_filename_size < PATH_MAX);
+    assert(false);
+
+    // At least on macOS, realpath cannot allocate a buffer, so the above test is what is needed
+    // and then this will be safe, on Linux we could use NULL argument and have a malloc of the
+    // resulting value.
+    char *result = realpath(filename, resolved_filename);
+
+    if (unlikely(result == NULL)) {
+        abort();
+    }
+#else
+    copyStringSafe(resolved_filename, filename, resolved_filename_size);
+#endif
+}
+#endif
+
 #ifndef _WIN32
 char const *getBinaryDirectoryHostEncoded(void) {
     static char binary_directory[MAXPATHLEN + 1];
@@ -1572,13 +1625,18 @@ char const *getBinaryDirectoryHostEncoded(void) {
         return binary_directory;
     }
 
+    char binary_filename[MAXPATHLEN + 1];
+
 #if defined(__APPLE__)
-    uint32_t bufsize = sizeof(binary_directory);
-    int res = _NSGetExecutablePath(binary_directory, &bufsize);
+    uint32_t bufsize = sizeof(binary_filename);
+    int res = _NSGetExecutablePath(binary_filename, &bufsize);
 
     if (unlikely(res != 0)) {
         abort();
     }
+
+    // Resolve any symlinks we were invoked via
+    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
 
     // On macOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
@@ -1593,12 +1651,15 @@ char const *getBinaryDirectoryHostEncoded(void) {
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-    size_t cb = sizeof(binary_directory);
-    int res = sysctl(mib, 4, binary_directory, &cb, NULL, 0);
+    size_t cb = sizeof(binary_filename);
+    int res = sysctl(mib, 4, binary_filename, &cb, NULL, 0);
 
     if (unlikely(res != 0)) {
         abort();
     }
+
+    // Resolve any symlinks we were invoked via
+    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
 
     /* We want the directory name, the above gives the full executable name. */
     copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
@@ -1607,12 +1668,15 @@ char const *getBinaryDirectoryHostEncoded(void) {
 
     /* The "readlink" call does not terminate result, so fill zeros there, then
      * it is a proper C string right away. */
-    memset(binary_directory, 0, sizeof(binary_directory));
-    ssize_t res = readlink("/proc/self/exe", binary_directory, sizeof(binary_directory) - 1);
+    memset(binary_filename, 0, sizeof(binary_filename));
+    ssize_t res = readlink("/proc/self/exe", binary_filename, sizeof(binary_filename) - 1);
 
     if (unlikely(res == -1)) {
         abort();
     }
+
+    // Resolve any symlinks we were invoked via
+    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
 
     copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
 #endif
@@ -1629,8 +1693,12 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
         binary_directory[0] = 0;
 
 #if defined(_WIN32)
-        DWORD res = GetModuleFileNameW(NULL, binary_directory, sizeof(binary_directory));
+        wchar_t binary_filename[MAXPATHLEN + 1];
+        DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename));
         assert(res != 0);
+
+        // Resolve any symlinks we were invoked via
+        resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
 
         stripFilenameW(binary_directory);
 
@@ -1803,7 +1871,9 @@ static char const *getDllDirectory(void) {
 static void _initDeepCopy(void);
 
 void _initBuiltinModule(void) {
+    NUITKA_PRINT_TRACE("main(): Calling _initBuiltinTypeMethods().");
     _initBuiltinTypeMethods();
+    NUITKA_PRINT_TRACE("main(): Calling _initDeepCopy().");
     _initDeepCopy();
 
 #if _NUITKA_MODULE

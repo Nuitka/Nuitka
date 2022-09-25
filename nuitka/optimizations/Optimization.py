@@ -43,6 +43,7 @@ from nuitka.utils.MemoryUsage import (
     MemoryWatch,
     getHumanReadableProcessMemoryUsage,
 )
+from nuitka.utils.Timing import TimerReport
 
 from . import Graphs
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
@@ -288,7 +289,20 @@ def makeOptimizationPass():
 
         _traceProgressModuleStart(current_module)
 
-        changed = optimizeModule(current_module)
+        module_name = current_module.getFullName()
+
+        with TimerReport(
+            message="Optimizing %s" % module_name, decider=False
+        ) as module_timer:
+            changed = optimizeModule(current_module)
+
+            # module_timer=module_time_report.getTimer()
+
+        ModuleRegistry.addModuleOptimizationTimeInformation(
+            module_name=module_name,
+            pass_number=pass_count,
+            time_used=module_timer.getDelta(),
+        )
 
         _traceProgressModuleEnd(current_module)
 

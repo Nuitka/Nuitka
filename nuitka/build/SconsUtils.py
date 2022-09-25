@@ -27,6 +27,7 @@ import signal
 import sys
 
 from nuitka.__past__ import basestring, unicode
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
@@ -355,7 +356,7 @@ def flushSconsReports():
 
 def readSconsReport(source_dir):
     if source_dir not in _scons_reports:
-        scons_report = {}
+        scons_report = OrderedDict()
 
         for line in getFileContentByLine(
             os.path.join(source_dir, "scons-report.txt"), encoding="utf8"
@@ -531,7 +532,7 @@ def makeCLiteral(value):
 def createDefinitionsFile(source_dir, filename, definitions):
     build_definitions_filename = os.path.join(source_dir, filename)
 
-    with openTextFile(build_definitions_filename, "w") as f:
+    with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
         for key, value in sorted(definitions.items()):
             if type(value) is int:
                 f.write("#define %s %s\n" % (key, value))

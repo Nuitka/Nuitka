@@ -26,6 +26,7 @@ deeper that what it normally could. The import expression node can lead to
 modules being added. After optimization it will be asked about used modules.
 """
 
+import os
 import sys
 
 from nuitka.__past__ import long, unicode, xrange
@@ -69,20 +70,29 @@ from .ExpressionBases import (
 from .ImportHardNodes import (
     ExpressionImportHardBase,
     ExpressionImportModuleNameHardExists,
+    ExpressionImportModuleNameHardExistsSpecificBase,
     ExpressionImportModuleNameHardMaybeExists,
 )
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .PackageMetadataNodes import (
+    ExpressionImportlibMetadataBackportDistributionRef,
+    ExpressionImportlibMetadataBackportMetadataRef,
     ExpressionImportlibMetadataBackportVersionRef,
+    ExpressionImportlibMetadataDistributionRef,
+    ExpressionImportlibMetadataMetadataRef,
     ExpressionImportlibMetadataVersionRef,
     ExpressionPkgResourcesGetDistributionRef,
+    ExpressionPkgResourcesIterEntryPointsRef,
     ExpressionPkgResourcesRequireRef,
 )
 from .PackageResourceNodes import (
     ExpressionImportlibResourcesReadBinaryRef,
     ExpressionImportlibResourcesReadTextRef,
+    ExpressionOsPathExistsRef,
+    ExpressionOsPathIsdirRef,
+    ExpressionOsPathIsfileRef,
     ExpressionOsUnameRef,
     ExpressionPkglibGetDataRef,
     ExpressionPkgResourcesResourceStreamRef,
@@ -94,6 +104,9 @@ from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 hard_modules = frozenset(
     (
         "os",
+        "ntpath",
+        "posixpath",
+        # TODO: Add mac path package too
         "sys",
         "types",
         "typing",
@@ -111,8 +124,14 @@ hard_modules = frozenset(
         "ctypes",
         "ctypes.wintypes",
         "ctypes.macholib",
+        # TODO: Once generation of nodes for functions exists.
+        # "platform",
     )
 )
+
+hard_modules_aliases = {
+    "os.path": os.path.__name__,
+}
 
 # Lets put here, hard modules that are kind of backports only.
 hard_modules_non_stdlib = frozenset(
@@ -198,6 +217,12 @@ module_typing_trust = {
 
 module_os_trust = {"name": trust_constant}
 
+module_os_path_trust = {"exists": trust_node, "isfile": trust_node, "isdir": trust_node}
+trust_node_factory[(os.path.__name__, "exists")] = ExpressionOsPathExistsRef
+trust_node_factory[(os.path.__name__, "isfile")] = ExpressionOsPathIsfileRef
+trust_node_factory[(os.path.__name__, "isdir")] = ExpressionOsPathIsdirRef
+
+
 if isWin32Windows():
     module_os_trust["uname"] = trust_not_exist
 else:
@@ -207,15 +232,28 @@ else:
 
 module_ctypes_trust = {"CDLL": trust_node}
 
+# module_platform_trust = {"python_implementation": trust_function}
+
 hard_modules_trust = {
     "os": module_os_trust,
+    "ntpath": module_os_path_trust if os.path.__name__ == "ntpath" else {},
+    "posixpath": module_os_path_trust if os.path.__name__ == "posixpath" else {},
     "sys": module_sys_trust,
+    #     "platform": module_platform_trust,
     "types": {},
     "typing": module_typing_trust,
     "__future__": dict((key, trust_future) for key in getFutureModuleKeys()),
     "importlib": module_importlib_trust,
-    "importlib.metadata": {"version": trust_node},
-    "importlib_metadata": {"version": trust_node},
+    "importlib.metadata": {
+        "version": trust_node,
+        "distribution": trust_node,
+        "metadata": trust_node,
+    },
+    "importlib_metadata": {
+        "version": trust_node,
+        "distribution": trust_node,
+        "metadata": trust_node,
+    },
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
     "pkgutil": {"get_data": trust_node},
@@ -226,6 +264,7 @@ hard_modules_trust = {
     "pkg_resources": {
         "require": trust_node,
         "get_distribution": trust_node,
+        "iter_entry_points": trust_node,
         "resource_string": trust_node,
         "resource_stream": trust_node,
     },
@@ -243,6 +282,10 @@ trust_node_factory[
     ("pkg_resources", "get_distribution")
 ] = ExpressionPkgResourcesGetDistributionRef
 trust_node_factory[
+    ("pkg_resources", "iter_entry_points")
+] = ExpressionPkgResourcesIterEntryPointsRef
+
+trust_node_factory[
     ("pkg_resources", "resource_string")
 ] = ExpressionPkgResourcesResourceStringRef
 trust_node_factory[
@@ -254,6 +297,18 @@ trust_node_factory[
 trust_node_factory[
     ("importlib_metadata", "version")
 ] = ExpressionImportlibMetadataBackportVersionRef
+trust_node_factory[
+    ("importlib.metadata", "distribution")
+] = ExpressionImportlibMetadataDistributionRef
+trust_node_factory[
+    ("importlib_metadata", "distribution")
+] = ExpressionImportlibMetadataBackportDistributionRef
+trust_node_factory[
+    ("importlib.metadata", "metadata")
+] = ExpressionImportlibMetadataMetadataRef
+trust_node_factory[
+    ("importlib_metadata", "metadata")
+] = ExpressionImportlibMetadataBackportMetadataRef
 trust_node_factory[
     ("importlib.resources", "read_binary")
 ] = ExpressionImportlibResourcesReadBinaryRef
@@ -568,6 +623,8 @@ class ExpressionImportModuleHard(
         if self.module is not None and self.allowed:
             full_name = self.value_name.getChildNamed(attribute_name)
 
+            full_name = ModuleName(hard_modules_aliases.get(full_name, full_name))
+
             if isHardModule(full_name):
                 new_node = ExpressionImportModuleHard(
                     module_name=full_name,
@@ -710,11 +767,13 @@ importlib_import_module_spec = BuiltinParameterSpec(
 )
 
 
-class ExpressionImportlibImportModuleRef(ExpressionImportModuleNameHardExists):
+class ExpressionImportlibImportModuleRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
     kind = "EXPRESSION_IMPORTLIB_IMPORT_MODULE_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="importlib",
             import_name="import_module",

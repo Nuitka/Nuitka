@@ -140,7 +140,7 @@ The Tcl library dir. See comments for Tk library dir.""",
         yield self.makeIncludedPackageDataFiles(
             package_name="tkinterdnd2",
             package_directory=module.getCompileTimeDirectory(),
-            pattern=os.path.join("tkinterdnd2", "tkdnd", platform_rep, "**"),
+            pattern=os.path.join("tkdnd", platform_rep, "**"),
             reason="Tcl needed for 'tkinterdnd2' usage",
             tags="tcl",
         )
@@ -258,8 +258,8 @@ The Tcl library dir. See comments for Tk library dir.""",
                 yield self.makeDllEntryPoint(
                     source_path=filename,
                     dest_path=os.path.join("tkinterdnd2", dest_path),
-                    package_name="tkinterdnd2"
-                    # reason="tkinterdnd2 package DLL",
+                    package_name="tkinterdnd2",
+                    reason="tkinterdnd2 package DLL",
                 )
 
 

@@ -49,6 +49,7 @@ class NuitkaPluginZmq(NuitkaPluginBase):
     def isAlwaysEnabled():
         return True
 
+    # This is used by our exec below, to capture the dll directory.
     def _add_dll_directory(self, arg):
         self.dll_directory = arg
 
@@ -93,4 +94,5 @@ class NuitkaPluginZmq(NuitkaPluginBase):
                         "pyzmq.libs", os.path.basename(dll_filename)
                     ),
                     package_name="zmq",
+                    reason="needed as a workaround for old 'zmq'",
                 )

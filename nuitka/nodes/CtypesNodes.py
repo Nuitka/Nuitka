@@ -25,7 +25,7 @@ from nuitka.specs.BuiltinParameterSpecs import (
 )
 
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .ImportHardNodes import ExpressionImportModuleNameHardExists
+from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 # spell-checker: ignore lasterror,winmode
 
@@ -47,13 +47,13 @@ ctypes_cdll_spec = BuiltinParameterSpec(
 )
 
 
-class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExists):
+class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference ctypes.CDLL"""
 
     kind = "EXPRESSION_CTYPES_CDLL_REF"
 
     def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExists.__init__(
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
             module_name="ctypes",
             import_name="CDLL",

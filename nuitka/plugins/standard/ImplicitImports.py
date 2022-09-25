@@ -23,6 +23,7 @@ to add to this and submit patches to make it more complete.
 """
 
 import fnmatch
+import os
 
 from nuitka.__past__ import iter_modules
 from nuitka.plugins.PluginBase import NuitkaPluginBase
@@ -86,44 +87,44 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
         yield current
 
+    def _handleImplicitImportsConfig(self, module, config):
+        full_name = module.getFullName()
+
+        if "depends" in config:
+            for dependency in config.get("depends"):
+                if dependency.startswith("."):
+                    if (
+                        module.isUncompiledPythonPackage()
+                        or module.isCompiledPythonPackage()
+                    ):
+                        dependency = full_name.getChildNamed(dependency[1:]).asString()
+                    else:
+                        dependency = full_name.getSiblingNamed(
+                            dependency[1:]
+                        ).asString()
+
+                if "*" in dependency or "?" in dependency:
+                    for resolved in self._resolveModulePattern(dependency):
+                        yield resolved
+                else:
+                    yield dependency
+
     def _getImportsByFullname(self, module, full_name):
         """Provides names of modules to imported implicitly."""
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
-        config = self.config.get(full_name, section="implicit-imports")
-
         # Checking for config, but also allowing fall through.
-        if config:
-            for entry in config:
-                if entry.get("when"):
-                    if not self.evaluateCondition(
-                        full_name=full_name, condition=entry.get("when")
-                    ):
-                        continue
-
-                dependencies = entry.get("depends")
-                for dependency in dependencies:
-                    if dependency.startswith("."):
-                        if (
-                            module.isUncompiledPythonPackage()
-                            or module.isCompiledPythonPackage()
-                        ):
-                            dependency = full_name.getChildNamed(
-                                dependency[1:]
-                            ).asString()
-                        else:
-                            dependency = full_name.getSiblingNamed(
-                                dependency[1:]
-                            ).asString()
-
-                    if "*" in dependency or "?" in dependency:
-                        for resolved in self._resolveModulePattern(dependency):
-                            yield resolved
-                    else:
-                        yield dependency
+        for entry in self.config.get(full_name, section="implicit-imports"):
+            if self.evaluateCondition(
+                full_name=full_name, condition=entry.get("when", "True")
+            ):
+                for dependency in self._handleImplicitImportsConfig(
+                    config=entry, module=module
+                ):
+                    yield dependency
 
         # Support for both pycryotodome (module name Crypto) and pycyptodomex (module name Cryptodome)
-        elif full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
+        if full_name.hasOneOfNamespaces("Crypto", "Cryptodome"):
             crypto_module_name = full_name.getTopLevelPackageName()
 
             if full_name == crypto_module_name + ".Cipher._mode_ofb":
@@ -255,7 +256,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     def getImplicitImports(self, module):
         full_name = module.getFullName()
 
-        # TODO: This code absolutely doesn't below here.
+        # TODO: This code absolutely doesn't belong here.
+        # Read the .pyi file, and provide as implicit dependency.
         if module.isPythonExtensionModule():
             for used_module in module.getUsedModules():
                 yield used_module[0]
@@ -280,6 +282,35 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
             for item in self._getImportsByFullname(module=module, full_name=full_name):
                 yield item
 
+    def _getPackageExtraScanPaths(self, package_dir, config):
+        if "package-dirs" in config:
+            for config_package_dir in config.get("package-dirs"):
+                yield os.path.normpath(
+                    os.path.join(package_dir, "..", config_package_dir)
+                )
+
+                yield package_dir
+
+        if "package-paths" in config:
+            for config_package_name in config.get("package-paths"):
+                module_filename = self.locateModule(config_package_name)
+
+                if module_filename is not None:
+                    if os.path.isfile(module_filename):
+                        yield os.path.dirname(module_filename)
+                    else:
+                        yield module_filename
+
+    def getPackageExtraScanPaths(self, package_name, package_dir):
+        for entry in self.config.get(package_name, section="import-hacks"):
+            if self.evaluateCondition(
+                full_name=package_name, condition=entry.get("when", "True")
+            ):
+                for item in self._getPackageExtraScanPaths(
+                    package_dir=package_dir, config=entry
+                ):
+                    yield item
+
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "numexpr.cpuinfo":
 
@@ -294,6 +325,32 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
         # Do nothing by default.
         return source_code
+
+    def createPreModuleLoadCode(self, module):
+        full_name = module.getFullName()
+
+        for entry in self.config.get(full_name, section="implicit-imports"):
+            if "pre-import-code" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
+                    code = "\n".join(entry.get("pre-import-code"))
+
+                    # TODO: Add a description to the Yaml file.
+                    yield code, "According to Yaml configuration."
+
+    def createPostModuleLoadCode(self, module):
+        full_name = module.getFullName()
+
+        for entry in self.config.get(full_name, section="implicit-imports"):
+            if "post-import-code" in entry:
+                if self.evaluateCondition(
+                    full_name=full_name, condition=entry.get("when", "True")
+                ):
+                    code = "\n".join(entry.get("post-import-code"))
+
+                    # TODO: Add a description to the Yaml file.
+                    yield code, "According to Yaml configuration."
 
     unworthy_namespaces = (
         "setuptools",  # Not performance relevant.
@@ -331,6 +388,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         "asyncua.ua.object_ids",  # Too large generated code
         "asyncua.ua.uaerrors._auto",  # Too large generated code
         "asyncua.server.standard_address_space.standard_address_space_services",  # Too large generated code
+        "azure.mgmt.network",  # Too large generated code
     )
 
     def decideCompilation(self, module_name):

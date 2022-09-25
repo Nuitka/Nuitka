@@ -85,6 +85,7 @@ from nuitka.utils.FileOperations import (
     getDirectoryRealPath,
     getExternalUsePath,
     makePath,
+    openTextFile,
     removeDirectory,
     resetDirectory,
 )
@@ -95,7 +96,7 @@ from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
-from . import ModuleRegistry, Options, OutputDirectories, TreeXML
+from . import ModuleRegistry, Options, OutputDirectories
 from .build import SconsInterface
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
@@ -110,6 +111,7 @@ from .pgo.PGO import readPGOInputFile
 from .Reports import writeCompilationReport
 from .tree.Building import buildMainModuleTree
 from .tree.SourceHandling import writeSourceCode
+from .TreeXML import dumpTreeXMLToFile
 
 
 def _createNodeTree(filename):
@@ -223,9 +225,14 @@ def _createNodeTree(filename):
         return main_module
 
 
-def dumpTreeXML(tree):
-    xml_root = tree.asXml()
-    TreeXML.dump(xml_root)
+def dumpTreeXML():
+    filename = Options.getXMLDumpOutputFilename()
+
+    if filename is not None:
+        with openTextFile(filename, "w") as output_file:
+            # XML output only.
+            for module in ModuleRegistry.getDoneModules():
+                dumpTreeXMLToFile(tree=module.asXml(), output_file=output_file)
 
 
 def pickSourceFilenames(source_dir, modules):
@@ -893,15 +900,14 @@ def main():
     if pgo_filename is not None:
         readPGOInputFile(pgo_filename)
 
-    if not Options.shallDumpBuiltTreeXML():
-        general.info(
-            "Starting Python compilation with Nuitka %r on Python %r commercial grade %r."
-            % (
-                getNuitkaVersion(),
-                python_version_str,
-                getCommercialVersion() or "not installed",
-            )
+    general.info(
+        "Starting Python compilation with Nuitka %r on Python %r commercial grade %r."
+        % (
+            getNuitkaVersion(),
+            python_version_str,
+            getCommercialVersion() or "not installed",
         )
+    )
 
     filename = Options.getPositionalArgs()[0]
 
@@ -921,137 +927,134 @@ def main():
 
     addIncludedDataFilesFromPackageOptions()
 
-    if Options.shallDumpBuiltTreeXML():
-        # XML output only.
+    dumpTreeXML()
+
+    # Make the actual compilation.
+    result, options = compileTree()
+
+    # Exit if compilation failed.
+    if not result:
+        sys.exit(1)
+
+    # Relaunch in case of Python PGO input to be produced.
+    if Options.shallCreatePgoInput():
+        # Will not return.
+        pgo_filename = OutputDirectories.getPgoRunInputFilename()
+        general.info(
+            "Restarting compilation using collected information from '%s'."
+            % pgo_filename
+        )
+        reExecuteNuitka(pgo_filename=pgo_filename)
+
+    if Options.shallNotDoExecCCompilerCall():
+        if Options.isShowMemory():
+            MemoryUsage.showMemoryTrace()
+
+        sys.exit(0)
+
+    executePostProcessing()
+
+    copyDataFiles()
+
+    if Options.isStandaloneMode():
+        binary_filename = options["result_exe"]
+
+        setMainEntryPoint(binary_filename)
+
         for module in ModuleRegistry.getDoneModules():
-            dumpTreeXML(module)
-    else:
-        # Make the actual compilation.
-        result, options = compileTree()
+            addIncludedEntryPoints(Plugins.considerExtraDlls(module))
 
-        # Exit if compilation failed.
-        if not result:
-            sys.exit(1)
-
-        # Relaunch in case of Python PGO input to be produced.
-        if Options.shallCreatePgoInput():
-            # Will not return.
-            pgo_filename = OutputDirectories.getPgoRunInputFilename()
-            general.info(
-                "Restarting compilation using collected information from '%s'."
-                % pgo_filename
-            )
-            reExecuteNuitka(pgo_filename=pgo_filename)
-
-        if Options.shallNotDoExecCCompilerCall():
-            if Options.isShowMemory():
-                MemoryUsage.showMemoryTrace()
-
-            sys.exit(0)
-
-        executePostProcessing()
-
-        copyDataFiles()
-
-        if Options.isStandaloneMode():
-            binary_filename = options["result_exe"]
-
-            setMainEntryPoint(binary_filename)
-
-            for module in ModuleRegistry.getDoneModules():
-                addIncludedEntryPoints(Plugins.considerExtraDlls(module))
-
-            detectUsedDLLs(
-                standalone_entry_points=getStandaloneEntryPoints(),
-                source_dir=OutputDirectories.getSourceDirectoryPath(),
-            )
-
-            dist_dir = OutputDirectories.getStandaloneDirectoryPath()
-
-            copyDllsUsed(
-                dist_dir=dist_dir,
-                standalone_entry_points=getStandaloneEntryPoints(),
-            )
-
-            Plugins.onStandaloneDistributionFinished(dist_dir)
-
-            if Options.isOnefileMode():
-                packDistFolderToOnefile(dist_dir)
-
-                if Options.isRemoveBuildDir():
-                    general.info("Removing dist folder %r." % dist_dir)
-
-                    removeDirectory(path=dist_dir, ignore_errors=False)
-                else:
-                    general.info(
-                        "Keeping dist folder %r for inspection, no need to use it."
-                        % dist_dir
-                    )
-
-        # Remove the source directory (now build directory too) if asked to.
-        source_dir = OutputDirectories.getSourceDirectoryPath()
-
-        if Options.isRemoveBuildDir():
-            general.info("Removing build directory %r." % source_dir)
-
-            removeDirectory(path=source_dir, ignore_errors=False)
-            assert not os.path.exists(source_dir)
-        else:
-            general.info("Keeping build directory %r." % source_dir)
-
-        final_filename = OutputDirectories.getResultFullpath(
-            onefile=Options.isOnefileMode()
+        detectUsedDLLs(
+            standalone_entry_points=getStandaloneEntryPoints(),
+            source_dir=OutputDirectories.getSourceDirectoryPath(),
         )
 
-        if Options.isStandaloneMode() and isMacOS():
-            general.info(
-                "Created binary that runs on macOS %s (%s) or higher."
-                % (options["macos_min_version"], options["macos_target_arch"])
-            )
+        dist_dir = OutputDirectories.getStandaloneDirectoryPath()
 
-        Plugins.onFinalResult(final_filename)
+        copyDllsUsed(
+            dist_dir=dist_dir,
+            standalone_entry_points=getStandaloneEntryPoints(),
+        )
 
-        if Options.shallMakeModule():
-            base_path = OutputDirectories.getResultBasePath(onefile=False)
+        Plugins.onStandaloneDistributionFinished(dist_dir)
 
-            if os.path.isdir(base_path) and os.path.isfile(
-                os.path.join(base_path, "__init__.py")
-            ):
-                general.warning(
-                    """\
+        if Options.isOnefileMode():
+            packDistFolderToOnefile(dist_dir)
+
+            if Options.isRemoveBuildDir():
+                general.info("Removing dist folder %r." % dist_dir)
+
+                removeDirectory(path=dist_dir, ignore_errors=False)
+            else:
+                general.info(
+                    "Keeping dist folder %r for inspection, no need to use it."
+                    % dist_dir
+                )
+
+    # Remove the source directory (now build directory too) if asked to.
+    source_dir = OutputDirectories.getSourceDirectoryPath()
+
+    if Options.isRemoveBuildDir():
+        general.info("Removing build directory %r." % source_dir)
+
+        removeDirectory(path=source_dir, ignore_errors=False)
+        assert not os.path.exists(source_dir)
+    else:
+        general.info("Keeping build directory %r." % source_dir)
+
+    final_filename = OutputDirectories.getResultFullpath(
+        onefile=Options.isOnefileMode()
+    )
+
+    if Options.isStandaloneMode() and isMacOS():
+        general.info(
+            "Created binary that runs on macOS %s (%s) or higher."
+            % (options["macos_min_version"], options["macos_target_arch"])
+        )
+
+    Plugins.onFinalResult(final_filename)
+
+    if Options.shallMakeModule():
+        base_path = OutputDirectories.getResultBasePath(onefile=False)
+
+        if os.path.isdir(base_path) and os.path.isfile(
+            os.path.join(base_path, "__init__.py")
+        ):
+            general.warning(
+                """\
 The compilation result is hidden by package directory '%s'. Importing will \
 not use compiled code while it exists."""
-                    % base_path
-                )
+                % base_path
+            )
 
-        general.info("Successfully created %r." % final_filename)
+    general.info("Successfully created %r." % final_filename)
 
-        report_filename = Options.getCompilationReportFilename()
+    report_filename = Options.getCompilationReportFilename()
 
-        if report_filename:
-            writeCompilationReport(report_filename)
+    if report_filename:
+        writeCompilationReport(report_filename)
 
-        run_filename = OutputDirectories.getResultRunFilename(
-            onefile=Options.isOnefileMode()
-        )
+    run_filename = OutputDirectories.getResultRunFilename(
+        onefile=Options.isOnefileMode()
+    )
 
-        # Execute the module immediately if option was given.
-        if Options.shallExecuteImmediately():
-            general.info("Launching '%s'" % run_filename)
+    # Execute the module immediately if option was given.
+    if Options.shallExecuteImmediately():
+        general.info("Launching '%s'" % run_filename)
 
-            if Options.shallMakeModule():
-                executeModule(
-                    tree=main_module,
-                    clean_path=Options.shallClearPythonPathEnvironment(),
-                )
-            else:
-                executeMain(
-                    binary_filename=run_filename,
-                    clean_path=Options.shallClearPythonPathEnvironment(),
-                )
+        if Options.shallMakeModule():
+            executeModule(
+                tree=main_module,
+                clean_path=Options.shallClearPythonPathEnvironment(),
+            )
         else:
-            if run_filename != final_filename:
-                general.info(
-                    "Execute it by launching '%s', the batch file needs to set environment."
-                    % run_filename
-                )
+            executeMain(
+                binary_filename=run_filename,
+                clean_path=Options.shallClearPythonPathEnvironment(),
+            )
+    else:
+        if run_filename != final_filename:
+            general.info(
+                "Execute it by launching '%s', the batch file needs to set environment."
+                % run_filename
+            )

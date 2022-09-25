@@ -119,6 +119,13 @@ def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
 def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     assert isRelativePath(dest_path), dest_path
 
+    # Refuse directories, these must be kept distinct.
+    if os.path.isdir(source_path):
+        tracer.sysexit(
+            "Error, cannot include directory '%s' as a data file. Data directories have their own options."
+            % source_path
+        )
+
     return IncludedDataFile(
         kind="data_file",
         source_path=source_path,
@@ -154,6 +161,9 @@ def makeIncludedDataDirectory(
         normalize=normalize,
     ):
         filename_relative = os.path.relpath(filename, source_path)
+
+        if filename_relative.endswith((".py", ".pyc", ".pyi", ".so", ".pyd")):
+            continue
 
         filename_dest = os.path.join(dest_path, filename_relative)
 
@@ -268,17 +278,14 @@ def makeIncludedPackageDataFiles(
         file_reason = "package '%s' %s" % (package_name, reason)
 
         for pkg_filename in pkg_filenames:
-            rel_path = os.path.join(
-                package_name.asPath(),
-                os.path.relpath(pkg_filename, package_directory),
-            )
+            rel_path = os.path.relpath(pkg_filename, package_directory)
 
             if pattern and not fnmatch.fnmatch(rel_path, pattern):
                 continue
 
             yield makeIncludedDataFile(
                 source_path=pkg_filename,
-                dest_path=rel_path,
+                dest_path=os.path.join(package_name.asPath(), rel_path),
                 reason=file_reason,
                 tracer=tracer,
                 tags=tags,
@@ -294,24 +301,25 @@ def addIncludedDataFilesFromPackageOptions():
         if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
             package_name = module.getFullName()
 
-            match, reason = package_name.matchesToShellPatterns(
-                patterns=getShallIncludePackageData()
-            )
+            for module_name_pattern, filename_pattern in getShallIncludePackageData():
+                match, reason = package_name.matchesToShellPattern(
+                    pattern=module_name_pattern
+                )
 
-            if match:
-                package_directory = module.getCompileTimeDirectory()
+                if match:
+                    package_directory = module.getCompileTimeDirectory()
 
-                for included_datafile in makeIncludedPackageDataFiles(
-                    tracer=options_logger,
-                    package_name=package_name,
-                    package_directory=package_directory,
-                    pattern=None,
-                    reason=reason,
-                    tags="user",
-                ):
-                    addIncludedDataFile(included_datafile)
+                    for included_datafile in makeIncludedPackageDataFiles(
+                        tracer=options_logger,
+                        package_name=package_name,
+                        package_directory=package_directory,
+                        pattern=filename_pattern,
+                        reason=reason,
+                        tags="user",
+                    ):
+                        addIncludedDataFile(included_datafile)
 
-    # Circular dependency
+    # Cyclic dependency
     from nuitka.plugins.Plugins import Plugins
 
     # Plugins provide per module through this.

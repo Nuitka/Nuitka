@@ -33,7 +33,10 @@ from nuitka.__past__ import unicode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
-from nuitka.utils import Execution, Utils
+from nuitka.utils.Execution import (
+    getExecutablePath,
+    withEnvironmentVarOverridden,
+)
 from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
@@ -43,7 +46,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
-from nuitka.utils.Utils import getOS, isMacOS
+from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
 
 from .SconsCaching import checkCachingSuccess
 from .SconsUtils import flushSconsReports
@@ -78,7 +81,7 @@ def _getSconsBinaryCall():
             getExternalUsePath(inline_path),
         ]
     else:
-        scons_path = Execution.getExecutablePath("scons")
+        scons_path = getExecutablePath("scons")
 
         if scons_path is not None:
             return [scons_path]
@@ -99,7 +102,7 @@ def _getPythonForSconsExePath():
         return python_exe
 
     scons_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
-    if not Utils.isWin32Windows():
+    if not isWin32Windows():
         scons_supported_pythons += ("2.7", "2.6")
 
     # Our inline copy needs no other module, just the right version of Python is needed.
@@ -108,7 +111,7 @@ def _getPythonForSconsExePath():
     )
 
     if python_for_scons is None:
-        if Utils.isWin32Windows():
+        if isWin32Windows():
             scons_python_requirement = "Python 3.5 or higher"
         else:
             scons_python_requirement = "Python 2.6, 2.7 or Python >= 3.5"
@@ -143,10 +146,10 @@ def _setupSconsEnvironment():
     """
 
     # For Python2, avoid unicode working directory.
-    if Utils.isWin32Windows():
+    if isWin32Windows():
         os.chdir(getWindowsShortPathName(os.getcwd()))
 
-    if Utils.isWin32Windows() and not Options.shallUseStaticLibPython():
+    if isWin32Windows() and not Options.shallUseStaticLibPython():
         # On Win32, we use the Python.DLL path for some things. We pass it
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
@@ -275,7 +278,7 @@ def runScons(options, quiet, scons_filename):
         Tracing.flushStandardOutputs()
 
         # Call scons, make sure to pass on quiet setting.
-        with Execution.withEnvironmentVarOverridden(
+        with withEnvironmentVarOverridden(
             "NUITKA_QUIET", "1" if Tracing.is_quiet else "0"
         ):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)
@@ -374,11 +377,11 @@ def setCommonOptions(options):
     if Options.getLtoMode() != "auto":
         options["lto_mode"] = Options.getLtoMode()
 
-    if getOS() == "Windows" or isMacOS():
+    if isWin32OrPosixWindows() or isMacOS():
         options["noelf_mode"] = asBoolStr(True)
 
-    if Options.isUnstriped():
-        options["unstriped_mode"] = asBoolStr(True)
+    if Options.isUnstripped():
+        options["unstripped_mode"] = asBoolStr(True)
 
     if isAnacondaPython():
         options["anaconda_python"] = asBoolStr(True)
@@ -402,7 +405,7 @@ def setCommonOptions(options):
     if link_libraries:
         options["link_libraries"] = ",".join(link_libraries)
 
-    if Utils.isMacOS():
+    if isMacOS():
         macos_min_version = detectBinaryMinMacOS(sys.executable)
 
         if macos_min_version is None:
@@ -454,7 +457,7 @@ def setCommonOptions(options):
     if effective_version:
         env_values["NUITKA_VERSION_COMBINED"] = effective_version
 
-    if getOS() != "Windows" and isNuitkaPython():
+    if isNuitkaPython() and not isWin32OrPosixWindows():
         # Override environment CC and CXX to match build compiler.
         import sysconfig
 

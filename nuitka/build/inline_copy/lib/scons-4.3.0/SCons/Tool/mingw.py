@@ -52,7 +52,11 @@ def shlib_generator(target, source, env, for_signature):
     dll = env.FindIxes(target, 'SHLIBPREFIX', 'SHLIBSUFFIX')
     if dll: cmd.extend(['-o', dll])
 
-    cmd.extend(['$SOURCES', '$_LIBDIRFLAGS', '$_LIBFLAGS'])
+    # Nuitka: Use linker file
+    tmp_linker_filename = "@%s" % (
+        os.path.join(env.source_dir, "@link_input.txt").replace(os.path.sep, "/"),
+    )
+    cmd.extend([tmp_linker_filename, '$_LIBDIRFLAGS', '$_LIBFLAGS'])
 
     # Nuitka: Disable implib here, we do it manually.
     # implib = env.FindIxes(target, 'LIBPREFIX', 'LIBSUFFIX')

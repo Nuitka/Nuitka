@@ -18,13 +18,15 @@
 """DLL dependency scan methods for macOS. """
 
 import os
+import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
-from nuitka.PythonFlavors import isAnacondaPython
+from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.FileOperations import areSamePaths, isPathBelow
+from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
     getOtoolDependencyOutput,
@@ -34,7 +36,27 @@ from nuitka.utils.SharedLibraries import (
 from .DllDependenciesCommon import getLdLibraryPath
 
 # Detected Python rpath is cached.
-_detected_python_rpath = None
+_detected_python_rpaths = None
+
+
+def _detectPythonRpaths():
+    result = []
+
+    if isAnacondaPython() and "CONDA_PREFIX" in os.environ:
+        candidate = os.path.normpath(os.path.join(os.environ["CONDA_PREFIX"], "lib"))
+
+        if os.path.isdir(candidate):
+            result.append(candidate)
+
+    if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
+        candidate = os.path.normpath(
+            os.path.join(os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib")
+        )
+
+        if os.path.isdir(candidate):
+            result.append(candidate)
+
+    return tuple(result)
 
 
 def detectBinaryPathDLLsMacOS(
@@ -43,26 +65,15 @@ def detectBinaryPathDLLsMacOS(
     assert os.path.exists(binary_filename), binary_filename
 
     # This is for Anaconda, which puts required libraries of packages in this folder.
-    # pylint: disable=global-statement
-    global _detected_python_rpath
-    global _detected_python_rpath
-    if _detected_python_rpath is None:
-        if isAnacondaPython() and "CONDA_PYTHON_EXE" in os.environ:
-            _detected_python_rpath = os.path.normpath(
-                os.path.join(
-                    os.path.dirname(os.environ["CONDA_PYTHON_EXE"]), "..", "lib"
-                )
-            )
-
-            if not os.path.isdir(_detected_python_rpath):
-                _detected_python_rpath = False
-        else:
-            _detected_python_rpath = False
-
-    python_rpath = _detected_python_rpath if _detected_python_rpath else None
+    # do it only once, pylint: disable=global-statement
+    global _detected_python_rpaths
+    if _detected_python_rpaths is None:
+        _detected_python_rpaths = _detectPythonRpaths()
 
     package_specific_dirs = getLdLibraryPath(
-        package_name=package_name, python_rpath=python_rpath, original_dir=original_dir
+        package_name=package_name,
+        python_rpaths=_detected_python_rpaths,
+        original_dir=original_dir,
     )
 
     # This is recursive potentially and might add more and more.
@@ -130,6 +141,8 @@ def _parseOtoolListingOutput(output):
 def _resolveBinaryPathDLLsMacOS(
     original_dir, binary_filename, paths, package_specific_dirs
 ):
+    # Quite a few variations to consider, pylint: disable=too-many-branches
+
     had_self = False
 
     result = OrderedDict()
@@ -152,6 +165,18 @@ def _resolveBinaryPathDLLsMacOS(
         elif os.path.basename(path) == os.path.basename(binary_filename):
             # We ignore the references to itself coming from the library id.
             continue
+        elif isNuitkaPython() and not os.path.isabs(path) and not os.path.exists(path):
+            # Since Nuitka Python statically links all packages, some of them have proprietary
+            # dependencies that cannot be statically built and must instead be linked to the
+            # python executable. Due to how the python executable is linked, we end up with
+            # relative paths to dependencies, so we need to scan the Nuitka Python library directories
+            # for a matching dll.
+            link_data = loadJsonFromFilename(os.path.join(sys.prefix, "link.json"))
+            for library_dir in link_data["library_dirs"]:
+                possible_path = os.path.join(library_dir, path)
+                if os.path.exists(possible_path):
+                    resolved_path = os.path.normpath(possible_path)
+                    break
         else:
             resolved_path = path
 

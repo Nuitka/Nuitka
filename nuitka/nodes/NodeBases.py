@@ -332,11 +332,13 @@ class NodeBase(NodeMetaClassBase):
         # For overload by module nodes
         return False
 
+    @abstractmethod
     def isExpression(self):
-        return self.kind.startswith("EXPRESSION_")
+        """Is an expression node."""
 
+    @abstractmethod
     def isStatement(self):
-        return self.kind.startswith("STATEMENT_")
+        """Is a statement node."""
 
     def isExpressionBuiltin(self):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
@@ -888,9 +890,17 @@ class ClosureTakerMixin(object):
 
 
 class StatementBase(NodeBase):
-    """Base class for all statements."""
+    """Base class for all statement nodes."""
 
     # Base classes can be abstract, pylint: disable=abstract-method
+
+    @staticmethod
+    def isStatement():
+        return True
+
+    @staticmethod
+    def isExpression():
+        return False
 
     # TODO: Have them all.
     # @abstractmethod

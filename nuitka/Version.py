@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V1.0.8
+Nuitka V1.1
 Copyright (C) 2022 Kay Hayen."""
 
 
@@ -72,21 +72,3 @@ def getCommercialVersion():
         return None
     else:
         return Version.__version__
-
-
-def getNuitkaMsiVersion():
-    major, minor, micro, is_final, rc_number = getNuitkaVersionTuple()
-    # Pre-releases are always smaller, official releases get the "1".
-    middle = 1 if is_final else 0
-
-    # Cannot encode rc numbers higher than 9, tough luck, lets overwrite
-    # existing ones.
-
-    return ".".join(
-        "%s" % value
-        for value in (
-            major * 10 + minor,
-            middle,
-            micro * 10 + min(9, rc_number),
-        )
-    )

@@ -25,10 +25,13 @@ from .CallCodes import (
     getCallCodePosArgsQuick,
 )
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
+from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
+from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generatePkglibGetDataCallCode(to_name, expression, emit, context):
@@ -88,6 +91,63 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
         getCallCodeKwSplit(
             to_name=result_name,
             called_name=distribution_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, context):
+    distribution = expression.distribution
+    metadata = (
+        distribution.read_text("METADATA") or distribution.read_text("METADATA") or ""
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "distribution_value", expression, emit, context
+    ) as value_name:
+
+        emit(
+            """%(to_name)s = Nuitka_Distribution_New("%(name)s", %(metadata)s);"""
+            % {
+                "to_name": value_name,
+                "name": distribution.metadata["Name"],
+                "metadata": context.getConstantCode(constant=str(metadata)),
+            }
+        )
+
+        getErrorExitCode(check_name=value_name, emit=emit, context=context)
+
+        context.addCleanupTempName(value_name)
+
+
+def generatePkgResourcesEntryPointValueCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_point_value", expression, emit, context
+    ) as result_name:
+        entry_point_class_name = context.allocateTempName(
+            "entry_point_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_point_class_name,
+            module_name="pkg_resources",
+            import_name="EntryPoint",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(getattr(expression.entry_point, kw_name))
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=entry_point_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
             emit=emit,
@@ -159,6 +219,43 @@ def generatePkgResourcesGetDistributionCallCode(to_name, expression, emit, conte
         )
 
 
+def generatePkgResourcesIterEntryPointsCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "iter_entry_points_value", expression, emit, context
+    ) as result_name:
+        group_arg_name, name_arg_name = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        iter_entry_points_function_name = context.allocateTempName(
+            "iter_entry_points_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=iter_entry_points_function_name,
+            module_name="pkg_resources",
+            import_name="iter_entry_points",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=iter_entry_points_function_name,
+            expression=expression,
+            arg_names=(
+                group_arg_name,
+                name_arg_name,
+            )
+            if name_arg_name is not None
+            else (group_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
 def generateImportlibMetadataVersionCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "version_value", expression, emit, context
@@ -217,6 +314,38 @@ def generateImportlibMetadataBackportVersionCallCode(
         getCallCodePosArgsQuick(
             to_name=result_name,
             called_name=version_function_name,
+            expression=expression,
+            arg_names=(dist_arg_name,),
+            needs_check=expression.mayRaiseException(BaseException),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataDistributionCallCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "distribution_value", expression, emit, context
+    ) as result_name:
+        (dist_arg_name,) = generateChildExpressionsCode(
+            expression=expression, emit=emit, context=context
+        )
+
+        get_distribution_function_name = context.allocateTempName(
+            "distribution_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=get_distribution_function_name,
+            module_name=expression.importlib_metadata_name,
+            import_name="distribution",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=get_distribution_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
             needs_check=expression.mayRaiseException(BaseException),
@@ -358,12 +487,10 @@ def generateOsUnameCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "os_uname_value", expression, emit, context
     ) as result_name:
-        resource_stream_function = context.allocateTempName(
-            "os_uname_function", unique=True
-        )
+        os_uname_function = context.allocateTempName("os_uname_function", unique=True)
 
         getImportModuleNameHardCode(
-            to_name=resource_stream_function,
+            to_name=os_uname_function,
             module_name="os",
             import_name="uname",
             needs_check=False,
@@ -373,9 +500,48 @@ def generateOsUnameCallCode(to_name, expression, emit, context):
 
         getCallCodeNoArgs(
             to_name=result_name,
-            called_name=resource_stream_function,
+            called_name=os_uname_function,
             expression=expression,
             needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
+
+
+def generateOsPathExistsCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_FILE_EXISTS",
+        arg_desc=(("exists_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateOsPathIsfileCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_FILE_ISFILE",
+        arg_desc=(("isfile_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateOsPathIsdirCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_FILE_ISDIR",
+        arg_desc=(("isdir_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )

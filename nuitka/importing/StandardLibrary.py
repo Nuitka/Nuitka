@@ -32,7 +32,12 @@ from nuitka.Options import shallUseStaticLibPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileContents, isPathBelow
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getOS, isNetBSD, isPosixWindows, isWin32Windows
+from nuitka.utils.Utils import (
+    isNetBSD,
+    isPosixWindows,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 
 
 def getStandardLibraryPaths():
@@ -99,7 +104,7 @@ def getStandardLibraryPaths():
             if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
 
-        if getOS() == "Windows" and not shallUseStaticLibPython():
+        if isWin32OrPosixWindows() and not shallUseStaticLibPython():
             import _ctypes
 
             stdlib_paths.add(os.path.dirname(_ctypes.__file__))
@@ -268,6 +273,7 @@ _stdlib_no_auto_inclusion_list = (
     "argparse",
     "telnetlib",
     "smtplib",
+    "smntpd",
     "nntplib",
     "http",
     "wsgiref",
@@ -280,6 +286,8 @@ _stdlib_no_auto_inclusion_list = (
     "venv",
     "py_compile",
     "msilib",
+    # tzdata is not always needed
+    "zoneinfo",
     # tkinter under all its names
     "Tkinter",
     "tkinter",
@@ -309,6 +317,11 @@ _stdlib_no_auto_inclusion_list = (
     "asyncio.test_utils",
     # strange OS specific extensions
     "_distutils_system_mod",
+    # async libraries
+    "concurrent",
+    "asyncio",
+    "asyncore",
+    "asynchat",
 )
 
 if not isWin32Windows():

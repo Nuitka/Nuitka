@@ -48,12 +48,13 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
+    listDir,
     openTextFile,
     putTextFileContents,
     renameFile,
     withPreserveFileMode,
 )
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import isWin32OrPosixWindows
 
 from .YamlFormatter import formatYaml
 
@@ -302,7 +303,7 @@ def _cleanupImportSortOrder(filename):
     if start_index is not None:
         contents = getFileContents(filename)
 
-        contents = "\n".join(parts[: start_index + 1]) + "\n" + contents
+        contents = "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
 
         putTextFileContents(filename, contents=contents)
 
@@ -397,7 +398,7 @@ def _cleanupClangFormat(filename):
     )
 
     # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
-    if not clang_format_path and getOS() == "Windows":
+    if not clang_format_path and isWin32OrPosixWindows():
         with withEnvironmentPathAdded(
             "PATH",
             r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
@@ -405,6 +406,20 @@ def _cleanupClangFormat(filename):
             r"C:\Program Files\LLVM\bin",
         ):
             clang_format_path = getExecutablePath("clang-format")
+
+    # Search Visual Code C++ extension for LLVM path.
+    if not clang_format_path:
+        for extension_path, extension_filename in listDir(
+            os.path.expanduser("~/.vscode-server/extensions")
+        ):
+            if extension_filename.startswith("ms-vscode.cpptools-"):
+                with withEnvironmentPathAdded(
+                    "PATH",
+                    os.path.join(extension_path, "LLVM/bin"),
+                ):
+                    clang_format_path = getExecutablePath("clang-format")
+
+                break
 
     if clang_format_path:
         subprocess.call(
@@ -467,7 +482,15 @@ def _transferBOM(source_filename, target_filename):
 
 
 def autoFormatFile(
-    filename, git_stage, check_only=False, effective_filename=None, trace=True
+    filename,
+    git_stage,
+    check_only=False,
+    effective_filename=None,
+    trace=True,
+    limit_yaml=False,
+    limit_python=False,
+    limit_c=False,
+    limit_rst=False,
 ):
     """Format source code with external tools
 
@@ -485,7 +508,8 @@ def autoFormatFile(
         None
     """
 
-    # This does a lot of distinctions, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # This does a lot of distinctions
+    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
 
     if effective_filename is None:
         effective_filename = filename
@@ -539,6 +563,19 @@ def autoFormatFile(
     if not (is_python or is_c or is_cpp or is_txt or is_rst):
         my_print("Ignored file type.")
         return
+
+    if limit_yaml or limit_python or limit_c or limit_rst:
+        if is_package_config_yaml and not limit_yaml:
+            return
+
+        if (is_c or is_cpp) and not limit_c:
+            return
+
+        if is_python and not limit_python:
+            return
+
+        if is_rst and not limit_rst:
+            return
 
     # Work on a temporary copy
     tmp_filename = filename + ".tmp"

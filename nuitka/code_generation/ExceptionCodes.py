@@ -153,9 +153,10 @@ def generateExceptionPublishCode(statement, emit, context):
 
     # TODO: Make this one thing for performance with thread state shared, also for less code,
     # then we should not make it in header anymore. Might be more scalable too.
-    emit("NORMALIZE_EXCEPTION(&%s, &%s, &%s);" % (keeper_type, keeper_value, keeper_tb))
-    emit("ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(%s, %s);" % (keeper_value, keeper_tb))
-    emit("PUBLISH_EXCEPTION(&%s, &%s, &%s);" % (keeper_type, keeper_value, keeper_tb))
+    emit(
+        "PUBLISH_CURRENT_EXCEPTION(&%s, &%s, &%s);"
+        % (keeper_type, keeper_value, keeper_tb)
+    )
 
 
 def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):

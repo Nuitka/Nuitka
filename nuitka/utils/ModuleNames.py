@@ -32,6 +32,19 @@ def checkModuleName(value):
     )
 
 
+# Trigger names for shared use.
+post_module_load_trigger_name = "-postLoad"
+pre_module_load_trigger_name = "-preLoad"
+
+trigger_names = (pre_module_load_trigger_name, post_module_load_trigger_name)
+
+
+def makeTriggerModuleName(module_name, trigger_name):
+    assert trigger_name in trigger_names
+
+    return ModuleName(module_name + trigger_name)
+
+
 class ModuleName(str):
     def __init__(self, value):
         assert checkModuleName(value), value
@@ -191,6 +204,31 @@ class ModuleName(str):
     def getSiblingNamed(self, *args):
         return self.getPackageName().getChildNamed(*args)
 
+    def matchesToShellPattern(self, pattern):
+        """Match a module name to a list of patterns
+
+        Args:
+            pattern:
+                Complies with fnmatch.fnmatch description
+                or also is below the package. So "*.tests" will matches to also
+                "something.tests.MyTest", thereby allowing to match whole
+                packages with one pattern only.
+        Returns:
+            Tuple of two values, where the first value is the result, second value
+            explains why the pattern matched and how.
+        """
+
+        if self == pattern:
+            return True, "is exact match of %r" % pattern
+        elif self.isBelowNamespace(pattern):
+            return True, "is package content of %r" % pattern
+        elif fnmatch.fnmatch(self.asString(), pattern):
+            return True, "matches pattern %r" % pattern
+        elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
+            return True, "is package content of match to pattern %r" % pattern
+        else:
+            return False, None
+
     def matchesToShellPatterns(self, patterns):
         """Match a module name to a list of patterns
 
@@ -206,16 +244,16 @@ class ModuleName(str):
         """
 
         for pattern in patterns:
-            if self == pattern:
-                return True, "is exact match of %r" % pattern
-            elif self.isBelowNamespace(pattern):
-                return True, "is package content of %r" % pattern
-            elif fnmatch.fnmatch(self.asString(), pattern):
-                return True, "matches pattern %r" % pattern
-            elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
-                return True, "is package content of match to pattern %r" % pattern
+            match, reason = self.matchesToShellPattern(pattern)
 
+            if match:
+                return match, reason
+
+        # No match result
         return False, None
+
+    def isFakeModuleName(self):
+        return str(self).endswith(trigger_names)
 
     # Reject APIs being used. TODO: Maybe make this a decorator for reuse.
     # TODO: Add rsplit and subscript operations too.

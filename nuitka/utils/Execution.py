@@ -30,7 +30,7 @@ from nuitka.Tracing import general
 
 from .Download import getCachedDownloadedMinGW64
 from .FileOperations import getExternalUsePath
-from .Utils import getArchitecture, getOS, isWin32Windows
+from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
@@ -38,7 +38,7 @@ _executable_command_cache = {}
 
 def _getExecutablePath(filename, search_path):
     # Append ".exe" suffix  on Windows if not already present.
-    if getOS() == "Windows" and not filename.lower().endswith(".exe"):
+    if isWin32OrPosixWindows() and not filename.lower().endswith(".exe"):
         filename += ".exe"
 
     # Now check in each path element, much like the shell will.
@@ -353,24 +353,39 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
     return stdout
 
 
-def executeProcess(command, env=None, stdin=False, shell=False, external_cwd=False):
+def createProcess(
+    command,
+    env=None,
+    stdin=False,
+    stdout=None,
+    stderr=None,
+    shell=False,
+    external_cwd=False,
+):
     if not env:
         env = os.environ
 
-    # Note: Empty string should also be allowed for stdin, therefore check for
-    # default "False" and "None" precisely.
-
     process = subprocess.Popen(
         command,
+        # Note: Empty string should also be allowed for stdin, therefore check
+        # for default "False" and "None" precisely.
         stdin=subprocess.PIPE if stdin not in (False, None) else getNullInput(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE if stdout is None else stdout,
+        stderr=subprocess.PIPE if stderr is None else stderr,
         shell=shell,
         # On Windows, closing file descriptions is now working with capturing outputs.
         close_fds=not isWin32Windows(),
         env=env,
         # For tools that want short paths to work.
         cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
+    )
+
+    return process
+
+
+def executeProcess(command, env=None, stdin=False, shell=False, external_cwd=False):
+    process = createProcess(
+        command=command, env=env, stdin=stdin, shell=shell, external_cwd=external_cwd
     )
 
     if stdin is True:

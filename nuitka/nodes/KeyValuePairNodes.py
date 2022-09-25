@@ -273,10 +273,16 @@ class ExpressionKeyValuePairConstantKeyValue(
         return self.subnode_value.mayRaiseException(exception_type)
 
     def getKeyNode(self):
-        return makeConstantRefNode(constant=self.key, source_ref=self.source_ref)
+        return makeConstantRefNode(
+            constant=self.key, source_ref=self.source_ref, user_provided=True
+        )
 
     def getValueNode(self):
-        return makeConstantRefNode(constant=self.value, source_ref=self.source_ref)
+        # TODO: Actually trace user provided for the key/value too, but
+        # it seems excessive now.
+        return makeConstantRefNode(
+            constant=self.value, source_ref=self.source_ref, user_provided=True
+        )
 
 
 def makeExpressionPairs(keys, values):

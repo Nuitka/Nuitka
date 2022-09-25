@@ -28,7 +28,10 @@ import sys
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import listDllFilesFromDirectory
+from nuitka.utils.FileOperations import (
+    listDllFilesFromDirectory,
+    listExeFilesFromDirectory,
+)
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 from nuitka.utils.Utils import isFreeBSD, isLinux, isWin32Windows
 from nuitka.utils.Yaml import getYamlPackageConfiguration
@@ -67,49 +70,88 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         dll_dir = os.path.join(module_directory, relative_path)
 
         if os.path.exists(dll_dir):
+            exe = dll_config.get("executable", "no") == "yes"
+
+            suffixes = dll_config.get("suffixes")
+
             for prefix in dll_config.get("prefixes"):
-                for dll_filename, filename in listDllFilesFromDirectory(
-                    dll_dir, prefix=prefix
-                ):
-                    yield self.makeDllEntryPoint(
-                        source_path=dll_filename,
-                        dest_path=os.path.normpath(
-                            os.path.join(
-                                dest_path,
-                                filename,
-                            )
-                        ),
-                        package_name=full_name,
-                    )
+                if exe:
+                    for exe_filename, filename in listExeFilesFromDirectory(
+                        dll_dir, prefix=prefix, suffixes=suffixes
+                    ):
+                        yield self.makeExeEntryPoint(
+                            source_path=exe_filename,
+                            dest_path=os.path.normpath(
+                                os.path.join(
+                                    dest_path,
+                                    filename,
+                                )
+                            ),
+                            package_name=full_name,
+                            reason="Yaml config of '%s'" % full_name.asString(),
+                        )
+                else:
+                    for dll_filename, filename in listDllFilesFromDirectory(
+                        dll_dir, prefix=prefix, suffixes=suffixes
+                    ):
+                        yield self.makeDllEntryPoint(
+                            source_path=dll_filename,
+                            dest_path=os.path.normpath(
+                                os.path.join(
+                                    dest_path,
+                                    filename,
+                                )
+                            ),
+                            package_name=full_name,
+                            reason="Yaml config of '%s'" % full_name.asString(),
+                        )
 
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
-        module_filename = self.locateModule(full_name)
+        setup_codes = dll_config.get("setup_code")
+        filename_code = dll_config.get("filename_code")
+
+        filename = self.queryRuntimeInformationMultiple(
+            "%s_%s" % (full_name.asString().replace(".", "_"), count),
+            setup_codes=setup_codes,
+            values=(("filename", filename_code),),
+        ).filename
+
+        # Expecting absolute paths internally for DLL sources.
+        filename = os.path.abspath(filename)
 
         if dest_path is None:
+            module_filename = self.locateModule(full_name)
+
             if os.path.isdir(module_filename):
                 dest_path = full_name.asPath()
             else:
                 dest_path = os.path.join(full_name.asPath(), "..")
 
-        setup_codes = dll_config.get("setup_code")
-        dll_filename_code = dll_config.get("dll_filename_code")
+            dest_path = os.path.join(
+                dest_path, os.path.relpath(filename, os.path.dirname(module_filename))
+            )
+        else:
+            dest_path = os.path.join(
+                dest_path,
+                os.path.basename(filename),
+            )
 
-        dll_filename = self.queryRuntimeInformationMultiple(
-            "%s_%s" % (full_name.asString().replace(".", "_"), count),
-            setup_codes=setup_codes,
-            values=(("dll_filename", dll_filename_code),),
-        ).dll_filename
+        dest_path = os.path.normpath(dest_path)
 
-        yield self.makeDllEntryPoint(
-            source_path=dll_filename,
-            dest_path=os.path.normpath(
-                os.path.join(
-                    dest_path,
-                    os.path.relpath(dll_filename, os.path.dirname(module_filename)),
-                )
-            ),
-            package_name=full_name,
-        )
+        if dll_config.get("executable", "no") == "yes":
+            yield self.makeExeEntryPoint(
+                source_path=filename,
+                dest_path=dest_path,
+                package_name=full_name,
+                reason="Yaml config of '%s'" % full_name.asString(),
+            )
+        else:
+            yield self.makeDllEntryPoint(
+                source_path=filename,
+                dest_path=dest_path,
+                package_name=full_name,
+                reason="Yaml config of '%s'" % full_name.asString(),
+            )
 
     def _handleDllConfig(self, dll_config, full_name, count):
         dest_path = dll_config.get("dest_path")
@@ -145,25 +187,27 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
     def getExtraDlls(self, module):
         # TODO: Need to move all code here into configuration file usage.
-        # until then, pylint: disable=too-many-locals
 
         full_name = module.getFullName()
 
         # Checking for config, but also allowing fall through for cases that have to
         # have some code still here.
-        config = self.config.get(full_name, section="dlls")
-        if config:
-            found = 0
+        found = 0
 
-            for count, dll_config in enumerate(config, start=1):
+        for count, dll_config in enumerate(
+            self.config.get(full_name, section="dlls"), start=1
+        ):
+            if self.evaluateCondition(
+                full_name=full_name, condition=dll_config.get("when", "True")
+            ):
                 for dll_entry_point in self._handleDllConfig(
                     dll_config=dll_config, full_name=full_name, count=count
                 ):
                     yield dll_entry_point
                     found += 1
 
-            if found > 0:
-                self.reportFileCount(full_name, found)
+        if found > 0:
+            self.reportFileCount(full_name, found)
 
         # TODO: This is legacy code, ideally moved to yaml config over time.
         if (
@@ -175,7 +219,10 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
             if uuid_dll_path is not None:
                 yield self.makeDllEntryPoint(
-                    uuid_dll_path, os.path.basename(uuid_dll_path), None
+                    source_path=uuid_dll_path,
+                    dest_path=os.path.basename(uuid_dll_path),
+                    package_name=None,
+                    reason="needed by uuid package",
                 )
         elif full_name == "iptc" and isLinux():
             import iptc.util  # pylint: disable=I0021,import-error
@@ -184,13 +231,19 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             xtwrapper_dll_path = xtwrapper_dll._name  # pylint: disable=protected-access
 
             yield self.makeDllEntryPoint(
-                xtwrapper_dll_path, os.path.basename(xtwrapper_dll_path), None
+                source_path=xtwrapper_dll_path,
+                dest_path=os.path.basename(xtwrapper_dll_path),
+                package_name=None,
+                reason="needed by 'iptc'",
             )
         elif full_name == "coincurve._libsecp256k1" and isWin32Windows():
             yield self.makeDllEntryPoint(
-                os.path.join(module.getCompileTimeDirectory(), "libsecp256k1.dll"),
-                os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
-                full_name.getPackageName(),
+                source_path=os.path.join(
+                    module.getCompileTimeDirectory(), "libsecp256k1.dll"
+                ),
+                dest_path=os.path.join(full_name.getPackageName(), "libsecp256k1.dll"),
+                package_name=full_name.getPackageName(),
+                reason="needed by 'coincurve._libsecp256k1'",
             )
         # TODO: This should be its own plugin.
         elif (
@@ -223,6 +276,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 "win32transaction",
                 "win32ts",
                 "win32wnet",
+                "win32ui",
             )
             and isWin32Windows()
         ):
@@ -240,5 +294,8 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
                     if os.path.exists(pythoncom_dll_path):
                         yield self.makeDllEntryPoint(
-                            pythoncom_dll_path, pythoncom_filename, None
+                            source_path=pythoncom_dll_path,
+                            dest_path=pythoncom_filename,
+                            package_name=None,
+                            reason="needed by '%s'" % full_name.asString(),
                         )

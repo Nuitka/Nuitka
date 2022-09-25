@@ -50,7 +50,7 @@ from .SconsUtils import (
 
 
 def _detectWindowsSDK(env):
-    # Check if there is a WindowsSDK installed.
+    # Check if there is a Windows SDK installed.
     if env.msvc_mode or env.clangcl_mode:
         if "WindowsSDKVersion" not in env:
             if "WindowsSDKVersion" in os.environ:
@@ -699,7 +699,7 @@ def _enablePgoSettings(env, pgo_mode):
 
 
 def _enableDebugSystemSettings(env, job_count):
-    if env.unstriped_mode:
+    if env.unstripped_mode:
         # Use debug format, so we get good tracebacks from it.
         if env.gcc_mode:
             env.Append(LINKFLAGS=["-g"])
@@ -733,7 +733,7 @@ def switchFromGccToGpp(env):
     if env.gcc_version is None:
         scons_logger.sysexit(
             """\
-Error, failed to detect gcc version of backend compiler %r.
+Error, failed to detect gcc version of backend compiler '%s'.
 """
             % env.the_compiler
         )

@@ -1,0 +1,9 @@
+# yamllint disable rule:line-length
+# yamllint disable rule:indentation
+# yamllint disable rule:comments-indentation
+# too many spelling things, spell-checker: disable
+---
+- module-name: 'data_files_package'
+  data-files:
+    patterns:
+      - '**/*.txt'

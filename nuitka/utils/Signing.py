@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.Options import getMacOSSigningIdentity
+from nuitka.Options import getMacOSSigningIdentity, isExperimental
 from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
@@ -71,9 +71,13 @@ def addMacOSCodeSignature(filenames):
         "--force",
         "--deep",
         "--preserve-metadata=entitlements",
-        # TODO: This appears to be useful, but apparently doesn't work for all flavors of Python.
-        # "--options=runtime",
+        # ,
     ]
+
+    # TODO: This appears to be useful, but apparently doesn't work for all
+    # flavors of Python, so it cannot be the default.
+    if isExperimental("macos-sign-runtime"):
+        command.append("--options=runtime")
 
     assert type(filenames) is not str
     command.extend(filenames)

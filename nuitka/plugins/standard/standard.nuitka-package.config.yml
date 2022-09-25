@@ -3,946 +3,1022 @@
 # yamllint disable rule:comments-indentation
 # too many spelling things, spell-checker: disable
 ---
-- module-name: "_dbus_glib_bindings"
+- module-name: '_dbus_glib_bindings'
   implicit-imports:
     - depends:
-        - "_dbus_bindings"
+        - '_dbus_bindings'
 
-- module-name: "_mysql"
+- module-name: '_mysql'
   implicit-imports:
     - depends:
-        - "_mysql_exceptions"
+        - '_mysql_exceptions'
 
-- module-name: "_pytest._code.code"
+- module-name: '_pytest._code.code'
   implicit-imports:
     - depends:
-        - "py._path.local"
+        - 'py._path.local'
 
-- module-name: "_ruamel_yaml"
+- module-name: '_ruamel_yaml'
   implicit-imports:
     - depends:
-        - "ruamel.yaml.error"
+        - 'ruamel.yaml.error'
 
-- module-name: "_yaml"
+- module-name: '_yaml'
   implicit-imports:
     - depends:
-        - "yaml"
+        - 'yaml'
 
-- module-name: "accessible_output2"
+- module-name: 'accessible_output2'
   data-files:
     dirs:
-      - "lib"
+      - 'lib'
 
-- module-name: "anyio._core._eventloop"
+- module-name: 'anyio._core._eventloop'
   implicit-imports:
     - depends:
-        - "anyio._backends._asyncio"
+        - 'anyio._backends._asyncio'
 
-- module-name: "apt_inst"
+- module-name: 'apt_inst'
   implicit-imports:
     - depends:
-        - "apt_pkg"
+        - 'apt_pkg'
 
-- module-name: "arcade"
+- module-name: 'arcade'
   data-files:
     dirs:
-      - "resources"
+      - 'resources'
 
-- module-name: "asyncpg.pgproto.pgproto"
+- module-name: 'asyncpg.pgproto.pgproto'
   implicit-imports:
     - depends:
-        - "asyncpg.pgproto.exceptions"
+        - 'asyncpg.pgproto.exceptions'
 
-- module-name: "asyncpg.protocol.protocol"
+- module-name: 'asyncpg.protocol.protocol'
   implicit-imports:
     - depends:
-        - "asyncpg.pgproto.pgproto"
+        - 'asyncpg.pgproto.pgproto'
 
-- module-name: "atk"
+- module-name: 'atk'
   implicit-imports:
     - depends:
-        - "gobject"
+        - 'gobject'
 
-- module-name: "babel"
+- module-name: 'babel'
   data-files:
     dirs:
-      - "locale-data"
+      - 'locale-data'
     patterns:
-      - "global.dat"
+      - 'global.dat'
 
-- module-name: "boto3"
+- module-name: 'backports.zoneinfo._common'
+  implicit-imports:
+    - depends:
+        - 'tzdata.zoneinfo'
+
+- module-name: 'backports.zoneinfo._czoneinfo'
+  implicit-imports:
+    - depends:
+        - '._common'
+
+- module-name: 'boto3'
   data-files:
     dirs:
-      - "data"
+      - 'data'
   implicit-imports:
     - depends:
-        - "boto3.ec2"
-        - "boto3.ec2.createtags"
-        - "boto3.ec2.deletetags"
-        - "boto3.dynamodb"
-        - "boto3.s3"
-        - "boto3.s3.inject"
-        - "boto3.s3.transfer"
+        - 'boto3.ec2'
+        - 'boto3.ec2.createtags'
+        - 'boto3.ec2.deletetags'
+        - 'boto3.dynamodb'
+        - 'boto3.s3'
+        - 'boto3.s3.inject'
+        - 'boto3.s3.transfer'
 
-- module-name: "botocore"
+- module-name: 'botocore'
   data-files:
     dirs:
-      - "data"
+      - 'data'
     patterns:
-      - "cacert.pem"
+      - 'cacert.pem'
 
-- module-name: "brotli._brotli"
+- module-name: 'brotli._brotli'
   implicit-imports:
     - depends:
-        - "_cffi_backend"
+        - '_cffi_backend'
 
-- module-name: "cairo._cairo"
+- module-name: 'cairo._cairo'
   implicit-imports:
     - depends:
-        - "gi._gobject"
+        - 'gi._gobject'
 
-- module-name: "cairocffi"
+- module-name: 'cairocffi'
   data-files:
     patterns:
-      - "VERSION"
+      - 'VERSION'
 
-- module-name: "cairosvg"
+- module-name: 'cairosvg'
   data-files:
     patterns:
-      - "VERSION"
+      - 'VERSION'
 
-- module-name: "certifi"
+- module-name: 'certifi'
   data-files:
     patterns:
-      - "cacert.pem"
+      - 'cacert.pem'
 
-- module-name: "certifi.core"
+- module-name: 'certifi.core'
   anti-bloat:
-    - description: "avoid using importlib.resources without need"
+    - description: 'avoid using importlib.resources without need'
       replacements_plain:
         # Make sure to use fallback to file using code, old ones use import attempts,
         # now ones check versions first.
-        "from importlib.resources import path as get_path, read_text": "raise ImportError"
-        "sys.version_info": "(0,)"
+        'from importlib.resources import path as get_path, read_text': 'raise ImportError'
+        'sys.version_info': '(0,)'
 
-- module-name: "cffi.api"
+- module-name: 'cffi.api'
   anti-bloat:
-    - description: "disable source recompile"
+    - description: 'disable source recompile'
       change_function:
-        "emit_python_code": "un-callable"
-        "emit_c_code": "un-callable"
-        "compile": "un-callable"
-        "distutils_extension": "un-callable"
-      when: "not use_cffi_recompiler"
+        'emit_python_code': 'un-callable'
+        'emit_c_code': 'un-callable'
+        'compile': 'un-callable'
+        'distutils_extension': 'un-callable'
+      when: 'not use_cffi_recompiler'
 
-- module-name: "cffi.ffiplatform"
+- module-name: 'cffi.ffiplatform'
   anti-bloat:
-    - description: "disable distutils hacks"
+    - description: 'disable distutils hacks'
       replacements:
-        "import setuptools": "'pass'"
-    - description: "disable distutils hacks"
+        'import setuptools': "'pass'"
+    - description: 'disable distutils hacks'
       change_function:
-        "get_extension": "un-callable"
-        "_build": "un-callable"
-      when: "not use_cffi_recompiler"
+        'get_extension': 'un-callable'
+        '_build': 'un-callable'
+      when: 'not use_cffi_recompiler'
 
-- module-name: "chainer"
+- module-name: 'chainer'
   implicit-imports:
     - depends:
-        - "chainer.distributions"
-        - "chainer.distributions.utils"
+        - 'chainer.distributions'
+        - 'chainer.distributions.utils'
 
-- module-name: "chainer.distributions"
+- module-name: 'chainer.distributions'
   implicit-imports:
     - depends:
-        - "chainer.distributions.utils"
+        - 'chainer.distributions.utils'
 
-- module-name: "clr"
+- module-name: 'clr'
   dlls:
     - from_filenames:
         prefixes:
-          - "Python.Runtime"
+          - 'Python.Runtime'
 
-- module-name: "connexion"
+- module-name: 'connexion'
   data-files:
     dirs:
-      - "resources"
+      - 'resources'
 
-- module-name: "Crypto.Util._raw_api"
+- module-name: 'Crypto.Util._raw_api'
   data-files:
     empty_dirs:
-      - "."
+      - '.'
 
-- module-name: "Cryptodome.Util._raw_api"
+- module-name: 'Cryptodome.Util._raw_api'
   data-files:
     empty_dirs:
-      - "."
+      - '.'
 
-- module-name: "curses"
+- module-name: 'curses'
   implicit-imports:
     - depends:
-        - "_curses"
+        - '_curses'
 
-- module-name: "cv2"
+- module-name: 'cv2'
+  data-files:
+    dirs:
+      - 'qt/fonts'
+  dlls:
+    - from_filenames:
+        relative_path: 'qt/plugins/platforms'
+        prefixes:
+          - 'lib'
+      when: 'linux'
   anti-bloat:
-    - description: "workaround for colliding native module import"
+    - description: 'workaround for colliding native module import'
       context:
-        - "import textwrap"
-        - "import pkgutil"
-        - "from nuitka.utils.Importing import getSharedLibrarySuffix"
-      when: "standalone"
+        - 'import textwrap'
+        - 'import pkgutil'
+        - 'from nuitka.utils.Importing import getSharedLibrarySuffix'
+      replacements_plain:
+        ? "load_first_config([\n"
+        : 'if False: (['
       replacements:
         "load_first_config(['config.py'], True)": "textwrap.indent(pkgutil.get_data('cv2', 'config.py').decode('utf8'), '    ') + textwrap.indent(pkgutil.get_data('cv2', 'config-3.py').decode('utf8'), '    ')"
         # Before OpenCV 4.6
         'native_module = importlib.import_module("cv2.cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
         # After OpenCV 4.6
         'native_module = importlib.import_module("cv2")': '"import imp; native_module = imp.load_dynamic(\"cv2\", os.path.join(os.path.dirname(__file__), \"cv2%s\"))" % getSharedLibrarySuffix(False)'
-      replacements_plain:
-        ? "load_first_config([\n"
-        : "if False: (["
+      when: 'standalone'
   implicit-imports:
     - depends:
-        - "cv2.cv2"
-        - "numpy"
-        - "numpy.core"
+        - 'cv2.cv2'
+        - 'numpy'
+        - 'numpy.core'
+    - pre-import-code:
+        - |
+          import os
+          os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(os.path.dirname(__file__), 'qt/plugins')
+          os.environ['QT_QPA_FONTDIR'] = os.path.join(os.path.dirname(__file__), 'qt/fonts')
+      when: 'linux and standalone'
 
-- module-name: "cytoolz.functoolz"
+- module-name: 'cytoolz.functoolz'
   implicit-imports:
     - depends:
-        - "cytoolz._signatures"
+        - 'cytoolz._signatures'
 
-- module-name: "cytoolz.itertoolz"
+- module-name: 'cytoolz.itertoolz'
   implicit-imports:
     - depends:
-        - "cytoolz.utils"
+        - 'cytoolz.utils'
 
-- module-name: "dask"
+- module-name: 'dask'
   data-files:
     patterns:
-      - "dask.yaml"
+      - 'dask.yaml'
 
-- module-name: "dipy"
+- module-name: 'dask.dataframe._compat'
   anti-bloat:
-    - description: "remove dipy and numpy testing framework"
+    - description: 'remove pandas.testing reference'
       replacements_plain:
-        "from .testing import setup_test": ""
+        'import pandas.testing as tm': ''
 
-- module-name: "distributed.scheduler"
+- module-name: 'datatree'
   anti-bloat:
-    - description: "remove cython support"
+    - description: 'remove useless metadata usage'
+      replacements_plain:
+        '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
+
+- module-name: 'dipy'
+  anti-bloat:
+    - description: 'remove dipy and numpy testing framework'
+      replacements_plain:
+        'from .testing import setup_test': ''
+
+- module-name: 'distributed.config'
+  data-files:
+    patterns:
+      - 'distributed.yaml'
+
+- module-name: 'distributed.scheduler'
+  anti-bloat:
+    - description: 'remove cython support'
       # TODO: We should replace this with a nuitkarize in Cython maybe.
       replacements:
-        "from cython import compiled": "'raise ImportError'"
-        "if compiled:": "'if False:'"
+        'from cython import compiled': "'raise ImportError'"
+        'if compiled:': "'if False:'"
 
-- module-name: "dns.rdtypes"
+- module-name: 'dns.rdtypes'
   implicit-imports:
     - depends:
-        - ".IN.A"
-        - ".CH.A"
+        - '.IN.A'
+        - '.CH.A'
 
-- module-name: "eel"
+- module-name: 'eel'
   data-files:
     patterns:
-      - "eel.js"
+      - 'eel.js'
 
-- module-name: "eliot._traceback"
+- module-name: 'eliot._traceback'
   anti-bloat:
-    - description: "avoid useless duplication of traceback module"
+    - description: 'avoid useless duplication of traceback module'
       replacements:
         'load_module(str("_traceback_no_io"), traceback)': "'__import__(\"traceback\")'"
 
-- module-name: "enchant"
+- module-name: 'enchant'
   data-files:
     dirs:
-      - "data"
+      - 'data'
 
-- module-name: "engineio"
+- module-name: 'engineio'
   implicit-imports:
     - depends:
-        - "engineio.async_drivers"
+        - 'engineio.async_drivers'
 
-- module-name: "engineio.async_drivers"
+- module-name: 'engineio.async_drivers'
   implicit-imports:
     - depends:
-        - "engineio.async_drivers.aiohttp"
-        - "engineio.async_drivers.asgi"
-        - "engineio.async_drivers.eventlet"
-        - "engineio.async_drivers.gevent"
-        - "engineio.async_drivers.gevent_uwsgi"
-        - "engineio.async_drivers.sanic"
-        - "engineio.async_drivers.threading"
-        - "engineio.async_drivers.tornado"
+        - 'engineio.async_drivers.aiohttp'
+        - 'engineio.async_drivers.asgi'
+        - 'engineio.async_drivers.eventlet'
+        - 'engineio.async_drivers.gevent'
+        - 'engineio.async_drivers.gevent_uwsgi'
+        - 'engineio.async_drivers.sanic'
+        - 'engineio.async_drivers.threading'
+        - 'engineio.async_drivers.tornado'
 
-- module-name: "exchangelib"
+- module-name: 'exchangelib'
   implicit-imports:
     - depends:
-        - "tzdata"
+        - 'tzdata'
 
-- module-name: "falcon.app"
+- module-name: 'facenet_pytorch.models.mtcnn'
+  data-files:
+    dirs:
+      - '../data'
+
+- module-name: 'falcon.app'
   implicit-imports:
     - depends:
-        - ".app_helpers"
-        - ".responders"
-        - ".routing"
+        - '.app_helpers'
+        - '.responders'
+        - '.routing'
 
-- module-name: "falcon.media.handlers"
+- module-name: 'falcon.media.handlers'
   implicit-imports:
     - depends:
-        - "falcon.vendor.mimeparse"
+        - 'falcon.vendor.mimeparse'
 
-- module-name: "falcon.request"
+- module-name: 'falcon.request'
   implicit-imports:
     - depends:
-        - ".request_helpers"
-        - ".forwarded"
-        - ".media"
+        - '.request_helpers'
+        - '.forwarded'
+        - '.media'
 
-- module-name: "falcon.response"
+- module-name: 'falcon.response'
   implicit-imports:
     - depends:
-        - ".response_helpers"
+        - '.response_helpers'
 
-- module-name: "fastapi"
+- module-name: 'fastapi'
   implicit-imports:
     - depends:
-        - "fastapi.routing"
+        - 'fastapi.routing'
 
-- module-name: "feedparser.html"
+- module-name: 'feedparser.html'
   anti-bloat:
-    - change_function:
-        "__parse_starttag": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))"
-        "goahead": "textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))"
+    - description: 'use SGML code more naturally'
       context:
-        - "import inspect"
-        - "import textwrap"
-        - "import sgmllib"
-      description: "use SGML code more naturally"
+        - 'import inspect'
+        - 'import textwrap'
+        - 'import sgmllib'
       replacements:
-        "__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__": "'pass'"
-        "def goahead(self, i):": "'def goahead(self, end):'"
-        "goahead.__code__ = sgmllib.SGMLParser.goahead.__code__": "'pass'"
-
-- module-name: "fitz.fitz"
-  implicit-imports:
-    - depends:
-        - "fitz._fitz"
-
-- module-name: "flask.app"
-  implicit-imports:
-    - depends:
-        - "jinja2.ext"
-        - "jinja2.ext.autoescape"
-        - "jinja2.ext.with_"
-
-- module-name: "frozendict"
-  data-files:
-    patterns:
-      - "VERSION"
-
-- module-name: "gevent"
-  implicit-imports:
-    - depends:
-        - "_cffi_backend"
-        - "gevent._config"
-        - "gevent.core"
-        - "gevent.resolver_thread"
-        - "gevent.resolver_ares"
-        - "gevent.socket"
-        - "gevent.threadpool"
-        - "gevent.thread"
-        - "gevent.threading"
-        - "gevent.select"
-        - "gevent.hub"
-        - "gevent.greenlet"
-        - "gevent.local"
-        - "gevent.event"
-        - "gevent.queue"
-        - "gevent.resolver"
-        - "gevent.subprocess"
-
-    - depends:
-        - "gevent.libuv"
-      when: "win32"
-
-    - depends:
-        - "gevent.libev"
-      when: "not win32"
-
-- module-name: "gevent._abstract_linkable"
-  implicit-imports:
-    - depends:
-        - "gevent.__abstract_linkable"
-        - "gevent._gevent_c_abstract_linkable"
-
-- module-name: "gevent._ffi"
-  implicit-imports:
-    - depends:
-        - "gevent._ffi.loop"
-        - "gevent._ffi.callback"
-        - "gevent._ffi.watcher"
-
-- module-name: "gevent._gevent_c_hub_local"
-  implicit-imports:
-    - depends:
-        - "gevent._gevent_c_greenlet_primitives"
-
-- module-name: "gevent._greenlet"
-  implicit-imports:
-    - depends:
-        - "gevent.__ident"
-
-- module-name: "gevent._hub_local"
-  implicit-imports:
-    - depends:
-        - "gevent.__hub_local"
-        - "gevent.__greenlet_primitives"
-        - "gevent._gevent_c_hub_local"
-
-- module-name: "gevent._hub_primitives"
-  implicit-imports:
-    - depends:
-        - "gevent.__hub_primitives"
-        - "gevent._gevent_cgreenlet"
-        - "gevent._gevent_c_hub_primitives"
-
-- module-name: "gevent._imap"
-  implicit-imports:
-    - depends:
-        - "gevent.__imap"
-        - "gevent._gevent_c_imap"
-
-- module-name: "gevent._semaphore"
-  implicit-imports:
-    - depends:
-        - "gevent._abstract_linkable"
-        - "gevent.__semaphore"
-        - "gevent._gevent_c_semaphore"
-
-- module-name: "gevent._util"
-  anti-bloat:
-    - description: "remove gevent release framework"
+        '__parse_starttag.__code__ = sgmllib.SGMLParser.parse_starttag.__code__': "'pass'"
+        'def goahead(self, i):': "'def goahead(self, end):'"
+        'goahead.__code__ = sgmllib.SGMLParser.goahead.__code__': "'pass'"
       change_function:
-        "postreleaser_before": "'(lambda data: None)'"
-        "prereleaser_middle": "'(lambda data: None)'"
+        '__parse_starttag': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))'
+        'goahead': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))'
 
-- module-name: "gevent._waiter"
+- module-name: 'fitz.fitz'
   implicit-imports:
     - depends:
-        - "gevent.__waiter"
-        - "gevent._gevent_c_waiter"
+        - 'fitz._fitz'
 
-- module-name: "gevent.event"
+- module-name: 'flask.app'
   implicit-imports:
     - depends:
-        - "gevent._event"
-        - "gevent._gevent_cevent"
+        - 'jinja2.ext'
+        - 'jinja2.ext.autoescape'
+        - 'jinja2.ext.with_'
 
-- module-name: "gevent.greenlet"
-  implicit-imports:
-    - depends:
-        - "gevent._hub_local"
-        - "gevent._greenlet"
-        - "gevent._gevent_c_ident"
-
-- module-name: "gevent.hub"
-  implicit-imports:
-    - depends:
-        - "gevent._hub_primitives"
-        - "gevent._greenlet_primitives"
-        - "gevent._hub_local"
-        - "gevent._waiter"
-        - "gevent._util"
-        - "gevent._ident"
-        - "gevent.exceptions"
-
-- module-name: "gevent.libev"
-  implicit-imports:
-    - depends:
-        - "gevent.libev.corecext"
-        - "gevent.libev.corecffi"
-        - "gevent.libev.watcher"
-
-- module-name: "gevent.libuv"
-  implicit-imports:
-    - depends:
-        - "gevent._interfaces"
-        - "gevent._ffi"
-        - "gevent.libuv.loop"
-        - "gevent.libuv.watcher"
-
-- module-name: "gevent.libuv.loop"
-  implicit-imports:
-    - depends:
-        - "gevent.libuv._corecffi"
-        - "gevent._interfaces"
-
-- module-name: "gevent.local"
-  implicit-imports:
-    - depends:
-        - "gevent._local"
-        - "gevent._gevent_clocal"
-
-- module-name: "gevent.monkey"
-  implicit-imports:
-    - depends:
-        - "gevent.builtins"
-        - "gevent.time"
-        - "gevent.local"
-        - "gevent.ssl"
-        - "gevent.events"
-
-- module-name: "gevent.pool"
-  implicit-imports:
-    - depends:
-        - "gevent._imap"
-
-- module-name: "gevent.queue"
-  implicit-imports:
-    - depends:
-        - "gevent._queue"
-        - "gevent._gevent_cqueue"
-
-- module-name: "gevent.resolver"
-  implicit-imports:
-    - depends:
-        - "gevent.resolver.blocking"
-        - "gevent.resolver.cares"
-        - "gevent.resolver.thread"
-
-- module-name: "gooey"
-  data-files:
-    dirs:
-      - "languages"
-      - "images"
-
-- module-name: "gtk._gtk"
-  implicit-imports:
-    - depends:
-        - "pangocairo"
-        - "pango"
-        - "cairo"
-        - "gio"
-        - "atk"
-
-- module-name: "gtkunixprint"
-  implicit-imports:
-    - depends:
-        - "gobject"
-        - "cairo"
-        - "gtk"
-
-- module-name: "h5py"
-  anti-bloat:
-    - change_function:
-        "enable_ipython_completer": "'(lambda: None)'"
-        "run_tests": "'(lambda args=None: None)'"
-      description: "remove h5py testing framework and interactive IPython completer"
-
-- module-name: "h5py.h5"
-  implicit-imports:
-    - depends:
-        - "h5py.defs"
-
-- module-name: "h5py.h5a"
-  implicit-imports:
-    - depends:
-        - "h5py._proxy"
-
-- module-name: "h5py.h5p"
-  implicit-imports:
-    - depends:
-        - "h5py.h5ac"
-
-- module-name: "h5py.h5s"
-  implicit-imports:
-    - depends:
-        - "h5py.utils"
-
-- module-name: "importlib_resources"
+- module-name: 'frozendict'
   data-files:
     patterns:
-      - "version.txt"
+      - 'VERSION'
 
-- module-name: "importlib_resources._compat"
+- module-name: 'gevent'
+  implicit-imports:
+    - depends:
+        - '_cffi_backend'
+        - 'gevent._config'
+        - 'gevent.core'
+        - 'gevent.resolver_thread'
+        - 'gevent.resolver_ares'
+        - 'gevent.socket'
+        - 'gevent.threadpool'
+        - 'gevent.thread'
+        - 'gevent.threading'
+        - 'gevent.select'
+        - 'gevent.hub'
+        - 'gevent.greenlet'
+        - 'gevent.local'
+        - 'gevent.event'
+        - 'gevent.queue'
+        - 'gevent.resolver'
+        - 'gevent.subprocess'
+
+    - depends:
+        - 'gevent.libuv'
+      when: 'win32'
+
+    - depends:
+        - 'gevent.libev'
+      when: 'not win32'
+
+- module-name: 'gevent._abstract_linkable'
+  implicit-imports:
+    - depends:
+        - 'gevent.__abstract_linkable'
+        - 'gevent._gevent_c_abstract_linkable'
+
+- module-name: 'gevent._ffi'
+  implicit-imports:
+    - depends:
+        - 'gevent._ffi.loop'
+        - 'gevent._ffi.callback'
+        - 'gevent._ffi.watcher'
+
+- module-name: 'gevent._gevent_c_hub_local'
+  implicit-imports:
+    - depends:
+        - 'gevent._gevent_c_greenlet_primitives'
+
+- module-name: 'gevent._greenlet'
+  implicit-imports:
+    - depends:
+        - 'gevent.__ident'
+
+- module-name: 'gevent._hub_local'
+  implicit-imports:
+    - depends:
+        - 'gevent.__hub_local'
+        - 'gevent.__greenlet_primitives'
+        - 'gevent._gevent_c_hub_local'
+
+- module-name: 'gevent._hub_primitives'
+  implicit-imports:
+    - depends:
+        - 'gevent.__hub_primitives'
+        - 'gevent._gevent_cgreenlet'
+        - 'gevent._gevent_c_hub_primitives'
+
+- module-name: 'gevent._imap'
+  implicit-imports:
+    - depends:
+        - 'gevent.__imap'
+        - 'gevent._gevent_c_imap'
+
+- module-name: 'gevent._semaphore'
+  implicit-imports:
+    - depends:
+        - 'gevent._abstract_linkable'
+        - 'gevent.__semaphore'
+        - 'gevent._gevent_c_semaphore'
+
+- module-name: 'gevent._util'
   anti-bloat:
-    - description: "workaround file reader check"
-      replacements_plain:
-        "path.exists()": "True"
-
-- module-name: "ipcqueue"
-  implicit-imports:
-    - depends:
-        - "_cffi_backend"
-
-- module-name: "jaraco.text"
-  data-files:
-    patterns:
-      - "Lorem ipsum.txt"
-
-- module-name: "jarowinkler"
-  implicit-imports:
-    - depends:
-        - "jarowinkler._initialize_cpp"
-
-- module-name: "jsonrpcserver.main"
-  data-files:
-    patterns:
-      - "*.json"
-
-- module-name: "jsonschema"
-  data-files:
-    dirs:
-      - "schemas"
-
-- module-name: "kivy"
-  data-files:
-    dirs:
-      - "data"
-
-- module-name: "kivy._clock"
-  implicit-imports:
-    - depends:
-        - "kivy.weakmethod"
-
-- module-name: "kivy.graphics.compiler"
-  implicit-imports:
-    - depends:
-        - "kivy.graphics.shader"
-
-- module-name: "kivy.graphics.instructions"
-  implicit-imports:
-    - depends:
-        - "kivy.graphics.buffer"
-        - "kivy.graphics.vertex"
-        - "kivy.graphics.vbo"
-
-- module-name: "kivy.graphics.vbo"
-  implicit-imports:
-    - depends:
-        - "kivy.graphics.compiler"
-
-- module-name: "kivymd"
-  data-files:
-    dirs:
-      - "fonts"
-      - "images"
-
-- module-name: "llvmlite.binding.analysis"
-  anti-bloat:
-    - description: "remove IPython reference"
-      replacements_plain:
-        "__IPYTHON__": "raise NameError"
-      when: "not use_ipython"
-
-- module-name: "lxml"
-  implicit-imports:
-    - depends:
-        - ".builder"
-        - ".etree"
-        - ".objectify"
-        - ".sax"
-        - "._elementpath"
-
-- module-name: "lxml.etree"
-  implicit-imports:
-    - depends:
-        - "._elementpath"
-        - "gzip"
-
-- module-name: "lxml.html"
-  implicit-imports:
-    - depends:
-        - ".html.clean"
-        - ".html.diff"
-        - ".etree"
-
-- module-name: "lxml.objectify"
-  implicit-imports:
-    - depends:
-        - "lxml.etree"
-
-- module-name: "matplotlib"
-  anti-bloat:
-    - description: "remove setuptools and pytest testing framework reference"
+    - description: 'remove gevent release framework'
       change_function:
-        "_init_tests": "'None'"
-        "test": "'None'"
-        "_get_version": "'(lambda : _version.version)'"
+        'postreleaser_before': "'(lambda data: None)'"
+        'prereleaser_middle': "'(lambda data: None)'"
+
+- module-name: 'gevent._waiter'
+  implicit-imports:
+    - depends:
+        - 'gevent.__waiter'
+        - 'gevent._gevent_c_waiter'
+
+- module-name: 'gevent.event'
+  implicit-imports:
+    - depends:
+        - 'gevent._event'
+        - 'gevent._gevent_cevent'
+
+- module-name: 'gevent.greenlet'
+  implicit-imports:
+    - depends:
+        - 'gevent._hub_local'
+        - 'gevent._greenlet'
+        - 'gevent._gevent_c_ident'
+
+- module-name: 'gevent.hub'
+  implicit-imports:
+    - depends:
+        - 'gevent._hub_primitives'
+        - 'gevent._greenlet_primitives'
+        - 'gevent._hub_local'
+        - 'gevent._waiter'
+        - 'gevent._util'
+        - 'gevent._ident'
+        - 'gevent.exceptions'
+
+- module-name: 'gevent.libev'
+  implicit-imports:
+    - depends:
+        - 'gevent.libev.corecext'
+        - 'gevent.libev.corecffi'
+        - 'gevent.libev.watcher'
+
+- module-name: 'gevent.libuv'
+  implicit-imports:
+    - depends:
+        - 'gevent._interfaces'
+        - 'gevent._ffi'
+        - 'gevent.libuv.loop'
+        - 'gevent.libuv.watcher'
+
+- module-name: 'gevent.libuv.loop'
+  implicit-imports:
+    - depends:
+        - 'gevent.libuv._corecffi'
+        - 'gevent._interfaces'
+
+- module-name: 'gevent.local'
+  implicit-imports:
+    - depends:
+        - 'gevent._local'
+        - 'gevent._gevent_clocal'
+
+- module-name: 'gevent.monkey'
+  implicit-imports:
+    - depends:
+        - 'gevent.builtins'
+        - 'gevent.time'
+        - 'gevent.local'
+        - 'gevent.ssl'
+        - 'gevent.events'
+
+- module-name: 'gevent.pool'
+  implicit-imports:
+    - depends:
+        - 'gevent._imap'
+
+- module-name: 'gevent.queue'
+  implicit-imports:
+    - depends:
+        - 'gevent._queue'
+        - 'gevent._gevent_cqueue'
+
+- module-name: 'gevent.resolver'
+  implicit-imports:
+    - depends:
+        - 'gevent.resolver.blocking'
+        - 'gevent.resolver.cares'
+        - 'gevent.resolver.thread'
+
+- module-name: 'gooey'
+  data-files:
+    dirs:
+      - 'languages'
+      - 'images'
+
+- module-name: 'gtk._gtk'
+  implicit-imports:
+    - depends:
+        - 'pangocairo'
+        - 'pango'
+        - 'cairo'
+        - 'gio'
+        - 'atk'
+
+- module-name: 'gtkunixprint'
+  implicit-imports:
+    - depends:
+        - 'gobject'
+        - 'cairo'
+        - 'gtk'
+
+- module-name: 'h5py'
+  anti-bloat:
+    - description: 'remove h5py testing framework and interactive IPython completer'
+
+      change_function:
+        'enable_ipython_completer': "'(lambda: None)'"
+        'run_tests': "'(lambda args=None: None)'"
+
+- module-name: 'h5py.h5'
+  implicit-imports:
+    - depends:
+        - 'h5py.defs'
+
+- module-name: 'h5py.h5a'
+  implicit-imports:
+    - depends:
+        - 'h5py._proxy'
+
+- module-name: 'h5py.h5p'
+  implicit-imports:
+    - depends:
+        - 'h5py.h5ac'
+
+- module-name: 'h5py.h5s'
+  implicit-imports:
+    - depends:
+        - 'h5py.utils'
+
+- module-name: 'importlib_resources'
+  data-files:
+    patterns:
+      - 'version.txt'
+
+- module-name: 'importlib_resources._compat'
+  anti-bloat:
+    - description: 'workaround file reader check'
+      replacements_plain:
+        'path.exists()': 'True'
+
+- module-name: 'ipcqueue'
+  implicit-imports:
+    - depends:
+        - '_cffi_backend'
+
+- module-name: 'jaraco.text'
+  data-files:
+    patterns:
+      - 'Lorem ipsum.txt'
+
+- module-name: 'jarowinkler'
+  implicit-imports:
+    - depends:
+        - 'jarowinkler._initialize_cpp'
+
+- module-name: 'jsonrpcserver.main'
+  data-files:
+    patterns:
+      - '*.json'
+
+- module-name: 'jsonschema'
+  data-files:
+    dirs:
+      - 'schemas'
+
+- module-name: 'kivy'
+  data-files:
+    dirs:
+      - 'data'
+
+- module-name: 'kivy._clock'
+  implicit-imports:
+    - depends:
+        - 'kivy.weakmethod'
+
+- module-name: 'kivy.graphics.compiler'
+  implicit-imports:
+    - depends:
+        - 'kivy.graphics.shader'
+
+- module-name: 'kivy.graphics.instructions'
+  implicit-imports:
+    - depends:
+        - 'kivy.graphics.buffer'
+        - 'kivy.graphics.vertex'
+        - 'kivy.graphics.vbo'
+
+- module-name: 'kivy.graphics.vbo'
+  implicit-imports:
+    - depends:
+        - 'kivy.graphics.compiler'
+
+- module-name: 'kivymd'
+  data-files:
+    dirs:
+      - 'fonts'
+      - 'images'
+
+- module-name: 'llvmlite.binding.analysis'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        '__IPYTHON__': 'raise NameError'
+      when: 'not use_ipython'
+
+- module-name: 'lxml'
+  implicit-imports:
+    - depends:
+        - '.builder'
+        - '.etree'
+        - '.objectify'
+        - '.sax'
+        - '._elementpath'
+
+- module-name: 'lxml.etree'
+  implicit-imports:
+    - depends:
+        - '._elementpath'
+        - 'gzip'
+
+- module-name: 'lxml.html'
+  implicit-imports:
+    - depends:
+        - '.html.clean'
+        - '.html.diff'
+        - '.etree'
+
+- module-name: 'lxml.objectify'
+  implicit-imports:
+    - depends:
+        - 'lxml.etree'
+
+- module-name: 'matplotlib'
+  anti-bloat:
+    - description: 'remove setuptools and pytest testing framework reference'
       replacements:
         '(root / ".git").exists()"': "'None'"
-        "test.__test__ = False": ""
-
-  implicit-imports:
-    - depends:
-        - "matplotlib.backend_managers"
-        - "matplotlib.backend_bases"
-        - "mpl_toolkits"
-
-- module-name: "matplotlib.backend_bases"
-  anti-bloat:
-    - description: "remove IPython reference"
+        'test.__test__ = False': ''
       change_function:
-        "_fix_ipython_backend2gui": "'(lambda cls: None)'"
-      when: "not use_ipython"
-
-- module-name: "matplotlib.backends"
+        '_init_tests': "'None'"
+        'test': "'None'"
+        '_get_version': "'(lambda : _version.version)'"
   implicit-imports:
     - depends:
-        - "matplotlib.backends._backend_agg"
-        - "matplotlib.backends._tkagg"
-        - "matplotlib.backends.backend_tkagg"
-        - "matplotlib.backends.backend_agg"
+        - 'matplotlib.backend_managers'
+        - 'matplotlib.backend_bases'
+        - 'mpl_toolkits'
 
-- module-name: "matplotlib.backends.backend_cairo"
-  implicit-imports:
-    - depends:
-        - "cairo"
-        - "cairocffi"
-
-- module-name: "matplotlib.backends.backend_gtk3"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_gtk3agg"
-        - "gi"
-
-- module-name: "matplotlib.backends.backend_gtk3agg"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_gtk3"
-        - "gi"
-
-- module-name: "matplotlib.backends.backend_qt5"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_qt5agg"
-        - "PyQt5"
-
-- module-name: "matplotlib.backends.backend_qt5agg"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_qt5"
-        - "PyQt5"
-
-- module-name: "matplotlib.backends.backend_webagg"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_webagg_core"
-        - "tornado"
-
-- module-name: "matplotlib.backends.backend_webagg_core"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_webagg"
-        - "tornado"
-
-- module-name: "matplotlib.backends.backend_wx"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_wxagg"
-        - "wx"
-
-- module-name: "matplotlib.backends.backend_wxagg"
-  implicit-imports:
-    - depends:
-        - "matplotlib.backends.backend_wx"
-        - "wx"
-
-- module-name: "matplotlib.figure"
+- module-name: 'matplotlib.backend_bases'
   anti-bloat:
-    - description: "remove IPython reference"
+    - description: 'remove IPython reference'
       change_function:
-        "_repr_html_": "un-callable"
-      when: "not use_ipython"
+        '_fix_ipython_backend2gui': "'(lambda cls: None)'"
+      when: 'not use_ipython'
 
-- module-name: "matplotlib.pyplot"
-  anti-bloat:
-    - description: "remove IPython reference"
-      change_function:
-        "install_repl_displayhook": "'(lambda: None)'"
-        "uninstall_repl_displayhook": "'(lambda: None)'"
-      when: "not use_ipython"
-
-- module-name: "mercurial.encoding"
+- module-name: 'matplotlib.backends'
   implicit-imports:
     - depends:
-        - "mercurial.charencode"
-        - "mercurial.cext.parsers"
+        - 'matplotlib.backends._backend_agg'
+        - 'matplotlib.backends._tkagg'
+        - 'matplotlib.backends.backend_tkagg'
+        - 'matplotlib.backends.backend_agg'
 
-- module-name: "mmcv.utils"
+- module-name: 'matplotlib.backends.backend_cairo'
+  implicit-imports:
+    - depends:
+        - 'cairo'
+        - 'cairocffi'
+
+- module-name: 'matplotlib.backends.backend_gtk3'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_gtk3agg'
+        - 'gi'
+
+- module-name: 'matplotlib.backends.backend_gtk3agg'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_gtk3'
+        - 'gi'
+
+- module-name: 'matplotlib.backends.backend_qt5'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_qt5agg'
+        - 'PyQt5'
+
+- module-name: 'matplotlib.backends.backend_qt5agg'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_qt5'
+        - 'PyQt5'
+
+- module-name: 'matplotlib.backends.backend_webagg'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_webagg_core'
+        - 'tornado'
+
+- module-name: 'matplotlib.backends.backend_webagg_core'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_webagg'
+        - 'tornado'
+
+- module-name: 'matplotlib.backends.backend_wx'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_wxagg'
+        - 'wx'
+
+- module-name: 'matplotlib.backends.backend_wxagg'
+  implicit-imports:
+    - depends:
+        - 'matplotlib.backends.backend_wx'
+        - 'wx'
+
+- module-name: 'matplotlib.figure'
   anti-bloat:
-    - description: "remove mmcv testing framework"
+    - description: 'remove IPython reference'
+      change_function:
+        '_repr_html_': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'matplotlib.pyplot'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'install_repl_displayhook': "'(lambda: None)'"
+        'uninstall_repl_displayhook': "'(lambda: None)'"
+      when: 'not use_ipython'
+
+- module-name: 'mercurial.encoding'
+  implicit-imports:
+    - depends:
+        - 'mercurial.charencode'
+        - 'mercurial.cext.parsers'
+
+- module-name: 'mkl._mklinit'
+  dlls:
+    - by_code:
+        setup_code: 'import os;import sys'
+        filename_code: "os.path.join(sys.prefix, 'lib', 'libmkl_mc3.1.dylib')"
+      dest_path: '.'
+      when: 'anaconda and macos'
+
+- module-name: 'mmcv.utils'
+  anti-bloat:
+    - description: 'remove mmcv testing framework'
       replacements_plain:
-        "from .testing import": "if False: from .testing import"
-      append_plain: "__all__ = [_name for _name in __all__ if _name in globals()]"
+        'from .testing import': 'if False: from .testing import'
+      append_plain: '__all__ = [_name for _name in __all__ if _name in globals()]'
 
-- module-name: "mmcv.utils.parrots_wrapper"
+- module-name: 'mmcv.utils.parrots_wrapper'
   anti-bloat:
-    - description: "remove torch.utils.cpp_extension usage"
+    - description: 'remove torch.utils.cpp_extension usage'
       change_function:
-        "_get_extension": "'(lambda: None, None, None)'"
-        "is_rocm_pytorch": "'(lambda: False)'"
-        "_get_cuda_home": "un-callable"
+        '_get_extension': "'(lambda: None, None, None)'"
+        'is_rocm_pytorch': "'(lambda: False)'"
+        '_get_cuda_home': 'un-callable'
 
-- module-name: "moto"
+- module-name: 'moto'
   data-files:
     patterns:
-      - "ec2/resources/instance_types.json"
-      - "ec2/resources/amis.json"
+      - 'ec2/resources/instance_types.json'
+      - 'ec2/resources/amis.json'
   anti-bloat:
-    - description: "remove pytest testing framework"
+    - description: 'remove pytest testing framework'
       replacements:
         "imp.find_module('pytest')": "'None'"
 
-- module-name: "nacl._sodium"
+- module-name: 'nacl._sodium'
   implicit-imports:
     - depends:
-        - "_cffi_backend"
+        - '_cffi_backend'
 
-- module-name: "networkx"
+- module-name: 'networkx'
   anti-bloat:
-    - description: "remove networkx.testing usage"
+    - description: 'remove networkx.testing usage'
       replacements_plain:
-        "from networkx.testing.test import run as test": "test = None"
+        'from networkx.testing.test import run as test': 'test = None'
 
-- module-name: "networkx.utils.decorators"
+- module-name: 'networkx.utils.decorators'
   anti-bloat:
-    - description: "required for decorator compatibility"
+    - description: 'required for decorator compatibility'
       replacements_plain:
-        "func.__defaults__ = f.__defaults__": ""
+        'func.__defaults__ = f.__defaults__': ''
 
-- module-name: "nose.core"
+- module-name: 'nose.core'
   data-files:
     patterns:
-      - "usage.txt"
+      - 'usage.txt'
 
-- module-name: "numba"
+- module-name: 'numba'
   anti-bloat:
-    - description: "remove numba testing reference"
+    - description: 'remove numba testing reference'
       change_function:
-        "test": "un-callable"
+        'test': 'un-callable'
 
-- module-name: "numba.core.caching"
+- module-name: 'numba.core.caching'
   anti-bloat:
-    - description: "remove IPython reference"
+    - description: 'remove IPython reference'
       replacements_plain:
-        "from IPython.paths import get_ipython_cache_dir": "raise ImportError"
-        "from IPython.utils.path import get_ipython_cache_dir": "raise ImportError"
+        'from IPython.paths import get_ipython_cache_dir': 'raise ImportError'
+        'from IPython.utils.path import get_ipython_cache_dir': 'raise ImportError'
 
-- module-name: "numba.cuda"
+- module-name: 'numba.cuda'
   anti-bloat:
-    - description: "remove numba testing reference"
+    - description: 'remove numba testing reference'
+      replacements_plain:
+        'from numba import runtests': ''
       change_function:
-        "test": "un-callable"
-      replacements_plain:
-        "from numba import runtests": ""
+        'test': 'un-callable'
 
-- module-name: "numba.misc.inspection"
+- module-name: 'numba.misc.inspection'
   anti-bloat:
-    - description: "remove numba.pycc reference"
+    - description: 'remove numba.pycc reference'
       change_function:
-        "disassemble_elf_to_cfg": "un-callable"
+        'disassemble_elf_to_cfg': 'un-callable'
 
-- module-name: "numexpr"
-  anti-bloat:
-    - description: "remove numexpr.tests usage"
-      replacements_plain:
-        "import numexpr.tests": "raise ImportError"
-
-- module-name: "numpy"
+- module-name: 'numcodecs.blosc'
   implicit-imports:
     - depends:
-        - "numpy._mklinit"
-        - "numpy.compat"
-        - "numpy.lib"
-        - "numpy.linalg"
-        - "numpy.fft"
-        - "numpy.polynomial"
-        - "numpy.random"
-        - "numpy.ctypeslib"
-        - "numpy.ma"
-        - "numpy.matrixlib"
+        - 'numcodecs.compat_ext'
 
-- module-name: "numpy._pytesttester"
+- module-name: 'numexpr'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numexpr.tests usage'
+      replacements_plain:
+        'import numexpr.tests': 'raise ImportError'
+
+- module-name: 'numpy'
+  implicit-imports:
+    - depends:
+        - 'numpy._mklinit'
+        - 'numpy.compat'
+        - 'numpy.lib'
+        - 'numpy.linalg'
+        - 'numpy.fft'
+        - 'numpy.polynomial'
+        - 'numpy.random'
+        - 'numpy.ctypeslib'
+        - 'numpy.ma'
+        - 'numpy.matrixlib'
+
+- module-name: 'numpy._pytesttester'
+  anti-bloat:
+    - description: 'remove numpy testing framework'
       module_code: |
         class PytestTester:
           def __init__(self, name):
             pass
 
-- module-name: "numpy.core"
+- module-name: 'numpy.core'
   implicit-imports:
     - depends:
-        - "numpy.core._dtype_ctypes"
-        - "numpy.core._multiarray_tests"
+        - 'numpy.core._dtype_ctypes'
+        - 'numpy.core._multiarray_tests'
 
-- module-name: "numpy.core.overrides"
+- module-name: 'numpy.core.overrides'
   anti-bloat:
-    - description: "workaround numpy issues with compiled code"
+    - description: 'workaround numpy issues with compiled code'
       replacements:
-        "add_docstring(implementation, dispatcher.__doc__)": "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
-        "public_api.__code__ = ": ""
+        'add_docstring(implementation, dispatcher.__doc__)': "'''add_docstring(implementation, dispatcher.__doc__ or '')'''"
+        'public_api.__code__ = ': ''
 
-- module-name: "numpy.ctypeslib"
+- module-name: 'numpy.ctypeslib'
   anti-bloat:
-    - description: "remove numpy.distutils references"
+    - description: 'remove numpy.distutils references'
       context:
-        - "import numpy.distutils.misc_util"
+        - 'import numpy.distutils.misc_util'
       replacements:
-        "from numpy.distutils.misc_util import get_shared_lib_extension": ""
-        "get_shared_lib_extension()": "repr(numpy.distutils.misc_util.get_shared_lib_extension())"
-        "get_shared_lib_extension(is_python_ext=True)": "repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))"
+        'from numpy.distutils.misc_util import get_shared_lib_extension': ''
+        'get_shared_lib_extension()': 'repr(numpy.distutils.misc_util.get_shared_lib_extension())'
+        'get_shared_lib_extension(is_python_ext=True)': 'repr(numpy.distutils.misc_util.get_shared_lib_extension(is_python_ext=True))'
 
-- module-name: "numpy.lib.utils"
+- module-name: 'numpy.lib.utils'
   anti-bloat:
-    - description: "remove pydoc usage"
+    - description: 'remove pydoc usage'
       replacements_plain:
-        ".pydoc.allmethods(object)": "()"
-        "import pydoc": ""
+        '.pydoc.allmethods(object)': '()'
+        'import pydoc': ''
 
-- module-name: "numpy.random"
+- module-name: 'numpy.random'
   implicit-imports:
     - depends:
       # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
-        - "numpy.random._bit_generator"
-        - "numpy.random._bounded_integers"
-        - "numpy.random._common"
-        - "numpy.random._generator"
-        - "numpy.random._mt19937"
-        - "numpy.random._pcg64"
-        - "numpy.random._philox"
-        - "numpy.random._sfc64"
+        - 'numpy.random._bit_generator'
+        - 'numpy.random._bounded_integers'
+        - 'numpy.random._common'
+        - 'numpy.random._generator'
+        - 'numpy.random._mt19937'
+        - 'numpy.random._pcg64'
+        - 'numpy.random._philox'
+        - 'numpy.random._sfc64'
 
       # These are pre-1.18 names
-        - "numpy.random.bit_generator"
-        - "numpy.random.bounded_integers"
-        - "numpy.random.common"
-        - "numpy.random.generator"
-        - "numpy.random.mt19937"
-        - "numpy.random.pcg64"
-        - "numpy.random.philox"
-        - "numpy.random.sfc64"
+        - 'numpy.random.bit_generator'
+        - 'numpy.random.bounded_integers'
+        - 'numpy.random.common'
+        - 'numpy.random.generator'
+        - 'numpy.random.mt19937'
+        - 'numpy.random.pcg64'
+        - 'numpy.random.philox'
+        - 'numpy.random.sfc64'
 
       # TODO: Clarify if entropy is needed for 1.18 or at all.
-        - "numpy.random.entropy"
-        - "numpy.random.mtrand"
+        - 'numpy.random.entropy'
+        - 'numpy.random.mtrand'
 
-- module-name: "numpy.testing"
+- module-name: 'numpy.testing'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numpy testing framework'
       module_code: |
         from contextlib import contextmanager
         class Tester:
           test = None
           bench = None
 
+        class suppress_warnings:
+          def __init__(self, forwarding_rule="always"):
+            pass
+
+          def filter(self, category=Warning, message="", module=None):
+            pass
+
+          def __enter__(self):
+            return self
+
+          def __exit__(self, *exc_info):
+            pass
+
+          def __call__(self, func):
+            def new_func(*args, **kwargs):
+              with self:
+                return func(*args, **kwargs)
+
+            return new_func
+
         def assert_allclose(*args, **kwargs):
           return True
-
-        @contextmanager
-        def suppress_warnings(forwarding_rule="always"):
-          yield
 
         @contextmanager
         def _assert_warns_context(warning_class, name=None):
@@ -957,1928 +1033,2207 @@
           with _assert_warns_context(warning_class, name=func.__name__):
               return func(*args, **kwargs)
 
-- module-name: "numpy.testing._private.pytesttester"
+- module-name: 'numpy.testing._private.pytesttester'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numpy testing framework'
       module_code: |
         class PytestTester:
           def __init__(self, name):
             pass
 
-- module-name: "openapi_spec_validator"
+- module-name: 'openapi_spec_validator'
   data-files:
     dirs:
-      - "resources/schemas"
+      - 'resources/schemas'
 
-- module-name: "orderedmultidict"
+- module-name: 'orderedmultidict'
   anti-bloat:
-    - description: "remove manual version file import"
+    - description: 'remove manual version file import'
       context:
-        - "import orderedmultidict.__version__"
-      replacements:
-        "exec(f.read(), meta)": "'__version__ = %r' % orderedmultidict.__version__.__version__"
+        - 'import orderedmultidict.__version__'
       replacements_plain:
-        "with open(pjoin(dirname(__file__), '__version__.py')) as f": "if True"
+        "with open(pjoin(dirname(__file__), '__version__.py')) as f": 'if True'
+      replacements:
+        'exec(f.read(), meta)': "'__version__ = %r' % orderedmultidict.__version__.__version__"
 
-- module-name: "osgeo"
+- module-name: 'osgeo'
   data-files:
     dirs:
-      - "data"
+      - 'data'
   implicit-imports:
     - depends:
-        - "osgeo._gdal"
-        - "osgeo._gdalconst"
-        - "osgeo._gdal_array"
-        - "osgeo._gnm"
-        - "osgeo._ogr"
-        - "osgeo._osr"
+        - 'osgeo._gdal'
+        - 'osgeo._gdalconst'
+        - 'osgeo._gdal_array'
+        - 'osgeo._gnm'
+        - 'osgeo._ogr'
+        - 'osgeo._osr'
 
-- module-name: "pandas"
+- module-name: 'panda3d'
+  data-files:
+    dest_path: '.'
+    dirs:
+      - 'etc'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libpandagl'
+          - 'libpandadx9'
+          - 'libp3tinydisplay'
+          - 'libp3assimp'
+          - 'libp3ffmpeg'
+          - 'libp3fmod_audio'
+          - 'libp3openal_audio'
+          - 'libp3ptloader'
+          - 'libpandaegg'
+      dest_path: '.'
+
+- module-name: 'pandas'
   anti-bloat:
-    - description: "remove pandas testing framework"
+    - description: 'remove pandas testing framework'
       replacements_plain:
-        "from pandas.util._tester import test": ""
-        "import pandas.testing": ""
-        "from pandas import api, arrays, errors, io, plotting, testing": "from pandas import api, arrays, errors, io, plotting"
+        'from pandas.util._tester import test': ''
+        'import pandas.testing': ''
+        'from pandas import api, arrays, errors, io, plotting, testing': 'from pandas import api, arrays, errors, io, plotting'
 
-- module-name: "pandas._libs"
+- module-name: 'pandas._libs'
   implicit-imports:
     - depends:
-        - "pandas._libs.tslibs.np_datetime"
-        - "pandas._libs.tslibs.nattype"
-        - "pandas._libs.tslibs.base"
+        - 'pandas._libs.tslibs.np_datetime'
+        - 'pandas._libs.tslibs.nattype'
+        - 'pandas._libs.tslibs.base'
 
-- module-name: "pandas._libs.testing"
+- module-name: 'pandas._libs.testing'
   implicit-imports:
     - depends:
-        - "cmath"
+        - 'cmath'
 
-- module-name: "pandas._libs.tslibs.fields"
+- module-name: 'pandas._libs.tslibs.fields'
   implicit-imports:
     - depends:
-        - "pandas._config.localization"
+        - 'pandas._config.localization'
 
-- module-name: "pandas._testing"
+- module-name: 'pandas._testing'
   anti-bloat:
-    - change_function:
-        "ensure_clean": "'(lambda: None)'"
+    - description: 'remove pytest testing framework'
+
+      change_function:
+        'ensure_clean': "'(lambda: None)'"
         # TODO: See pandas._testing._io TODO as well.
-        "external_error_raised": "'(lambda: None)'"
-        "network": "'(lambda: None)'"
-        "round_trip_localpath": "'(lambda: None)'"
-        "round_trip_pathlib": "'(lambda: None)'"
-      description: "remove pytest testing framework"
+        'external_error_raised': "'(lambda: None)'"
+        'network': "'(lambda: None)'"
+        'round_trip_localpath': "'(lambda: None)'"
+        'round_trip_pathlib': "'(lambda: None)'"
 
-- module-name: "pandas._testing._io"
+- module-name: 'pandas._testing._io'
   anti-bloat:
-    - change_function:
-        "network": "'(lambda: None)'"
+    - description: 'remove pytest testing framework'
+
+      change_function:
+        'network': "'(lambda: None)'"
         # TODO: Actually it would be nice to specify "uncallable" rather than
         # wrong signature for cases, where the function is not usable
         # afterwards. That will make sure we have a nice error exit in case,
         # some test code is run an attempts to use it.
-        "round_trip_localpath": "'(lambda: None)'"
-        "round_trip_pathlib": "'(lambda: None)'"
-      description: "remove pytest testing framework"
+        'round_trip_localpath': "'(lambda: None)'"
+        'round_trip_pathlib': "'(lambda: None)'"
 
-- module-name: "pandas.compat._optional"
+- module-name: 'pandas.compat._optional'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
-        "distutils.version.LooseVersion(version) < minimum_version": "'False'"
-        "import distutils.version": "''"
+        'distutils.version.LooseVersion(version) < minimum_version': "'False'"
+        'import distutils.version': "''"
 
-- module-name: "pandas.compat.numpy"
+- module-name: 'pandas.compat.numpy'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         # TODO: Smells not only like regexp, must be one.
+        'LooseVersion("1.14")': "'\"1.14\"'"
+        'LooseVersion("1.15")': "'\"1.15\"'"
+        'LooseVersion("1.16")': "'\"1.16\"'"
         'LooseVersion("1.17")': "'\"1.17\"'"
         'LooseVersion("1.18")': "'\"1.18\"'"
         'LooseVersion("1.19")': "'\"1.19\"'"
         'LooseVersion("1.20")': "'\"1.20\"'"
-        "LooseVersion(_np_version)": "'_np_version'"
-        "from distutils.version import LooseVersion": "''"
+        'LooseVersion(_np_version)': "'_np_version'"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.compat.numpy.function"
+- module-name: 'pandas.compat.numpy.function'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         'LooseVersion(__version__) >= LooseVersion("1.17.0")': "'__version__ >= \"1.17.0\"'"
-        "from distutils.version import LooseVersion": "''"
+        'LooseVersion(_np_version) >= LooseVersion("1.17.0")': "'_np_version >= \"1.17.0\"'"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.core.arrays._arrow_utils"
+- module-name: 'pandas.core.arrays._arrow_utils'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         'LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")': "'pyarrow.__version__ >= \"0.15\"'"
-        "from distutils.version import LooseVersion": "''"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.core.arrays.string_arrow"
+- module-name: 'pandas.core.arrays.string_arrow'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         'LooseVersion(pa.__version__) < "1.0.0"': "'pa.__version__ < \"1.0.0\"'"
-        "from distutils.version import LooseVersion": "''"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.core.computation.ops"
+- module-name: 'pandas.core.computation.ops'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
-        "from distutils.version import LooseVersion": "''"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.core.util.numba_"
+- module-name: 'pandas.core.util.numba_'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         'LooseVersion(numba.__version__) >= LooseVersion("0.49.0")': "'True'"
-        "from distutils.version import LooseVersion": "''"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.core.window"
+- module-name: 'pandas.core.window'
   implicit-imports:
     - depends:
-        - "pandas._libs.window"
-        - "pandas._libs.skiplist"
+        - 'pandas._libs.window'
+        - 'pandas._libs.skiplist'
 
-- module-name: "pandas.io.excel._base"
+- module-name: 'pandas.io.excel._base'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
-        "LooseVersion(xlrd.__version__)": "'xlrd.__version__'"
-        "from distutils.version import LooseVersion": "''"
+        'LooseVersion(xlrd.__version__)': "'xlrd.__version__'"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.io.formats"
+- module-name: 'pandas.io.formats'
   data-files:
     dirs:
-      - "templates"
+      - 'templates'
 
-- module-name: "pandas.io.formats.printing"
+- module-name: 'pandas.io.formats.printing'
   anti-bloat:
-    - change_function:
-        "enable_data_resource_formatter": "'(lambda enable: None)'"
-      description: "remove IPython reference"
+    - description: 'remove IPython reference'
 
-- module-name: "pandas.io.formats.style"
+      change_function:
+        'enable_data_resource_formatter': "'(lambda enable: None)'"
+
+- module-name: 'pandas.io.formats.style'
   implicit-imports:
     - depends:
-        - "jinja2"
+        - 'jinja2'
 
-- module-name: "pandas.io.orc"
+- module-name: 'pandas.io.orc'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         'distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0"': "'pyarrow.__version__ < \"0.13.0\"'"
-        "import distutils": "''"
+        'import distutils': "''"
 
-- module-name: "pandas.io.parquet"
+- module-name: 'pandas.io.parquet'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
         'LooseVersion(self.api.__version__) >= "0.16"': "'self.api.__version__ >= \"0.16\"'"
-        "from distutils.version import LooseVersion": "''"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "pandas.plotting._matplotlib.compat"
+- module-name: 'pandas.plotting._matplotlib.compat'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
-        "from distutils.version import LooseVersion": "''"
-        "op(LooseVersion(mpl.__version__), LooseVersion(version))": "'op(mpl.__version__, version)'"
+        'from distutils.version import LooseVersion': "''"
+        'op(LooseVersion(mpl.__version__), LooseVersion(version))': "'op(mpl.__version__, version)'"
 
-- module-name: "pandas.util"
+- module-name: 'pandas.util'
   anti-bloat:
-    - description: "remove pandas testing framework"
+    - description: 'remove pandas testing framework'
       replacements_plain:
-        'if name == "testing":': "if False:"
+        'if name == "testing":': 'if False:'
 
-- module-name: "pango"
+- module-name: 'pango'
   implicit-imports:
     - depends:
-        - "gobject"
+        - 'gobject'
 
-- module-name: "pangocairo"
+- module-name: 'pangocairo'
   implicit-imports:
     - depends:
-        - "pango"
-        - "cairo"
+        - 'pango'
+        - 'cairo'
 
-- module-name: "passlib.hash"
+- module-name: 'passlib.hash'
   implicit-imports:
     - depends:
-        - "passlib.handlers.sha2_crypt"
+        - 'passlib.handlers.sha2_crypt'
 
-- module-name: "pendulum"
+- module-name: 'pendulum'
   data-files:
     empty_dir_structures:
-      - "locales"
+      - 'locales'
 
-- module-name: "pendulum.locales"
+- module-name: 'pendulum.locales'
   implicit-imports:
     - depends:
-        - ".*.locale"
+        - '.*.locale'
 
-- module-name: "persistent._compat"
+- module-name: 'persistent._compat'
   anti-bloat:
-    - description: "use own compilation for compatibility"
+    - description: 'use own compilation for compatibility'
       replacements:
         "os.environ.get('PURE_PYTHON')": "'\"1\"'"
 
-- module-name: "persistent.ring"
+- module-name: 'persistent.ring'
   implicit-imports:
     - depends:
-        - "_cffi_backend"
+        - '_cffi_backend'
 
-- module-name: "phonenumbers.data"
+- module-name: 'phonenumbers.data'
   implicit-imports:
     - depends:
-        - ".region_*"
+        - '.region_*'
 
-- module-name: "PIL._imagingtk"
+- module-name: 'PIL._imagingtk'
   implicit-imports:
     - depends:
-        - "PIL._tkinter_finder"
+        - 'PIL._tkinter_finder'
 
-- module-name: "PIL.Image"
+- module-name: 'PIL.Image'
   implicit-imports:
     - depends:
-        - "PIL.BlpImagePlugin"
-        - "PIL.BmpImagePlugin"
-        - "PIL.BufrStubImagePlugin"
-        - "PIL.CurImagePlugin"
-        - "PIL.DcxImagePlugin"
-        - "PIL.DdsImagePlugin"
-        - "PIL.EpsImagePlugin"
-        - "PIL.FitsStubImagePlugin"
-        - "PIL.FliImagePlugin"
-        - "PIL.FpxImagePlugin"
-        - "PIL.FtexImagePlugin"
-        - "PIL.GbrImagePlugin"
-        - "PIL.GifImagePlugin"
-        - "PIL.GribStubImagePlugin"
-        - "PIL.Hdf5StubImagePlugin"
-        - "PIL.IcnsImagePlugin"
-        - "PIL.IcoImagePlugin"
-        - "PIL.ImImagePlugin"
-        - "PIL.ImtImagePlugin"
-        - "PIL.IptcImagePlugin"
-        - "PIL.Jpeg2KImagePlugin"
-        - "PIL.JpegImagePlugin"
-        - "PIL.McIdasImagePlugin"
-        - "PIL.MicImagePlugin"
-        - "PIL.MpegImagePlugin"
-        - "PIL.MpoImagePlugin"
-        - "PIL.MspImagePlugin"
-        - "PIL.PalmImagePlugin"
-        - "PIL.PcdImagePlugin"
-        - "PIL.PcxImagePlugin"
-        - "PIL.PdfImagePlugin"
-        - "PIL.PixarImagePlugin"
-        - "PIL.PngImagePlugin"
-        - "PIL.PpmImagePlugin"
-        - "PIL.PsdImagePlugin"
-        - "PIL.SgiImagePlugin"
-        - "PIL.SpiderImagePlugin"
-        - "PIL.SunImagePlugin"
-        - "PIL.TgaImagePlugin"
-        - "PIL.TiffImagePlugin"
-        - "PIL.WebPImagePlugin"
-        - "PIL.WmfImagePlugin"
-        - "PIL.XbmImagePlugin"
-        - "PIL.XpmImagePlugin"
-        - "PIL.XVThumbImagePlugin"
+        - 'PIL.BlpImagePlugin'
+        - 'PIL.BmpImagePlugin'
+        - 'PIL.BufrStubImagePlugin'
+        - 'PIL.CurImagePlugin'
+        - 'PIL.DcxImagePlugin'
+        - 'PIL.DdsImagePlugin'
+        - 'PIL.EpsImagePlugin'
+        - 'PIL.FitsStubImagePlugin'
+        - 'PIL.FliImagePlugin'
+        - 'PIL.FpxImagePlugin'
+        - 'PIL.FtexImagePlugin'
+        - 'PIL.GbrImagePlugin'
+        - 'PIL.GifImagePlugin'
+        - 'PIL.GribStubImagePlugin'
+        - 'PIL.Hdf5StubImagePlugin'
+        - 'PIL.IcnsImagePlugin'
+        - 'PIL.IcoImagePlugin'
+        - 'PIL.ImImagePlugin'
+        - 'PIL.ImtImagePlugin'
+        - 'PIL.IptcImagePlugin'
+        - 'PIL.Jpeg2KImagePlugin'
+        - 'PIL.JpegImagePlugin'
+        - 'PIL.McIdasImagePlugin'
+        - 'PIL.MicImagePlugin'
+        - 'PIL.MpegImagePlugin'
+        - 'PIL.MpoImagePlugin'
+        - 'PIL.MspImagePlugin'
+        - 'PIL.PalmImagePlugin'
+        - 'PIL.PcdImagePlugin'
+        - 'PIL.PcxImagePlugin'
+        - 'PIL.PdfImagePlugin'
+        - 'PIL.PixarImagePlugin'
+        - 'PIL.PngImagePlugin'
+        - 'PIL.PpmImagePlugin'
+        - 'PIL.PsdImagePlugin'
+        - 'PIL.SgiImagePlugin'
+        - 'PIL.SpiderImagePlugin'
+        - 'PIL.SunImagePlugin'
+        - 'PIL.TgaImagePlugin'
+        - 'PIL.TiffImagePlugin'
+        - 'PIL.WebPImagePlugin'
+        - 'PIL.WmfImagePlugin'
+        - 'PIL.XbmImagePlugin'
+        - 'PIL.XpmImagePlugin'
+        - 'PIL.XVThumbImagePlugin'
 
-- module-name: "PIL.ImageShow"
+- module-name: 'PIL.ImageShow'
   anti-bloat:
-    - description: "remove IPython reference"
+    - description: 'remove IPython reference'
       replacements:
-        "from IPython.display import display as ipython_display": "'raise ImportError'"
+        'from IPython.display import display as ipython_display': "'raise ImportError'"
 
-- module-name: "pkg_resources"
+- module-name: 'pkg_resources'
   anti-bloat:
-    - description: "avoid using plistlib dependency on non-macOS"
-      replacements:
-        "import plistlib": "'if sys.platform == \"darwin\": import plistlib'"
-
-- module-name: "pkg_resources._vendor.jaraco"
-  implicit-imports:
-    - depends:
-        - "pkg_resources._vendor.jaraco.text"
-        - "pkg_resources._vendor.jaraco.functools"
-        - "pkg_resources._vendor.jaraco.context"
-
-- module-name: "pkg_resources._vendor.jaraco.text"
-  anti-bloat:
-    - description: "remove useless data file dependency"
+    - description: 'avoid using plistlib dependency on non-macOS'
       replacements_plain:
-        "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()": ""
+        'import plistlib': ''
+      when: 'not macos'
+    - description: 'avoid requiring entry points at runtime'
+      replacements_plain:
+        'def load(self, require=True,': 'def load(self, require=False,'
+        'if not require or args or kwargs:': 'if False:'
 
-- module-name: "pkg_resources._vendor.packaging"
+- module-name: 'pkg_resources._vendor.jaraco'
   implicit-imports:
     - depends:
-        - "pkg_resources._vendor.packaging.version"
-        - "pkg_resources._vendor.packaging.specifiers"
-        - "pkg_resources._vendor.packaging.requirements"
+        - 'pkg_resources._vendor.jaraco.text'
+        - 'pkg_resources._vendor.jaraco.functools'
+        - 'pkg_resources._vendor.jaraco.context'
 
-- module-name: "pkg_resources._vendor.pyparsing"
+- module-name: 'pkg_resources._vendor.jaraco.text'
   anti-bloat:
-    - description: "remove pdb usage"
+    - description: 'remove useless data file dependency'
+      replacements_plain:
+        "lorem_ipsum: str = files(__name__).joinpath('Lorem ipsum.txt').read_text()": ''
+
+- module-name: 'pkg_resources._vendor.packaging'
+  implicit-imports:
+    - depends:
+        - 'pkg_resources._vendor.packaging.version'
+        - 'pkg_resources._vendor.packaging.specifiers'
+        - 'pkg_resources._vendor.packaging.requirements'
+
+- module-name: 'pkg_resources._vendor.pyparsing'
+  anti-bloat:
+    - description: 'remove pdb usage'
       change_function:
-        "setBreak": "'(lambda self: None)'"
+        'setBreak': "'(lambda self: None)'"
 
-- module-name: "plotly.graph_objects"
+- module-name: 'plotly.graph_objects'
   anti-bloat:
-    - description: "remove IPython reference"
+    - description: 'remove IPython reference'
       replacements_plain:
-        "import ipywidgets as _ipywidgets": "raise ImportError"
-        "import ipywidgets": "raise ImportError"
+        'import ipywidgets as _ipywidgets': 'raise ImportError'
+        'import ipywidgets': 'raise ImportError'
         # Disable lazy loading implicit imports.
-        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
-      when: "not use_ipython"
+        'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
+      when: 'not use_ipython'
 
-- module-name: "plotly.graph_objs"
+- module-name: 'plotly.graph_objs'
   anti-bloat:
-    - description: "remove IPython reference"
+    - description: 'remove IPython reference'
       replacements_plain:
-        "import ipywidgets as _ipywidgets": "raise ImportError"
-        "import ipywidgets": "raise ImportError"
+        'import ipywidgets as _ipywidgets': 'raise ImportError'
+        'import ipywidgets': 'raise ImportError'
         # Disable lazy loading implicit imports.
-        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
-      when: "not use_ipython"
+        'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
+      when: 'not use_ipython'
 
-- module-name: "plotly.io"
+- module-name: 'plotly.io'
   anti-bloat:
-    - description: "include plotly templates"
+    - description: 'include plotly templates'
       replacements_plain:
         # Disable lazy loading implicit imports.
-        "sys.version_info < (3, 7) or TYPE_CHECKING": "True"
+        'sys.version_info < (3, 7) or TYPE_CHECKING': 'True'
 
-- module-name: "plotly.validator_cache"
+- module-name: 'plotly.validator_cache'
   implicit-imports:
     - depends:
         # Disable lazy loading implicit imports.
-        - "plotly.validators.*"
-        - "plotly.validators.*.*"
+        - 'plotly.validators.*'
+        - 'plotly.validators.*.*'
         # Maybe misplaced those here. TODO: Also make recursive dependency a thing.
-        - "plotly.graph_objs.layout.*"
-        - "plotly.graph_objs.layout.*.*"
+        - 'plotly.graph_objs.layout.*'
+        - 'plotly.graph_objs.layout.*.*'
 
-- module-name: "psutil"
+- module-name: 'psutil'
   anti-bloat:
-    - description: "resolve platform specific imports at compile time"
+    - description: 'resolve platform specific imports at compile time'
       context:
-        - "import psutil"
+        - 'import psutil'
       replacements:
-        "from ._common import AIX": "'AIX = %r' % psutil.AIX"
-        "from ._common import BSD": "'BSD = %r' % psutil.BSD"
-        "from ._common import FREEBSD": "'FREEBSD = %r' % + psutil.FREEBSD"
-        "from ._common import LINUX": "'LINUX = %r' % + psutil.LINUX"
-        "from ._common import MACOS": "'MACOS = %r' % + psutil.MACOS"
-        "from ._common import NETBSD": "'NETBSD = %r' % + psutil.NETBSD"
-        "from ._common import OPENBSD": "'OPENBSD = %r' % + psutil.OPENBSD"
-        "from ._common import OSX": "'OSX = %r' % psutil.OSX"
-        "from ._common import POSIX": "'POSIX = %r' % psutil.POSIX"
-        "from ._common import SUNOS": "'SUNOS = %r' % psutil.SUNOS"
-        "from ._common import WINDOWS": "'WINDOWS = %r' % psutil.WINDOWS"
+        'from ._common import AIX': "'AIX = %r' % psutil.AIX"
+        'from ._common import BSD': "'BSD = %r' % psutil.BSD"
+        'from ._common import FREEBSD': "'FREEBSD = %r' % + psutil.FREEBSD"
+        'from ._common import LINUX': "'LINUX = %r' % + psutil.LINUX"
+        'from ._common import MACOS': "'MACOS = %r' % + psutil.MACOS"
+        'from ._common import NETBSD': "'NETBSD = %r' % + psutil.NETBSD"
+        'from ._common import OPENBSD': "'OPENBSD = %r' % + psutil.OPENBSD"
+        'from ._common import OSX': "'OSX = %r' % psutil.OSX"
+        'from ._common import POSIX': "'POSIX = %r' % psutil.POSIX"
+        'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
+        'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
-- module-name: "pycparser.c_parser"
+- module-name: 'pycparser.c_parser'
   implicit-imports:
     - depends:
-        - "pycparser.yacctab"
-        - "pycparser.lextab"
+        - 'pycparser.yacctab'
+        - 'pycparser.lextab'
 
-- module-name: "pydantic"
+- module-name: 'pydantic'
   implicit-imports:
     - depends:
-        - "pydantic.typing"
-        - "pydantic.fields"
-        - "pydantic.utils"
-        - "pydantic.schema"
-        - "pydantic.env_settings"
-        - "pydantic.main"
-        - "pydantic.error_wrappers"
-        - "pydantic.validators"
-        - "pydantic.mypy"
-        - "pydantic.version"
-        - "pydantic.types"
-        - "pydantic.color"
-        - "pydantic.parse"
-        - "pydantic.json"
-        - "pydantic.datetime_parse"
-        - "pydantic.dataclasses"
-        - "pydantic.class_validators"
-        - "pydantic.networks"
-        - "pydantic.errors"
+        - 'pydantic.typing'
+        - 'pydantic.fields'
+        - 'pydantic.utils'
+        - 'pydantic.schema'
+        - 'pydantic.env_settings'
+        - 'pydantic.main'
+        - 'pydantic.error_wrappers'
+        - 'pydantic.validators'
+        - 'pydantic.mypy'
+        - 'pydantic.version'
+        - 'pydantic.types'
+        - 'pydantic.color'
+        - 'pydantic.parse'
+        - 'pydantic.json'
+        - 'pydantic.datetime_parse'
+        - 'pydantic.dataclasses'
+        - 'pydantic.class_validators'
+        - 'pydantic.networks'
+        - 'pydantic.errors'
 
-- module-name: "pydantic.typing"
+- module-name: 'pydantic.typing'
   implicit-imports:
     - depends:
-        - "typing_extensions"
+        - 'typing_extensions'
 
-- module-name: "pyglet"
+- module-name: 'pyfiglet'
   implicit-imports:
     - depends:
-        - "pyglet.app"
-        - "pyglet.canvas"
-        - "pyglet.clock"
-        - "pyglet.com"
-        - "pyglet.event"
-        - "pyglet.font"
-        - "pyglet.gl"
-        - "pyglet.graphics"
-        - "pyglet.input"
-        - "pyglet.image"
-        - "pyglet.lib"
-        - "pyglet.media"
-        - "pyglet.model"
-        - "pyglet.resource"
-        - "pyglet.sprite"
-        - "pyglet.shapes"
-        - "pyglet.text"
-        - "pyglet.window"
+        - '.fonts'
 
-- module-name: "pygsheets"
+- module-name: 'pyfiglet.fonts'
   data-files:
     dirs:
-      - "data"
+      - '.'
 
-- module-name: "pyparsing"
+- module-name: 'pyglet'
+  implicit-imports:
+    - depends:
+        - 'pyglet.app'
+        - 'pyglet.canvas'
+        - 'pyglet.clock'
+        - 'pyglet.com'
+        - 'pyglet.event'
+        - 'pyglet.font'
+        - 'pyglet.gl'
+        - 'pyglet.graphics'
+        - 'pyglet.input'
+        - 'pyglet.image'
+        - 'pyglet.lib'
+        - 'pyglet.media'
+        - 'pyglet.model'
+        - 'pyglet.resource'
+        - 'pyglet.sprite'
+        - 'pyglet.shapes'
+        - 'pyglet.text'
+        - 'pyglet.window'
+
+- module-name: 'pygsheets'
+  data-files:
+    dirs:
+      - 'data'
+
+- module-name: 'pyparsing'
   anti-bloat:
-    - description: "remove pdb usage"
+    - description: 'remove pdb usage'
       change_function:
-        "setBreak": "'(lambda self: None)'"
+        'setBreak': "'(lambda self: None)'"
 
-- module-name: "pyphen"
+- module-name: 'pyphen'
   data-files:
     dirs:
-      - "dictionaries"
+      - 'dictionaries'
   anti-bloat:
-    - description: "remove doctest usage"
+    - description: 'remove doctest usage'
 
-- module-name: "PyQt5"
+- module-name: 'PyQt5'
   options:
     checks:
-      - description: "PyQt5 is a GUI framework"
-        console: "recommend"
-      - description: "PyQt5 cannot be used without bundle"
-        macos_bundle: "yes"
-        when: "macos and not anaconda"
-      - description: "PyQt5 cannot be signed unless onefile"
-        macos_bundle_as_onefile: "yes"
-        when: "macos"
+      - description: 'PyQt5 is a GUI framework'
+        console: 'recommend'
+      - description: 'PyQt5 cannot be used without bundle'
+        macos_bundle: 'yes'
+        when: 'macos and not anaconda'
+      - description: 'PyQt5 cannot be signed unless onefile'
+        macos_bundle_as_onefile: 'yes'
+        when: 'macos'
 
-- module-name: "PyQt6"
+- module-name: 'PyQt6'
   options:
     checks:
-      - description: "PyQt6 is a GUI framework"
-        console: "recommend"
+      - description: 'PyQt6 is a GUI framework'
+        console: 'recommend'
 
-- module-name: "pyqtgraph"
+- module-name: 'pyqtgraph'
   data-files:
     dirs:
-      - "colors"
-      - "icons"
+      - 'colors'
+      - 'icons'
 
-- module-name: "pyreadstat._readstat_parser"
+- module-name: 'pyreadstat._readstat_parser'
   implicit-imports:
     - depends:
-        - "pandas"
+        - 'pandas'
 
-- module-name: "pyreadstat.pyreadstat"
+- module-name: 'pyreadstat.pyreadstat'
   implicit-imports:
     - depends:
-        - "pyreadstat._readstat_writer"
-        - "pyreadstat.worker"
-        - "multiprocessing"
+        - 'pyreadstat._readstat_writer'
+        - 'pyreadstat.worker'
+        - 'multiprocessing'
 
-- module-name: "PySide2"
+- module-name: 'pyrect'
+  anti-bloat:
+    - description: 'remove doctest reference'
+      replacements_plain:
+        'import doctest': ''
+
+- module-name: 'pyscf.agf2._agf2'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libagf2'
+
+- module-name: 'pyscf.ao2mo'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libao2mo'
+
+- module-name: 'pyscf.cc._ccsd'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libcc'
+
+- module-name: 'pyscf.df.df_jk'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libri'
+
+- module-name: 'pyscf.dft'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libdft'
+
+- module-name: 'pyscf.dft.libxc'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libxc_itrf'
+
+- module-name: 'pyscf.dft.xcfun'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libxcfun_itrf'
+
+- module-name: 'pyscf.fci'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libfci'
+
+- module-name: 'pyscf.gto'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libcgto'
+
+- module-name: 'pyscf.gto.basis'
+  data-files:
+    patterns:
+      - '**/*.dat'
+
+- module-name: 'pyscf.lib.numpy_helper'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libnp_helper'
+
+- module-name: 'pyscf.mcscf'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libmcscf'
+
+- module-name: 'pyscf.mrpt.nevpt2'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libmcscf'
+
+- module-name: 'pyscf.pbc'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libpbc'
+
+- module-name: 'pyscf.scf._vhf'
+  dlls:
+    - from_filenames:
+        relative_path: '../lib'
+        prefixes:
+          - 'libcvhf'
+
+- module-name: 'PySide2'
   options:
     checks:
-      - description: "PySide2 is a GUI framework"
-        console: "recommend"
-      - description: "PySide2 cannot be signed unless onefile"
-        macos_bundle_as_onefile: "yes"
-        when: "macos"
+      - description: 'PySide2 is a GUI framework'
+        console: 'recommend'
+      - description: 'PySide2 cannot be signed unless onefile'
+        macos_bundle_as_onefile: 'yes'
+        when: 'macos'
 
-- module-name: "PySide6"
+- module-name: 'PySide6'
   options:
     checks:
-      - description: "PySide6 is a GUI framework"
-        console: "recommend"
+      - description: 'PySide6 is a GUI framework'
+        console: 'recommend'
 
-- module-name: "pytz"
+- module-name: 'pytorch_lightning.utilities.model_helpers'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from unittest.mock import Mock': ''
+        'isinstance(instance_attr, Mock)': 'False'
+
+- module-name: 'pytz'
   data-files:
     dirs:
-      - "zoneinfo"
+      - 'zoneinfo'
   anti-bloat:
-    - description: "remove docutils usage"
+    - description: 'remove docutils usage'
       change_function:
-        "_test": "'(lambda: None)'"
+        '_test': "'(lambda: None)'"
 
-- module-name: "pytzdata"
+- module-name: 'pytzdata'
   data-files:
     dirs:
-      - "zoneinfo"
+      - 'zoneinfo'
 
-- module-name: "pywt"
+- module-name: 'pywt'
   data-files:
     dirs:
-      - "data"
+      - 'data'
   implicit-imports:
     - depends:
-        - "pywt._extensions"
+        - 'pywt._extensions'
 
-- module-name: "pywt._extensions"
+- module-name: 'pywt._extensions'
   implicit-imports:
     - depends:
-        - "pywt._extensions._cwt"
-        - "pywt._extensions._dwt"
-        - "pywt._extensions._pywt"
-        - "pywt._extensions._swt"
+        - 'pywt._extensions._cwt'
+        - 'pywt._extensions._dwt'
+        - 'pywt._extensions._pywt'
+        - 'pywt._extensions._swt'
 
-- module-name: "pywt._pytesttester"
+- module-name: 'pywt._pytesttester'
   anti-bloat:
-    - description: "remove pywt testing framework"
+    - description: 'remove pywt testing framework'
       module_code: |
         class PytestTester:
           def __init__(self, name):
             pass
 
-- module-name: "pyzbar"
+- module-name: 'pyzbar'
   dlls:
     - from_filenames:
         prefixes:
-          - "libiconv"
-          - "libzbar"
+          - 'libiconv'
+          - 'libzbar'
 
-- module-name: "rapidfuzz"
+- module-name: 'rapidfuzz'
   implicit-imports:
     - depends:
-        - ".utils_cpp"
-        - ".fuzz_cpp"
-        - ".process_cdist_cpp"
-        - ".process_cpp"
-        - ".string_metric_cpp"
+        - '.utils_cpp'
+        - '.fuzz_cpp'
+        - '.process_cdist_cpp'
+        - '.process_cpp'
+        - '.string_metric_cpp'
 
-- module-name: "rapidfuzz.distance"
+- module-name: 'rapidfuzz.distance'
   implicit-imports:
     - depends:
-        - "._initialize_cpp"
-        - ".Hamming_cpp"
-        - ".Indel_cpp"
-        - ".LCSseq_cpp"
-        - ".Levenshtein_cpp"
-        - ".DamerauLevenshtein_cpp"
+        - '._initialize_cpp'
+        - '.Hamming_cpp'
+        - '.Indel_cpp'
+        - '.LCSseq_cpp'
+        - '.Levenshtein_cpp'
+        - '.DamerauLevenshtein_cpp'
 
-- module-name: "reportlab.rl_config"
+- module-name: 'reportlab.rl_config'
   implicit-imports:
     - depends:
-        - "reportlab.rl_settings"
+        - 'reportlab.rl_settings'
 
-- module-name: "requests_toolbelt._compat"
+- module-name: 'requests_toolbelt._compat'
   implicit-imports:
     - depends:
-        - "urllib3"
-        - "urllib3._collections"
-        - "urllib3.connection"
-        - "urllib3.connection.appengine"
-        - "urllib3.connectionpool"
-        - "urllib3.contrib"
-        - "urllib3.contrib.appengine"
-        - "urllib3.exceptions"
-        - "urllib3.fields"
-        - "urllib3.filepost"
-        - "urllib3.packages"
-        - "urllib3.packages.six"
-        - "urllib3.packages.ssl_match_hostname"
-        - "urllib3.poolmanager"
-        - "urllib3.request"
-        - "urllib3.response"
-        - "urllib3.util"
-        - "urllib3.util.connection"
-        - "urllib3.util.queue"
-        - "urllib3.util.request"
-        - "urllib3.util.response"
-        - "urllib3.util.retry"
-        - "urllib3.util.ssl_"
-        - "urllib3.util.timeout"
-        - "urllib3.util.url"
-        - "urllib3.util.wait"
-        - "urllib.error"
-        - "urllib.parse"
-        - "urllib.request"
-        - "urllib.response"
+        - 'urllib3'
+        - 'urllib3._collections'
+        - 'urllib3.connection'
+        - 'urllib3.connection.appengine'
+        - 'urllib3.connectionpool'
+        - 'urllib3.contrib'
+        - 'urllib3.contrib.appengine'
+        - 'urllib3.exceptions'
+        - 'urllib3.fields'
+        - 'urllib3.filepost'
+        - 'urllib3.packages'
+        - 'urllib3.packages.six'
+        - 'urllib3.packages.ssl_match_hostname'
+        - 'urllib3.poolmanager'
+        - 'urllib3.request'
+        - 'urllib3.response'
+        - 'urllib3.util'
+        - 'urllib3.util.connection'
+        - 'urllib3.util.queue'
+        - 'urllib3.util.request'
+        - 'urllib3.util.response'
+        - 'urllib3.util.retry'
+        - 'urllib3.util.ssl_'
+        - 'urllib3.util.timeout'
+        - 'urllib3.util.url'
+        - 'urllib3.util.wait'
+        - 'urllib.error'
+        - 'urllib.parse'
+        - 'urllib.request'
+        - 'urllib.response'
 
-- module-name: "scipy._lib"
-  implicit-imports:
-    - depends:
-        - "scipy._lib.messagestream"
-
-- module-name: "scipy._lib._docscrape"
+- module-name: 'rich.jupyter'
   anti-bloat:
-    - description: "remove sphinx reference"
+    - description: 'remove IPython reference'
+      change_function:
+        'display': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'rich.live'
+  anti-bloat:
+    - description: 'remove IPython reference'
       replacements_plain:
-        "if 'sphinx' in sys.modules:": "if False:"
-    - description: "workaround for MSVC bug with scipy 1.8.x "
+        'self.console.is_jupyter': 'False'
+      when: 'not use_ipython'
+
+- module-name: 'rich.pretty'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'get_ipython()': 'raise NameError'
+      when: 'not use_ipython'
+
+- module-name: 'scipy._lib'
+  implicit-imports:
+    - depends:
+        - 'scipy._lib.messagestream'
+
+- module-name: 'scipy._lib._docscrape'
+  anti-bloat:
+    - description: 'remove sphinx reference'
+      replacements_plain:
+        "if 'sphinx' in sys.modules:": 'if False:'
+    - description: 'workaround for MSVC bug with scipy 1.8.x '
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
 
-- module-name: "scipy._lib._numpy_compat"
+- module-name: 'scipy._lib._numpy_compat'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numpy testing framework'
       replacements:
         "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        "from numpy.testing import suppress_warnings": "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+        'from numpy.testing import suppress_warnings': "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
 
-- module-name: "scipy._lib._testutils"
+- module-name: 'scipy._lib._testutils'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numpy testing framework'
       module_code: |
         class PytestTester:
           def __init__(self, name):
             pass
 
-- module-name: "scipy.integrate._quadrature"
+- module-name: 'scipy.integrate._quadrature'
   anti-bloat:
-    - description: "remove useless function copying"
+    - description: 'remove useless function copying'
       change_function:
-        "_copy_func": "'(lambda f: f)'"
+        '_copy_func': "'(lambda f: f)'"
 
-- module-name: "scipy.lib.numpy_compat"
+- module-name: 'scipy.lib.numpy_compat'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numpy testing framework'
       replacements:
         "NumpyVersion(np.__version__) > '1.7.0.dev'": "'0'"
-        "from numpy.testing import suppress_warnings": "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
+        'from numpy.testing import suppress_warnings': "r'suppress_warnings = __import__(\"contextmanager\").contextmanager(lambda : (yield))'"
 
-- module-name: "scipy.linalg"
+- module-name: 'scipy.linalg'
   implicit-imports:
     - depends:
-        - "scipy.linalg.cython_blas"
-        - "scipy.linalg.cython_lapack"
+        - 'scipy.linalg.cython_blas'
+        - 'scipy.linalg.cython_lapack'
 
-- module-name: "scipy.sparse.csgraph"
+- module-name: 'scipy.sparse.csgraph'
   implicit-imports:
     - depends:
-        - "scipy.sparse.csgraph._validation"
+        - 'scipy.sparse.csgraph._validation'
 
-- module-name: "scipy.spatial"
+- module-name: 'scipy.spatial'
   implicit-imports:
     - depends:
-        - "scipy.spatial.transform"
+        - 'scipy.spatial.transform'
 
-- module-name: "scipy.spatial.transform"
+- module-name: 'scipy.spatial.transform'
   implicit-imports:
     - depends:
-        - "scipy.spatial.transform._rotation_groups"
+        - 'scipy.spatial.transform._rotation_groups'
 
-- module-name: "scipy.special"
+- module-name: 'scipy.special'
   implicit-imports:
     - depends:
-        - "scipy.special._ufuncs_cxx"
+        - 'scipy.special._ufuncs_cxx'
 
-- module-name: "scipy.stats._stats"
+- module-name: 'scipy.stats._stats'
   implicit-imports:
     - depends:
-        - "scipy.special.cython_special"
+        - 'scipy.special.cython_special'
 
-- module-name: "scipy.stats.morestats"
+- module-name: 'scipy.stats.morestats'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numpy testing framework'
       replacements:
-        "@setastest(False)": ""
-        "from numpy.testing.decorators import setastest": ""
+        '@setastest(False)': ''
+        'from numpy.testing.decorators import setastest': ''
 
-- module-name: "scrapy"
+- module-name: 'scrapy'
   data-files:
     patterns:
-      - "VERSION"
+      - 'VERSION'
 
-- module-name: "seedir.printing"
+- module-name: 'seedir.printing'
   data-files:
     patterns:
-      - "words.txt"
+      - 'words.txt'
 
-- module-name: "sgmllib"
+- module-name: 'sgmllib'
   anti-bloat:
-    - description: "remove module ability to run as a binary"
+    - description: 'remove module ability to run as a binary'
       change_function:
-        "test": "'(lambda: None)'"
+        'test': "'(lambda: None)'"
 
-- module-name: "shapely.geos"
+- module-name: 'shapely.geometry.base'
+  anti-bloat:
+    - description: 'remove doctest usage'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'shapely.geometry.collection'
+  anti-bloat:
+    - description: 'remove doctest usage'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'shapely.geometry.multilinestring'
+  anti-bloat:
+    - description: 'remove doctest usage'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'shapely.geometry.multipolygon'
+  anti-bloat:
+    - description: 'remove doctest usage'
+      change_function:
+        '_test': "'(lambda: None)'"
+
+- module-name: 'shapely.geos'
   dlls:
-    - dest_path: "shapely"
-      by_code:
-        setup_code: "import shapely.geos"
-        dll_filename_code: "shapely.geos._lgeos._name"
+    # PyPI has it contained.
+    - by_code:
+        setup_code: 'import shapely.geos'
+        filename_code: 'shapely.geos._lgeos._name'
+      when: 'not anaconda and not win32'
+    # Anaconda or Win32 are forced to specific path.
+    - by_code:
+        setup_code: 'import shapely.geos, os'
+        filename_code: 'shapely.geos._lgeos._name'
+      dest_path: 'shapely'
+      when: 'anaconda or win32'
+  anti-bloat:
+    - description: 'change geos DLL location'
+      replacements_plain:
+        '_lgeos = load_dll("geos_c.dll")': '_lgeos = load_dll("geos_c.dll", fallbacks=[os.path.join(os.path.dirname(__file__), "geos_c.dll")])'
+      when: 'win32'
+    - description: 'avoid runtime Anaconda environment influence'
+      replacements_plain:
+        "os.getenv('CONDA_PREFIX', '')": "''"
 
-- module-name: "shiboken6"
+- module-name: 'shiboken6'
   implicit-imports:
     - depends:
-        - "argparse"
+        - 'argparse'
 
-- module-name: "sip"
+- module-name: 'sip'
   implicit-imports:
     - depends:
-        - "enum"
-      when: "before_python3"
+        - 'enum'
+      when: 'before_python3'
 
-- module-name: "skimage"
+- module-name: 'skimage'
   data-files:
     dirs:
-      - "data"
+      - 'data'
     patterns:
-      - "io/_plugins/fits_plugin*.ini"
+      - 'io/_plugins/fits_plugin*.ini'
 
-- module-name: "skimage._shared"
+- module-name: 'skimage._shared'
   implicit-imports:
     - depends:
-        - "skimage._shared.geometry"
-        - "skimage._shared.interpolation"
-        - "skimage._shared.transform"
+        - 'skimage._shared.geometry'
+        - 'skimage._shared.interpolation'
+        - 'skimage._shared.transform'
 
-- module-name: "skimage._shared.tester"
+- module-name: 'skimage._shared.tester'
   anti-bloat:
-    - description: "remove skimage testing framework"
+    - description: 'remove skimage testing framework'
       module_code: |
         class PytestTester:
           def __init__(self, name):
             pass
 
-- module-name: "skimage.draw"
+- module-name: 'skimage.draw'
   implicit-imports:
     - depends:
-        - "skimage.draw._draw"
+        - 'skimage.draw._draw'
 
-- module-name: "skimage.external.tifffile"
+- module-name: 'skimage.external.tifffile'
   implicit-imports:
     - depends:
-        - "skimage.external.tifffile._tifffile"
+        - 'skimage.external.tifffile._tifffile'
 
-- module-name: "skimage.feature"
+- module-name: 'skimage.feature'
   implicit-imports:
     - depends:
-        - "skimage.feature.brief_cy"
-        - "skimage.feature.censure_cy"
-        - "skimage.feature.corner_cy"
-        - "skimage.feature.orb_cy"
-        - "skimage.feature._cascade"
-        - "skimage.feature._haar"
-        - "skimage.feature._hessian_det_appx"
-        - "skimage.feature._hoghistogram"
-        - "skimage.feature._texture"
+        - 'skimage.feature.brief_cy'
+        - 'skimage.feature.censure_cy'
+        - 'skimage.feature.corner_cy'
+        - 'skimage.feature.orb_cy'
+        - 'skimage.feature._cascade'
+        - 'skimage.feature._haar'
+        - 'skimage.feature._hessian_det_appx'
+        - 'skimage.feature._hoghistogram'
+        - 'skimage.feature._texture'
 
-- module-name: "skimage.feature._orb_descriptor_positions"
+- module-name: 'skimage.feature._orb_descriptor_positions'
   data-files:
     patterns:
-      - "orb_descriptor_positions.txt"
+      - 'orb_descriptor_positions.txt'
 
-- module-name: "skimage.feature.orb_cy"
+- module-name: 'skimage.feature.orb_cy'
   implicit-imports:
     - depends:
-        - "skimage.feature._orb_descriptor_positions"
+        - 'skimage.feature._orb_descriptor_positions'
 
-- module-name: "skimage.filters.rank"
+- module-name: 'skimage.filters.rank'
   implicit-imports:
     - depends:
-        - "skimage.filters.rank.bilateral_cy"
-        - "skimage.filters.rank.core_cy"
-        - "skimage.filters.rank.core_cy_3d"
-        - "skimage.filters.rank.generic_cy"
-        - "skimage.filters.rank.percentile_cy"
+        - 'skimage.filters.rank.bilateral_cy'
+        - 'skimage.filters.rank.core_cy'
+        - 'skimage.filters.rank.core_cy_3d'
+        - 'skimage.filters.rank.generic_cy'
+        - 'skimage.filters.rank.percentile_cy'
 
-- module-name: "skimage.future.graph"
+- module-name: 'skimage.future.graph'
   implicit-imports:
     - depends:
-        - "skimage.future.graph._ncut_cy"
+        - 'skimage.future.graph._ncut_cy'
 
-- module-name: "skimage.graph"
+- module-name: 'skimage.graph'
   implicit-imports:
     - depends:
-        - "skimage.graph.heap"
-        - "skimage.graph._mcp"
-        - "skimage.graph._spath"
+        - 'skimage.graph.heap'
+        - 'skimage.graph._mcp'
+        - 'skimage.graph._spath'
 
-- module-name: "skimage.io"
+- module-name: 'skimage.io'
   implicit-imports:
     - depends:
-        - "skimage.io._plugins"
+        - 'skimage.io._plugins'
 
-- module-name: "skimage.io._plugins"
+- module-name: 'skimage.io._plugins'
   implicit-imports:
     - depends:
-        - "skimage.io._plugins._colormixer"
-        - "skimage.io._plugins._histograms"
-        - "skimage.io._plugins.fits_plugin"
-        - "skimage.io._plugins.gdal_plugin"
-        - "skimage.io._plugins.gtk_plugin"
-        - "skimage.io._plugins.imageio_plugin"
-        - "skimage.io._plugins.imread_plugin"
-        - "skimage.io._plugins.matplotlib_plugin"
-        - "skimage.io._plugins.pil_plugin"
-        - "skimage.io._plugins.qt_plugin"
-        - "skimage.io._plugins.simpleitk_plugin"
-        - "skimage.io._plugins.skivi_plugin"
-        - "skimage.io._plugins.tifffile_plugin"
-        - "skimage.io._plugins.util"
+        - 'skimage.io._plugins._colormixer'
+        - 'skimage.io._plugins._histograms'
+        - 'skimage.io._plugins.fits_plugin'
+        - 'skimage.io._plugins.gdal_plugin'
+        - 'skimage.io._plugins.gtk_plugin'
+        - 'skimage.io._plugins.imageio_plugin'
+        - 'skimage.io._plugins.imread_plugin'
+        - 'skimage.io._plugins.matplotlib_plugin'
+        - 'skimage.io._plugins.pil_plugin'
+        - 'skimage.io._plugins.qt_plugin'
+        - 'skimage.io._plugins.simpleitk_plugin'
+        - 'skimage.io._plugins.skivi_plugin'
+        - 'skimage.io._plugins.tifffile_plugin'
+        - 'skimage.io._plugins.util'
 
-- module-name: "skimage.measure"
+- module-name: 'skimage.measure'
   implicit-imports:
     - depends:
-        - "skimage.measure._ccomp"
-        - "skimage.measure._find_contours_cy"
-        - "skimage.measure._marching_cubes_classic_cy"
-        - "skimage.measure._marching_cubes_lewiner_cy"
-        - "skimage.measure._moments_cy"
-        - "skimage.measure._pnpoly"
+        - 'skimage.measure._ccomp'
+        - 'skimage.measure._find_contours_cy'
+        - 'skimage.measure._marching_cubes_classic_cy'
+        - 'skimage.measure._marching_cubes_lewiner_cy'
+        - 'skimage.measure._moments_cy'
+        - 'skimage.measure._pnpoly'
 
-- module-name: "skimage.morphology"
+- module-name: 'skimage.morphology'
   implicit-imports:
     - depends:
-        - "skimage.morphology._convex_hull"
-        - "skimage.morphology._extrema_cy"
-        - "skimage.morphology._flood_fill_cy"
-        - "skimage.morphology._greyreconstruct"
-        - "skimage.morphology._max_tree"
-        - "skimage.morphology._skeletonize_3d_cy"
-        - "skimage.morphology._skeletonize_cy"
-        - "skimage.morphology._watershed"
+        - 'skimage.morphology._convex_hull'
+        - 'skimage.morphology._extrema_cy'
+        - 'skimage.morphology._flood_fill_cy'
+        - 'skimage.morphology._greyreconstruct'
+        - 'skimage.morphology._max_tree'
+        - 'skimage.morphology._skeletonize_3d_cy'
+        - 'skimage.morphology._skeletonize_cy'
+        - 'skimage.morphology._watershed'
 
-- module-name: "skimage.restoration"
+- module-name: 'skimage.restoration'
   implicit-imports:
     - depends:
-        - "skimage.restoration._denoise_cy"
-        - "skimage.restoration._nl_means_denoising"
-        - "skimage.restoration._unwrap_1d"
-        - "skimage.restoration._unwrap_2d"
-        - "skimage.restoration._unwrap_3d"
+        - 'skimage.restoration._denoise_cy'
+        - 'skimage.restoration._nl_means_denoising'
+        - 'skimage.restoration._unwrap_1d'
+        - 'skimage.restoration._unwrap_2d'
+        - 'skimage.restoration._unwrap_3d'
 
-- module-name: "skimage.segmentation"
+- module-name: 'skimage.segmentation'
   implicit-imports:
     - depends:
-        - "skimage.segmentation._felzenszwalb_cy"
-        - "skimage.segmentation._quickshift_cy"
-        - "skimage.segmentation._slic"
+        - 'skimage.segmentation._felzenszwalb_cy'
+        - 'skimage.segmentation._quickshift_cy'
+        - 'skimage.segmentation._slic'
 
-- module-name: "skimage.transform"
+- module-name: 'skimage.transform'
   implicit-imports:
     - depends:
-        - "skimage.transform._hough_transform"
-        - "skimage.transform._radon_transform"
-        - "skimage.transform._warps_cy"
+        - 'skimage.transform._hough_transform'
+        - 'skimage.transform._radon_transform'
+        - 'skimage.transform._warps_cy'
 
-- module-name: "sklearn._distributor_init"
+- module-name: 'sklearn._distributor_init'
   dlls:
     - from_filenames:
-        relative_path: ".libs"
+        relative_path: '.libs'
         prefixes:
-          - ""
+          - ''
   anti-bloat:
-    - description: "remove site module and distutils usage"
+    - description: 'remove site module and distutils usage'
       replacements:
-        "_site.ENABLE_USER_SITE": "'False'"
-        "if _running_from_pip_package()": "'if False'"
-        "import distutils as _distutils": "'_distutils = None'"
-        "import site as _site": "'_site = None'"
+        '_site.ENABLE_USER_SITE': "'False'"
+        'if _running_from_pip_package()': "'if False'"
+        'import distutils as _distutils': "'_distutils = None'"
+        'import site as _site': "'_site = None'"
   implicit-imports:
     - depends:
-        - ".python.keras"
+        - '.python.keras'
 
-- module-name: "sklearn.cluster"
+- module-name: 'sklearn.cluster'
   implicit-imports:
     - depends:
-        - "sklearn.cluster._dbscan_inner"
-        - "sklearn.cluster._hierarchical"
-        - "sklearn.cluster._k_means"
-        - "sklearn.cluster._k_means_elkan"
+        - 'sklearn.cluster._dbscan_inner'
+        - 'sklearn.cluster._hierarchical'
+        - 'sklearn.cluster._k_means'
+        - 'sklearn.cluster._k_means_elkan'
 
-- module-name: "sklearn.datasets"
+- module-name: 'sklearn.datasets'
   data-files:
     dirs:
-      - "data"
-      - "descr"
+      - 'data'
+      - 'descr'
 
   implicit-imports:
     - depends:
-        - "sklearn.datasets._svmlight_format"
+        - 'sklearn.datasets._svmlight_format'
 
-- module-name: "sklearn.decomposition"
+- module-name: 'sklearn.decomposition'
   implicit-imports:
     - depends:
-        - "sklearn.decomposition.cdnmf_fast"
-        - "sklearn.decomposition._online_lda"
+        - 'sklearn.decomposition.cdnmf_fast'
+        - 'sklearn.decomposition._online_lda'
 
-- module-name: "sklearn.ensemble"
+- module-name: 'sklearn.ensemble'
   implicit-imports:
     - depends:
-        - "sklearn.ensemble._gradient_boosting"
+        - 'sklearn.ensemble._gradient_boosting'
 
-- module-name: "sklearn.ensemble._hist_gradient_boosting"
+- module-name: 'sklearn.ensemble._hist_gradient_boosting'
   implicit-imports:
     - depends:
-        - "sklearn.ensemble._hist_gradient_boosting.histogram"
-        - "sklearn.ensemble._hist_gradient_boosting.splitting"
-        - "sklearn.ensemble._hist_gradient_boosting.types"
-        - "sklearn.ensemble._hist_gradient_boosting.utils"
-        - "sklearn.ensemble._hist_gradient_boosting._binning"
-        - "sklearn.ensemble._hist_gradient_boosting._gradient_boosting"
-        - "sklearn.ensemble._hist_gradient_boosting._loss"
-        - "sklearn.ensemble._hist_gradient_boosting._predictor"
+        - 'sklearn.ensemble._hist_gradient_boosting.histogram'
+        - 'sklearn.ensemble._hist_gradient_boosting.splitting'
+        - 'sklearn.ensemble._hist_gradient_boosting.types'
+        - 'sklearn.ensemble._hist_gradient_boosting.utils'
+        - 'sklearn.ensemble._hist_gradient_boosting._binning'
+        - 'sklearn.ensemble._hist_gradient_boosting._gradient_boosting'
+        - 'sklearn.ensemble._hist_gradient_boosting._loss'
+        - 'sklearn.ensemble._hist_gradient_boosting._predictor'
 
-- module-name: "sklearn.externals"
+- module-name: 'sklearn.externals'
   implicit-imports:
     - depends:
-        - "sklearn.externals.joblib"
+        - 'sklearn.externals.joblib'
 
-- module-name: "sklearn.externals.joblib"
+- module-name: 'sklearn.externals.joblib'
   implicit-imports:
     - depends:
-        - "sklearn.externals.joblib.numpy_pickle"
+        - 'sklearn.externals.joblib.numpy_pickle'
 
-- module-name: "sklearn.feature_extraction"
+- module-name: 'sklearn.feature_extraction'
   implicit-imports:
     - depends:
-        - "sklearn.feature_extraction._hashing"
+        - 'sklearn.feature_extraction._hashing'
 
-- module-name: "sklearn.linear_model"
+- module-name: 'sklearn.linear_model'
   implicit-imports:
     - depends:
-        - "sklearn.linear_model.cd_fast"
-        - "sklearn.linear_model.sag_fast"
-        - "sklearn.linear_model.sgd_fast"
+        - 'sklearn.linear_model.cd_fast'
+        - 'sklearn.linear_model.sag_fast'
+        - 'sklearn.linear_model.sgd_fast'
 
-- module-name: "sklearn.linear_model._sgd_fast"
+- module-name: 'sklearn.linear_model._sgd_fast'
   implicit-imports:
     - depends:
-        - "sklearn.utils._weight_vector"
+        - 'sklearn.utils._weight_vector'
 
-- module-name: "sklearn.manifold"
+- module-name: 'sklearn.manifold'
   implicit-imports:
     - depends:
-        - "sklearn.manifold._barnes_hut_tsne"
-        - "sklearn.manifold._utils"
+        - 'sklearn.manifold._barnes_hut_tsne'
+        - 'sklearn.manifold._utils'
 
-- module-name: "sklearn.metrics"
+- module-name: 'sklearn.metrics'
   implicit-imports:
     - depends:
-        - "sklearn.metrics.pairwise_fast"
+        - 'sklearn.metrics.pairwise_fast'
 
-- module-name: "sklearn.metrics._dist_metrics"
+- module-name: 'sklearn.metrics._dist_metrics'
   implicit-imports:
     - depends:
-        - "sklearn.utils._typedefs"
+        - 'sklearn.utils._typedefs'
 
-- module-name: "sklearn.metrics.cluster"
+- module-name: 'sklearn.metrics.cluster'
   implicit-imports:
     - depends:
-        - "sklearn.metrics.cluster.expected_mutual_info_fast"
+        - 'sklearn.metrics.cluster.expected_mutual_info_fast'
 
-- module-name: "sklearn.neighbors"
+- module-name: 'sklearn.neighbors'
   implicit-imports:
     - depends:
-        - "sklearn.neighbors.ball_tree"
-        - "sklearn.neighbors.dist_metrics"
-        - "sklearn.neighbors.kd_tree"
-        - "sklearn.neighbors.quad_tree"
-        - "sklearn.neighbors.typedefs"
+        - 'sklearn.neighbors.ball_tree'
+        - 'sklearn.neighbors.dist_metrics'
+        - 'sklearn.neighbors.kd_tree'
+        - 'sklearn.neighbors.quad_tree'
+        - 'sklearn.neighbors.typedefs'
 
-- module-name: "sklearn.neighbors._ball_tree"
+- module-name: 'sklearn.neighbors._ball_tree'
   implicit-imports:
     - depends:
-        - "sklearn.neighbors._partition_nodes"
+        - 'sklearn.neighbors._partition_nodes'
 
-- module-name: "sklearn.neighbors._dist_metrics"
+- module-name: 'sklearn.neighbors._dist_metrics'
   implicit-imports:
     - depends:
-        - "sklearn.neighbors._typedefs"
+        - 'sklearn.neighbors._typedefs'
 
-- module-name: "sklearn.preprocessing"
+- module-name: 'sklearn.preprocessing'
   implicit-imports:
     - depends:
-        - "sklearn.preprocessing._csr_polynomial_expansion"
+        - 'sklearn.preprocessing._csr_polynomial_expansion'
 
-- module-name: "sklearn.random_projection"
+- module-name: 'sklearn.random_projection'
   anti-bloat:
-    - description: "remove numpy testing framework"
+    - description: 'remove numpy testing framework'
       replacements:
-        "from numpy.testing import assert_equal": "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
+        'from numpy.testing import assert_equal': "r'assert_equal = (lambda actual, desired, err_msg=None, verbose=True: True)'"
 
-- module-name: "sklearn.svm"
+- module-name: 'sklearn.svm'
   implicit-imports:
     - depends:
-        - "sklearn.svm.liblinear"
-        - "sklearn.svm.libsvm"
-        - "sklearn.svm.libsvm_sparse"
+        - 'sklearn.svm.liblinear'
+        - 'sklearn.svm.libsvm'
+        - 'sklearn.svm.libsvm_sparse'
 
-- module-name: "sklearn.tree"
+- module-name: 'sklearn.tree'
   implicit-imports:
     - depends:
-        - "sklearn.tree._criterion"
-        - "sklearn.tree._splitter"
-        - "sklearn.tree._tree"
-        - "sklearn.tree._utils"
+        - 'sklearn.tree._criterion'
+        - 'sklearn.tree._splitter'
+        - 'sklearn.tree._tree'
+        - 'sklearn.tree._utils'
 
-- module-name: "sklearn.tree._tree"
+- module-name: 'sklearn.tree._tree'
   implicit-imports:
     - depends:
-        - "sklearn.neighbors._quad_tree"
+        - 'sklearn.neighbors._quad_tree'
 
-- module-name: "sklearn.utils"
+- module-name: 'sklearn.utils'
   implicit-imports:
     - depends:
-        - "sklearn.utils.arrayfuncs"
-        - "sklearn.utils.fast_dict"
-        - "sklearn.utils.graph_shortest_path"
-        - "sklearn.utils.lgamma"
-        - "sklearn.utils.murmurhash"
-        - "sklearn.utils.seq_dataset"
-        - "sklearn.utils.sparsefuncs_fast"
-        - "sklearn.utils.weight_vector"
-        - "sklearn.utils._cython_blas"
-        - "sklearn.utils._logistic_sigmoid"
-        - "sklearn.utils._weight_vector"
-        - "sklearn.utils._typedefs"
-        - "sklearn.utils._heap"
-        - "sklearn.utils._sorting"
-        - "sklearn.utils._vector_sentinel"
-        - "sklearn.utils._seq_dataset"
-        - "sklearn.utils._readonly_array_wrapper"
-        - "sklearn.utils._openmp_helpers"
-        - "sklearn.utils._fast_dict"
-        - "sklearn.utils._random"
+        - 'sklearn.utils.arrayfuncs'
+        - 'sklearn.utils.fast_dict'
+        - 'sklearn.utils.graph_shortest_path'
+        - 'sklearn.utils.lgamma'
+        - 'sklearn.utils.murmurhash'
+        - 'sklearn.utils.seq_dataset'
+        - 'sklearn.utils.sparsefuncs_fast'
+        - 'sklearn.utils.weight_vector'
+        - 'sklearn.utils._cython_blas'
+        - 'sklearn.utils._logistic_sigmoid'
+        - 'sklearn.utils._weight_vector'
+        - 'sklearn.utils._typedefs'
+        - 'sklearn.utils._heap'
+        - 'sklearn.utils._sorting'
+        - 'sklearn.utils._vector_sentinel'
+        - 'sklearn.utils._seq_dataset'
+        - 'sklearn.utils._readonly_array_wrapper'
+        - 'sklearn.utils._openmp_helpers'
+        - 'sklearn.utils._fast_dict'
+        - 'sklearn.utils._random'
 
-- module-name: "sklearn.utils._hough_transform"
+- module-name: 'sklearn.utils._hough_transform'
   implicit-imports:
     - depends:
-        - "skimage.draw"
+        - 'skimage.draw'
 
-- module-name: "sklearn.utils._testing"
+- module-name: 'sklearn.utils._testing'
   anti-bloat:
-    - description: "remove pytest testing framework"
+    - description: 'remove pytest testing framework'
       replacements_plain:
-        '_dummy = TestCase("__init__")': ""
-        "assert_dict_equal = _dummy.assert_dict_equal": "def assert_dict_equal(*args, **kwargs): pass"
-        "assert_raises = _dummy.assertRaises": "def assert_raises(*args, **kwargs): pass"
-        "assert_raises_regex = _dummy.assert_raises_regex": "def assert_dict_equal(*args, **kwargs): pass"
-        "from unittest import TestCase": ""
-        "import pytest": "raise ImportError"
-        "import unittest": ""
-        "unittest.case.SkipTest": "None"
+        '_dummy = TestCase("__init__")': ''
+        'assert_dict_equal = _dummy.assert_dict_equal': 'def assert_dict_equal(*args, **kwargs): pass'
+        'assert_raises = _dummy.assertRaises': 'def assert_raises(*args, **kwargs): pass'
+        'assert_raises_regex = _dummy.assert_raises_regex': 'def assert_dict_equal(*args, **kwargs): pass'
+        'from unittest import TestCase': ''
+        'import pytest': 'raise ImportError'
+        'import unittest': ''
+        'unittest.case.SkipTest': 'None'
 
-- module-name: "sklearn.utils.sparsetools"
+- module-name: 'sklearn.utils.sparsetools'
   implicit-imports:
     - depends:
-        - "sklearn.utils.sparsetools._graph_validation"
-        - "sklearn.utils.sparsetools._graph_tools"
+        - 'sklearn.utils.sparsetools._graph_validation'
+        - 'sklearn.utils.sparsetools._graph_tools'
 
-- module-name: "sound_lib"
+- module-name: 'sound_lib'
   data-files:
     dirs:
-      - "lib"
+      - 'lib'
 
-- module-name: "sphinx.util.docutils"
+- module-name: 'sphinx.util.docutils'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
-        "__version_info__ = tuple(LooseVersion(docutils.__version__).version)": "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
-        "from distutils.version import LooseVersion": "''"
+        '__version_info__ = tuple(LooseVersion(docutils.__version__).version)': "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
+        'from distutils.version import LooseVersion': "''"
 
-- module-name: "srsly.msgpack._packer"
+- module-name: 'srsly.msgpack._packer'
   implicit-imports:
     - depends:
-        - "srsly.msgpack.util"
+        - 'srsly.msgpack.util'
 
-- module-name: "statsmodels.nonparametric"
+- module-name: 'statsmodels.nonparametric'
   implicit-imports:
     - depends:
-        - "statsmodels.nonparametric.linbin"
-        - "statsmodels.nonparametric._smoothers_lowess"
+        - 'statsmodels.nonparametric.linbin'
+        - 'statsmodels.nonparametric._smoothers_lowess'
 
-- module-name: "statsmodels.tsa"
+- module-name: 'statsmodels.tsa'
   implicit-imports:
     - depends:
-        - "statsmodels.tsa._exponential_smoothers"
+        - 'statsmodels.tsa._exponential_smoothers'
 
-- module-name: "statsmodels.tsa.innovations"
+- module-name: 'statsmodels.tsa.innovations'
   implicit-imports:
     - depends:
-        - "statsmodels.tsa.innovations._arma_innovations"
+        - 'statsmodels.tsa.innovations._arma_innovations'
 
-- module-name: "statsmodels.tsa.kalmanf"
+- module-name: 'statsmodels.tsa.kalmanf'
   implicit-imports:
     - depends:
-        - "statsmodels.tsa.kalmanf.kalman_loglike"
+        - 'statsmodels.tsa.kalmanf.kalman_loglike'
 
-- module-name: "statsmodels.tsa.regime_switching"
+- module-name: 'statsmodels.tsa.regime_switching'
   implicit-imports:
     - depends:
-        - "statsmodels.tsa.regime_switching._hamilton_filter"
-        - "statsmodels.tsa.regime_switching._kim_smoother"
+        - 'statsmodels.tsa.regime_switching._hamilton_filter'
+        - 'statsmodels.tsa.regime_switching._kim_smoother'
 
-- module-name: "statsmodels.tsa.statespace"
+- module-name: 'statsmodels.tsa.statespace'
   implicit-imports:
     - depends:
-        - "statsmodels.tsa.statespace._filters"
-        - "statsmodels.tsa.statespace._initialization"
-        - "statsmodels.tsa.statespace._kalman_filter"
-        - "statsmodels.tsa.statespace._kalman_smoother"
-        - "statsmodels.tsa.statespace._representation"
-        - "statsmodels.tsa.statespace._simulation_smoother"
-        - "statsmodels.tsa.statespace._smoothers"
-        - "statsmodels.tsa.statespace._tools"
+        - 'statsmodels.tsa.statespace._filters'
+        - 'statsmodels.tsa.statespace._initialization'
+        - 'statsmodels.tsa.statespace._kalman_filter'
+        - 'statsmodels.tsa.statespace._kalman_smoother'
+        - 'statsmodels.tsa.statespace._representation'
+        - 'statsmodels.tsa.statespace._simulation_smoother'
+        - 'statsmodels.tsa.statespace._smoothers'
+        - 'statsmodels.tsa.statespace._tools'
 
-- module-name: "statsmodels.tsa.statespace._filters"
+- module-name: 'statsmodels.tsa.statespace._filters'
   implicit-imports:
     - depends:
-        - "statsmodels.tsa.statespace._filters._conventional"
-        - "statsmodels.tsa.statespace._filters._inversions"
-        - "statsmodels.tsa.statespace._filters._univariate"
-        - "statsmodels.tsa.statespace._filters._univariate_diffuse"
+        - 'statsmodels.tsa.statespace._filters._conventional'
+        - 'statsmodels.tsa.statespace._filters._inversions'
+        - 'statsmodels.tsa.statespace._filters._univariate'
+        - 'statsmodels.tsa.statespace._filters._univariate_diffuse'
 
-- module-name: "statsmodels.tsa.statespace._smoothers"
+- module-name: 'statsmodels.tsa.statespace._smoothers'
   implicit-imports:
     - depends:
-        - "statsmodels.tsa.statespace._smoothers._alternative"
-        - "statsmodels.tsa.statespace._smoothers._classical"
-        - "statsmodels.tsa.statespace._smoothers._conventional"
-        - "statsmodels.tsa.statespace._smoothers._univariate"
-        - "statsmodels.tsa.statespace._smoothers._univariate_diffuse"
+        - 'statsmodels.tsa.statespace._smoothers._alternative'
+        - 'statsmodels.tsa.statespace._smoothers._classical'
+        - 'statsmodels.tsa.statespace._smoothers._conventional'
+        - 'statsmodels.tsa.statespace._smoothers._univariate'
+        - 'statsmodels.tsa.statespace._smoothers._univariate_diffuse'
 
-- module-name: "swagger_ui_bundle"
+- module-name: 'swagger_ui_bundle'
   data-files:
     dirs:
-      - "vendor"
+      - 'vendor'
 
-- module-name: "tables"
+- module-name: 'tables'
   anti-bloat:
-    - description: "remove tables.tests usage"
+    - description: 'remove tables.tests usage'
       replacements_plain:
-        "from .tests import print_versions, test": ""
+        'from .tests import print_versions, test': ''
 
-- module-name: "tables.filters"
+- module-name: 'tables.filters'
   anti-bloat:
-    - description: "remove docutils usage"
+    - description: 'remove docutils usage'
       change_function:
-        "_test": "'(lambda: None)'"
+        '_test': "'(lambda: None)'"
 
-- module-name: "tables.flavor"
+- module-name: 'tables.flavor'
   anti-bloat:
-    - description: "remove docutils usage"
+    - description: 'remove docutils usage'
       change_function:
-        "_test": "'(lambda: None)'"
+        '_test': "'(lambda: None)'"
 
-- module-name: "tables.misc.enum"
+- module-name: 'tables.misc.enum'
   anti-bloat:
-    - description: "remove docutils usage"
+    - description: 'remove docutils usage'
       change_function:
-        "_test": "'(lambda: None)'"
+        '_test': "'(lambda: None)'"
 
-- module-name: "tables.path"
+- module-name: 'tables.path'
   anti-bloat:
-    - description: "remove docutils usage"
+    - description: 'remove docutils usage'
       change_function:
-        "_test": "'(lambda: None)'"
+        '_test': "'(lambda: None)'"
 
-- module-name: "tables.utils"
+- module-name: 'tables.utils'
   anti-bloat:
-    - description: "remove docutils usage"
+    - description: 'remove docutils usage'
       change_function:
-        "_test": "'(lambda: None)'"
+        '_test': "'(lambda: None)'"
 
-- module-name: "tenacity"
+- module-name: 'tenacity'
   anti-bloat:
     # It would be nice
-    - description: "remove tornado dependency"
+    - description: 'remove tornado dependency'
       replacements_plain:
-        "import tornado": "raise ImportError"
-        "from tenacity.tornadoweb import TornadoRetrying": "pass"
-      when: "not use_tornado"
+        'import tornado': 'raise ImportError'
+        'from tenacity.tornadoweb import TornadoRetrying': 'pass'
+      when: 'not use_tornado'
 
-- module-name: "tensorboard"
+- module-name: 'tensorboard'
   anti-bloat:
-    - description: "remove IPython reference"
+    - description: 'remove IPython reference'
       change_function:
-        "load_ipython_extension": "'(lambda ipython: None)'"
-        "notebook": "'(lambda: None)'"
-      when: "not use_ipython"
+        'load_ipython_extension': "'(lambda ipython: None)'"
+        'notebook': "'(lambda: None)'"
+      when: 'not use_ipython'
 
-- module-name: "tensorflow"
+- module-name: 'tensorflow'
   dlls:
     - from_filenames:
-        relative_path: "core/platform"
+        relative_path: 'core/platform'
         prefixes:
-          - "_cpu_feature_guard"
+          - '_cpu_feature_guard'
 
   anti-bloat:
-    - description: "remove useless distutils and test framework usage"
+    - description: 'remove useless distutils and test framework usage'
       replacements_plain:
-        "import distutils as _distutils": "_distutils = None"
-        "import site as _site": "_site = None"
-        "if _running_from_pip_package()": "if False"
-        "_site.ENABLE_USER_SITE": "False"
+        'import distutils as _distutils': '_distutils = None'
+        'import site as _site': '_site = None'
+        'if _running_from_pip_package()': 'if False'
+        '_site.ENABLE_USER_SITE': 'False'
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
-        "from ._api.v2 import test": "test = None"
-
+        'from ._api.v2 import test': 'test = None'
   implicit-imports:
     - depends:
-        - "tensorboard"
-        - "tensorflow_estimator"
+        - 'tensorboard'
+        - 'tensorflow_estimator'
 
-- module-name: "tensorflow._api.v1.compat.v2"
+- module-name: 'tensorflow._api.v1.compat.v2'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from . import test": "test = None"
+        'from . import test': 'test = None'
 
-- module-name: "tensorflow._api.v2.__internal__"
+- module-name: 'tensorflow._api.v2.__internal__'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from . import test": "test = None"
-        "from . import distribute": "distribute = None"
+        'from . import test': 'test = None'
+        'from . import distribute': 'distribute = None'
 
-- module-name: "tensorflow._api.v2.compat.v1"
+- module-name: 'tensorflow._api.v2.compat.v1'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from . import test": "test = None"
+        'from . import test': 'test = None'
 
-- module-name: "tensorflow._api.v2.compat.v1.compat.v1"
+- module-name: 'tensorflow._api.v2.compat.v1.compat.v1'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from tensorflow._api.v2.compat.v1 import test": "test = None"
+        'from tensorflow._api.v2.compat.v1 import test': 'test = None'
 
-- module-name: "tensorflow._api.v2.compat.v1.compat.v2"
+- module-name: 'tensorflow._api.v2.compat.v1.compat.v2'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from tensorflow._api.v2.compat.v2 import test": "test = None"
+        'from tensorflow._api.v2.compat.v2 import test': 'test = None'
 
-- module-name: "tensorflow._api.v2.compat.v2"
+- module-name: 'tensorflow._api.v2.compat.v2'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from . import test": "test = None"
+        'from . import test': 'test = None'
 
-- module-name: "tensorflow._api.v2.compat.v2.__internal__"
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
         # TODO: Really need to make the "un-usable" a thing
-        "from . import test": "test = None"
-        "from . import distribute": "distribute = None"
+        'from . import test': 'test = None'
+        'from . import distribute': 'distribute = None'
 
-- module-name: "tensorflow._api.v2.compat.v2.__internal__.distribute"
+- module-name: 'tensorflow._api.v2.compat.v2.__internal__.distribute'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from . import multi_process_runner": "multi_process_runner = None"
+        'from . import multi_process_runner': 'multi_process_runner = None'
 
-- module-name: "tensorflow._api.v2.compat.v2.compat.v1"
+- module-name: 'tensorflow._api.v2.compat.v2.compat.v1'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from tensorflow._api.v2.compat.v1 import test": "test = None"
+        'from tensorflow._api.v2.compat.v1 import test': 'test = None'
 
-- module-name: "tensorflow._api.v2.compat.v2.compat.v2"
+- module-name: 'tensorflow._api.v2.compat.v2.compat.v2'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from tensorflow._api.v2.compat.v2 import test": "test = None"
+        'from tensorflow._api.v2.compat.v2 import test': 'test = None'
 
-- module-name: "tensorflow.compiler.tf2tensorrt"
+- module-name: 'tensorflow.compiler.tf2tensorrt'
   implicit-imports:
     - depends:
-        - "tensorflow.compiler.tf2tensorrt._wrap_py_utils"
-      when: "not win32"
+        - 'tensorflow.compiler.tf2tensorrt._wrap_py_utils'
+      when: 'not win32'
 
-- module-name: "tensorflow.compiler.tf2tensorrt.python.ops"
+- module-name: 'tensorflow.compiler.tf2tensorrt.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.compiler.tf2tensorrt.python.ops.libtftrt"
-      when: "not win32"
+        - 'tensorflow.compiler.tf2tensorrt.python.ops.libtftrt'
+      when: 'not win32'
 
-- module-name: "tensorflow.compiler.tf2xla.ops"
+- module-name: 'tensorflow.compiler.tf2xla.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.compiler.tf2xla.ops._xla_ops"
-      when: "not win32"
+        - 'tensorflow.compiler.tf2xla.ops._xla_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.bigtable.python.ops"
+- module-name: 'tensorflow.contrib.bigtable.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.bigtable.python.ops._bigtable"
-      when: "not win32"
+        - 'tensorflow.contrib.bigtable.python.ops._bigtable'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.boosted_trees.python.ops"
+- module-name: 'tensorflow.contrib.boosted_trees.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.boosted_trees.python.ops._boosted_trees_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.factorization.python.opso"
+- module-name: 'tensorflow.contrib.factorization.python.opso'
   implicit-imports:
     - depends:
-        - "tensorflw.contrib.factorization.python.ops._factorization_ops"
-      when: "not win32"
+        - 'tensorflw.contrib.factorization.python.ops._factorization_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.ffmpeg"
+- module-name: 'tensorflow.contrib.ffmpeg'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.ffmpeg.ffmpeg"
-      when: "not win32"
+        - 'tensorflow.contrib.ffmpeg.ffmpeg'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.framework.python.ops"
+- module-name: 'tensorflow.contrib.framework.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.framework.python.ops._variable_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.framework.python.ops._variable_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.fused_conv.python.ops"
+- module-name: 'tensorflow.contrib.fused_conv.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op"
-      when: "not win32"
+        - 'tensorflow.contrib.fused_conv.python.ops._fused_conv2d_bias_activation_op'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.hadoop"
+- module-name: 'tensorflow.contrib.hadoop'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.hadoop._dataset_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.hadoop._dataset_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.ignite"
+- module-name: 'tensorflow.contrib.ignite'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.ignite._ignite_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.ignite._ignite_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.image.python.ops"
+- module-name: 'tensorflow.contrib.image.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.image.python.ops._distort_image_ops"
-        - "tensorflow.contrib.image.python.ops._image_ops"
-        - "tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms"
-      when: "not win32"
+        - 'tensorflow.contrib.image.python.ops._distort_image_ops'
+        - 'tensorflow.contrib.image.python.ops._image_ops'
+        - 'tensorflow.contrib.image.python.ops._single_image_random_dot_stereograms'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.input_pipeline.python.ops"
+- module-name: 'tensorflow.contrib.input_pipeline.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.input_pipeline.python.ops._input_pipeline_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.kafka"
+- module-name: 'tensorflow.contrib.kafka'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.kafka._dataset_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.kafka._dataset_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.kinesis"
+- module-name: 'tensorflow.contrib.kinesis'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.kinesis._dataset_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.kinesis._dataset_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.layers.python.ops"
+- module-name: 'tensorflow.contrib.layers.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.layers.python.ops._sparse_feature_cross_op"
-      when: "not win32"
+        - 'tensorflow.contrib.layers.python.ops._sparse_feature_cross_op'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.libsvm.python.ops"
+- module-name: 'tensorflow.contrib.libsvm.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.libsvm.python.ops._libsvm_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.libsvm.python.ops._libsvm_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.memory_stats.python.ops"
+- module-name: 'tensorflow.contrib.memory_stats.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.memory_stats.python.ops._memory_stats_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.memory_stats.python.ops._memory_stats_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.nearest_neighbor.python.ops"
+- module-name: 'tensorflow.contrib.nearest_neighbor.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.nearest_neighbor.python.ops._nearest_neighbor_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.periodic_resample.python.ops"
+- module-name: 'tensorflow.contrib.periodic_resample.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op"
-      when: "not win32"
+        - 'tensorflow.contrib.periodic_resample.python.ops._periodic_resample_op'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.reduce_slice_ops.python.ops"
+- module-name: 'tensorflow.contrib.reduce_slice_ops.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.reduce_slice_ops.python.ops._reduce_slice_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.resampler.python.ops"
+- module-name: 'tensorflow.contrib.resampler.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.resampler.python.ops._resampler_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.resampler.python.ops._resampler_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.rnn.python.ops"
+- module-name: 'tensorflow.contrib.rnn.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.rnn.python.ops._gru_ops"
-        - "tensorflow.contrib.rnn.python.ops._lstm_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.rnn.python.ops._gru_ops'
+        - 'tensorflow.contrib.rnn.python.ops._lstm_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.rpc.python.kernel_tests"
+- module-name: 'tensorflow.contrib.rpc.python.kernel_tests'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.rpc.python.kernel_tests.libtestexample"
-      when: "not win32"
+        - 'tensorflow.contrib.rpc.python.kernel_tests.libtestexample'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.seq2seq.python.ops"
+- module-name: 'tensorflow.contrib.seq2seq.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.seq2seq.python.ops._beam_search_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.seq2seq.python.ops._beam_search_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.tensor_forest"
+- module-name: 'tensorflow.contrib.tensor_forest'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.tensor_forest.libforestprotos"
-      when: "not win32"
+        - 'tensorflow.contrib.tensor_forest.libforestprotos'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.tensor_forest.hybrid.python.ops"
+- module-name: 'tensorflow.contrib.tensor_forest.hybrid.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops"
-      when: "not win32"
+        - 'tensorflow.contrib.tensor_forest.hybrid.python.ops._training.ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.tensor_forest.python.ops"
+- module-name: 'tensorflow.contrib.tensor_forest.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.tensor_forest.python.ops._model_ops"
-        - "tensorflow.contrib.tensor_forest.python.ops._stats_ops"
-        - "tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.tensor_forest.python.ops._model_ops'
+        - 'tensorflow.contrib.tensor_forest.python.ops._stats_ops'
+        - 'tensorflow.contrib.tensor_forest.python.ops._tensor_forest_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.contrib.text.python.ops"
+- module-name: 'tensorflow.contrib.text.python.ops'
   implicit-imports:
     - depends:
-        - "tensorflow.contrib.text.python.ops._skip_gram_ops"
-      when: "not win32"
+        - 'tensorflow.contrib.text.python.ops._skip_gram_ops'
+      when: 'not win32'
 
-- module-name: "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal"
+- module-name: 'tensorflow.include.external.protobuf_archive.python.google.protobuf.internal'
   implicit-imports:
     - depends:
-        - "tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation"
-      when: "not win32"
+        - 'tensorflow.include.external.protobuf_archive.python.google.protobuf.internal._api_implementation'
+      when: 'not win32'
 
-- module-name: "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext"
+- module-name: 'tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext'
   implicit-imports:
     - depends:
-        - "tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message"
-      when: "not win32"
+        - 'tensorflow.include.external.protobuf_archive.python.google.protobuf.pyext._message'
+      when: 'not win32'
 
-- module-name: "tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op"
+- module-name: 'tensorflow.lite.experimental.microfrontend.python.ops.audio_microfrontend_op'
   dlls:
     - from_filenames:
         prefixes:
-          - "_audio_microfrontend_op"
+          - '_audio_microfrontend_op'
 
 # TODO: Maybe not really necessary, this should be avoided by itself instead.
-- module-name: "tensorflow.lite.python.convert"
+- module-name: 'tensorflow.lite.python.convert'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
-        "distutils.spawn.find_executable(_deprecated_conversion_binary) is None": "'False'"
-        "import distutils.spawn": ""
+        'distutils.spawn.find_executable(_deprecated_conversion_binary) is None': "'False'"
+        'import distutils.spawn': ''
 
-- module-name: "tensorflow.lite.python.interpreter_wrapper"
+- module-name: 'tensorflow.lite.python.interpreter_wrapper'
   implicit-imports:
     - depends:
-        - "tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper"
+        - 'tensorflow.lite.python.interpreter_wrapper._tensorflow_wrap_interpreter_wrapper'
 
-- module-name: "tensorflow.lite.python.optimize"
+- module-name: 'tensorflow.lite.python.optimize'
   implicit-imports:
     - depends:
-        - "tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper"
+        - 'tensorflow.lite.python.optimize._tensorflow_lite_wrap_calibration_wrapper'
 
-- module-name: "tensorflow.lite.toco.python"
+- module-name: 'tensorflow.lite.toco.python'
   implicit-imports:
     - depends:
-        - "tensorflow.lite.toco.python._tensorflow_wrap_toco"
+        - 'tensorflow.lite.toco.python._tensorflow_wrap_toco'
 
-- module-name: "tensorflow.python"
+- module-name: 'tensorflow.python'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from tensorflow.python.platform import test": "test = None"
+        'from tensorflow.python.platform import test': 'test = None'
   implicit-imports:
     - depends:
-        - "tensorflow.python._pywrap_tensorflow_internal"
-        - "tensorflow.python.ops"
-        - "tensorflow.python.ops.cond_v2"
+        - 'tensorflow.python._pywrap_tensorflow_internal'
+        - 'tensorflow.python.ops'
+        - 'tensorflow.python.ops.cond_v2'
 
-- module-name: "tensorflow.python.autograph.core.ag_ctx"
+- module-name: 'tensorflow.python.autograph.core.ag_ctx'
   anti-bloat:
-    - description: "remove useless no-source warning"
+    - description: 'remove useless no-source warning'
       replacements_plain:
-        "ag_logging.warning(": "if False: ag_logging.warning("
+        'ag_logging.warning(': 'if False: ag_logging.warning('
 
-- module-name: "tensorflow.python.autograph.impl.conversion"
+- module-name: 'tensorflow.python.autograph.impl.conversion'
   anti-bloat:
-    - description: "remove unitest usage"
+    - description: 'remove unitest usage'
       replacements_plain:
-        "import unittest": ""
-        "issubclass(owner_class, unittest.TestCase)": "False"
+        'import unittest': ''
+        'issubclass(owner_class, unittest.TestCase)': 'False'
 
-- module-name: "tensorflow.python.compiler.tensorrt.trt_convert"
+- module-name: 'tensorflow.python.compiler.tensorrt.trt_convert'
   implicit-imports:
     - depends:
-        - "tensorflow.compiler.tf2tensorrt.ops.gen_trt_ops"
-        - "tensorflow.compiler.tf2tensorrt._pywrap_py_utils"
+        - 'tensorflow.compiler.tf2tensorrt.ops.gen_trt_ops'
+        - 'tensorflow.compiler.tf2tensorrt._pywrap_py_utils'
 
-- module-name: "tensorflow.python.compiler.tensorrt.utils"
+- module-name: 'tensorflow.python.compiler.tensorrt.utils'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements_plain:
-        "distutils_version.LooseVersion": "str"
+        'distutils_version.LooseVersion': 'str'
         ? "from distutils import version\n"
         : "\n"
-        "from distutils import version as distutils_version": ""
+        'from distutils import version as distutils_version': ''
 
-- module-name: "tensorflow.python.distribute.multi_process_runner"
+- module-name: 'tensorflow.python.distribute.multi_process_runner'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from . import test": "test = None"
+        'from . import test': 'test = None'
 
-- module-name: "tensorflow.python.distribute.multi_worker_test_base"
+- module-name: 'tensorflow.python.distribute.multi_worker_test_base'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "import unittest": "test = None"
-        "from tensorflow.python.framework import test_util": "test_util = None"
-        "from tensorflow.python.platform import test": "test = None"
+        'import unittest': 'test = None'
+        'from tensorflow.python.framework import test_util': 'test_util = None'
+        'from tensorflow.python.platform import test': 'test = None'
 
-- module-name: "tensorflow.python.distribute.strategy_combinations"
+- module-name: 'tensorflow.python.distribute.strategy_combinations'
   anti-bloat:
-    - description: "remove useless tensorflow testing usage"
+    - description: 'remove useless tensorflow testing usage'
       replacements_plain:
-        "from tensorflow.python.distribute import test_util": "test_util = None"
-        "from tensorflow.python.framework import test_util as framework_test_util": "framework_test_util = None"
-        "from tensorflow.python.distribute import multi_process_runner": "multi_process_runner = None"
-        "from tensorflow.python.distribute import multi_worker_test_base": "multi_worker_test_base = None"
+        'from tensorflow.python.distribute import test_util': 'test_util = None'
+        'from tensorflow.python.framework import test_util as framework_test_util': 'framework_test_util = None'
+        'from tensorflow.python.distribute import multi_process_runner': 'multi_process_runner = None'
+        'from tensorflow.python.distribute import multi_worker_test_base': 'multi_worker_test_base = None'
 
-- module-name: "tensorflow.python.framework"
+- module-name: 'tensorflow.python.framework'
   implicit-imports:
     - depends:
-        - "tensorflow.python.framework.fast_tensor_util"
-      when: "not win32"
+        - 'tensorflow.python.framework.fast_tensor_util'
+      when: 'not win32'
 
-- module-name: "tensorflow.python.framework.meta_graph"
+- module-name: 'tensorflow.python.framework.meta_graph'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
-        "distutils_version.LooseVersion": "'str'"
-        "from distutils import version as distutils_version": ""
+        'distutils_version.LooseVersion': "'str'"
+        'from distutils import version as distutils_version': ''
 
-- module-name: "tensorflow.python.ops.distributions.distribution"
+- module-name: 'tensorflow.python.ops.distributions.distribution'
   anti-bloat:
-    - description: "remove useless function copying"
+    - description: 'remove useless function copying'
+      replacements:
+        'class_attr_value.__doc__ = _update_docstring': "'class_attr_value___doc__ = _update_docstring'"
       change_function:
-        "_copy_fn": "'(lambda fn: fn)'"
-      replacements:
-        "class_attr_value.__doc__ = _update_docstring": "'class_attr_value___doc__ = _update_docstring'"
+        '_copy_fn': "'(lambda fn: fn)'"
 
-- module-name: "tensorflow_core"
+- module-name: 'tensorflow_core'
   anti-bloat:
-    - description: "remove useless distutils usage"
+    - description: 'remove useless distutils usage'
       replacements:
-        "import distutils as _distutils": "'_distutils = None'"
-        "import site as _site": "'_site = None'"
-        "if _running_from_pip_package()": "'if False'"
+        'import distutils as _distutils': "'_distutils = None'"
+        'import site as _site': "'_site = None'"
+        'if _running_from_pip_package()': "'if False'"
 
-- module-name: "text_unidecode"
+- module-name: 'text_unidecode'
   data-files:
     patterns:
-      - "data.bin"
+      - 'data.bin'
 
-- module-name: "tifffile.tifffile"
+- module-name: 'tifffile.tifffile'
   anti-bloat:
-    - description: "remove module ability to run as a binary"
+    - description: 'remove module ability to run as a binary'
       change_function:
-        "main": "un-callable"
+        'main': 'un-callable'
       # Using tags, to still make it possible to compile in case of main module.
-      when: "not main_module"
+      when: 'not main_module'
 
-- module-name: "tinycss2"
+- module-name: 'tinycss2'
   data-files:
     patterns:
-      - "VERSION"
+      - 'VERSION'
 
-- module-name: "torch"
+- module-name: 'torch'
   data-files:
     dirs:
-      - "bin"
-      - "include"
+      - 'bin'
+      - 'include'
     patterns:
-      - "bin/*.h"
+      - 'bin/*.h'
   dlls:
     - from_filenames:
-        relative_path: "lib"
+        relative_path: 'lib'
         prefixes:
-          - ""
+          - ''
 
-- module-name: "torch._jit_internal"
+- module-name: 'torch._jit_internal'
   anti-bloat:
-    - description: "disable jit warnings"
+    - description: 'disable jit warnings'
       replacements_plain:
-        "warnings.warn(": "if False: warnings.warn("
+        'warnings.warn(': 'if False: warnings.warn('
 
-- module-name: "torch.fx._symbolic_trace"
+- module-name: 'torch.fx._symbolic_trace'
   anti-bloat:
-    - description: "workaround incompatible check"
+    - description: 'workaround incompatible check'
       replacements_plain:
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
 
-- module-name: "torch.onnx.symbolic_registry"
+- module-name: 'torch.onnx.symbolic_registry'
   implicit-imports:
     - depends:
-        - "torch.onnx.symbolic_opset7"
-        - "torch.onnx.symbolic_opset12"
-        - "torch.onnx.symbolic_opset14"
-        - "torch.onnx.symbolic_opset15"
+        - 'torch.onnx.symbolic_opset7'
+        - 'torch.onnx.symbolic_opset12'
+        - 'torch.onnx.symbolic_opset14'
+        - 'torch.onnx.symbolic_opset15'
 
-- module-name: "torch.utils.data._typing"
+- module-name: 'torch.utils.data._typing'
   anti-bloat:
-    - description: "compatiblity workaround"
+    - description: 'compatiblity workaround'
       replacements_plain:
         ? "\ndef _dp_init_subclass"
         : |-
           @classmethod
           def _dp_init_subclass
 
-- module-name: "torchvision"
+- module-name: 'torchmetrics.utilities.checks'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from unittest.mock import Mock': ''
+        'isinstance(instance_attr, Mock)': 'False'
+
+- module-name: 'torchvision'
   dlls:
     - from_filenames:
         prefixes:
-          - "zlib"
-          - "libjpeg"
-          - "libpng*"
+          - 'zlib'
+          - 'libjpeg'
+          - 'libpng*'
 
-- module-name: "torchvision.io.image"
+- module-name: 'torchvision.extension'
   implicit-imports:
     - depends:
-        - "torchvision.image"
+        # This is really only a DLL, but named according to extension module rules.
+        - '._C'
 
-- module-name: "tornado.httputil"
+- module-name: 'torchvision.io.image'
+  implicit-imports:
+    - depends:
+        - 'torchvision.image'
+
+- module-name: 'torchvision.ops._register_onnx_ops'
+  implicit-imports:
+    - depends:
+        - 'torch.onnx.symbolic_opset8'
+
+- module-name: 'tornado.httputil'
   anti-bloat:
-    - description: "remove doctest usage"
+    - description: 'remove doctest usage'
       change_function:
-        "doctests": "'(lambda: None)'"
+        'doctests': "'(lambda: None)'"
 
-- module-name: "tornado.iostream"
+- module-name: 'tornado.iostream'
   anti-bloat:
-    - description: "remove doctest usage"
+    - description: 'remove doctest usage'
       change_function:
-        "doctests": "'(lambda: None)'"
+        'doctests': "'(lambda: None)'"
 
-- module-name: "tornado.util"
+- module-name: 'tornado.util'
   anti-bloat:
-    - description: "remove doctest usage"
+    - description: 'remove doctest usage'
       change_function:
-        "doctests": "'(lambda: None)'"
+        'doctests': "'(lambda: None)'"
 
-- module-name: "tqdm"
+- module-name: 'tqdm'
   anti-bloat:
-    - change_function:
-        "tnrange": "'(lambda *args, **kwargs: None)'"
-        "tqdm_notebook": "'(lambda *args, **kwargs: None)'"
-      when: "not use_ipython"
-      description: "remove IPython reference"
+    - description: 'remove IPython reference'
 
-- module-name: "tqdm.autonotebook"
+      change_function:
+        'tnrange': "'(lambda *args, **kwargs: None)'"
+        'tqdm_notebook': "'(lambda *args, **kwargs: None)'"
+      when: 'not use_ipython'
+
+- module-name: 'tqdm.autonotebook'
   anti-bloat:
-    - description: "remove IPython reference"
-      when: "not use_ipython"
+    - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
 
-- module-name: "tzdata"
+      when: 'not use_ipython'
+
+- module-name: 'tzdata'
   data-files:
     dirs:
-      - "zones"
+      - 'zones'
 
-- module-name: "urllib3"
+- module-name: 'tzdata.zoneinfo'
+  data-files:
+    dirs:
+      - '.'
+
   implicit-imports:
     - depends:
-        - "urllib3"
-        - "urllib3._collections"
-        - "urllib3.connection"
-        - "urllib3.connection.appengine"
-        - "urllib3.connectionpool"
-        - "urllib3.contrib"
-        - "urllib3.contrib.appengine"
-        - "urllib3.exceptions"
-        - "urllib3.fields"
-        - "urllib3.filepost"
-        - "urllib3.packages"
-        - "urllib3.packages.six"
-        - "urllib3.packages.ssl_match_hostname"
-        - "urllib3.poolmanager"
-        - "urllib3.request"
-        - "urllib3.response"
-        - "urllib3.util"
-        - "urllib3.util.connection"
-        - "urllib3.util.queue"
-        - "urllib3.util.request"
-        - "urllib3.util.response"
-        - "urllib3.util.retry"
-        - "urllib3.util.ssl_"
-        - "urllib3.util.timeout"
-        - "urllib3.util.url"
-        - "urllib3.util.wait"
-        - "urllib.error"
-        - "urllib.parse"
-        - "urllib.request"
-        - "urllib.response"
+        - '.*'
 
-- module-name: "uvicorn"
+- module-name: 'urllib3'
   implicit-imports:
     - depends:
-        - "uvicorn.loops"
-        - "uvicorn.lifespan"
-        - "uvicorn.protocols"
+        - 'urllib3'
+        - 'urllib3._collections'
+        - 'urllib3.connection'
+        - 'urllib3.connection.appengine'
+        - 'urllib3.connectionpool'
+        - 'urllib3.contrib'
+        - 'urllib3.contrib.appengine'
+        - 'urllib3.exceptions'
+        - 'urllib3.fields'
+        - 'urllib3.filepost'
+        - 'urllib3.packages'
+        - 'urllib3.packages.six'
+        - 'urllib3.packages.ssl_match_hostname'
+        - 'urllib3.poolmanager'
+        - 'urllib3.request'
+        - 'urllib3.response'
+        - 'urllib3.util'
+        - 'urllib3.util.connection'
+        - 'urllib3.util.queue'
+        - 'urllib3.util.request'
+        - 'urllib3.util.response'
+        - 'urllib3.util.retry'
+        - 'urllib3.util.ssl_'
+        - 'urllib3.util.timeout'
+        - 'urllib3.util.url'
+        - 'urllib3.util.wait'
+        - 'urllib.error'
+        - 'urllib.parse'
+        - 'urllib.request'
+        - 'urllib.response'
 
-- module-name: "uvicorn.config"
+- module-name: 'uvicorn'
   implicit-imports:
     - depends:
-        - "websockets.legacy.server"
-        - "uvicorn.logging"
+        - 'uvicorn.loops'
+        - 'uvicorn.lifespan'
+        - 'uvicorn.protocols'
 
-- module-name: "uvicorn.lifespan"
+- module-name: 'uvicorn.config'
   implicit-imports:
     - depends:
-        - "uvicorn.lifespan.off"
-        - "uvicorn.lifespan.on"
+        - 'websockets.legacy.server'
+        - 'uvicorn.logging'
 
-- module-name: "uvicorn.loops"
+- module-name: 'uvicorn.lifespan'
   implicit-imports:
     - depends:
-        - "uvicorn.loops.auto"
-        - "uvicorn.loops.uvloop"
+        - 'uvicorn.lifespan.off'
+        - 'uvicorn.lifespan.on'
 
-- module-name: "uvicorn.protocols"
+- module-name: 'uvicorn.loops'
   implicit-imports:
     - depends:
-        - "uvicorn.protocols.http"
-        - "uvicorn.protocols.websockets"
+        - 'uvicorn.loops.auto'
+        - 'uvicorn.loops.uvloop'
 
-- module-name: "uvicorn.protocols.http"
+- module-name: 'uvicorn.protocols'
   implicit-imports:
     - depends:
-        - "uvicorn.protocols.http.auto"
-        - "uvicorn.protocols.http.h11_impl"
-        - "uvicorn.protocols.http.httptools_impl"
+        - 'uvicorn.protocols.http'
+        - 'uvicorn.protocols.websockets'
 
-- module-name: "uvicorn.protocols.websockets"
+- module-name: 'uvicorn.protocols.http'
   implicit-imports:
     - depends:
-        - "uvicorn.protocols.websockets.auto"
-        - "uvicorn.protocols.websockets.websockets_impl"
-        - "uvicorn.protocols.websockets.wsproto_impl"
+        - 'uvicorn.protocols.http.auto'
+        - 'uvicorn.protocols.http.h11_impl'
+        - 'uvicorn.protocols.http.httptools_impl'
 
-- module-name: "uvloop.loop"
+- module-name: 'uvicorn.protocols.websockets'
   implicit-imports:
     - depends:
-        - "uvloop._noop"
+        - 'uvicorn.protocols.websockets.auto'
+        - 'uvicorn.protocols.websockets.websockets_impl'
+        - 'uvicorn.protocols.websockets.wsproto_impl'
 
-- module-name: "vibora"
+- module-name: 'uvloop.loop'
+  implicit-imports:
+    - depends:
+        - 'uvloop._noop'
+
+- module-name: 'vibora'
   anti-bloat:
-    - description: "remove test code"
+    - description: 'remove test code'
       replacements_plain:
-        "from .tests import *": ""
+        'from .tests import *': ''
 
-- module-name: "vibora.protocol.cprotocol"
+- module-name: 'vibora.protocol.cprotocol'
   implicit-imports:
     - depends:
-        - "vibora.protocol.cwebsocket"
+        - 'vibora.protocol.cwebsocket'
 
-- module-name: "vibora.responses.responses"
+- module-name: 'vibora.responses.responses'
   implicit-imports:
     - depends:
-        - "vibora.constants"
+        - 'vibora.constants'
 
-- module-name: "vibora.router.router"
+- module-name: 'vibora.router.router'
   implicit-imports:
     - depends:
-        - "vibora.router.parser"
+        - 'vibora.router.parser'
 
-- module-name: "vosk"
+- module-name: 'vosk'
   dlls:
     - from_filenames:
         prefixes:
-          - "libvosk"
+          - 'libvosk'
 
-- module-name: "vtkmodules"
+- module-name: 'vtk'
+  import-hacks:
+    # This module aliases itself to another package, for which we will
+    # not find packages in unless added.
+    - package-paths:
+        - 'vtkmodules'
+
+- module-name: 'vtkmodules'
   implicit-imports:
     - depends:
-        - "vtkmodules.all"
-        - "vtkmodules.util"
+        - 'vtkmodules.all'
+        - 'vtkmodules.util'
 
-- module-name: "vtkmodules.qt"
+- module-name: 'vtkmodules.qt'
   implicit-imports:
     - depends:
-        - "vtkmodules.qt.QVTKRenderWindowInteractor"
+        - 'vtkmodules.qt.QVTKRenderWindowInteractor'
 
-- module-name: "vtkmodules.tk"
+- module-name: 'vtkmodules.tk'
   implicit-imports:
     - depends:
-        - "vtkmodules.tk.vtkLoadPythonTkWidgets"
-        - "vtkmodules.tk.vtkTkImageViewerWidget"
-        - "vtkmodules.tk.vtkTkPhotoImage"
-        - "vtkmodules.tk.vtkTkRenderWidget"
-        - "vtkmodules.tk.vtkTkRenderWindowInteractor"
+        - 'vtkmodules.tk.vtkLoadPythonTkWidgets'
+        - 'vtkmodules.tk.vtkTkImageViewerWidget'
+        - 'vtkmodules.tk.vtkTkPhotoImage'
+        - 'vtkmodules.tk.vtkTkRenderWidget'
+        - 'vtkmodules.tk.vtkTkRenderWindowInteractor'
 
-- module-name: "vtkmodules.util"
+- module-name: 'vtkmodules.util'
   implicit-imports:
     - depends:
-        - "vtkmodules.util.misc"
-        - "vtkmodules.util.numpy_support"
-        - "vtkmodules.util.vtkAlgorithm"
-        - "vtkmodules.util.vtkConstants"
-        - "vtkmodules.util.vtkImageExportToArray"
-        - "vtkmodules.util.vtkImageImportFromArray"
-        - "vtkmodules.util.vtkMethodParser"
-        - "vtkmodules.util.vtkVariant"
+        - 'vtkmodules.util.misc'
+        - 'vtkmodules.util.numpy_support'
+        - 'vtkmodules.util.vtkAlgorithm'
+        - 'vtkmodules.util.vtkConstants'
+        - 'vtkmodules.util.vtkImageExportToArray'
+        - 'vtkmodules.util.vtkImageImportFromArray'
+        - 'vtkmodules.util.vtkMethodParser'
+        - 'vtkmodules.util.vtkVariant'
 
-- module-name: "vtkmodules.wx"
+- module-name: 'vtkmodules.wx'
   implicit-imports:
     - depends:
-        - "vtkmodules.wx.wxVTKRenderWindow"
-        - "vtkmodules.wx.wxVTKRenderWindowInteractor"
+        - 'vtkmodules.wx.wxVTKRenderWindow'
+        - 'vtkmodules.wx.wxVTKRenderWindowInteractor'
 
-- module-name: "weasyprint"
+- module-name: 'weasyprint'
   data-files:
     dirs:
-      - "css"
+      - 'css'
     patterns:
-      - "VERSION"
+      - 'VERSION'
 
-- module-name: "wx"
+- module-name: 'win32com'
+  import-hacks:
+    # This package adds another directory to the search path of itself,
+    # which we will not find packages in unless added.
+    - package-dirs:
+        - 'win32comext'
+
+- module-name: 'win32ui'
+  implicit-imports:
+    - pre-import-code:
+        # That is a namespace module only, but it seems the extension modules needs it,
+        # despite the DLLs being present.
+        - 'import pywin32_system32'
+
+- module-name: 'wx'
   options:
     checks:
-      - description: "wx will crash in console mode during startup"
-        console: "yes"
-        when: "macos"
-      - description: "wx requires program to be in bundle form"
-        macos_bundle: "yes"
-        when: "macos"
+      - description: 'wx will crash in console mode during startup'
+        console: 'yes'
+        when: 'macos'
+      - description: 'wx requires program to be in bundle form'
+        macos_bundle: 'yes'
+        when: 'macos'
 
-- module-name: "xarray"
+- module-name: 'xarray'
   data-files:
     dirs:
-      - "static"
+      - 'static'
 
-- module-name: "xgboost"
+- module-name: 'xgboost'
   data-files:
     patterns:
-      - "VERSION"
+      - 'VERSION'
 
-- module-name: "xgboost.core"
+- module-name: 'xgboost.core'
   dlls:
     - from_filenames:
-        relative_path: "lib"
+        relative_path: 'lib'
         prefixes:
-          - "xgboost"
+          - 'xgboost'
 
-- module-name: "Xlib.display"
+- module-name: 'Xlib.display'
   implicit-imports:
     - depends:
-        - "Xlib.ext.*"
+        - 'Xlib.ext.*'
 
-- module-name: "Xlib.support.connect"
+- module-name: 'Xlib.support.connect'
   implicit-imports:
     - depends:
-        - "Xlib.support.unix_connect"
+        - 'Xlib.support.unix_connect'
 
-- module-name: "Xlib.XK"
+- module-name: 'Xlib.XK'
   implicit-imports:
     - depends:
-        - "Xlib.keysymdef.*"
+        - 'Xlib.keysymdef.*'
 
-- module-name: "xmlschema"
+- module-name: 'xmlschema'
   data-files:
     dirs:
-      - "schemas"
+      - 'schemas'
 
-- module-name: "zmq.backend"
+- module-name: 'zmq'
+  dlls:
+    # Do not look at this one, using dest_path and suffixes is not
+    # needed at all normally, but this one is trange and for old PyZMQ
+    # only.
+    - from_filenames:
+        prefixes:
+          - 'libzmq'
+        suffixes:
+          - 'pyd'
+      dest_path: '.'
+      when: 'win32'
+
+- module-name: 'zmq.backend'
   implicit-imports:
     - depends:
-        - "zmq.backend.cython"
+        - 'zmq.backend.cython'
 
-- module-name: "zope.interface._compat"
+- module-name: 'zope.interface._compat'
   anti-bloat:
-    - description: "remove unittest reference"
+    - description: 'remove unittest reference'
       change_function:
-        "_skip_under_py2": "'(lambda test_method: None)'"
-        "_skip_under_py3k": "'(lambda test_method: None)'"
-      when: "not use_unittest"
+        '_skip_under_py2': "'(lambda test_method: None)'"
+        '_skip_under_py3k': "'(lambda test_method: None)'"
+      when: 'not use_unittest'

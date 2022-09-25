@@ -273,7 +273,7 @@ class OurLogger(object):
         style = style or self.base_style
 
         if sys.stderr.isatty():
-            width = _getTerminalSize()
+            width = _getTerminalSize() or 10000
         else:
             width = 10000
 
@@ -302,7 +302,17 @@ class OurLogger(object):
         closeProgressBar()
 
         if message:
-            self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
+            if exit_code != 0:
+                self.my_print(
+                    "FATAL: %s" % message,
+                    style="red",
+                    file=sys.stderr,
+                )
+            else:
+                self.my_print(
+                    message,
+                    file=sys.stderr,
+                )
 
         sys.exit(exit_code)
 

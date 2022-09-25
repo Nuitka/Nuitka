@@ -52,6 +52,7 @@ from nuitka.utils.Utils import (
     getWindowsRelease,
     isLinux,
     isPosixWindows,
+    isWin32OrPosixWindows,
     withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
@@ -118,7 +119,7 @@ def _getVersionInformationValues():
         else:
             yield "Distribution: %s %s" % (dist_name, dist_version)
 
-    if getOS() == "Windows":
+    if isWin32OrPosixWindows():
         yield "WindowsRelease: %s" % getWindowsRelease()
 
 
@@ -277,6 +278,7 @@ accepts shell pattern. Default empty.""",
 
 parser.add_option_group(warnings_group)
 
+
 include_group = OptionGroup(
     parser, "Control the inclusion of modules and packages in result"
 )
@@ -317,9 +319,9 @@ include_group.add_option(
 Include also the code found in that directory, considering as if
 they are each given as a main file. Overrides all other inclusion
 options. You ought to prefer other inclusion options, that go by
-names, rather than filenames, as this always includes too much,
-and find things through being in "sys.path". Can be given multiple
-times. Default empty.""",
+names, rather than filenames, those find things through being in
+"sys.path". This option is for very special use cases only. Can
+be given multiple times. Default empty.""",
 )
 
 include_group.add_option(
@@ -353,11 +355,10 @@ include_group.add_option(
     help=SUPPRESS_HELP,
 )
 
-
 parser.add_option_group(include_group)
 
-follow_group = OptionGroup(parser, "Control the following into imported modules")
 
+follow_group = OptionGroup(parser, "Control the following into imported modules")
 
 follow_group.add_option(
     "--follow-stdlib",
@@ -424,10 +425,19 @@ data_group.add_option(
     metavar="PACKAGE",
     default=[],
     help="""\
-Include data files of the given package name. Can use patterns. By default
-Nuitka does not unless hard coded and vital for operation of a package. This
-will include all non-DLL, non-extension modules in the distribution. Default
-empty.""",
+Include data files for the given package name. DLLs and extension modules
+are not data files and never included like this. Can use patterns for
+module names and patterns for the filenames below. By default Nuitka
+does not include them, unless through configuration due to being vital
+for operation of a package. With a "*" pattern for package name, you
+can change that, but will include way too many files.
+This will only include non-DLL, non-extension modules in the package
+directory. After a ":" optionally a filename pattern can be given as
+well, selecting only matching files. Examples:
+"--include-package-data=package_name" (all files)
+"--include-package-data=package_name=*.txt" (only certain type)
+"--include-package-data=package_name=some_filename.dat (concrete file)
+Default empty.""",
 )
 
 data_group.add_option(
@@ -494,6 +504,7 @@ Default empty.""",
 
 parser.add_option_group(dll_group)
 
+
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
 
 execute_group.add_option(
@@ -531,14 +542,16 @@ ought to not need PYTHONPATH anymore.""",
 
 parser.add_option_group(execute_group)
 
+
 dump_group = OptionGroup(parser, "Dump options for internal tree")
 
 dump_group.add_option(
     "--xml",
-    action="store_true",
-    dest="dump_xml",
-    default=False,
-    help="Dump the final result of optimization as XML, then exit.",
+    action="store",
+    dest="xml_output",
+    metavar="XML_OUTPUT",
+    default=None,
+    help="Write the final result of optimization in XML form to given filename.",
 )
 
 
@@ -620,9 +633,11 @@ is incompatible for modules that normally can be loaded into any package.""",
 
 parser.add_option_group(compilation_group)
 
+
 output_group = OptionGroup(parser, "Output choices")
 
 output_group.add_option(
+    "--output-filename",
     "-o",
     action="store",
     dest="output_filename",
@@ -635,7 +650,7 @@ include path information that needs to exist though. Defaults to '%s' on this
 platform.
 """
     % "<program_name>"
-    + (".exe" if getOS() == "Windows" else ".bin"),
+    + (".exe" if isWin32OrPosixWindows() else ".bin"),
 )
 
 output_group.add_option(
@@ -688,9 +703,10 @@ production. Defaults to off.""",
 )
 
 debug_group.add_option(
+    "--unstripped",
     "--unstriped",
     action="store_true",
-    dest="unstriped",
+    dest="unstripped",
     default=False,
     help="""\
 Keep debug info in the resulting object file for better debugger interaction.
@@ -819,8 +835,8 @@ parser.add_option(
 
 parser.add_option_group(debug_group)
 
-c_compiler_group = OptionGroup(parser, "Backend C compiler choice")
 
+c_compiler_group = OptionGroup(parser, "Backend C compiler choice")
 
 c_compiler_group.add_option(
     "--clang",
@@ -903,6 +919,7 @@ Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).""",
 
 parser.add_option_group(c_compiler_group)
 
+
 pgo_group = OptionGroup(parser, "PGO compilation choices")
 
 pgo_group.add_option(
@@ -964,6 +981,7 @@ launch it through a script that prepares it to run. Default use created program.
 
 
 parser.add_option_group(pgo_group)
+
 
 tracing_group = OptionGroup(parser, "Tracing features")
 
@@ -1066,6 +1084,7 @@ Where to output --verbose, should be a filename. Default is standard output.""",
 
 parser.add_option_group(tracing_group)
 
+
 os_group = OptionGroup(parser, "General OS controls")
 
 os_group.add_option(
@@ -1119,6 +1138,7 @@ Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your progra
 
 
 parser.add_option_group(os_group)
+
 
 windows_group = OptionGroup(parser, "Windows specific controls")
 
@@ -1208,6 +1228,7 @@ filename of the binary.""",
 
 windows_group.add_option(
     "--windows-file-version",
+    "--file-version",
     action="store",
     dest="windows_file_version",
     metavar="WINDOWS_FILE_VERSION",
@@ -1246,16 +1267,6 @@ added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 )
 
 windows_group.add_option(
-    "--windows-onefile-tempdir",
-    "--onefile-tempdir",
-    action="store_true",
-    dest="is_onefile_tempdir",
-    metavar="ONEFILE_TEMPDIR",
-    default=False,
-    help=SUPPRESS_HELP,
-)
-
-windows_group.add_option(
     "--onefile-tempdir-spec",
     action="store",
     dest="onefile_tempdir_spec",
@@ -1266,6 +1277,7 @@ Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e.
 )
 
 parser.add_option_group(windows_group)
+
 
 macos_group = OptionGroup(parser, "macOS specific controls")
 
@@ -1369,6 +1381,7 @@ the option can be specified multiple times. Default empty.""",
 
 parser.add_option_group(macos_group)
 
+
 linux_group = OptionGroup(parser, "Linux specific controls")
 
 linux_group.add_option(
@@ -1382,6 +1395,7 @@ linux_group.add_option(
 )
 
 parser.add_option_group(linux_group)
+
 
 plugin_group = OptionGroup(parser, "Plugin control")
 
@@ -1431,9 +1445,6 @@ plugin_group.add_option(
 Show list of all available plugins and exit. Defaults to off.""",
 )
 
-
-parser.add_option_group(plugin_group)
-
 plugin_group.add_option(
     "--user-plugin",
     action="append",
@@ -1452,6 +1463,22 @@ plugin_group.add_option(
 Show source changes to original Python file content before compilation. Mostly
 intended for developing plugins. Default False.""",
 )
+
+parser.add_option_group(plugin_group)
+
+auto_updates_group = OptionGroup(parser, "Automatic updates from the web")
+
+auto_updates_group.add_option(
+    "--auto-update-url-spec",
+    action="store",
+    dest="auto_update_url_spec",
+    metavar="AUTO_UPDATE_URL_SPEC",
+    default=None,
+    help="URL to check for automatic updates. (Not implemented yet). Default empty.",
+)
+
+# TODO: Move to plugin and make it wor
+# parser.add_option_group(auto_updates_group)
 
 
 def _considerPluginOptions(logger):
@@ -1514,7 +1541,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     values["Linux_Distribution_Base"] = dist_info[1] or dist_info[0]
     values["Linux_Distribution_Version"] = dist_info[2]
 
-    if getOS() == "Windows":
+    if isWin32OrPosixWindows():
         values["WindowsRelease"] = getWindowsRelease()
 
     arg = arg.format(**values)

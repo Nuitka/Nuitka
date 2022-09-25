@@ -62,8 +62,12 @@ class TimerReport(object):
     def __init__(self, message, logger=None, decider=True, min_report_time=None):
         self.message = message
 
+        # Shortcuts.
         if decider is True:
             decider = lambda: True
+        elif decider is False:
+            decider = lambda: False
+
         if logger is None:
             logger = general
 
@@ -79,6 +83,8 @@ class TimerReport(object):
     def __enter__(self):
         self.timer = StopWatch()
         self.timer.start()
+
+        return self.timer
 
     def __exit__(self, exception_type, exception_value, exception_tb):
         self.timer.end()

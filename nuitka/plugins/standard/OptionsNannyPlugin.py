@@ -112,33 +112,28 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
     def getImplicitImports(self, module):
         full_name = module.getFullName()
 
-        options_config = self.config.get(full_name, section="options")
+        for options_config in self.config.get(full_name, section="options"):
+            for check in options_config.get("checks", ()):
+                if self.evaluateCondition(
+                    full_name=full_name, condition=check.get("when", "True")
+                ):
+                    if mayDisableConsoleWindow():
+                        self._checkConsoleMode(
+                            full_name=full_name,
+                            console=options_config.get("console", "yes"),
+                        )
 
-        if options_config and options_config.get("checks"):
-            for check in options_config.get("checks"):
-                if check.get("when"):
-                    if not self.evaluateCondition(
-                        full_name=full_name, condition=check.get("when")
-                    ):
-                        continue
+                    if isMacOS():
+                        self._checkMacOSBundleMode(
+                            full_name=full_name,
+                            macos_bundle=options_config.get("macos_bundle", "no"),
+                        )
 
-                if mayDisableConsoleWindow():
-                    self._checkConsoleMode(
-                        full_name=full_name,
-                        console=options_config.get("console", "yes"),
-                    )
-
-                if isMacOS():
-                    self._checkMacOSBundleMode(
-                        full_name=full_name,
-                        macos_bundle=options_config.get("macos_bundle", "no"),
-                    )
-
-                    self._checkMacOSBundleOnefileMode(
-                        full_name=full_name,
-                        macos_bundle_as_onefile=options_config.get(
-                            "macos_bundle_as_onefile", "no"
-                        ),
-                    )
+                        self._checkMacOSBundleOnefileMode(
+                            full_name=full_name,
+                            macos_bundle_as_onefile=options_config.get(
+                                "macos_bundle_as_onefile", "no"
+                            ),
+                        )
 
         return ()

@@ -254,6 +254,25 @@ PyObject *IMPORT_HARD_IO(void) {
     return module_import_hard_io;
 }
 
+/* C helper for hard import of module "ntpath" import. */
+PyObject *IMPORT_HARD_NTPATH(void) {
+    static PyObject *module_import_hard_ntpath = NULL;
+
+    if (module_import_hard_ntpath == NULL) {
+        module_import_hard_ntpath = PyImport_ImportModule("ntpath");
+
+        if (unlikely(module_import_hard_ntpath == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'ntpath'");
+            abort();
+        }
+    }
+
+    return module_import_hard_ntpath;
+}
+
 /* C helper for hard import of module "os" import. */
 PyObject *IMPORT_HARD_OS(void) {
     static PyObject *module_import_hard_os = NULL;
@@ -305,6 +324,25 @@ PyObject *IMPORT_HARD_PKGUTIL(void) {
     }
 
     return module_import_hard_pkgutil;
+}
+
+/* C helper for hard import of module "posixpath" import. */
+PyObject *IMPORT_HARD_POSIXPATH(void) {
+    static PyObject *module_import_hard_posixpath = NULL;
+
+    if (module_import_hard_posixpath == NULL) {
+        module_import_hard_posixpath = PyImport_ImportModule("posixpath");
+
+        if (unlikely(module_import_hard_posixpath == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'posixpath'");
+            abort();
+        }
+    }
+
+    return module_import_hard_posixpath;
 }
 
 /* C helper for hard import of module "site" import. */

@@ -51,6 +51,18 @@ class ExpressionBase(NodeBase):
     __slots__ = ("code_generated",)
 
     @staticmethod
+    def isExpression():
+        return True
+
+    @staticmethod
+    def isStatement():
+        return False
+
+    @staticmethod
+    def isStatementsSequence():
+        return False
+
+    @staticmethod
     def getTypeShape():
         return tshape_unknown
 
@@ -706,7 +718,7 @@ class ExpressionBase(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # None indicates no replacement action.
-        return None, None
+        return None, None, None
 
     @staticmethod
     def onContentEscapes(trace_collection):
@@ -1180,8 +1192,13 @@ Predicted '%s' on compiled time constant values."""
 
         # Dealt with through dedicated nodes.
         assert type(constant) is not bool
+        truth_value = bool(constant)
 
-        return bool(constant), "Predicted compile time constant truth value."
+        result = makeConstantReplacementNode(
+            constant=truth_value, node=self, user_provided=False
+        )
+
+        return truth_value, result, "Predicted compile time constant truth value."
 
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
@@ -1530,6 +1547,7 @@ class ExpressionSpecBasedComputationMixin(object):
             computation=lambda: self.builtin_spec.simulateCall(given_values),
             description="Built-in call to '%s' pre-computed."
             % (self.builtin_spec.getName()),
+            user_provided=self.builtin_spec.isUserProvided(given_values),
         )
 
 

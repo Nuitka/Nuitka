@@ -63,14 +63,22 @@ class Yaml(object):
 
             self.data[module_name] = item
 
-    def __rep__(self):
+    def __repr__(self):
         return "<Yaml %s>" % self.name
 
     def get(self, name, section):
+        """Return a configs for that section."""
         result = self.data.get(name)
 
         if result is not None:
-            result = result.get(section)
+            result = result.get(section, ())
+        else:
+            result = ()
+
+        # TODO: Ought to become a list universally, but data-files currently
+        # are not, and options-nanny too.
+        if type(result) in (dict, OrderedDict):
+            result = (result,)
 
         return result
 

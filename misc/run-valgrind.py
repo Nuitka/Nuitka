@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Run code with Nuitka compiled and put that through valgrind.
+""" Run code with Nuitka compiled and put that through Valgrind.
 
 """
 

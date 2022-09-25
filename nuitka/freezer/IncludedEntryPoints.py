@@ -40,13 +40,21 @@ from nuitka.utils.SharedLibraries import getDLLVersion
 
 IncludedEntryPoint = collections.namedtuple(
     "IncludedEntryPoint",
-    ("logger", "kind", "source_path", "dest_path", "package_name", "executable"),
+    (
+        "logger",
+        "kind",
+        "source_path",
+        "dest_path",
+        "package_name",
+        "executable",
+        "reason",
+    ),
 )
 
 
 # Since inheritance is not a thing with namedtuple, have factory functions
 def _makeIncludedEntryPoint(
-    logger, kind, source_path, dest_path, package_name, executable
+    logger, kind, source_path, dest_path, package_name, reason, executable
 ):
     if package_name is not None:
         package_name = ModuleName(package_name)
@@ -54,12 +62,18 @@ def _makeIncludedEntryPoint(
     assert type(executable) is bool, executable
 
     return IncludedEntryPoint(
-        logger, kind, source_path, os.path.normpath(dest_path), package_name, executable
+        logger,
+        kind,
+        source_path,
+        os.path.normpath(dest_path),
+        package_name,
+        executable,
+        reason,
     )
 
 
 def _makeDllOrExeEntryPoint(
-    logger, kind, source_path, dest_path, package_name, executable
+    logger, kind, source_path, dest_path, package_name, reason, executable
 ):
     assert type(dest_path) not in (tuple, list)
     assert type(source_path) not in (tuple, list)
@@ -68,10 +82,9 @@ def _makeDllOrExeEntryPoint(
 
     if not os.path.isfile(source_path):
         logger.sysexit(
-            "Error, attempting to include file '%s' that does not exist." % source_path
+            "Error, attempting to include file '%s' (%s) that does not exist."
+            % (source_path, reason)
         )
-
-    assert os.path.exists(source_path), source_path
 
     return _makeIncludedEntryPoint(
         logger=logger,
@@ -79,39 +92,43 @@ def _makeDllOrExeEntryPoint(
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
+        reason=reason,
         executable=executable,
     )
 
 
-def makeExtensionModuleEntryPoint(logger, source_path, dest_path, package_name):
+def makeExtensionModuleEntryPoint(logger, source_path, dest_path, package_name, reason):
     return _makeDllOrExeEntryPoint(
         logger=logger,
         kind="extension",
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
+        reason=reason,
         executable=False,
     )
 
 
-def makeDllEntryPoint(logger, source_path, dest_path, package_name):
+def makeDllEntryPoint(logger, source_path, dest_path, package_name, reason):
     return _makeDllOrExeEntryPoint(
         logger=logger,
         kind="dll",
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
+        reason=reason,
         executable=False,
     )
 
 
-def makeExeEntryPoint(logger, source_path, dest_path, package_name):
+def makeExeEntryPoint(logger, source_path, dest_path, package_name, reason):
     return _makeDllOrExeEntryPoint(
         logger=logger,
         kind="exe",
         source_path=source_path,
         dest_path=dest_path,
         package_name=package_name,
+        reason=reason,
         executable=True,
     )
 
@@ -123,6 +140,7 @@ def makeMainExecutableEntryPoint(dest_path):
         source_path=dest_path,
         dest_path=os.path.basename(dest_path),
         package_name=None,
+        reason="main binary",
         executable=True,
     )
 
@@ -134,6 +152,7 @@ def _makeIgnoredEntryPoint(entry_point):
         source_path=entry_point.source_path,
         dest_path=entry_point.dest_path,
         package_name=entry_point.package_name,
+        reason=entry_point.reason,
         executable=entry_point.executable,
     )
 
@@ -247,6 +266,8 @@ def addExtensionModuleEntryPoint(module):
             dest_path=module.getFullName().asPath()
             + getSharedLibrarySuffix(preferred=False),
             package_name=module.getFullName().getPackageName(),
+            # TODO: Which module(s) us it?
+            reason="used extension module",
         )
     )
 

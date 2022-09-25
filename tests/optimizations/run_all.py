@@ -48,8 +48,8 @@ sys.path.insert(
 )
 
 # isort:start
+
 from nuitka.tools.testing.Common import (
-    check_output,
     convertUsing2to3,
     createSearchMode,
     decideFilenameVersionSkip,
@@ -59,8 +59,10 @@ from nuitka.tools.testing.Common import (
     withPythonPathChange,
 )
 from nuitka.TreeXML import toString
+from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import getFileContents
 
-python_version = setup(suite="optimiations")
+python_version = setup(suite="optimizations")
 
 search_mode = createSearchMode()
 
@@ -181,7 +183,7 @@ def checkSequence(filename, statements):
 
 
 def main():
-    # Complex stuff, pylint: disable=too-many-branches
+    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 
     for filename in sorted(os.listdir(".")):
         if not filename.endswith(".py") or filename.startswith("run_"):
@@ -201,12 +203,17 @@ def main():
 
             my_print("Consider", filename, end=" ")
 
+            xml_filename = filename.replace(".py", ".xml")
+
             command = [
                 os.environ["PYTHON"],
                 os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
-                "--xml",
+                "--xml=%s" % xml_filename,
                 "--quiet",
                 "--module",
+                "--nofollow-imports",
+                "--generate-c-only",
+                "--no-progressbar",
                 filename,
             ]
 
@@ -230,9 +237,10 @@ def main():
                 python_path = None
 
             with withPythonPathChange(python_path):
-                result = check_output(command)
+                check_call(command)
 
-            # Parse the result into XML and check it.
+            # Parse the result into XML and check it
+            result = getFileContents(xml_filename)
             try:
                 root = lxml.etree.fromstring(result)
             except lxml.etree.XMLSyntaxError:

@@ -20,7 +20,6 @@
 Note: MSYS2, aka POSIX Windows is dealt with in the "DllDependenciesPosix" module.
 """
 
-import hashlib
 import os
 import sys
 
@@ -40,6 +39,7 @@ from nuitka.utils.FileOperations import (
     putTextFileContents,
     withFileLock,
 )
+from nuitka.utils.Hashing import Hash
 from nuitka.utils.SharedLibraries import getPyWin32Dir
 
 from .DependsExe import detectDLLsWithDependencyWalker
@@ -98,6 +98,9 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
 
 
 def _getScanDirectories(package_name, original_dir):
+    # TODO: Move PyWin32 specific stuff to yaml dll section
+    # pylint: disable=too-many-branches
+
     cache_key = package_name, original_dir
 
     if cache_key in _scan_dir_cache:
@@ -137,8 +140,13 @@ def _getScanDirectories(package_name, original_dir):
     for scan_dir in scan_dirs:
         scan_dir = getDirectoryRealPath(scan_dir)
 
-        # Not a directory, or no DLLs, no use.
-        if not os.path.isdir(scan_dir) or not any(listDllFilesFromDirectory(scan_dir)):
+        # Not a directory, or no DLLs, or not accessible, no use.
+        try:
+            if not os.path.isdir(scan_dir) or not any(
+                listDllFilesFromDirectory(scan_dir)
+            ):
+                continue
+        except OSError:
             continue
 
         result.append(os.path.realpath(scan_dir))
@@ -153,28 +161,28 @@ def _getCacheFilename(
     original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
     original_filename = os.path.normcase(original_filename)
 
+    hash_value = Hash()
+
     if is_main_executable:
         # Normalize main program name for caching as well, but need to use the
         # scons information to distinguish different compilers, so we use
         # different libs there.
-
-        # Ignore values, that are variable per compilation.
-        hashed_value = "".join(
-            key + value
-            for key, value in iterItems(readSconsReport(source_dir=source_dir))
-            if key not in ("CLCACHE_STATS", "CCACHE_LOGFILE", "CCACHE_DIR")
+        hash_value.updateFromValues(
+            "".join(
+                key + value
+                for key, value in iterItems(readSconsReport(source_dir=source_dir))
+                # Ignore values, that are variable per compilation.
+                if key not in ("CLCACHE_STATS", "CCACHE_LOGFILE", "CCACHE_DIR")
+            )
         )
     else:
-        hashed_value = original_filename
+        hash_value.updateFromValues(original_filename)
+        hash_value.updateFromFile(filename=original_filename)
 
     # Have different values for different Python major versions.
-    hashed_value += sys.version + sys.executable
-
-    if str is not bytes:
-        hashed_value = hashed_value.encode("utf8")
+    hash_value.updateFromValues(sys.version, sys.executable)
 
     cache_dir = os.path.join(getCacheDir(), "library_dependencies", dependency_tool)
-
     makePath(cache_dir)
 
-    return os.path.join(cache_dir, hashlib.md5(hashed_value).hexdigest())
+    return os.path.join(cache_dir, hash_value.asHexDigest())
