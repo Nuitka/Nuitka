@@ -70,17 +70,17 @@ def main():
         extra_flags = ["expect_success"]
 
         # We annotate some tests, use that to lower warnings.
-        extra_flags.append("plugin_enable:pylint-warnings")
         extra_flags.append("remove_output")
-        extra_flags.append("--follow-imports")
 
-        plugin_files = [p for p in os.listdir(filename) if p.endswith("-plugin.py")]
+        user_plugin_files = [
+            p for p in os.listdir(filename) if p.endswith("-plugin.py")
+        ]
 
-        assert plugin_files
-        extra_flags.extend(
-            "user_plugin:" + os.path.abspath(os.path.join(filename, p))
-            for p in plugin_files
-        )
+        if user_plugin_files:
+            extra_flags.extend(
+                "user_plugin:" + os.path.abspath(os.path.join(filename, p))
+                for p in user_plugin_files
+            )
 
         if filename == "parameters":
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + " --trace-my-plugin"
