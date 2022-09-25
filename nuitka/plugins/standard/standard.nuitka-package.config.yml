@@ -1631,6 +1631,11 @@
         prefixes:
           - 'libcgto'
 
+- module-name: 'pyscf.gto.basis'
+  data-files:
+    patterns:
+      - '**/*.dat'
+
 - module-name: 'pyscf.lib.numpy_helper'
   dlls:
     - from_filenames:
