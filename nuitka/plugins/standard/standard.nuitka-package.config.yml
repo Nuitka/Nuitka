@@ -246,6 +246,12 @@
     patterns:
       - 'dask.yaml'
 
+- module-name: 'dask.dataframe._compat'
+  anti-bloat:
+    - description: 'remove pandas.testing reference'
+      replacements_plain:
+        'import pandas.testing as tm': ''
+
 - module-name: 'datatree'
   anti-bloat:
     - description: 'remove useless metadata usage'
