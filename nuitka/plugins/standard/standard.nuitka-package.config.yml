@@ -892,6 +892,11 @@
       change_function:
         'disassemble_elf_to_cfg': 'un-callable'
 
+- module-name: 'numcodecs.blosc'
+  implicit-imports:
+    - depends:
+        - 'numcodecs.compat_ext'
+
 - module-name: 'numexpr'
   anti-bloat:
     - description: 'remove numexpr.tests usage'
