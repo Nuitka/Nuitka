@@ -10,6 +10,10 @@ Nuitka blog.
  Nuitka Release 1.1 (Draft)
 ****************************
 
+This release contains a large amount of new compatibility features,
+while consolidating what we have. Scalability should be better in some
+cases
+
 Bug Fixes
 =========
 
@@ -309,6 +313,7 @@ Organisational
    values in the middle of path specs, so using e.g.
    ``something/%PROGRAM%`` is now a mistake caught at compile time.
    These values can only be at the start of spec values naturally.
+
 -  Updated to newer version of ``rstfmt``.
 
 -  UI: Nicer error message when forbidden import is done by an implicit
@@ -387,7 +392,32 @@ Tests
 
 -  Tests: Added support for running a local web server.
 
-This release is not done yet.
+Summary
+=======
+
+This release is mainly a consolidation of previous release. Optimization
+added before did in fact introduce regressions, that needed to be
+addressed and were cause for many hotfixes.
+
+The Yaml nuitka package configuration feature is getting ever more
+powerful, but is not one bit more documented, such that the community as
+a whole is not yet capable of adding missing dependencies, data files,
+DLLs, and even anti-bloat patches.
+
+New optimization was focused around compatibility with very few
+exceptions, where the non-automatic standard library work is standing
+out, and allows for smaller binaries in many cases.
+
+Scalability has seen improvements through a few optimization, but mainly
+again with anti-bloat work being done. This is owed to the fact that
+consolidation was the name of the game.
+
+For Anaconda specifically, a lot more software is covered, and
+generally, ``cv2`` and ``torch`` related tools are now working better.
+
+The compilation report contains much more information and is getting
+there is terms of completeness. At some point, we should ask for it in
+bug reports.
 
 ********************
  Nuitka Release 1.0
