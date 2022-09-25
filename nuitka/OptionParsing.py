@@ -1477,7 +1477,8 @@ auto_updates_group.add_option(
     help="URL to check for automatic updates. (Not implemented yet). Default empty.",
 )
 
-parser.add_option_group(auto_updates_group)
+# TODO: Move to plugin and make it wor
+# parser.add_option_group(auto_updates_group)
 
 
 def _considerPluginOptions(logger):
