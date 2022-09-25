@@ -1353,7 +1353,7 @@ def getPluginOptions(plugin_name):
         if "[REQUIRED]" in option.help:
             if not arg_value:
                 plugins_logger.sysexit(
-                    "Error, required plugin argument %r of Nuitka plugin %s not given."
+                    "Error, required plugin argument '%s' of Nuitka plugin '%s' not given."
                     % (option_name, plugin_name)
                 )
 
