@@ -1574,6 +1574,12 @@
       replacements_plain:
         'import doctest': ''
 
+- module-name: 'pyscf'
+  anti-bloat:
+    - description: 'remove useless plugin warning'
+      replacements_plain:
+        "not all('/site-packages/' in p for p in __path__[1:])": 'False'
+
 - module-name: 'pyscf.agf2._agf2'
   dlls:
     - from_filenames:
