@@ -196,13 +196,13 @@ def _buildMatchSequence(provider, pattern, make_against, source_ref):
             offset = -(len(pattern.patterns) - count)
 
         if seq_pattern.__class__ is ast.MatchStar:
+            star_pos = count
+
             variable_name = seq_pattern.name
 
             if variable_name is not None:
                 assert "." not in variable_name, variable_name
                 assert "!" not in variable_name, variable_name
-
-                star_pos = count
 
                 # Last one
                 if star_pos == len(pattern.patterns):
