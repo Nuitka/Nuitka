@@ -1361,6 +1361,11 @@
       replacements:
         'from IPython.display import display as ipython_display': "'raise ImportError'"
 
+- module-name: 'pint.registry'
+  data-files:
+    patterns:
+      - '*.txt'
+
 - module-name: 'pkg_resources'
   anti-bloat:
     - description: 'avoid using plistlib dependency on non-macOS'
