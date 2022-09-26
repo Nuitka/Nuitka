@@ -283,6 +283,11 @@
         - '.IN.A'
         - '.CH.A'
 
+- module-name: 'echopype.echodata.convention'
+  data-files:
+    patterns:
+      - '*.yml'
+
 - module-name: 'eel'
   data-files:
     patterns:
