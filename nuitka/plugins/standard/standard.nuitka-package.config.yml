@@ -2865,6 +2865,11 @@
     patterns:
       - 'data.bin'
 
+- module-name: 'thinc.backends.cblas'
+  implicit-imports:
+    - depends:
+        - 'blis'
+
 - module-name: 'tifffile.tifffile'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
