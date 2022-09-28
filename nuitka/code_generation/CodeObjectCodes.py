@@ -22,7 +22,8 @@ Right now only the creation is done here. But more should be added later on.
 
 import os
 
-from nuitka import Options
+from nuitka.Options import getFileReferenceMode
+from nuitka.PythonVersions import python_version
 
 
 def getCodeObjectsDeclCode(context):
@@ -72,7 +73,7 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
     if code_object_handle.co_has_stardict:
         co_flags.append("CO_VARKEYWORDS")
 
-    if not code_object_handle.co_freevars:
+    if not code_object_handle.co_freevars and python_version < 0x3B0:
         co_flags.append("CO_NOFREE")
 
     co_flags.extend(code_object_handle.future_flags)
@@ -106,7 +107,7 @@ def getCodeObjectsInitCode(context):
 
     # We do not care about release of this object, as code object live
     # forever anyway.
-    if Options.getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
+    if getFileReferenceMode() == "frozen" or os.path.isabs(module_filename):
         template = "module_filename_obj = %s; CHECK_OBJECT(module_filename_obj);"
     else:
         template = "module_filename_obj = MAKE_RELATIVE_PATH(%s); CHECK_OBJECT(module_filename_obj);"
