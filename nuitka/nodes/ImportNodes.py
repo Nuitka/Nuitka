@@ -665,7 +665,7 @@ class ExpressionImportModuleHard(
                 return (
                     new_node,
                     "new_raise",
-                    "Hard module %s attribute missing %r pre-computed."
+                    "Hard module '%s' attribute missing '%s* pre-computed."
                     % (self.value_name, attribute_name),
                 )
             else:
@@ -691,14 +691,14 @@ class ExpressionImportModuleHard(
                             return (
                                 result,
                                 "new_expression",
-                                "Attribute lookup %s of hard module %r becomes hard module name import."
+                                "Attribute lookup '%s* of hard module *%s* becomes hard module name import."
                                 % (self.value_name, attribute_name),
                             )
 
                     trace_collection.onExceptionRaiseExit(ImportError)
 
                     onMissingTrust(
-                        "Hard module %s attribute %r missing trust config for existing value.",
+                        "Hard module '%s' attribute '%s' missing trust config for existing value.",
                         lookup_node.getSourceReference(),
                         self.value_name,
                         attribute_name,
@@ -714,7 +714,7 @@ class ExpressionImportModuleHard(
                             user_provided=True,
                         ),
                         "new_constant",
-                        "Hard module %s imported %r pre-computed to constant value."
+                        "Hard module '%s' imported '%s' pre-computed to constant value."
                         % (self.value_name, attribute_name),
                     )
                 elif trust is trust_node:
@@ -725,7 +725,7 @@ class ExpressionImportModuleHard(
                     return (
                         result,
                         "new_expression",
-                        "Attribute lookup %s of hard module %r becomes node %r."
+                        "Attribute lookup '%s' of hard module '%s' becomes node '%s'."
                         % (self.value_name, attribute_name, result.kind),
                     )
                 else:
@@ -739,7 +739,7 @@ class ExpressionImportModuleHard(
                     return (
                         result,
                         "new_expression",
-                        "Attribute lookup %s of hard module %r becomes hard module name import."
+                        "Attribute lookup '%s' of hard module '%s' becomes hard module name import."
                         % (self.value_name, attribute_name),
                     )
 
