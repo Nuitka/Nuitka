@@ -1361,6 +1361,13 @@
       replacements:
         'from IPython.display import display as ipython_display': "'raise ImportError'"
 
+- module-name: 'pint.compat'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'from dask import array as dask_array': 'raise ImportError'
+      when: 'not use_dask'
+
 - module-name: 'pint.registry'
   data-files:
     patterns:
@@ -3200,6 +3207,113 @@
   data-files:
     dirs:
       - 'static'
+
+- module-name: 'xarray.backends.locks'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        # TODO: This should be something special, where imports for a name
+        # are all forced to ImportError during building and/or optimization.
+        'from dask.utils import SerializableLock': 'raise ImportError'
+        'from dask.distributed import Lock as DistributedLock': 'raise ImportError'
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.coding.variables'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'if is_duck_dask_array(array):': 'if False:'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.dask_array_ops'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.dataset'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+        'if lazy_data:': 'if False:'
+        'from dask.delayed import Delayed': 'raise ImportError'
+      change_function:
+        '__dask_tokenize__': 'un-callable'
+        '__dask_graph__': 'un-callable'
+        '__dask_keys__': 'un-callable'
+        '__dask_layers__': 'un-callable'
+        '__dask_optimize__': 'un-callable'
+        '__dask_scheduler__': 'un-callable'
+        '_dask_postcompute': 'un-callable'
+        'to_dask_dataframe': 'un-callable'
+        '_get_chunk': 'un-callable'
+        '_maybe_chunk': 'un-callable'
+        '_dask_postpersist': 'un-callable'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.duck_array_ops'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+        'dask_array_compat, dask_array_ops, ': ''
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.indexing'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      change_function:
+        '_dask_array_with_chunks_hint': 'un-callable'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.missing'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'if is_duck_dask_array(var):': 'if False:'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.nanops'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.parallel'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.pycompat'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'mod == "dask"': 'False'
+        'dsk.available': 'False'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.utils'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      change_function:
+        # TODO: Rather than un-callable, these we may want to just skip
+        '__dask_tokenize__': 'un-callable'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.variable'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      change_function:
+        # TODO: Rather than un-callable, these we may want to just skip
+        '__dask_tokenize__': 'un-callable'
+        'chunk': 'un-callable'
+      when: 'not use_dask'
 
 - module-name: 'xgboost'
   data-files:
