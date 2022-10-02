@@ -58,24 +58,3 @@ def getCacheDir():
         makePath(_cache_dir)
 
     return _cache_dir
-
-
-_app_dir = None
-
-
-def getAppDir():
-    global _app_dir  # singleton, pylint: disable=global-statement
-
-    if _app_dir is None:
-        if appdirs is not None:
-            _app_dir = appdirs.user_data_dir("Nuitka", None)
-        else:
-            _app_dir = os.path.join(os.path.expanduser("~"), ".config", "Nuitka")
-
-        # For people that build with HOME set this, e.g. Debian.
-        if _app_dir.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
-            _app_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
-
-        makePath(_app_dir)
-
-    return _app_dir

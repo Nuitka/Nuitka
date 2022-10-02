@@ -25,7 +25,7 @@ import os
 from nuitka import Tracing
 from nuitka.__past__ import raw_input, urlretrieve
 
-from .AppDirs import getAppDir
+from .AppDirs import getCacheDir
 from .FileOperations import addFileExecutablePermission, deleteFile, makePath
 
 
@@ -42,22 +42,22 @@ def getCachedDownload(
     # Many branches to deal with.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    nuitka_app_dir = getAppDir()
+    nuitka_download_dir = os.path.join(getCacheDir(), "downloads")
 
-    nuitka_app_dir = os.path.join(
-        nuitka_app_dir, os.path.basename(binary).replace(".exe", "")
+    nuitka_download_dir = os.path.join(
+        nuitka_download_dir, os.path.basename(binary).replace(".exe", "")
     )
 
     if is_arch_specific:
-        nuitka_app_dir = os.path.join(nuitka_app_dir, is_arch_specific)
+        nuitka_download_dir = os.path.join(nuitka_download_dir, is_arch_specific)
 
     if specificity:
-        nuitka_app_dir = os.path.join(nuitka_app_dir, specificity)
+        nuitka_download_dir = os.path.join(nuitka_download_dir, specificity)
 
-    download_path = os.path.join(nuitka_app_dir, os.path.basename(url))
-    exe_path = os.path.join(nuitka_app_dir, binary)
+    download_path = os.path.join(nuitka_download_dir, os.path.basename(url))
+    exe_path = os.path.join(nuitka_download_dir, binary)
 
-    makePath(nuitka_app_dir)
+    makePath(nuitka_download_dir)
 
     if not os.path.isfile(download_path) and not os.path.isfile(exe_path):
         if assume_yes_for_downloads:
@@ -72,7 +72,7 @@ Is it OK to download and put it in '%s'.
 No installer needed, cached, one time question.
 
 Proceed and download? [Yes]/No """
-                % (message, nuitka_app_dir)
+                % (message, nuitka_download_dir)
             )
             Tracing.flushStandardOutputs()
 
@@ -114,7 +114,7 @@ Proceed and download? [Yes]/No """
                 if flatten:
                     zip_info.filename = os.path.basename(zip_info.filename)
 
-                zip_file.extract(zip_info, nuitka_app_dir)
+                zip_file.extract(zip_info, nuitka_download_dir)
 
         except Exception:  # Catching anything zip throws, pylint: disable=broad-except
             Tracing.general.info("Problem with the downloaded zip file, deleting it.")
