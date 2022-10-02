@@ -45,6 +45,9 @@ recursive-include tests/standalone *.py
 recursive-include tests/onefile *.py
 recursive-include tests/reflected *.py
 recursive-include tests/plugins *.py
+recursive-include tests/plugins *.yml
+include tests/plugins/data_files/data_files_package/*.txt
+include tests/plugins/data_files/data_files_package/sub_dir/*.txt
 
 # C templates for code generation.
 recursive-include nuitka/code_generation/templates_c *.j2

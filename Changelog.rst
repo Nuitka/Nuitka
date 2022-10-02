@@ -77,7 +77,7 @@ Bug Fixes
 -  Standalone: Fix, empty directory structures were not working anymore
    due to a regression in the last release. Fixed in 1.0.5 already.
 
--  Windows: Fix, detected Pythons from registry mail fail to execute,
+-  Windows: Fix, detected Pythons from registry may fail to execute,
    because they were e.g. manually deleted. This could e.g. affect
    onefile compression. Fixed in 1.0.5 already.
 
@@ -89,8 +89,8 @@ Bug Fixes
    reason, which can lead to errors for users who have a module of the
    same name hiding it. Fixed in 1.0.6 already.
 
--  Fix, disable LTO for Anaconda Python, it is known to not work work.
-   Fixed in 1.0.6 already.
+-  Fix, disable LTO for Anaconda Python, it is known to not work. Fixed
+   in 1.0.6 already.
 
 -  Fix, no need to insist on icon path for Linux onefile anymore. Fixed
    in 1.0.6 already.
@@ -111,8 +111,6 @@ Bug Fixes
 
 -  Fix, do not crash in version detection on ``gcc`` error exit querying
    of its version.
-
--  Standalone: Added data files needed for ``pyenchant`` package.
 
 -  Standalone: Added back support for older versions of the ``pyzmq``
    package.
@@ -174,7 +172,7 @@ New Features
    changeable. For a long time, this was a relatively big issue for some
    packages, but now this is supported as well.
 
--  Onefile: Added support including other binaries than the main
+-  Onefile: Added support for including other binaries than the main
    executable in the payload. So far on non-Windows, we only made the
    main binary executable, hard coded, and nothing else. But Some
    things, e.g. Qt web engine, do require binaries to be used, and these
