@@ -56,6 +56,10 @@ static PyObject *Nuitka_ResourceReaderFiles_tp_repr(struct Nuitka_ResourceReader
     return PyUnicode_FromFormat("<nuitka_resource_reader_files for '%s'>", files->m_loader_entry->name);
 }
 
+static PyObject *Nuitka_ResourceReaderFiles_tp_str(struct Nuitka_ResourceReaderFilesObject *files) {
+    return _Nuitka_ResourceReaderFiles_GetPath(files);
+}
+
 // Obligatory, even if we have nothing to own
 static int Nuitka_ResourceReaderFiles_tp_traverse(struct Nuitka_ResourceReaderFilesObject *files, visitproc visit,
                                                   void *arg) {
@@ -320,7 +324,7 @@ static PyTypeObject Nuitka_ResourceReaderFiles_Type = {
     0,                                                    /* tp_as_mapping */
     0,                                                    /* tp_hash */
     0,                                                    /* tp_call */
-    0,                                                    /* tp_str */
+    (reprfunc)Nuitka_ResourceReaderFiles_tp_str,          /* tp_str */
     PyObject_GenericGetAttr,                              /* tp_getattro */
     0,                                                    /* tp_setattro */
     0,                                                    /* tp_as_buffer */

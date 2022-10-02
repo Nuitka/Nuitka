@@ -465,6 +465,7 @@ class CompiledPythonModule(
 
     def restartTraversal(self):
         self.visited_functions = set()
+        self.used_modules = None
 
     def getUsedModules(self):
         if self.used_modules is None:
