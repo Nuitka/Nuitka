@@ -490,9 +490,11 @@ pid_t handle_process = 0;
 
 static filename_char_t payload_path[4096] = {0};
 
+#if _NUITKA_ONEFILE_TEMP == 1
 static bool payload_created = false;
+#endif
 
-bool createDirectory(filename_char_t *path) {
+static bool createDirectory(filename_char_t const *path) {
 #if defined(_WIN32)
     BOOL bool_res = CreateDirectoryW(path, NULL);
     return bool_res;
@@ -501,14 +503,35 @@ bool createDirectory(filename_char_t *path) {
 #endif
 }
 
+static void createContainingDirectory(filename_char_t const *path) {
+    static filename_char_t dir_path[4096] = {0};
+    dir_path[0] = 0;
+
+    appendStringSafeFilename(dir_path, path, sizeof(dir_path) / sizeof(filename_char_t));
+
+    filename_char_t *w = dir_path;
+
+    while (*w) {
+        if (*w == FILENAME_SEP_CHAR) {
+            *w = 0;
+
+            createDirectory(dir_path);
+
+            *w = FILENAME_SEP_CHAR;
+        }
+
+        w++;
+    }
+}
+
 #if defined(_WIN32)
-void removeDirectory(wchar_t const *path) {
+static void removeDirectory(wchar_t const *path) {
     SHFILEOPSTRUCTW file_op_struct = {
         NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
     SHFileOperationW(&file_op_struct);
 }
 #else
-int removeDirectory(char const *path) {
+static int removeDirectory(char const *path) {
     DIR *d = opendir(path);
     size_t path_len = strlen(path);
 
@@ -1170,9 +1193,6 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
 
-    createDirectory(payload_path);
-    payload_created = true;
-
 #if defined(_WIN32)
     exe_file = CreateFileW(getBinaryPath(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (exe_file == INVALID_HANDLE_VALUE) {
@@ -1275,42 +1295,23 @@ int main(int argc, char **argv) {
 
     // printf("Entering decompression loop:");
 
+#if _NUITKA_ONEFILE_TEMP == 1
+    payload_created = true;
+#endif
+
     for (;;) {
         filename_char_t *filename = readPayloadFilename();
 
-        // printf("Filename: %s\n", filename);
+        // printf("Filename: " FILENAME_FORMAT_STR "\n", filename);
 
         // Detect EOF from empty filename.
         if (filename[0] == 0) {
             break;
         }
 
-        // puts("at:");
-        // _putws(filename);
-
         static filename_char_t target_path[4096] = {0};
         target_path[0] = 0;
 
-        filename_char_t *w = filename;
-
-        while (*w) {
-            if (*w == FILENAME_SEP_CHAR) {
-                *w = 0;
-
-                target_path[0] = 0;
-                appendStringSafeFilename(target_path, payload_path, sizeof(target_path) / sizeof(filename_char_t));
-                appendCharSafeFilename(target_path, FILENAME_SEP_CHAR, sizeof(target_path) / sizeof(filename_char_t));
-                appendStringSafeFilename(target_path, filename, sizeof(target_path) / sizeof(filename_char_t));
-
-                *w = FILENAME_SEP_CHAR;
-
-                createDirectory(target_path);
-            }
-
-            w++;
-        }
-
-        target_path[0] = 0;
         appendStringSafeFilename(target_path, payload_path, sizeof(target_path) / sizeof(filename_char_t));
         appendCharSafeFilename(target_path, FILENAME_SEP_CHAR, sizeof(target_path) / sizeof(filename_char_t));
         appendStringSafeFilename(target_path, filename, sizeof(target_path) / sizeof(filename_char_t));
@@ -1345,6 +1346,7 @@ int main(int argc, char **argv) {
         FILE_HANDLE target_file = FILE_HANDLE_NULL;
 
         if (needs_write) {
+            createContainingDirectory(target_path);
             target_file = createFileForWriting(target_path);
         }
 
