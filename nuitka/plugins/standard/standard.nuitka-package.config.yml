@@ -1842,7 +1842,7 @@
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
-        'get_ipython()': 'raise NameError'
+        'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
 
 - module-name: 'scipy._lib'
