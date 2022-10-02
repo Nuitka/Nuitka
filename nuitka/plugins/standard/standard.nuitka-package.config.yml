@@ -688,6 +688,13 @@
         '__IPYTHON__': 'raise NameError'
       when: 'not use_ipython'
 
+- module-name: 'llvmlite.binding.ffi'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'llvmlite'
+          - 'libllvmlite'
+
 - module-name: 'lxml'
   implicit-imports:
     - depends:
