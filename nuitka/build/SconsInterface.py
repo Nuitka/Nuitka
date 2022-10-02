@@ -443,7 +443,7 @@ def setCommonOptions(options):
         product_version = ".".join(str(d) for d in product_version)
     if file_version is None:
         file_version = product_version
-    if file_version is not None:
+    else:
         file_version = ".".join(str(d) for d in file_version)
 
     if product_version != file_version:
