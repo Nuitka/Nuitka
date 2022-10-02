@@ -40,10 +40,7 @@ _fstrings_installed = False
 
 
 def _installFutureFStrings():
-    """Install fake UTF8 handle just as future-fstrings does.
-
-    This unbreaks at least
-    """
+    """Install fake UTF8 handle just as future-fstrings does."""
 
     # Singleton, pylint: disable=global-statement
     global _fstrings_installed

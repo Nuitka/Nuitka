@@ -137,6 +137,7 @@
         "finalizer",
         "FLUFL",
         "frozenset",
+        "fstrings",
         "getpreferredencoding",
         "girepository",
         "Gitter",
