@@ -156,6 +156,7 @@
         "inplace",
         "iolddiv",
         "ipython",
+        "isdir",
         "isfile",
         "isgenerator",
         "isort",

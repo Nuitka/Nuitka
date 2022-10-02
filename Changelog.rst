@@ -10,6 +10,45 @@ Nuitka blog.
  Nuitka Release 1.2 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Standalone: Added implicit dependency of ``thinc`` backend. Fixed in
+   1.1.1 already.
+
+-  Python3.10: Fix, ``match`` statements with unnamed star matches could
+   give incorrect results. Fixed in 1.1.1 already.
+
+      .. code:: python
+
+         match x:
+            case [*_, y]:
+                  ... # y had wrong value here.
+
+-  Python3.9+: Fix, file reader objects must convert to ``str`` objects.
+   Fixed in 1.1.1 already.
+
+      .. code:: python
+
+         # This was the `repr` rather than a path value, but it must be usable
+         # like that too.
+         str(importlib.resources.files("package_name").joinpath("lala"))
+
+-  Standalone: Added data file of ``echopype`` package. Fixed in 1.1.1
+   already.
+
+-  Anti-Bloat: Remove non-sense warning of compiled ``pyscf``. Fixed in
+   1.1.1 already.
+
+Optimization
+============
+
+-  Disabled C compilation of very large ``azure`` modules.
+
+-  The module usage from first pass was used in later passes. But since
+   they can get optimized away, we have to update them. So far this
+   makes no difference, but in the future it would.
+
 This release is not done yet.
 
 ********************
@@ -18,35 +57,29 @@ This release is not done yet.
 
 This release contains a large amount of new compatibility features,
 while consolidating what we have. Scalability should be better in some
-cases
+cases.
 
 Bug Fixes
 =========
 
--  Compatibility: Register Nuitka meta path based loader with
-   ``pkg_resources`` such that checking resource presence with
-   ``has_resource`` works too. This should also add support for using
-   ``jinja2.PackageLoader``, previously only ``jinja2.FileSystemLoader``
-   worked. Fixed in 1.0.1 already.
-
--  Standalone: Enhanced dependency scan of dependent DLLs to forward
-   containing package. This fixed at least PySide on macOS. Fixed in
-   1.0.1 already.
+-  Standalone: Enhanced dependency scan of dependent DLLs to forward the
+   containing package, so it can be searched in as well. This fixed at
+   least PySide on macOS. Fixed in 1.0.1 already.
 
 -  macOS: Enhanced dependency detection to use normalized paths and
-   therefore to work more often. Fixed in 1.0.1 already.
+   therefore to be more stable. Fixed in 1.0.1 already.
 
--  Standalone: Added support for the ``networkx`` package which needed a
-   workaround for a function decorator trying to copy default values.
-   Fixed in 1.0.1 already.
+-  Standalone: Added support for the ``networkx`` package which uses new
+   support for a function decorator trying to copy function default
+   values. Fixed in 1.0.1 already.
 
 -  Standalone: Include data files for ``pandas.io.format`` package. This
    one has Jinja2 template files that will be needed when using this
    package.
 
--  Python3.10: Fix, could crash in case a class was not giving match
-   args, but the user did attempt to match them. This happened e.g. with
-   ``range`` objects. Fixed in 1.0.2 already.
+-  Python3.10: Fix, could crash in case a class was not giving ``match``
+   arguments, but the user did attempt to match them. This happened e.g.
+   with ``range`` objects. Fixed in 1.0.2 already.
 
 -  Standalone: Added data files needed for ``pyenchant`` package. Fixed
    in 1.0.2 already.
@@ -55,7 +88,8 @@ Bug Fixes
    didn't check for sub-pattern given. Fixed in 1.0.2 already.
 
 -  Standalone: Fix, do not attempt to list non-existent ``PATH`` entries
-   on Windows. Fixed in 1.0.2 already.
+   on Windows, these can crash the dependency detection otherwise. Fixed
+   in 1.0.2 already.
 
 -  Standalone: Fix, on newer Linux, ``linux-vdso.so.1`` appears in
    output of ``ldd`` in a way that suggests it may exist, which of
@@ -65,8 +99,8 @@ Bug Fixes
 -  Fix, comparison expressions could give wrong results as a regression
    of the new release. Fixed in 1.0.3 already.
 
--  Fix, on older Python (before 3.6), could crash on data files in the
-   Yaml config. Fixed in 1.0.4 already.
+-  Fix, on older Python (before 3.6), it could crash on data files
+   defined in the Yaml config. Fixed in 1.0.4 already.
 
 -  Fix, binary operations could give wrong results as a regression of
    the new release. Fixed in 1.0.4 already.
@@ -77,26 +111,26 @@ Bug Fixes
 -  Standalone: Fix, empty directory structures were not working anymore
    due to a regression in the last release. Fixed in 1.0.5 already.
 
--  Windows: Fix, detected Pythons from registry may fail to execute,
-   because they were e.g. manually deleted. This could e.g. affect
-   onefile compression. Fixed in 1.0.5 already.
+-  Windows: Fix, detected Pythons from Windows registry may of course
+   fail to execute, because they were e.g. manually deleted. This would
+   show e.g. in onefile compression. Fixed in 1.0.5 already.
 
--  Onefile: Fix, using too old ``zstandard`` without finding another
+-  Onefile: Fix, using a too old ``zstandard`` without finding another
    Python with a suitable one, lead to runtime unpacking errors. Fixed
    in 1.0.6 already.
 
--  Fix, the inline copy of Jinja2 imports ``logging`` for no good
-   reason, which can lead to errors for users who have a module of the
-   same name hiding it. Fixed in 1.0.6 already.
+-  Fix, the inline copy of Jinja2 imported ``logging`` for no good
+   reason, which lead to errors for users who have a module of the same
+   name, that it was then using instead. Fixed in 1.0.6 already.
 
--  Fix, disable LTO for Anaconda Python, it is known to not work. Fixed
+-  Fix, disable LTO mode for Anaconda Python, it is known to not work.
+   Fixed in 1.0.6 already.
+
+-  Linux: Fix, no need to insist on icon path for onefile anymore. Fixed
    in 1.0.6 already.
 
--  Fix, no need to insist on icon path for Linux onefile anymore. Fixed
-   in 1.0.6 already.
-
--  Standalone: Fix, new ``certifi`` was not working on Windows and 3.10
-   anymore. Fixed in 1.0.7 already.
+-  Standalone: Fix, the new version ``certifi`` was not working on
+   Windows and 3.10 anymore. Fixed in 1.0.7 already.
 
 -  Standalone: Added support for more ``rapidfuzz`` implicit
    dependencies. Fixed in 1.0.8 already.
@@ -115,19 +149,16 @@ Bug Fixes
 -  Standalone: Added back support for older versions of the ``pyzmq``
    package.
 
--  Standalone: Ignore ``PATH`` elements that fail to be listed. It
-   appears e.g. on Windows, folders can exist, despite being unusable in
-   fact. These can then cause errors in DLL dependency scan. Also avoid
-   having ``PATH`` set when executing dependency walker, it appears to
-   use it even if not asked to.
+-  Standalone: Ignore ``PATH`` elements that fail to be listed as a
+   directory. It appears e.g. on Windows, folders can exist, despite
+   being unusable in fact. These can then cause errors in DLL dependency
+   scan. Also avoid having ``PATH`` set when executing dependency
+   walker, it appears to use it even if not asked to.
 
 -  Standalone: Added support for ``tzlocal`` package.
 
 -  Python3.10: Fix, ``complex`` literals were not working for mappings
    in ``match`` statements.
-
--  Python3.10: Added support for assignments in ``match`` alternatives
-   ``|`` syntax.
 
 -  Fix, ``bool`` built-in expressions were not properly annotating
    exception raises, where the value cannot raise on truth check.
@@ -143,7 +174,8 @@ Bug Fixes
 -  Standalone: Added support for ``vtk`` package.
 
 -  Windows: Fix, avoid using ``pywin32`` in our appdirs usage, it might
-   be a broken installation and is optional anyway.
+   be a broken installation and is optional to ``appdirs`` anyway, which
+   then will fallback to using ``ctypes`` to make the lookups.
 
 -  Standalone: Added support for more ``pandas`` versions.
 
@@ -159,18 +191,54 @@ Bug Fixes
 
 -  Standalone: Added data file of ``distributed.config``.
 
--  Standalone: Add support for ``cv2`` GUI on Linux.
+-  Standalone: Add support for ``cv2`` GUI on Linux, the Qt platform
+   plugin is now included.
 
 -  Fix, the anti-bloat configuration for ``numpy.testing`` tools exposed
    an incomplete ``suppress_warnings`` replacement that could lead to
    errors in some functions of ``numpy``.
 
+-  Standalone: Fix DLL dependency caching on Windows, need to consider
+   DLL content of course too.
+
+-  Standalone: Added missing dependency for ``torchvision``.
+
+-  Standalone: Added support for ``torchvision`` on Anaconda as well.
+
+-  Standalone: Added support for ``panda3d``.
+
+-  Windows: Fix, need to make sure to use UTF-8 encoding for define
+   values like company name. Otherwise the local system encoding is
+   used, but the C compiler expects UTF-8 in wide literals. This may
+   crash of give wrong results.
+
+-  Standalone: Added ``facenet_torch`` data files.
+
+-  Anaconda: Include ``libstdc++.so`` on Linux or else e.g. ``cv2`` will
+   not work with system library.
+
+-  Windows: Fix, can have file version without a company name.
+
 New Features
 ============
+
+-  Python3.10: Added support for assignments in ``match`` alternatives
+   ``|`` syntax.
+
+-  Compatibility: Register Nuitka meta path based loader with
+   ``pkg_resources`` such that checking resource presence with
+   ``has_resource`` works too. This should also add support for using
+   ``jinja2.PackageLoader``, previously only ``jinja2.FileSystemLoader``
+   worked. Fixed in 1.0.1 already.
 
 -  Compatibility: Make function ``__defaults__`` attribute size
    changeable. For a long time, this was a relatively big issue for some
    packages, but now this is supported as well.
+
+-  Compatibility: Added support for ``importlib.metadata.distribution``
+   and ``importlib_metadata.distribution`` functions as well
+   ``importlib.metadata.metadata`` and ``importlib_metadata.metadata``
+   functions.
 
 -  Onefile: Added support for including other binaries than the main
    executable in the payload. So far on non-Windows, we only made the
@@ -187,27 +255,27 @@ New Features
 
    It returns traversable objects, which can be used to opens files,
    checks them, etc. and this e.g. allows ``jsonschema`` to work with
-   Python 3.10, despite bugs in its compatibility layer.
+   Python 3.10, despite bugs in CPython's compatibility layer.
 
--  Added interface method to specify filename patterns with package data
-   inclusion option, making ``--include-package-data`` usable in many
-   more cases, picking the only files or file types you want.
+-  UI: Added interface method to specify filename patterns with package
+   data inclusion option, making ``--include-package-data`` usable in
+   many more cases, picking the only files or file types you want. You
+   can now use ``--include-package-data=package_name=*.txt`` and select
+   only a subset of package data files in this way. Before this, it
+   included everything and ``--noinclude-data-files`` would have to be
+   used.
 
 -  macOS: Make runtime signing an experimental option.
 
--  Standalone: Fix DLL dependency caching on Windows, need to consider
-   DLL content of course too.
+-  Consistently allow ``when`` conditions for all package configuration
+   elements, e.g. also DLLs.
 
--  Standalone: Added missing dependency for ``torchvision``.
+-  Plugins: Added method to overload to work on standalone binary
+   specifically. This makes it easier to only modify that specific
+   binary.
 
--  Standalone: Added support for ``torchvision`` on Anaconda as well.
-
--  Standalone: Added support for ``panda3d``.
-
--  Windows: Fix, need to make sure to use UTF8 encoding for define
-   values like company name. Otherwise the local system encoding is
-   used, but the C compiler expects UTF8 in wide literals. This may
-   crash of give wrong results.
+-  Plugins: Added support for regular expressions in anti-bloat
+   replacements, with new ``replacements_re`` code.
 
 Optimization
 ============
@@ -232,7 +300,9 @@ Optimization
 
 -  Compile time optimize ``pkg_resources.iter_entry_points`` too, such
    that these can be used to resolve plugin modules, which helps with
-   adding support for ``agscheduler`` package plugins.
+   adding support for ``agscheduler`` package plugins. Note that these
+   still need to be manually included with ``--include-module`` but now
+   that works.
 
 -  For known truth values of the right hand side of ``and`` or ``or``
    conditions, reduce the expression as far as possible.
@@ -244,8 +314,8 @@ Optimization
 -  Added linker options to make static ``--static-libpython`` work with
    clang on Linux as well.
 
--  macOS: Make sure ``libpython`` is loaded executable relative. This is
-   needed for at least Anaconda Python.
+-  macOS: Make sure ``libpython`` is loaded relative to the executable.
+   This is needed for at least Anaconda Python.
 
 -  macOS: Fix, need to search environment specific DLL paths and only
    then global paths, otherwise mixed Python versions will not work
@@ -258,31 +328,22 @@ Optimization
 -  Anti-Bloat: Some ``unittest`` removals from ``pytorch`` using
    libraries.
 
--  Keep the scope report items sorted, or else it varies for the hashing
+-  Keep the Scons report items sorted, or else it varies for the hashing
    of dependencies with Python versions before 3.6, causing cache misses
    without need.
-
--  Added support for ``importlib.metadata.distribution`` and
-   ``importlib_metadata.distribution`` functions as well
-   ``importlib.metadata.metadata`` and ``importlib_metadata.metadata``
-   functions.
-
--  Standalone: Added ``facenet_torch`` data files.
-
--  Anaconda: Allow including ``libstdc++.so`` on Linux or else e.g.
-   ``cv2`` will not work with system library.
 
 Organisational
 ==============
 
--  UI: Output the ``.cmd`` file created if any on Windows, e.g. when run
-   in a virtualenv or for uninstalled Python versions, it will otherwise
-   not run in accelerated mode.
+-  UI: Output the ``.cmd`` file created (if any) on Windows, e.g. when
+   run in a virtualenv or for uninstalled Python versions, it will
+   otherwise not run in accelerated mode, but previously the output
+   suggested to run the executable directly.
 
--  UI: Enhanced description of ``--include-plugin-directory`` which is
-   frequently misunderstood. That option barely does what people want it
-   to do. Point them to using the other options that are easy to use and
-   will work.
+-  UI: Enhanced command line option description of
+   ``--include-plugin-directory`` which is frequently misunderstood.
+   That option barely does what people want it to do. Point them to
+   using the other options that are easy to use and will work.
 
 -  UI: Specified needed Python version for use in ``--python-for-scons``
    so users can know ahead of time what versions are suitable.
@@ -290,18 +351,16 @@ Organisational
 -  Reports: Added information about data files including, optimization
    times per module, active plugins.
 
--  Repaired offline DLL dependency listing tool.
+-  Debugging: Repaired offline DLL dependency listing tool, such that it
+   can be used during Windows DLL analysis.
 
 -  Make ``--xml`` accept a filename for the node tree dump, and change
    it so it can be executed in addition to actual compilation. This way
    we need not be super-robust about keeping stdout clean, to not break
    XML parsing.
 
--  Consistently allow ``when`` conditions for all package configuration
-   elements, e.g. also DLLs.
-
--  Plugins: Avoid warning about PySide2 plugin usage if another Qt
-   plugin is actually selected.
+-  Plugins: Avoid useless warning about PySide2 plugin usage if another
+   Qt plugin is actually selected.
 
 -  UI: Catch error of directories being used as data files where plain
    files are expected and point out that other options must be used.
@@ -318,50 +377,43 @@ Organisational
    ``something/%PROGRAM%`` is now a mistake caught at compile time.
    These values can only be at the start of spec values naturally.
 
--  Updated to newer version of ``rstfmt``.
+-  Quality: Updated to newer version of ``rstfmt``.
 
--  UI: Nicer error message when forbidden import is done by an implicit
-   import provided by a plugin.
-
--  Plugins: Added method for overload to work on standalone binary.
+-  UI: Nicer error message when a forbidden import is requested as an
+   implicit import by a plugin.
 
 -  Python3.11: Adapted to allocator and exception state changes, but
    more will be needed to compile at all.
 
--  Find ``clang-format`` from C++ extension of Visual Code, which makes
-   it finally available on macOS easily too.
+-  Visual Code: Find ``clang-format`` from the recommended C++ extension
+   of Visual Code, which makes it finally available on macOS easily too.
 
 -  UI: Quote command line argument values as necessary when stating them
-   in the logging.
+   in the logging. Otherwise they are not directly usable on the shell
+   and also less readable.
 
 -  Debian: Do not list fake modules as used debian packages codes, which
    could e.g. happen with the pre-load code of ``pkg_resources`` if that
    is from a Debian package. Fake packages should not be mentioned for
    these lists though.
 
--  Plugins: Added support for regular expressions in anti-bloat
-   replacements, with new ``replacements_re`` code.
+-  Nuitka-Python: Added support to set link time flags coming from
+   statically included packages.
 
--  Prefer single quotes rather than double quotes in our package
-   configuration Yaml files, otherwise esp. regular expressions with
-   escapes become very confusing.
-
--  Nuitka-Python: Added support for to set link time flags.
-
--  For ``isort`` split files, make sure the second parts starts with a
-   new line.
+-  For our ``isort`` trick of splitting files in two parts (mostly to
+   setup import paths for ``nuitka`` package), make sure the second
+   parts starts with a new line.
 
 -  Added more usable form ``--output-filename`` to specify the output
-   filename, the short form has become mostly unusable after we switched
+   filename, the short form has become barely usable after we switched
    to enforcing no space separation for command line arguments.
 
--  Check if output filename's directory exists ahead of time, otherwise
-   it may crash after compilation only.
+-  UI: Check if output filename's directory exists ahead of time, and
+   error exit if not, otherwise compilation crashed only in the very
+   end, trying to create the final result.
 
--  UI: When exiting with no error code, do not use color or FATAL
-   annotation.
-
--  Windows: Fix, can have file version without a company name.
+-  UI: When exiting with no error code, do not use red color or
+   ``FATAL`` error annotation, that is not justified.
 
 -  Quality: Make sure the Yaml auto-format does not change effective
    contents.
@@ -371,6 +423,10 @@ Organisational
 
 Cleanups
 ========
+
+-  Prefer single quotes rather than double quotes in our package
+   configuration Yaml files, otherwise esp. regular expressions with
+   escapes become very confusing.
 
 -  Move import hacks to general mechanism in Yaml package configuration
    files. This is for extra paths from package names or from directory
@@ -383,8 +439,9 @@ Cleanups
 -  Unified how plugins treat iteration over their value list, and how
    the ``when`` condition is applied for the various kinds of sections.
 
--  Output command that failed during coverage taking, which makes it
-   unnecessary to attempt to reconstruct what happened from test modes.
+-  Output compilation command that failed during coverage taking, which
+   makes it unnecessary to attempt to reconstruct what happened from
+   test modes.
 
 Tests
 =====
@@ -400,8 +457,8 @@ Summary
 =======
 
 This release is mainly a consolidation of previous release. Optimization
-added before did in fact introduce regressions, that needed to be
-addressed and were cause for many hotfixes.
+added in previous release did in fact introduce regressions, that needed
+to be addressed and were cause for relatively many hotfixes.
 
 The Yaml nuitka package configuration feature is getting ever more
 powerful, but is not one bit more documented, such that the community as
@@ -417,7 +474,8 @@ again with anti-bloat work being done. This is owed to the fact that
 consolidation was the name of the game.
 
 For Anaconda specifically, a lot more software is covered, and
-generally, ``cv2`` and ``torch`` related tools are now working better.
+generally, ``cv2`` and ``torch`` related tools are now working better,
+but it seems DLL handling will remain problematic in many instances.
 
 The compilation report contains much more information and is getting
 there is terms of completeness. At some point, we should ask for it in
@@ -3409,7 +3467,7 @@ Organisational
 Cleanups
 ========
 
--  Encoding names for UTF8 in calls to ``.encode()`` were used
+-  Encoding names for UTF-8 in calls to ``.encode()`` were used
    inconsistent with and without dashes in the source code, added
    cleanup to auto-format that picks the one blessed.
 
@@ -5374,13 +5432,13 @@ Bug Fixes
 
 -  Windows: Avoid encoding issues for Python3 on more systems, by going
    from wide characters to unicode strings more directly, avoiding an
-   encoding as UTF8 in the middle. Fixed in 0.6.8.2 already.
+   encoding as UTF-8 in the middle. Fixed in 0.6.8.2 already.
 
 -  Windows: Do not crash when warning about uninstalled MSVC using
    Python3. This is a Scons bug that we fixed. Fixed in 0.6.8.3 already.
 
 -  Standalone: The output of dependency walker should be considered as
-   "latin1" rather than UTF8. Fixed in 0.6.8.3 already.
+   "latin1" rather than UTF-8. Fixed in 0.6.8.3 already.
 
 -  Standalone: Added missing hidden dependencies for ``flask``. Fixed in
    0.6.8.1 already.
@@ -5880,8 +5938,8 @@ Tests
    first time. We use Anaconda on macOS for the tests now, rather than
    Homebrew.
 
--  Enable IO encoding to make sure we use UTF8 for more test suites that
-   actually need it in case of problems.
+-  Enable IO encoding to make sure we use UTF-8 for more test suites
+   that actually need it in case of problems.
 
 -  Comparing module outputs now handles segfaults by running in the
    debugger too.
@@ -6915,9 +6973,9 @@ Bug Fixes
 
 -  Standalone: Added missing implicit dependency for ``zmq`` module.
 
--  Python3.7: Fix, using the ``-X utf8`` flag on the calling
-   interpreter, aka ``--python-flag=utf8_mode`` was not preserved in the
-   compiled binary in all cases.
+-  Python3.7: Fix, using the ``-X UTF-8`` flag on the calling
+   interpreter, aka ``--python-flag=UTF-8_mode`` was not preserved in
+   the compiled binary in all cases.
 
 Optimization
 ============
@@ -8585,7 +8643,7 @@ Optimization
 
 -  Build all constant values without use of the ``pickle`` module which
    has a lot more overhead than ``marshal``, instead use that for too
-   large ``long`` values, non-UTF8 ``unicode`` values, ``nan`` float,
+   large ``long`` values, non-UTF-8 ``unicode`` values, ``nan`` float,
    etc.
 
 -  Detect the linker arch for all Linux platforms using ``objdump``
