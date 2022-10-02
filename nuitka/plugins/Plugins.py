@@ -1004,10 +1004,10 @@ class Plugins(object):
 
                 if value is not None:
                     if isinstance(value, basestring):
-                        cls.extra_link_libraries.add(value)
+                        cls.extra_link_libraries.add(os.path.normcase(value))
                     else:
                         for library_name in value:
-                            cls.extra_link_libraries.add(library_name)
+                            cls.extra_link_libraries.add(os.path.normcase(library_name))
 
         return cls.extra_link_libraries
 
