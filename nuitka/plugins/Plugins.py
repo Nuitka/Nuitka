@@ -777,14 +777,17 @@ class Plugins(object):
         assert type(module_name) is ModuleName
         assert type(source_code) is str
 
+        contributing_plugins = OrderedSet()
+
         for plugin in getActivePlugins():
             new_source_code = plugin.onModuleSourceCode(module_name, source_code)
-            if new_source_code is not None:
+            if new_source_code is not None and new_source_code != source_code:
                 source_code = new_source_code
+                contributing_plugins.add(plugin)
 
             assert type(source_code) is str
 
-        return source_code
+        return source_code, contributing_plugins
 
     @staticmethod
     def onFrozenModuleSourceCode(module_name, is_package, source_code):
