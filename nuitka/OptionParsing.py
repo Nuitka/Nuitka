@@ -1202,6 +1202,7 @@ desktop access. (Windows only). Defaults to off.""",
 )
 
 windows_group.add_option(
+    "--company-name",
     "--windows-company-name",
     action="store",
     dest="windows_company_name",
@@ -1215,6 +1216,7 @@ added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
 
 windows_group.add_option(
+    "--product-name",
     "--windows-product-name",
     action="store",
     dest="windows_product_name",
@@ -1241,6 +1243,7 @@ added, e.g. to specify product name, or company name. Defaults to unused.""",
 )
 
 windows_group.add_option(
+    "--product-version",
     "--windows-product-version",
     action="store",
     dest="windows_product_version",
@@ -1273,7 +1276,10 @@ windows_group.add_option(
     metavar="ONEFILE_TEMPDIR_SPEC",
     default=None,
     help="""\
-Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%', i.e. system temporary directory.""",
+Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%',
+i.e. system temporary directory and being non-static it's removed. Use e.g.
+'%CACHE_DIR%\\%COMPANY%\\%PRODUCT%\\%VERSION%' which is a good
+static cache path.""",
 )
 
 parser.add_option_group(windows_group)

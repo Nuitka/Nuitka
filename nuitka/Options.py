@@ -1362,9 +1362,12 @@ def getPythonPgoUnseenModulePolicy():
 
 def getOnefileTempDirSpec():
     """*str* = ``--onefile-tempdir-spec``"""
-    return (
+    result = (
         options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
     )
+
+    # This changes the '/' to '\' on Windows at least.
+    return os.path.normpath(result)
 
 
 def getAutoUpdateUrlSpec():
@@ -1723,12 +1726,22 @@ def shallUseProgressBar():
 
 def getForcedStdoutPath():
     """*str* force program stdout output into that filename"""
-    return options.force_stdout_spec
+    result = options.force_stdout_spec
+
+    if result is not None:
+        result = os.path.normpath(result)
+
+    return result
 
 
 def getForcedStderrPath():
     """*str* force program stderr output into that filename"""
-    return options.force_stderr_spec
+    result = options.force_stderr_spec
+
+    if result is not None:
+        result = os.path.normpath(result)
+
+    return result
 
 
 def shallShowSourceModifications():
