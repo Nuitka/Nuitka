@@ -52,7 +52,6 @@ def checkYamllint(document):
 
     my_print("Checking %r for proper yaml ..." % document, style="blue")
     try:
-
         yamllint.cli.run([document])
     except SystemExit as e:
         lint_result = e.code
