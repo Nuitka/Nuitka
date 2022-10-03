@@ -64,7 +64,7 @@ _debug_module_finding = Options.shallExplainImports()
 warned_about = set()
 
 # Directory where the main script lives. Should attempt to import from there.
-main_path = None
+_main_path = None
 
 
 def setMainScriptDirectory(main_dir):
@@ -74,12 +74,12 @@ def setMainScriptDirectory(main_dir):
     """
     # We need to set this from the outside, pylint: disable=global-statement
 
-    global main_path
-    main_path = main_dir
+    global _main_path
+    _main_path = main_dir
 
 
 def getMainScriptDirectory():
-    return main_path
+    return _main_path
 
 
 def isPackageDir(dirname):
@@ -521,10 +521,10 @@ def _unpackPathElement(path_entry):
 
 
 def getPackageSearchPath(package_name):
-    assert main_path is not None
+    assert _main_path is not None
 
     if package_name is None:
-        result = [os.getcwd(), main_path] + [
+        result = [os.getcwd(), _main_path] + [
             _unpackPathElement(path_element) for path_element in sys.path
         ]
     elif "." in package_name:
