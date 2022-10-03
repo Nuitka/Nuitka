@@ -656,7 +656,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         )
 
     # Add macOS code signature
-    if isMacOS():
+    if isMacOS() and copy_standalone_entry_points:
         addMacOSCodeSignature(
             filenames=[
                 os.path.join(dist_dir, standalone_entry_point.dest_path)
