@@ -30,6 +30,8 @@ the traces.
 
 """
 
+from abc import abstractmethod
+
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.Options import isExperimental
 
@@ -208,6 +210,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
                 source=source,
                 variable=self.variable,
                 version=self.variable_version,
+                very_trusted=old_source.isExpressionImportName(),
                 source_ref=self.source_ref,
             )
 
@@ -285,6 +288,10 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
             )
 
         return self, None, None
+
+    @abstractmethod
+    def hasVeryTrustedValue(self):
+        """Does this assignment node have a very trusted value."""
 
 
 class StatementAssignmentVariableGeneric(StatementAssignmentVariableBase):
@@ -397,10 +404,13 @@ Removed assignment of %s from itself which is known to be defined."""
 
         return self._considerSpecialization(old_source)
 
+    def hasVeryTrustedValue(self):
+        """Does this assignment node have a very trusted value."""
+        return self.subnode_source.hasVeryTrustedValue()
+
 
 class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
-    # Carries a lot of state for propagating iterators potentially.
-    # pylint: disable=too-many-instance-attributes
+    # Carries state for propagating iterators potentially.
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR"
 
@@ -567,6 +577,11 @@ Assignment raises exception in assigned value, removed assignment.""",
 
         return self, None, None
 
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Does this assignment node have a very trusted value."""
+        return False
+
 
 class StatementAssignmentVariableConstantMutable(StatementAssignmentVariableBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_MUTABLE"
@@ -623,6 +638,11 @@ class StatementAssignmentVariableConstantMutable(StatementAssignmentVariableBase
                     # Can safely forward propagate only non-mutable constants.
 
         return self, None, None
+
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Does this assignment node have a very trusted value."""
+        return False
 
 
 class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBase):
@@ -708,6 +728,31 @@ class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBa
 
         return self, None, None
 
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Does this assignment node have a very trusted value."""
+        return False
+
+
+class StatementAssignmentVariableConstantMutableTrusted(
+    StatementAssignmentVariableConstantImmutable
+):
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_MUTABLE_TRUSTED"
+
+    @staticmethod
+    def hasVeryTrustedValue():
+        return True
+
+
+class StatementAssignmentVariableConstantImmutableTrusted(
+    StatementAssignmentVariableConstantImmutable
+):
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_IMMUTABLE_TRUSTED"
+
+    @staticmethod
+    def hasVeryTrustedValue():
+        return True
+
 
 class StatementAssignmentVariableHardValue(StatementAssignmentVariableBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_HARD_VALUE"
@@ -745,6 +790,11 @@ Assignment raises exception in assigned value, removed assignment.""",
         )
 
         return self, None, None
+
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Does this assignment node have a very trusted value."""
+        return True
 
 
 class StatementAssignmentVariableFromVariable(StatementAssignmentVariableBase):
@@ -804,6 +854,11 @@ Removed assignment of %s from itself which is known to be defined."""
 
         return self._considerSpecialization(old_source)
 
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Does this assignment node have a very trusted value."""
+        return False
+
 
 class StatementAssignmentVariableFromTempVariable(StatementAssignmentVariableBase):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE"
@@ -845,16 +900,33 @@ Removed assignment of %s from itself which is known to be defined."""
 
         return self._considerSpecialization(old_source)
 
+    @staticmethod
+    def hasVeryTrustedValue():
+        """Does this assignment node have a very trusted value."""
+        return False
 
-def makeStatementAssignmentVariableConstant(source, variable, version, source_ref):
+
+def makeStatementAssignmentVariableConstant(
+    source, variable, version, very_trusted, source_ref
+):
     if source.isMutable():
-        return StatementAssignmentVariableConstantMutable(
-            source=source, variable=variable, source_ref=source_ref, version=version
-        )
+        if very_trusted:
+            return StatementAssignmentVariableConstantMutableTrusted(
+                source=source, variable=variable, source_ref=source_ref, version=version
+            )
+        else:
+            return StatementAssignmentVariableConstantMutable(
+                source=source, variable=variable, source_ref=source_ref, version=version
+            )
     else:
-        return StatementAssignmentVariableConstantImmutable(
-            source=source, variable=variable, source_ref=source_ref, version=version
-        )
+        if very_trusted:
+            return StatementAssignmentVariableConstantImmutableTrusted(
+                source=source, variable=variable, source_ref=source_ref, version=version
+            )
+        else:
+            return StatementAssignmentVariableConstantImmutable(
+                source=source, variable=variable, source_ref=source_ref, version=version
+            )
 
 
 def makeStatementAssignmentVariable(source, variable, source_ref, version=None):
@@ -865,7 +937,11 @@ def makeStatementAssignmentVariable(source, variable, source_ref, version=None):
 
     if source.isCompileTimeConstant():
         return makeStatementAssignmentVariableConstant(
-            source=source, variable=variable, version=version, source_ref=source_ref
+            source=source,
+            variable=variable,
+            version=version,
+            very_trusted=False,
+            source_ref=source_ref,
         )
     elif source.isExpressionVariableRef():
         return StatementAssignmentVariableFromVariable(

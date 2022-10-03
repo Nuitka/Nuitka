@@ -540,11 +540,9 @@ class ValueTraceAssign(ValueTraceBase):
             return None
 
     def getAttributeNodeVeryTrusted(self):
-        source_node = self.assign_node.subnode_source
-
         # Hard imports typically.
-        if source_node.hasVeryTrustedValue():
-            return source_node
+        if self.assign_node.hasVeryTrustedValue():
+            return self.assign_node.subnode_source
         else:
             return None
 

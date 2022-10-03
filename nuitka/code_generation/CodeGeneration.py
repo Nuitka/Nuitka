@@ -878,7 +878,9 @@ setStatementDispatchDict(
     {
         "STATEMENT_ASSIGNMENT_VARIABLE_GENERIC": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_MUTABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_MUTABLE_TRUSTED": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_IMMUTABLE": generateAssignmentVariableCode,
+        "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_IMMUTABLE_TRUSTED": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE": generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE": generateAssignmentVariableCode,
