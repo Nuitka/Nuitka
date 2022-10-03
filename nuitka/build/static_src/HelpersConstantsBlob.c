@@ -1184,6 +1184,10 @@ void loadConstantsBlob(PyObject **output, char const *name) {
         uint32_t hash = unpackValueUint32(&constant_bin);
         uint32_t size = unpackValueUint32(&constant_bin);
 
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_CONSTANTS
+        printf("loadConstantsBlob '%u' hash value\n", hash);
+        printf("loadConstantsBlob '%u' size value\n", size);
+#endif
         if (calcCRC32(constant_bin, size) != hash) {
             puts("Error, corrupted constants object");
             abort();
