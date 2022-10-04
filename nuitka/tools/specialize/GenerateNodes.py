@@ -21,7 +21,8 @@ from jinja2 import Template
 
 # specs
 # -----
-#  operation_name, arg_name, shape, is_base, inheritance_base, simulator, simulator_return_value
+#  - StrNodes
+#    operation_name, arg_name, shape, is_base, inheritance_base, base_name, simulator, simulator_return_value
 
 specifications = [
     {
