@@ -21,16 +21,19 @@ from jinja2 import Template
 
 # specs
 # -----
-#  operation_name, arg_name, shape, is_base
+#  operation_name, arg_name, shape, is_base, inheritance_base, simulator, simulator_return_value
 
 specifications = [
     {
         "name": "StrNodes",
         "specs": [
-            ["Join", "iterable", "Str", False],
-            ["Partition", "sep", "Tuple", False],
-            ["Rpartition", "sep", "Tuple", False],
-            ["Strip2Base", "chars", "Str", True],
+            ["Join", "iterable", "Str", False, False, None, False, None],
+            ["Partition", "sep", "Tuple", False, False, None, False, None],
+            ["Rpartition", "sep", "Tuple", False, False, None, False, None],
+            ["Strip2Base", "chars", "Str", True, False, None, True, None],
+            ["Strip2", "chars", "Str", False, True, "Strip2", True, "str.strip"],
+            ["Lstrip2", "chars", "Str", False, True, "Strip2", True, "str.lstrip"],
+            ["Rstrip2", "chars", "Str", False, True, "Strip2", True, "str.rstrip"],
         ],
     }
 ]

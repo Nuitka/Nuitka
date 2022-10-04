@@ -48,21 +48,36 @@ def getStrOperationClasses():
         if kind.startswith("EXPRESSION_STR_OPERATION_")
     )
 
-{% for operation_name, arg_name, shape, is_base in specifications %}
+{% for operation_name, arg_name, shape, is_base, inheritance_base, base_name, simulator, simulator_return_value in specifications %}
 class ExpressionStrOperation{{ operation_name }}(
-    Expression{{ shape }}ShapeExactMixin, ExpressionChildrenHavingBase
+    {% if inheritance_base %}
+    ExpressionStrOperation{{ base_name }}Base
+    {% else%}
+    Expression{{ shape }}ShapeExactMixin,
+    ExpressionChildrenHavingBase
+    {% endif %}
 ):
     {% if not is_base%}
     """This operation represents s.{{ operation_name.lower() }}({{arg_name}})."""
 
     kind = "EXPRESSION_STR_OPERATION_{{ operation_name.upper() }}"
     {% endif %}
+    {% if not inheritance_base %}
     named_children = ("str_arg", "{{ arg_name.lower() }}")
-    {% if operation_name == "Strip2Base" %}
-    @abstractmethod
-    def getSimulator(self):
-        """Compile time simulation"""
     {% endif %}
+    {% if simulator %}
+    {% if inheritance_base %}
+    @staticmethod
+    {% else%}
+    @abstractmethod
+    {% endif%}
+    def getSimulator({% if not inheritance_base %}self{% endif%}):
+        """Compile time simulation"""
+        {% if simulator_return_value != None %}
+        return {{ simulator_return_value }}
+        {% endif%}
+    {% endif %}
+    {% if not inheritance_base%}
     def __init__(self, str_arg, {{ arg_name }}, source_ref):
         assert str_arg is not None
         assert {{ arg_name }} is not None
@@ -113,6 +128,7 @@ class ExpressionStrOperation{{ operation_name }}(
 
         return self, None, None
         {% endif %}
+    {% endif %}
     {% if operation_name in ["Partition", "Rpartition"]%}
     @staticmethod
     def getIterationLength():
