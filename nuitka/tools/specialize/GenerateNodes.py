@@ -45,7 +45,8 @@ def main():
         with open(
             os.path.join(
                 "nuitka/tools/specialize/templates_python", "%s.py.j2" % spec["name"]
-            )
+            ),
+            encoding="utf-8",
         ) as template_file:
             template = Template(template_file.read())
 
