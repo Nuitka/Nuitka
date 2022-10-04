@@ -49,10 +49,10 @@ GUI, enable prompting for the certificate in KeyChain Access."""
 
 
 def addMacOSCodeSignature(filenames):
-    """Remove the code signature from a filename.
+    """Add the code signature to filenames.
 
     Args:
-        filenames - The files to be signed.
+        filenames - The filenames to be signed.
 
     Returns:
         None
