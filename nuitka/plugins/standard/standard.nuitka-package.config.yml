@@ -2407,6 +2407,13 @@
         - 'statsmodels.tsa.statespace._smoothers._univariate'
         - 'statsmodels.tsa.statespace._smoothers._univariate_diffuse'
 
+- module-name: 'sv_ttk'
+  data-files:
+    dirs:
+      - 'theme'
+    patterns:
+      - 'sv.tcl'
+
 - module-name: 'swagger_ui_bundle'
   data-files:
     dirs:

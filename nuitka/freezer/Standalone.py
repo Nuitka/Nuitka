@@ -613,6 +613,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         for standalone_entry_point in standalone_entry_points[1:]
         if not standalone_entry_point.kind.endswith("_ignored")
     ]
+    main_standalone_entry_point = standalone_entry_points[0]
 
     setupProgressBar(
         stage="Copying used DLLs",
@@ -649,7 +650,7 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
         )
 
     # Add macOS code signature
-    if isMacOS():
+    if isMacOS() and copy_standalone_entry_points:
         addMacOSCodeSignature(
             filenames=[
                 os.path.join(dist_dir, standalone_entry_point.dest_path)
@@ -678,6 +679,16 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
             ),
             id_path=None,
             rpath=None,
+        )
+
+    if isMacOS():
+        fixupBinaryDLLPathsMacOS(
+            binary_filename=os.path.join(
+                dist_dir, main_standalone_entry_point.dest_path
+            ),
+            package_name=main_standalone_entry_point.package_name,
+            original_location=main_standalone_entry_point.source_path,
+            standalone_entry_points=standalone_entry_points,
         )
 
     Plugins.onCopiedDLLs(

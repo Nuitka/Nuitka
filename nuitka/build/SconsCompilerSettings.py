@@ -311,9 +311,12 @@ def decideConstantsBlobResourceMode(env, module_mode):
     if "NUITKA_RESOURCE_MODE" in os.environ:
         resource_mode = os.environ["NUITKA_RESOURCE_MODE"]
         reason = "user provided"
-    elif os.name == "nt":
+    elif isWin32Windows():
         resource_mode = "win_resource"
         reason = "default for Windows"
+    elif isMacOS() and env.lto_mode:
+        resource_mode = "code"
+        reason = "default for lto gcc with --lto bugs for incbin"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
         if module_mode:
             resource_mode = "code"
