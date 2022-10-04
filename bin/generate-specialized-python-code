@@ -30,6 +30,8 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 
 # isort:start
 
+from nuitka.tools.specialize.GenerateNodes import generate
 from nuitka.tools.specialize.SpecializePython import main
 
 main()
+generate()

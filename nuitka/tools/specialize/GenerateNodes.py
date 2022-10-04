@@ -17,7 +17,12 @@
 #
 import os
 
-from jinja2 import Template
+from nuitka.tools.quality.auto_format.AutoFormat import (
+    withFileOpenedAndAutoFormatted,
+)
+from nuitka.utils.Jinja2 import getTemplate
+
+from .Common import writeLine
 
 # specs
 # -----
@@ -40,23 +45,15 @@ specifications = [
 ]
 
 
-def main():
+def generate():
     for spec in specifications:
-        with open(
-            os.path.join(
-                "nuitka/tools/specialize/templates_python", "%s.py.j2" % spec["name"]
-            ),
-            encoding="utf-8",
-        ) as template_file:
-            template = Template(template_file.read())
-
-        with open(
-            os.path.join("nuitka/nodes", "%sGenerated.py" % spec["name"]),
-            "w",
-            encoding="utf-8",
+        template = getTemplate(
+            package_name=__package__,
+            template_subdir="templates_python",
+            template_name="%s.py.j2" % spec["name"],
+        )
+        code = template.render(specifications=spec["specs"])
+        with withFileOpenedAndAutoFormatted(
+            os.path.join("nuitka/nodes", "%sGenerated.py" % spec["name"])
         ) as output_python:
-            code = template.render(specifications=spec["specs"])
-            output_python.write(code)
-
-
-main()
+            writeLine(output_python, code)
