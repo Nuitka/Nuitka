@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Wrapper around appdir from PyPI
+""" Wrapper around appdirs from PyPI
 
 We do not assume to be installed and fallback to an inline copy and if that
 is not installed, we use our own code for best effort.
