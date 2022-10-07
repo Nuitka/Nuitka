@@ -257,6 +257,12 @@
                             "items": {
                                 "type": "string"
                             }
+                        },
+                        "find-dlls-near-module": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
