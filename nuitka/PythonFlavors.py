@@ -41,6 +41,7 @@ from .PythonVersions import (
     getSystemPrefixPath,
     isStaticallyLinkedPython,
     python_version,
+    python_version_str,
 )
 
 
@@ -102,13 +103,18 @@ def isHomebrewPython():
     if not isMacOS():
         return False
 
-    if "HOMEBREW_PREFIX" not in os.environ:
-        return False
+    candidate = os.path.join(
+        getSystemPrefixPath(), "lib", "python" + python_version_str, "sitecustomize.py"
+    )
 
-    if isPathBelowOrSameAs(
-        path=os.environ["HOMEBREW_PREFIX"], filename=getSystemPrefixPath()
-    ):
-        return True
+    if os.path.exists(candidate):
+        with open(candidate, "rb") as site_file:
+            line = site_file.readline()
+
+        if b"Homebrew" in line:
+            return True
+
+    return False
 
 
 def isPyenvPython():
