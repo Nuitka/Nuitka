@@ -90,24 +90,21 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
     def _handleImplicitImportsConfig(self, module, config):
         full_name = module.getFullName()
 
-        if "depends" in config:
-            for dependency in config.get("depends"):
-                if dependency.startswith("."):
-                    if (
-                        module.isUncompiledPythonPackage()
-                        or module.isCompiledPythonPackage()
-                    ):
-                        dependency = full_name.getChildNamed(dependency[1:]).asString()
-                    else:
-                        dependency = full_name.getSiblingNamed(
-                            dependency[1:]
-                        ).asString()
-
-                if "*" in dependency or "?" in dependency:
-                    for resolved in self._resolveModulePattern(dependency):
-                        yield resolved
+        for dependency in config.get("depends", ()):
+            if dependency.startswith("."):
+                if (
+                    module.isUncompiledPythonPackage()
+                    or module.isCompiledPythonPackage()
+                ):
+                    dependency = full_name.getChildNamed(dependency[1:]).asString()
                 else:
-                    yield dependency
+                    dependency = full_name.getSiblingNamed(dependency[1:]).asString()
+
+            if "*" in dependency or "?" in dependency:
+                for resolved in self._resolveModulePattern(dependency):
+                    yield resolved
+            else:
+                yield dependency
 
     def _getImportsByFullname(self, module, full_name):
         """Provides names of modules to imported implicitly."""
@@ -283,23 +280,19 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 yield item
 
     def _getPackageExtraScanPaths(self, package_dir, config):
-        if "package-dirs" in config:
-            for config_package_dir in config.get("package-dirs"):
-                yield os.path.normpath(
-                    os.path.join(package_dir, "..", config_package_dir)
-                )
+        for config_package_dir in config.get("package-dirs", ()):
+            yield os.path.normpath(os.path.join(package_dir, "..", config_package_dir))
 
-                yield package_dir
+            yield package_dir
 
-        if "package-paths" in config:
-            for config_package_name in config.get("package-paths"):
-                module_filename = self.locateModule(config_package_name)
+        for config_package_name in config.get("package-paths", ()):
+            module_filename = self.locateModule(config_package_name)
 
-                if module_filename is not None:
-                    if os.path.isfile(module_filename):
-                        yield os.path.dirname(module_filename)
-                    else:
-                        yield module_filename
+            if module_filename is not None:
+                if os.path.isfile(module_filename):
+                    yield os.path.dirname(module_filename)
+                else:
+                    yield module_filename
 
     def getPackageExtraScanPaths(self, package_name, package_dir):
         for entry in self.config.get(package_name, section="import-hacks"):
@@ -309,6 +302,24 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 for item in self._getPackageExtraScanPaths(
                     package_dir=package_dir, config=entry
                 ):
+                    yield item
+
+    def _getModuleSpecificDllPaths(self, config):
+        for config_package_name in config.get("find-dlls-near-module", ()):
+            module_filename = self.locateModule(config_package_name)
+
+            if module_filename is not None:
+                if os.path.isfile(module_filename):
+                    yield os.path.dirname(module_filename)
+                else:
+                    yield module_filename
+
+    def getModuleSpecificDllPaths(self, module_name):
+        for entry in self.config.get(module_name, section="import-hacks"):
+            if self.evaluateCondition(
+                full_name=module_name, condition=entry.get("when", "True")
+            ):
+                for item in self._getModuleSpecificDllPaths(config=entry):
                     yield item
 
     def onModuleSourceCode(self, module_name, source_code):

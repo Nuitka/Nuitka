@@ -1061,6 +1061,11 @@
       replacements:
         'exec(f.read(), meta)': "'__version__ = %r' % orderedmultidict.__version__.__version__"
 
+- module-name: 'orjson'
+  implicit-imports:
+    - depends:
+        - 'zoneinfo'
+
 - module-name: 'osgeo'
   data-files:
     dirs:
@@ -1695,12 +1700,18 @@
       - description: 'PySide2 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
         when: 'macos'
+  import-hacks:
+    - find-dlls-near-module:
+        - 'shiboken2'
 
 - module-name: 'PySide6'
   options:
     checks:
       - description: 'PySide6 is a GUI framework'
         console: 'recommend'
+  import-hacks:
+    - find-dlls-near-module:
+        - 'shiboken6'
 
 - module-name: 'pytorch_lightning.utilities.model_helpers'
   anti-bloat:
