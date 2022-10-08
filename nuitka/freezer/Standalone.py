@@ -48,11 +48,7 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
-from nuitka.PythonVersions import (
-    getPythonABI,
-    python_version,
-    python_version_str,
-)
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, inclusion_logger, printError
 from nuitka.tree.SourceHandling import (
     readSourceCodeFromFilenameWithInformation,
@@ -60,11 +56,7 @@ from nuitka.tree.SourceHandling import (
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.SharedLibraries import (
-    callInstallNameTool,
-    copyDllFile,
-    setSharedLibraryRPATH,
-)
+from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import (
@@ -622,6 +614,22 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     ]
     main_standalone_entry_point = standalone_entry_points[0]
 
+    if isMacOS():
+        fixupBinaryDLLPathsMacOS(
+            binary_filename=os.path.join(
+                dist_dir, main_standalone_entry_point.dest_path
+            ),
+            package_name=main_standalone_entry_point.package_name,
+            original_location=main_standalone_entry_point.source_path,
+            standalone_entry_points=standalone_entry_points,
+        )
+
+        # After dependency detection, we can change the RPATH for macOS main
+        # binary.
+        setSharedLibraryRPATH(
+            os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
+        )
+
     setupProgressBar(
         stage="Copying used DLLs",
         unit="DLL",
@@ -650,52 +658,14 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
 
     closeProgressBar()
 
-    # After dependency detection, we can change the RPATH for macOS main binary.
-    if isMacOS():
-        setSharedLibraryRPATH(
-            os.path.join(dist_dir, standalone_entry_points[0].dest_path), "$ORIGIN"
-        )
-
     # Add macOS code signature
-    if isMacOS() and copy_standalone_entry_points:
+    if isMacOS():
         addMacOSCodeSignature(
             filenames=[
                 os.path.join(dist_dir, standalone_entry_point.dest_path)
-                for standalone_entry_point in copy_standalone_entry_points
+                for standalone_entry_point in [main_standalone_entry_point]
+                + copy_standalone_entry_points
             ]
-        )
-
-    if (
-        isMacOS()
-        and not Options.shallMakeModule()
-        and not Options.shallUseStaticLibPython()
-    ):
-        python_abi_version = python_version_str + getPythonABI()
-        python_dll_filename = "libpython" + python_abi_version + ".dylib"
-
-        # Note: For Anaconda, and potentially others, the rpath for the
-        # Python library needs to be replaces with executable path relative
-        # search.
-        callInstallNameTool(
-            filename=os.path.join(dist_dir, standalone_entry_points[0].dest_path),
-            mapping=(
-                (
-                    "@rpath/" + python_dll_filename,
-                    "@executable_path/" + python_dll_filename,
-                ),
-            ),
-            id_path=None,
-            rpath=None,
-        )
-
-    if isMacOS():
-        fixupBinaryDLLPathsMacOS(
-            binary_filename=os.path.join(
-                dist_dir, main_standalone_entry_point.dest_path
-            ),
-            package_name=main_standalone_entry_point.package_name,
-            original_location=main_standalone_entry_point.source_path,
-            standalone_entry_points=standalone_entry_points,
         )
 
     Plugins.onCopiedDLLs(

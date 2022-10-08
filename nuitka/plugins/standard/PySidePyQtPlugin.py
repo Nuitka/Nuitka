@@ -1101,10 +1101,6 @@ PySide2.QtCore.QObject.__init_subclass__ = my_init_subclass
 Monkey patching classes derived from PySide2 base classes to pass PySide2 checks.""",
             )
 
-    def getModuleSpecificDllPaths(self, module_name):
-        if module_name.hasNamespace("PySide2"):
-            yield self.locateModule("shiboken2")
-
 
 class NuitkaPluginDetectorPySide2Plugins(NuitkaPluginBase):
     detector_for = NuitkaPluginPySide2Plugins
@@ -1139,10 +1135,6 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
                 """\
 Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
             )
-
-    def getModuleSpecificDllPaths(self, module_name):
-        if module_name.hasNamespace("PySide6"):
-            yield self.locateModule("shiboken6")
 
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):
