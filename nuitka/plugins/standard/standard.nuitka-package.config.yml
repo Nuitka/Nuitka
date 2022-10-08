@@ -1061,6 +1061,11 @@
       replacements:
         'exec(f.read(), meta)': "'__version__ = %r' % orderedmultidict.__version__.__version__"
 
+- module-name: 'orjson'
+  implicit-imports:
+    - depends:
+        - 'zoneinfo'
+
 - module-name: 'osgeo'
   data-files:
     dirs:
