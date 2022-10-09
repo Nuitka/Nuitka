@@ -156,7 +156,6 @@ def detectDLLsWithDependencyWalker(binary_filename, source_dir, scan_dirs):
             dwp_filename,
             contents="""\
 %(scan_dirs)s
-SxS
 """
             % {
                 "scan_dirs": "\n".join(
