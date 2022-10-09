@@ -306,7 +306,7 @@ def getFileList(
 
     result = []
 
-    # Normalize ignoredirs for better matching.
+    # Normalize "ignore_dirs" for better matching.
     ignore_dirs = [os.path.normcase(ignore_dir) for ignore_dir in ignore_dirs]
     ignore_filenames = [
         os.path.normcase(ignore_filename) for ignore_filename in ignore_filenames
