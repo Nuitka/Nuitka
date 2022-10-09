@@ -466,6 +466,7 @@ def executePASS5():
         "--nofollow-import-to=nuitka.build.inline_copy",
         "--nofollow-import-to=nuitka.build.include",
         "--nofollow-import-to=nuitka.build.static_src",
+        "--nofollow-import-to=nuitka.tools",
         "--module",
         path,
     ]
