@@ -3202,6 +3202,7 @@
     # which we will not find packages in unless added.
     - package-dirs:
         - 'win32comext'
+      when: 'win32'
 
 - module-name: 'win32ui'
   implicit-imports:
@@ -3209,6 +3210,7 @@
         # That is a namespace module only, but it seems the extension modules needs it,
         # despite the DLLs being present.
         - 'import pywin32_system32'
+      when: 'win32'
 
 - module-name: 'wx'
   options:
