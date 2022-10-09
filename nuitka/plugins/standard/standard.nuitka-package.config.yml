@@ -1929,6 +1929,17 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'seaborn.external.docscrape'
+  anti-bloat:
+    # TODO: Keep the same as 'scipy._lib._docscrape' module
+    - description: 'remove sphinx reference'
+      replacements_plain:
+        "if 'sphinx' in sys.modules:": 'if False:'
+    # TODO: Keep the same as 'scipy._lib._docscrape' module
+    - description: 'workaround for MSVC bug with scipy 1.8.x '
+      replacements_plain:
+        "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
+
 - module-name: 'seedir.printing'
   data-files:
     patterns:
