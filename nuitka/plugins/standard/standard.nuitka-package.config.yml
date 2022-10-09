@@ -1072,6 +1072,8 @@
   implicit-imports:
     - depends:
         - 'zoneinfo'
+        - 'json'
+        - 'uuid'
 
 - module-name: 'osgeo'
   data-files:
