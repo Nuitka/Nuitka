@@ -38,6 +38,18 @@
     - depends:
         - 'anyio._backends._asyncio'
 
+- module-name: 'appdirs'
+  anti-bloat:
+    # Keep this the same as for 'pkg_resources._vendor.appdirs' module.
+    # TODO: May allow naming spefific "anti-bloat" blocks, and reference them by
+    # name, that works like an include statement to the module.
+    - description: 'remove pywin32 reference'
+      replacements_plain:
+        'import win32com.shell': 'raise ImportError'
+      change_function:
+        '_get_win_folder_with_pywin32': 'un-callable'
+      when: 'not use_pywin32 or not win32'
+
 - module-name: 'apt_inst'
   implicit-imports:
     - depends:
@@ -1397,6 +1409,16 @@
       replacements_plain:
         'def load(self, require=True,': 'def load(self, require=False,'
         'if not require or args or kwargs:': 'if False:'
+
+- module-name: 'pkg_resources._vendor.appdirs'
+  anti-bloat:
+    # Keep this the same as for 'appdirs' module
+    - description: 'remove pywin32 reference'
+      replacements_plain:
+        'import win32com.shell': 'raise ImportError'
+      change_function:
+        '_get_win_folder_with_pywin32': 'un-callable'
+      when: 'not use_pywin32 or not win32'
 
 - module-name: 'pkg_resources._vendor.jaraco'
   implicit-imports:
