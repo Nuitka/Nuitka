@@ -118,7 +118,7 @@ def getModuleImportableFilesHash(full_name):
 
     all_suffixes = getAllModuleSuffixes()
 
-    result_hash = Hash()
+    hash_value = Hash()
 
     for path in paths:
         if not os.path.isdir(path):
@@ -126,11 +126,12 @@ def getModuleImportableFilesHash(full_name):
 
         for fullname, filename in listDir(path):
             if isPackageDir(fullname) or filename.endswith(all_suffixes):
-                result_hash.updateFromValues(filename, b"\0")
+                hash_value.updateFromValues(filename, b"\0")
 
-    result_hash.updateFromValues(*Plugins.getCacheContributionValues(full_name))
+    # Plugins may change their influence.
+    hash_value.updateFromValues(*Plugins.getCacheContributionValues(full_name))
 
     # Take Nuitka version into account as well, ought to catch code changes.
-    result_hash.updateFromValues(version_string)
+    hash_value.updateFromValues(version_string)
 
-    return result_hash.asHexDigest()
+    return hash_value.asHexDigest()
