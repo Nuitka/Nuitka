@@ -544,26 +544,49 @@ def locateDLLsInDirectory(directory):
     return result
 
 
+_file_usage = "The 'file' tool is used to detect macOS file architectures."
+
+_file_output_cache = {}
+
+
+def _getFileCommandOutput(filename):
+    """Cached file output."""
+
+    if filename not in _file_output_cache:
+        file_output = executeToolChecked(
+            logger=postprocessing_logger,
+            command=("file", filename),
+            absence_message=_file_usage,
+        )
+
+        if str is not bytes:
+            file_output = file_output.decode("utf8")
+
+        assert file_output.startswith(filename + ":")
+        file_output = file_output[len(filename) + 1 :].splitlines()[0].strip()
+
+        _file_output_cache[filename] = file_output
+
+    return _file_output_cache[filename]
+
+
+def hasUniversalOrMatchingMacOSArchitecture(filename):
+    assert isMacOS()
+
+    file_output = _getFileCommandOutput(filename)
+
+    return "universal" in file_output or Options.getMacOSTargetArch() in file_output
+
+
 # spell-checker: ignore lipo
 
 _lipo_usage = (
     "The 'lipo' tool from XCode is used to manage universal binaries on macOS platform."
 )
-_file_usage = "The 'file' tool is used to detect macOS file architectures."
 
 
 def makeMacOSThinBinary(dest_path, original_path):
-    file_output = executeToolChecked(
-        logger=postprocessing_logger,
-        command=("file", dest_path),
-        absence_message=_file_usage,
-    )
-
-    if str is not bytes:
-        file_output = file_output.decode("utf8")
-
-    assert file_output.startswith(dest_path + ":")
-    file_output = file_output[len(dest_path) + 1 :].splitlines()[0].strip()
+    file_output = _getFileCommandOutput(dest_path)
 
     macos_target_arch = Options.getMacOSTargetArch()
 

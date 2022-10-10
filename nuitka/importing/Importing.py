@@ -54,6 +54,9 @@ from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, removeDirectory
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.SharedLibraries import (
+    hasUniversalOrMatchingMacOSArchitecture,
+)
 from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows
 
 from .IgnoreListing import isIgnoreListedNotExistingModule
@@ -332,7 +335,8 @@ def findModule(module_name, parent_package, level):
 case_sensitive = not isMacOS() and not isWin32OrPosixWindows()
 
 ImportScanFinding = collections.namedtuple(
-    "ImportScanFinding", ("found_in", "priority", "full_path", "search_order")
+    "ImportScanFinding",
+    ("found_in", "module_type", "priority", "full_path", "search_order"),
 )
 
 # We put here things that are not worth it (Cython is not really used by
@@ -417,6 +421,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
                     candidates.add(
                         ImportScanFinding(
                             found_in=entry,
+                            module_type=module_type,
                             priority=priority_map[module_type],
                             full_path=package_directory,
                             search_order=count,
@@ -428,6 +433,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
                 candidates.add(
                     ImportScanFinding(
                         found_in=entry,
+                        module_type=10,
                         priority=10,
                         full_path=package_directory,
                         search_order=count + len(search_path),
@@ -447,6 +453,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
                 candidates.add(
                     ImportScanFinding(
                         found_in=entry,
+                        module_type=module_type,
                         priority=4 + priority_map[module_type],
                         full_path=full_path,
                         search_order=count,
@@ -457,36 +464,49 @@ def _findModuleInPath2(package_name, module_name, search_path):
     if _debug_module_finding:
         my_print("Candidates:", candidates)
 
+    found_candidate = None
+
     if candidates:
         # Sort by priority, with entries from same path element coming first, then desired type.
-        candidates = sorted(candidates, key=lambda c: (c.search_order, c.priority))
+        candidates = tuple(
+            sorted(candidates, key=lambda c: (c.search_order, c.priority))
+        )
 
         # On case sensitive systems, no resolution needed.
         if case_sensitive:
-            _reportCandidates(
-                package_name=package_name,
-                module_name=module_name,
-                candidate=candidates[0],
-                candidates=candidates,
-            )
-            return candidates[0].full_path
+            found_candidate = candidates[0]
         else:
             for candidate in candidates:
                 for fullname, _filename in listDir(candidate[0]):
                     if fullname == candidate.full_path:
-                        _reportCandidates(
-                            package_name=package_name,
-                            module_name=module_name,
-                            candidate=candidate,
-                            candidates=candidates,
-                        )
-                        return candidate.full_path
+                        found_candidate = candidate
+                        break
+
+                if found_candidate:
+                    break
 
             # Only exact case matches matter, all candidates were ignored,
             # lets just fall through to raising the import error.
 
-    # Nothing found.
-    raise ImportError
+    if found_candidate is None:
+        # Nothing found.
+        raise ImportError
+    if (
+        found_candidate.module_type == imp.C_EXTENSION
+        and isMacOS()
+        and not hasUniversalOrMatchingMacOSArchitecture(found_candidate.full_path)
+    ):
+        # Not usable for target architecture.
+        raise ImportError
+
+    _reportCandidates(
+        package_name=package_name,
+        module_name=module_name,
+        candidate=found_candidate,
+        candidates=candidates,
+    )
+
+    return found_candidate.full_path
 
 
 _egg_files = {}
@@ -666,7 +686,7 @@ def locateModule(module_name, parent_package, level):
 
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
 
-        assert module_kind is not None, module_filename
+        assert module_kind is not None, (module_filename, finding)
 
         module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
 
