@@ -2182,7 +2182,6 @@
     dirs:
       - 'data'
       - 'descr'
-
   implicit-imports:
     - depends:
         - 'sklearn.datasets._svmlight_format'
@@ -2243,6 +2242,11 @@
         - 'sklearn.manifold._barnes_hut_tsne'
         - 'sklearn.manifold._utils'
 
+- module-name: 'sklearn.manifold._barnes_hut_tsne'
+  implicit-imports:
+    - depends:
+        - 'sklearn.neighbors._quad_tree'
+
 - module-name: 'sklearn.metrics'
   implicit-imports:
     - depends:
@@ -2276,6 +2280,11 @@
   implicit-imports:
     - depends:
         - 'sklearn.neighbors._typedefs'
+
+- module-name: 'sklearn.neighbors._quad_tree'
+  implicit-imports:
+    - depends:
+        - 'sklearn.tree'
 
 - module-name: 'sklearn.preprocessing'
   implicit-imports:
