@@ -372,6 +372,18 @@ existing '%s' extension module by default. Candidates were: %s <-> %s."""
                     )
 
 
+_list_dir_cache = {}
+
+
+def listDirCached(path):
+    """Cached listing of a directory."""
+
+    if path not in _list_dir_cache:
+        _list_dir_cache[path] = tuple(listDir(path))
+
+    return _list_dir_cache[path]
+
+
 def _findModuleInPath2(package_name, module_name, search_path):
     """This is out own module finding low level implementation.
 
@@ -477,7 +489,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
             found_candidate = candidates[0]
         else:
             for candidate in candidates:
-                for fullname, _filename in listDir(candidate[0]):
+                for fullname, _filename in listDirCached(candidate.found_in):
                     if fullname == candidate.full_path:
                         found_candidate = candidate
                         break
