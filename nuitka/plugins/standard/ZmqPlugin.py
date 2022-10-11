@@ -30,69 +30,81 @@ from nuitka.utils.FileOperations import getFileList
 
 
 class NuitkaPluginZmq(NuitkaPluginBase):
-    """This class represents the main logic of the pyzmq plugin.
+    """This class represents the main logic of the delvewheel plugin.
 
-    This is a plugin to ensure that pyzmq platform specific backends are loading
-    properly. This need to include the correct DLL and make sure it's used by
-    setting an environment variable.
-
+    This is a plugin to ensure that delvewheel DLLs are loading properly in
+    standalone mode. This needed to include the correct DLLs to the correct
+    place.
     """
 
+    # TODO: Cleanup plugin name, this is now general.
     plugin_name = "pyzmq"  # Nuitka knows us by this name
-    plugin_desc = "Required for pyzmq in standalone mode"
+    plugin_desc = "Required for delvewheel support in standalone mode"
 
     def __init__(self):
-        # Special DLL directory if detected.
-        self.dll_directory = None
+        # Special DLL directories if detected for a module.
+        self.dll_directories = {}
 
     @staticmethod
     def isAlwaysEnabled():
         return True
 
+    @staticmethod
+    def isRelevant():
+        return Options.isStandaloneMode()
+
     # This is used by our exec below, to capture the dll directory.
-    def _add_dll_directory(self, arg):
-        self.dll_directory = arg
 
     def onModuleSourceCode(self, module_name, source_code):
-        if module_name == "zmq" and Options.isStandaloneMode():
-            # TODO: Make the anti-bloat engine to this.
+        # Avoid regular expression match if possible.
+        if "_delvewheel_init_patch" not in source_code:
+            return None
 
-            if "_delvewheel_init_patch" in source_code:
-                match = re.search(
-                    r"(def _delvewheel_init_patch_(.*?)\(\):\n.*?_delvewheel_init_patch_\2\(\))",
-                    source_code,
-                    re.S,
-                )
+        match = re.search(
+            r"(def _delvewheel_init_patch_(.*?)\(\):\n.*?_delvewheel_init_patch_\2\(\))",
+            source_code,
+            re.S,
+        )
 
-                delvewheel_version = match.group(2).replace("_", ".")
+        if not match:
+            return None
 
-                self.info(
-                    "Detected usage of 'delvewheel' version %r." % delvewheel_version
-                )
+        delvewheel_version = match.group(2).replace("_", ".")
 
-                code = match.group(1)
+        self.info(
+            "Detected usage of 'delvewheel' version '%s' in module '%s'."
+            % (delvewheel_version, module_name.asString())
+        )
 
-                code = code.replace("os.add_dll_directory", "add_dll_directory")
-                code = code.replace("sys.version_info[:2] >= (3, 8)", "True")
+        code = match.group(1)
 
-                # Fake the __file__ to the proper value.
-                exec_globals = {
-                    "__file__": self.locateModule(module_name) + "\\__init__.py",
-                    "add_dll_directory": self._add_dll_directory,
-                }
+        code = code.replace("os.add_dll_directory", "add_dll_directory")
+        code = code.replace("sys.version_info[:2] >= (3, 8)", "True")
 
-                # We believe this should be the easiest, pylint: disable=exec-used
-                exec(code, exec_globals)
+        def _add_dll_directory(arg):
+            self.dll_directories[module_name] = arg
+
+        # Fake the __file__ to the proper value.
+        exec_globals = {
+            "__file__": self.locateModule(module_name) + "\\__init__.py",
+            "add_dll_directory": _add_dll_directory,
+        }
+
+        # We believe this should be the easiest, pylint: disable=exec-used
+        exec(code, exec_globals)
 
     def getExtraDlls(self, module):
-        # TODO: DLL directory from code like this, is not yet a thing.
-        if module.getFullName() == "zmq" and self.dll_directory is not None:
-            for dll_filename in getFileList(self.dll_directory):
+        full_name = module.getFullName()
+
+        dll_directory = self.dll_directories.get(full_name)
+
+        if dll_directory is not None:
+            for dll_filename in getFileList(dll_directory):
                 yield self.makeDllEntryPoint(
                     source_path=dll_filename,
                     dest_path=os.path.join(
-                        "pyzmq.libs", os.path.basename(dll_filename)
+                        os.path.basename(dll_directory), os.path.basename(dll_filename)
                     ),
-                    package_name="zmq",
-                    reason="needed as a workaround for old 'zmq'",
+                    package_name=full_name,
+                    reason="needed by '%s'" % full_name.asString(),
                 )

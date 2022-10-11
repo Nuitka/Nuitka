@@ -63,7 +63,42 @@ from nuitka.utils.ModuleNames import (
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
 from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
 
-warned_unused_plugins = set()
+_warned_unused_plugins = set()
+
+# TODO: Could share data cache with meta data nodes
+_package_versions = {}
+
+
+def _convertVersionToTuple(version_str):
+    return tuple(int(d) for d in version_str.split("."))
+
+
+def _getPackageVersion(distribution_name):
+    if distribution_name not in _package_versions:
+        try:
+            if python_version >= 0x380:
+                from importlib.metadata import version
+            else:
+                from importlib_metadata import version
+
+            result = _convertVersionToTuple(version(distribution_name))
+        except ImportError:
+            try:
+                from pkg_resources import get_distribution
+
+                result = _convertVersionToTuple(
+                    get_distribution(distribution_name).version
+                )
+            except ImportError:
+                # Fallback if nothing is available, which may happen if no package is installed,
+                # but only source code is found.
+                result = _convertVersionToTuple(
+                    __import__(distribution_name).__version__.split(".")
+                )
+
+        _package_versions[distribution_name] = result
+
+    return _package_versions[distribution_name]
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -790,8 +825,8 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         Returns:
             None
         """
-        if self.plugin_name not in warned_unused_plugins:
-            warned_unused_plugins.add(self.plugin_name)
+        if self.plugin_name not in _warned_unused_plugins:
+            _warned_unused_plugins.add(self.plugin_name)
 
             plugins_logger.warning(
                 "Use '--enable-plugin=%s' for: %s" % (self.plugin_name, message)
@@ -934,6 +969,8 @@ except ImportError:
                 "deployment": False,
                 # Module dependent
                 "main_module": full_name.getBasename() == "__main__",
+                # Querying package versions.
+                "version": _getPackageVersion,
             }
         )
 
@@ -1017,6 +1054,6 @@ class TagContext(dict):
                 return False
 
             self.logger.sysexit(
-                "Control tag '%s' in module configuration of '%s' is unknown."
+                "Identifier '%s' in 'when' configuration of module '%s' is unknown."
                 % (key, self.full_name)
             )
