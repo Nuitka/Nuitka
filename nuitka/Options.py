@@ -373,6 +373,11 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, icon path %r does not exist." % icon_exe_path
         )
 
+    if isMacOS() and not shallCreateAppBundle() and shallDisableConsoleWindow():
+        Tracing.options_logger.sysexit(
+            "Error, cannot disable console unless also using '--macos-create-app-bundle'."
+        )
+
     try:
         file_version = getWindowsFileVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
