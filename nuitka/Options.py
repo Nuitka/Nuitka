@@ -760,6 +760,18 @@ and not with the non-debug version.
 """
         )
 
+    if (
+        isMacOS()
+        and shallCreateAppBundle()
+        and shallDisableConsoleWindow()
+        and not getIconPaths()
+    ):
+        Tracing.general.warning(
+            """\
+For GUI applications, you ought to specify an icon with '--macos-app-icon'.", \
+otherwise a dock icon may not be present."""
+        )
+
     filename = getPositionalArgs()[0]
     if not os.path.exists(filename):
         Tracing.general.sysexit("Error, file '%s' is not found." % filename)
