@@ -120,18 +120,18 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                     if mayDisableConsoleWindow():
                         self._checkConsoleMode(
                             full_name=full_name,
-                            console=options_config.get("console", "yes"),
+                            console=check.get("console", "yes"),
                         )
 
                     if isMacOS():
                         self._checkMacOSBundleMode(
                             full_name=full_name,
-                            macos_bundle=options_config.get("macos_bundle", "no"),
+                            macos_bundle=check.get("macos_bundle", "no"),
                         )
 
                         self._checkMacOSBundleOnefileMode(
                             full_name=full_name,
-                            macos_bundle_as_onefile=options_config.get(
+                            macos_bundle_as_onefile=check.get(
                                 "macos_bundle_as_onefile", "no"
                             ),
                         )
