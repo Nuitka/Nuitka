@@ -518,7 +518,7 @@ def detectBinaryMinMacOS(binary_filename):
     return minos_version
 
 
-_re_anylib = re.compile(r"^.*(\.(?:dll|so(?:\..*)|dylib))$", re.IGNORECASE)
+_re_dll_filename = re.compile(r"^.*(\.(?:dll|so(?:\..*)|dylib))$", re.IGNORECASE)
 
 
 def locateDLLsInDirectory(directory):
@@ -536,7 +536,7 @@ def locateDLLsInDirectory(directory):
         filename_relative = os.path.relpath(filename, start=directory)
 
         # TODO: Might want to be OS specific on what to match.
-        match = _re_anylib.match(filename_relative)
+        match = _re_dll_filename.match(filename_relative)
 
         if match:
             result.append((filename, filename_relative, match.group(1)))
@@ -544,24 +544,49 @@ def locateDLLsInDirectory(directory):
     return result
 
 
+_file_usage = "The 'file' tool is used to detect macOS file architectures."
+
+_file_output_cache = {}
+
+
+def _getFileCommandOutput(filename):
+    """Cached file output."""
+
+    if filename not in _file_output_cache:
+        file_output = executeToolChecked(
+            logger=postprocessing_logger,
+            command=("file", filename),
+            absence_message=_file_usage,
+        )
+
+        if str is not bytes:
+            file_output = file_output.decode("utf8")
+
+        assert file_output.startswith(filename + ":")
+        file_output = file_output[len(filename) + 1 :].splitlines()[0].strip()
+
+        _file_output_cache[filename] = file_output
+
+    return _file_output_cache[filename]
+
+
+def hasUniversalOrMatchingMacOSArchitecture(filename):
+    assert isMacOS()
+
+    file_output = _getFileCommandOutput(filename)
+
+    return "universal" in file_output or Options.getMacOSTargetArch() in file_output
+
+
+# spell-checker: ignore lipo
+
 _lipo_usage = (
     "The 'lipo' tool from XCode is used to manage universal binaries on macOS platform."
 )
-_file_usage = "The 'file' tool is used to detect macOS file architectures."
 
 
-def makeMacOSThinBinary(filename):
-    file_output = executeToolChecked(
-        logger=postprocessing_logger,
-        command=("file", filename),
-        absence_message=_file_usage,
-    )
-
-    if str is not bytes:
-        file_output = file_output.decode("utf8")
-
-    assert file_output.startswith(filename + ":")
-    file_output = file_output[len(filename) + 1 :].splitlines()[0].strip()
+def makeMacOSThinBinary(dest_path, original_path):
+    file_output = _getFileCommandOutput(dest_path)
 
     macos_target_arch = Options.getMacOSTargetArch()
 
@@ -572,20 +597,20 @@ def makeMacOSThinBinary(filename):
                 "lipo",
                 "-thin",
                 macos_target_arch,
-                filename,
+                dest_path,
                 "-o",
-                filename + ".tmp",
+                dest_path + ".tmp",
             ),
             absence_message=_lipo_usage,
         )
 
-        with withMadeWritableFileMode(filename):
-            os.unlink(filename)
-            os.rename(filename + ".tmp", filename)
+        with withMadeWritableFileMode(dest_path):
+            os.unlink(dest_path)
+            os.rename(dest_path + ".tmp", dest_path)
     elif macos_target_arch not in file_output:
         postprocessing_logger.sysexit(
             "Error, cannot use file '%s' (%s) to build arch '%s' result"
-            % (filename, file_output, macos_target_arch)
+            % (original_path, file_output, macos_target_arch)
         )
 
 
@@ -601,7 +626,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
         _removeSxsFromDLL(target_filename)
 
     if isMacOS() and Options.getMacOSTargetArch() != "universal":
-        makeMacOSThinBinary(target_filename)
+        makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
     if isLinux():
         # Path must be normalized for this to be correct, but entry points enforced that.

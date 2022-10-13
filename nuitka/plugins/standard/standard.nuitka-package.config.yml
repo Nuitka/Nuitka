@@ -1929,6 +1929,17 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'seaborn.external.docscrape'
+  anti-bloat:
+    # TODO: Keep the same as 'scipy._lib._docscrape' module
+    - description: 'remove sphinx reference'
+      replacements_plain:
+        "if 'sphinx' in sys.modules:": 'if False:'
+    # TODO: Keep the same as 'scipy._lib._docscrape' module
+    - description: 'workaround for MSVC bug with scipy 1.8.x '
+      replacements_plain:
+        "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
+
 - module-name: 'seedir.printing'
   data-files:
     patterns:
@@ -1970,13 +1981,13 @@
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
-      when: 'not anaconda and not win32'
+      when: 'not anaconda and not win32 and version("shapely") < (1,8,1)'
     # Anaconda or Win32 are forced to specific path.
     - by_code:
         setup_code: 'import shapely.geos, os'
         filename_code: 'shapely.geos._lgeos._name'
       dest_path: 'shapely'
-      when: 'anaconda or win32'
+      when: 'anaconda or win32 and version("shapely") < (1,8,1)'
   anti-bloat:
     - description: 'change geos DLL location'
       replacements_plain:
@@ -2171,7 +2182,6 @@
     dirs:
       - 'data'
       - 'descr'
-
   implicit-imports:
     - depends:
         - 'sklearn.datasets._svmlight_format'
@@ -2232,6 +2242,11 @@
         - 'sklearn.manifold._barnes_hut_tsne'
         - 'sklearn.manifold._utils'
 
+- module-name: 'sklearn.manifold._barnes_hut_tsne'
+  implicit-imports:
+    - depends:
+        - 'sklearn.neighbors._quad_tree'
+
 - module-name: 'sklearn.metrics'
   implicit-imports:
     - depends:
@@ -2265,6 +2280,11 @@
   implicit-imports:
     - depends:
         - 'sklearn.neighbors._typedefs'
+
+- module-name: 'sklearn.neighbors._quad_tree'
+  implicit-imports:
+    - depends:
+        - 'sklearn.tree'
 
 - module-name: 'sklearn.preprocessing'
   implicit-imports:
@@ -3191,6 +3211,7 @@
     # which we will not find packages in unless added.
     - package-dirs:
         - 'win32comext'
+      when: 'win32'
 
 - module-name: 'win32ui'
   implicit-imports:
@@ -3198,6 +3219,7 @@
         # That is a namespace module only, but it seems the extension modules needs it,
         # despite the DLLs being present.
         - 'import pywin32_system32'
+      when: 'win32'
 
 - module-name: 'wx'
   options:

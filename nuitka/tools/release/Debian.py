@@ -122,7 +122,7 @@ def checkChangeLog(message):
     sys.exit("Error, didn't find in debian/changelog: '%s'" % message)
 
 
-def cleanupTarfileForDebian(filename, new_name):
+def cleanupTarfileForDebian(codename, filename, new_name):
     """Remove files that shouldn't be in Debian.
 
     The inline copies should definitely not be there. Also remove the
@@ -131,17 +131,21 @@ def cleanupTarfileForDebian(filename, new_name):
 
     copyFile(filename, new_name)
     check_call(["gunzip", new_name])
-    check_call(
-        [
-            "tar",
-            "--wildcards",
-            "--delete",
-            "--file",
-            new_name[:-3],
-            "Nuitka*/*.pdf",
-            "Nuitka*/build/inline_copy",
-        ],
-    )
+
+    command = [
+        "tar",
+        "--wildcards",
+        "--delete",
+        "--file",
+        new_name[:-3],
+        "Nuitka*/*.pdf",
+    ]
+
+    # Keep inline copy for old variants.
+    if codename not in ("stretch", "jessie", "xenial"):
+        command.append("Nuitka*/build/inline_copy")
+
+    check_call(command)
     check_call(["gzip", "-9", "-n", new_name[:-3]])
 
 

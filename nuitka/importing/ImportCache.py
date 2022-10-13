@@ -66,9 +66,13 @@ def getImportedModuleByNameAndPath(full_name, module_filename):
         # pyi deps only
         return getImportedModuleByName(full_name)
 
+    # For caching we use absolute paths only.
+    module_filename = os.path.abspath(module_filename)
+
     if os.path.basename(module_filename) == "__init__.py":
         module_filename = os.path.dirname(module_filename)
 
+    # KeyError is valid result.
     return imported_modules[module_filename, full_name]
 
 

@@ -27,6 +27,7 @@ from nuitka.__past__ import iterItems
 from nuitka.build.SconsUtils import readSconsReport
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isShowProgress
+from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
@@ -41,6 +42,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Hashing import Hash
 from nuitka.utils.SharedLibraries import getPyWin32Dir
+from nuitka.Version import version_string
 
 from .DependsExe import detectDLLsWithDependencyWalker
 from .DllDependenciesCommon import getPackageSpecificDLLDirectories
@@ -65,6 +67,7 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             source_dir=source_dir,
             original_dir=original_dir,
             binary_filename=binary_filename,
+            package_name=package_name,
         )
 
         if use_cache:
@@ -156,7 +159,12 @@ def _getScanDirectories(package_name, original_dir):
 
 
 def _getCacheFilename(
-    dependency_tool, is_main_executable, source_dir, original_dir, binary_filename
+    dependency_tool,
+    is_main_executable,
+    source_dir,
+    original_dir,
+    binary_filename,
+    package_name,
 ):
     original_filename = os.path.join(original_dir, os.path.basename(binary_filename))
     original_filename = os.path.normcase(original_filename)
@@ -181,6 +189,12 @@ def _getCacheFilename(
 
     # Have different values for different Python major versions.
     hash_value.updateFromValues(sys.version, sys.executable)
+
+    # Plugins may change their influence.
+    hash_value.updateFromValues(*Plugins.getCacheContributionValues(package_name))
+
+    # Take Nuitka version into account as well, ought to catch code changes.
+    hash_value.updateFromValues(version_string)
 
     cache_dir = os.path.join(getCacheDir(), "library_dependencies", dependency_tool)
     makePath(cache_dir)

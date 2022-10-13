@@ -373,6 +373,11 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, icon path %r does not exist." % icon_exe_path
         )
 
+    if isMacOS() and not shallCreateAppBundle() and shallDisableConsoleWindow():
+        Tracing.options_logger.sysexit(
+            "Error, cannot disable console unless also using '--macos-create-app-bundle'."
+        )
+
     try:
         file_version = getWindowsFileVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
@@ -758,6 +763,18 @@ PyPI package for best Python compile time performance."""
 Error, for using the debug Python version, you need to run it will that version
 and not with the non-debug version.
 """
+        )
+
+    if (
+        isMacOS()
+        and shallCreateAppBundle()
+        and shallDisableConsoleWindow()
+        and not getIconPaths()
+    ):
+        Tracing.general.warning(
+            """\
+For GUI applications, you ought to specify an icon with '--macos-app-icon'.", \
+otherwise a dock icon may not be present."""
         )
 
     filename = getPositionalArgs()[0]

@@ -362,11 +362,21 @@ def checkPluginFilenamePattern(pattern):
 
 def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):
     for parent_package_name in module_name.getParentPackageNames():
-        _parent_package_name, parent_package_filename, _finding = locateModule(
+        _parent_package_name, parent_package_filename, finding = locateModule(
             module_name=parent_package_name, parent_package=None, level=0
         )
 
-        assert parent_package_filename is not None, parent_package_name
+        if parent_package_filename is None:
+            recursion_logger.sysexit(
+                "Error, failed to local parent package file for '%s' parent of '%s' (used by %s) module (%s)"
+                % (
+                    parent_package_name.asString(),
+                    module_name.asString(),
+                    using_module.getFullName().asString(),
+                    finding,
+                )
+            )
+
         assert _parent_package_name == parent_package_name
 
         _parent_package_name, package_module_kind = getModuleNameAndKindFromFilename(

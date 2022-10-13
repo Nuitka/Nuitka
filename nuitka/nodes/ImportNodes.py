@@ -248,11 +248,13 @@ hard_modules_trust = {
         "version": trust_node,
         "distribution": trust_node,
         "metadata": trust_node,
+        "PackageNotFoundError": trust_exist,
     },
     "importlib_metadata": {
         "version": trust_node,
         "distribution": trust_node,
         "metadata": trust_node,
+        "PackageNotFoundError": trust_exist,
     },
     "_frozen_importlib": {},
     "_frozen_importlib_external": {},
