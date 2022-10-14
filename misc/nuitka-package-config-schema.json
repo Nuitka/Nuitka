@@ -263,6 +263,9 @@
                             "items": {
                                 "type": "string"
                             }
+                        },
+                        "when": {
+                            "type": "string"
                         }
                     }
                 }

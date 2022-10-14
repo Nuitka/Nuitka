@@ -101,7 +101,7 @@ for filename in os.listdir("."):
     if filename.endswith(".tar.gz"):
         new_name = filename[:-7] + "+ds.tar.gz"
 
-        cleanupTarfileForDebian(filename, new_name)
+        cleanupTarfileForDebian(codename="sid", filename=filename, new_name=new_name)
 
         entry = runPy2dsc(filename, new_name)
 
