@@ -131,6 +131,7 @@
         "Doxygen",
         "dpkg",
         "dunder",
+        "dtruss",
         "DYLD",
         "dylib",
         "elif",

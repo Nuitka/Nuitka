@@ -59,7 +59,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
-from nuitka.utils.Utils import getOS, isWin32Windows
+from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 
 from .SearchModes import (
     SearchModeByPattern,
@@ -1778,6 +1778,34 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         # MSVC run time DLLs, due to SxS come from system.
         if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
             continue
+
+        if isMacOS():
+            ignore = True
+            for ignored_dir in (
+                "/System/Library/PrivateFrameworks",
+                "/System/Library/CoreService",
+                "/System/Library/Frameworks/CoreFoundation.framework",
+                "/System/Library/dyld",
+                "/usr/lib/system/",
+            ):
+                if isPathBelowOrSameAs(ignored_dir, loaded_filename):
+                    ignore = False
+                    break
+            if not ignore:
+                continue
+
+            if loaded_filename == "/usr/libexec/rosetta/runtime":
+                continue
+
+            if loaded_filename in (
+                "/usr/lib/libSystem.B.dylib",
+                "/usr/lib/libc++.1.dylib",
+                "/usr/lib/libc++abi.dylib",
+                "/usr/lib/libfakelink.dylib",
+                "/usr/lib/liboah.dylib",
+                "/usr/lib/libobjc.A.dylib",
+            ):
+                continue
 
         illegal_accesses.append(orig_loaded_filename)
 
