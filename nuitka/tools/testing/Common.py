@@ -59,7 +59,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import getOS, isWin32Windows
 
 from .SearchModes import (
     SearchModeByPattern,
@@ -166,7 +166,7 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if (
         len(os.environ["PYTHON"]) == 2
         and os.environ["PYTHON"].isdigit()
-        and os.name != "nt"
+        and not isWin32Windows()
     ):
 
         os.environ["PYTHON"] = "python%s.%s" % (
@@ -258,7 +258,7 @@ def convertUsing2to3(path, force=False):
 
     if use_binary:
         # On Windows, we cannot rely on 2to3 to be in the path.
-        if os.name == "nt":
+        if isWin32Windows():
             command = [
                 sys.executable,
                 os.path.join(os.path.dirname(sys.executable), "Tools/Scripts/2to3.py"),
@@ -274,7 +274,7 @@ def convertUsing2to3(path, force=False):
         check_output(command, stderr=getNullOutput())
 
     except subprocess.CalledProcessError:
-        if os.name == "nt":
+        if isWin32Windows():
             raise
 
         command[0:3] = ["2to3"]
@@ -395,7 +395,7 @@ def _removeCPythonTestSuiteDir():
         # call as last resort could be a good idea.
 
         # This seems to work for broken "lnk" files.
-        if os.name == "nt":
+        if isWin32Windows():
             os.system("rmdir /S /Q @test")
 
         if os.path.exists("@test"):
@@ -1300,7 +1300,7 @@ def displayFolderContents(name, path):
     test_logger.info("Listing of %s %r:" % (name, path))
 
     if os.path.exists(path):
-        if os.name == "nt":
+        if isWin32Windows():
             command = "dir /b /s /a:-D %s" % path
         else:
             command = "ls -Rla %s" % path
@@ -1390,7 +1390,7 @@ def killProcess(name, pid):
     with Python2 or non-related processes.
     """
 
-    if str is bytes and os.name == "nt":
+    if str is bytes and isWin32Windows():
         test_logger.info("Using taskkill on test process %r." % name)
         os.system("taskkill.exe /PID %d" % pid)
     else:
@@ -1414,7 +1414,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         loaded_filename = os.path.normcase(loaded_filename)
         loaded_basename = os.path.basename(loaded_filename)
 
-        if os.name == "nt":
+        if isWin32Windows():
             if areSamePaths(
                 os.path.dirname(loaded_filename),
                 os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "System32")),
