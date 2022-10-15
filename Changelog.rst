@@ -40,14 +40,95 @@ Bug Fixes
 -  Anti-Bloat: Remove non-sense warning of compiled ``pyscf``. Fixed in
    1.1.1 already.
 
+-  macOS: Fix, in LTO mode using ``incbin`` can fail, switch to source
+   mode for constants resources. Fixed in 1.1.2 already.
+
+-  Standalone: Add support for ``sv_ttk`` module. Fixed in 1.1.2
+   already.
+
+-  macOS: Fix, was no longer correcting ``libpython`` path, this was a
+   regression preventing CPython for creating properly portable binary.
+   Fixed in 1.1.2 already.
+
+-  macOS: Fix, main binary was not included in signing command. Fixed in
+   1.1.3 already.
+
+-  Standalone: Added implicit dependency of ``orjson``. Due to
+   ``zoneinfo`` not being automatically included anymore, this was
+   having a segfault. Fixed in 1.1.3 already.
+
+-  Standalone: Added support for new ``shapely``. Fixed in 1.1.4
+   already.
+
+-  macOS: Ignore extension module of non-matching architecture. Some
+   wheels contain extension modules for only ``x86_64`` arch, and others
+   contain them only for ``arm64``, preventing the standalone build.
+   Fixed in 1.1.4 already.
+
+-  Standalone: Added missing ``sklearn`` dependencies. Fixed in 1.1.4
+   already.
+
+-  Fix, packages available through relative import paths could be
+   confused with the same ones imported by absolute paths. This should
+   be very hard to trigger, by normal users, but was seen during
+   development. Fixed in 1.1.4 already.
+
+-  Standalone: Apply import hacks for ``pywin32`` modules only on
+   Windows, otherwise it can break e.g. macOS compilation. Fixed in
+   1.1.4 already.
+
+-  Windows: More robust DLL dependency caching, otherwise e.g. a Windows
+   update can break things. Also consider plugin contribution, and
+   Nuitka version, to be absolutely sure, much like we already do for
+   bytecode caching. Fixed in 1.1.4 already.
+
+New Features
+============
+
+-  DLLs used via ``delvewheel`` were so far only handled in the ``zmq``
+   plugin, but this has been generalized to cover any package using it.
+   With that, e.g. ``shapely`` just works. This probably helps many
+   other packages as well.
+
 Optimization
 ============
+
+-  Trust ``importlib.metadata.PackageNotFoundError`` to exist, with this
+   some more metadata usages are statically optimized. Added in 1.1.4
+   already.
 
 -  Disabled C compilation of very large ``azure`` modules.
 
 -  The module usage from first pass was used in later passes. But since
    they can get optimized away, we have to update them. So far this
    makes no difference, but in the future it would.
+
+Cleanups
+========
+
+-  Moved PySide plugins DLL search extra paths to the Yaml
+   configuration. In this way it is not dependent on the plugin being
+   active, avoiding cryptic errors on macOS when they are not found.
+
+Organisational
+==============
+
+-  macOS: Catch user error of disabling the console without using the
+   bundle mode, as it otherwise it has no effect.
+
+-  macOS: Warn about not providing an icon with disabled console,
+   otherwise the dock icon is empty, which just looks bad.
+
+-  Debian: Also need to depend on ``glob2`` packages which the yaml
+   engine expects to use when searching for DLLs.
+
+-  Debian: Pertain inline copies of modules in very old builds, there is
+   e.g. no ``glob2`` for older releases, but only recent Debian releases
+   need very pure packages, our backport doesn't have to do it right.
+
+-  macOS: More reliable detection of Homebrew based Python. Rather than
+   checking file system via its ``sitecustomize`` contents. The
+   environment variables are only present to some usages.
 
 This release is not done yet.
 
@@ -6973,9 +7054,9 @@ Bug Fixes
 
 -  Standalone: Added missing implicit dependency for ``zmq`` module.
 
--  Python3.7: Fix, using the ``-X UTF-8`` flag on the calling
-   interpreter, aka ``--python-flag=UTF-8_mode`` was not preserved in
-   the compiled binary in all cases.
+-  Python3.7: Fix, using the ``-X utf8`` flag on the calling
+   interpreter, aka ``--python-flag=utf8_mode`` was not preserved in the
+   compiled binary in all cases.
 
 Optimization
 ============
