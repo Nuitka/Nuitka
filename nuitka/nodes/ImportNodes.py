@@ -861,7 +861,12 @@ class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
                     return None
                     # TODO: Static exception should be created and warned about.
                     # raise ValueError("attempted relative import beyond top-level package")
-            return "%s.%s" % (package_name[:dot], module_name)
+
+            package_name = package_name[:dot]
+            if module_name == "":
+                return package_name
+            else:
+                return "%s.%s" % (package_name, module_name)
 
         return module_name
 
