@@ -49,7 +49,11 @@ from nuitka.ModuleRegistry import (
     addModuleInfluencingCondition,
     getModuleInclusionInfoByName,
 )
-from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.Options import (
+    isStandaloneMode,
+    shallMakeModule,
+    shallShowExecutedCommands,
+)
 from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
@@ -894,6 +898,9 @@ except ImportError:
             "query_codes": "\n".join(query_codes),
         }
 
+        if shallShowExecutedCommands():
+            self.info("Executing query command:\n%s" % cmd)
+
         try:
             feedback = check_output([sys.executable, "-c", cmd])
         except NuitkaCalledProcessError as e:
@@ -903,6 +910,9 @@ except ImportError:
 
         if str is not bytes:  # We want to work with strings, that's hopefully OK.
             feedback = feedback.decode("utf8")
+
+        if shallShowExecutedCommands():
+            self.info("Result of query command:\n%s" % feedback)
 
         # Ignore Windows newlines difference.
         feedback = [line.strip() for line in feedback.splitlines()]

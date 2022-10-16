@@ -1792,3 +1792,7 @@ def shallDisplayWarningMnemonic(mnemonic):
             return False
 
     return True
+
+
+def shallShowExecutedCommands():
+    return isExperimental("show-commands")
