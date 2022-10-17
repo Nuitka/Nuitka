@@ -1177,7 +1177,7 @@
 
       change_function:
         'network': "'(lambda: None)'"
-        # TODO: Actually it would be nice to specify "uncallable" rather than
+        # TODO: Actually it would be nice to specify "un-callable" rather than
         # wrong signature for cases, where the function is not usable
         # afterwards. That will make sure we have a nice error exit in case,
         # some test code is run an attempts to use it.
@@ -1314,6 +1314,23 @@
   implicit-imports:
     - depends:
         - 'passlib.handlers.sha2_crypt'
+
+- module-name: 'patsy.mgcv_cubic_splines'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'test__map_cyclic_errors': 'un-callable'
+        'test__get_all_sorted_knots': 'un-callable'
+        'test_crs_errors': 'un-callable'
+        'test_te_errors': 'un-callable'
+        'test__row_tensor_product_errors': 'un-callable'
+
+- module-name: 'patsy.util'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_pandas_friendly_reshape': 'un-callable'
+        'test_wide_dtype_for_and_widen': 'un-callable'
 
 - module-name: 'pendulum'
   data-files:
