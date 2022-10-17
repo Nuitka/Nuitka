@@ -1038,6 +1038,14 @@
           with _assert_warns_context(warning_class, name=func.__name__):
               return func(*args, **kwargs)
 
+        def assert_(val, msg=''):
+          if not val:
+              try:
+                  smsg = msg()
+              except TypeError:
+                  smsg = msg
+              raise AssertionError(smsg)
+
 - module-name: 'numpy.testing._private.pytesttester'
   anti-bloat:
     - description: 'remove numpy testing framework'
