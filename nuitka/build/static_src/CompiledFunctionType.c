@@ -179,6 +179,34 @@ static int Nuitka_Function_set_code(struct Nuitka_FunctionObject *object, PyObje
     return -1;
 }
 
+static PyObject *Nuitka_Function_get_compiled(struct Nuitka_FunctionObject *object) {
+    PyObject *result = Nuitka_dunder_compiled_value;
+    Py_INCREF(result);
+    return result;
+}
+
+static int Nuitka_Function_set_compiled(struct Nuitka_FunctionObject *object, PyObject *value) {
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "__compiled__ is not writable");
+    return -1;
+}
+
+static PyObject *Nuitka_Function_get_compiled_constant(struct Nuitka_FunctionObject *object) {
+    PyObject *result = object->m_constant_return_value;
+
+    if (result == NULL) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError, "non-constant return value");
+
+        return NULL;
+    }
+    Py_INCREF(result);
+    return result;
+}
+
+static int Nuitka_Function_set_compiled_constant(struct Nuitka_FunctionObject *object, PyObject *value) {
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "__compiled_constant__ is not writable");
+    return -1;
+}
+
 static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *object) {
     if (object->m_closure_given > 0) {
         PyObject *result = PyTuple_New(object->m_closure_given);
@@ -389,6 +417,9 @@ static PyGetSetDef Nuitka_Function_getset[] = {
 #if PYTHON_VERSION >= 0x3a0
     {(char *)"__builtins__", (getter)Nuitka_Function_get_builtins, (setter)Nuitka_Function_set_builtins, NULL},
 #endif
+    {(char *)"__compiled__", (getter)Nuitka_Function_get_compiled, (setter)Nuitka_Function_set_compiled, NULL},
+    {(char *)"__compiled_constant__", (getter)Nuitka_Function_get_compiled_constant,
+     (setter)Nuitka_Function_set_compiled_constant, NULL},
     {NULL}};
 
 static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) {
@@ -643,6 +674,12 @@ void _initCompiledFunctionType(void) {
             }
 #endif
 
+            if (strcmp(own->name, "__compiled__") == 0 || strcmp(own->name, "__compiled_constant__") == 0) {
+                // We have to do that differently, because we do not keep this around until
+                // needed, and we make it read-only
+                continue;
+            }
+
             PRINT_FORMAT("Not found in uncompiled type: %s\n", own->name);
             NUITKA_CANNOT_GET_HERE("Type problem");
         }
@@ -786,9 +823,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
 
     if (c_code != NULL) {
         result->m_c_code = c_code;
-#ifndef __NUITKA_NO_ASSERT__
         result->m_constant_return_value = NULL;
-#endif
     } else {
         result->m_c_code = _Nuitka_FunctionEmptyCodeNoneImpl;
         result->m_constant_return_value = Py_None;
