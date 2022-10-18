@@ -82,6 +82,7 @@ def getConstantDefaultPopulation():
         "compile",
         "range",
         "open",
+        "super",
         "sum",
         "format",
         "__import__",

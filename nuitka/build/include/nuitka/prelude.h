@@ -502,6 +502,8 @@ extern PyObject **global_constants;
 #define const_str_plain_file global_constants[61]
 // 'print'
 #define const_str_plain_print global_constants[62]
+// 'super'
+#define const_str_plain_super global_constants[62]
 // '__spec__'
 #define const_str_plain___spec__ global_constants[63]
 // '_initializing'
