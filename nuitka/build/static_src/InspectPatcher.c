@@ -30,6 +30,8 @@ static PyObject *module_types;
 
 static char *kw_list_object[] = {(char *)"object", NULL};
 
+// spell-checker: ignore getgeneratorstate, getcoroutinestate
+
 static PyObject *old_getgeneratorstate = NULL;
 
 static PyObject *_inspect_getgeneratorstate_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -85,12 +87,12 @@ static PyObject *_inspect_getcoroutinestate_replacement(PyObject *self, PyObject
 
 static PyObject *old_types_coroutine = NULL;
 
-static char *kwlist_func[] = {(char *)"func", NULL};
+static char *kw_list_coroutine[] = {(char *)"func", NULL};
 
 static PyObject *_types_coroutine_replacement(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *func;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:coroutine", kwlist_func, &func, NULL)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O:coroutine", kw_list_coroutine, &func, NULL)) {
         return NULL;
     }
 

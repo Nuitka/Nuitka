@@ -509,13 +509,14 @@ static char const *getEntryModeString(struct Nuitka_MetaPathBasedLoaderEntry con
     return mode;
 }
 
-static char *_kwlist[] = {(char *)"fullname", (char *)"unused", NULL};
+static char *_kw_list_find_module[] = {(char *)"fullname", (char *)"unused", NULL};
 
 static PyObject *_nuitka_loader_find_module(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *module_name;
     PyObject *unused;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|O:find_module", (char **)_kwlist, &module_name, &unused);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|O:find_module", (char **)_kw_list_find_module, &module_name,
+                                          &unused);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1121,7 +1122,8 @@ static PyObject *_nuitka_loader_load_module(PyObject *self, PyObject *args, PyOb
     PyObject *module_name;
     PyObject *unused;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|O:load_module", (char **)_kwlist, &module_name, &unused);
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|O:load_module", (char **)_kw_list_find_module, &module_name,
+                                          &unused);
 
     if (unlikely(res == 0)) {
         return NULL;
@@ -1315,7 +1317,8 @@ static PyObject *_nuitka_loader_repr_module(PyObject *self, PyObject *args, PyOb
     PyObject *module;
     PyObject *unused;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kwlist, &module, &unused);
+    int res =
+        PyArg_ParseTupleAndKeywords(args, kwds, "O|O:module_repr", (char **)_kw_list_find_module, &module, &unused);
 
     if (unlikely(res == 0)) {
         return NULL;
