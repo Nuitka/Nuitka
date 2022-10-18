@@ -642,27 +642,30 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
 
 NUITKA_DEFINE_BUILTIN(super);
 
-PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object) {
+PyObject *BUILTIN_SUPER2(PyDictObject *module_dict, PyObject *type, PyObject *object) {
     CHECK_OBJECT(type);
     CHECK_OBJECT_X(object);
 
-    NUITKA_ASSIGN_BUILTIN(super);
+    PyObject *super_value = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)const_str_plain_super);
+
+    if (super_value == NULL) {
+        NUITKA_ASSIGN_BUILTIN(super);
+
+        super_value = NUITKA_ACCESS_BUILTIN(super);
+    }
 
     PyObject *args[] = {type, object};
     char const *arg_names[] = {"type", "obj"};
 
-    PRINT_ITEM(NUITKA_ACCESS_BUILTIN(super));
-    PRINT_NEW_LINE();
-
-    return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(super), args, arg_names, 2);
+    return CALL_BUILTIN_KW_ARGS(super_value, args, arg_names, 2);
 }
 
-PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object) {
+PyObject *BUILTIN_SUPER0(PyDictObject *module_dict, PyObject *type, PyObject *object) {
     if (object == Py_None) {
         object = NULL;
     }
 
-    return BUILTIN_SUPER2(type, object);
+    return BUILTIN_SUPER2(module_dict, type, object);
 }
 
 /** The "callable" built-in.
