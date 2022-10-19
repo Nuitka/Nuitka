@@ -672,10 +672,11 @@ def makeHelpersImportHard():
 def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
     emit('/* C helper for hard import of module "%s" import. */' % module_name)
 
-    python_min_max_version = hard_modules_version.get(module_name)
+    python_min_max_os_version = hard_modules_version.get(module_name)
 
-    if python_min_max_version is not None:
-        python_min_version, python_max_version = python_min_max_version
+    if python_min_max_os_version is not None:
+        assert len(python_min_max_os_version) == 3, module_name
+        python_min_version, python_max_version, os_limit = python_min_max_os_version
 
         parts = []
 
@@ -683,6 +684,8 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
             parts.append("PYTHON_VERSION >= %s" % hex(python_min_version))
         if python_max_version is not None:
             parts.append("PYTHON_VERSION < %s" % hex(python_max_version))
+        if os_limit is not None:
+            parts.append({"win32": "defined(_WIN32)"}[os_limit])
 
         python_requirement = " && ".join(parts)
 

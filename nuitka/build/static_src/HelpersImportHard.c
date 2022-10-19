@@ -122,6 +122,7 @@ PyObject *IMPORT_HARD_CTYPES__MACHOLIB(void) {
 }
 
 /* C helper for hard import of module "ctypes.wintypes" import. */
+#if defined(_WIN32)
 PyObject *IMPORT_HARD_CTYPES__WINTYPES(void) {
     static PyObject *module_import_hard_ctypes__wintypes = NULL;
 
@@ -139,6 +140,7 @@ PyObject *IMPORT_HARD_CTYPES__WINTYPES(void) {
 
     return module_import_hard_ctypes__wintypes;
 }
+#endif
 
 /* C helper for hard import of module "functools" import. */
 PyObject *IMPORT_HARD_FUNCTOOLS(void) {

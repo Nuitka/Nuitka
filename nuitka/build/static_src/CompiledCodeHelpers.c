@@ -1498,6 +1498,19 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
     }
 #endif
 
+    if (found == false) {
+        res = PyObject_RichCompareBool(name, const_str_plain_super, Py_EQ);
+
+        if (unlikely(res == -1)) {
+            return -1;
+        }
+
+        if (res == 1) {
+            NUITKA_UPDATE_BUILTIN(super, value);
+            found = true;
+        }
+    }
+
     return PyObject_GenericSetAttr((PyObject *)module, name, value);
 }
 

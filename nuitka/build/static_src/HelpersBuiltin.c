@@ -637,150 +637,35 @@ PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, 
 
 /** The "super" built-in.
  *
- * This uses a private structure "superobject" that we declare here too.
  *
  **/
 
-typedef struct {
-    /* Python object folklore: */
-    PyObject_HEAD
+NUITKA_DEFINE_BUILTIN(super);
 
-        PyTypeObject *type;
-    PyObject *obj;
-    PyTypeObject *obj_type;
-} superobject;
-
-PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object) {
+PyObject *BUILTIN_SUPER2(PyDictObject *module_dict, PyObject *type, PyObject *object) {
     CHECK_OBJECT(type);
     CHECK_OBJECT_X(object);
 
-    if (unlikely(PyType_Check(type) == false)) {
-#if PYTHON_VERSION < 0x300
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
-#elif PYTHON_VERSION < 0x352
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("must be type, not %s", type);
-#else
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT_NICE("super() argument 1 must be type, not %s", type);
-#endif
-        return NULL;
+    PyObject *super_value = GET_STRING_DICT_VALUE(module_dict, (Nuitka_StringObject *)const_str_plain_super);
+
+    if (super_value == NULL) {
+        NUITKA_ASSIGN_BUILTIN(super);
+
+        super_value = NUITKA_ACCESS_BUILTIN(super);
     }
 
-    if (object == Py_None) {
-        object = NULL;
-    }
+    PyObject *args[] = {type, object};
+    char const *arg_names[] = {"type", "obj"};
 
-    PyTypeObject *obj_type = NULL;
-
-#if 0
-    PRINT_STRING("SUPER:");
-    PRINT_ITEM(type);
-    PRINT_ITEM(object);
-    PRINT_NEW_LINE();
-#endif
-
-    if (object != NULL) {
-
-        if (PyType_Check(object) && PyType_IsSubtype((PyTypeObject *)object, (PyTypeObject *)type)) {
-            obj_type = (PyTypeObject *)object;
-        } else if (object != NULL && PyType_IsSubtype(Py_TYPE(object), (PyTypeObject *)type)) {
-            obj_type = Py_TYPE(object);
-        } else {
-            PyObject *class_attr = PyObject_GetAttr(object, const_str_plain___class__);
-
-            if (likely(class_attr != NULL && PyType_Check(class_attr) &&
-                       (PyTypeObject *)class_attr != Py_TYPE(object) &&
-                       PyType_IsSubtype((PyTypeObject *)class_attr, (PyTypeObject *)type))) {
-
-                obj_type = (PyTypeObject *)class_attr;
-                Py_DECREF(class_attr);
-            } else {
-                Py_XDECREF(class_attr);
-
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
-                                                "super(type, obj): obj must be an instance or subtype of type");
-
-                return NULL;
-            }
-        }
-    }
-
-    superobject *result = PyObject_GC_New(superobject, &PySuper_Type);
-    assert(result);
-
-    result->type = (PyTypeObject *)type;
-    Py_INCREF(type);
-    result->obj = object;
-    Py_XINCREF(object);
-
-    result->obj_type = obj_type;
-    Py_XINCREF(obj_type);
-
-    Nuitka_GC_Track(result);
-
-    CHECK_OBJECT(result);
-    assert(Py_TYPE(result) == &PySuper_Type);
-
-    return (PyObject *)result;
+    return CALL_BUILTIN_KW_ARGS(super_value, args, arg_names, 2);
 }
 
-PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object) {
-    CHECK_OBJECT(type);
-
-    superobject *result = PyObject_GC_New(superobject, &PySuper_Type);
-    assert(result);
-
+PyObject *BUILTIN_SUPER0(PyDictObject *module_dict, PyObject *type, PyObject *object) {
     if (object == Py_None) {
         object = NULL;
     }
 
-    if (unlikely(PyType_Check(type) == false)) {
-        PyErr_Format(PyExc_RuntimeError, "super(): __class__ is not a type (%s)", Py_TYPE(type)->tp_name);
-
-        return NULL;
-    }
-
-    result->type = (PyTypeObject *)type;
-    Py_INCREF(type);
-    if (object) {
-        result->obj = object;
-        Py_INCREF(object);
-
-        if (PyType_Check(object) && PyType_IsSubtype((PyTypeObject *)object, (PyTypeObject *)type)) {
-            result->obj_type = (PyTypeObject *)object;
-            Py_INCREF(object);
-        } else if (PyType_IsSubtype(Py_TYPE(object), (PyTypeObject *)type)) {
-            result->obj_type = Py_TYPE(object);
-            Py_INCREF(result->obj_type);
-        } else {
-            PyObject *class_attr = PyObject_GetAttr(object, const_str_plain___class__);
-
-            if (likely(class_attr != NULL && PyType_Check(class_attr) &&
-                       (PyTypeObject *)class_attr != Py_TYPE(object))) {
-                result->obj_type = (PyTypeObject *)class_attr;
-            } else {
-                if (class_attr == NULL) {
-                    CLEAR_ERROR_OCCURRED();
-                } else {
-                    Py_DECREF(class_attr);
-                }
-
-                SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,
-                                                "super(type, obj): obj must be an instance or subtype of type");
-
-                return NULL;
-            }
-        }
-    } else {
-        result->obj = NULL;
-        result->obj_type = NULL;
-    }
-
-    Nuitka_GC_Track(result);
-
-    CHECK_OBJECT(result);
-    assert(Py_TYPE(result) == &PySuper_Type);
-
-    return (PyObject *)result;
+    return BUILTIN_SUPER2(module_dict, type, object);
 }
 
 /** The "callable" built-in.

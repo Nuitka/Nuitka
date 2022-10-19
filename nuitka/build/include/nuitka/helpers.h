@@ -303,8 +303,8 @@ extern PyObject *BUILTIN_LEN(PyObject *boundary);
 extern PyObject *BUILTIN_ANY(PyObject *value);
 
 // For built-in built-in super() no args and 2 user args functionality.
-extern PyObject *BUILTIN_SUPER2(PyObject *type, PyObject *object);
-extern PyObject *BUILTIN_SUPER0(PyObject *type, PyObject *object);
+extern PyObject *BUILTIN_SUPER2(PyDictObject *module_dict, PyObject *type, PyObject *object);
+extern PyObject *BUILTIN_SUPER0(PyDictObject *module_dict, PyObject *type, PyObject *object);
 
 // For built-in built-in all() functionality.
 extern PyObject *BUILTIN_ALL(PyObject *value);

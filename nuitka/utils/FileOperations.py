@@ -206,12 +206,7 @@ def _getRealPathWindows(path):
                 [
                     _powershell_path,
                     "-NoProfile",
-                    "Get-Item",
-                    path,
-                    "|",
-                    "Select-Object",
-                    "-ExpandProperty",
-                    "Target",
+                    'Get-Item "%s" | Select-Object -ExpandProperty Target' % path,
                 ],
                 shell=False,
             )

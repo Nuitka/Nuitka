@@ -145,12 +145,13 @@ hard_modules_non_stdlib = frozenset(
 hard_modules = hard_modules | hard_modules_non_stdlib
 
 hard_modules_version = {
-    "cStringIO": (None, 0x300),
-    "typing": (0x350, None),
-    "_frozen_importlib": (0x300, None),
-    "_frozen_importlib_external": (0x350, None),
-    "importlib.resources": (0x370, None),
-    "importlib.metadata": (0x380, None),
+    "cStringIO": (None, 0x300, None),
+    "typing": (0x350, None, None),
+    "_frozen_importlib": (0x300, None, None),
+    "_frozen_importlib_external": (0x350, None, None),
+    "importlib.resources": (0x370, None, None),
+    "importlib.metadata": (0x380, None, None),
+    "ctypes.wintypes": (None, None, "win32"),
 }
 
 
@@ -158,13 +159,19 @@ def isHardModule(module_name):
     if module_name not in hard_modules:
         return False
 
-    min_version, max_version = hard_modules_version.get(module_name, (None, None))
+    min_version, max_version, os_limit = hard_modules_version.get(
+        module_name, (None, None, None)
+    )
 
     if min_version is not None and python_version < min_version:
         return False
 
     if max_version is not None and python_version >= max_version:
         return False
+
+    if os_limit is not None:
+        if os_limit == "win32":
+            return isWin32Windows()
 
     return True
 
@@ -854,7 +861,12 @@ class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
                     return None
                     # TODO: Static exception should be created and warned about.
                     # raise ValueError("attempted relative import beyond top-level package")
-            return "%s.%s" % (package_name[:dot], module_name)
+
+            package_name = package_name[:dot]
+            if module_name == "":
+                return package_name
+            else:
+                return "%s.%s" % (package_name, module_name)
 
         return module_name
 

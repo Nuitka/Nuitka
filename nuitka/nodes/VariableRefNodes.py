@@ -419,7 +419,9 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             # could be decided from context.
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        if variable.isModuleVariable() and variable.hasDefiniteWrites() is False:
+        if variable.isModuleVariable() and (
+            variable.hasDefiniteWrites() is False or variable.getName() == "super"
+        ):
             variable_name = self.variable.getName()
 
             if variable_name in Builtins.builtin_exception_names:
