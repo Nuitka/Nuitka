@@ -1204,9 +1204,9 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
-        self.warning(
+        self.info(
             """\
-Support for PyQt6 is experimental, use PySide6 if you can."""
+Support for PyQt6 is good, but prefer PySide6 if you can."""
         )
 
 
