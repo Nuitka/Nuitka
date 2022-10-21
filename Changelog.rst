@@ -502,6 +502,9 @@ Organisational
 -  Quality: Added ability to limit autoformat by file type, which can be
    handy when e.g. only the yaml files should be scanned.
 
+-  UI: Removed ``--windows-onefile-tempdir-spec`` alias of
+   ``--onefile-tempdir-spec`` option, it is no longer Windows specific.
+
 Cleanups
 ========
 
@@ -4307,10 +4310,11 @@ New Features
    useful for programs run as ``--windows-disable-console`` or with
    ``--enable-plugin=windows-service``.
 
--  Windows: Added option ``--windows-onefile-tempdir-spec`` to provide
-   the temporary directory used with ``--windows-onefile-tempdir`` in
-   onefile mode, you can now select your own pattern, and e.g. hardcode
-   a base directory of your choice rather than ``%TEMP``.
+-  Windows: Added option ``--windows-onefile-tempdir-spec`` (since
+   renamed to ``--onefile-tempdir-spec``) to provide the temporary
+   directory used with ``--windows-onefile-tempdir`` in onefile mode,
+   you can now select your own pattern, and e.g. hardcode a base
+   directory of your choice rather than ``%TEMP``.
 
 -  Added experimental support for ``PySide2`` with workarounds for
    compiled methods not being accepted by its core. There are known
