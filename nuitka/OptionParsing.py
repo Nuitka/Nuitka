@@ -230,54 +230,6 @@ installation from Windows registry. On Windows Python 3.5 or higher is
 needed. On non-Windows, Python 2.6 or 2.7 will do as well.""",
 )
 
-warnings_group = OptionGroup(parser, "Control the warnings to be given by Nuitka")
-
-
-warnings_group.add_option(
-    "--warn-implicit-exceptions",
-    action="store_true",
-    dest="warn_implicit_exceptions",
-    default=False,
-    help="""\
-Enable warnings for implicit exceptions detected at compile time.""",
-)
-
-warnings_group.add_option(
-    "--warn-unusual-code",
-    action="store_true",
-    dest="warn_unusual_code",
-    default=False,
-    help="""\
-Enable warnings for unusual code detected at compile time.""",
-)
-
-warnings_group.add_option(
-    "--assume-yes-for-downloads",
-    action="store_true",
-    dest="assume_yes_for_downloads",
-    default=False,
-    help="""\
-Allow Nuitka to download external code if necessary, e.g. dependency
-walker, ccache, and even gcc on Windows. To disable, redirect input
-from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
-)
-
-
-warnings_group.add_option(
-    "--nowarn-mnemonic",
-    action="append",
-    dest="nowarn_mnemonics",
-    metavar="MNEMONIC",
-    default=[],
-    help="""\
-Disable warning for a given mnemonic. These are given to make sure you are aware of
-certain topics, and typically point to the Nuitka website. The mnemonic is the part
-of the URL at the end, without the HTML suffix. Can be given multiple times and
-accepts shell pattern. Default empty.""",
-)
-
-parser.add_option_group(warnings_group)
-
 
 include_group = OptionGroup(
     parser, "Control the inclusion of modules and packages in result"
@@ -415,6 +367,23 @@ times. Default empty.""",
 
 parser.add_option_group(follow_group)
 
+onefile_group = OptionGroup(parser, "Onefile options")
+
+onefile_group.add_option(
+    "--onefile-tempdir-spec",
+    action="store",
+    dest="onefile_tempdir_spec",
+    metavar="ONEFILE_TEMPDIR_SPEC",
+    default=None,
+    help="""\
+Use this as a folder to unpack to in onefile mode. Defaults to
+'%TEMP%/onefile_%PID%_%TIME%', i.e. user temporary directory
+and being non-static it's removed. Use e.g. a string like
+'%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION%' which is a good
+static cache path, this will then not be removed.""",
+)
+
+parser.add_option_group(onefile_group)
 
 data_group = OptionGroup(parser, "Data files")
 
@@ -503,6 +472,54 @@ Default empty.""",
 )
 
 parser.add_option_group(dll_group)
+
+warnings_group = OptionGroup(parser, "Control the warnings to be given by Nuitka")
+
+
+warnings_group.add_option(
+    "--warn-implicit-exceptions",
+    action="store_true",
+    dest="warn_implicit_exceptions",
+    default=False,
+    help="""\
+Enable warnings for implicit exceptions detected at compile time.""",
+)
+
+warnings_group.add_option(
+    "--warn-unusual-code",
+    action="store_true",
+    dest="warn_unusual_code",
+    default=False,
+    help="""\
+Enable warnings for unusual code detected at compile time.""",
+)
+
+warnings_group.add_option(
+    "--assume-yes-for-downloads",
+    action="store_true",
+    dest="assume_yes_for_downloads",
+    default=False,
+    help="""\
+Allow Nuitka to download external code if necessary, e.g. dependency
+walker, ccache, and even gcc on Windows. To disable, redirect input
+from nul device, e.g. "</dev/null" or "<NUL:". Default is to prompt.""",
+)
+
+
+warnings_group.add_option(
+    "--nowarn-mnemonic",
+    action="append",
+    dest="nowarn_mnemonics",
+    metavar="MNEMONIC",
+    default=[],
+    help="""\
+Disable warning for a given mnemonic. These are given to make sure you are aware of
+certain topics, and typically point to the Nuitka website. The mnemonic is the part
+of the URL at the end, without the HTML suffix. Can be given multiple times and
+accepts shell pattern. Default empty.""",
+)
+
+parser.add_option_group(warnings_group)
 
 
 execute_group = OptionGroup(parser, "Immediate execution after compilation")
@@ -1267,19 +1284,6 @@ Description of the file use in Windows Version information.
 
 One of file or product version is required, when a version resource needs to be
 added, e.g. to specify product name, or company name. Defaults to nonsense.""",
-)
-
-windows_group.add_option(
-    "--onefile-tempdir-spec",
-    action="store",
-    dest="onefile_tempdir_spec",
-    metavar="ONEFILE_TEMPDIR_SPEC",
-    default=None,
-    help="""\
-Use this as a temporary folder. Defaults to '%TEMP%\\onefile_%PID%_%TIME%',
-i.e. system temporary directory and being non-static it's removed. Use e.g.
-'%CACHE_DIR%\\%COMPANY%\\%PRODUCT%\\%VERSION%' which is a good
-static cache path.""",
 )
 
 parser.add_option_group(windows_group)
