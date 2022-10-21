@@ -69,7 +69,6 @@ from .SconsCompilerSettings import (
     decideConstantsBlobResourceMode,
     enableWindowsStackSize,
     reportCCompiler,
-    setProductVersionDefinitions,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -538,10 +537,10 @@ if env.standalone_mode:
     env.Append(CPPDEFINES=["_NUITKA_STANDALONE"])
 
 if onefile_mode:
-    env.Append(CPPDEFINES=["_NUITKA_ONEFILE"])
+    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
 
 if onefile_temp_mode:
-    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP"])
+    env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
 
 # We need "dl" in accelerated mode.
 if "linux" in sys.platform:
@@ -983,8 +982,6 @@ def createBuildDefinitionsFile():
 
     if main_module_name != "__main__":
         build_definitions["NUITKA_MAIN_PACKAGE_MODE"] = 1
-
-    setProductVersionDefinitions(build_definitions)
 
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 

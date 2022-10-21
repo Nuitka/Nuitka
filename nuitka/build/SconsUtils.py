@@ -530,11 +530,14 @@ def makeCLiteral(value):
 
 
 def createDefinitionsFile(source_dir, filename, definitions):
+    for env_name in os.environ["_NUITKA_BUILD_DEFINITIONS_CATALOG"].split(","):
+        definitions[env_name] = os.environ[env_name]
+
     build_definitions_filename = os.path.join(source_dir, filename)
 
     with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
         for key, value in sorted(definitions.items()):
-            if type(value) is int:
+            if type(value) is int or key.endswith("_BOOL"):
                 f.write("#define %s %s\n" % (key, value))
             else:
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))

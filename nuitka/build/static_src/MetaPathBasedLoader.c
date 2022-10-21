@@ -34,8 +34,6 @@
 
 #include "nuitka/unfreezing.h"
 
-#include <osdefs.h>
-
 #ifdef _WIN32
 #undef SEP
 #define SEP '\\'

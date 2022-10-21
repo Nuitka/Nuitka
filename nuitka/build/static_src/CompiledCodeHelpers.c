@@ -54,6 +54,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersRaising.c"
 #include "HelpersStrings.c"
 
+#include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
 #if PYTHON_VERSION >= 0x3a0
@@ -1513,8 +1514,6 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
 
     return PyObject_GenericSetAttr((PyObject *)module, name, value);
 }
-
-#include <osdefs.h>
 
 #if defined(_WIN32)
 #include <Shlwapi.h>

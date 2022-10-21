@@ -81,7 +81,7 @@ is_report_missing = None
 is_verbose = None
 
 
-def _checkSpec(value, arg_name):
+def checkPathSpec(value, arg_name):
     if "%COMPANY%" in value and not getWindowsCompanyName():
         Tracing.options_logger.sysexit(
             "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
@@ -119,7 +119,7 @@ start of '%s=%s', using it in the middle is not allowed."""
 
 
 def _checkOnefileTargetSpec():
-    _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
+    checkPathSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
 
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
         Tracing.options_logger.sysexit(
@@ -149,20 +149,6 @@ very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
             """Using an relative to the executable should be avoided unless you are targeting a \
 very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
-        )
-
-
-def _checkAutoUpdateUrlSpec():
-    _checkSpec(options.auto_update_url_spec, arg_name="--auto-update-url-spec")
-
-    if not options.auto_update_url_spec.startswith(
-        (
-            "http://",
-            "https://",
-        )
-    ):
-        Tracing.optimization_logger.sysexit(
-            "Error, only 'https://' and 'http://' URLs are allowed."
         )
 
 
@@ -249,10 +235,6 @@ def parseArgs():
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
-
-    # Check auto update URL spec
-    if options.auto_update_url_spec:
-        _checkAutoUpdateUrlSpec()
 
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
@@ -1385,11 +1367,6 @@ def getOnefileTempDirSpec():
 
     # This changes the '/' to '\' on Windows at least.
     return os.path.normpath(result)
-
-
-def getAutoUpdateUrlSpec():
-    """*str* = ``--onefile-tempdir-spec``"""
-    return options.auto_update_url_spec
 
 
 def getIconPaths():

@@ -169,7 +169,11 @@ def attachOnefilePayload(
                     input_size = input_file.tell()
                     input_file.seek(0, 0)
 
-                    file_header = struct.pack("Qc", input_size, to_byte(file_flags))
+                    file_header = struct.pack("Q", input_size)
+
+                    if not isWin32OrPosixWindows():
+                        file_header += to_byte(file_flags)
+
                     if file_checksums:
                         hash_crc32 = HashCRC32()
                         hash_crc32.updateFromFileHandle(input_file)

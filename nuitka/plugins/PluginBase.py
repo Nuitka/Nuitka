@@ -768,7 +768,20 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             None for no defines, otherwise dictionary of key to be
             defined, and non-None values if any, i.e. no "-Dkey" only
         """
+        # Virtual method, pylint: disable=no-self-use
+        # spell-checker: ignore -Dkey
+        return None
 
+    def getBuildDefinitions(self):
+        """Decide C source defines to be used in compilation.
+
+        Notes:
+            Make sure to use a namespace for your defines, and prefer
+            `getPreprocessorSymbols` if you can.
+
+        Returns:
+            dict or None for no values
+        """
         # Virtual method, pylint: disable=no-self-use
         return None
 

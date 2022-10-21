@@ -25,11 +25,7 @@ import sys
 
 from nuitka import Options, OutputDirectories
 from nuitka.build import SconsInterface
-from nuitka.Options import (
-    getAutoUpdateUrlSpec,
-    getOnefileTempDirSpec,
-    isOnefileTempDirMode,
-)
+from nuitka.Options import getOnefileTempDirSpec, isOnefileTempDirMode
 from nuitka.OutputDirectories import getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessingResources
@@ -56,6 +52,8 @@ def _runOnefileScons(quiet, onefile_compression):
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
     SconsInterface.cleanSconsDirectory(source_dir)
 
+    Plugins.writeExtraCodeFiles(onefile=True)
+
     asBoolStr = SconsInterface.asBoolStr
 
     options = {
@@ -80,15 +78,19 @@ def _runOnefileScons(quiet, onefile_compression):
     env_values = SconsInterface.setCommonOptions(options)
 
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
-    env_values["_NUITKA_ONEFILE_TEMP"] = "1" if isOnefileTempDirMode() else "0"
-    env_values["_NUITKA_ONEFILE_COMPRESSION"] = "1" if onefile_compression else "0"
+    env_values["_NUITKA_ONEFILE_TEMP_BOOL"] = "1" if isOnefileTempDirMode() else "0"
+    env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
+    env_values["_NUITKA_ONEFILE_BUILD_BOOL"] = "1" if onefile_compression else "0"
 
-    env_values["_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"] = getAutoUpdateUrlSpec() or ""
+    # Allow plugins to build definitions.
+    env_values.update(Plugins.getBuildDefinitions())
 
-    with withEnvironmentVarsOverridden(env_values):
-        result = SconsInterface.runScons(
-            options=options, quiet=quiet, scons_filename="Onefile.scons"
-        )
+    result = SconsInterface.runScons(
+        options=options,
+        quiet=quiet,
+        env_values=env_values,
+        scons_filename="Onefile.scons",
+    )
 
     # Exit if compilation failed.
     if not result:

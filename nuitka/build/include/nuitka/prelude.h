@@ -23,10 +23,15 @@
 #define NDEBUG
 #endif
 
+#if defined(_WIN32)
+// Note: Keep this separate line, must be included before other Windows headers.
+#include <windows.h>
+#endif
+
 /* Include the CPython version numbers, and define our own take of what version
  * numbers should be.
  */
-#include <patchlevel.h>
+#include "patchlevel.h"
 
 /* Use a hex version of our own to compare for versions. We do not care about pre-releases */
 #if PY_MICRO_VERSION < 16
@@ -47,6 +52,8 @@
 #include "frameobject.h"
 #include "marshal.h"
 #include "methodobject.h"
+#include "osdefs.h"
+#include "structseq.h"
 
 #if PYTHON_VERSION < 0x3a0
 #include "pydebug.h"
@@ -561,6 +568,7 @@ extern PyObject *Nuitka_dunder_compiled_value;
 #include "nuitka/compiled_asyncgen.h"
 #endif
 
+#include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS

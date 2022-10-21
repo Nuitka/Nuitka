@@ -1472,20 +1472,6 @@ intended for developing plugins. Default False.""",
 
 parser.add_option_group(plugin_group)
 
-auto_updates_group = OptionGroup(parser, "Automatic updates from the web")
-
-auto_updates_group.add_option(
-    "--auto-update-url-spec",
-    action="store",
-    dest="auto_update_url_spec",
-    metavar="AUTO_UPDATE_URL_SPEC",
-    default=None,
-    help="URL to check for automatic updates. (Not implemented yet). Default empty.",
-)
-
-# TODO: Move to plugin and make it wor
-# parser.add_option_group(auto_updates_group)
-
 
 def _considerPluginOptions(logger):
     # Cyclic dependency on plugins during parsing of command line.

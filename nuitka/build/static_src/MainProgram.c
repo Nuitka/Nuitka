@@ -48,9 +48,6 @@
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #endif
 
-#include <osdefs.h>
-#include <structseq.h>
-
 extern PyCodeObject *codeobj_main;
 
 /* For later use in "Py_GetArgcArgv" we expose the needed value  */
@@ -374,7 +371,7 @@ static void PRINT_REFCOUNTS(void) {
 }
 #endif
 
-#if defined(_NUITKA_ONEFILE) && defined(_WIN32)
+#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
 
 static long onefile_ppid;
 
@@ -1104,7 +1101,7 @@ orig_argv = argv;
         exit(exit_code);
     } else {
 #endif
-#if defined(_NUITKA_ONEFILE) && defined(_WIN32)
+#if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
         {
             char buffer[128] = {0};
             DWORD size = GetEnvironmentVariableA("NUITKA_ONEFILE_PARENT", buffer, sizeof(buffer));

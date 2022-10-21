@@ -18,6 +18,10 @@
 #ifndef __NUITKA_SAFE_STRING_OPS_H__
 #define __NUITKA_SAFE_STRING_OPS_H__
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 /* Safe to use function to copy a string, will abort program for overflow. */
 extern void copyStringSafe(char *buffer, char const *source, size_t buffer_size);
 extern void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size);

@@ -799,12 +799,3 @@ def reportCCompiler(env, context):
     scons_logger.info(
         "%s C compiler: %s (%s)." % (context, env.the_compiler, cc_output)
     )
-
-
-def setProductVersionDefinitions(build_vars):
-    if "NUITKA_COMPANY_NAME" in os.environ:
-        build_vars["NUITKA_COMPANY_NAME"] = os.environ["NUITKA_COMPANY_NAME"]
-    if "NUITKA_PRODUCT_NAME" in os.environ:
-        build_vars["NUITKA_PRODUCT_NAME"] = os.environ["NUITKA_PRODUCT_NAME"]
-    if "NUITKA_VERSION_COMBINED" in os.environ:
-        build_vars["NUITKA_VERSION_COMBINED"] = os.environ["NUITKA_VERSION_COMBINED"]

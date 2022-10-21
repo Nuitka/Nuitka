@@ -76,7 +76,6 @@ from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
-    withEnvironmentVarsOverridden,
     wrapCommandForDebuggerForExec,
 )
 from nuitka.utils.FileOperations import (
@@ -84,7 +83,6 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getDirectoryRealPath,
     getExternalUsePath,
-    makePath,
     openTextFile,
     removeDirectory,
     resetDirectory,
@@ -666,13 +664,19 @@ def runSconsBackend(quiet):
 
     env_values = SconsInterface.setCommonOptions(options)
 
+    # Allow plugins to build definitions.
+    env_values.update(Plugins.getBuildDefinitions())
+
     if Options.shallCreatePgoInput():
         options["pgo_mode"] = "python"
 
-        with withEnvironmentVarsOverridden(env_values):
-            result = SconsInterface.runScons(
-                options=options, quiet=quiet, scons_filename="Backend.scons"
-            )
+        result = SconsInterface.runScons(
+            options=options,
+            quiet=quiet,
+            env_values=env_values,
+            scons_filename="Backend.scons",
+        )
+
         if not result:
             return result, options
 
@@ -690,10 +694,12 @@ def runSconsBackend(quiet):
         if Options.isPgoMode():
             options["pgo_mode"] = "generate"
 
-            with withEnvironmentVarsOverridden(env_values):
-                result = SconsInterface.runScons(
-                    options=options, quiet=quiet, scons_filename="Backend.scons"
-                )
+            result = SconsInterface.runScons(
+                options=options,
+                quiet=quiet,
+                env_values=env_values,
+                scons_filename="Backend.scons",
+            )
 
             if not result:
                 return result, options
@@ -703,14 +709,17 @@ def runSconsBackend(quiet):
             _runCPgoBinary()
             options["pgo_mode"] = "use"
 
-    with withEnvironmentVarsOverridden(env_values):
-        result = (
-            SconsInterface.runScons(
-                options=options, quiet=quiet, scons_filename="Backend.scons"
-            ),
-            options,
-        )
+    result = (
+        SconsInterface.runScons(
+            options=options,
+            quiet=quiet,
+            env_values=env_values,
+            scons_filename="Backend.scons",
+        ),
+        options,
+    )
 
+    # Delete PGO files if asked to do that.
     if options.get("pgo_mode") == "use" and _wasMsvcMode():
         _deleteMsvcPGOFiles(pgo_mode="use")
 
@@ -836,15 +845,7 @@ def compileTree():
 
     runDataComposer(source_dir)
 
-    for filename, source_code in Plugins.getExtraCodeFiles().items():
-        target_dir = os.path.join(source_dir, "plugins")
-
-        if not os.path.isdir(target_dir):
-            makePath(target_dir)
-
-        writeSourceCode(
-            filename=os.path.join(target_dir, filename), source_code=source_code
-        )
+    Plugins.writeExtraCodeFiles(onefile=False)
 
     general.info("Running C compilation via Scons.")
 
