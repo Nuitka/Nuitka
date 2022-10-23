@@ -49,7 +49,7 @@ if not os.environ.get("GI_TYPELIB_PATH="):
     def considerDataFiles(self, module):
         """Copy typelib files from the default installation path"""
         if module.getFullName() == "gi":
-            path = self.queryRuntimeInformationMultiple(
+            gi_typelib_info = self.queryRuntimeInformationMultiple(
                 info_name="gi_info",
                 setup_codes="import gi; from gi.repository import GObject",
                 values=(
@@ -60,12 +60,15 @@ if not os.environ.get("GI_TYPELIB_PATH="):
                 ),
             )
 
-            gi_repository_path = os.path.dirname(path.introspection_module)
-            yield self.makeIncludedDataDirectory(
-                source_path=gi_repository_path,
-                dest_path="girepository",
-                reason="typelib files for gi modules",
-            )
+            if gi_typelib_info is not None:
+                gi_repository_path = os.path.dirname(
+                    gi_typelib_info.introspection_module
+                )
+                yield self.makeIncludedDataDirectory(
+                    source_path=gi_repository_path,
+                    dest_path="girepository",
+                    reason="typelib files for gi modules",
+                )
 
     @staticmethod
     def getImplicitImports(module):
