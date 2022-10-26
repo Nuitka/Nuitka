@@ -2391,6 +2391,11 @@
         '__version_info__ = tuple(LooseVersion(docutils.__version__).version)': "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
         'from distutils.version import LooseVersion': "''"
 
+- module-name: 'sqlalchemy'
+  implicit-imports:
+    - depends:
+        - '.dialects.*'
+
 - module-name: 'srsly.msgpack._packer'
   implicit-imports:
     - depends:
