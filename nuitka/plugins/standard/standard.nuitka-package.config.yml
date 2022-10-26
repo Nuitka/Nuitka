@@ -1991,14 +1991,14 @@
 
 - module-name: 'shapely.geos'
   dlls:
-    # PyPI has it contained.
+    # PyPI has it contained, but not for Windows.
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
-      when: 'not anaconda and not win32 and version("shapely") < (1,8,1)'
+      when: 'not anaconda and not win32'
     # Anaconda or Win32 are forced to specific path.
     - by_code:
-        setup_code: 'import shapely.geos, os'
+        setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
       dest_path: 'shapely'
       when: 'anaconda or win32 and version("shapely") < (1,8,1)'
