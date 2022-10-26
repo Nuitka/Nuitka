@@ -3145,6 +3145,11 @@
     - depends:
         - 'uvloop._noop'
 
+- module-name: 'vedo'
+  data-files:
+    dirs:
+      - 'fonts'
+
 - module-name: 'vibora'
   anti-bloat:
     - description: 'remove test code'
