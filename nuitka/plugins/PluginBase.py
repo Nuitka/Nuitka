@@ -70,7 +70,11 @@ _package_versions = {}
 
 
 def _convertVersionToTuple(version_str):
-    return tuple(int(d) for d in version_str.split("."))
+    def numberize(v):
+        # For now, we ignore rc/post stuff, hoping it doesn't matter for us.
+        return int("".join(d for d in v if d.isdigit()))
+
+    return tuple(numberize(d) for d in version_str.split("."))
 
 
 def _getPackageVersion(distribution_name):
