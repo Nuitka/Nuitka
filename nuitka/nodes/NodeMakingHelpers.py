@@ -459,3 +459,11 @@ def makeExpressionBuiltinLocals(locals_scope, source_ref):
             return ExpressionBuiltinLocalsCopy(
                 locals_scope=locals_scope, source_ref=source_ref
             )
+
+
+def makeRaiseImportErrorReplacementExpression(expression, module_name):
+    return makeRaiseExceptionReplacementExpression(
+        expression=expression,
+        exception_type="ImportError",
+        exception_value=module_name.asString(),
+    )

@@ -75,7 +75,10 @@ from .ImportHardNodes import (
 )
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
-from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpression,
+    makeRaiseImportErrorReplacementExpression,
+)
 from .PackageMetadataNodes import (
     ExpressionImportlibMetadataBackportDistributionRef,
     ExpressionImportlibMetadataBackportMetadataRef,
@@ -154,6 +157,8 @@ hard_modules_version = {
     "ctypes.wintypes": (None, None, "win32"),
 }
 
+hard_modules_limited = ("importlib.metadata", "ctypes.wintypes")
+
 
 def isHardModule(module_name):
     if module_name not in hard_modules:
@@ -189,6 +194,11 @@ trust_node_factory = {}
 module_importlib_trust = dict(
     (key, trust_importable) for key in getImportlibSubPackages()
 )
+
+if "metadata" not in module_importlib_trust:
+    module_importlib_trust["metadata"] = trust_undefined
+if "resources" not in module_importlib_trust:
+    module_importlib_trust["resources"] = trust_undefined
 
 module_sys_trust = {
     "version": trust_constant,
@@ -977,7 +987,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
         # TODO: Catch this as a static error maybe.
         if type(level) not in (int, long):
-            return None, None
+            return None
 
         module_name, module_filename, self.finding = locateModule(
             module_name=resolveModuleName(module_name),
@@ -1136,6 +1146,19 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                     self.type_shape = tshape_module_builtin
                     self.builtin_module = __import__(imported_module_name.asString())
+
+                if self.finding == "not-found":
+                    if imported_module_name in hard_modules_limited:
+                        result = makeRaiseImportErrorReplacementExpression(
+                            expression=self, module_name=imported_module_name
+                        )
+
+                        return (
+                            result,
+                            "new_raise",
+                            "Lowered import of missing standard library module '%s' to hard import."
+                            % imported_module_name.asString(),
+                        )
 
             else:
                 # TODO: This doesn't preserve side effects.
