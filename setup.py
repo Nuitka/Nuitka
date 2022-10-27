@@ -45,6 +45,7 @@ from setuptools.command import easy_install
 # is optimized for. This is to avoid descending into Nuitka through distutils.
 if __name__ == "__main__":
     from nuitka.PythonFlavors import isMSYS2MingwPython
+    from nuitka.utils.FileOperations import getFileList
     from nuitka.Version import getNuitkaVersion
 
 scripts = []
@@ -93,16 +94,16 @@ def addDataFiles(data_files, base_path, do_byte_compile=True):
         "%s/*/*/*.py" % base_path,
         "%s/*/*/*/*.py" % base_path,
         "%s/*/*/*/*/*.py" % base_path,
-        "%s/config*",
-        "%s/LICENSE*",
-        "%s/*/LICENSE*",
-        "%s/READ*",
+        "%s/config*" % base_path,
+        "%s/LICENSE*" % base_path,
+        "%s/*/LICENSE*" % base_path,
+        "%s/READ*" % base_path,
     )
 
     data_files.extend(patterns)
 
     if not do_byte_compile:
-        data_files.extend(patterns)
+        no_byte_compile.extend(patterns)
 
 
 def addInlineCopy(name, do_byte_compile=True):
@@ -179,14 +180,24 @@ if "nuitka.plugins.commercial" in nuitka_packages:
 
     commercial_plugins_dir = os.path.join("nuitka", "plugins", "commercial")
 
-    for filename in os.listdir(commercial_plugins_dir):
-        if filename.endswith(".yml"):
-            inline_copy_files.append(filename)
+    for filename in getFileList(commercial_plugins_dir):
+        filename_relative = os.path.relpath(filename, commercial_plugins_dir)
 
-        fullname = os.path.join(commercial_plugins_dir, filename)
+        if (
+            filename_relative.endswith(".py")
+            and os.path.basename(filename_relative) == filename_relative
+        ):
+            continue
 
-        if os.path.isdir(fullname):
-            addDataFiles(commercial_data_files, filename, do_byte_compile=False)
+        if filename.endswith((".py", ".yml", ".c", ".h", ".plk", ".tmd")):
+            commercial_data_files.append(filename_relative)
+            continue
+
+        filename_base = os.path.basename(filename_relative)
+
+        if filename_base.startswith("LICENSE"):
+            commercial_data_files.append(filename_relative)
+            continue
 
     package_data["nuitka.plugins.commercial"] = commercial_data_files
 

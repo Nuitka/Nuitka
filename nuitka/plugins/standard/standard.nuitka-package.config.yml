@@ -1991,14 +1991,14 @@
 
 - module-name: 'shapely.geos'
   dlls:
-    # PyPI has it contained.
+    # PyPI has it contained, but not for Windows.
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
-      when: 'not anaconda and not win32 and version("shapely") < (1,8,1)'
+      when: 'not anaconda and not win32'
     # Anaconda or Win32 are forced to specific path.
     - by_code:
-        setup_code: 'import shapely.geos, os'
+        setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
       dest_path: 'shapely'
       when: 'anaconda or win32 and version("shapely") < (1,8,1)'
@@ -2390,6 +2390,11 @@
       replacements:
         '__version_info__ = tuple(LooseVersion(docutils.__version__).version)': "'tuple(int(d) for d in docutils.__version__.split(\".\"))'"
         'from distutils.version import LooseVersion': "''"
+
+- module-name: 'sqlalchemy'
+  implicit-imports:
+    - depends:
+        - '.dialects.*'
 
 - module-name: 'srsly.msgpack._packer'
   implicit-imports:
@@ -3139,6 +3144,11 @@
   implicit-imports:
     - depends:
         - 'uvloop._noop'
+
+- module-name: 'vedo'
+  data-files:
+    dirs:
+      - 'fonts'
 
 - module-name: 'vibora'
   anti-bloat:
