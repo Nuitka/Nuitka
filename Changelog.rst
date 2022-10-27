@@ -82,6 +82,44 @@ Bug Fixes
    Nuitka version, to be absolutely sure, much like we already do for
    bytecode caching. Fixed in 1.1.4 already.
 
+-  Standalone: Fix, ``seaborn`` needs the same workaround as ``scipy``
+   for corruption with MSVC. Fixed in 1.1.4 already.
+
+-  UI: Fix, the ``options-nanny`` was no longer functional and therefore
+   failed to warn about non working options and package usages. Fixed in
+   1.1.5 already.
+
+-  macOS: Do not use extension modules of non-matching architecture.
+   Fixed in 1.1.5 already.
+
+-  Windows: Fix, resolving symlinks could fail for spaces in paths.
+   Fixed in 1.1.6 already.
+
+-  Standalone: Added missing DLL for ``lightgbm`` module. Fixed in 1.1.6
+   already.
+
+-  Compatibility: Respect ``super`` module variable. It is now possible
+   to have a module level change of ``super`` but still get compatible
+   behavior with Nuitka. Fixed in 1.1.6 already.
+
+-  Compatibility: Make sure we respect ``super`` overloads in the
+   builtin module. Fixed in 1.1.6 already.
+
+-  Fix, the anti-bloat replacement code for ``numpy.testing`` was
+   missing a required function. Fixed in 1.1.6 already.
+
+-  Fix, ``importlib.import_module`` static optimization was mishandling
+   a module name of ``.`` with a package name given. Fixed in 1.1.6
+   already.
+
+-  macOS: Fix, some extension modules use wrong suffixes in self
+   references, we need to not complain about this kind of error. Fixed
+   in 1.1.6 already.
+
+-  Fix, do not make ``ctypes.wintypes`` a hard import on non-Windows.
+   Nuitka asserted against it failing, where some code handles it
+   failing on non-Windows platforms. Fixed in 1.1.6 already.
+
 New Features
 ============
 
@@ -89,6 +127,13 @@ New Features
    plugin, but this has been generalized to cover any package using it.
    With that, e.g. ``shapely`` just works. This probably helps many
    other packages as well.
+
+-  Added ``__compiled__`` and ``__compiled_constant__`` attributes to
+   compiled functions.
+
+   With this, it can be decided per function what it is and bridges like
+   ``pyobjc`` can use it to create better code on their side for
+   constant value returning functions.
 
 Optimization
 ============
