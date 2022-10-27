@@ -667,7 +667,11 @@ def _findModule(module_name):
 
         return result
 
-    module_search_cache[key] = _findModuleInPath(module_name)
+    try:
+        module_search_cache[key] = _findModuleInPath(module_name)
+    except ImportError:
+        module_search_cache[key] = ImportError
+        raise
 
     return module_search_cache[key]
 
