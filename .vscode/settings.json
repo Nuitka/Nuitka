@@ -198,6 +198,7 @@
         "nosite",
         "nowarn",
         "Nuitka",
+        "numberize",
         "numpy",
         "ob_sval",
         "olddiv",
