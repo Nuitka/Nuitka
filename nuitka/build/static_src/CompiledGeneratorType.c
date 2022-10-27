@@ -1611,9 +1611,7 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     result->m_code_object = code_object;
 
 #if PYTHON_VERSION >= 0x370
-    result->m_exc_state.exception_type = NULL;
-    result->m_exc_state.exception_value = NULL;
-    result->m_exc_state.exception_tb = NULL;
+    result->m_exc_state = Nuitka_ExceptionStackItem_Empty;
 #endif
 
     static long Nuitka_Generator_counter = 0;
