@@ -103,11 +103,9 @@
 #define likely(x) HEDLEY_LIKELY(x)
 #define unlikely(x) HEDLEY_UNLIKELY(x)
 
-// Safe string operations.
-#include "HelpersSafeStrings.c"
-
-// Path related tools
+#include "HelpersChecksumTools.c"
 #include "HelpersFilesystemPaths.c"
+#include "HelpersSafeStrings.c"
 
 // For tracing outputs if enabled at compile time.
 #include "nuitka/tracing.h"
@@ -637,128 +635,6 @@ void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(); }
 #include "OnefileSplashScreen.cpp"
 #endif
 
-#if _NUITKA_ONEFILE_TEMP_BOOL == 0
-static uint32_t _calcCRC32(uint32_t crc, unsigned char const *message, long size) {
-
-    for (uint32_t i = 0; i < size; i++) {
-        unsigned int c = message[i];
-        crc = crc ^ c;
-
-        for (int j = 7; j >= 0; j--) {
-            uint32_t mask = ((crc & 1) != 0) ? 0xFFFFFFFF : 0;
-            crc = (crc >> 1) ^ (0xEDB88320 & mask);
-        }
-    }
-
-    return crc;
-}
-
-#if defined(_WIN32)
-static uint32_t calcCRC32(unsigned char const *message, long size) {
-    uint32_t crc = _calcCRC32(0xFFFFFFFF, message, size);
-
-    return ~crc;
-}
-#endif
-
-#if !defined(_WIN32)
-#include <fcntl.h>
-#include <sys/mman.h>
-#endif
-
-static uint32_t getFileChecksum(filename_char_t const *filename) {
-#if defined(_WIN32)
-    FILE_HANDLE file_handle = CreateFileW(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-    if (file_handle == NULL) {
-        return 0;
-    }
-
-    int64_t file_size = getFileSize(file_handle);
-
-    HANDLE handle_mapping = CreateFileMappingW(file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
-
-    if (handle_mapping == NULL) {
-        CloseHandle(file_handle);
-
-        return 0;
-    }
-
-    unsigned char const *data = (unsigned char const *)MapViewOfFile(handle_mapping, FILE_MAP_READ, 0, 0, 0);
-
-    uint32_t result;
-
-    if (unlikely(data == NULL)) {
-        result = 0;
-    } else {
-        result = calcCRC32(data, (long)file_size);
-        // Lets use 0 for error indication.
-        if (result == 0) {
-            result = 1;
-        }
-
-        UnmapViewOfFile(data);
-    }
-
-    CloseHandle(handle_mapping);
-    CloseHandle(file_handle);
-
-    return result;
-#else
-    int file_handle = open(filename, O_RDONLY);
-
-    if (file_handle == -1) {
-        return 0;
-    }
-
-    size_t file_size = lseek(file_handle, 0, SEEK_END);
-    lseek(file_handle, 0, SEEK_SET);
-
-    unsigned char chunk[32768];
-
-    uint32_t crc32 = 0xFFFFFFFF;
-
-    while (file_size > 0) {
-        ssize_t read_bytes = (ssize_t)read(file_handle, chunk, sizeof(chunk));
-
-        if (read_bytes < 0) {
-            close(file_handle);
-            return 0;
-        }
-
-        crc32 = _calcCRC32(crc32, chunk, read_bytes);
-
-        file_size -= read_bytes;
-    }
-
-    crc32 = ~crc32;
-    uint32_t result = crc32;
-
-    // TODO: Check if mmap is faster and if not, why
-#if 0
-    unsigned char const *data = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, file_handle, 0);
-
-    uint32_t result;
-
-    if (unlikely(data == MAP_FAILED)) {
-        result = 0;
-    } else {
-        result = calcCRC32(data, file_size);
-        // Lets use 0 for error indication.
-        if (result == 0) {
-            result = 1;
-        }
-
-        munmap((void *)data, file_size);
-    }
-#endif
-    close(file_handle);
-
-    return result;
-#endif
-}
-#endif
-
 #ifdef _NUITKA_AUTO_UPDATE
 #include "nuitka_onefile_auto_updater.h"
 #endif
@@ -937,7 +813,7 @@ int main(int argc, char **argv) {
 
 #if _NUITKA_ONEFILE_TEMP_BOOL == 0
         uint32_t contained_file_checksum = readPayloadChecksumValue();
-        uint32_t existing_file_checksum = getFileChecksum(target_path);
+        uint32_t existing_file_checksum = getFileCRC32(target_path);
 
         if (contained_file_checksum == existing_file_checksum) {
             needs_write = false;

@@ -2093,6 +2093,7 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersComparisonLt.c"
 #include "HelpersComparisonNe.c"
 
+#include "HelpersChecksumTools.c"
 #include "HelpersConstantsBlob.c"
 
 #if _NUITKA_PROFILE

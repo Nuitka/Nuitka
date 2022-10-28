@@ -81,4 +81,6 @@ extern bool copyFile(filename_char_t const *source, filename_char_t const *dest,
 extern bool deleteFile(filename_char_t const *filename);
 extern bool renameFile(filename_char_t const *source, filename_char_t const *dest);
 
+extern uint32_t getFileCRC32(filename_char_t const *filename);
+
 #endif

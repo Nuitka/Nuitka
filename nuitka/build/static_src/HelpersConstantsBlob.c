@@ -30,8 +30,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-#include <stdint.h>
-
 #if _NUITKA_EXPERIMENTAL_WRITEABLE_CONSTANTS
 #define CONST_CONSTANT
 #else
@@ -60,23 +58,6 @@ unsigned char const *constant_bin = NULL;
 #if defined(_NUITKA_CONSTANTS_FROM_INCBIN)
 extern unsigned const char *getConstantsBlobData(void);
 #endif
-
-// No Python runtime yet, need to do this manually.
-static uint32_t calcCRC32(unsigned char const *message, uint32_t size) {
-    uint32_t crc = 0xFFFFFFFF;
-
-    for (uint32_t i = 0; i < size; i++) {
-        unsigned int c = message[i];
-        crc = crc ^ c;
-
-        for (int j = 7; j >= 0; j--) {
-            uint32_t mask = ((crc & 1) != 0) ? 0xFFFFFFFF : 0;
-            crc = (crc >> 1) ^ (0xEDB88320 & mask);
-        }
-    }
-
-    return ~crc;
-}
 
 #if PYTHON_VERSION < 0x300
 static PyObject *int_cache = NULL;
