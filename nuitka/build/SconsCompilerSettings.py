@@ -342,7 +342,7 @@ def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
     )
 
     if resource_mode == "win_resource":
-        # On Windows constants can be accessed as a resource by Nuitka runtime afterwards.
+        # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
     elif resource_mode == "incbin":
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])

@@ -4326,12 +4326,12 @@ of the code.
  Adding dependencies to Nuitka
 *******************************
 
-First of all, there is an important distinction to make, runtime or
+First of all, there is an important distinction to make, run time or
 development time. The first kind of dependency is used when Nuitka is
 executing.
 
-Adding a Runtime Dependency
-===========================
+Adding a Run Time Dependency
+============================
 
 This is the kind of dependency that is the most scrutinized. As we want
 Nuitka to run on latest greatest Python as well as relatively old ones,
@@ -4343,7 +4343,7 @@ being installed, because e.g. on some platforms it will not be easy to
 do so. That bar has lifted somewhat, but it means e.g. that XML based
 optimization tests are not run with all Python versions.
 
-The list of runtime dependencies is in ``requirements.txt`` and it is
+The list of run time dependencies is in ``requirements.txt`` and it is
 for those the case, that they are not really required to be installed by
 the user, consider this snippet:
 

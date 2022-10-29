@@ -31,7 +31,7 @@ deepdiff==5.8.1 ; python_version >= '3.7'
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
-# Runtime code generation needs Jinja2 now
+# Run time code generation needs Jinja2 now
 Jinja2 == 2.11.3 ; python_version == '2.7'
 Jinja2 == 3.0.3 ; python_version >= '3.7'
 

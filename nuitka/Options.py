@@ -112,7 +112,7 @@ not do what you want it to do."""
     for candidate in ("%PROGRAM%", "%CACHE_DIR%", "%HOME%", "%TEMP%"):
         if candidate in value[1:]:
             Tracing.options_logger.sysexit(
-                """Absolute runtime path of '%s' can only be at the \
+                """Absolute run time path of '%s' can only be at the \
 start of '%s=%s', using it in the middle is not allowed."""
                 % (candidate, arg_name, value)
             )
@@ -562,7 +562,7 @@ def commentArgs():
     else:
         if options.file_reference_mode != default_reference_mode:
             Tracing.options_logger.warning(
-                "Using non-default file reference mode '%s' rather than '%s' may cause runtime issues."
+                "Using non-default file reference mode '%s' rather than '%s' may cause run time issues."
                 % (getFileReferenceMode(), default_reference_mode)
             )
         else:

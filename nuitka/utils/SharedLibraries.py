@@ -648,7 +648,7 @@ def getDLLVersion(filename):
 
 
 def getWindowsRunningProcessModuleFilename(handle):
-    """Runtime lookup of filename of a module in the current Python process."""
+    """Run time lookup of filename of a module in the current Python process."""
 
     import ctypes.wintypes
 

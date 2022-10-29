@@ -431,7 +431,7 @@ produces a folder for which you can specify ``--standalone``.
 Follow all imports is default in this mode. You can selectively exclude
 modules by specifically saying ``--nofollow-import-to``, but then an
 ``ImportError`` will be raised when import of it is attempted at program
-runtime.
+run time.
 
 For data files to be included, use the option
 ``--include-data-files=<source>=<target>`` where the source is a file
@@ -1122,7 +1122,7 @@ Beginning with Microsoft Windows 10, Microsoft ships ``ucrt.dll``
 ``api-ms-crt-*.dll``.
 
 With earlier Windows platforms (and wine/ReactOS), you should consider
-installing Visual C Runtime libraries before executing a Nuitka
+installing Visual C runtime libraries before executing a Nuitka
 standalone compiled program.
 
 Depending on the used C compiler, you'll need the following redist
@@ -1157,9 +1157,11 @@ compiled dist folder.
 Detecting Nuitka at run time
 ============================
 
-It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have
-the module attribute ``__compiled__`` to test if a specific module was
-compiled.
+Nuitka does *not* ``sys.frozen`` unlike other tools, because it usually
+triggers inferior code for no reason. For Nuitka, we have the module
+attribute ``__compiled__`` to test if a specific module was compiled,
+and the function attribute ``__compiled__`` to test if a specific
+function was compiled.
 
 Providing extra Options to Nuitka C compilation
 ===============================================
