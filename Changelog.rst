@@ -120,6 +120,16 @@ Bug Fixes
    Nuitka asserted against it failing, where some code handles it
    failing on non-Windows platforms. Fixed in 1.1.6 already.
 
+-  Standalone: Added data files for ``vedo`` package. Fixed in 1.1.7
+   already.
+
+-  Plugins: Fix, the ``gi`` plugin did always set ``GI_TYPELIB_PATH``
+   even if already present from user code. Also it did not handle errors
+   to detect its value during compile time. Fixed in 1.1.7 already.
+
+-  Standalone: Added missing dependencies for ``sqlalchemy`` to have all
+   SQL backends working. Fixed in 1.1.7 already.
+
 New Features
 ============
 
@@ -174,6 +184,10 @@ Organisational
 -  macOS: More reliable detection of Homebrew based Python. Rather than
    checking file system via its ``sitecustomize`` contents. The
    environment variables are only present to some usages.
+
+-  Installations with pip did not include all license, README files,
+   etc. which however was intended. Also the attempt to disable bytecode
+   compilation for some inline copies was not effective yet.
 
 This release is not done yet.
 
@@ -242,7 +256,7 @@ Bug Fixes
    show e.g. in onefile compression. Fixed in 1.0.5 already.
 
 -  Onefile: Fix, using a too old ``zstandard`` without finding another
-   Python with a suitable one, lead to runtime unpacking errors. Fixed
+   Python with a suitable one, lead to run time unpacking errors. Fixed
    in 1.0.6 already.
 
 -  Fix, the inline copy of Jinja2 imported ``logging`` for no good
@@ -391,7 +405,7 @@ New Features
    included everything and ``--noinclude-data-files`` would have to be
    used.
 
--  macOS: Make runtime signing an experimental option.
+-  macOS: Make ``runtime`` signing an experimental option.
 
 -  Consistently allow ``when`` conditions for all package configuration
    elements, e.g. also DLLs.
@@ -967,7 +981,7 @@ Optimization
 
 -  For generated attribute nodes, avoid local doing import statements on
    the function level. While these were easier to generate, they can
-   only be slow at runtime.
+   only be slow at run time.
 
 -  For the ``str`` built-in annotate its value as derived from ``str``,
    which unfortunately does not allow much optimization, since that can
@@ -1248,7 +1262,7 @@ Bug Fixes
    expected.
 
 -  Modules: Fix, the ``del __file__`` in the top level module in module
-   mode caused crashes at runtime, when trying to restore the original
+   mode caused crashes at run time, when trying to restore the original
    ``__file__`` value, after the loading CPython corrupted it.
 
 -  Python2.6: Fixes for installations without ``pkg_resources``.
@@ -1517,7 +1531,7 @@ Bug Fixes
    default. Fixed in 0.7.3 already. Later ``http.cookiejar`` was added
    too.
 
--  Standalone: Do not compress MSVC runtime library when using ``upx``
+-  Standalone: Do not compress MSVC run time library when using ``upx``
    plugin, that is not going to work. Fixed in 0.7.4 already.
 
 -  Standalone: Fix, on Windows more files should be included for TkInter
@@ -1700,7 +1714,7 @@ New Features
    once again being able to be cached and not unpacked repeatedly for
    each execution.
 
--  Standalone: Detect missing ``tk-inter`` plugin at runtime. When TCL
+-  Standalone: Detect missing ``tk-inter`` plugin at run time. When TCL
    fails to load, it then outputs a more helpful error. This ought to be
    done for all plugins, where it's not clear if they are needed.
 
@@ -1839,7 +1853,7 @@ Tests
 -  Added automatic execution of ``pyproject.toml`` driven test case.
 
 -  Enhanced output in case of ``optimization`` test failures, dumping
-   what value is there that has not become compile-time not constant.
+   what value is there that has not become a compile time constant.
 
 Summary
 =======
@@ -2289,7 +2303,7 @@ Bug Fixes
 
    .. code:: python
 
-      # This large value was computed at runtime and then if used, also
+      # This large value was computed at run time and then if used, also
       # converted to a string and potentially hashed, taking a long time.
       1 << sys.maxint
 
@@ -2768,10 +2782,10 @@ Bug Fixes
 -  Fix, ``pkg-resources`` exiting with error at compile time for
    unresolved requirements in compiled code, but these can of course
    still be optional, i.e. that code would never run. Instead give only
-   a warning, and runtime fail on these. Fixed in 0.6.17.2 already.
+   a warning, and run time fail on these. Fixed in 0.6.17.2 already.
 
 -  Standalone: Prevent the inclusion of ``drm`` libraries on Linux, they
-   have to come from the target OS at runtime. Fixed in 0.6.17.2
+   have to come from the target OS at run time. Fixed in 0.6.17.2
    already.
 
 -  Standalone: Added missing implicit dependency for ``ipcqueue``
@@ -3045,8 +3059,8 @@ Optimization
 
 -  For nodes, have dedicated child mixin classes for nodes with a single
    child value and for nodes with a tuple of children, so that these
-   common kind of nodes operate faster and don't have to check at
-   runtime what type they are during access.
+   common kind of nodes operate faster and don't have to check at run
+   time what type they are during access.
 
 -  Actually make use of the egg cache. Nuitka was unpacking eggs in
    every compilation, but in wheel installs, these can be quite common
@@ -3354,8 +3368,8 @@ Bug Fixes
 -  Standalone: Added missing implicit dependency for ``sklearn``.
 
 -  Compatibility: Modules giving ``SyntaxError`` from source were not
-   properly handled, giving runtime ``ImportError``. Now they are giving
-   ``SyntaxError``.
+   properly handled, giving run time ``ImportError``. Now they are
+   giving ``SyntaxError``.
 
 -  Fix, the LTO mode has issues with ``incbin`` usage on older gcc, so
    use ``linker`` mode when it is enabled.
@@ -3403,7 +3417,7 @@ Bug Fixes
 
 -  Standalone: Added support for ``win32file``.
 
--  Fix, namespace packages were not using runtime values for their
+-  Fix, namespace packages were not using run time values for their
    ``__path__`` value.
 
 -  Python3.7+: Fix, was leaking ``AttributeError`` exceptions during
@@ -3426,7 +3440,7 @@ New Features
    only standalone mode works.
 
 -  Plugins: Add support for ``pkg_resources.require`` calls to be
-   resolved at compile time. These are not working at runtime, but this
+   resolved at compile time. These are not working at run time, but this
    avoids the issue very nicely.
 
 -  Plugins: Massive improvements to the ``anti-bloat`` plugin, it can
@@ -3600,7 +3614,7 @@ Cleanups
    inconsistent with and without dashes in the source code, added
    cleanup to auto-format that picks the one blessed.
 
--  Cleanup taking of runtime traces of DLLs used in preparation for
+-  Cleanup taking of run time traces of DLLs used in preparation for
    using it in main code eventually, moving it to a dedicated module.
 
 -  Avoid special names for Nuitka options in test runner, this only adds
@@ -4401,9 +4415,9 @@ Optimization
 -  Improved ``__future__`` imports to become hard imports, so more
    efficient code is generated for them.
 
--  Counting of instances had a runtime impact by providing a ``__del__``
-   that was still needed to be executed and limits garbage collection on
-   types with older Python versions.
+-  Counting of instances had a run time impact by providing a
+   ``__del__`` that was still needed to be executed and limits garbage
+   collection on types with older Python versions.
 
 -  UI: Avoid loading ``tqdm`` module before it's actually used if at all
    (it may get disabled by the user), speeding up the start of Nuitka.
@@ -5589,8 +5603,8 @@ Bug Fixes
 
 -  Standalone: The bytecode for the standard library had filenames
    pointing to the original installation attached. While these were not
-   used, but replaced at runtime, they increased the size of the binary,
-   and leaked information.
+   used, but replaced at run time, they increased the size of the
+   binary, and leaked information.
 
 -  Standalone: The path of ``sys.executable`` was not None, but pointing
    to the original executable, which could also point to some temporary
@@ -6795,7 +6809,7 @@ Bug Fixes
 Optimization
 ============
 
--  Avoid static C++ runtime library when using MinGW64.
+-  Avoid using static C++ runtime library when using MinGW64.
 
 New Features
 ============
@@ -11039,7 +11053,7 @@ of progress now.
 This release contains massive amounts of corrections for long standing
 issues in the import recursion mechanism, as well as for standalone
 issues now visible after the ``__file__`` and ``__path__`` values have
-changed to become runtime dependent values.
+changed to become run time dependent values.
 
 Bug Fixes
 =========
