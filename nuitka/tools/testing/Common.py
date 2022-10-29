@@ -1378,12 +1378,14 @@ class DelayedExecutionThread(threading.Thread):
         self.func()
 
 
-def executeAfterTimePassed(timeout, func):
+def executeAfterTimePassed(message, timeout, func):
+    test_logger.info(message % timeout)
+
     alarm = DelayedExecutionThread(timeout=timeout, func=func)
     alarm.start()
 
 
-def killProcess(name, pid):
+def killProcess(process_name, pid):
     """Kill a process in a portable way.
 
     Right now SIGINT is used, unclear what to do on Windows
@@ -1391,10 +1393,10 @@ def killProcess(name, pid):
     """
 
     if str is bytes and isWin32Windows():
-        test_logger.info("Using taskkill on test process %r." % name)
+        test_logger.info("Using taskkill on test process '%s'." % process_name)
         os.system("taskkill.exe /PID %d" % pid)
     else:
-        test_logger.info("Killing test process %r." % name)
+        test_logger.info("Killing test process '%s'." % process_name)
         os.kill(pid, signal.SIGINT)
 
 
