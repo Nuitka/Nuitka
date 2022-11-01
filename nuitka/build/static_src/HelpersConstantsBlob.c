@@ -1137,6 +1137,57 @@ static void unpackBlobConstants(PyObject **output, unsigned char const *data) {
     _unpackBlobConstants(output, data, count);
 }
 
+#if _NUITKA_CONSTANTS_FROM_MACOS_SECTION
+
+#include <mach-o/ldsyms.h>
+
+#ifndef _NUITKA_EXE
+static int findMacOSDllImageId(void) {
+    Dl_info where;
+    int res = dladdr((void *)findMacOSDllImageId, &where);
+    assert(res != 0);
+
+    char const *dll_filename = where.dli_fname;
+
+    unsigned long image_count = _dyld_image_count();
+
+    for (int i = 0; i < image_count; i++) {
+        // Ignore entries without a header.
+        struct mach_header const *header = _dyld_get_image_header(i);
+        if (header == NULL) {
+            continue;
+        }
+
+        if (strcmp(dll_filename, _dyld_get_image_name(i)) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+#endif
+
+unsigned char *findMacOSBinarySection(void) {
+#ifdef _NUITKA_EXE
+    const struct mach_header *header = &_mh_execute_header;
+
+    unsigned long *size;
+    return getsectdata("constants", "constants", &size) + (uintptr_t)header;
+#else
+    int image_id = findMacOSDllImageId();
+    assert(image_id != -1);
+
+    const struct mach_header *header = _dyld_get_image_header(image_id);
+
+    unsigned long *size;
+    unsigned char *result = getsectdatafromheader_64(header, "constants", "constants", &size) + (uintptr_t)header;
+
+    return result;
+#endif
+}
+
+#endif
+
 void loadConstantsBlob(PyObject **output, char const *name) {
     static bool init_done = false;
 
@@ -1159,7 +1210,12 @@ void loadConstantsBlob(PyObject **output, char const *name) {
             LoadResource(handle, FindResource(handle, MAKEINTRESOURCE(3), RT_RCDATA)));
 
         assert(constant_bin);
+#elif _NUITKA_CONSTANTS_FROM_MACOS_SECTION
+        constant_bin = findMacOSBinarySection();
+
+        assert(constant_bin);
 #endif
+
         DECODE(constant_bin);
 
         uint32_t hash = unpackValueUint32(&constant_bin);

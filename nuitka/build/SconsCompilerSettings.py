@@ -314,9 +314,9 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif isWin32Windows():
         resource_mode = "win_resource"
         reason = "default for Windows"
-    elif isMacOS() and env.lto_mode:
-        resource_mode = "code"
-        reason = "default for lto gcc with --lto bugs for incbin"
+    elif isMacOS():
+        resource_mode = "mac_section"
+        reason = "default for macOS"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
         if module_mode:
             resource_mode = "code"
@@ -344,6 +344,14 @@ def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
     if resource_mode == "win_resource":
         # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
+    elif resource_mode == "mac_section":
+        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
+
+        env.Append(
+            LINKFLAGS=[
+                "-Wl,-sectcreate,constants,constants,%s" % constants_bin_filename,
+            ]
+        )
     elif resource_mode == "incbin":
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
 
