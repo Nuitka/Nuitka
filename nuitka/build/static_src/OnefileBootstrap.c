@@ -75,6 +75,10 @@
 #define _NUITKA_EXPERIMENTAL_DEBUG_AUTO_UPDATE
 #define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
 #define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
+
+#if __APPLE__
+#define _NUITKA_PAYLOAD_FROM_MACOS_SECTION
+#endif
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
@@ -198,8 +202,29 @@ static void setEnvironVar(char const *var_name, char const *value) {
 #endif
 }
 
+#ifdef _NUITKA_PAYLOAD_FROM_MACOS_SECTION
+
+#include <mach-o/ldsyms.h>
+
+static unsigned char *findMacOSBinarySection(void) {
+    const struct mach_header *header = &_mh_execute_header;
+
+    unsigned long *size;
+    return getsectdata("payload", "payload", &size) + (uintptr_t)header;
+}
+
+static unsigned char *payload_data = NULL;
+static unsigned char *payload_current = NULL;
+
+static void initPayloadData(void) {
+    payload_data = findMacOSBinarySection();
+    payload_current = payload_data;
+}
+#else
 // Note: Made payload file handle global until we properly abstracted compression.
 static FILE_HANDLE exe_file;
+#define _NUITKA_PAYLOAD_FILE_BASED
+#endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 
@@ -238,21 +263,30 @@ static void releaseZSTD(void) {
 static size_t stream_end_pos;
 
 static size_t getPosition(void) {
+#ifdef _NUITKA_PAYLOAD_FILE_BASED
 #if defined(_WIN32)
     return SetFilePointer(exe_file, 0, NULL, FILE_CURRENT);
 #else
     return ftell(exe_file);
+#endif
+#else
+    return payload_current - payload_data;
 #endif
 }
 
 static void readChunk(void *buffer, size_t size) {
     // printf("Reading %d\n", size);
 
+#ifdef _NUITKA_PAYLOAD_FILE_BASED
     bool bool_res = readFileChunk(exe_file, buffer, size);
 
     if (bool_res == false) {
         fatalErrorReadAttachedData();
     }
+#else
+    memcpy(buffer, payload_current, size);
+    payload_current += size;
+#endif
 }
 
 static unsigned long long readSizeValue(void) {
@@ -675,16 +709,22 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
 
+#if defined(_NUITKA_PAYLOAD_FILE_BASED)
 #if defined(_WIN32)
     exe_file = CreateFileW(getBinaryPath(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (exe_file == INVALID_HANDLE_VALUE) {
+#else
+    exe_file = fopen(getBinaryPath(), "rb");
+    if (exe_file == NULL) {
+#endif
         printError("Error, failed to access unpacked executable.");
         return 1;
     }
 #else
-    exe_file = fopen(getBinaryPath(), "rb");
+    initPayloadData();
 #endif
 
+#if defined(_NUITKA_PAYLOAD_FILE_BASED)
 #if defined(_WIN32)
     /* if an application is signed, the signature is at the end of the file
        where we normally expect the start position of out container.
@@ -748,6 +788,7 @@ int main(int argc, char **argv) {
     if (res != 0) {
         fatalErrorFindAttachedData();
     }
+#endif
 #endif
 
     char header[3];
@@ -902,7 +943,9 @@ int main(int argc, char **argv) {
         }
     }
 
+#if defined(_NUITKA_PAYLOAD_FILE_BASED)
     closeFile(exe_file);
+#endif
 
 #ifdef _NUITKA_AUTO_UPDATE
     exe_file_updatable = true;

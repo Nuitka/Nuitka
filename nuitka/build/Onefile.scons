@@ -52,6 +52,7 @@ from nuitka.Tracing import my_print, scons_details_logger, setQuiet
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
+    addConstantBlobFile,
     checkWindowsCompilerFound,
     reportCCompiler,
     setupCCompiler,
@@ -447,6 +448,16 @@ env.Append(
 # Tell compiler to create a program.
 if env.msvc_mode:
     env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
+
+if "onefile-section-payload" in env.experimental_flags:
+    env.Append(CPPDEFINES=["_NUITKA_PAYLOAD_FROM_MACOS_SECTION"])
+
+    addConstantBlobFile(
+        env=env,
+        blob_filename=os.path.join(source_dir, "__payload.bin"),
+        resource_desc=("mac_section", "user choice from experimental flag"),
+        target_arch=target_arch,
+    )
 
 
 def discoverSourceFiles():

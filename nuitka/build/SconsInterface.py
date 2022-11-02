@@ -348,7 +348,7 @@ def cleanSconsDirectory(source_dir):
                 check(path)
 
 
-def setCommonOptions(options):
+def setCommonSconsOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements

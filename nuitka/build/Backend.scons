@@ -62,6 +62,7 @@ from nuitka.utils.Utils import (
     isNetBSD,
 )
 
+from .DataComposerInterface import getConstantBlobFilename
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
     addConstantBlobFile,
@@ -822,7 +823,7 @@ if env.gcc_mode and not isMacOS() and not win_target and not module_mode:
 addConstantBlobFile(
     env=env,
     resource_desc=decideConstantsBlobResourceMode(env=env, module_mode=module_mode),
-    source_dir=source_dir,
+    blob_filename=getConstantBlobFilename(env.source_dir),
     target_arch=target_arch,
 )
 

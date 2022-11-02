@@ -31,7 +31,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
-from nuitka.utils.Utils import isLinux
+from nuitka.utils.Utils import isLinux, isMacOS
 
 
 def initScons():
@@ -692,3 +692,20 @@ based gcc do not work.
         )
     else:
         scons_logger.sysexit("Error, cannot locate suitable C compiler.")
+
+
+def addBinaryBlobSection(env, blob_filename, section_name):
+    # spell-checker: ignore linkflags, sectcreate
+
+    if isMacOS():
+        env.Append(
+            LINKFLAGS=[
+                "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
+                % {
+                    "section_name": section_name,
+                    "blob_filename": blob_filename,
+                }
+            ]
+        )
+    else:
+        assert False
