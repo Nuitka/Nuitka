@@ -1353,13 +1353,23 @@ macos_group.add_option(
     action="store",
     dest="macos_sign_identity",
     metavar="MACOS_APP_VERSION",
-    default="-",
+    default="ad-hoc",
     help="""\
 When signing on macOS, by default an ad-hoc identify will be used, but with this
 option your get to specify another identity to use. The signing of code is now
-mandatory on macOS and cannot be disabled. Default "-" if not given, which means
-ad-hoc.""",
+mandatory on macOS and cannot be disabled. Default "ad-hoc" if not given.""",
 )
+
+macos_group.add_option(
+    "--macos-sign-notarization",
+    action="store_true",
+    dest="macos_sign_notarization",
+    default=False,
+    help="""\
+When signing for notarization, using a proper TeamID identity from Apple, use
+the required runtime signing option, such that it can be accepted.""",
+)
+
 
 macos_group.add_option(
     "--macos-app-version",

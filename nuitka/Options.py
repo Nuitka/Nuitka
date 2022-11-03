@@ -770,6 +770,18 @@ For GUI applications, you ought to specify an icon with '--macos-app-icon'.", \
 otherwise a dock icon may not be present."""
         )
 
+    if (
+        isMacOS()
+        and shallUseSigningForNotarization()
+        and getMacOSSigningIdentity() == "-"
+    ):
+        Tracing.general.sysexit(
+            """\
+Error, need to provide signing identity with '--macos-sign-identity' for \
+notarization capable signature, the default identify 'ad-hoc' is not going \
+to work."""
+        )
+
     filename = getPositionalArgs()[0]
     if not os.path.exists(filename):
         Tracing.general.sysexit("Error, file '%s' is not found." % filename)
@@ -1495,7 +1507,17 @@ def shallCreateAppBundle():
 
 def getMacOSSigningIdentity():
     """*str* value to use as identity for codesign, derived from ``--macos-sign-identity`` value"""
-    return options.macos_sign_identity
+    result = options.macos_sign_identity
+
+    if result == "ad-hoc":
+        result = "-"
+
+    return result
+
+
+def shallUseSigningForNotarization():
+    """*bool* flag to use for codesign, derived from ``--macos-sign-notarization`` value"""
+    return options.macos_sign_notarization
 
 
 def getMacOSAppName():

@@ -19,7 +19,10 @@
 
 """
 
-from nuitka.Options import getMacOSSigningIdentity, isExperimental
+from nuitka.Options import (
+    getMacOSSigningIdentity,
+    shallUseSigningForNotarization,
+)
 from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
@@ -74,14 +77,7 @@ def addMacOSCodeSignature(filenames):
         # ,
     ]
 
-    # TODO: This appears to be useful, but apparently doesn't work for all
-    # flavors of Python, so it cannot be the default.
-    if isExperimental("macos-sign-runtime"):
-        if identity == "-":
-            postprocessing_logger.sysexit(
-                """\
-Error, need to provide signing identity with '--macos-sign-identity' for runtime signature."""
-            )
+    if shallUseSigningForNotarization():
         command.append("--options=runtime")
 
     assert type(filenames) is not str
