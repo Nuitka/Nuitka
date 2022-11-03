@@ -41,7 +41,7 @@ def _filterCodesignErrorOutput(stderr):
     if b"errSecInternalComponent" in stderr:
         postprocessing_logger.sysexit(
             """\
-Access to the certificate is now allowed. Please allow all items or with
+Access to the certificate is not allowed. Please allow all items or with
 GUI, enable prompting for the certificate in KeyChain Access."""
         )
 
@@ -77,6 +77,11 @@ def addMacOSCodeSignature(filenames):
     # TODO: This appears to be useful, but apparently doesn't work for all
     # flavors of Python, so it cannot be the default.
     if isExperimental("macos-sign-runtime"):
+        if identity == "-":
+            postprocessing_logger.sysexit(
+                """\
+Error, need to provide signing identity with '--macos-sign-identity' for runtime signature."""
+            )
         command.append("--options=runtime")
 
     assert type(filenames) is not str
