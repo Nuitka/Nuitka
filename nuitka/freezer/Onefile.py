@@ -198,9 +198,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
     # Decide if we need the payload during build already, or if it should be
     # attached.
-    payload_used_in_build = isMacOS() and Options.isExperimental(
-        "onefile-section-payload"
-    )
+    payload_used_in_build = isMacOS()
 
     if payload_used_in_build:
         runOnefileCompressor(

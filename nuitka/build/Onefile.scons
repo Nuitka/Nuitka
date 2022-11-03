@@ -49,6 +49,7 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
 )
 
 from nuitka.Tracing import my_print, scons_details_logger, setQuiet
+from nuitka.utils.Utils import isMacOS
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
@@ -449,7 +450,7 @@ env.Append(
 if env.msvc_mode:
     env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
-if "onefile-section-payload" in env.experimental_flags:
+if isMacOS():
     env.Append(CPPDEFINES=["_NUITKA_PAYLOAD_FROM_MACOS_SECTION"])
 
     addConstantBlobFile(
