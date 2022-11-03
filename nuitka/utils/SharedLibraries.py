@@ -371,19 +371,20 @@ def _filterInstallNameToolErrorOutput(stderr):
         for line in stderr.splitlines()
         if line
         if b"invalidate the code signature" not in line
+        if b"generating fake signature" not in line
     )
 
     return None, stderr
 
 
-_installnametool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."
+_install_name_tool_usage = "The 'install_name_tool' is used to make binaries portable on macOS and required to be found."
 
 
 def _removeSharedLibraryRPATHDarwin(filename, rpath):
     executeToolChecked(
         logger=postprocessing_logger,
         command=("install_name_tool", "-delete_rpath", rpath, filename),
-        absence_message=_installnametool_usage,
+        absence_message=_install_name_tool_usage,
         stderr_filter=_filterInstallNameToolErrorOutput,
     )
 
@@ -398,7 +399,7 @@ def _setSharedLibraryRPATHDarwin(filename, rpath):
         executeToolChecked(
             logger=postprocessing_logger,
             command=("install_name_tool", "-add_rpath", rpath, filename),
-            absence_message=_installnametool_usage,
+            absence_message=_install_name_tool_usage,
             stderr_filter=_filterInstallNameToolErrorOutput,
         )
 
@@ -451,7 +452,7 @@ def callInstallNameTool(filename, mapping, id_path, rpath):
         executeToolChecked(
             logger=postprocessing_logger,
             command=command,
-            absence_message=_installnametool_usage,
+            absence_message=_install_name_tool_usage,
             stderr_filter=_filterInstallNameToolErrorOutput,
         )
 
