@@ -189,9 +189,20 @@ def parseArgs():
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
+    def _quoteArg(arg):
+        if " " in arg:
+            if "=" in arg and arg.startswith("--"):
+                arg_name, value = arg.split("=", 1)
+
+                return '%s="%s"' % (arg_name, value)
+            else:
+                return '"%s"' % arg
+        else:
+            return arg
+
     Tracing.options_logger.info(
         "Used command line options: %s"
-        % " ".join(('"%s"' % arg) if " " in arg else arg for arg in sys.argv[1:])
+        % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
     )
 
     if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
