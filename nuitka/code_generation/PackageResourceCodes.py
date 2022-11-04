@@ -100,6 +100,7 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
 
 def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, context):
     distribution = expression.distribution
+    original_name = expression.original_name
     metadata = (
         distribution.read_text("METADATA") or distribution.read_text("METADATA") or ""
     )
@@ -112,7 +113,7 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
             """%(to_name)s = Nuitka_Distribution_New("%(name)s", %(metadata)s);"""
             % {
                 "to_name": value_name,
-                "name": distribution.metadata["Name"],
+                "name": original_name,
                 "metadata": context.getConstantCode(constant=str(metadata)),
             }
         )

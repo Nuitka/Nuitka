@@ -52,7 +52,9 @@ def getCacheDir():
             _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
 
         # For people that build with HOME set this, e.g. Debian.
-        if _cache_dir.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
+        if _cache_dir.startswith(
+            ("/nonexistent/", "/sbuild-nonexistent/", "/homeless-shelter/")
+        ):
             _cache_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
 
         makePath(_cache_dir)
