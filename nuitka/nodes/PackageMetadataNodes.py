@@ -598,13 +598,17 @@ class ExpressionImportlibMetadataDistributionValueRef(
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_VALUE_REF"
 
-    __slots__ = ("distribution", "computed_attributes")
+    __slots__ = ("distribution", "original_name", "computed_attributes")
 
-    def __init__(self, distribution, source_ref):
+    def __init__(self, distribution, original_name, source_ref):
         ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.distribution = distribution
+        self.original_name = original_name
         self.computed_attributes = {}
+
+    def getDetails(self):
+        return {"distribution": self.distribution, "original_name": self.original_name}
 
     def finalize(self):
         del self.distribution
@@ -884,8 +888,9 @@ class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase)
                 % (arg, self.source_ref.getAsString(), repr(e))
             )
         else:
+            # Remember the original name, distributions can other names.
             result = ExpressionImportlibMetadataDistributionValueRef(
-                distribution=distribution, source_ref=self.source_ref
+                distribution=distribution, original_name=arg, source_ref=self.source_ref
             )
 
             return (
