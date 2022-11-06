@@ -1665,10 +1665,14 @@ def shallNotStoreDependsExeCachedResults():
 def getPluginNameConsideringRenames(plugin_name):
     """Name of the plugin with renames considered."""
 
+    # spell-checker: ignore delvewheel,pyzmq
+
     if plugin_name == "etherium":
         return "ethereum"
-    else:
-        return plugin_name
+    if plugin_name == "pyzmq":
+        return "delvewheel"
+
+    return plugin_name
 
 
 def getPluginsEnabled():
