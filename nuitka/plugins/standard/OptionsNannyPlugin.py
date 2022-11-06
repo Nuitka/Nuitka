@@ -50,6 +50,25 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
             % (full_name, option, value)
         )
 
+    def _checkSupportedVersion(self, full_name, support_info, description):
+        if support_info == "ignore":
+            return
+
+        message = "Using module (%s %s) with no support: %s" % (
+            full_name.asString(),
+            self.getPackageVersion(full_name),
+            description,
+        )
+
+        if support_info == "error":
+            self.sysexit(message)
+        elif support_info == "warning":
+            self.warning(message)
+        elif support_info == "info":
+            self.info(message)
+        else:
+            assert False, support_info
+
     def _checkConsoleMode(self, full_name, console):
         if console == "no":
             if shallDisableConsoleWindow() is not True:
@@ -117,6 +136,12 @@ Error, package '%s' requires '--onefile' to be used on top of '--macos-create-ap
                 if self.evaluateCondition(
                     full_name=full_name, condition=check.get("when", "True")
                 ):
+                    self._checkSupportedVersion(
+                        full_name=full_name,
+                        support_info=check.get("support_info", "ignore"),
+                        description=check.get("description", "not given"),
+                    )
+
                     if mayDisableConsoleWindow():
                         self._checkConsoleMode(
                             full_name=full_name,

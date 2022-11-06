@@ -242,6 +242,11 @@
           os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(os.path.dirname(__file__), 'qt/plugins')
           os.environ['QT_QPA_FONTDIR'] = os.path.join(os.path.dirname(__file__), 'qt/fonts')
       when: 'linux and standalone'
+  options:
+    checks:
+      - description: 'OpenCV2 is best supported with 4.6 or later'
+        support_info: 'warning'
+        when: 'version("opencv-python") < (4,6)'
 
 - module-name: 'cytoolz.functoolz'
   implicit-imports:

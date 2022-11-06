@@ -92,16 +92,22 @@ def _getPackageVersion(distribution_name):
             result = _convertVersionToTuple(version(distribution_name))
         except ImportError:
             try:
-                from pkg_resources import get_distribution
-
-                result = _convertVersionToTuple(
-                    get_distribution(distribution_name).version
+                from pkg_resources import (
+                    DistributionNotFound,
+                    get_distribution,
                 )
+
+                try:
+                    result = _convertVersionToTuple(
+                        get_distribution(distribution_name).version
+                    )
+                except DistributionNotFound:
+                    raise ImportError
             except ImportError:
                 # Fallback if nothing is available, which may happen if no package is installed,
                 # but only source code is found.
                 result = _convertVersionToTuple(
-                    __import__(distribution_name).__version__.split(".")
+                    __import__(distribution_name).__version__
                 )
 
         _package_versions[distribution_name] = result
@@ -970,6 +976,11 @@ except ImportError:
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    @staticmethod
+    def getPackageVersion(distribution_name):
+        """Provide package version of a distribution."""
+        return _getPackageVersion(distribution_name)
 
     def evaluateCondition(self, full_name, condition, control_tags=()):
         # Note: Caching makes no sense yet, this should all be very fast and
