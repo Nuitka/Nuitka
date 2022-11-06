@@ -81,6 +81,15 @@ def _convertVersionToTuple(version_str):
     return tuple(numberize(d) for d in version_str.split("."))
 
 
+def _getPackageNameFromDistributionName(distribution_name):
+    if distribution_name == "opencv-python":
+        return "cv2"
+    elif distribution_name == "pyobjc":
+        return "objc"
+    else:
+        return distribution_name
+
+
 def _getPackageVersion(distribution_name):
     if distribution_name not in _package_versions:
         try:
@@ -107,7 +116,9 @@ def _getPackageVersion(distribution_name):
                 # Fallback if nothing is available, which may happen if no package is installed,
                 # but only source code is found.
                 result = _convertVersionToTuple(
-                    __import__(distribution_name).__version__
+                    __import__(
+                        _getPackageNameFromDistributionName(distribution_name)
+                    ).__version__
                 )
 
         _package_versions[distribution_name] = result
