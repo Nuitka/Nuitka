@@ -1172,6 +1172,20 @@ necessary. Beware of course, that is this is only useful if you know
 what you are doing, so should this pose an issues, raise them only with
 perfect information.
 
+Producing a 32 bit binary on a 64 bit Windows system
+====================================================
+
+Nuitka will automatically target the architecture of the Python you are
+using. If this is 64 bits, it will create a 64 bits binary, if it is 32
+bits, it will create a 32 bits binary. You have the option to select the
+bits when you download the Python. In the output of ``python -m nuitka
+--version`` there is a line for the architecture. It ``Arch: x86_64``
+for 64 bits, and just ``Arch: x86`` for 32 bits.
+
+The C compiler will be picked to match that more or less automatically.
+If you specify it explicitly and it mismatches, you will get a warning
+about the mismatch and informed that you compiler choice was rejected.
+
 *************
  Performance
 *************
