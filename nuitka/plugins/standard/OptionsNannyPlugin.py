@@ -67,7 +67,10 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
         elif support_info == "info":
             self.info(message)
         else:
-            assert False, support_info
+            self.sysexit(
+                "Error, unknown support_info level '%s' for module '%s'"
+                % full_name.asString()
+            )
 
     def _checkConsoleMode(self, full_name, console):
         if console == "no":

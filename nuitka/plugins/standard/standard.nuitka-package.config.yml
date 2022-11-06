@@ -1084,6 +1084,13 @@
           def __init__(self, name):
             pass
 
+- module-name: 'objc'
+  options:
+    checks:
+      - description: 'pyobjc is not supported before 9.0 or later'
+        support_info: 'error'
+        when: 'version("pyobjc") < (9,)'
+
 - module-name: 'openapi_spec_validator'
   data-files:
     dirs:
