@@ -157,7 +157,7 @@ hard_modules_version = {
     "ctypes.wintypes": (None, None, "win32"),
 }
 
-hard_modules_limited = ("importlib.metadata", "ctypes.wintypes")
+hard_modules_limited = ("importlib.metadata", "ctypes.wintypes", "importlib_metadata")
 
 
 def isHardModule(module_name):
