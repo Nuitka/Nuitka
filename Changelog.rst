@@ -130,8 +130,29 @@ Bug Fixes
 -  Standalone: Added missing dependencies for ``sqlalchemy`` to have all
    SQL backends working. Fixed in 1.1.7 already.
 
+-  Added support Nixpkgs's default non-writable ``HOME`` directory.
+   Fixed in 1.1.8 already.
+
+-  Fix, distribution metadata name and package name need not align, need
+   to preserve the original looked up name from
+   ``importlib.metadata.distribution`` call. Fixed in 1.1.8 already.
+
+-  Windows: Fix, catch usage of unsupported ``CLCACHE_MEMCACHED`` mode
+   with MSVC compilation. It is just unsupported.
+
 New Features
 ============
+
+-  Python3.11: For now prevent the execution with 3.11 and give a
+   warning to the user for a not yet supported version. This can be
+   overridden with ``--experimental=python311`` but at this times will
+   not compile anything yet due to required and at this time missing
+   core changes.
+
+-  macOS: Added option ``--macos-sign-notarization`` that signs with
+   runtime signature, but requires a developer certificate from Apple.
+   As its name implies, this is for use with notarization for their App
+   store.
 
 -  DLLs used via ``delvewheel`` were so far only handled in the ``zmq``
    plugin, but this has been generalized to cover any package using it.
@@ -145,8 +166,20 @@ New Features
    ``pyobjc`` can use it to create better code on their side for
    constant value returning functions.
 
+-  Added ``support_info`` check to Nuitka package format. Make it clear
+   that ``pyobjc`` is only supported after ``9.0`` by erroring out if it
+   has a too low version. It will not work at all before that version
+   added support in upstream. Also using this to make it clear that
+   ``opencv-python`` is best supported in version 4.6 or higher. It
+   seems e.g. that video capture is not working with 4.5 at this time.
+
 Optimization
 ============
+
+-  macOS: Use sections for main binary constants binary blob rather than
+   C source code (which we started in a recent hotfix due to LTO issues
+   with incbin) and onefile payload. The latter enables notarization of
+   the onefile binary as well and makes it faster to unpack as well.
 
 -  Trust ``importlib.metadata.PackageNotFoundError`` to exist, with this
    some more metadata usages are statically optimized. Added in 1.1.4
@@ -168,6 +201,14 @@ Cleanups
 Organisational
 ==============
 
+-  User Manual: Explain how to create 64/32 bits binaries on Windows,
+   with there being no option to control it, this can otherwise be a bit
+   unobvious that you have to just use the matching Python binary.
+
+-  UI: Quote command line options with space in value better, no need to
+   quote an affected command line option in its entirety, and it looks
+   strange.
+
 -  macOS: Catch user error of disabling the console without using the
    bundle mode, as it otherwise it has no effect.
 
@@ -188,6 +229,9 @@ Organisational
 -  Installations with pip did not include all license, README files,
    etc. which however was intended. Also the attempt to disable bytecode
    compilation for some inline copies was not effective yet.
+
+-  Renamed ``pyzmq`` plugin to ``delvewheel`` as it is now absolutely
+   generic and covers all uses of said packaging technique.
 
 This release is not done yet.
 
