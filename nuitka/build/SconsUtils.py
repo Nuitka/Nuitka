@@ -293,10 +293,17 @@ def changeKeyboardInterruptToErrorExit():
 
 
 def setEnvironmentVariable(env, key, value):
-    os.environ[key] = value
+    if value is None:
+        del os.environ[key]
+    elif value in os.environ:
+        os.environ[key] = value
 
     if env is not None:
-        env._dict["ENV"][key] = value  # pylint: disable=protected-access
+        # pylint: disable=protected-access
+        if value is None:
+            del env._dict["ENV"][key]
+        else:
+            env._dict["ENV"][key] = value
 
 
 def addToPATH(env, dirname, prefix):

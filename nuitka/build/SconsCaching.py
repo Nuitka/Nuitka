@@ -186,6 +186,12 @@ def enableCcache(
         setEnvironmentVariable(env, "CCACHE_DIR", ccache_dir)
         env["CCACHE_DIR"] = ccache_dir
 
+    if "CLCACHE_MEMCACHED" in os.environ:
+        scons_logger.warning(
+            "The setting of 'CLCACHE_MEMCACHED' environment is not supported with clcache."
+        )
+        setEnvironmentVariable(env, "CLCACHE_MEMCACHED", None)
+
     # We know the include files we created are safe to use.
     setEnvironmentVariable(
         env, "CCACHE_SLOPPINESS", "include_file_ctime,include_file_mtime"
