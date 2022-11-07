@@ -10,6 +10,10 @@ Nuitka blog.
  Nuitka Release 1.2 (Draft)
 ****************************
 
+This release contains a large amount of new compatibility features and a
+few new optimization, while again consolidating what we have.
+Scalability should be better in many cases.
+
 Bug Fixes
 =========
 
@@ -421,7 +425,31 @@ Tests
    reflected test, which should make it faster. The compiler itself
    doesn't use that code.
 
-This release is not done yet.
+Summary
+=======
+
+This release is again mainly a consolidation of previous release, as
+well as finishing off existing features. Optimization added in previous
+releases should have all regressions fixed now, again with a strong
+series of hotfixes.
+
+New optimization was focused around findings with static optimization
+not being done, but still resulting in general improvements. Letting
+static optimization drive the effort is still paying off.
+
+Scalability has seen improvements through some of the optimization, this
+time a lot less anti-bloat work has been done, and some things are only
+started. The focus will clearly now shift to making this a community
+effort. Expect postings that document the Yaml format we use.
+
+For macOS specifically, with the sections work, onefile should launch
+faster, should be more compatible with signing, and can now be used in
+notarization, so for that platform, things are more round.
+
+For Windows, a few issues with version information and onefile have been
+addressed. We should be able to use memory mapped view on this platform
+too, for faster unpacking of the payload, since it doesn't have to go
+through the file anymore.
 
 ********************
  Nuitka Release 1.1
