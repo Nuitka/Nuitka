@@ -140,6 +140,24 @@ Bug Fixes
 -  Windows: Fix, catch usage of unsupported ``CLCACHE_MEMCACHED`` mode
    with MSVC compilation. It is just unsupported.
 
+-  Windows: Fix, file version was spoiled from product version if it was
+   the only version given.
+
+-  Windows: The default for file description in version information was
+   not as intended.
+
+-  Plugins: Workaround for PyQt5 as contained in Anaconda providing
+   wrong paths from the build machine.
+
+-  macOS: After signing a binary with a certificate, compiling the next
+   one was crashing on a warning about initially creating an ad-hoc
+   binary.
+
+-  Fix, detect case of non-writable cache path, make explaining error
+   exit rather than crashing attempting to write to the cache.
+
+-  macOS: Added support for ``pyobjc`` in version 9.0 or higher.
+
 New Features
 ============
 
@@ -176,27 +194,130 @@ New Features
 Optimization
 ============
 
--  macOS: Use sections for main binary constants binary blob rather than
-   C source code (which we started in a recent hotfix due to LTO issues
-   with incbin) and onefile payload. The latter enables notarization of
-   the onefile binary as well and makes it faster to unpack as well.
+-  Trust the absence of a few selected hard modules and convert those to
+   static raises of import errors.
+
+-  For conditional nodes where only one branch exits, and the other does
+   not, no merging of the trace collection should happen. This should
+   enhance the scalability and leads to more static optimization being
+   done after these kinds of branches on variables assigned in such
+   branches.
+
+   .. code:: python
+
+      if condition1:
+         a = 1
+      else:
+         raise KeyError
+
+      if condition2:
+         b = 1
+
+      # Here, "a" is known to be assigned, but before it was only "maybe"
+      # assigned, like "b" would have to be since, the branch may or may
+      # not have been taken.
+
+-  Do not merge tried blocks that are aborting with an exception handler
+   that is not aborting. This is very similar to the change for
+   conditional statements, again there is a control flow branch, that
+   may have to be merged with an optional part, but sometimes that part
+   is not optional from the perspective of the code following.
+
+   .. code:: python
+
+      try:
+         ... # potentially raising, but not aborting code
+         return something() # this aborts
+      except Exception:
+         a = 1
+
+      try:
+         ... # potentially raising, but not aborting code
+      except Exception:
+         b = 1
+
+      # Here, "a" is known to be assigned, but before it was only "maybe"
+      # assigned, like "b" would have to be since, the branch may or may
+      # not have been taken.
+
+-  Exception matches were annotating a control flow escape and an
+   exception exit, even when it is known that no error is possible to be
+   happening that comparison.
+
+   .. code:: python
+
+      try:
+         ...
+      except ImportError: # an exception match is done here, that cannot raise
+         ...
 
 -  Trust ``importlib.metadata.PackageNotFoundError`` to exist, with this
    some more metadata usages are statically optimized. Added in 1.1.4
    already.
 
+-  Handle constant values from trusted imports as trusted values. So
+   far, trusted import values were on equal footing to regular
+   variables, which on the module level could mean that no optimization
+   was done, due to control flow escapes happening.
+
+   .. code:: python
+
+      # Known to be False at compile time.
+      from typing import TYPE_CHECKING
+      ...
+
+      if TYPE_CHECKING:
+         from something import normally_unused_unless_type_checking
+
+   In this code example above, the static optimization was not done
+   because the value may be changed on the outside. However, for trusted
+   constants, this is no longer assumed to be happening. So far only
+   ``if typing.TYPE_CHECKING:`` using code had been optimized.
+
+-  macOS: Use sections for main binary constants binary blob rather than
+   C source code (which we started in a recent hotfix due to LTO issues
+   with incbin) and onefile payload. The latter enables notarization of
+   the onefile binary as well and makes it faster to unpack as well.
+
+-  Windows: Do not include DLLs from SxS. For PyPI packages these are
+   generally unused, and self compiled modules won't be SxS
+   installations either. We can add it back where it turns out needed.
+   This avoids including ``comctl32`` and similar DLLs, which ought to
+   come from the OS, and might impede backward compatibility only.
+
 -  Disabled C compilation of very large ``azure`` modules.
 
--  The module usage from first pass was used in later passes. But since
-   they can get optimized away, we have to update them. So far this
-   makes no difference, but in the future it would.
+-  The per module usage information of other modules was only updated in
+   first pass was used in later passes. But since they can get optimized
+   away, we have to update every time, avoiding to still include unused
+   modules.
 
-Cleanups
-========
+-  Anti-Bloat: Fight the use of ``dask`` in ``xarray`` and ``pint``,
+   adding a mode controlling its use. This is however still incomplete
+   and needs more work.
 
--  Moved PySide plugins DLL search extra paths to the Yaml
-   configuration. In this way it is not dependent on the plugin being
-   active, avoiding cryptic errors on macOS when they are not found.
+-  Fix, the anti-bloat configuration for ``rich.pretty`` introduced a
+   ``SyntaxError`` that went unnoticed. In the future compilation will
+   abort when this happens.
+
+-  Standalone: Added support for including DLLs of ``llvmlite.binding``
+   package.
+
+-  Anti-Bloat: Avoid using ``pywin32`` through ``pkg_resources`` import.
+   This seems rather pointless and follows an optimization done for the
+   inline copy of Nuitka already, the ``ctypes`` code path works just
+   fine, and this may well be the only reason why ``pywin32`` is
+   included, which is by itself relatively large.
+
+-  Cache directory contents when scanning for modules. The ``sys.path``
+   and package directories were listed over and over, wasting time
+   during the import analysis.
+
+-  Optimization: Was not caching not found modules, but retrying every
+   time for each usage, potentially wasting time during import analysis.
+
+-  Anti-Bloat: Initial work to avoid ``pytest`` in patsy, it is however
+   incomplete.
 
 Organisational
 ==============
@@ -204,6 +325,10 @@ Organisational
 -  User Manual: Explain how to create 64/32 bits binaries on Windows,
    with there being no option to control it, this can otherwise be a bit
    unobvious that you have to just use the matching Python binary.
+
+-  UI: Added an example for a cached onefile temporary location spec to
+   the help output of ``--onefile-tempdir-spec`` to make cached more
+   easy to achieve in the proper way.
 
 -  UI: Quote command line options with space in value better, no need to
    quote an affected command line option in its entirety, and it looks
@@ -232,6 +357,69 @@ Organisational
 
 -  Renamed ``pyzmq`` plugin to ``delvewheel`` as it is now absolutely
    generic and covers all uses of said packaging technique.
+
+-  Caching: Use cache directory for cached downloads, rather than
+   application directory, which is just wrong. This will cause all
+   previously cached downloads to become unused and repeated.
+
+-  Quality: Updated development requirements to latest ``black``,
+   ``isort``, ``yamllint``, and ``tqdm``.
+
+-  Visual Code: Added recommendation for extension for Debian packaging
+   files.
+
+-  Added warning for ``PyQt5`` usage, since its support is very
+   incomplete. Made the ``PyQt6`` warning more concrete. It seems only
+   Qt threading does not work, which is of course still significant.
+   Instead PySide2 and PySide6 are recommended.
+
+-  UI: Have dedicated options group for onefile, the spec for the
+   temporary files is not a Windows option at all anymore. Also move the
+   warnings group to the end, people need to see the inclusion related
+   group first.
+
+-  User Manual: Explain how to create 64/32 bits binaries on Windows,
+   which is not too obvious.
+
+Cleanups
+========
+
+-  Moved PySide plugins DLL search extra paths to the Yaml
+   configuration. In this way it is not dependent on the plugin being
+   active, avoiding cryptic errors on macOS when they are not found.
+
+-  Plugins: Avoid duplicate link libraries due to casing. We are now
+   normalizing the link library names, which avoids e.g. ``Shell32`` and
+   ``shell32`` to be in the result.
+
+-  Cleanups to prepare a PyLint update that so otherwise failed due to
+   encountered issues.
+
+-  Plugins: Pass so called build definitions for generically. Rather
+   than having dedicated code for each, and plugins can now provide them
+   and pass their index to the scons builds.
+
+-  Onefile: Moved file handling code to common code reducing code
+   duplication and heavily cleaning up the bootstrap code generally.
+
+-  Onefile: The CRC32 checksum code was duplicated between constants
+   blob and onefile, and has moved to shared code, with an actual
+   interface to take the checksum.
+
+-  Spelling cleanups resumed, e.g. this time more clearly distinguishing
+   between ``run time`` and ``runtime``, the first is when the program
+   executes, but the latter can be an environment provided by a C
+   compiler.
+
+Tests
+=====
+
+-  Tests: Added test that applies anti-bloat configuration to all found
+   modules.
+
+-  Tests: Tests: Avoid including unused ``nuitka.tools`` code in
+   reflected test, which should make it faster. The compiler itself
+   doesn't use that code.
 
 This release is not done yet.
 
