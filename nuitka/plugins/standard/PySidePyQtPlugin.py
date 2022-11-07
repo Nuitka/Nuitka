@@ -1206,7 +1206,7 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
 
         self.info(
             """\
-Support for PyQt6 is good, but prefer PySide6 if you can."""
+Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
         )
 
 
