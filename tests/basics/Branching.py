@@ -160,7 +160,7 @@ def dontOptimizeSideEffects():
         return True
 
     def returnFalse():
-        print("function 'returnFalse' should not have beeen called")
+        print("function 'returnFalse' should not have been called")
         return False
 
     if (returnTrue() or returnFalse(),):
