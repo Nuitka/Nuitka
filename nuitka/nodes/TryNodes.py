@@ -254,9 +254,12 @@ class StatementTry(StatementChildrenHavingBase):
         if self.tried_may_raise and (
             except_handler is None or not except_handler.isStatementAborting()
         ):
-            trace_collection.mergeBranches(
-                collection_yes=collection_exception_handling, collection_no=None
-            )
+            if tried.isStatementAborting():
+                trace_collection.replaceBranch(collection_exception_handling)
+            else:
+                trace_collection.mergeBranches(
+                    collection_yes=collection_exception_handling, collection_no=None
+                )
 
         # An empty exception handler means we have to swallow exception.
         if (
