@@ -49,13 +49,13 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
 )
 
 from nuitka.Tracing import my_print, scons_details_logger, setQuiet
-from nuitka.utils.Utils import isLinux
+from nuitka.utils.Utils import isMacOS
 
 from .SconsCaching import enableCcache, enableClcache
 from .SconsCompilerSettings import (
+    addConstantBlobFile,
     checkWindowsCompilerFound,
     reportCCompiler,
-    setProductVersionDefinitions,
     setupCCompiler,
     switchFromGccToGpp,
 )
@@ -79,6 +79,7 @@ from .SconsUtils import (
     prepareEnvironment,
     provideStaticSourceFile,
     raiseNoCompilerFoundErrorExit,
+    scanSourceDir,
     setArguments,
     setupScons,
     writeSconsReport,
@@ -421,6 +422,8 @@ if debug_mode:
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
 
+env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
+
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
 nuitka_include = os.path.join(nuitka_src, "include")
@@ -447,42 +450,29 @@ env.Append(
 if env.msvc_mode:
     env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
+if isMacOS():
+    env.Append(CPPDEFINES=["_NUITKA_PAYLOAD_FROM_MACOS_SECTION"])
+
+    addConstantBlobFile(
+        env=env,
+        blob_filename=os.path.join(source_dir, "__payload.bin"),
+        resource_desc=("mac_section", "user choice from experimental flag"),
+        target_arch=target_arch,
+    )
+
 
 def discoverSourceFiles():
     result = []
 
-    # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
-    # needs to derive from filenames, so make copies (or links) with a different
-    # name.
-    def _scanSourceDir(dirname):
-        if not os.path.exists(dirname):
-            return
-
-        for filename in sorted(os.listdir(dirname)):
-            # Only C files are of interest here.
-            if not filename.endswith((".c", "cpp")) or not filename.startswith(
-                ("module.", "__", "plugin.")
-            ):
-                continue
-
-            filename = os.path.join(dirname, filename)
-
-            target_file = filename
-
-            # We pretend to use C++ if no C11 compiler is present.
-            if env.c11_mode:
-                result.append(filename)
-            else:
-                if filename.endswith(".c"):
-                    target_file += "pp"  # .cpp" suffix then
-
-                    os.rename(filename, target_file)
-
-                result.append(target_file)
-
     # Scan for Nuitka created source files, and add them too.
-    _scanSourceDir(source_dir)
-    _scanSourceDir(os.path.join(source_dir, "plugins"))
+    result.extend(scanSourceDir(env=env, dirname=source_dir, plugins=False))
+    result.extend(
+        scanSourceDir(
+            env=env,
+            dirname=os.path.join(source_dir, "plugins"),
+            plugins=True,
+        )
+    )
 
     # Main onefile bootstrap program
     result.append(
@@ -579,40 +569,12 @@ if env.msvc_mode and not disable_ccache:
 def createBuildDefinitionsFile():
     onefile_definitions = {}
 
-    onefile_definitions["_NUITKA_ONEFILE_TEMP_SPEC"] = os.environ[
-        "_NUITKA_ONEFILE_TEMP_SPEC"
-    ]
-    onefile_definitions["_NUITKA_ONEFILE_TEMP"] = int(
-        os.environ["_NUITKA_ONEFILE_TEMP"]
-    )
-
-    onefile_definitions["_NUITKA_ONEFILE_COMPRESSION"] = int(
-        os.environ["_NUITKA_ONEFILE_COMPRESSION"]
-    )
-
+    # TODO: Do this via a plugin too, so it can provide these externally.
     if onefile_splash_screen:
         onefile_definitions["_NUITKA_ONEFILE_SPLASH_SCREEN"] = 1
 
         # spell-checker: ignore Windowscodecs,Shlwapi
         env.Append(LIBS=["Ole32", "Windowscodecs", "User32", "Gdi32", "Shlwapi"])
-
-    onefile_auto_update_url_spec = os.environ.get(
-        "_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"
-    )
-
-    if onefile_auto_update_url_spec:
-        onefile_definitions[
-            "_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"
-        ] = onefile_auto_update_url_spec
-        onefile_definitions["_NUITKA_ONEFILE_AUTO_UPDATE"] = 1
-
-        # spell-checker: ignore Urlmon,pthread
-        if env.msvc_mode:
-            env.Append(LIBS=["Urlmon"])
-        if isLinux():
-            env.Append(LIBS=["pthread"])
-
-    setProductVersionDefinitions(onefile_definitions)
 
     createDefinitionsFile(source_dir, "onefile_definitions.h", onefile_definitions)
 

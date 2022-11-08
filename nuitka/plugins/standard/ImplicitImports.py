@@ -97,6 +97,11 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                     or module.isCompiledPythonPackage()
                 ):
                     dependency = full_name.getChildNamed(dependency[1:]).asString()
+                elif full_name.getPackageName() is None:
+                    # Not a package, potentially a naming conflict, when
+                    # compiling with "--module" something that matches a PyPI
+                    # name.
+                    continue
                 else:
                     dependency = full_name.getSiblingNamed(dependency[1:]).asString()
 

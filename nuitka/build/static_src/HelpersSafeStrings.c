@@ -31,6 +31,8 @@
 #include <stdbool.h>
 #endif
 
+#include "nuitka/safe_string_ops.h"
+
 void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
     if (strlen(source) >= buffer_size) {
         abort();
@@ -135,7 +137,9 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 #define CSIDL_PROFILE 40
 #endif
 
-static bool appendStringWCSIDLPath(wchar_t *target, int csidl_id, size_t buffer_size) {
+// spell-checker: ignore csidl
+
+static bool appendStringCSIDLPathW(wchar_t *target, int csidl_id, size_t buffer_size) {
     wchar_t path_buffer[MAX_PATH];
 
     int res = SHGetFolderPathW(NULL, csidl_id, NULL, 0, path_buffer);
@@ -170,7 +174,7 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 if (wcsicmp(var_name, L"TEMP") == 0) {
                     GetTempPathW((DWORD)buffer_size, target);
                 } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
-#if _NUITKA_ONEFILE_TEMP == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL == 1
                     appendWStringSafeW(target, __wargv[0], buffer_size);
 #else
                     if (!GetModuleFileNameW(NULL, target, (DWORD)buffer_size)) {
@@ -183,11 +187,11 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
 
                     appendStringSafeW(target, pid_buffer, buffer_size);
                 } else if (wcsicmp(var_name, L"HOME") == 0) {
-                    if (appendStringWCSIDLPath(target, CSIDL_PROFILE, buffer_size) == false) {
+                    if (appendStringCSIDLPathW(target, CSIDL_PROFILE, buffer_size) == false) {
                         return false;
                     }
                 } else if (wcsicmp(var_name, L"CACHE_DIR") == 0) {
-                    if (appendStringWCSIDLPath(target, CSIDL_LOCAL_APPDATA, buffer_size) == false) {
+                    if (appendStringCSIDLPathW(target, CSIDL_LOCAL_APPDATA, buffer_size) == false) {
                         return false;
                     }
 #ifdef NUITKA_COMPANY_NAME

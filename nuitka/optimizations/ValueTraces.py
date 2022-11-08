@@ -44,6 +44,7 @@ from nuitka.nodes.shapes.StandardShapes import (
     tshape_uninitialized,
     tshape_unknown,
 )
+from nuitka.Tracing import my_print
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -87,6 +88,9 @@ class ValueTraceBase(object):
 
     def __repr__(self):
         return "<%s of %s>" % (self.__class__.__name__, self.owner.getCodeName())
+
+    def dump(self, indent):
+        my_print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
 
     def getOwner(self):
         return self.owner
@@ -275,9 +279,6 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
     @staticmethod
     def isTraceThatNeedsEscape():
         return False
-
-    def dump(self, indent):
-        print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
 
 
 class ValueTraceDeleted(ValueTraceUnassignedBase):
@@ -540,11 +541,9 @@ class ValueTraceAssign(ValueTraceBase):
             return None
 
     def getAttributeNodeVeryTrusted(self):
-        source_node = self.assign_node.subnode_source
-
         # Hard imports typically.
-        if source_node.hasVeryTrustedValue():
-            return source_node
+        if self.assign_node.hasVeryTrustedValue():
+            return self.assign_node.subnode_source
         else:
             return None
 
@@ -606,7 +605,7 @@ class ValueTraceMergeBase(ValueTraceBase):
         self.merge_usage_count += 1
 
     def dump(self, indent):
-        print("%s%s %s:" % (indent, self.__class__.__name__, id(self)))
+        ValueTraceBase.dump(self, indent)
 
         for trace in self.previous:
             trace.dump(indent + "  ")

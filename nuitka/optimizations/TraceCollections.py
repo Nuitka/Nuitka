@@ -381,6 +381,17 @@ class TraceCollectionBase(object):
     def getOwner(self):
         return self.owner
 
+    def dumpActiveTraces(self, indent=""):
+        Tracing.printSeparator()
+        Tracing.printLine("Active are:")
+        for variable, version in sorted(
+            self.variable_actives.items(), key=lambda var: var[0].variable_name
+        ):
+            Tracing.my_print(variable, version, ":")
+            self.getVariableCurrentTrace(variable).dump(indent)
+
+        Tracing.printSeparator()
+
     def getVariableCurrentTrace(self, variable):
         """Get the current value trace associated to this variable
 
@@ -805,8 +816,6 @@ class TraceCollectionBase(object):
 
                 if other != version:
                     variable_versions[variable] = other, version
-                else:
-                    variable_versions[variable] = other
 
         # That would not be fast, pylint: disable=consider-using-dict-items
         for variable in variable_versions:
@@ -1013,19 +1022,6 @@ class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
         self.variable_actives[variable] = 0
 
         return variable_trace
-
-    def dumpTraces(self):
-        Tracing.printSeparator()
-        self.parent.dumpTraces()
-        Tracing.printSeparator()
-
-    def dumpActiveTraces(self):
-        Tracing.printSeparator()
-        Tracing.printLine("Active are:")
-        for variable, _version in sorted(self.variable_actives.iteritems()):
-            self.getVariableCurrentTrace(variable).dump()
-
-        Tracing.printSeparator()
 
 
 class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):

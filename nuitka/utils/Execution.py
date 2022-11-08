@@ -35,6 +35,8 @@ from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
+# We emulate APIs of stdlib, spell-checker: ignore popenargs
+
 
 def _getExecutablePath(filename, search_path):
     # Append ".exe" suffix  on Windows if not already present.
@@ -81,16 +83,16 @@ def isExecutableCommand(command):
 
 
 class NuitkaCalledProcessError(subprocess.CalledProcessError):
-    def __init__(self, retcode, cmd, output, stderr):
+    def __init__(self, exit_code, cmd, output, stderr):
         # False alarm, pylint: disable=super-init-not-called
 
-        subprocess.CalledProcessError(self, retcode, cmd)
+        subprocess.CalledProcessError(self, exit_code, cmd)
 
         # Python2 doesn't have this otherwise, but needs it.
         self.stderr = stderr
         self.output = output
         self.cmd = cmd
-        self.returncode = retcode
+        self.returncode = exit_code
 
     def __str__(self):
         result = subprocess.CalledProcessError.__str__(self)
@@ -123,14 +125,14 @@ def check_output(*popenargs, **kwargs):
     process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
 
     output, stderr = process.communicate()
-    retcode = process.poll()
+    exit_code = process.poll()
 
-    if retcode:
+    if exit_code:
         cmd = kwargs.get("args")
         if cmd is None:
             cmd = popenargs[0]
 
-        raise NuitkaCalledProcessError(retcode, cmd, output=output, stderr=stderr)
+        raise NuitkaCalledProcessError(exit_code, cmd, output=output, stderr=stderr)
 
     return output
 
@@ -306,6 +308,7 @@ def getNullOutput():
 
 
 def getNullInput():
+    # spell-checker: ignore NULLDEV
     try:
         return subprocess.NULLDEV
     except AttributeError:

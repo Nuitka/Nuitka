@@ -49,7 +49,7 @@ if branch_name == "factory":
                 % remote
             )
             == 0
-        )
+        ), remote
 
     sys.exit(0)
 
@@ -75,6 +75,6 @@ elif branch_name == "develop":
             )
             == 0
         )
-        assert os.system("git push %s main" % remote) == 0
+        assert os.system("git push %s main" % remote) == 0, remote
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)

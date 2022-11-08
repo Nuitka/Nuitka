@@ -19,10 +19,10 @@ Pygments == 2.10.0 ; python_version >= '3.7'
 rstcheck == 3.3.1 ; python_version == '2.7' or python_version >= '3.7'
 
 # Auto-format needs
-black == 22.3.0 ; python_version >= '3.7'
+black == 22.8.0 ; python_version >= '3.7'
 toml >= 0.10.1 ; python_version >= '3.7'
-isort == 5.9.3 ; python_version >= '3.7'
-yamllint == 1.26.3 ; python_version >= '3.7'
+isort == 5.10.1 ; python_version >= '3.7'
+yamllint == 1.28.0 ; python_version >= '3.7'
 rstfmt == 0.0.11 ; python_version >= '3.7'
 jsonschema == 4.6.0 ; python_version >= '3.7'
 ruamel.yaml == 0.17.21 ; python_version >= '3.7'
@@ -31,12 +31,12 @@ deepdiff==5.8.1 ; python_version >= '3.7'
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
-# Runtime code generation needs Jinja2 now
+# Run time code generation needs Jinja2 now
 Jinja2 == 2.11.3 ; python_version == '2.7'
 Jinja2 == 3.0.3 ; python_version >= '3.7'
 
 # For the progress bar to look nicely.
-tqdm == 4.62.3 ; python_version == '2.7' or python_version >= '3.4'
+tqdm == 4.64.1 ; python_version == '2.7' or python_version >= '3.4'
 
 # Codespell can be used as well, no need to fix version
 codespell ; python_version >= '2.7'

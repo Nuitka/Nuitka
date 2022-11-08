@@ -38,6 +38,18 @@
     - depends:
         - 'anyio._backends._asyncio'
 
+- module-name: 'appdirs'
+  anti-bloat:
+    # Keep this the same as for 'pkg_resources._vendor.appdirs' module.
+    # TODO: May allow naming spefific "anti-bloat" blocks, and reference them by
+    # name, that works like an include statement to the module.
+    - description: 'remove pywin32 reference'
+      replacements_plain:
+        'import win32com.shell': 'raise ImportError'
+      change_function:
+        '_get_win_folder_with_pywin32': 'un-callable'
+      when: 'not use_pywin32 or not win32'
+
 - module-name: 'apt_inst'
   implicit-imports:
     - depends:
@@ -230,6 +242,11 @@
           os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(os.path.dirname(__file__), 'qt/plugins')
           os.environ['QT_QPA_FONTDIR'] = os.path.join(os.path.dirname(__file__), 'qt/fonts')
       when: 'linux and standalone'
+  options:
+    checks:
+      - description: 'OpenCV2 is best supported with 4.6 or later'
+        support_info: 'warning'
+        when: 'version("opencv-python") < (4,6)'
 
 - module-name: 'cytoolz.functoolz'
   implicit-imports:
@@ -694,6 +711,13 @@
         '__IPYTHON__': 'raise NameError'
       when: 'not use_ipython'
 
+- module-name: 'llvmlite.binding.ffi'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'llvmlite'
+          - 'libllvmlite'
+
 - module-name: 'lxml'
   implicit-imports:
     - depends:
@@ -1060,6 +1084,13 @@
           def __init__(self, name):
             pass
 
+- module-name: 'objc'
+  options:
+    checks:
+      - description: 'pyobjc is not supported before 9.0 or later'
+        support_info: 'error'
+        when: 'version("pyobjc") < (9,)'
+
 - module-name: 'openapi_spec_validator'
   data-files:
     dirs:
@@ -1079,6 +1110,8 @@
   implicit-imports:
     - depends:
         - 'zoneinfo'
+        - 'json'
+        - 'uuid'
 
 - module-name: 'osgeo'
   data-files:
@@ -1156,7 +1189,7 @@
 
       change_function:
         'network': "'(lambda: None)'"
-        # TODO: Actually it would be nice to specify "uncallable" rather than
+        # TODO: Actually it would be nice to specify "un-callable" rather than
         # wrong signature for cases, where the function is not usable
         # afterwards. That will make sure we have a nice error exit in case,
         # some test code is run an attempts to use it.
@@ -1294,6 +1327,23 @@
     - depends:
         - 'passlib.handlers.sha2_crypt'
 
+- module-name: 'patsy.mgcv_cubic_splines'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      change_function:
+        'test__map_cyclic_errors': 'un-callable'
+        'test__get_all_sorted_knots': 'un-callable'
+        'test_crs_errors': 'un-callable'
+        'test_te_errors': 'un-callable'
+        'test__row_tensor_product_errors': 'un-callable'
+
+- module-name: 'patsy.util'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_pandas_friendly_reshape': 'un-callable'
+        'test_wide_dtype_for_and_widen': 'un-callable'
+
 - module-name: 'pendulum'
   data-files:
     empty_dir_structures:
@@ -1380,6 +1430,18 @@
       replacements:
         'from IPython.display import display as ipython_display': "'raise ImportError'"
 
+- module-name: 'pint.compat'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'from dask import array as dask_array': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'pint.registry'
+  data-files:
+    patterns:
+      - '*.txt'
+
 - module-name: 'pkg_resources'
   anti-bloat:
     - description: 'avoid using plistlib dependency on non-macOS'
@@ -1390,6 +1452,16 @@
       replacements_plain:
         'def load(self, require=True,': 'def load(self, require=False,'
         'if not require or args or kwargs:': 'if False:'
+
+- module-name: 'pkg_resources._vendor.appdirs'
+  anti-bloat:
+    # Keep this the same as for 'appdirs' module
+    - description: 'remove pywin32 reference'
+      replacements_plain:
+        'import win32com.shell': 'raise ImportError'
+      change_function:
+        '_get_win_folder_with_pywin32': 'un-callable'
+      when: 'not use_pywin32 or not win32'
 
 - module-name: 'pkg_resources._vendor.jaraco'
   implicit-imports:
@@ -1855,7 +1927,7 @@
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
-        'get_ipython()': 'raise NameError'
+        'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
 
 - module-name: 'scipy._lib'
@@ -3259,6 +3331,113 @@
   data-files:
     dirs:
       - 'static'
+
+- module-name: 'xarray.backends.locks'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        # TODO: This should be something special, where imports for a name
+        # are all forced to ImportError during building and/or optimization.
+        'from dask.utils import SerializableLock': 'raise ImportError'
+        'from dask.distributed import Lock as DistributedLock': 'raise ImportError'
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.coding.variables'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'if is_duck_dask_array(array):': 'if False:'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.dask_array_ops'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.dataset'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+        'if lazy_data:': 'if False:'
+        'from dask.delayed import Delayed': 'raise ImportError'
+      change_function:
+        '__dask_tokenize__': 'un-callable'
+        '__dask_graph__': 'un-callable'
+        '__dask_keys__': 'un-callable'
+        '__dask_layers__': 'un-callable'
+        '__dask_optimize__': 'un-callable'
+        '__dask_scheduler__': 'un-callable'
+        '_dask_postcompute': 'un-callable'
+        'to_dask_dataframe': 'un-callable'
+        '_get_chunk': 'un-callable'
+        '_maybe_chunk': 'un-callable'
+        '_dask_postpersist': 'un-callable'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.duck_array_ops'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+        'dask_array_compat, dask_array_ops, ': ''
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.indexing'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      change_function:
+        '_dask_array_with_chunks_hint': 'un-callable'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.missing'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'if is_duck_dask_array(var):': 'if False:'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.nanops'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask.array as dask_array': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.parallel'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.pycompat'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'mod == "dask"': 'False'
+        'dsk.available': 'False'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.utils'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      change_function:
+        # TODO: Rather than un-callable, these we may want to just skip
+        '__dask_tokenize__': 'un-callable'
+      when: 'not use_dask'
+
+- module-name: 'xarray.core.variable'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      change_function:
+        # TODO: Rather than un-callable, these we may want to just skip
+        '__dask_tokenize__': 'un-callable'
+        'chunk': 'un-callable'
+      when: 'not use_dask'
 
 - module-name: 'xgboost'
   data-files:

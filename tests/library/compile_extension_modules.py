@@ -41,7 +41,6 @@ sys.path.insert(
 
 import shutil
 
-from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     check_output,
     checkLoadedFileAccesses,
@@ -56,6 +55,7 @@ from nuitka.tools.testing.Common import (
     setup,
     test_logger,
 )
+from nuitka.tools.testing.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.utils.Execution import NuitkaCalledProcessError
 from nuitka.utils.FileOperations import getFileContents, openTextFile
 from nuitka.utils.ModuleNames import ModuleName

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Wrapper around appdir from PyPI
+""" Wrapper around appdirs from PyPI
 
 We do not assume to be installed and fallback to an inline copy and if that
 is not installed, we use our own code for best effort.
@@ -25,6 +25,8 @@ from __future__ import absolute_import
 
 import os
 import tempfile
+
+from nuitka.Tracing import general
 
 from .FileOperations import makePath
 from .Importing import importFromInlineCopy
@@ -51,33 +53,22 @@ def getCacheDir():
         else:
             _cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
 
-        # For people that build with HOME set this, e.g. Debian.
+        # For people that build with HOME set this, e.g. Debian, and other package
+        # managers. spell-checker: ignore sbuild
         if _cache_dir.startswith(
             ("/nonexistent/", "/sbuild-nonexistent/", "/homeless-shelter/")
         ):
             _cache_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
 
-        makePath(_cache_dir)
+        try:
+            makePath(_cache_dir)
+        except PermissionError:
+            general.sysexit(
+                """\
+Error, failed to create cache directory '%s'. If this is due to a special environment, \
+please consider making a PR for a general solution that adds support for it, or use \
+NUITKA_CACHE_DIR set to a writable directory."""
+                % _cache_dir
+            )
 
     return _cache_dir
-
-
-_app_dir = None
-
-
-def getAppDir():
-    global _app_dir  # singleton, pylint: disable=global-statement
-
-    if _app_dir is None:
-        if appdirs is not None:
-            _app_dir = appdirs.user_data_dir("Nuitka", None)
-        else:
-            _app_dir = os.path.join(os.path.expanduser("~"), ".config", "Nuitka")
-
-        # For people that build with HOME set this, e.g. Debian.
-        if _app_dir.startswith(("/nonexistent/", "/sbuild-nonexistent/")):
-            _app_dir = os.path.join(tempfile.gettempdir(), "Nuitka")
-
-        makePath(_app_dir)
-
-    return _app_dir

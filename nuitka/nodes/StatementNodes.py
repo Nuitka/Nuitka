@@ -153,6 +153,9 @@ class StatementsSequence(StatementChildHavingBase):
     def isStatementAborting(self):
         return self.subnode_statements[-1].isStatementAborting()
 
+    def willRaiseException(self, exception_type):
+        return self.subnode_statements[-1].willRaiseException(exception_type)
+
     def computeStatement(self, trace_collection):
         # Don't want to be called like this.
         assert False, self

@@ -37,9 +37,8 @@ class NuitkaPluginZmq(NuitkaPluginBase):
     place.
     """
 
-    # TODO: Cleanup plugin name, this is now general.
-    plugin_name = "pyzmq"  # Nuitka knows us by this name
-    plugin_desc = "Required for delvewheel support in standalone mode"
+    plugin_name = "delvewheel"  # Nuitka knows us by this name
+    plugin_desc = "Required for support of delvewheel using packages in standalone mode"
 
     def __init__(self):
         # Special DLL directories if detected for a module.
@@ -101,7 +100,7 @@ class NuitkaPluginZmq(NuitkaPluginBase):
         exec(code, exec_globals)
 
         # Copy it over.
-        assert self.dll_directory is not None
+        assert self.dll_directory is not None, module_name
         self.dll_directories[module_name] = self.dll_directory
 
     def getExtraDlls(self, module):

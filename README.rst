@@ -431,7 +431,7 @@ produces a folder for which you can specify ``--standalone``.
 Follow all imports is default in this mode. You can selectively exclude
 modules by specifically saying ``--nofollow-import-to``, but then an
 ``ImportError`` will be raised when import of it is attempted at program
-runtime.
+run time.
 
 For data files to be included, use the option
 ``--include-data-files=<source>=<target>`` where the source is a file
@@ -1122,7 +1122,7 @@ Beginning with Microsoft Windows 10, Microsoft ships ``ucrt.dll``
 ``api-ms-crt-*.dll``.
 
 With earlier Windows platforms (and wine/ReactOS), you should consider
-installing Visual C Runtime libraries before executing a Nuitka
+installing Visual C runtime libraries before executing a Nuitka
 standalone compiled program.
 
 Depending on the used C compiler, you'll need the following redist
@@ -1157,9 +1157,11 @@ compiled dist folder.
 Detecting Nuitka at run time
 ============================
 
-It doesn't set ``sys.frozen`` unlike other tools. For Nuitka, we have
-the module attribute ``__compiled__`` to test if a specific module was
-compiled.
+Nuitka does *not* ``sys.frozen`` unlike other tools, because it usually
+triggers inferior code for no reason. For Nuitka, we have the module
+attribute ``__compiled__`` to test if a specific module was compiled,
+and the function attribute ``__compiled__`` to test if a specific
+function was compiled.
 
 Providing extra Options to Nuitka C compilation
 ===============================================
@@ -1169,6 +1171,20 @@ Nuitka will apply values from the environment variables ``CCFLAGS``,
 necessary. Beware of course, that is this is only useful if you know
 what you are doing, so should this pose an issues, raise them only with
 perfect information.
+
+Producing a 32 bit binary on a 64 bit Windows system
+====================================================
+
+Nuitka will automatically target the architecture of the Python you are
+using. If this is 64 bits, it will create a 64 bits binary, if it is 32
+bits, it will create a 32 bits binary. You have the option to select the
+bits when you download the Python. In the output of ``python -m nuitka
+--version`` there is a line for the architecture. It ``Arch: x86_64``
+for 64 bits, and just ``Arch: x86`` for 32 bits.
+
+The C compiler will be picked to match that more or less automatically.
+If you specify it explicitly and it mismatches, you will get a warning
+about the mismatch and informed that you compiler choice was rejected.
 
 *************
  Performance

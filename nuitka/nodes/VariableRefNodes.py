@@ -583,7 +583,11 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
                     attribute_node.isCompileTimeConstant()
                     and not attribute_node.isMutable()
                 ):
-                    return attribute_node.computeExpressionBool(trace_collection)
+                    return (
+                        bool(attribute_node.getCompileTimeConstant()),
+                        attribute_node.makeClone(),
+                        "Using very trusted constant truth value.",
+                    )
 
         # TODO: This is probably only default stuff here, that could be compressed.
         if not self.mayRaiseException(BaseException) and self.mayRaiseExceptionBool(

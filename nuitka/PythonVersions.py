@@ -37,10 +37,29 @@ def getSupportedPythonVersions():
     return ("2.6", "2.7", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
 
 
+def getNotYetSupportedPythonVersions():
+    """Versions known to not work at all (yet)."""
+    return ("3.11",)
+
+
 def getPartiallySupportedPythonVersions():
     """Partially supported Python versions for Nuitka."""
 
     return ()
+
+
+# Make somewhat sure we keep these ones consistent
+assert len(
+    set(
+        getPartiallySupportedPythonVersions()
+        + getNotYetSupportedPythonVersions()
+        + getSupportedPythonVersions()
+    )
+) == len(
+    getPartiallySupportedPythonVersions()
+    + getNotYetSupportedPythonVersions()
+    + getSupportedPythonVersions()
+)
 
 
 def getSupportedPythonVersionStr():

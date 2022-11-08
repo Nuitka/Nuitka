@@ -29,6 +29,7 @@ PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
 #if PYTHON_VERSION >= 0x300
     PyObject *kwdefs = PyFunction_GET_KW_DEFAULTS(func);
 
+    // TODO: Verify this actually matches current Python versions.
     if (kwdefs == NULL && argdefs == NULL && co->co_argcount == count &&
         co->co_flags == (CO_OPTIMIZED | CO_NEWLOCALS | CO_NOFREE))
 #else

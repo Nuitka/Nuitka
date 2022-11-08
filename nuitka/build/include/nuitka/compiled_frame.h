@@ -18,6 +18,13 @@
 #ifndef __NUITKA_COMPILED_FRAME_H__
 #define __NUITKA_COMPILED_FRAME_H__
 
+// Removed flag in 3.11, but we keep code compatible for now. We do not use old
+// value, but 0 because it might get re-used. TODO: Probably better to #ifdef
+// usages of it away.
+#if PYTHON_VERSION >= 0x3b0
+#define CO_NOFREE 0
+#endif
+
 // Create a frame object for the given code object, frame or module.
 extern struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject *module);
 extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *module, Py_ssize_t locals_size);
@@ -55,12 +62,16 @@ static inline bool Nuitka_Frame_Check(PyObject *object) {
 struct Nuitka_FrameObject {
     PyFrameObject m_frame;
 
+#if PYTHON_VERSION >= 0x3b0
+    PyFrameState m_frame_state;
+#endif
+
     // Our own extra stuff, attached variables.
     char const *m_type_description;
     char m_locals_storage[1];
 };
 
-inline static void assertCodeObject(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
+inline static void CHECK_CODE_OBJECT(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
 
 NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
     CHECK_OBJECT_X(frame_object);
@@ -101,9 +112,17 @@ extern int count_hit_frame_cache_instances;
 
 extern void dumpFrameStack(void);
 
+inline static PyCodeObject *Nuitka_FrameGetCode(PyFrameObject *frame) {
+#if PYTHON_VERSION >= 0x3b0
+    return frame->f_frame->f_code;
+#else
+    return frame->f_code;
+#endif
+}
+
 inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
     CHECK_OBJECT(frame_object);
-    assertCodeObject(frame_object->m_frame.f_code);
+    CHECK_CODE_OBJECT(Nuitka_FrameGetCode(&frame_object->m_frame));
 }
 
 // Mark frame as currently executed. Starting with Python 3.4 that means it
@@ -113,7 +132,9 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
 #if PYTHON_VERSION >= 0x340
 static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3b0
+    frame->m_frame_state = FRAME_EXECUTING;
+#elif PYTHON_VERSION >= 0x3a0
     frame->m_frame.f_state = FRAME_EXECUTING;
 #else
     frame->m_frame.f_executing = 1;
@@ -126,7 +147,9 @@ static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame
 #if PYTHON_VERSION >= 0x340
 static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3b0
+    frame->m_frame_state = FRAME_SUSPENDED;
+#elif PYTHON_VERSION >= 0x3a0
     frame->m_frame.f_state = FRAME_SUSPENDED;
 #else
     frame->m_frame.f_executing = 0;
@@ -139,7 +162,9 @@ static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *fr
 #if PYTHON_VERSION >= 0x340
 static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3b0
+    return frame->m_frame_state == FRAME_EXECUTING;
+#elif PYTHON_VERSION >= 0x3a0
     return frame->m_frame.f_state == FRAME_EXECUTING;
 #else
     return frame->m_frame.f_executing == 1;

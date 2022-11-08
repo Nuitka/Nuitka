@@ -103,7 +103,9 @@ def _getCPythonResults(cpython_cmd, send_kill):
         if send_kill:
             # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
             executeAfterTimePassed(
-                2.0, lambda: killProcess("Uncompiled Python program", process.pid)
+                message="Scheduling process kill %f",
+                timeout=2.0,
+                func=lambda: killProcess("Uncompiled Python program", process.pid),
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
@@ -681,8 +683,11 @@ Stderr was:
                     if send_kill:
                         # Lambda is used immediately in same loop, pylint: disable=cell-var-from-loop
                         executeAfterTimePassed(
-                            1.0,
-                            lambda: killProcess("Nuitka compiled program", process.pid),
+                            message="Scheduling process kill %f",
+                            timeout=2.0,
+                            func=lambda: killProcess(
+                                "Nuitka compiled program", process.pid
+                            ),
                         )
 
                     stdout_nuitka2, stderr_nuitka2 = process.communicate()

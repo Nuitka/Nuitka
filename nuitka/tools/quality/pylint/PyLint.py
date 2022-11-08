@@ -28,12 +28,12 @@ import sys
 from nuitka.tools.testing.Common import hasModule, my_print
 from nuitka.utils.Execution import check_output, executeProcess, getNullOutput
 
-pylint_version = None
+_pylint_version = None
 
 
 def checkVersion():
     # pylint: disable=global-statement
-    global pylint_version
+    global _pylint_version
 
     if not hasModule("pylint"):
         sys.exit(
@@ -41,17 +41,19 @@ def checkVersion():
             % os.environ["PYTHON"]
         )
 
-    if pylint_version is None:
-        pylint_version = check_output(
+    if _pylint_version is None:
+        _pylint_version = check_output(
             [os.environ["PYTHON"], "-m", "pylint", "--version"], stderr=getNullOutput()
         )
 
         if str is not bytes:
-            pylint_version = pylint_version.decode("utf8")
+            _pylint_version = _pylint_version.decode("utf8")
 
-        pylint_version = pylint_version.split("\n")[0].split()[-1].strip(",")
+        _pylint_version = _pylint_version.split("\n")[0].split()[-1].strip(",")
 
-    my_print("Using PyLint version:", pylint_version)
+    my_print("Using PyLint version:", _pylint_version)
+
+    return tuple(int(d) for d in _pylint_version.split("."))
 
 
 # Disabled globally:
@@ -146,21 +148,27 @@ def checkVersion():
 # consider-using-dict-comprehension
 # Keeping code portable to Python2 is still good.
 
+# unnecessary-lambda-assignment
+# For deciders, we do this and like it.
+
+# unnecessary-dunder-call
+# We do make those intentionally only.
+
 
 def getOptions():
-    checkVersion()
+    pylint_version = checkVersion()
 
     # spell-checker: ignore setrecursionlimit,rcfile
 
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
---disable=I0011,I0012,no-init,bad-whitespace,bad-continuation,E1103,W0632,W1504,\
-C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,\
+--disable=I0011,E1103,W0632,\
+C0123,C0411,C0413,cyclic-import,duplicate-code,\
 deprecated-module,deprecated-method,deprecated-argument,assignment-from-none,\
 ungrouped-imports,no-else-return,c-extension-no-member,\
 inconsistent-return-statements,raise-missing-from,import-outside-toplevel,\
 useless-object-inheritance,useless-return,assignment-from-no-return,\
-redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehension
+redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehension,
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -190,6 +198,19 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
 
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
+
+    if pylint_version < (2, 15):
+        default_pylint_options.append("--disable=bad-whitespace")
+        default_pylint_options.append("--disable=bad-continuation")
+        default_pylint_options.append("--disable=no-init")
+        default_pylint_options.append("--disable=similar-code")
+        default_pylint_options.append("--disable=I0012")
+        default_pylint_options.append("--disable=W1504")
+        default_pylint_options.append("--disable=R0204")
+    else:
+        default_pylint_options.append("--disable=unnecessary-lambda-assignment")
+        default_pylint_options.append("--disable=unnecessary-dunder-call")
+        default_pylint_options.append("--load-plugins=pylint.extensions.no_self_use")
 
     return default_pylint_options
 

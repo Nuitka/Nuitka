@@ -119,7 +119,7 @@ class StatementTry(StatementChildrenHavingBase):
             exception_collections = trace_collection.getExceptionRaiseCollections()
 
         # Not raising never turns into raising, but None (never calculated) and True
-        # may no longer be true.
+        # may no longer be true, but not raising never becomes raising.
         if self.tried_may_raise is not False:
             self.tried_may_raise = tried.mayRaiseException(BaseException)
 
@@ -254,9 +254,14 @@ class StatementTry(StatementChildrenHavingBase):
         if self.tried_may_raise and (
             except_handler is None or not except_handler.isStatementAborting()
         ):
-            trace_collection.mergeBranches(
-                collection_yes=collection_exception_handling, collection_no=None
-            )
+            if tried.isStatementAborting():
+                trace_collection.variable_actives = (
+                    collection_exception_handling.variable_actives
+                )
+            else:
+                trace_collection.mergeBranches(
+                    collection_yes=collection_exception_handling, collection_no=None
+                )
 
         # An empty exception handler means we have to swallow exception.
         if (

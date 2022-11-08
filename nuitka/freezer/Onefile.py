@@ -24,12 +24,14 @@ import subprocess
 import sys
 
 from nuitka import Options, OutputDirectories
-from nuitka.build import SconsInterface
-from nuitka.Options import (
-    getAutoUpdateUrlSpec,
-    getOnefileTempDirSpec,
-    isOnefileTempDirMode,
+from nuitka.build.SconsInterface import (
+    asBoolStr,
+    cleanSconsDirectory,
+    getSconsDataPath,
+    runScons,
+    setCommonSconsOptions,
 )
+from nuitka.Options import getOnefileTempDirSpec, isOnefileTempDirMode
 from nuitka.OutputDirectories import getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessingResources
@@ -54,9 +56,9 @@ def packDistFolderToOnefile(dist_dir):
 
 def _runOnefileScons(quiet, onefile_compression):
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
-    SconsInterface.cleanSconsDirectory(source_dir)
 
-    asBoolStr = SconsInterface.asBoolStr
+    # Let plugins do their thing for onefile mode too.
+    Plugins.writeExtraCodeFiles(onefile=True)
 
     options = {
         "result_name": OutputDirectories.getResultBasePath(onefile=True),
@@ -67,7 +69,7 @@ def _runOnefileScons(quiet, onefile_compression):
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "target_arch": getArchitecture(),
         "python_prefix": sys.prefix,
-        "nuitka_src": SconsInterface.getSconsDataPath(),
+        "nuitka_src": getSconsDataPath(),
         "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
         "onefile_splash_screen": asBoolStr(
             Options.getWindowsSplashScreen() is not None
@@ -77,18 +79,22 @@ def _runOnefileScons(quiet, onefile_compression):
     if Options.isClang():
         options["clang_mode"] = "true"
 
-    env_values = SconsInterface.setCommonOptions(options)
+    env_values = setCommonSconsOptions(options)
 
     env_values["_NUITKA_ONEFILE_TEMP_SPEC"] = getOnefileTempDirSpec()
-    env_values["_NUITKA_ONEFILE_TEMP"] = "1" if isOnefileTempDirMode() else "0"
-    env_values["_NUITKA_ONEFILE_COMPRESSION"] = "1" if onefile_compression else "0"
+    env_values["_NUITKA_ONEFILE_TEMP_BOOL"] = "1" if isOnefileTempDirMode() else "0"
+    env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
+    env_values["_NUITKA_ONEFILE_BUILD_BOOL"] = "1" if onefile_compression else "0"
 
-    env_values["_NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC"] = getAutoUpdateUrlSpec() or ""
+    # Allow plugins to build definitions.
+    env_values.update(Plugins.getBuildDefinitions())
 
-    with withEnvironmentVarsOverridden(env_values):
-        result = SconsInterface.runScons(
-            options=options, quiet=quiet, scons_filename="Onefile.scons"
-        )
+    result = runScons(
+        options=options,
+        quiet=quiet,
+        env_values=env_values,
+        scons_filename="Onefile.scons",
+    )
 
     # Exit if compilation failed.
     if not result:
@@ -183,10 +189,26 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
     onefile_logger.info("Running bootstrap binary compilation via Scons.")
 
+    # Cleanup first.
+    source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
+    cleanSconsDirectory(source_dir)
+
     # Now need to append to payload it, potentially compressing it.
     compressor_python = getCompressorPython()
 
-    # First need to create the bootstrap binary for unpacking.
+    # Decide if we need the payload during build already, or if it should be
+    # attached.
+    payload_used_in_build = isMacOS()
+
+    if payload_used_in_build:
+        runOnefileCompressor(
+            compressor_python=compressor_python,
+            dist_dir=dist_dir,
+            onefile_output_filename=os.path.join(source_dir, "__payload.bin"),
+            start_binary=getResultFullpath(onefile=False),
+        )
+
+    # Create the bootstrap binary for unpacking.
     _runOnefileScons(
         quiet=not Options.isShowScons(),
         onefile_compression=compressor_python is not None,
@@ -200,9 +222,10 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     if isMacOS():
         addMacOSCodeSignature(filenames=[onefile_output_filename])
 
-    runOnefileCompressor(
-        compressor_python=compressor_python,
-        dist_dir=dist_dir,
-        onefile_output_filename=onefile_output_filename,
-        start_binary=getResultFullpath(onefile=False),
-    )
+    if not payload_used_in_build:
+        runOnefileCompressor(
+            compressor_python=compressor_python,
+            dist_dir=dist_dir,
+            onefile_output_filename=onefile_output_filename,
+            start_binary=getResultFullpath(onefile=False),
+        )

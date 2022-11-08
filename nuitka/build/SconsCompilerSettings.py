@@ -27,9 +27,9 @@ from nuitka.utils.Download import getCachedDownloadedMinGW64
 from nuitka.utils.FileOperations import openTextFile, putTextFileContents
 from nuitka.utils.Utils import isFedoraBasedLinux, isMacOS, isWin32Windows
 
-from .DataComposerInterface import getConstantBlobFilename
 from .SconsHacks import myDetectVersion
 from .SconsUtils import (
+    addBinaryBlobSection,
     addToPATH,
     createEnvironment,
     decideArchMismatch,
@@ -314,9 +314,9 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif isWin32Windows():
         resource_mode = "win_resource"
         reason = "default for Windows"
-    elif isMacOS() and env.lto_mode:
-        resource_mode = "code"
-        reason = "default for lto gcc with --lto bugs for incbin"
+    elif isMacOS():
+        resource_mode = "mac_section"
+        reason = "default for macOS"
     elif env.lto_mode and env.gcc_mode and not env.clang_mode:
         if module_mode:
             resource_mode = "code"
@@ -332,22 +332,32 @@ def decideConstantsBlobResourceMode(env, module_mode):
     return resource_mode, reason
 
 
-def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
+def addConstantBlobFile(env, blob_filename, resource_desc, target_arch):
     resource_mode, reason = resource_desc
 
-    constants_bin_filename = getConstantBlobFilename(source_dir)
+    assert blob_filename.endswith(".bin"), blob_filename
 
     scons_details_logger.info(
         "Using resource mode: '%s' (%s)." % (resource_mode, reason)
     )
 
     if resource_mode == "win_resource":
-        # On Windows constants can be accessed as a resource by Nuitka runtime afterwards.
+        # On Windows constants can be accessed as a resource by Nuitka at run time afterwards.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_RESOURCE"])
+    elif resource_mode == "mac_section":
+        env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_MACOS_SECTION"])
+
+        addBinaryBlobSection(
+            env=env,
+            blob_filename=blob_filename,
+            section_name=os.path.basename(blob_filename)[:-4].lstrip("_"),
+        )
     elif resource_mode == "incbin":
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_INCBIN"])
 
-        constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
+        constants_generated_filename = os.path.join(
+            env.source_dir, "__constants_data.c"
+        )
 
         putTextFileContents(
             constants_generated_filename,
@@ -361,13 +371,13 @@ def addConstantBlobFile(env, resource_desc, source_dir, target_arch):
 
 #include "nuitka/incbin.h"
 
-INCBIN(constant_bin, "%(constants_bin_filename)s");
+INCBIN(constant_bin, "%(blob_filename)s");
 
 unsigned char const *getConstantsBlobData(void) {
     return constant_bin_data;
 }
 """
-            % {"constants_bin_filename": os.path.join(source_dir, "__constants.bin")},
+            % {"blob_filename": blob_filename},
         )
 
     elif resource_mode == "linker":
@@ -378,7 +388,7 @@ unsigned char const *getConstantsBlobData(void) {
             LINKFLAGS=[
                 "-Wl,-b",
                 "-Wl,binary",
-                "-Wl,%s" % constants_bin_filename,
+                "-Wl,%s" % blob_filename,
                 "-Wl,-b",
                 "-Wl,%s"
                 % getLinkerArch(target_arch=target_arch, mingw_mode=env.mingw_mode),
@@ -386,7 +396,7 @@ unsigned char const *getConstantsBlobData(void) {
                 "-Wl,%sconstant_bin_data=_binary_%s___constants_bin_start"
                 % (
                     "_" if env.mingw_mode else "",
-                    "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in source_dir),
+                    "".join(re.sub("[^a-zA-Z0-9_]", "_", c) for c in env.source_dir),
                 ),
             ]
         )
@@ -394,7 +404,9 @@ unsigned char const *getConstantsBlobData(void) {
         # Indicate "code" resource mode.
         env.Append(CPPDEFINES=["_NUITKA_CONSTANTS_FROM_CODE"])
 
-        constants_generated_filename = os.path.join(source_dir, "__constants_data.c")
+        constants_generated_filename = os.path.join(
+            env.source_dir, "__constants_data.c"
+        )
 
         def writeConstantsDataSource():
             with openTextFile(constants_generated_filename, "w") as output:
@@ -411,7 +423,7 @@ unsigned char constant_bin_data[] =\n{\n
 """
                 )
 
-                with open(constants_bin_filename, "rb") as f:
+                with open(blob_filename, "rb") as f:
                     content = f.read()
                 for count, stream_byte in enumerate(content):
                     if count % 16 == 0:
@@ -799,12 +811,3 @@ def reportCCompiler(env, context):
     scons_logger.info(
         "%s C compiler: %s (%s)." % (context, env.the_compiler, cc_output)
     )
-
-
-def setProductVersionDefinitions(build_vars):
-    if "NUITKA_COMPANY_NAME" in os.environ:
-        build_vars["NUITKA_COMPANY_NAME"] = os.environ["NUITKA_COMPANY_NAME"]
-    if "NUITKA_PRODUCT_NAME" in os.environ:
-        build_vars["NUITKA_PRODUCT_NAME"] = os.environ["NUITKA_PRODUCT_NAME"]
-    if "NUITKA_VERSION_COMBINED" in os.environ:
-        build_vars["NUITKA_VERSION_COMBINED"] = os.environ["NUITKA_VERSION_COMBINED"]

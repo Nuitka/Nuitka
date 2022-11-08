@@ -43,6 +43,7 @@ from nuitka.PythonFlavors import (
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
+    getNotYetSupportedPythonVersions,
     getSupportedPythonVersions,
     isDebugPython,
     python_version,
@@ -69,6 +70,7 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
+from nuitka.Version import getNuitkaVersion
 
 options = None
 positional_args = None
@@ -81,7 +83,7 @@ is_report_missing = None
 is_verbose = None
 
 
-def _checkSpec(value, arg_name):
+def checkPathSpec(value, arg_name):
     if "%COMPANY%" in value and not getWindowsCompanyName():
         Tracing.options_logger.sysexit(
             "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
@@ -112,14 +114,14 @@ not do what you want it to do."""
     for candidate in ("%PROGRAM%", "%CACHE_DIR%", "%HOME%", "%TEMP%"):
         if candidate in value[1:]:
             Tracing.options_logger.sysexit(
-                """Absolute runtime path of '%s' can only be at the \
+                """Absolute run time path of '%s' can only be at the \
 start of '%s=%s', using it in the middle is not allowed."""
                 % (candidate, arg_name, value)
             )
 
 
 def _checkOnefileTargetSpec():
-    _checkSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
+    checkPathSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
 
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
         Tracing.options_logger.sysexit(
@@ -149,20 +151,6 @@ very well known environment: anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
             """Using an relative to the executable should be avoided unless you are targeting a \
 very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recommended: '%s'"""
             % options.onefile_tempdir_spec
-        )
-
-
-def _checkAutoUpdateUrlSpec():
-    _checkSpec(options.auto_update_url_spec, arg_name="--auto-update-url-spec")
-
-    if not options.auto_update_url_spec.startswith(
-        (
-            "http://",
-            "https://",
-        )
-    ):
-        Tracing.optimization_logger.sysexit(
-            "Error, only 'https://' and 'http://' URLs are allowed."
         )
 
 
@@ -203,9 +191,20 @@ def parseArgs():
     if options.quiet or int(os.environ.get("NUITKA_QUIET", "0")):
         Tracing.setQuiet()
 
+    def _quoteArg(arg):
+        if " " in arg:
+            if "=" in arg and arg.startswith("--"):
+                arg_name, value = arg.split("=", 1)
+
+                return '%s="%s"' % (arg_name, value)
+            else:
+                return '"%s"' % arg
+        else:
+            return arg
+
     Tracing.options_logger.info(
         "Used command line options: %s"
-        % " ".join(('"%s"' % arg) if " " in arg else arg for arg in sys.argv[1:])
+        % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
     )
 
     if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
@@ -249,10 +248,6 @@ def parseArgs():
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
-
-    # Check auto update URL spec
-    if options.auto_update_url_spec:
-        _checkAutoUpdateUrlSpec()
 
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
@@ -567,8 +562,15 @@ def commentArgs():
         # that environment variable.
         if "PYTHON" not in os.environ:
             Tracing.general.warning(
-                "The version %r is not currently supported. Expect problems."
+                "The version '%s' is not currently supported. Expect problems."
                 % python_version_str,
+            )
+
+    if python_version_str in getNotYetSupportedPythonVersions():
+        if not isExperimental("python" + python_version_str):
+            Tracing.general.sysexit(
+                "The Python version '%s' is not supported by '%s', but an upcoming release will add it."
+                % (python_version_str, getNuitkaVersion())
             )
 
     default_reference_mode = (
@@ -580,7 +582,7 @@ def commentArgs():
     else:
         if options.file_reference_mode != default_reference_mode:
             Tracing.options_logger.warning(
-                "Using non-default file reference mode '%s' rather than '%s' may cause runtime issues."
+                "Using non-default file reference mode '%s' rather than '%s' may cause run time issues."
                 % (getFileReferenceMode(), default_reference_mode)
             )
         else:
@@ -775,6 +777,18 @@ and not with the non-debug version.
             """\
 For GUI applications, you ought to specify an icon with '--macos-app-icon'.", \
 otherwise a dock icon may not be present."""
+        )
+
+    if (
+        isMacOS()
+        and shallUseSigningForNotarization()
+        and getMacOSSigningIdentity() == "-"
+    ):
+        Tracing.general.sysexit(
+            """\
+Error, need to provide signing identity with '--macos-sign-identity' for \
+notarization capable signature, the default identify 'ad-hoc' is not going \
+to work."""
         )
 
     filename = getPositionalArgs()[0]
@@ -1379,14 +1393,12 @@ def getPythonPgoUnseenModulePolicy():
 
 def getOnefileTempDirSpec():
     """*str* = ``--onefile-tempdir-spec``"""
-    return (
+    result = (
         options.onefile_tempdir_spec or "%TEMP%" + os.path.sep + "onefile_%PID%_%TIME%"
     )
 
-
-def getAutoUpdateUrlSpec():
-    """*str* = ``--onefile-tempdir-spec``"""
-    return options.auto_update_url_spec
+    # This changes the '/' to '\' on Windows at least.
+    return os.path.normpath(result)
 
 
 def getIconPaths():
@@ -1504,7 +1516,17 @@ def shallCreateAppBundle():
 
 def getMacOSSigningIdentity():
     """*str* value to use as identity for codesign, derived from ``--macos-sign-identity`` value"""
-    return options.macos_sign_identity
+    result = options.macos_sign_identity
+
+    if result == "ad-hoc":
+        result = "-"
+
+    return result
+
+
+def shallUseSigningForNotarization():
+    """*bool* flag to use for codesign, derived from ``--macos-sign-notarization`` value"""
+    return options.macos_sign_notarization
 
 
 def getMacOSAppName():
@@ -1652,10 +1674,14 @@ def shallNotStoreDependsExeCachedResults():
 def getPluginNameConsideringRenames(plugin_name):
     """Name of the plugin with renames considered."""
 
+    # spell-checker: ignore delvewheel,pyzmq
+
     if plugin_name == "etherium":
         return "ethereum"
-    else:
-        return plugin_name
+    if plugin_name == "pyzmq":
+        return "delvewheel"
+
+    return plugin_name
 
 
 def getPluginsEnabled():
@@ -1740,12 +1766,22 @@ def shallUseProgressBar():
 
 def getForcedStdoutPath():
     """*str* force program stdout output into that filename"""
-    return options.force_stdout_spec
+    result = options.force_stdout_spec
+
+    if result is not None:
+        result = os.path.normpath(result)
+
+    return result
 
 
 def getForcedStderrPath():
     """*str* force program stderr output into that filename"""
-    return options.force_stderr_spec
+    result = options.force_stderr_spec
+
+    if result is not None:
+        result = os.path.normpath(result)
+
+    return result
 
 
 def shallShowSourceModifications():
@@ -1779,3 +1815,7 @@ def shallDisplayWarningMnemonic(mnemonic):
             return False
 
     return True
+
+
+def shallShowExecutedCommands():
+    return isExperimental("show-commands")

@@ -232,6 +232,20 @@
                                         }
                                     ]
                                 },
+                                "support_info": {
+                                    "type": "string",
+                                    "oneOf": [
+                                        {
+                                            "const": "error"
+                                        },
+                                        {
+                                            "const": "warning"
+                                        },
+                                        {
+                                            "const": "info"
+                                        }
+                                    ]
+                                },
                                 "when": {
                                     "type": "string"
                                 }

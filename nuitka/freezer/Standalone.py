@@ -50,7 +50,9 @@ from nuitka.Progress import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, inclusion_logger, printError
-from nuitka.tree.SourceHandling import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import (
+    readSourceCodeFromFilenameWithInformation,
+)
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
@@ -130,7 +132,11 @@ def _detectedSourceFile(filename, module_name, result, user_provided, technical)
             technical=technical,
         )
 
-    source_code = readSourceCodeFromFilename(module_name, filename)
+    (
+        source_code,
+        _original_code,
+        _contributing_plugins,
+    ) = readSourceCodeFromFilenameWithInformation(module_name, filename)
 
     if module_name == "site":
         if source_code.startswith("def ") or source_code.startswith("class "):
@@ -155,11 +161,12 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
 
     is_package = os.path.basename(filename) == "__init__.py"
 
-    # Plugins can modify source code:
+    # Plugins can modify source code again, this time knowing it will be frozen.
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name=module_name, is_package=is_package, source_code=source_code
     )
 
+    # TODO: Not yet handling SyntaxError here, although plugins might cause them.
     bytecode = compileSourceToBytecode(
         source_code=source_code,
         filename=module_name.replace(".", os.path.sep) + ".py",

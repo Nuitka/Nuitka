@@ -43,7 +43,6 @@ sys.path.insert(
 
 # isort:start
 
-from nuitka.freezer.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.tools.testing.Common import (
     checkLoadedFileAccesses,
     checkRequirements,
@@ -57,6 +56,7 @@ from nuitka.tools.testing.Common import (
     setup,
     test_logger,
 )
+from nuitka.tools.testing.RuntimeTracing import getRuntimeTraceOfLoadedFiles
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import isMacOS, isWin32Windows

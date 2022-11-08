@@ -39,7 +39,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.utils.FileOperations import makePath, putTextFileContents
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import (
     ModuleName,
@@ -777,14 +777,17 @@ class Plugins(object):
         assert type(module_name) is ModuleName
         assert type(source_code) is str
 
+        contributing_plugins = OrderedSet()
+
         for plugin in getActivePlugins():
             new_source_code = plugin.onModuleSourceCode(module_name, source_code)
-            if new_source_code is not None:
+            if new_source_code is not None and new_source_code != source_code:
                 source_code = new_source_code
+                contributing_plugins.add(plugin)
 
             assert type(source_code) is str
 
-        return source_code
+        return source_code, contributing_plugins
 
     @staticmethod
     def onFrozenModuleSourceCode(module_name, is_package, source_code):
@@ -947,6 +950,38 @@ class Plugins(object):
 
         return cls.preprocessor_symbols
 
+    build_definitions = None
+
+    @classmethod
+    def getBuildDefinitions(cls):
+        """Let plugins provide C source defines to be used in compilation.
+
+        Notes:
+            The plugins can each contribute, but are hopefully using
+            a namespace for their defines. Only specific code sees these
+            if it chooses to include "build_definitions.h" file.
+
+        Returns:
+            OrderedDict() with keys and values."
+        """
+
+        if cls.build_definitions is None:
+            cls.build_definitions = OrderedDict()
+
+            for plugin in getActivePlugins():
+                value = plugin.getBuildDefinitions()
+
+                if value is not None:
+                    assert type(value) is dict, value
+
+                    # We order per plugin, but from the plugins themselves, lets just assume
+                    # unordered dict and achieve determinism by ordering the defines by name.
+                    for key, value in sorted(value.items()):
+                        # False alarm, pylint: disable=I0021,unsupported-assignment-operation
+                        cls.build_definitions[key] = value
+
+        return cls.build_definitions
+
     extra_include_directories = None
 
     @classmethod
@@ -972,7 +1007,7 @@ class Plugins(object):
         return cls.extra_include_directories
 
     @staticmethod
-    def getExtraCodeFiles():
+    def _getExtraCodeFiles(for_onefile):
         result = OrderedDict()
 
         for plugin in getActivePlugins():
@@ -984,6 +1019,12 @@ class Plugins(object):
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determinism by ordering the files by name.
                 for key, value in sorted(value.items()):
+
+                    if (for_onefile and not "onefile_" in key) or (
+                        not for_onefile and "onefile_" in key
+                    ):
+                        continue
+
                     if not key.startswith("nuitka_"):
                         key = "plugin." + plugin.plugin_name + "." + key
 
@@ -991,6 +1032,23 @@ class Plugins(object):
                     result[key] = value
 
         return result
+
+    @staticmethod
+    def writeExtraCodeFiles(onefile):
+        # Circular dependency.
+        from nuitka.tree.SourceHandling import writeSourceCode
+
+        source_dir = OutputDirectories.getSourceDirectoryPath(onefile=onefile)
+
+        for filename, source_code in Plugins._getExtraCodeFiles(onefile).items():
+            target_dir = os.path.join(source_dir, "plugins")
+
+            if not os.path.isdir(target_dir):
+                makePath(target_dir)
+
+            writeSourceCode(
+                filename=os.path.join(target_dir, filename), source_code=source_code
+            )
 
     extra_link_libraries = None
 
@@ -1004,10 +1062,10 @@ class Plugins(object):
 
                 if value is not None:
                     if isinstance(value, basestring):
-                        cls.extra_link_libraries.add(value)
+                        cls.extra_link_libraries.add(os.path.normcase(value))
                     else:
                         for library_name in value:
-                            cls.extra_link_libraries.add(library_name)
+                            cls.extra_link_libraries.add(os.path.normcase(library_name))
 
         return cls.extra_link_libraries
 

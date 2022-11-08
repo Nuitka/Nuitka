@@ -31,7 +31,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
-from nuitka.utils.Utils import isLinux
+from nuitka.utils.Utils import isLinux, isMacOS
 
 
 def initScons():
@@ -293,10 +293,17 @@ def changeKeyboardInterruptToErrorExit():
 
 
 def setEnvironmentVariable(env, key, value):
-    os.environ[key] = value
+    if value is None:
+        del os.environ[key]
+    elif value in os.environ:
+        os.environ[key] = value
 
     if env is not None:
-        env._dict["ENV"][key] = value  # pylint: disable=protected-access
+        # pylint: disable=protected-access
+        if value is None:
+            del env._dict["ENV"][key]
+        else:
+            env._dict["ENV"][key] = value
 
 
 def addToPATH(env, dirname, prefix):
@@ -530,11 +537,14 @@ def makeCLiteral(value):
 
 
 def createDefinitionsFile(source_dir, filename, definitions):
+    for env_name in os.environ["_NUITKA_BUILD_DEFINITIONS_CATALOG"].split(","):
+        definitions[env_name] = os.environ[env_name]
+
     build_definitions_filename = os.path.join(source_dir, filename)
 
     with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
         for key, value in sorted(definitions.items()):
-            if type(value) is int:
+            if type(value) is int or key.endswith("_BOOL"):
                 f.write("#define %s %s\n" % (key, value))
             else:
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))
@@ -689,3 +699,20 @@ based gcc do not work.
         )
     else:
         scons_logger.sysexit("Error, cannot locate suitable C compiler.")
+
+
+def addBinaryBlobSection(env, blob_filename, section_name):
+    # spell-checker: ignore linkflags, sectcreate
+
+    if isMacOS():
+        env.Append(
+            LINKFLAGS=[
+                "-Wl,-sectcreate,%(section_name)s,%(section_name)s,%(blob_filename)s"
+                % {
+                    "section_name": section_name,
+                    "blob_filename": blob_filename,
+                }
+            ]
+        )
+    else:
+        assert False

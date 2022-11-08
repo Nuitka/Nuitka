@@ -27,6 +27,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import isExperimental, isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
@@ -940,6 +941,47 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
+        self.warning(
+            """\
+For the obsolete PyQt5 the Nuitka support is incomplete. Threading, callbacks \
+to compiled functions, etc., etc. may be lacking. For methods to work around it \
+go to: https://nuitka.net/pages/pyqt5.html"""
+        )
+
+    def _getQtInformation(self):
+        result = NuitkaPluginQtBindingsPluginBase._getQtInformation(self)
+
+        if isAnacondaPython():
+            if "CONDA_PREFIX" in os.environ:
+                conda_prefix = os.environ["CONDA_PREFIX"]
+            elif "CONDA_PYTHON_EXE" in os.environ:
+                conda_prefix = os.path.dirname(os.environ["CONDA_PYTHON_EXE"])
+
+            if conda_prefix is not None:
+                values = result._asdict()
+
+                def updateStaticPath(value):
+                    path_parts = value.split("/")
+
+                    # That is how it is built for Anaconda.
+                    if "_h_env" in path_parts:
+                        return os.path.normpath(
+                            os.path.join(
+                                conda_prefix,
+                                *path_parts[path_parts.index("_h_env") + 1 :]
+                            )
+                        )
+                    else:
+                        return value
+
+                for key in "translations_path", "library_executables_path", "data_path":
+                    values[key] = updateStaticPath(values[key])
+
+                # Update the "namedtuple".
+                result = result.__class__(**values)
+
+        return result
+
     @classmethod
     def isRelevant(cls):
         return isStandaloneMode()
@@ -1162,9 +1204,9 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
-        self.warning(
+        self.info(
             """\
-Support for PyQt6 is experimental, use PySide6 if you can."""
+Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
         )
 
 
