@@ -119,6 +119,8 @@ def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
 def _getWindowsSpawnFunction(env, module_mode, source_files):
+    # Too much error handling error, pylint: disable=too-many-branches
+
     def spawnWindowsCommand(
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
@@ -194,6 +196,14 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
                     err = decodeData(err)
 
                 if err:
+                    if "corrupt file" in err:
+                        scons_logger.sysexit(
+                            """\
+Error, the C linker reported a corrupt object file. You may \
+need to run Nuitka with '--clean-cache=clcache' once to repair \
+it, or else will be happen again."""
+                        )
+
                     my_print(err, style="yellow", end="")
 
         return rv
@@ -359,7 +369,9 @@ def _getWrappedSpawnFunction(env):
         # Segmentation fault should give a clear error.
         if result == -11:
             scons_logger.sysexit(
-                "Error, the C compiler '%s' crashed with segfault. Consider upgrading it or using --clang option."
+                """\
+Error, the C compiler '%s' crashed with segfault. Consider upgrading \
+it or using --clang option."""
                 % env.the_compiler
             )
 
