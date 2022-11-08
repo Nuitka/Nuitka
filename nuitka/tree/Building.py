@@ -199,7 +199,8 @@ from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceHandling import (
     checkPythonVersionFromCode,
-    readSourceCodeFromFilename,
+    getSourceCodeDiff,
+    readSourceCodeFromFilenameWithInformation,
 )
 from .TreeHelpers import (
     buildNode,
@@ -1173,7 +1174,7 @@ def _makeModuleBodyFromSyntaxError(exc, module_name, module_filename):
 
         recursion_logger.warning(
             """\
-Cannot follow import to module '%s' because of %r."""
+Cannot follow import to module '%s' because of '%s'."""
             % (module_name, exc.__class__.__name__)
         )
 
@@ -1240,7 +1241,8 @@ def buildModule(
     is_fake,
     hide_syntax_error,
 ):
-    # Many details to deal with, pylint: disable=too-many-branches,too-many-locals
+    # Many details to deal with,
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     (
         main_added,
         is_package,
@@ -1268,25 +1270,32 @@ def buildModule(
     # Read source code if necessary. Might give a SyntaxError due to not being proper
     # encoded source.
     if source_filename is not None and not is_namespace and not is_extension:
-        try:
-            # For fake modules, source is provided directly.
-            if source_code is None:
-                source_code = readSourceCodeFromFilename(
+        # For fake modules, source is provided directly.
+        original_source_code = None
+        contributing_plugins = ()
+
+        if source_code is None:
+            try:
+                (
+                    source_code,
+                    original_source_code,
+                    contributing_plugins,
+                ) = readSourceCodeFromFilenameWithInformation(
                     module_name=module_name, source_filename=source_filename
                 )
-        except SyntaxError as e:
-            # Avoid hiding our own syntax errors.
-            if not hasattr(e, "generated_by_nuitka"):
-                raise
+            except SyntaxError as e:
+                # Avoid hiding our own syntax errors.
+                if not hasattr(e, "generated_by_nuitka"):
+                    raise
 
-            # Do not hide SyntaxError in main module.
-            if not hide_syntax_error:
-                raise
+                # Do not hide SyntaxError in main module.
+                if not hide_syntax_error:
+                    raise
 
-            module = _makeModuleBodyFromSyntaxError(
-                exc=e, module_name=module_name, module_filename=module_filename
-            )
-            return module, True
+                module = _makeModuleBodyFromSyntaxError(
+                    exc=e, module_name=module_name, module_filename=module_filename
+                )
+                return module, True
 
         try:
             ast_tree = parseSourceCodeToAst(
@@ -1299,6 +1308,34 @@ def buildModule(
             # Do not hide SyntaxError if asked not to.
             if not hide_syntax_error:
                 raise
+
+            if original_source_code is not None:
+                try:
+                    parseSourceCodeToAst(
+                        source_code=original_source_code,
+                        module_name=module_name,
+                        filename=source_filename,
+                        line_offset=0,
+                    )
+                except (SyntaxError, IndentationError):
+                    # Also an exception without the plugins, that is OK
+                    pass
+                else:
+                    source_diff = getSourceCodeDiff(original_source_code, source_code)
+
+                    for line in source_diff:
+                        plugins_logger.warning(line)
+
+                    if len(contributing_plugins) == 1:
+                        contributing_plugins[0].sysexit(
+                            "Making changes to '%s' that cause SyntaxError '%s'"
+                            % (module_name, e)
+                        )
+                    else:
+                        plugins_logger.sysexit(
+                            "One of the plugins '%s' is making changes to '%s' that cause SyntaxError '%s'"
+                            % (",".join(contributing_plugins), module_name, e)
+                        )
 
             module = _makeModuleBodyFromSyntaxError(
                 exc=e, module_name=module_name, module_filename=module_filename

@@ -805,8 +805,6 @@ class TraceCollectionBase(object):
 
                 if other != version:
                     variable_versions[variable] = other, version
-                else:
-                    variable_versions[variable] = other
 
         # That would not be fast, pylint: disable=consider-using-dict-items
         for variable in variable_versions:

@@ -180,7 +180,7 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             if str is not bytes:
                 data = decodeData(data)
 
-            my_print(data, style="yellow", end="")
+            my_print(data, style="yellow", end="" if data.endswith("\n") else "\n")
 
         if err:
             err = b"\r\n".join(

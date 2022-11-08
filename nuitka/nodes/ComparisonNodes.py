@@ -512,10 +512,11 @@ class ExpressionComparisonExceptionMatchBase(
                     description="Exception matched with constant arguments.",
                 )
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+        if self.mayRaiseExceptionComparison():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
 
-        trace_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -537,7 +538,6 @@ class ExpressionComparisonExceptionMatchBase(
         if python_version < 0x300:
             return False
 
-        # TODO: Add shape for exceptions.
         type_shape = self.subnode_right.getTypeShape()
 
         if type_shape is tshape_exception_class:

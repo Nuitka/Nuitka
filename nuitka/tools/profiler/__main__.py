@@ -46,7 +46,7 @@ def show(stats):
     p.sort(key=lambda x: x[1], reverse=True)
     top = p[0][1]
 
-    max_len = max([_namelen(e[0]) for e in p])
+    max_len = max(_namelen(e[0]) for e in p)
 
     my_print(" vmprof output:")
     my_print(" %:      name:" + " " * (max_len - 3) + "location:")

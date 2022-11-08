@@ -59,7 +59,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Jinja2 import getTemplate
-from nuitka.utils.Utils import getOS
+from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 
 from .SearchModes import (
     SearchModeByPattern,
@@ -166,7 +166,7 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
     if (
         len(os.environ["PYTHON"]) == 2
         and os.environ["PYTHON"].isdigit()
-        and os.name != "nt"
+        and not isWin32Windows()
     ):
 
         os.environ["PYTHON"] = "python%s.%s" % (
@@ -258,7 +258,7 @@ def convertUsing2to3(path, force=False):
 
     if use_binary:
         # On Windows, we cannot rely on 2to3 to be in the path.
-        if os.name == "nt":
+        if isWin32Windows():
             command = [
                 sys.executable,
                 os.path.join(os.path.dirname(sys.executable), "Tools/Scripts/2to3.py"),
@@ -274,7 +274,7 @@ def convertUsing2to3(path, force=False):
         check_output(command, stderr=getNullOutput())
 
     except subprocess.CalledProcessError:
-        if os.name == "nt":
+        if isWin32Windows():
             raise
 
         command[0:3] = ["2to3"]
@@ -395,7 +395,7 @@ def _removeCPythonTestSuiteDir():
         # call as last resort could be a good idea.
 
         # This seems to work for broken "lnk" files.
-        if os.name == "nt":
+        if isWin32Windows():
             os.system("rmdir /S /Q @test")
 
         if os.path.exists("@test"):
@@ -1300,7 +1300,7 @@ def displayFolderContents(name, path):
     test_logger.info("Listing of %s %r:" % (name, path))
 
     if os.path.exists(path):
-        if os.name == "nt":
+        if isWin32Windows():
             command = "dir /b /s /a:-D %s" % path
         else:
             command = "ls -Rla %s" % path
@@ -1378,23 +1378,25 @@ class DelayedExecutionThread(threading.Thread):
         self.func()
 
 
-def executeAfterTimePassed(timeout, func):
+def executeAfterTimePassed(message, timeout, func):
+    test_logger.info(message % timeout)
+
     alarm = DelayedExecutionThread(timeout=timeout, func=func)
     alarm.start()
 
 
-def killProcess(name, pid):
+def killProcess(process_name, pid):
     """Kill a process in a portable way.
 
     Right now SIGINT is used, unclear what to do on Windows
     with Python2 or non-related processes.
     """
 
-    if str is bytes and os.name == "nt":
-        test_logger.info("Using taskkill on test process %r." % name)
+    if str is bytes and isWin32Windows():
+        test_logger.info("Using taskkill on test process '%s'." % process_name)
         os.system("taskkill.exe /PID %d" % pid)
     else:
-        test_logger.info("Killing test process %r." % name)
+        test_logger.info("Killing test process '%s'." % process_name)
         os.kill(pid, signal.SIGINT)
 
 
@@ -1414,7 +1416,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         loaded_filename = os.path.normcase(loaded_filename)
         loaded_basename = os.path.basename(loaded_filename)
 
-        if os.name == "nt":
+        if isWin32Windows():
             if areSamePaths(
                 os.path.dirname(loaded_filename),
                 os.path.normpath(os.path.join(os.environ["SYSTEMROOT"], "System32")),
@@ -1778,6 +1780,34 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         # MSVC run time DLLs, due to SxS come from system.
         if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
             continue
+
+        if isMacOS():
+            ignore = True
+            for ignored_dir in (
+                "/System/Library/PrivateFrameworks",
+                "/System/Library/CoreService",
+                "/System/Library/Frameworks/CoreFoundation.framework",
+                "/System/Library/dyld",
+                "/usr/lib/system/",
+            ):
+                if isPathBelowOrSameAs(ignored_dir, loaded_filename):
+                    ignore = False
+                    break
+            if not ignore:
+                continue
+
+            if loaded_filename == "/usr/libexec/rosetta/runtime":
+                continue
+
+            if loaded_filename in (
+                "/usr/lib/libSystem.B.dylib",
+                "/usr/lib/libc++.1.dylib",
+                "/usr/lib/libc++abi.dylib",
+                "/usr/lib/libfakelink.dylib",
+                "/usr/lib/liboah.dylib",
+                "/usr/lib/libobjc.A.dylib",
+            ):
+                continue
 
         illegal_accesses.append(orig_loaded_filename)
 

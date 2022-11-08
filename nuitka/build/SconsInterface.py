@@ -30,12 +30,13 @@ import sys
 
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils.Execution import (
     getExecutablePath,
-    withEnvironmentVarOverridden,
+    withEnvironmentVarsOverridden,
 )
 from nuitka.utils.FileOperations import (
     deleteFile,
@@ -242,8 +243,10 @@ def _buildSconsCommand(quiet, options, scons_filename):
     return scons_command
 
 
-def runScons(options, quiet, scons_filename):
+def runScons(options, quiet, env_values, scons_filename):
     with _setupSconsEnvironment():
+        env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
+
         if Options.shallCompileWithoutBuildDirectory():
             # Make sure we become non-local, by changing all paths to be
             # absolute, but ones that can be resolved by any program
@@ -268,6 +271,12 @@ def runScons(options, quiet, scons_filename):
         else:
             source_dir = None
 
+        env_values = OrderedDict(env_values)
+        env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
+
+        # Pass quiet setting to scons via environment variable.
+        env_values["NUITKA_QUIET"] = "1" if Tracing.is_quiet else "0"
+
         scons_command = _buildSconsCommand(
             quiet=quiet, options=options, scons_filename=scons_filename
         )
@@ -277,10 +286,7 @@ def runScons(options, quiet, scons_filename):
 
         Tracing.flushStandardOutputs()
 
-        # Call scons, make sure to pass on quiet setting.
-        with withEnvironmentVarOverridden(
-            "NUITKA_QUIET", "1" if Tracing.is_quiet else "0"
-        ):
+        with withEnvironmentVarsOverridden(env_values):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)
 
         flushSconsReports()
@@ -342,7 +348,7 @@ def cleanSconsDirectory(source_dir):
                 check(path)
 
 
-def setCommonOptions(options):
+def setCommonSconsOptions(options):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
@@ -424,7 +430,7 @@ def setCommonOptions(options):
 
         options["macos_target_arch"] = macos_target_arch
 
-    env_values = {}
+    env_values = OrderedDict()
 
     string_values = Options.getWindowsVersionInfoStrings()
     if "CompanyName" in string_values:
@@ -443,7 +449,7 @@ def setCommonOptions(options):
         product_version = ".".join(str(d) for d in product_version)
     if file_version is None:
         file_version = product_version
-    if file_version is not None:
+    else:
         file_version = ".".join(str(d) for d in file_version)
 
     if product_version != file_version:

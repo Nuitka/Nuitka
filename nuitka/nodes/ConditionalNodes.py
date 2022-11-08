@@ -644,6 +644,9 @@ branches.""",
             self.clearChild("no_branch")
             no_branch = None
 
+        # Do we need to merge branches
+        needs_merge = True
+
         # Continue to execute for yes branch unless we know it's not going to be
         # relevant.
         if yes_branch is not None:
@@ -654,8 +657,11 @@ branches.""",
             yes_branch = branch_yes_collection.computeBranch(branch=yes_branch)
 
             # If it's aborting, it doesn't contribute to merging.
-            if yes_branch is None or yes_branch.isStatementAborting():
+            if yes_branch is None:
                 branch_yes_collection = None
+            elif yes_branch.isStatementAborting():
+                branch_yes_collection = None
+                needs_merge = False
         else:
             branch_yes_collection = None
 
@@ -668,8 +674,11 @@ branches.""",
             no_branch = branch_no_collection.computeBranch(branch=no_branch)
 
             # If it's aborting, it doesn't contribute to merging.
-            if no_branch is None or no_branch.isStatementAborting():
+            if no_branch is None:
                 branch_no_collection = None
+            elif no_branch.isStatementAborting():
+                branch_no_collection = None
+                needs_merge = False
         else:
             branch_no_collection = None
 
@@ -680,7 +689,15 @@ branches.""",
             if branch_no_collection is not None:
                 trace_collection.replaceBranch(branch_no_collection)
         else:
-            trace_collection.mergeBranches(branch_yes_collection, branch_no_collection)
+            if needs_merge:
+                trace_collection.mergeBranches(
+                    branch_yes_collection, branch_no_collection
+                )
+            else:
+                if branch_yes_collection is not None:
+                    trace_collection.replaceBranch(branch_yes_collection)
+                elif branch_no_collection is not None:
+                    trace_collection.replaceBranch(branch_no_collection)
 
         # Both branches may have become empty, which case, the statement needs
         # not remain.

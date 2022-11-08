@@ -65,7 +65,8 @@ def demoteCompiledModuleToBytecode(module):
 
     if isShowProgress():
         inclusion_logger.info(
-            "Demoting module %r to bytecode from %r." % (full_name.asString(), filename)
+            "Demoting module '%s' to bytecode from '%s'."
+            % (full_name.asString(), filename)
         )
 
     source_code = module.getSourceCode()

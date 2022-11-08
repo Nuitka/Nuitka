@@ -41,6 +41,12 @@ class StatementRaiseExceptionMixin(object):
     def isStatementRaiseException():
         return True
 
+    @staticmethod
+    def willRaiseException(exception_type):
+        # One thing is clear, it will raise. TODO: Match exception_type more
+        # closely if it is predictable.
+        return exception_type is BaseException
+
 
 class StatementRaiseException(
     StatementRaiseExceptionMixin, StatementChildrenHavingBase

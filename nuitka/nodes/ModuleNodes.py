@@ -392,6 +392,7 @@ class CompiledPythonModule(
         if self.source_code is not None:
             return self.source_code
         else:
+            # This should of course give same result as before.
             return readSourceCodeFromFilename(
                 module_name=self.getFullName(),
                 source_filename=self.getCompileTimeFilename(),

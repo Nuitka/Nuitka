@@ -54,6 +54,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersRaising.c"
 #include "HelpersStrings.c"
 
+#include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
 #if PYTHON_VERSION >= 0x3a0
@@ -1514,8 +1515,6 @@ int Nuitka_BuiltinModule_SetAttr(PyModuleObject *module, PyObject *name, PyObjec
     return PyObject_GenericSetAttr((PyObject *)module, name, value);
 }
 
-#include <osdefs.h>
-
 #if defined(_WIN32)
 #include <Shlwapi.h>
 #elif defined(__APPLE__)
@@ -2094,6 +2093,7 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersComparisonLt.c"
 #include "HelpersComparisonNe.c"
 
+#include "HelpersChecksumTools.c"
 #include "HelpersConstantsBlob.c"
 
 #if _NUITKA_PROFILE

@@ -581,7 +581,7 @@ void _initCompiledFrameType(void) {
 
 static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *module, bool is_module,
                                              Py_ssize_t locals_size) {
-    assertCodeObject(code);
+    CHECK_CODE_OBJECT(code);
     CHECK_OBJECT(module);
 
 #if _DEBUG_REFCOUNTS

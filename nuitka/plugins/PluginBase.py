@@ -49,7 +49,11 @@ from nuitka.ModuleRegistry import (
     addModuleInfluencingCondition,
     getModuleInclusionInfoByName,
 )
-from nuitka.Options import isStandaloneMode, shallMakeModule
+from nuitka.Options import (
+    isStandaloneMode,
+    shallMakeModule,
+    shallShowExecutedCommands,
+)
 from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
@@ -77,6 +81,15 @@ def _convertVersionToTuple(version_str):
     return tuple(numberize(d) for d in version_str.split("."))
 
 
+def _getPackageNameFromDistributionName(distribution_name):
+    if distribution_name == "opencv-python":
+        return "cv2"
+    elif distribution_name == "pyobjc":
+        return "objc"
+    else:
+        return distribution_name
+
+
 def _getPackageVersion(distribution_name):
     if distribution_name not in _package_versions:
         try:
@@ -88,16 +101,24 @@ def _getPackageVersion(distribution_name):
             result = _convertVersionToTuple(version(distribution_name))
         except ImportError:
             try:
-                from pkg_resources import get_distribution
-
-                result = _convertVersionToTuple(
-                    get_distribution(distribution_name).version
+                from pkg_resources import (
+                    DistributionNotFound,
+                    get_distribution,
                 )
+
+                try:
+                    result = _convertVersionToTuple(
+                        get_distribution(distribution_name).version
+                    )
+                except DistributionNotFound:
+                    raise ImportError
             except ImportError:
                 # Fallback if nothing is available, which may happen if no package is installed,
                 # but only source code is found.
                 result = _convertVersionToTuple(
-                    __import__(distribution_name).__version__.split(".")
+                    __import__(
+                        _getPackageNameFromDistributionName(distribution_name)
+                    ).__version__
                 )
 
         _package_versions[distribution_name] = result
@@ -764,7 +785,20 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             None for no defines, otherwise dictionary of key to be
             defined, and non-None values if any, i.e. no "-Dkey" only
         """
+        # Virtual method, pylint: disable=no-self-use
+        # spell-checker: ignore -Dkey
+        return None
 
+    def getBuildDefinitions(self):
+        """Decide C source defines to be used in compilation.
+
+        Notes:
+            Make sure to use a namespace for your defines, and prefer
+            `getPreprocessorSymbols` if you can.
+
+        Returns:
+            dict or None for no values
+        """
         # Virtual method, pylint: disable=no-self-use
         return None
 
@@ -898,6 +932,9 @@ except ImportError:
             "query_codes": "\n".join(query_codes),
         }
 
+        if shallShowExecutedCommands():
+            self.info("Executing query command:\n%s" % cmd)
+
         try:
             feedback = check_output([sys.executable, "-c", cmd])
         except NuitkaCalledProcessError as e:
@@ -907,6 +944,9 @@ except ImportError:
 
         if str is not bytes:  # We want to work with strings, that's hopefully OK.
             feedback = feedback.decode("utf8")
+
+        if shallShowExecutedCommands():
+            self.info("Result of query command:\n%s" % feedback)
 
         # Ignore Windows newlines difference.
         feedback = [line.strip() for line in feedback.splitlines()]
@@ -947,6 +987,11 @@ except ImportError:
         """
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
+
+    @staticmethod
+    def getPackageVersion(distribution_name):
+        """Provide package version of a distribution."""
+        return _getPackageVersion(distribution_name)
 
     def evaluateCondition(self, full_name, condition, control_tags=()):
         # Note: Caching makes no sense yet, this should all be very fast and

@@ -31,6 +31,8 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
+# spell-checker: ignore dask
+
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
     plugin_name = "anti-bloat"
@@ -48,6 +50,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         noinclude_pytest_mode,
         noinclude_unittest_mode,
         noinclude_ipython_mode,
+        noinclude_dask_mode,
         noinclude_default_mode,
         custom_choices,
         show_changes,
@@ -95,6 +98,11 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.handled_modules["IPython"] = noinclude_ipython_mode
         else:
             self.control_tags["use_ipython"] = True
+
+        if noinclude_dask_mode != "allow":
+            self.handled_modules["dask"] = noinclude_dask_mode
+        else:
+            self.control_tags["use_dask"] = True
 
         for custom_choice in custom_choices:
             if ":" not in custom_choice:
@@ -171,6 +179,17 @@ dependencies, and should definitely be avoided.""",
             default=None,
             help="""\
 What to do if a IPython import is encountered. This package can be big with
+dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-dask-mode",
+            action="store",
+            dest="noinclude_dask_mode",
+            choices=("error", "warning", "nofollow", "allow"),
+            default=None,
+            help="""\
+What to do if a 'dask' import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
         )
 

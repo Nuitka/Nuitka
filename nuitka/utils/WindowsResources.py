@@ -599,9 +599,6 @@ def addVersionInfoResource(
     assert product_version
     assert file_version
 
-    if "FileDescription" not in string_values:
-        string_values["FileDescription"] = "Description"
-
     if "ProductVersion" not in string_values:
         string_values["ProductVersion"] = ".".join(str(d) for d in product_version)
 

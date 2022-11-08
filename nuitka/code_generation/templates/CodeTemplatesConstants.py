@@ -127,7 +127,7 @@ static void _createGlobalConstants(void) {
 #else
     PyObject *is_standalone_mode = Py_False;
 #endif
-#ifdef _NUITKA_ONEFILE
+#ifdef _NUITKA_ONEFILE_MODE
     PyObject *is_onefile_mode = Py_True;
 #else
     PyObject *is_onefile_mode = Py_False;

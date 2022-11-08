@@ -169,8 +169,12 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
 #define EXC_TYPE(x) (x->exc_type)
 #define EXC_VALUE(x) (x->exc_value)
 #define EXC_TRACEBACK(x) (x->exc_traceback)
-#else
+#elif PYTHON_VERSION < 0x3b0
 #define EXC_TYPE(x) (x->exc_state.exc_type)
+#define EXC_VALUE(x) (x->exc_state.exc_value)
+#define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
+#else
+#define EXC_TYPE(x) ((PyObject *)Py_TYPE(x->exc_state.exc_value))
 #define EXC_VALUE(x) (x->exc_state.exc_value)
 #define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
 #endif

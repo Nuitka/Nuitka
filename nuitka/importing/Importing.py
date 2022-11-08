@@ -67,7 +67,7 @@ _debug_module_finding = Options.shallExplainImports()
 warned_about = set()
 
 # Directory where the main script lives. Should attempt to import from there.
-main_path = None
+_main_path = None
 
 
 def setMainScriptDirectory(main_dir):
@@ -77,12 +77,12 @@ def setMainScriptDirectory(main_dir):
     """
     # We need to set this from the outside, pylint: disable=global-statement
 
-    global main_path
-    main_path = main_dir
+    global _main_path
+    _main_path = main_dir
 
 
 def getMainScriptDirectory():
-    return main_path
+    return _main_path
 
 
 def isPackageDir(dirname):
@@ -372,6 +372,18 @@ existing '%s' extension module by default. Candidates were: %s <-> %s."""
                     )
 
 
+_list_dir_cache = {}
+
+
+def listDirCached(path):
+    """Cached listing of a directory."""
+
+    if path not in _list_dir_cache:
+        _list_dir_cache[path] = tuple(listDir(path))
+
+    return _list_dir_cache[path]
+
+
 def _findModuleInPath2(package_name, module_name, search_path):
     """This is out own module finding low level implementation.
 
@@ -477,7 +489,7 @@ def _findModuleInPath2(package_name, module_name, search_path):
             found_candidate = candidates[0]
         else:
             for candidate in candidates:
-                for fullname, _filename in listDir(candidate[0]):
+                for fullname, _filename in listDirCached(candidate.found_in):
                     if fullname == candidate.full_path:
                         found_candidate = candidate
                         break
@@ -541,10 +553,10 @@ def _unpackPathElement(path_entry):
 
 
 def getPackageSearchPath(package_name):
-    assert main_path is not None
+    assert _main_path is not None
 
     if package_name is None:
-        result = [os.getcwd(), main_path] + [
+        result = [os.getcwd(), _main_path] + [
             _unpackPathElement(path_element) for path_element in sys.path
         ]
     elif "." in package_name:
@@ -655,7 +667,11 @@ def _findModule(module_name):
 
         return result
 
-    module_search_cache[key] = _findModuleInPath(module_name)
+    try:
+        module_search_cache[key] = _findModuleInPath(module_name)
+    except ImportError:
+        module_search_cache[key] = ImportError
+        raise
 
     return module_search_cache[key]
 

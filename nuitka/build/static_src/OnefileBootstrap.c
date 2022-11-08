@@ -36,6 +36,11 @@
 #define NDEBUG
 #endif
 
+#if defined(_WIN32)
+// Note: Keep this separate line, must be included before other Windows headers.
+#include <windows.h>
+#endif
+
 #include <assert.h>
 #include <errno.h>
 #include <stdint.h>
@@ -50,9 +55,6 @@
 #endif
 
 #if defined(_WIN32)
-// Note: Keep this separate line, must be included before other Windows headers.
-#include <windows.h>
-
 #include <imagehlp.h>
 #else
 #include <dirent.h>
@@ -68,15 +70,21 @@
 #include "onefile_definitions.h"
 #else
 #define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
-#define _NUITKA_ONEFILE_TEMP 0
-#define _NUITKA_ONEFILE_AUTO_UPDATE 1
-#define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
+#define _NUITKA_ONEFILE_TEMP_BOOL 0
+#define _NUITKA_AUTO_UPDATE 1
+#define _NUITKA_EXPERIMENTAL_DEBUG_AUTO_UPDATE
 #define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
-#define _NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC "https://..."
+#define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
+
+#if __APPLE__
+#define _NUITKA_PAYLOAD_FROM_MACOS_SECTION
+#endif
 #endif
 
-#if _NUITKA_ONEFILE_COMPRESSION == 1
-// Header goes first.
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+// Header of zstd goes first
+#define ZSTDERRORLIB_VISIBILITY
+#define ZSTDLIB_VISIBILITY
 #include "zstd.h"
 
 // Should be in our inline copy, we include all C files into this one.
@@ -99,7 +107,8 @@
 #define likely(x) HEDLEY_LIKELY(x)
 #define unlikely(x) HEDLEY_UNLIKELY(x)
 
-// Safe string operations.
+#include "HelpersChecksumTools.c"
+#include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
 
 // For tracing outputs if enabled at compile time.
@@ -126,7 +135,7 @@ static void fatalError(char const *message) {
 
 static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand temporary files."); }
 
-#if _NUITKA_ONEFILE_COMPRESSION == 1
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
 
@@ -157,25 +166,6 @@ static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
 }
 #endif
 
-// Have a type for filename type different on Linux and Win32.
-#if defined(_WIN32)
-#define filename_char_t wchar_t
-#define FILENAME_SEP_STR L"\\"
-#define FILENAME_SEP_CHAR L'\\'
-#define FILENAME_FORMAT_STR "%ls"
-#define appendStringSafeFilename appendWStringSafeW
-#define appendCharSafeFilename appendWCharSafeW
-#define FILENAME_TMP_STR L".tmp"
-#else
-#define filename_char_t char
-#define FILENAME_SEP_STR "/"
-#define FILENAME_SEP_CHAR '/'
-#define FILENAME_FORMAT_STR "%s"
-#define appendStringSafeFilename appendStringSafe
-#define appendCharSafeFilename appendCharSafe
-#define FILENAME_TMP_STR ".tmp"
-#endif
-
 static void fatalErrorTempFileCreate(filename_char_t const *filename) {
     fprintf(stderr, "Error, failed to open '" FILENAME_FORMAT_STR "' for writing.\n", filename);
     exit(2);
@@ -186,76 +176,15 @@ static void fatalErrorSpec(filename_char_t const *spec) {
     abort();
 }
 
-// Have a type for file type different on Linux and Win32.
-#if defined(_WIN32)
-#define FILE_HANDLE HANDLE
-#define FILE_HANDLE_NULL INVALID_HANDLE_VALUE
-#else
-#define FILE_HANDLE FILE *
-#define FILE_HANDLE_NULL NULL
-#endif
+static FILE_HANDLE createFileForWritingChecked(filename_char_t const *filename) {
+    FILE_HANDLE result = createFileForWriting(filename);
 
-static FILE_HANDLE createFileForWriting(filename_char_t const *filename) {
-#if defined(_WIN32)
-    FILE_HANDLE result = CreateFileW(filename, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, 0, NULL);
-    if (result == INVALID_HANDLE_VALUE) {
+    if (result == FILE_HANDLE_NULL) {
         fatalErrorTempFileCreate(filename);
     }
-#else
-    FILE *result = fopen(filename, "wb");
-
-    if (result == NULL) {
-        fatalErrorTempFileCreate(filename);
-    }
-#endif
 
     return result;
 }
-
-static void writeToFile(FILE_HANDLE target_file, void *chunk, size_t chunk_size) {
-#if defined(_WIN32)
-    BOOL bool_res = WriteFile(target_file, chunk, (DWORD)chunk_size, NULL, NULL);
-    if (bool_res == false) {
-        fatalErrorTempFiles();
-    }
-#else
-    size_t written = fwrite(chunk, 1, chunk_size, target_file);
-
-    if (written != chunk_size) {
-        fatalErrorTempFiles();
-    }
-#endif
-}
-
-static void closeFile(FILE_HANDLE target_file) {
-#if defined(_WIN32)
-    CloseHandle(target_file);
-#else
-    int r = fclose(target_file);
-
-    if (r != 0) {
-        fatalErrorTempFiles();
-    }
-#endif
-}
-
-#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
-static void replaceFile(filename_char_t const *dest, filename_char_t const *source) {
-
-#if defined(_WIN32)
-    filename_char_t tmp_dest[4096] = {0};
-    appendStringSafeFilename(tmp_dest, dest, sizeof(tmp_dest) / sizeof(filename_char_t));
-    appendStringSafeFilename(tmp_dest, FILENAME_TMP_STR, sizeof(tmp_dest) / sizeof(filename_char_t));
-
-    DeleteFileW(tmp_dest);
-    _wrename(dest, tmp_dest);
-    DeleteFileW(dest);
-    _wrename(source, dest);
-#else
-    rename(source, dest);
-#endif
-}
-#endif
 
 static int getMyPid(void) {
 #if defined(_WIN32)
@@ -273,14 +202,31 @@ static void setEnvironVar(char const *var_name, char const *value) {
 #endif
 }
 
+#ifdef _NUITKA_PAYLOAD_FROM_MACOS_SECTION
+
+#include <mach-o/ldsyms.h>
+
+static unsigned char *findMacOSBinarySection(void) {
+    const struct mach_header *header = &_mh_execute_header;
+
+    unsigned long *size;
+    return getsectdata("payload", "payload", &size) + (uintptr_t)header;
+}
+
+static unsigned char *payload_data = NULL;
+static unsigned char *payload_current = NULL;
+
+static void initPayloadData(void) {
+    payload_data = findMacOSBinarySection();
+    payload_current = payload_data;
+}
+#else
 // Note: Made payload file handle global until we properly abstracted compression.
 static FILE_HANDLE exe_file;
-
-#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
-static bool exe_file_updatable = false;
+#define _NUITKA_PAYLOAD_FILE_BASED
 #endif
 
-#if _NUITKA_ONEFILE_COMPRESSION == 1
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 
 static ZSTD_DCtx *dest_ctx = NULL;
 static ZSTD_inBuffer input = {NULL, 0, 0};
@@ -317,30 +263,29 @@ static void releaseZSTD(void) {
 static size_t stream_end_pos;
 
 static size_t getPosition(void) {
+#ifdef _NUITKA_PAYLOAD_FILE_BASED
 #if defined(_WIN32)
     return SetFilePointer(exe_file, 0, NULL, FILE_CURRENT);
 #else
     return ftell(exe_file);
+#endif
+#else
+    return payload_current - payload_data;
 #endif
 }
 
 static void readChunk(void *buffer, size_t size) {
     // printf("Reading %d\n", size);
 
-#if defined(_WIN32)
-    DWORD read_size;
-    BOOL bool_res = ReadFile(exe_file, buffer, (DWORD)size, &read_size, NULL);
+#ifdef _NUITKA_PAYLOAD_FILE_BASED
+    bool bool_res = readFileChunk(exe_file, buffer, size);
 
-    if (bool_res == false || read_size != size) {
+    if (bool_res == false) {
         fatalErrorReadAttachedData();
     }
 #else
-    size_t read_size = fread(buffer, 1, size, exe_file);
-
-    if (read_size != size) {
-        fatalErrorReadAttachedData();
-    }
-
+    memcpy(buffer, payload_current, size);
+    payload_current += size;
 #endif
 }
 
@@ -352,7 +297,7 @@ static unsigned long long readSizeValue(void) {
 }
 
 static void readPayloadChunk(void *buffer, size_t size) {
-#if _NUITKA_ONEFILE_COMPRESSION == 1
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 
     // bool no_payload = false;
     bool end_of_buffer = false;
@@ -432,7 +377,7 @@ static void readPayloadChunk(void *buffer, size_t size) {
 #endif
 }
 
-#if _NUITKA_ONEFILE_TEMP == 0
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
 static uint32_t readPayloadChecksumValue(void) {
     unsigned int result;
     readPayloadChunk(&result, sizeof(unsigned int));
@@ -441,12 +386,14 @@ static uint32_t readPayloadChecksumValue(void) {
 }
 #endif
 
+#if !defined(_WIN32) && !defined(__MSYS__)
 static unsigned char readPayloadFileFlagsValue(void) {
     unsigned char result;
     readPayloadChunk(&result, 1);
 
     return result;
 }
+#endif
 
 static unsigned long long readPayloadSizeValue(void) {
     unsigned long long result;
@@ -490,9 +437,11 @@ pid_t handle_process = 0;
 
 static filename_char_t payload_path[4096] = {0};
 
+#if _NUITKA_ONEFILE_TEMP_BOOL == 1
 static bool payload_created = false;
+#endif
 
-bool createDirectory(filename_char_t *path) {
+static bool createDirectory(filename_char_t const *path) {
 #if defined(_WIN32)
     BOOL bool_res = CreateDirectoryW(path, NULL);
     return bool_res;
@@ -501,14 +450,35 @@ bool createDirectory(filename_char_t *path) {
 #endif
 }
 
+static void createContainingDirectory(filename_char_t const *path) {
+    static filename_char_t dir_path[4096] = {0};
+    dir_path[0] = 0;
+
+    appendStringSafeFilename(dir_path, path, sizeof(dir_path) / sizeof(filename_char_t));
+
+    filename_char_t *w = dir_path;
+
+    while (*w) {
+        if (*w == FILENAME_SEP_CHAR) {
+            *w = 0;
+
+            createDirectory(dir_path);
+
+            *w = FILENAME_SEP_CHAR;
+        }
+
+        w++;
+    }
+}
+
 #if defined(_WIN32)
-void removeDirectory(wchar_t const *path) {
+static void removeDirectory(wchar_t const *path) {
     SHFILEOPSTRUCTW file_op_struct = {
         NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
     SHFileOperationW(&file_op_struct);
 }
 #else
-int removeDirectory(char const *path) {
+static int removeDirectory(char const *path) {
     DIR *d = opendir(path);
     size_t path_len = strlen(path);
 
@@ -578,104 +548,6 @@ static int waitpid_retried(pid_t pid, int *status) {
 }
 #endif
 
-#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
-#if defined(_WIN32)
-static filename_char_t *downloadFileSyncW(filename_char_t const *url) {
-    static filename_char_t output_filename[4096];
-
-    HRESULT res = URLDownloadToCacheFileW(NULL, // lpUnkcaller
-                                          url,  // szURL
-                                          // TODO: Needs to unique by using PID probably.
-                                          output_filename,                                   // cached filename
-                                          sizeof(output_filename) / sizeof(filename_char_t), // filename size
-                                          0, NULL);
-
-    if (res == S_OK) {
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-        fprintf(stderr, "AUTO UPDATE: Download OK.\n");
-#endif
-        return output_filename;
-    } else {
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-        fprintf(stderr, "AUTO UPDATE: Download error.\n");
-#endif
-        return NULL;
-    }
-}
-#endif
-
-static filename_char_t *downloadFileSync(char const *url) {
-#if defined(_WIN32)
-    static filename_char_t url_wide[4096] = {0};
-    appendStringSafeW(url_wide, url, sizeof(url_wide) / sizeof(filename_char_t));
-
-    return downloadFileSyncW(url_wide);
-#else
-    return NULL;
-#endif
-}
-
-// Return buffer with contents.
-static char *downloadTextContentsSync(filename_char_t const *url) {
-    char *result = NULL;
-
-#if defined(_WIN32)
-    filename_char_t const *downloaded_filename = downloadFileSyncW(url);
-
-    if (downloaded_filename != NULL) {
-        FILE_HANDLE file_handle =
-            CreateFileW(downloaded_filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-        // Error is surprising though, but could be a race.
-        if (file_handle == NULL) {
-            return NULL;
-        }
-
-        DWORD file_size = GetFileSize(file_handle, NULL);
-
-        result = (char *)malloc(file_size + 1);
-
-        DWORD read_size;
-        BOOL bool_res = ReadFile(file_handle, result, file_size, &read_size, NULL);
-
-        CloseHandle(file_handle);
-
-        if (bool_res == false || read_size != file_size) {
-            free(result);
-            result = NULL;
-        }
-
-        return result;
-    }
-#else
-    char const *downloaded_filename = downloadFileSync(url);
-
-    if (downloaded_filename != NULL) {
-        FILE_HANDLE file_handle = fopen(downloaded_filename, "rb");
-
-        if (file_handle != NULL) {
-            int res = fseek(file_handle, 0, SEEK_END);
-
-            if (res == 0) {
-                int file_size = ftell(file_handle);
-
-                result = (char *)malloc(file_size + 1);
-
-                if (fread(result, 1, file_size, file_handle) != file_size) {
-                    free(result);
-                    result = NULL;
-                }
-            }
-
-            fclose(file_handle);
-        }
-    }
-#endif
-
-    return NULL;
-}
-#endif
-
 static void cleanupChildProcess(void) {
 
     // Cause KeyboardInterrupt in the child process.
@@ -695,7 +567,7 @@ static void cleanupChildProcess(void) {
         // TODO: We ought to only need to wait if there is a need to cleanup
         // files when we are on Windows, on Linux maybe exec can be used to
         // this process to exist anymore.
-#if _NUITKA_ONEFILE_TEMP == 1 || 1
+#if _NUITKA_ONEFILE_TEMP_BOOL == 1 || 1
         NUITKA_PRINT_TRACE("Waiting for child to exit.\n");
 #if defined(_WIN32)
         WaitForSingleObject(handle_process, INFINITE);
@@ -708,7 +580,7 @@ static void cleanupChildProcess(void) {
 #endif
     }
 
-#if _NUITKA_ONEFILE_TEMP == 1
+#if _NUITKA_ONEFILE_TEMP_BOOL == 1
     if (payload_created) {
         removeDirectory(payload_path);
     }
@@ -793,332 +665,12 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(); }
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 4096
-#endif
-
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
-#include <sys/sysctl.h>
-#endif
-
-filename_char_t *getBinaryPath(void) {
-    static filename_char_t binary_filename[MAXPATHLEN];
-
-#if defined(_WIN32)
-    DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
-    if (res == 0) {
-        fatalError("Error, failed to locate onefile filename.");
-    }
-#elif defined(__APPLE__)
-    uint32_t bufsize = sizeof(binary_filename);
-    int res = _NSGetExecutablePath(binary_filename, &bufsize);
-
-    if (res != 0) {
-        abort();
-    }
-#elif defined(__FreeBSD__) || defined(__OpenBSD__)
-    /* Not all of FreeBSD has /proc file system, so use the appropriate
-     * "sysctl" instead.
-     */
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    size_t cb = sizeof(binary_filename);
-    int res = sysctl(mib, 4, binary_filename, &cb, NULL, 0);
-
-    if (res != 0) {
-        abort();
-    }
-#else
-    /* The remaining platforms, mostly Linux or compatible. */
-
-    /* The "readlink" call does not terminate result, so fill zeros there, then
-     * it is a proper C string right away. */
-    memset(binary_filename, 0, sizeof(binary_filename));
-    ssize_t res = readlink("/proc/self/exe", binary_filename, sizeof(binary_filename) - 1);
-
-    if (res == -1) {
-        abort();
-    }
-#endif
-
-    return binary_filename;
-}
-
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
 #include "OnefileSplashScreen.cpp"
 #endif
 
-#if _NUITKA_ONEFILE_TEMP == 0
-static uint32_t _calcCRC32(uint32_t crc, unsigned char const *message, long size) {
-
-    for (uint32_t i = 0; i < size; i++) {
-        unsigned int c = message[i];
-        crc = crc ^ c;
-
-        for (int j = 7; j >= 0; j--) {
-            uint32_t mask = ((crc & 1) != 0) ? 0xFFFFFFFF : 0;
-            crc = (crc >> 1) ^ (0xEDB88320 & mask);
-        }
-    }
-
-    return crc;
-}
-
-#if defined(_WIN32)
-static uint32_t calcCRC32(unsigned char const *message, long size) {
-    uint32_t crc = _calcCRC32(0xFFFFFFFF, message, size);
-
-    return ~crc;
-}
-#endif
-
-#if !defined(_WIN32)
-#include <fcntl.h>
-#include <sys/mman.h>
-#endif
-
-static uint32_t getFileChecksum(filename_char_t const *filename) {
-#if defined(_WIN32)
-    FILE_HANDLE file_handle = CreateFileW(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-    if (file_handle == NULL) {
-        return 0;
-    }
-
-    // TODO: File size is truncated here, but maybe a good thing.
-    DWORD file_size = GetFileSize(file_handle, NULL);
-
-    HANDLE handle_mapping = CreateFileMappingW(file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
-
-    if (handle_mapping == NULL) {
-        CloseHandle(file_handle);
-
-        return 0;
-    }
-
-    unsigned char const *data = (unsigned char const *)MapViewOfFile(handle_mapping, FILE_MAP_READ, 0, 0, 0);
-
-    uint32_t result;
-
-    if (unlikely(data == NULL)) {
-        result = 0;
-    } else {
-        result = calcCRC32(data, (long)file_size);
-        // Lets use 0 for error indication.
-        if (result == 0) {
-            result = 1;
-        }
-
-        UnmapViewOfFile(data);
-    }
-
-    CloseHandle(handle_mapping);
-    CloseHandle(file_handle);
-
-    return result;
-#else
-    int file_handle = open(filename, O_RDONLY);
-
-    if (file_handle == -1) {
-        return 0;
-    }
-
-    size_t file_size = lseek(file_handle, 0, SEEK_END);
-    lseek(file_handle, 0, SEEK_SET);
-
-    static unsigned char chunk[32768];
-
-    uint32_t crc32 = 0xFFFFFFFF;
-
-    while (file_size > 0) {
-        ssize_t read_bytes = (ssize_t)read(file_handle, chunk, sizeof(chunk));
-
-        if (read_bytes < 0) {
-            close(file_handle);
-            return 0;
-        }
-
-        // crc32 = _calcCRC32(crc32, chunk, read_bytes);
-
-        file_size -= read_bytes;
-    }
-
-    crc32 = ~crc32;
-    uint32_t result = crc32;
-
-    // TODO: Check if mmap is faster and if not, why
-#if 0
-    unsigned char const *data = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, file_handle, 0);
-
-    uint32_t result;
-
-    if (unlikely(data == MAP_FAILED)) {
-        result = 0;
-    } else {
-        result = calcCRC32(data, file_size);
-        // Lets use 0 for error indication.
-        if (result == 0) {
-            result = 1;
-        }
-
-        munmap((void *)data, file_size);
-    }
-#endif
-    close(file_handle);
-
-    return result;
-#endif
-}
-#endif
-
-#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
-
-#include <ctype.h>
-
-static char *trimWhitespace(char *str) {
-
-    // Trim leading space
-    while (isspace((unsigned char)*str)) {
-        str++;
-    }
-
-    if (*str == 0) {
-        return str;
-    }
-
-    // Trim trailing space
-    char *end = str + strlen(str) - 1;
-    while (end > str && isspace((unsigned char)*end)) {
-        end--;
-    }
-
-    // Write new null terminator character
-    end[1] = 0;
-
-    return str;
-}
-
-static char *getAutoUpdateUrl(void) {
-
-    filename_char_t download_url[4096];
-#if defined(_WIN32)
-    wchar_t const *url_pattern = L"" _NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC;
-    bool bool_res = expandTemplatePathW(download_url, url_pattern, sizeof(download_url) / sizeof(wchar_t));
-#else
-    char const *url_pattern = "" _NUITKA_ONEFILE_AUTO_UPDATE_URL_SPEC;
-    bool bool_res = expandTemplatePath(download_url, url_pattern, sizeof(download_url));
-#endif
-
-    if (unlikely(bool_res == false)) {
-        fatalErrorSpec(url_pattern);
-    }
-
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-    fprintf(stderr, "AUTO UPDATE: Expanded info URL to '" FILENAME_FORMAT_STR "'.\n", download_url);
-#endif
-
-    char *download_info = downloadTextContentsSync(download_url);
-
-    if (download_info != NULL) {
-        char *download_line = strtok(download_info, "\n");
-
-        while (download_line != NULL) {
-            download_line = trimWhitespace(download_line);
-
-            char *sep = strchr(download_line, '=');
-
-            if (sep != NULL) {
-                *sep = 0;
-
-                char *key = trimWhitespace(download_line);
-
-                if (strcmp(key, "url") == 0) {
-                    char *value = trimWhitespace(sep + 1);
-
-                    if (strlen(value) == 0) {
-                        return NULL;
-                    }
-
-                    return value;
-                }
-            }
-
-            download_line = strtok(NULL, "\n");
-        }
-    }
-
-    return NULL;
-}
-
-static void _checkAutoUpdates(void) {
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-    fprintf(stderr, "AUTO UPDATE: Thread started.\n");
-#endif
-
-    char const *update_url = getAutoUpdateUrl();
-
-    if (update_url != NULL) {
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-        fprintf(stderr, "AUTO UPDATE: URL to check '%s'.\n", update_url);
-#endif
-        if ((strncmp(update_url, "https://", strlen("https://")) == 0) ||
-            (strncmp(update_url, "http://", strlen("http://")) == 0)) {
-
-            filename_char_t *downloaded_binary = downloadFileSync(update_url);
-
-            if (downloaded_binary != NULL) {
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-                fprintf(stderr, "AUTO UPDATE: Downloaded to '" FILENAME_FORMAT_STR "' .\n", downloaded_binary);
-#endif
-                while (exe_file_updatable == false) {
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-                    fprintf(stderr, "AUTO UPDATE: May not yet update.\n");
-#endif
-                    // Wait for executable to become replaceable.
-#if defined(_WIN32)
-                    Sleep(1000);
-#else
-                    sleep(1);
-#endif
-                }
-
-#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_AUTO_UPDATE
-                fprintf(stderr, "AUTO UPDATE: May update.\n");
-#endif
-                replaceFile(getBinaryPath(), downloaded_binary);
-            }
-        }
-    }
-}
-
-#if defined(_WIN32)
-DWORD WINAPI doAutoUpdateThread(LPVOID lpParam) {
-    _checkAutoUpdates();
-    return 0;
-}
-#else
-#include <pthread.h>
-
-void *doAutoUpdateThread(void *ptr) {
-    _checkAutoUpdates();
-    return NULL;
-}
-
-pthread_t auto_update_thread;
-
-#endif
-
-static void checkAutoUpdates(void) {
-#if defined(_WIN32)
-    CreateThread(NULL, 0, doAutoUpdateThread, NULL, 0, NULL);
-#else
-    pthread_create(&auto_update_thread, NULL, doAutoUpdateThread, NULL);
-#endif
-}
-
+#ifdef _NUITKA_AUTO_UPDATE
+#include "nuitka_onefile_auto_updater.h"
 #endif
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
@@ -1134,23 +686,12 @@ int main(int argc, char **argv) {
 #endif
     NUITKA_PRINT_TIMING("ONEFILE: Entered main().");
 
-#if defined(_WIN32)
-    wchar_t const *pattern = L"" _NUITKA_ONEFILE_TEMP_SPEC;
-    BOOL bool_res = expandTemplatePathW(payload_path, pattern, sizeof(payload_path) / sizeof(wchar_t));
+    filename_char_t const *pattern = FILENAME_EMPTY_STR _NUITKA_ONEFILE_TEMP_SPEC;
+    bool bool_res = expandTemplatePathFilename(payload_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
 
     if (unlikely(bool_res == false)) {
         fatalErrorSpec(pattern);
     }
-
-#else
-    char const *pattern = "" _NUITKA_ONEFILE_TEMP_SPEC;
-    bool bool_res = expandTemplatePath(payload_path, pattern, sizeof(payload_path));
-
-    if (unlikely(bool_res == false)) {
-        fatalErrorSpec(pattern);
-    }
-
-#endif
 
 #if defined(_WIN32)
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
@@ -1162,27 +703,28 @@ int main(int argc, char **argv) {
     signal(SIGINT, ourConsoleCtrlHandler);
 #endif
 
-#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
-    NUITKA_PRINT_TIMING("ONEFILE: Checking for auto update.");
-
+#ifdef _NUITKA_AUTO_UPDATE
     checkAutoUpdates();
 #endif
 
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
 
-    createDirectory(payload_path);
-    payload_created = true;
-
+#if defined(_NUITKA_PAYLOAD_FILE_BASED)
 #if defined(_WIN32)
     exe_file = CreateFileW(getBinaryPath(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (exe_file == INVALID_HANDLE_VALUE) {
+#else
+    exe_file = fopen(getBinaryPath(), "rb");
+    if (exe_file == NULL) {
+#endif
         printError("Error, failed to access unpacked executable.");
         return 1;
     }
 #else
-    exe_file = fopen(getBinaryPath(), "rb");
+    initPayloadData();
 #endif
 
+#if defined(_NUITKA_PAYLOAD_FILE_BASED)
 #if defined(_WIN32)
     /* if an application is signed, the signature is at the end of the file
        where we normally expect the start position of out container.
@@ -1247,6 +789,7 @@ int main(int argc, char **argv) {
         fatalErrorFindAttachedData();
     }
 #endif
+#endif
 
     char header[3];
     readChunk(&header, sizeof(header));
@@ -1256,7 +799,7 @@ int main(int argc, char **argv) {
     }
 
 // The 'X' stands for no compression, 'Y' is compressed, handle that.
-#if _NUITKA_ONEFILE_COMPRESSION == 1
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     if (header[2] != 'Y') {
         fatalErrorFindAttachedData();
     }
@@ -1275,42 +818,23 @@ int main(int argc, char **argv) {
 
     // printf("Entering decompression loop:");
 
+#if _NUITKA_ONEFILE_TEMP_BOOL == 1
+    payload_created = true;
+#endif
+
     for (;;) {
         filename_char_t *filename = readPayloadFilename();
 
-        // printf("Filename: %s\n", filename);
+        // printf("Filename: " FILENAME_FORMAT_STR "\n", filename);
 
         // Detect EOF from empty filename.
         if (filename[0] == 0) {
             break;
         }
 
-        // puts("at:");
-        // _putws(filename);
-
         static filename_char_t target_path[4096] = {0};
         target_path[0] = 0;
 
-        filename_char_t *w = filename;
-
-        while (*w) {
-            if (*w == FILENAME_SEP_CHAR) {
-                *w = 0;
-
-                target_path[0] = 0;
-                appendStringSafeFilename(target_path, payload_path, sizeof(target_path) / sizeof(filename_char_t));
-                appendCharSafeFilename(target_path, FILENAME_SEP_CHAR, sizeof(target_path) / sizeof(filename_char_t));
-                appendStringSafeFilename(target_path, filename, sizeof(target_path) / sizeof(filename_char_t));
-
-                *w = FILENAME_SEP_CHAR;
-
-                createDirectory(target_path);
-            }
-
-            w++;
-        }
-
-        target_path[0] = 0;
         appendStringSafeFilename(target_path, payload_path, sizeof(target_path) / sizeof(filename_char_t));
         appendCharSafeFilename(target_path, FILENAME_SEP_CHAR, sizeof(target_path) / sizeof(filename_char_t));
         appendStringSafeFilename(target_path, filename, sizeof(target_path) / sizeof(filename_char_t));
@@ -1321,13 +845,16 @@ int main(int argc, char **argv) {
 
         // _putws(target_path);
         unsigned long long file_size = readPayloadSizeValue();
+
+#if !defined(_WIN32) && !defined(__MSYS__)
         unsigned char file_flags = readPayloadFileFlagsValue();
+#endif
 
         bool needs_write = true;
 
-#if _NUITKA_ONEFILE_TEMP == 0
+#if _NUITKA_ONEFILE_TEMP_BOOL == 0
         uint32_t contained_file_checksum = readPayloadChecksumValue();
-        uint32_t existing_file_checksum = getFileChecksum(target_path);
+        uint32_t existing_file_checksum = getFileCRC32(target_path);
 
         if (contained_file_checksum == existing_file_checksum) {
             needs_write = false;
@@ -1345,7 +872,8 @@ int main(int argc, char **argv) {
         FILE_HANDLE target_file = FILE_HANDLE_NULL;
 
         if (needs_write) {
-            target_file = createFileForWriting(target_path);
+            createContainingDirectory(target_path);
+            target_file = createFileForWritingChecked(target_path);
         }
 
         while (file_size > 0) {
@@ -1365,7 +893,9 @@ int main(int argc, char **argv) {
             readPayloadChunk(chunk, chunk_size);
 
             if (target_file != FILE_HANDLE_NULL) {
-                writeToFile(target_file, chunk, chunk_size);
+                if (writeFileChunk(target_file, chunk, chunk_size) == false) {
+                    fatalErrorTempFiles();
+                }
             }
 
             file_size -= chunk_size;
@@ -1375,7 +905,7 @@ int main(int argc, char **argv) {
             fatalErrorReadAttachedData();
         }
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__MSYS__)
         if ((file_flags & 1) && (target_file != FILE_HANDLE_NULL)) {
             int fd = fileno(target_file);
 
@@ -1407,17 +937,21 @@ int main(int argc, char **argv) {
 #endif
 
         if (target_file != FILE_HANDLE_NULL) {
-            closeFile(target_file);
+            if (closeFile(target_file) == false) {
+                fatalErrorTempFiles();
+            }
         }
     }
 
+#if defined(_NUITKA_PAYLOAD_FILE_BASED)
     closeFile(exe_file);
+#endif
 
-#if _NUITKA_ONEFILE_AUTO_UPDATE == 1
+#ifdef _NUITKA_AUTO_UPDATE
     exe_file_updatable = true;
 #endif
 
-#if _NUITKA_ONEFILE_COMPRESSION == 1
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     releaseZSTD();
 #endif
 

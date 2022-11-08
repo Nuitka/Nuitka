@@ -19,7 +19,10 @@
 
 """
 
-from nuitka.Options import getMacOSSigningIdentity, isExperimental
+from nuitka.Options import (
+    getMacOSSigningIdentity,
+    shallUseSigningForNotarization,
+)
 from nuitka.Tracing import postprocessing_logger
 
 from .Execution import executeToolChecked
@@ -41,7 +44,7 @@ def _filterCodesignErrorOutput(stderr):
     if b"errSecInternalComponent" in stderr:
         postprocessing_logger.sysexit(
             """\
-Access to the certificate is now allowed. Please allow all items or with
+Access to the certificate is not allowed. Please allow all items or with
 GUI, enable prompting for the certificate in KeyChain Access."""
         )
 
@@ -49,10 +52,10 @@ GUI, enable prompting for the certificate in KeyChain Access."""
 
 
 def addMacOSCodeSignature(filenames):
-    """Remove the code signature from a filename.
+    """Add the code signature to filenames.
 
     Args:
-        filenames - The files to be signed.
+        filenames - The filenames to be signed.
 
     Returns:
         None
@@ -74,9 +77,7 @@ def addMacOSCodeSignature(filenames):
         # ,
     ]
 
-    # TODO: This appears to be useful, but apparently doesn't work for all
-    # flavors of Python, so it cannot be the default.
-    if isExperimental("macos-sign-runtime"):
+    if shallUseSigningForNotarization():
         command.append("--options=runtime")
 
     assert type(filenames) is not str

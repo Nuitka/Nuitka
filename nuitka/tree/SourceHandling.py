@@ -40,10 +40,7 @@ _fstrings_installed = False
 
 
 def _installFutureFStrings():
-    """Install fake UTF8 handle just as future-fstrings does.
-
-    This unbreaks at least
-    """
+    """Install fake UTF8 handle just as future-fstrings does."""
 
     # Singleton, pylint: disable=global-statement
     global _fstrings_installed
@@ -157,39 +154,52 @@ see http://python.org/dev/peps/pep-0263/ for details"""
     return source_code
 
 
-def readSourceCodeFromFilename(module_name, source_filename):
+def getSourceCodeDiff(source_code, source_code_modified):
+    import difflib
+
+    diff = difflib.unified_diff(
+        source_code.splitlines(),
+        source_code_modified.splitlines(),
+        "original",
+        "modified",
+        "",
+        "",
+        n=3,
+    )
+
+    return list(diff)
+
+
+def readSourceCodeFromFilenameWithInformation(module_name, source_filename):
     if python_version < 0x300:
         source_code = _readSourceCodeFromFilename2(source_filename)
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)
 
-    # Allow plugins to mess with source code. Test code calls this
-    # without a module and doesn't want changes from plugins.
+    # Allow plugins to mess with source code. Test code calls this without a
+    # module and doesn't want any changes from plugins in that case.
     if module_name is not None:
-        source_code_modified = Plugins.onModuleSourceCode(module_name, source_code)
+        source_code_modified, contributing_plugins = Plugins.onModuleSourceCode(
+            module_name=module_name, source_code=source_code
+        )
     else:
         source_code_modified = source_code
+        contributing_plugins = ()
 
     if Options.shallShowSourceModifications() and source_code_modified != source_code:
-        import difflib
+        source_diff = getSourceCodeDiff(source_code, source_code_modified)
 
-        diff = difflib.unified_diff(
-            source_code.splitlines(),
-            source_code_modified.splitlines(),
-            "original",
-            "modified",
-            "",
-            "",
-            n=3,
-        )
-
-        result = list(diff)
-
-        if result:
-            for line in result:
+        if source_diff:
+            for line in source_diff:
                 my_print(line, end="\n" if not line.startswith("---") else "")
 
-    return source_code_modified
+    return source_code_modified, source_code, contributing_plugins
+
+
+def readSourceCodeFromFilename(module_name, source_filename):
+    return readSourceCodeFromFilenameWithInformation(
+        module_name=module_name, source_filename=source_filename
+    )[0]
 
 
 def checkPythonVersionFromCode(source_code):
