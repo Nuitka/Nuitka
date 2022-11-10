@@ -303,7 +303,7 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
 
     if scons_python is not None and not os.path.isfile(scons_python):
         Tracing.options_logger.sysexit(
-            "Error, no such Python binary %r, should be full path." % scons_python
+            "Error, no such Python binary '%s', should be full path." % scons_python
         )
 
     output_filename = getOutputFilename()
@@ -365,7 +365,7 @@ it before using it: '%s' (from --output-filename='%s')."""
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
         Tracing.options_logger.sysexit(
-            "Error, icon path %r does not exist." % icon_exe_path
+            "Error, icon path '%s' does not exist." % icon_exe_path
         )
 
     if isMacOS() and not shallCreateAppBundle() and shallDisableConsoleWindow():
@@ -413,7 +413,9 @@ it before using it: '%s' (from --output-filename='%s')."""
             )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
-        Tracing.options_logger.sysexit("Error, unsupported OS for onefile %r" % getOS())
+        Tracing.options_logger.sysexit(
+            "Error, unsupported OS for onefile '%s'." % getOS()
+        )
 
     if options.follow_none and options.follow_all:
         Tracing.options_logger.sysexit(
@@ -427,7 +429,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "\\" in module_pattern
         ):
             Tracing.options_logger.sysexit(
-                "Error, '--include-package-data' needs module name or pattern as an argument, not %r."
+                "Error, '--include-package-data' needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
 
@@ -438,7 +440,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "\\" in module_pattern
         ):
             Tracing.options_logger.sysexit(
-                "Error, '--follow-import-to' options needs module name or pattern as an argument, not %r."
+                "Error, '--follow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
     for module_pattern in getShallFollowInNoCase():
@@ -448,7 +450,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "\\" in module_pattern
         ):
             Tracing.options_logger.sysexit(
-                "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not %r."
+                "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
 
@@ -494,20 +496,20 @@ it before using it: '%s' (from --output-filename='%s')."""
 
         if os.path.isabs(dst):
             Tracing.options_logger.sysexit(
-                "Error, must specify relative target path for data dir, not %r as in %r."
+                "Error, must specify relative target path for data dir, not '%s' as in '%s'."
                 % (dst, data_dir)
             )
 
         if not os.path.isdir(src):
             Tracing.options_logger.sysexit(
-                "Error, must specify existing source data directory, not %r as in %r."
+                "Error, must specify existing source data directory, not '%s' as in '%s'."
                 % (dst, data_dir)
             )
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
             Tracing.options_logger.sysexit(
-                "Error, pattern %r given to '--include-plugin-files' cannot be a directory name."
+                "Error, pattern '%s' given to '--include-plugin-files' cannot be a directory name."
                 % pattern
             )
 
@@ -633,7 +635,7 @@ def commentArgs():
             x.isdigit() for x in getMsvcVersion().split(".")
         ):
             Tracing.options_logger.sysexit(
-                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not %r."
+                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
                 % getMsvcVersion()
             )
 
@@ -1595,7 +1597,9 @@ def _getPythonFlags():
                 elif part in ("-m", "package_mode"):
                     _python_flags.add("package_mode")
                 else:
-                    Tracing.options_logger.sysexit("Unsupported python flag %r." % part)
+                    Tracing.options_logger.sysexit(
+                        "Unsupported python flag '%s'." % part
+                    )
 
     return _python_flags
 
