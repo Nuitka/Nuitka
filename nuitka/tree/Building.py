@@ -58,7 +58,7 @@ from nuitka import (
     SourceCodeReferences,
 )
 from nuitka.__past__ import long, unicode
-from nuitka.Caching import (
+from nuitka.BytecodeCaching import (
     getCachedImportedModulesNames,
     hasCachedImportedModulesNames,
 )

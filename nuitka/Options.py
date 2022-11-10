@@ -185,6 +185,14 @@ def parseArgs():
     if hasattr(options, "experimental"):
         _experimental.update(options.experimental)
 
+    # Dedicated option for caches, ccache and bytecode
+    if options.disable_ccache:
+        options.disabled_caches.append("ccache")
+    if options.disable_bytecode_cache:
+        options.disabled_caches.append("bytecode")
+    if getattr(options, "disable_dll_dependency_cache", False):
+        options.disabled_caches.append("dll-dependencies")
+
     # TODO: Have dedicated option for it.
     is_report_missing = is_debug
 
@@ -226,6 +234,14 @@ def parseArgs():
     is_verbose = options.verbose
 
     Tracing.optimization_logger.is_quiet = not options.verbose
+
+    if options.clean_caches:
+        from nuitka.CacheCleanup import cleanCaches
+
+        cleanCaches()
+
+        if not positional_args:
+            sys.exit(0)
 
     if options.show_inclusion_output:
         Tracing.inclusion_logger.setFileHandle(
@@ -1230,14 +1246,27 @@ def getMsvcVersion():
         return None
 
 
+def shallCleanCache(cache_name):
+    """:returns: bool derived from ``--clean-cache``"""
+    return "all" in options.clean_caches or cache_name in options.clean_caches
+
+
+def shallDisableCacheUsage(cache_name):
+    """:returns: bool derived from ``--disable-cache``"""
+    if options is None:
+        return False
+
+    return "all" in options.disabled_caches or cache_name in options.disabled_caches
+
+
 def shallDisableCCacheUsage():
-    """:returns: bool derived from ``--disable-ccache``"""
-    return options.disable_ccache
+    """:returns: bool derived from ``--disable-ccache`` or ``--disable--cache=ccache``"""
+    return shallDisableCacheUsage("ccache")
 
 
 def shallDisableBytecodeCacheUsage():
     """:returns: bool derived from ``--disable-bytecode-cache``"""
-    return options.disable_bytecode_cache
+    return shallDisableCacheUsage("bytecode")
 
 
 def shallDisableConsoleWindow():
@@ -1672,7 +1701,7 @@ def shallNotUseDependsExeCachedResults():
 
 def shallNotStoreDependsExeCachedResults():
     """:returns: bool derived from ``--disable-dll-dependency-cache``"""
-    return getattr(options, "no_dependency_cache", False)
+    return shallDisableCacheUsage("dll-dependencies")
 
 
 def getPluginNameConsideringRenames(plugin_name):
