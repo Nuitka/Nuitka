@@ -101,12 +101,12 @@ def _runOnefileScons(quiet, onefile_compression):
         onefile_logger.sysexit("Error, onefile bootstrap binary build failed.")
 
     if Options.isRemoveBuildDir():
-        onefile_logger.info("Removing onefile build directory %r." % source_dir)
+        onefile_logger.info("Removing onefile build directory '%s'." % source_dir)
 
         removeDirectory(path=source_dir, ignore_errors=False)
         assert not os.path.exists(source_dir)
     else:
-        onefile_logger.info("Keeping onefile build directory %r." % source_dir)
+        onefile_logger.info("Keeping onefile build directory '%s'." % source_dir)
 
 
 def getCompressorPython():
