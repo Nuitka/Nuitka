@@ -300,6 +300,12 @@
         - '.IN.A'
         - '.CH.A'
 
+- module-name: 'dotenv.main'
+  anti-bloat:
+    - description: 'workaround to avoid dotenv requiring package directories'
+      replacements_plain:
+        "raise IOError('Starting path not found')": 'pass'
+
 - module-name: 'echopype.echodata.convention'
   data-files:
     patterns:
