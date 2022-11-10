@@ -53,6 +53,7 @@ from nuitka.utils.Utils import (
     isLinux,
     isPosixWindows,
     isWin32OrPosixWindows,
+    isWin32Windows,
     withNoSyntaxWarning,
 )
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
@@ -591,16 +592,6 @@ to empty.""",
 )
 
 compilation_group.add_option(
-    "--disable-bytecode-cache",
-    action="store_true",
-    dest="disable_bytecode_cache",
-    default=False,
-    help="""\
-Do not reuse dependency analysis results for modules, esp. from standard library,
-that are included as bytecode.""",
-)
-
-compilation_group.add_option(
     "--full-compat",
     action="store_false",
     dest="improved",
@@ -814,30 +805,6 @@ options that use less memory. For use on embedded machines. Use this in
 case of out of memory problems. Defaults to off.""",
 )
 
-if os.name == "nt":
-    debug_group.add_option(
-        "--disable-dll-dependency-cache",
-        action="store_true",
-        dest="no_dependency_cache",
-        default=False,
-        help="""\
-Disable the dependency walker cache. Will result in much longer times to create
-the distribution folder, but might be used in case the cache is suspect to cause
-errors.
-""",
-    )
-
-    debug_group.add_option(
-        "--force-dll-dependency-cache-update",
-        action="store_true",
-        dest="update_dependency_cache",
-        default=False,
-        help="""\
-For an update of the dependency walker cache. Will result in much longer times
-to create the distribution folder, but might be used in case the cache is suspect
-to cause errors or known to need an update.
-""",
-    )
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -925,7 +892,23 @@ Use static link library of Python. Allowed values are "yes", "no",
 and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
-c_compiler_group.add_option(
+
+parser.add_option_group(c_compiler_group)
+
+caching_group = OptionGroup(parser, "Cache Control")
+
+
+caching_group.add_option(
+    "--disable-bytecode-cache",
+    action="store_true",
+    dest="disable_bytecode_cache",
+    default=False,
+    help="""\
+Do not reuse dependency analysis results for modules, esp. from standard library,
+that are included as bytecode.""",
+)
+
+caching_group.add_option(
     "--disable-ccache",
     action="store_true",
     dest="disable_ccache",
@@ -934,8 +917,65 @@ c_compiler_group.add_option(
 Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).""",
 )
 
-parser.add_option_group(c_compiler_group)
+if isWin32Windows():
+    caching_group.add_option(
+        "--disable-dll-dependency-cache",
+        action="store_true",
+        dest="disable_dll_dependency_cache",
+        default=False,
+        help="""\
+Disable the dependency walker cache. Will result in much longer times to create
+the distribution folder, but might be used in case the cache is suspect to cause
+errors.
+""",
+    )
 
+    caching_group.add_option(
+        "--force-dll-dependency-cache-update",
+        action="store_true",
+        dest="update_dependency_cache",
+        default=False,
+        help="""\
+For an update of the dependency walker cache. Will result in much longer times
+to create the distribution folder, but might be used in case the cache is suspect
+to cause errors or known to need an update.
+""",
+    )
+
+
+_cache_names = ("all", "ccache", "bytecode")
+
+if isWin32Windows():
+    _cache_names += ("dll-dependencies",)
+
+caching_group.add_option(
+    "--disable-cache",
+    action="append",
+    dest="disabled_caches",
+    choices=_cache_names,
+    default=[],
+    help="""\
+Disable selected caches, specify "all" for all cached. Currently allowed
+values are: %s. can be given multiple times or with comma separated values.
+Default none."""
+    % (",".join('"%s"' % cache_name for cache_name in _cache_names)),
+)
+
+caching_group.add_option(
+    "--clean-cache",
+    action="append",
+    dest="clean_caches",
+    choices=_cache_names,
+    default=[],
+    help="""\
+Clean the given caches before executing, specify "all" for all cached. Currently
+allowed values are: %s. can be given multiple times or with comma separated
+values. Default none."""
+    % (",".join('"%s"' % cache_name for cache_name in _cache_names)),
+)
+
+
+parser.add_option_group(caching_group)
 
 pgo_group = OptionGroup(parser, "PGO compilation choices")
 
@@ -1714,7 +1754,7 @@ def parseOptions(logger):
         listPlugins()
         sys.exit(0)
 
-    if not positional_args:
+    if not positional_args and not options.clean_caches:
         parser.print_help()
 
         logger.sysexit(

@@ -34,14 +34,13 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.Version import version_string
 
 
-def _getCacheDir():
+def getBytecodeCacheDir():
     module_cache_dir = os.path.join(getCacheDir(), "module-cache")
-    makePath(module_cache_dir)
     return module_cache_dir
 
 
 def _getCacheFilename(module_name, extension):
-    return os.path.join(_getCacheDir(), "%s.%s" % (module_name, extension))
+    return os.path.join(getCacheDir(), "%s.%s" % (module_name, extension))
 
 
 def makeCacheName(module_name, source_code):
@@ -104,6 +103,7 @@ def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
         ),
     }
 
+    makePath(os.path.dirname(cache_filename))
     writeJsonToFilename(filename=cache_filename, contents=data)
 
 

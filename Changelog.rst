@@ -10,6 +10,22 @@ Nuitka blog.
  Nuitka Release 1.3 (Draft)
 ****************************
 
+New Features
+============
+
+-  UI: Added new option for cache disabling ``--disable-cache`` that
+   accepts ``all`` and cache names like ``ccache``, ``bytecode`` and on
+   Windows, ``dll-dependencies`` with selective values.
+
+   .. note::
+
+      The ``clcache`` is implied in ``ccache`` for simplicity.
+
+-  UI: With the same values as ``--disable-cache`` Nuitka may now be
+   called with ``--clean-cache`` in a compilation or without a filename
+   argument, and then it will erase those caches current data before
+   making a compilation.
+
 This release is not done yet.
 
 ********************
