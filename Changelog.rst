@@ -10,6 +10,23 @@ Nuitka blog.
  Nuitka Release 1.3 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Standalone: Added workaround for ``dotenv``. Do not insist on
+   compiled package directories that may not be there in case of no data
+   files. Fixed in 1.2.1 already.
+
+-  Python3.8+: Fix, the ``ctypes.CDLL`` node attributes the ``winmode``
+   argument to Python2, which is wrong, it was actually added with 3.8.
+   Fixed in 1.2.1 already.
+
+-  Windows: Attempt to detect corrupt object file in MSVC linking. These
+   might be produced by ``cl.exe`` crashes or ``clcache`` bugs. When
+   these are reported by the linker, it now suggests to use the
+   ``--clean-cache=ccache`` which will remove it, otherwise there would
+   be no way to cure it. Added in 1.2.1 already.
+
 New Features
 ============
 
