@@ -24,7 +24,11 @@ import re
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
-from nuitka.utils.FileOperations import openTextFile, putTextFileContents
+from nuitka.utils.FileOperations import (
+    getReportPath,
+    openTextFile,
+    putTextFileContents,
+)
 from nuitka.utils.Utils import isFedoraBasedLinux, isMacOS, isWin32Windows
 
 from .SconsHacks import myDetectVersion
@@ -485,7 +489,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if not env.c11_mode:
             env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
 
-        if isWin32Windows():
+        if isWin32Windows() and hasattr(env, "source_dir"):
             # On Windows, exporting to DLL need to be controlled.
             env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
 
@@ -800,7 +804,7 @@ version (>= 5.3)."""
             )
 
 
-def reportCCompiler(env, context):
+def reportCCompiler(env, context, output_func):
     cc_output = env.the_cc_name
 
     if env.the_cc_name == "cl":
@@ -808,6 +812,7 @@ def reportCCompiler(env, context):
     else:
         cc_output = env.the_cc_name
 
-    scons_logger.info(
-        "%s C compiler: %s (%s)." % (context, env.the_compiler, cc_output)
+    output_func(
+        "%s C compiler: %s (%s)."
+        % (context, getReportPath(env.the_compiler), cc_output)
     )

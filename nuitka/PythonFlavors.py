@@ -32,6 +32,7 @@ from nuitka.utils.Utils import (
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
+    isPosixWindows,
     isWin32Windows,
     withNoDeprecationWarning,
 )
@@ -204,3 +205,33 @@ def isCPythonOfficialPackage():
         return True
 
     return False
+
+
+def getPythonFlavorName():
+    """For output to the user only."""
+    # return driven, pylint: disable=too-many-return-statements
+
+    if isNuitkaPython():
+        return "Nuitka Python"
+    elif isAnacondaPython():
+        return "Anaconda Python"
+    elif isWinPython():
+        return "WinPython"
+    elif isDebianPackagePython():
+        return "Debian Python"
+    elif isFedoraPackagePython():
+        return "Fedora Python"
+    elif isHomebrewPython():
+        return "Homebrew Python"
+    elif isApplePython():
+        return "Apple Python"
+    elif isPyenvPython():
+        return "pyenv"
+    elif isPosixWindows():
+        return "MSYS2 Posix"
+    elif isMSYS2MingwPython():
+        return "MSYS2 MinGW"
+    elif isCPythonOfficialPackage():
+        return "CPython Official"
+    else:
+        return "Unknown"

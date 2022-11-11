@@ -66,7 +66,6 @@ from nuitka.PythonFlavors import (
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
-    getSystemPrefixPath,
     python_version,
     python_version_str,
 )
@@ -81,7 +80,6 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     deleteFile,
-    getDirectoryRealPath,
     getExternalUsePath,
     openTextFile,
     removeDirectory,
@@ -91,7 +89,7 @@ from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories
@@ -540,7 +538,7 @@ def _runPythonPgoBinary():
     return pgo_filename
 
 
-def runSconsBackend(quiet):
+def runSconsBackend():
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
@@ -556,8 +554,6 @@ def runSconsBackend(quiet):
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
-        "target_arch": getArchitecture(),
-        "python_prefix": getDirectoryRealPath(getSystemPrefixPath()),
         "nuitka_src": getSconsDataPath(),
         "module_count": "%d"
         % (
@@ -676,7 +672,6 @@ def runSconsBackend(quiet):
 
         result = runScons(
             options=options,
-            quiet=quiet,
             env_values=env_values,
             scons_filename="Backend.scons",
         )
@@ -700,7 +695,6 @@ def runSconsBackend(quiet):
 
             result = runScons(
                 options=options,
-                quiet=quiet,
                 env_values=env_values,
                 scons_filename="Backend.scons",
             )
@@ -716,7 +710,6 @@ def runSconsBackend(quiet):
     result = (
         runScons(
             options=options,
-            quiet=quiet,
             env_values=env_values,
             scons_filename="Backend.scons",
         ),
@@ -854,7 +847,7 @@ def compileTree():
     general.info("Running C compilation via Scons.")
 
     # Run the Scons to build things.
-    result, options = runSconsBackend(quiet=not Options.isShowScons())
+    result, options = runSconsBackend()
 
     return result, options
 

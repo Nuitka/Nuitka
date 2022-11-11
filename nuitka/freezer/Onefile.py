@@ -41,7 +41,7 @@ from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import areSamePaths, removeDirectory
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Signing import addMacOSCodeSignature
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 
 
 def packDistFolderToOnefile(dist_dir):
@@ -54,7 +54,7 @@ def packDistFolderToOnefile(dist_dir):
     Plugins.onOnefileFinished(onefile_output_filename)
 
 
-def _runOnefileScons(quiet, onefile_compression):
+def _runOnefileScons(onefile_compression):
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
 
     # Let plugins do their thing for onefile mode too.
@@ -67,17 +67,12 @@ def _runOnefileScons(quiet, onefile_compression):
         "debug_mode": asBoolStr(Options.is_debug),
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
-        "target_arch": getArchitecture(),
-        "python_prefix": sys.prefix,
         "nuitka_src": getSconsDataPath(),
         "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
         "onefile_splash_screen": asBoolStr(
             Options.getWindowsSplashScreen() is not None
         ),
     }
-
-    if Options.isClang():
-        options["clang_mode"] = "true"
 
     env_values = setCommonSconsOptions(options)
 
@@ -91,7 +86,6 @@ def _runOnefileScons(quiet, onefile_compression):
 
     result = runScons(
         options=options,
-        quiet=quiet,
         env_values=env_values,
         scons_filename="Onefile.scons",
     )
@@ -210,7 +204,6 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
     # Create the bootstrap binary for unpacking.
     _runOnefileScons(
-        quiet=not Options.isShowScons(),
         onefile_compression=compressor_python is not None,
     )
 

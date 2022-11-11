@@ -254,7 +254,7 @@ python_prefix = getArgumentRequired("python_prefix")
 # Forced MSVC version (windows-only)
 msvc_version = getArgumentDefaulted("msvc_version", None)
 
-# Disable ccache usage if requested
+# Disable ccache/clcache usage if that is requested
 disable_ccache = getArgumentBool("disable_ccache", False)
 
 no_python_warnings = getArgumentBool("no_python_warnings", False)
@@ -291,10 +291,6 @@ cpp_defines = getArgumentList("cpp_defines", "")
 cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
-
-# Mode to only output compiler information, for use in "nuitka --version"
-# only.
-compiler_version_mode = getArgumentBool("compiler_version", False)
 
 # Allow automatic downloads for ccache, etc.
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
@@ -428,7 +424,7 @@ if show_scons_mode:
 setupScons(env, source_dir)
 
 # Report the C compiler used.
-reportCCompiler(env, "Backend")
+reportCCompiler(env, "Backend", scons_logger.info)
 
 # Set up C compiler settings.
 setupCCompiler(
@@ -712,7 +708,7 @@ if win_target:
             env.Append(LIBPATH=[win_lib_path])
             env.Append(LIBS=[win_lib_name])
 
-        if not msys2_mingw_python:
+        if not env.msys2_mingw_python:
             addWinLib()
 elif not module_mode:
     # Add the python library path to the library path
