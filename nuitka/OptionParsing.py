@@ -32,18 +32,7 @@ import re
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.PythonFlavors import (
-    isAnacondaPython,
-    isApplePython,
-    isCPythonOfficialPackage,
-    isDebianPackagePython,
-    isFedoraPackagePython,
-    isHomebrewPython,
-    isMSYS2MingwPython,
-    isNuitkaPython,
-    isPyenvPython,
-    isWinPython,
-)
+from nuitka.PythonFlavors import getPythonFlavorName
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -51,7 +40,6 @@ from nuitka.utils.Utils import (
     getOS,
     getWindowsRelease,
     isLinux,
-    isPosixWindows,
     isWin32OrPosixWindows,
     isWin32Windows,
     withNoSyntaxWarning,
@@ -66,62 +54,6 @@ if not is_nuitka_run:
     usage = "usage: %prog [--module] [--run] [options] main_module.py"
 else:
     usage = "usage: %prog [options] main_module.py"
-
-
-def _getPythonFlavor():
-    # return driven, pylint: disable=too-many-return-statements
-
-    if isNuitkaPython():
-        return "Nuitka Python"
-    elif isAnacondaPython():
-        return "Anaconda Python"
-    elif isWinPython():
-        return "WinPython"
-    elif isDebianPackagePython():
-        return "Debian Python"
-    elif isFedoraPackagePython():
-        return "Fedora Python"
-    elif isHomebrewPython():
-        return "Homebrew Python"
-    elif isApplePython():
-        return "Apple Python"
-    elif isPyenvPython():
-        return "pyenv"
-    elif isPosixWindows():
-        return "MSYS2 Posix"
-    elif isMSYS2MingwPython():
-        return "MSYS2 MinGW"
-    elif isCPythonOfficialPackage():
-        return "CPython Official"
-    else:
-        return "Unknown"
-
-
-def _getVersionInformationValues():
-    # TODO: Might be nice if we could delay version information computation
-    # until it's actually used.
-    yield getNuitkaVersion()
-    yield "Commercial: %s" % getCommercialVersion()
-    yield "Python: %s" % sys.version.split("\n", 1)[0]
-    yield "Flavor: %s" % _getPythonFlavor()
-    yield "Executable: %s" % sys.executable
-    yield "OS: %s" % getOS()
-    yield "Arch: %s" % getArchitecture()
-
-    if isLinux():
-        dist_name, dist_base, dist_version = getLinuxDistribution()
-
-        if dist_base is not None:
-            yield "Distribution: %s (based on %s) %s" % (
-                dist_name,
-                dist_base,
-                dist_version,
-            )
-        else:
-            yield "Distribution: %s %s" % (dist_name, dist_version)
-
-    if isWin32OrPosixWindows():
-        yield "WindowsRelease: %s" % getWindowsRelease()
 
 
 class OurOptionParser(OptionParser):
@@ -142,7 +74,15 @@ class OurOptionParser(OptionParser):
 
 parser = OurOptionParser(
     usage=usage,
-    version="\n".join(_getVersionInformationValues()),
+)
+
+parser.add_option(
+    "--version",
+    dest="version",
+    action="store_true",
+    default=False,
+    help="""\
+Show version information and important details for bug reports, then exit. Defaults to off.""",
 )
 
 parser.add_option(
@@ -1572,7 +1512,7 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     values = {
         "OS": wrap(getOS()),
         "Arch": wrap(getArchitecture()),
-        "Flavor": wrap(_getPythonFlavor()),
+        "Flavor": wrap(getPythonFlavorName()),
         "Version": getNuitkaVersion(),
         "Commercial": wrap(getCommercialVersion()),
         "MAIN_DIRECTORY": wrap(os.path.dirname(filename_arg) or "."),
@@ -1754,7 +1694,7 @@ def parseOptions(logger):
         listPlugins()
         sys.exit(0)
 
-    if not positional_args and not options.clean_caches:
+    if not positional_args and not options.clean_caches and not options.version:
         parser.print_help()
 
         logger.sysexit(

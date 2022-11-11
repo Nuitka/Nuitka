@@ -33,13 +33,15 @@ import sys
 
 from nuitka import Progress, Tracing
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.OptionParsing import isPyenvPython, parseOptions
+from nuitka.OptionParsing import parseOptions
 from nuitka.PythonFlavors import (
+    getPythonFlavorName,
     isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
     isMSYS2MingwPython,
     isNuitkaPython,
+    isPyenvPython,
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
@@ -59,7 +61,9 @@ from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
+    getLinuxDistribution,
     getOS,
+    getWindowsRelease,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
     isDebianBasedLinux,
@@ -70,7 +74,7 @@ from nuitka.utils.Utils import (
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.Version import getNuitkaVersion
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 options = None
 positional_args = None
@@ -154,6 +158,52 @@ very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
         )
 
 
+def _getVersionInformationValues():
+    # TODO: Might be nice if we could delay version information computation
+    # until it's actually used.
+    yield getNuitkaVersion()
+    yield "Commercial: %s" % getCommercialVersion()
+    yield "Python: %s" % sys.version.split("\n", 1)[0]
+    yield "Flavor: %s" % getPythonFlavorName()
+    yield "Executable: %s" % sys.executable
+    yield "OS: %s" % getOS()
+    yield "Arch: %s" % getArchitecture()
+
+    if isLinux():
+        dist_name, dist_base, dist_version = getLinuxDistribution()
+
+        if dist_base is not None:
+            yield "Distribution: %s (based on %s) %s" % (
+                dist_name,
+                dist_base,
+                dist_version,
+            )
+        else:
+            yield "Distribution: %s %s" % (dist_name, dist_version)
+
+    if isWin32OrPosixWindows():
+        yield "WindowsRelease: %s" % getWindowsRelease()
+
+
+def printVersionInformation():
+    print("\n".join(_getVersionInformationValues()))
+
+    from nuitka.build.SconsInterface import (
+        asBoolStr,
+        runScons,
+        setCommonSconsOptions,
+    )
+
+    scons_options = {"compiler_version_mode": asBoolStr("true")}
+    env_values = setCommonSconsOptions(options=scons_options)
+
+    runScons(
+        options=scons_options,
+        env_values=env_values,
+        scons_filename="CCompilerVersion.scons",
+    )
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -234,6 +284,10 @@ def parseArgs():
     is_verbose = options.verbose
 
     Tracing.optimization_logger.is_quiet = not options.verbose
+
+    if options.version:
+        printVersionInformation()
+        sys.exit(0)
 
     if options.clean_caches:
         from nuitka.CacheCleanup import cleanCaches
@@ -1248,6 +1302,10 @@ def getMsvcVersion():
 
 def shallCleanCache(cache_name):
     """:returns: bool derived from ``--clean-cache``"""
+
+    if cache_name == "clcache":
+        cache_name = "ccache"
+
     return "all" in options.clean_caches or cache_name in options.clean_caches
 
 

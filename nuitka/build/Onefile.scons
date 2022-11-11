@@ -18,12 +18,12 @@
 #
 
 """
-The Onefile scons file for Windows, check out Backend.scons for where the
-actual compiled binaries are build. If you have Scons or Windows platform
-knowledge, please be especially invited and contribute improvements.
+The Onefile scons file for the bootstrap binary, check out Backend.scons for
+where the actual compiled binaries are build. If you have Scons or Windows
+platform knowledge, please be especially invited and contribute improvements.
 
-This file is used to build a bootstrap binary that only unpacks the Python
-DLL and other data files needed, to have a onefile solution for Windows.
+This file is used to build a bootstrap binary that only unpacks the distribution
+contents to have a launch it.
 """
 
 # Make nuitka package importable from calling installation
@@ -48,7 +48,12 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_details_logger, setQuiet
+from nuitka.Tracing import (
+    my_print,
+    scons_details_logger,
+    scons_logger,
+    setQuiet,
+)
 from nuitka.utils.Utils import isMacOS
 
 from .SconsCaching import enableCcache, enableClcache
@@ -178,7 +183,7 @@ python_prefix = getArgumentRequired("python_prefix")
 # Forced MSVC version (windows-only)
 msvc_version = getArgumentDefaulted("msvc_version", None)
 
-# Disable ccache usage if requested
+# Disable ccache/clcache usage if that is requested
 disable_ccache = getArgumentBool("disable_ccache", False)
 
 # Preprocessor defines and link libraries from plugins
@@ -186,10 +191,6 @@ cpp_defines = getArgumentList("cpp_defines", "")
 cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
-
-# Mode to only output compiler information, for use in "nuitka --version"
-# only.
-compiler_version_mode = getArgumentBool("compiler_version", False)
 
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
@@ -207,12 +208,6 @@ anaconda_python = getArgumentBool("anaconda_python", False)
 
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
-
-
-def printCompilerVersionOutput(*args):
-    if compiler_version_mode or show_scons_mode:
-        my_print("Scons:", *args)
-
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
@@ -341,7 +336,7 @@ if show_scons_mode:
 setupScons(env, source_dir)
 
 # Report the C compiler used.
-reportCCompiler(env, "Onefile")
+reportCCompiler(env, "Onefile", output_func=scons_logger.info)
 
 
 # Set up C compiler settings.
