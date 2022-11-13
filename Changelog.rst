@@ -43,6 +43,20 @@ New Features
    argument, and then it will erase those caches current data before
    making a compilation.
 
+Organisational
+==============
+
+-  UI: Enhanced ``--version`` output to include the C compiler
+   selection. It is doing that respecting your other options, e.g.
+   ``--clang``, etc. so it will be helpful in debugging setup issues.
+
+Cleanups
+========
+
+-  When adding the new Scons file for C compiler version output, more
+   values that are needed for both onefile and backend compilation were
+   moved to centralized code, simplifying these somewhat again.
+
 This release is not done yet.
 
 ********************
