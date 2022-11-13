@@ -34,10 +34,6 @@
 #define _PyList_ITEMS(op) (((PyListObject *)(op))->ob_item)
 #endif
 
-#ifndef Py_SET_SIZE
-#define Py_SET_SIZE(op, size) ((PyVarObject *)(op))->ob_size = size
-#endif
-
 PyObject *LIST_COPY(PyObject *list) {
     CHECK_OBJECT(list);
     assert(PyList_CheckExact(list));
@@ -62,7 +58,7 @@ static bool LIST_RESIZE(PyListObject *list, Py_ssize_t newsize) {
     Py_ssize_t allocated = list->allocated;
 
     if (allocated >= newsize && newsize >= (allocated >> 1)) {
-        Py_SIZE(list) = newsize;
+        Py_SET_SIZE(list, newsize);
 
         return true;
     }
@@ -84,7 +80,7 @@ static bool LIST_RESIZE(PyListObject *list, Py_ssize_t newsize) {
     }
 
     list->ob_item = items;
-    Py_SIZE(list) = newsize;
+    Py_SET_SIZE(list, newsize);
     list->allocated = new_allocated;
 
     return true;
