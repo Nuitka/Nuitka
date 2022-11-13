@@ -417,6 +417,11 @@
         - 'jinja2.ext.autoescape'
         - 'jinja2.ext.with_'
 
+- module-name: 'folium'
+  data-files:
+    dirs:
+      - 'templates'
+
 - module-name: 'frozendict'
   data-files:
     patterns:
