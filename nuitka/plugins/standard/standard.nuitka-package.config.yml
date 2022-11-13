@@ -113,6 +113,13 @@
     patterns:
       - 'cacert.pem'
 
+- module-name: 'branca'
+  data-files:
+    dirs:
+      - 'templates'
+    patterns:
+      - '*.json'
+
 - module-name: 'brotli._brotli'
   implicit-imports:
     - depends:
