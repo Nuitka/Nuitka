@@ -2,7 +2,7 @@ Source: nuitka
 Maintainer: Kay Hayen <kay.hayen@gmail.com>
 Section: python
 Priority: optional
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper (>= 10),
                lsb-release,
                dh-python | base-files (<< 9.6),
                base-files (>= 11) | python (>= 2.6.6-2),
