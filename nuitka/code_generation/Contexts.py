@@ -282,6 +282,7 @@ CodeObjectHandle = collections.namedtuple(
     "CodeObjectHandle",
     (
         "co_name",
+        "co_qualname",
         "co_kind",
         "co_varnames",
         "co_argcount",
@@ -311,6 +312,7 @@ class CodeObjectsMixin(object):
         key = CodeObjectHandle(
             co_filename=code_object.getFilename(),
             co_name=code_object.getCodeObjectName(),
+            co_qualname=code_object.getCodeObjectQualname(),
             line_number=code_object.getLineNumber(),
             co_varnames=code_object.getVarNames(),
             co_argcount=code_object.getArgumentCount(),

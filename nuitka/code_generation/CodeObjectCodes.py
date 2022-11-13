@@ -82,6 +82,9 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
         code_object_handle.line_number,
         " | ".join(co_flags) or "0",
         context.getConstantCode(constant=code_object_handle.co_name),
+        context.getConstantCode(constant=code_object_handle.co_qualname)
+        if python_version >= 0x3B0
+        else "NULL",
         context.getConstantCode(constant=code_object_handle.co_varnames)
         if code_object_handle.co_varnames
         else "NULL",

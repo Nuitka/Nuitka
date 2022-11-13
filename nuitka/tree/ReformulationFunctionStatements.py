@@ -729,6 +729,7 @@ def buildFunctionWithParsing(
 
     code_object = CodeObjectSpec(
         co_name=name,
+        co_qualname=provider.getChildQualname(name),
         co_kind=function_kind,
         co_varnames=parameters.getParameterNames(),
         co_freevars=(),

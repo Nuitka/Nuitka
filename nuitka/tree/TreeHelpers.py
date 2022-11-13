@@ -425,6 +425,7 @@ def makeModuleFrame(module, statements, source_ref):
         statements=statements,
         code_object=CodeObjectSpec(
             co_name=code_name,
+            co_qualname=code_name,
             co_kind="Module",
             co_varnames=(),
             co_freevars=(),

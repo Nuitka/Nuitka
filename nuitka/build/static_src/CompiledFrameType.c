@@ -667,8 +667,11 @@ struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *mod
 }
 
 // This is the backend of MAKE_CODEOBJ macro.
-PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name, PyObject *argnames,
-                             PyObject *freevars, int arg_count
+PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
+#if PYTHON_VERSION >= 0x3b0
+                             PyObject *function_qualname,
+#endif
+                             PyObject *argnames, PyObject *freevars, int arg_count
 #if PYTHON_VERSION >= 0x300
                              ,
                              int kw_only_count
@@ -734,8 +737,15 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
                                                      const_tuple_empty, // cellvars (we are not going to be compatible)
                                                      filename,          // filename
                                                      function_name,     // name
-                                                     line,              // firstlineno (offset of the code object)
-                                                     lnotab             // lnotab (table to translate code object)
+#if PYTHON_VERSION >= 0x3b0
+                                                     function_qualname, // qualname
+#endif
+                                                     line,  // firstlineno (offset of the code object)
+                                                     lnotab // lnotab (table to translate code object)
+#if PYTHON_VERSION >= 0x3b0
+                                                     ,
+                                                     const_bytes_empty // exceptiontable
+#endif
     );
 
     assert(DEEP_HASH(argnames) == hash);

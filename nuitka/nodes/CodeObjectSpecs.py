@@ -34,6 +34,7 @@ class CodeObjectSpec(object):
     # pylint: disable=too-many-arguments,too-many-instance-attributes
     __slots__ = (
         "co_name",
+        "co_qualname",
         "co_kind",
         "co_varnames",
         "co_argcount",
@@ -53,6 +54,7 @@ class CodeObjectSpec(object):
     def __init__(
         self,
         co_name,
+        co_qualname,
         co_kind,
         co_varnames,
         co_freevars,
@@ -70,6 +72,7 @@ class CodeObjectSpec(object):
         # pylint: disable=I0021,too-many-locals
 
         self.co_name = co_name
+        self.co_qualname = co_qualname
         self.co_kind = co_kind
 
         self.future_spec = future_spec
@@ -198,6 +201,9 @@ class CodeObjectSpec(object):
         return self.co_kwonlyargcount
 
     def getCodeObjectName(self):
+        return self.co_name
+
+    def getCodeObjectQualname(self):
         return self.co_name
 
     def hasStarListArg(self):

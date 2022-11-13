@@ -364,3 +364,6 @@ class ExpressionOutlineFunction(ExpressionOutlineFunctionBase):
         self.locals_scope = getLocalsDictHandle(
             "locals_%s" % self.getCodeName(), "python_function", self
         )
+
+    def getChildQualname(self, function_name):
+        return self.provider.getChildQualname(function_name)
