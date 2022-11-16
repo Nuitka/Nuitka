@@ -3022,8 +3022,6 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'main': 'un-callable'
-      # Using tags, to still make it possible to compile in case of main module.
-      when: 'not main_module'
 
 - module-name: 'tinycss2'
   data-files:
