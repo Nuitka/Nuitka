@@ -678,7 +678,7 @@ output_group.add_option(
     default="",
     help="""\
 Specify where intermediate and final output files should be put. The DIRECTORY
-will be populated with C files, object files, etc.
+will be populated with build folder, dist folder, binaries, etc.
 Defaults to current directory.
 """,
 )
