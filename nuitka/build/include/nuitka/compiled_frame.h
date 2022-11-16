@@ -53,7 +53,8 @@ extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyO
 #else
 #define MAKE_CODEOBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,        \
                         kw_only_count, pos_only_count)                                                                 \
-    makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count, pos_only_count)
+    makeCodeObject(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,             \
+                   kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
                                     PyObject *function_qualname, PyObject *argnames, PyObject *freevars, int arg_count,
                                     int kw_only_count, int pos_only_count);
@@ -71,12 +72,21 @@ struct Nuitka_FrameObject {
 
 #if PYTHON_VERSION >= 0x3b0
     PyFrameState m_frame_state;
+    PyObject *m_generator;
+    _PyInterpreterFrame m_interpreter_frame;
 #endif
 
     // Our own extra stuff, attached variables.
     char const *m_type_description;
     char m_locals_storage[1];
 };
+
+// With Python 3.11 or higher, a lightweight object needs to be put into thread state.
+#if PYTHON_VERSION < 0x3b0
+typedef PyFrameObject Nuitka_ThreadStateFrameType;
+#else
+typedef _PyInterpreterFrame Nuitka_ThreadStateFrameType;
+#endif
 
 inline static void CHECK_CODE_OBJECT(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
 
@@ -189,6 +199,8 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
 
     // Look at current frame, "old" is the one previously active.
     PyThreadState *tstate = PyThreadState_GET();
+
+#if PYTHON_VERSION < 0x3b0
     PyFrameObject *old = tstate->frame;
     CHECK_OBJECT_X(old);
 
@@ -214,6 +226,14 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
         frame_object->m_frame.f_back = old;
     }
 
+#else
+    _PyInterpreterFrame *old = tstate->cframe->current_frame;
+    frame_object->m_interpreter_frame.previous = old;
+    if (old != NULL) {
+        tstate->cframe->current_frame = &frame_object->m_interpreter_frame;
+    }
+#endif
+
     Nuitka_Frame_MarkAsExecuting(frame_object);
     Py_INCREF(frame_object);
 
@@ -226,7 +246,8 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
 NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyFrameObject *old = tstate->frame;
+#if PYTHON_VERSION < 0x3b0
+    struct Nuitka_FrameObject *old = (struct Nuitka_FrameObject *)(tstate->frame);
     CHECK_OBJECT(old);
 
 #if _DEBUG_FRAME
@@ -235,10 +256,10 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
 #endif
 
     // Put previous frame on top.
-    tstate->frame = old->f_back;
-    old->f_back = NULL;
+    tstate->frame = old->m_frame.f_back;
+    old->m_frame.f_back = NULL;
 
-    Nuitka_Frame_MarkAsNotExecuting((struct Nuitka_FrameObject *)old);
+    Nuitka_Frame_MarkAsNotExecuting(old);
     Py_DECREF(old);
 
 #if _DEBUG_FRAME
@@ -248,6 +269,64 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     } else {
         printf("Now at top no frame\n");
     }
+#endif
+
+#else
+    _PyCFrame *old = tstate->cframe;
+    tstate->cframe = old->previous;
+
+    struct Nuitka_FrameObject *frame_object = (struct Nuitka_FrameObject *)old->current_frame->frame_obj;
+    Nuitka_Frame_MarkAsNotExecuting(frame_object);
+    Py_DECREF(frame_object);
+#endif
+}
+
+// TODO: These can be moved to private code, once all C library is included by
+// compiled code helpers, but generators are currently not.
+#if PYTHON_VERSION >= 0x340
+NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame,
+                                                          PyObject *generator) {
+#if PYTHON_VERSION < 0x3b0
+    nuitka_frame->m_frame.f_gen = generator;
+#else
+    nuitka_frame->m_generator = generator;
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame) {
+#if PYTHON_VERSION < 0x3b0
+    return nuitka_frame->m_frame.f_gen;
+#else
+    return nuitka_frame->m_generator;
+#endif
+}
+#endif
+
+NUITKA_MAY_BE_UNUSED static PyCodeObject *Nuitka_GetFrameCodeObject(struct Nuitka_FrameObject *nuitka_frame) {
+#if PYTHON_VERSION < 0x3b0
+    return nuitka_frame->m_frame.f_code;
+#else
+    return nuitka_frame->m_interpreter_frame.f_code;
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED static int Nuitka_GetFrameLineNumber(struct Nuitka_FrameObject *nuitka_frame) {
+#if PYTHON_VERSION < 0x3b0
+    return nuitka_frame->m_frame.f_lineno;
+#else
+    // TODO: We probably want to have our own line number instead.
+    return _PyInterpreterFrame_LASTI(&nuitka_frame->m_interpreter_frame);
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject **Nuitka_GetCodeVarNames(PyCodeObject *code_object) {
+#if PYTHON_VERSION < 0x3b0
+    return &PyTuple_GET_ITEM(code_object->co_varnames, 0);
+#else
+    // TODO: Might get away with co_names which will be much faster, that functions
+    // that build a new tuple, that we would have to keep around, but it might be
+    // merged with closure variable names, etc. as as such might become wrong.
+    return &PyTuple_GET_ITEM(code_object->co_names, 0);
 #endif
 }
 

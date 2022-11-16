@@ -40,10 +40,12 @@ int count_hit_frame_cache_instances = 0;
 
 static PyMemberDef Nuitka_Frame_memberlist[] = {
     {(char *)"f_back", T_OBJECT, OFF(f_back), READONLY | RESTRICTED},
+#if PYTHON_VERSION < 0x3b0
     {(char *)"f_code", T_OBJECT, OFF(f_code), READONLY | RESTRICTED},
     {(char *)"f_builtins", T_OBJECT, OFF(f_builtins), READONLY | RESTRICTED},
     {(char *)"f_globals", T_OBJECT, OFF(f_globals), READONLY | RESTRICTED},
     {(char *)"f_lasti", T_INT, OFF(f_lasti), READONLY | RESTRICTED},
+#endif
     {NULL}};
 
 #if PYTHON_VERSION < 0x300
@@ -134,20 +136,26 @@ static PyObject *Nuitka_Frame_get_restricted(struct Nuitka_FrameObject *frame, v
 
 #endif
 
-static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *frame, void *closure) {
-    if (frame->m_type_description == NULL) {
-        if (frame->m_frame.f_locals == NULL) {
-            frame->m_frame.f_locals = PyDict_New();
+static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame, void *closure) {
+    if (nuitka_frame->m_type_description == NULL) {
+#if PYTHON_VERSION < 0x3b0
+        PyFrameObject *locals_owner = &nuitka_frame->m_frame;
+#else
+        _PyInterpreterFrame *locals_owner = &nuitka_frame->m_interpreter_frame;
+#endif
+
+        if (locals_owner->f_locals == NULL) {
+            locals_owner->f_locals = PyDict_New();
         }
 
-        Py_INCREF(frame->m_frame.f_locals);
-        return frame->m_frame.f_locals;
+        Py_INCREF(locals_owner->f_locals);
+        return locals_owner->f_locals;
     } else {
         PyObject *result = PyDict_New();
-        PyObject **varnames = &PyTuple_GET_ITEM(frame->m_frame.f_code->co_varnames, 0);
+        PyObject **varnames = Nuitka_GetCodeVarNames(Nuitka_GetFrameCodeObject(nuitka_frame));
 
-        char const *w = frame->m_type_description;
-        char const *t = frame->m_locals_storage;
+        char const *w = nuitka_frame->m_type_description;
+        char const *t = nuitka_frame->m_locals_storage;
 
         while (*w != 0) {
             switch (*w) {
@@ -265,17 +273,19 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 
 // tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Frame_tp_repr(struct Nuitka_FrameObject *nuitka_frame) {
-    return Nuitka_String_FromFormat(
+
 #if PYTHON_VERSION >= 0x370
-        "<compiled_frame at %p, file %R, line %d, code %S>", nuitka_frame, nuitka_frame->m_frame.f_code->co_filename,
-        nuitka_frame->m_frame.f_lineno, nuitka_frame->m_frame.f_code->co_name
+    PyCodeObject *code_object = Nuitka_GetFrameCodeObject(nuitka_frame);
+    return Nuitka_String_FromFormat("<compiled_frame at %p, file %R, line %d, code %S>", nuitka_frame,
+                                    code_object->co_filename, Nuitka_GetFrameLineNumber(nuitka_frame),
+                                    code_object->co_name);
 #elif _DEBUG_FRAME || _DEBUG_REFRAME || _DEBUG_EXCEPTIONS
-        "<compiled_frame object for %s at %p>", Nuitka_String_AsString(nuitka_frame->m_frame.f_code->co_name),
-        nuitka_frame
+    PyCodeObject *code_object = Nuitka_GetFrameCodeObject(nuitka_frame);
+    return Nuitka_String_FromFormat("<compiled_frame object for %s at %p>",
+                                    Nuitka_String_AsString(code_object->co_name), nuitka_frame);
 #else
-        "<compiled_frame object at %p>", nuitka_frame
+    return Nuitka_String_FromFormat("<compiled_frame object at %p>", nuitka_frame);
 #endif
-    );
 }
 
 static void Nuitka_Frame_tp_clear(struct Nuitka_FrameObject *frame) {
@@ -347,11 +357,16 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
     Nuitka_GC_UnTrack(nuitka_frame);
 
     PyFrameObject *frame = &nuitka_frame->m_frame;
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *locals_owner = frame;
+#else
+    _PyInterpreterFrame *locals_owner = &nuitka_frame->m_interpreter_frame;
+#endif
 
     Py_XDECREF(frame->f_back);
-    Py_DECREF(frame->f_builtins);
-    Py_DECREF(frame->f_globals);
-    Py_XDECREF(frame->f_locals);
+    Py_DECREF(locals_owner->f_builtins);
+    Py_DECREF(locals_owner->f_globals);
+    Py_XDECREF(locals_owner->f_locals);
 
 #if PYTHON_VERSION < 0x370
     Py_XDECREF(frame->f_exc_type);
@@ -374,10 +389,16 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 
 static int Nuitka_Frame_tp_traverse(struct Nuitka_FrameObject *frame, visitproc visit, void *arg) {
     Py_VISIT(frame->m_frame.f_back);
-    // Py_VISIT(frame->f_code);
-    Py_VISIT(frame->m_frame.f_builtins);
-    Py_VISIT(frame->m_frame.f_globals);
-    // Py_VISIT(frame->f_locals);
+
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *locals_owner = &frame->m_frame;
+#else
+    _PyInterpreterFrame *locals_owner = &frame->m_interpreter_frame;
+#endif
+
+    Py_VISIT(locals_owner->f_builtins);
+    Py_VISIT(locals_owner->f_globals);
+    // Py_VISIT(locals_owner->f_locals);
 
 #if PYTHON_VERSION < 0x370
     Py_VISIT(frame->m_frame.f_exc_type);
@@ -441,32 +462,32 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
 
 #if PYTHON_VERSION >= 0x340
     // For frames that are closed, we also need to close the generator.
-    if (frame->m_frame.f_gen != NULL) {
-        Py_INCREF(frame);
+    PyObject *f_gen = Nuitka_GetFrameGenerator(frame);
+    if (f_gen != NULL) {
+        CHECK_OBJECT(f_gen);
 
-        CHECK_OBJECT(frame->m_frame.f_gen);
-        PyObject *f_gen = frame->m_frame.f_gen;
+        Py_INCREF(frame);
 
         bool close_exception;
 
-        if (Nuitka_Generator_Check(frame->m_frame.f_gen)) {
-            struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)frame->m_frame.f_gen;
-            frame->m_frame.f_gen = NULL;
+        if (Nuitka_Generator_Check(f_gen)) {
+            struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)f_gen;
+            Nuitka_SetFrameGenerator(frame, NULL);
 
             close_exception = !_Nuitka_Generator_close(generator);
         }
 #if PYTHON_VERSION >= 0x350
-        else if (Nuitka_Coroutine_Check(frame->m_frame.f_gen)) {
-            struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)frame->m_frame.f_gen;
-            frame->m_frame.f_gen = NULL;
+        else if (Nuitka_Coroutine_Check(f_gen)) {
+            struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)f_gen;
+            Nuitka_SetFrameGenerator(frame, NULL);
 
             close_exception = !_Nuitka_Coroutine_close(coroutine);
         }
 #endif
 #if PYTHON_VERSION >= 0x360
-        else if (Nuitka_Asyncgen_Check(frame->m_frame.f_gen)) {
-            struct Nuitka_AsyncgenObject *asyncgen = (struct Nuitka_AsyncgenObject *)frame->m_frame.f_gen;
-            frame->m_frame.f_gen = NULL;
+        else if (Nuitka_Asyncgen_Check(f_gen)) {
+            struct Nuitka_AsyncgenObject *asyncgen = (struct Nuitka_AsyncgenObject *)f_gen;
+            Nuitka_SetFrameGenerator(frame, NULL);
 
             close_exception = !_Nuitka_Asyncgen_close(asyncgen);
         }
@@ -475,7 +496,8 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
             // Compiled frames should only have our types, so this ought to not happen.
             assert(false);
 
-            frame->m_frame.f_gen = NULL;
+            Nuitka_SetFrameGenerator(frame, NULL);
+
             close_exception = false;
         }
 
@@ -576,7 +598,7 @@ void _initCompiledFrameType(void) {
     PyType_Ready(&Nuitka_Frame_Type);
 
     // These are to be used interchangeably. Make sure that's true.
-    assert(offsetof(struct Nuitka_FrameObject, m_frame.f_localsplus) == offsetof(PyFrameObject, f_localsplus));
+    assert(offsetof(struct Nuitka_FrameObject, m_frame) == 0);
 }
 
 static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *module, bool is_module,
@@ -602,8 +624,14 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
     result->m_type_description = NULL;
 
     PyFrameObject *frame = &result->m_frame;
+    // Globals and locals are stored differently before Python 3.11
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *locals_owner = frame;
+#else
+    _PyInterpreterFrame *locals_owner = &result->m_interpreter_frame;
+#endif
 
-    frame->f_code = code;
+    locals_owner->f_code = code;
 
     frame->f_trace = Py_None;
 
@@ -616,42 +644,46 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
     frame->f_trace_opcodes = 0;
 #endif
 
-    Py_INCREF(dict_builtin);
-    frame->f_builtins = (PyObject *)dict_builtin;
-
     frame->f_back = NULL;
 
+    Py_INCREF(dict_builtin);
+    locals_owner->f_builtins = (PyObject *)dict_builtin;
+
     Py_INCREF(globals);
-    frame->f_globals = globals;
+    locals_owner->f_globals = globals;
 
     if (likely((code->co_flags & CO_OPTIMIZED) == CO_OPTIMIZED)) {
-        frame->f_locals = NULL;
+        locals_owner->f_locals = NULL;
     } else if (is_module) {
         Py_INCREF(globals);
-        frame->f_locals = globals;
+        locals_owner->f_locals = globals;
     } else {
-        frame->f_locals = PyDict_New();
+        // TODO: Why not use presized here.
+        locals_owner->f_locals = PyDict_New();
+        CHECK_OBJECT(locals_owner->f_locals);
 
-        if (unlikely(frame->f_locals == NULL)) {
-            Py_DECREF(result);
-
-            return NULL;
-        }
-
-        PyDict_SetItem(frame->f_locals, const_str_plain___module__, MODULE_NAME0(module));
+        PyDict_SetItem(locals_owner->f_locals, const_str_plain___module__, MODULE_NAME0(module));
     }
 
 #if PYTHON_VERSION < 0x340
     frame->f_tstate = PyThreadState_GET();
 #endif
 
+#if PYTHON_VERSION < 0x3b0
     frame->f_lasti = -1;
-    frame->f_lineno = code->co_firstlineno;
     frame->f_iblock = 0;
+#endif
+
+    frame->f_lineno = code->co_firstlineno;
 
 #if PYTHON_VERSION >= 0x340
-    frame->f_gen = NULL;
+    Nuitka_SetFrameGenerator(result, NULL);
+
     Nuitka_Frame_MarkAsNotExecuting(result);
+#endif
+
+#if PYTHON_VERSION >= 0x3b0
+    result->m_interpreter_frame.frame_obj = &result->m_frame;
 #endif
 
     Nuitka_GC_Track(result);
@@ -841,21 +873,42 @@ void dumpFrameStack(void) {
 
     FETCH_ERROR_OCCURRED(&saved_exception_type, &saved_exception_value, &saved_exception_tb);
 
-    PyFrameObject *current = PyThreadState_GET()->frame;
     int total = 0;
 
-    while (current) {
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *current = PyThreadState_GET()->frame;
+    while (current != NULL) {
         total++;
         current = current->f_back;
     }
 
     current = PyThreadState_GET()->frame;
+#else
+    _PyCFrame *current = PyThreadState_GET()->cframe;
+    while (current != NULL) {
+        total++;
+        current = current->previous;
+    }
+
+    current = PyThreadState_GET()->cframe;
+#endif
 
     PRINT_STRING(">--------->\n");
 
     while (current) {
+#if PYTHON_VERSION < 0x3b0
         PyObject *current_repr = PyObject_Str((PyObject *)current);
         PyObject *code_repr = PyObject_Str((PyObject *)current->f_code);
+#else
+        PyObject *current_repr = NULL;
+        if (current->current_frame->frame_obj != NULL) {
+            current_repr = PyObject_Str((PyObject *)current->current_frame->frame_obj);
+        } else {
+            current_repr = const_str_empty;
+            Py_INCREF(const_str_empty);
+        }
+        PyObject *code_repr = PyObject_Str((PyObject *)current->current_frame->f_code);
+#endif
 
         PRINT_FORMAT("Frame stack %d: %s %d %s\n", total--, Nuitka_String_AsString(current_repr), Py_REFCNT(current),
                      Nuitka_String_AsString(code_repr));
@@ -863,7 +916,11 @@ void dumpFrameStack(void) {
         Py_DECREF(current_repr);
         Py_DECREF(code_repr);
 
+#if PYTHON_VERSION < 0x3b0
         current = current->f_back;
+#else
+        current = current->previous;
+#endif
     }
 
     PRINT_STRING(">---------<\n");

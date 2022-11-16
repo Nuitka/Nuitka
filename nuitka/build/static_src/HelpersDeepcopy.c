@@ -94,11 +94,13 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
 
 #if PYTHON_VERSION < 0x360
         Py_ssize_t size = mp->ma_keys->dk_size;
-#else
+#elif PYTHON_VERSION < 0x3b0
         Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#else
+        Py_ssize_t size = Nuitka_Py_shared_keys_usable_size(mp->ma_keys);
 #endif
 
-        PyObject **new_values = PyMem_NEW(PyObject *, size);
+        PyDictValues *new_values = Nuitka_PyDict_new_values(size);
         assert(new_values != NULL);
 
         PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
@@ -111,10 +113,10 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
         mp->ma_keys->dk_refcnt += 1;
 
         for (Py_ssize_t i = 0; i < size; i++) {
-            if (mp->ma_values[i]) {
-                result->ma_values[i] = DEEP_COPY(mp->ma_values[i]);
+            if (DK_VALUE(mp, i)) {
+                DK_VALUE(result, i) = DEEP_COPY(DK_VALUE(mp, i));
             } else {
-                result->ma_values[i] = NULL;
+                DK_VALUE(result, i) = NULL;
             }
         }
 

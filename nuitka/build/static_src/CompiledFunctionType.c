@@ -897,7 +897,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyO
         result->m_args_star_dict_index = -1;
     }
 
-    result->m_varnames = &PyTuple_GET_ITEM(code_object->co_varnames, 0);
+    result->m_varnames = Nuitka_GetCodeVarNames(code_object);
 
     result->m_module = module;
 
@@ -1476,6 +1476,28 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
     return kw_found;
 }
 
+#if PYTHON_VERSION < 0x3b0
+typedef PyObject *PyDictValues;
+#endif
+
+static inline PyDictValues *Nuitka_PyDict_new_values(Py_ssize_t size) {
+#if PYTHON_VERSION < 0x3b0
+    return PyMem_NEW(PyObject *, size);
+#else
+    // With Python3.11 or higher a prefix is allocated too.
+    size_t prefix_size = _Py_SIZE_ROUND_UP(size + 2, sizeof(PyObject *));
+    size_t n = prefix_size + size * sizeof(PyObject *);
+    uint8_t *mem = (uint8_t *)PyMem_Malloc(n);
+
+    assert(mem != NULL);
+
+    assert(prefix_size % sizeof(PyObject *) == 0);
+    mem[prefix_size - 1] = (uint8_t)prefix_size;
+
+    return (PyDictValues *)(mem + prefix_size);
+#endif
+}
+
 static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                            PyObject *kw) {
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
@@ -1514,11 +1536,13 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
 
 #if PYTHON_VERSION < 0x360
             Py_ssize_t size = mp->ma_keys->dk_size;
-#else
+#elif PYTHON_VERSION < 0x3b0
             Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#else
+            Py_ssize_t size = Nuitka_Py_shared_keys_usable_size(mp->ma_keys);
 #endif
 
-            PyObject **new_values = PyMem_NEW(PyObject *, size);
+            PyDictValues *new_values = Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
 
             PyDictObject *split_copy = PyObject_GC_New(PyDictObject, &PyDict_Type);
@@ -1541,8 +1565,13 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
                     return false;
                 }
 
+#if PYTHON_VERSION < 0x3b0
                 split_copy->ma_values[i] = mp->ma_values[i];
                 Py_XINCREF(split_copy->ma_values[i]);
+#else
+                split_copy->ma_values->values[i] = mp->ma_values->values[i];
+                Py_XINCREF(split_copy->ma_values->values[i]);
+#endif
             }
 
             Nuitka_GC_Track(split_copy);

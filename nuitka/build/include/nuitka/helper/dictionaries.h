@@ -76,12 +76,14 @@ static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *
 
 // Quick dictionary lookup for a string value.
 
+#if PYTHON_VERSION < 0x3b0
 typedef struct {
     /* Cached hash code of me_key. */
     Py_hash_t me_hash;
     PyObject *me_key;
     PyObject *me_value; /* This field is only meaningful for combined tables */
 } PyDictKeyEntry;
+#endif
 
 #if PYTHON_VERSION < 0x360
 typedef PyDictKeyEntry *(*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
@@ -93,6 +95,8 @@ typedef Py_ssize_t (*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_
 #endif
 
 // Taken from CPython3.3 "Objects/dictobject.c", lives in "Objects/dict-common.h" later
+
+#if PYTHON_VERSION < 0x3b0
 
 struct _dictkeysobject {
     Py_ssize_t dk_refcnt;
@@ -115,11 +119,16 @@ struct _dictkeysobject {
 #endif
 };
 
+#endif
+
 // Taken from Objects/dictobject.c of CPython 3.6
 #if PYTHON_VERSION >= 0x360
 
+#if PYTHON_VERSION < 0x3b0
 #define DK_SIZE(dk) ((dk)->dk_size)
+#endif
 
+#if PYTHON_VERSION < 0x3b0
 #if SIZEOF_VOID_P > 4
 #define DK_IXSIZE(dk)                                                                                                  \
     (DK_SIZE(dk) <= 0xff ? 1 : DK_SIZE(dk) <= 0xffff ? 2 : DK_SIZE(dk) <= 0xffffffff ? 4 : sizeof(int64_t))
@@ -133,11 +142,29 @@ struct _dictkeysobject {
 
 #else
 
-#define DK_ENTRIES(dk) (dk->dk_entries)
+static inline Py_ssize_t Nuitka_Py_shared_keys_usable_size(PyDictKeysObject *keys) {
+    return keys->dk_nentries + keys->dk_usable;
+}
+#define DK_MASK(dk) (DK_SIZE(dk) - 1)
 
 #endif
 
+#else
+#define DK_ENTRIES(dk) (dk->dk_entries)
+#endif
+
+#if PYTHON_VERSION < 0x3b0
+#define DK_VALUE(dk, i) dk->ma_values[i]
+#else
+#define DK_VALUE(dk, i) dk->ma_values->values[i]
+#endif
+
 typedef PyObject **Nuitka_DictEntryHandle;
+
+#if PYTHON_VERSION >= 0x3b0
+extern Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
+extern Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
+#endif
 
 static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObject *key) {
     assert(PyDict_CheckExact(dict));
@@ -172,7 +199,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
     );
 
     return value_addr;
-#else
+#elif PYTHON_VERSION < 0x3b0
     PyObject *value;
 
     Py_ssize_t ix = dict->ma_keys->dk_lookup(dict, (PyObject *)key, hash, &value);
@@ -187,6 +214,12 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
         return &DK_ENTRIES(dict->ma_keys)[ix].me_value;
     }
 
+#else
+    PyObject **value;
+    Py_ssize_t found = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value);
+    assert(found != DKIX_ERROR);
+
+    return value;
 #endif
 }
 

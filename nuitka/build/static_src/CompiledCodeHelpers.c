@@ -893,7 +893,13 @@ bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 
 bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
 
+#if PYTHON_VERSION < 0x3b0
 void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb) {
+#else
+void _PRINT_EXCEPTION(PyObject *exception_value) {
+    PyObject *exception_type = PyExceptionInstance_Class(exception_value);
+    PyObject *exception_tb = PyException_GetTraceback(exception_value);
+#endif
     PRINT_REPR(exception_type);
     if (exception_type) {
         PRINT_REFCOUNT(exception_type);

@@ -56,7 +56,7 @@ struct Nuitka_CoroutineObject {
 
     // While yielding, this was the frame currently active, restore when
     // resuming.
-    struct Nuitka_FrameObject *m_resume_frame;
+    Nuitka_ThreadStateFrameType *m_resume_frame;
 
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;

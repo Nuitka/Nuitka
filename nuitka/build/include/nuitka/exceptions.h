@@ -244,9 +244,13 @@ NUITKA_MAY_BE_UNUSED inline static struct Nuitka_ExceptionStackItem GET_CURRENT_
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(struct Nuitka_ExceptionStackItem *exc_state) {
+#if PYTHON_VERSION < 0x3b0
     CHECK_OBJECT_X(exc_state->exception_type);
+#endif
     CHECK_OBJECT_X(exc_state->exception_value);
+#if PYTHON_VERSION < 0x3b0
     CHECK_OBJECT_X(exc_state->exception_tb);
+#endif
 
     PyThreadState *thread_state = PyThreadState_GET();
 

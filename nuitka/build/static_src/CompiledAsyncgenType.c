@@ -298,27 +298,8 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
         PyThreadState *thread_state = PyThreadState_GET();
 
         // Put the asyncgen back on the frame stack.
-
-        // First take of running frame from the stack, owning a reference.
-        PyFrameObject *return_frame = thread_state->frame;
-
-#ifndef __NUITKA_NO_ASSERT__
-        if (return_frame) {
-            assertFrameObject((struct Nuitka_FrameObject *)return_frame);
-        }
-#endif
-
-        if (asyncgen->m_resume_frame) {
-            // It would be nice if our frame were still alive. Nobody had the
-            // right to release it.
-            assertFrameObject(asyncgen->m_resume_frame);
-
-            // It's not supposed to be on the top right now.
-            assert(return_frame != &asyncgen->m_resume_frame->m_frame);
-
-            thread_state->frame = &asyncgen->m_frame->m_frame;
-            asyncgen->m_resume_frame = NULL;
-        }
+        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GeneratorPushFrame(thread_state, asyncgen->m_resume_frame);
+        asyncgen->m_resume_frame = NULL;
 
         // Consider it as running.
         if (asyncgen->m_status == status_Unused) {
@@ -378,10 +359,11 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
             Py_CLEAR(asyncgen->m_frame->m_frame.f_back);
 
             // Remember where to resume from.
-            asyncgen->m_resume_frame = (struct Nuitka_FrameObject *)thread_state->frame;
+            asyncgen->m_resume_frame = _Nuitka_GetThreadStateFrame(thread_state);
         }
 
-        thread_state->frame = return_frame;
+        // Return back to the frame that called us.
+        _Nuitka_GeneratorPopFrame(thread_state, return_frame);
 
 #if _DEBUG_ASYNCGEN
         PRINT_ASYNCGEN_STATUS("Returned from coroutine", asyncgen);
@@ -404,7 +386,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
             asyncgen->m_status = status_Finished;
 
             if (asyncgen->m_frame != NULL) {
-                asyncgen->m_frame->m_frame.f_gen = NULL;
+                Nuitka_SetFrameGenerator(asyncgen->m_frame, NULL);
                 Py_DECREF(asyncgen->m_frame);
                 asyncgen->m_frame = NULL;
             }
@@ -577,6 +559,7 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
         PRINT_NEW_LINE();
 #endif
 
+#if NUITKA_UNCOMPILED_THROW_INTEGRATION
         if (PyGen_CheckExact(asyncgen->m_yieldfrom) || PyCoro_CheckExact(asyncgen->m_yieldfrom)) {
             PyGenObject *gen = (PyGenObject *)asyncgen->m_yieldfrom;
 
@@ -584,7 +567,9 @@ static PyObject *_Nuitka_Asyncgen_throw2(struct Nuitka_AsyncgenObject *asyncgen,
             asyncgen->m_running = 1;
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
             asyncgen->m_running = 0;
-        } else if (Nuitka_Generator_Check(asyncgen->m_yieldfrom)) {
+        } else
+#endif
+            if (Nuitka_Generator_Check(asyncgen->m_yieldfrom)) {
             struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)asyncgen->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Generator_throw2".
             asyncgen->m_running = 1;
@@ -983,7 +968,7 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
     }
 
     if (asyncgen->m_frame) {
-        asyncgen->m_frame->m_frame.f_gen = NULL;
+        Nuitka_SetFrameGenerator(asyncgen->m_frame, NULL);
         Py_DECREF(asyncgen->m_frame);
         asyncgen->m_frame = NULL;
     }
