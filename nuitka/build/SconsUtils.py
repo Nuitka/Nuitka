@@ -130,7 +130,7 @@ def _enableExperimentalSettings(env, experimental_flags):
                 value = None
 
             # Allowing for nice names on command line, but using identifiers for C.
-            experiment = experiment.upper().replace("-", "_")
+            experiment = experiment.upper().replace("-", "_").replace(".", "_")
 
             # Experimental without a value is done as mere define, otherwise
             # the value is passed. spell-checker: ignore cppdefines
