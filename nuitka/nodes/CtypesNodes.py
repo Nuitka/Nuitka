@@ -19,6 +19,7 @@
 
 """
 
+from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import (
     BuiltinParameterSpec,
     extractBuiltinArgs,
@@ -29,7 +30,7 @@ from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 # spell-checker: ignore lasterror,winmode
 
-if str is bytes:
+if python_version >= 0x380:
     ctypes_cdll_args = (
         "name",
         "mode",

@@ -992,7 +992,7 @@ def main():
                 removeDirectory(path=dist_dir, ignore_errors=False)
             else:
                 general.info(
-                    "Keeping dist folder %r for inspection, no need to use it."
+                    "Keeping dist folder '%s' for inspection, no need to use it."
                     % dist_dir
                 )
 
@@ -1000,12 +1000,12 @@ def main():
     source_dir = OutputDirectories.getSourceDirectoryPath()
 
     if Options.isRemoveBuildDir():
-        general.info("Removing build directory %r." % source_dir)
+        general.info("Removing build directory '%s'." % source_dir)
 
         removeDirectory(path=source_dir, ignore_errors=False)
         assert not os.path.exists(source_dir)
     else:
-        general.info("Keeping build directory %r." % source_dir)
+        general.info("Keeping build directory '%s'." % source_dir)
 
     final_filename = OutputDirectories.getResultFullpath(
         onefile=Options.isOnefileMode()
@@ -1032,7 +1032,7 @@ not use compiled code while it exists."""
                 % base_path
             )
 
-    general.info("Successfully created %r." % final_filename)
+    general.info("Successfully created '%s'." % final_filename)
 
     report_filename = Options.getCompilationReportFilename()
 
