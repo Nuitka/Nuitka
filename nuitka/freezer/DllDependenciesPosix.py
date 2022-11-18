@@ -27,7 +27,7 @@ from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATH
-from nuitka.utils.Utils import isPosixWindows, isAlpineLinux
+from nuitka.utils.Utils import isAlpineLinux, isPosixWindows
 
 from .DllDependenciesCommon import getLdLibraryPath
 
