@@ -131,6 +131,7 @@ extern void dumpFrameStack(void);
 
 inline static PyCodeObject *Nuitka_FrameGetCode(PyFrameObject *frame) {
 #if PYTHON_VERSION >= 0x3b0
+    assert(frame->f_frame);
     return frame->f_frame->f_code;
 #else
     return frame->f_code;
@@ -229,9 +230,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
 #else
     _PyInterpreterFrame *old = tstate->cframe->current_frame;
     frame_object->m_interpreter_frame.previous = old;
-    if (old != NULL) {
-        tstate->cframe->current_frame = &frame_object->m_interpreter_frame;
-    }
+    tstate->cframe->current_frame = &frame_object->m_interpreter_frame;
 #endif
 
     Nuitka_Frame_MarkAsExecuting(frame_object);
@@ -272,12 +271,13 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
 #endif
 
 #else
-    _PyCFrame *old = tstate->cframe;
-    tstate->cframe = old->previous;
+    struct Nuitka_FrameObject *frame_object = (struct Nuitka_FrameObject *)tstate->cframe->current_frame->frame_obj;
+    tstate->cframe->current_frame = tstate->cframe->current_frame->previous;
 
-    struct Nuitka_FrameObject *frame_object = (struct Nuitka_FrameObject *)old->current_frame->frame_obj;
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
     Py_DECREF(frame_object);
+
+    frame_object->m_interpreter_frame.previous = NULL;
 #endif
 }
 

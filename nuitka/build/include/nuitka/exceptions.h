@@ -21,6 +21,10 @@
 // Exception helpers for generated code and compiled code helpers.
 
 // Did an error occur.
+NUITKA_MAY_BE_UNUSED static inline bool HAS_ERROR_OCCURRED(PyThreadState *tstate) {
+    return tstate->curexc_type != NULL;
+}
+
 NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED(void) {
     PyThreadState *tstate = PyThreadState_GET();
 

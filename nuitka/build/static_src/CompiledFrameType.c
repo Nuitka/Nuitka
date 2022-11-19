@@ -684,6 +684,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
 
 #if PYTHON_VERSION >= 0x3b0
     result->m_interpreter_frame.frame_obj = &result->m_frame;
+    result->m_frame.f_frame = &result->m_interpreter_frame;
 #endif
 
     Nuitka_GC_Track(result);

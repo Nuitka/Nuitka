@@ -1337,6 +1337,16 @@ PyTypeObject Nuitka_CoroutineWrapper_Type = {
 };
 
 #if PYTHON_VERSION >= 0x3b0
+
+// Not exported by the core library.
+static int Nuitka_PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame) {
+    // TODO: For Nuitka frames there is a better way actually, since
+    // we have the line number stored.
+
+    int addr = _PyInterpreterFrame_LASTI(frame) * sizeof(_Py_CODEUNIT);
+    return PyCode_Addr2Line(frame->f_code, addr);
+}
+
 static PyObject *computeCoroutineOrigin(int origin_depth) {
     PyThreadState *tstate = _PyThreadState_GET();
     _PyInterpreterFrame *current_frame = tstate->cframe->current_frame;
@@ -1354,7 +1364,7 @@ static PyObject *computeCoroutineOrigin(int origin_depth) {
     for (int i = 0; i < frame_count; i++) {
         PyCodeObject *code = frame->f_code;
 
-        int line = _PyInterpreterFrame_GetLine(frame);
+        int line = Nuitka_PyInterpreterFrame_GetLine(frame);
 
         PyObject *frame_info = Py_BuildValue("OiO", code->co_filename, line, code->co_name);
         assert(frame_info);
