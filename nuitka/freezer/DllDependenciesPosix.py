@@ -27,7 +27,7 @@ from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
 from nuitka.utils.SharedLibraries import getSharedLibraryRPATH
-from nuitka.utils.Utils import isPosixWindows
+from nuitka.utils.Utils import isAlpineLinux, isPosixWindows
 
 from .DllDependenciesCommon import getLdLibraryPath
 
@@ -205,7 +205,8 @@ _linux_dll_ignore_list = [
     "libdrm.so",
 ]
 
-if isAnacondaPython():
+if isAnacondaPython() or isAlpineLinux():
     # Anaconda has these with e.g. torchvision, and insists on them being very new,
     # so they have to be included.
+    # Alpine linux does not include `libstdc++.so` by default.
     _linux_dll_ignore_list.remove("libstdc++.so")
