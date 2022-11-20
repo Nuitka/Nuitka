@@ -654,10 +654,13 @@ PyObject *BUILTIN_SUPER2(PyDictObject *module_dict, PyObject *type, PyObject *ob
         super_value = NUITKA_ACCESS_BUILTIN(super);
     }
 
-    PyObject *args[] = {type, object};
-    char const *arg_names[] = {"type", "obj"};
+    if (object != NULL) {
+        PyObject *args[] = {type, object};
 
-    return CALL_BUILTIN_KW_ARGS(super_value, args, arg_names, 2);
+        return CALL_FUNCTION_WITH_ARGS2(super_value, args);
+    } else {
+        return CALL_FUNCTION_WITH_SINGLE_ARG(super_value, type);
+    }
 }
 
 PyObject *BUILTIN_SUPER0(PyDictObject *module_dict, PyObject *type, PyObject *object) {
