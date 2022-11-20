@@ -3054,6 +3054,7 @@
     - description: 'workaround incompatible check'
       replacements_plain:
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
+        'f.f_code.co_name != "<module>"': "not f.f_code.co_name.startswith('<module')"
 
 - module-name: 'torch.onnx.symbolic_registry'
   implicit-imports:
