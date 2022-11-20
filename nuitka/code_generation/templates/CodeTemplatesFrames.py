@@ -135,8 +135,6 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 #endif
 popFrameStack();
 
-assertFrameObject(%(frame_identifier)s);
-
 goto %(no_exception_exit)s;
 """
 
@@ -185,19 +183,15 @@ Py_INCREF(%(context_identifier)s->m_frame);
 assert(Py_REFCNT(%(context_identifier)s->m_frame) == 2); // Frame stack
 
 #if PYTHON_VERSION >= 0x340
-%(context_identifier)s->m_frame->m_frame.f_gen = (PyObject *)%(context_identifier)s;
+Nuitka_SetFrameGenerator(%(context_identifier)s->m_frame, (PyObject *)%(context_identifier)s);
 #endif
 
 assert(%(context_identifier)s->m_frame->m_frame.f_back == NULL);
-Py_CLEAR(%(context_identifier)s->m_frame->m_frame.f_back);
 
-%(context_identifier)s->m_frame->m_frame.f_back = PyThreadState_GET()->frame;
+pushFrameStack(%(context_identifier)s->m_frame);
+
+// Taking a reference prevents reused while being used.
 Py_INCREF(%(context_identifier)s->m_frame->m_frame.f_back);
-
-PyThreadState_GET()->frame = &%(context_identifier)s->m_frame->m_frame;
-Py_INCREF(%(context_identifier)s->m_frame);
-
-Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
 
 #if PYTHON_VERSION >= 0x300
 // Accept currently existing exception as the one to publish again when we
@@ -205,13 +199,17 @@ Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
 {
     PyThreadState *thread_state = PyThreadState_GET();
 
+#if PYTHON_VERSION < 0x3b0
     EXC_TYPE_F(%(context_identifier)s) = EXC_TYPE(thread_state);
     if (EXC_TYPE_F(%(context_identifier)s) == Py_None) EXC_TYPE_F(%(context_identifier)s) = NULL;
     Py_XINCREF(EXC_TYPE_F(%(context_identifier)s));
+#endif
     EXC_VALUE_F(%(context_identifier)s) = EXC_VALUE(thread_state);
     Py_XINCREF(EXC_VALUE_F(%(context_identifier)s));
+#if PYTHON_VERSION < 0x3b0
     ASSIGN_EXC_TRACEBACK_F(%(context_identifier)s, EXC_TRACEBACK(thread_state));
     Py_XINCREF(EXC_TRACEBACK_F(%(context_identifier)s));
+#endif
 }
 
 #endif
@@ -222,9 +220,13 @@ Nuitka_Frame_MarkAsExecuting(%(context_identifier)s->m_frame);
 Nuitka_Frame_MarkAsNotExecuting(%(context_identifier)s->m_frame);
 
 #if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x3b0
 Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+#endif
 Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+#if PYTHON_VERSION < 0x3b0
 Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
+#endif
 #endif
 
 // Allow re-use of the frame again.
@@ -238,9 +240,13 @@ template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
 
 #if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x3b0
 Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+#endif
 Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+#if PYTHON_VERSION < 0x3b0
 Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
+#endif
 #endif
 
 Py_DECREF(%(frame_identifier)s);
@@ -276,9 +282,13 @@ if (!EXCEPTION_MATCH_GENERATOR(%(exception_type)s)) {
 }
 
 #if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x3b0
 Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
+#endif
 Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
+#if PYTHON_VERSION < 0x3b0
 Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
+#endif
 #endif
 
 Py_DECREF(%(frame_identifier)s);

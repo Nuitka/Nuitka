@@ -36,15 +36,13 @@ int count_released_frame_cache_instances = 0;
 int count_hit_frame_cache_instances = 0;
 #endif
 
-#define OFF(x) offsetof(PyFrameObject, x)
-
 static PyMemberDef Nuitka_Frame_memberlist[] = {
-    {(char *)"f_back", T_OBJECT, OFF(f_back), READONLY | RESTRICTED},
+    {(char *)"f_back", T_OBJECT, offsetof(PyFrameObject, f_back), READONLY | RESTRICTED},
 #if PYTHON_VERSION < 0x3b0
-    {(char *)"f_code", T_OBJECT, OFF(f_code), READONLY | RESTRICTED},
-    {(char *)"f_builtins", T_OBJECT, OFF(f_builtins), READONLY | RESTRICTED},
-    {(char *)"f_globals", T_OBJECT, OFF(f_globals), READONLY | RESTRICTED},
-    {(char *)"f_lasti", T_INT, OFF(f_lasti), READONLY | RESTRICTED},
+    {(char *)"f_code", T_OBJECT, offsetof(PyFrameObject, f_code), READONLY | RESTRICTED},
+    {(char *)"f_builtins", T_OBJECT, offsetof(PyFrameObject, f_builtins), READONLY | RESTRICTED},
+    {(char *)"f_globals", T_OBJECT, offsetof(PyFrameObject, f_globals), READONLY | RESTRICTED},
+    {(char *)"f_lasti", T_INT, offsetof(PyFrameObject, f_lasti), READONLY | RESTRICTED},
 #endif
     {NULL}};
 
@@ -217,38 +215,40 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
     }
 }
 
-static PyObject *Nuitka_Frame_getlineno(PyFrameObject *frame, void *closure) { return PyInt_FromLong(frame->f_lineno); }
+static PyObject *Nuitka_Frame_getlineno(struct Nuitka_FrameObject *frame, void *closure) {
+    return PyInt_FromLong(frame->m_frame.f_lineno);
+}
 
-static PyObject *Nuitka_Frame_gettrace(PyFrameObject *frame, void *closure) {
-    PyObject *result = frame->f_trace;
+static PyObject *Nuitka_Frame_gettrace(struct Nuitka_FrameObject *frame, void *closure) {
+    PyObject *result = frame->m_frame.f_trace;
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Frame_settrace(PyFrameObject *frame, PyObject *v, void *closure) {
+static int Nuitka_Frame_settrace(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace is not writable in Nuitka");
     return -1;
 }
 
 #if PYTHON_VERSION >= 0x370
-static PyObject *Nuitka_Frame_gettracelines(PyFrameObject *frame, void *closure) {
+static PyObject *Nuitka_Frame_gettracelines(struct Nuitka_FrameObject *frame, void *closure) {
     PyObject *result = Py_False;
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Frame_settracelines(PyFrameObject *frame, PyObject *v, void *closure) {
+static int Nuitka_Frame_settracelines(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_lines is not writable in Nuitka");
     return -1;
 }
 
-static PyObject *Nuitka_Frame_gettraceopcodes(PyFrameObject *frame, void *closure) {
+static PyObject *Nuitka_Frame_gettraceopcodes(struct Nuitka_FrameObject *frame, void *closure) {
     PyObject *result = Py_False;
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Frame_settraceopcodes(PyFrameObject *frame, PyObject *v, void *closure) {
+static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObject *v, void *closure) {
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka");
     return -1;
 }
@@ -375,6 +375,12 @@ static void Nuitka_Frame_tp_dealloc(struct Nuitka_FrameObject *nuitka_frame) {
 #endif
 
     Nuitka_Frame_tp_clear(nuitka_frame);
+
+#if PYTHON_VERSION >= 0x3b0
+    // Restore from backup, see header comment for the field "m_ob_size" to get
+    // it.
+    Py_SET_SIZE(nuitka_frame, nuitka_frame->m_ob_size);
+#endif
 
     releaseToFreeList(free_list_frames, nuitka_frame, MAX_FRAME_FREE_LIST_COUNT);
 
@@ -516,6 +522,14 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
 
 #endif
 
+static inline Py_ssize_t Nuitka_Frame_GetSize(struct Nuitka_FrameObject *frame) {
+#if PYTHON_VERSION < 0x3b0
+    return Py_SIZE(frame);
+#else
+    return frame->m_ob_size;
+#endif
+}
+
 static PyObject *Nuitka_Frame_sizeof(struct Nuitka_FrameObject *frame) {
     return PyInt_FromSsize_t(sizeof(struct Nuitka_FrameObject) + Py_SIZE(frame));
 }
@@ -644,6 +658,9 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
     frame->f_trace_opcodes = 0;
 #endif
 
+#if PYTHON_VERSION >= 0x3b0
+    result->m_ob_size = Py_SIZE(result);
+#endif
     frame->f_back = NULL;
 
     Py_INCREF(dict_builtin);
@@ -746,20 +763,29 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     PyObject *lnotab = const_bytes_empty;
 #endif
 
+    // For Python 3.11 this value is checked, even if not used.
+#if PYTHON_VERSION >= 0x3B0
+    int nlocals = (int)PyTuple_GET_SIZE(argnames);
+#else
+    int nlocals = 0;
+#endif
+
     // Not using PyCode_NewEmpty, it doesn't given us much beyond this
     // and is not available for Python2.
+
 #if PYTHON_VERSION >= 0x380
     PyCodeObject *result = PyCode_NewWithPosOnlyArgs(arg_count, // argcount
 #else
     PyCodeObject *result = PyCode_New(arg_count, // argcount
 #endif
+
 #if PYTHON_VERSION >= 0x300
 #if PYTHON_VERSION >= 0x380
                                                      pos_only_count, // kw-only count
 #endif
                                                      kw_only_count, // kw-only count
 #endif
-                                                     0,                 // nlocals
+                                                     nlocals,           // nlocals
                                                      0,                 // stacksize
                                                      flags,             // flags
                                                      code,              // code (bytecode)
@@ -783,14 +809,23 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
 
     assert(DEEP_HASH(argnames) == hash);
 
+    if (result == NULL) {
+        PyErr_PrintEx(0);
+    }
+
     CHECK_OBJECT(result);
     return result;
 }
 
-void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...) {
-    assertFrameObject(frame);
+void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char const *type_description, ...) {
+    assertFrameObject(frame_object);
 
-    assert(frame->m_type_description == NULL);
+#if _DEBUG_FRAME
+    printf("Attaching to frame 0x%x %s\n", frame_object,
+           Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
+#endif
+
+    assert(frame_object->m_type_description == NULL);
 
     // TODO: Do not call this if there is nothing to do. Instead make all the
     // places handle NULL pointer and recognize that there is nothing to do.
@@ -799,10 +834,10 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
         type_description = "";
     }
 
-    frame->m_type_description = type_description;
+    frame_object->m_type_description = type_description;
 
     char const *w = type_description;
-    char *t = frame->m_locals_storage;
+    char *t = frame_object->m_locals_storage;
 
     va_list(ap);
     va_start(ap, type_description);
@@ -864,7 +899,8 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *typ
     }
 
     va_end(ap);
-    assert(t - frame->m_locals_storage <= Py_SIZE(frame));
+
+    assert(t - frame_object->m_locals_storage <= Nuitka_Frame_GetSize(frame_object));
 }
 
 // Make a dump of the active frame stack. For debugging purposes only.

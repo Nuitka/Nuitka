@@ -456,6 +456,20 @@ static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrame(PyThreadState *th
     return return_frame;
 }
 
+static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrameObject(PyThreadState *thread_state,
+                                                                     struct Nuitka_FrameObject *generator_frame) {
+#if PYTHON_VERSION < 0x3b0
+    Nuitka_ThreadStateFrameType *thread_frame = &generator_frame->m_frame;
+#else
+    Nuitka_ThreadStateFrameType *thread_frame = NULL;
+    if (generator_frame != NULL) {
+        thread_frame = &generator_frame->m_interpreter_frame;
+    }
+#endif
+
+    return _Nuitka_GeneratorPushFrame(thread_state, thread_frame);
+}
+
 static void _Nuitka_GeneratorPopFrame(PyThreadState *thread_state, Nuitka_ThreadStateFrameType *return_frame) {
 #if PYTHON_VERSION < 0x3b0
     thread_state->frame = return_frame;
@@ -512,13 +526,8 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 #endif
 
         // Put the generator back on the frame stack.
-#if PYTHON_VERSION < 0x3b0
-        Nuitka_ThreadStateFrameType *return_frame =
-            _Nuitka_GeneratorPushFrame(thread_state, &generator->m_frame->m_frame);
-#else
-        Nuitka_ThreadStateFrameType *return_frame =
-            _Nuitka_GeneratorPushFrame(thread_state, &generator->m_frame->m_interpreter_frame);
-#endif
+        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GeneratorPushFrameObject(thread_state, generator->m_frame);
+
         if (generator->m_status == status_Unused) {
             generator->m_status = status_Running;
         }

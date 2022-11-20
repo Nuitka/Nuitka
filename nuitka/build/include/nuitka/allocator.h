@@ -55,8 +55,9 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     // There is always a sentinel now, therefore add one
     const size_t size = _PyObject_VAR_SIZE(type, nitems + 1);
 
-    // TODO: This ought to be static for all our types, so remove it.
+    // TODO: This ought to be static for all our types, so remove it as a call.
     const size_t presize = Nuitka_PyType_PreHeaderSize(type);
+    assert(presize == sizeof(PyGC_Head));
 
     char *alloc = (char *)PyObject_Malloc(size + presize);
     assert(alloc);
@@ -68,6 +69,7 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
 
         Nuitka_PyObject_GC_Link(obj);
     }
+
     // We might be able to avoid this, but it's unclear what e.g. the sentinel
     // is supposed to be.
     memset(obj, 0, size);
@@ -103,10 +105,11 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_
 
     return op;
 #else
-    // TODO: We ought to inline this probably too, and statically consider
-    // _PyType_PreHeaderSize result, which often will be 0.
-    return Nuitka_PyType_AllocNoTrackVar(type, nitems);
+    // TODO: We ought to inline this probably too, no point as a separate function.
+    PyObject *op = Nuitka_PyType_AllocNoTrackVar(type, nitems);
 #endif
+    assert(Py_SIZE(op) == nitems);
+    return op;
 }
 
 #endif

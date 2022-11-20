@@ -57,7 +57,6 @@ PyObject *DEEP_COPY_DICT(PyObject *value) {
 
     return result;
 #else
-
     if (((PyDictObject *)value)->ma_used == 0) {
         return PyDict_New();
     }
@@ -206,7 +205,7 @@ PyObject *DEEP_COPY_TUPLE(PyObject *value) {
 }
 
 PyObject *DEEP_COPY_SET(PyObject *value) {
-    // Sets cannot contain unhashable types, so these all must be immutable,
+    // Sets cannot contain non-hashable types, so these all must be immutable,
     // but the set itself might be changed, so we need to copy it.
     return PySet_New(value);
 }

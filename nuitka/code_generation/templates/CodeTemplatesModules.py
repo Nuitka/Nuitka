@@ -241,7 +241,7 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
     int flags_int = PyLong_AsLong(flags);
     assert(!ERROR_OCCURRED());
 
-    PyCodeObject *code_object = MAKE_CODEOBJECT(
+    PyCodeObject *code_object = MAKE_CODE_OBJECT(
         filename,
         line_int,
         flags_int,

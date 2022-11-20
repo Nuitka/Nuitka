@@ -1012,85 +1012,14 @@ void DICT_CLEAR(PyObject *dict) {
     PyDict_Clear(dict);
 }
 
-bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
-    CHECK_OBJECT(dict);
-    assert(PyDict_CheckExact(dict));
+#if PYTHON_VERSION >= 0x3b0
+static inline int Nuitka_py_get_index_from_order(PyDictObject *mp, Py_ssize_t i) {
+    assert(mp->ma_used <= SHARED_KEYS_MAX_SIZE);
+    assert(i < (((char *)mp->ma_values)[-2]));
 
-#if PYTHON_VERSION < 0x300
-    Py_ssize_t i = *pos;
-
-    PyDictEntry *ep = ((PyDictObject *)dict)->ma_table;
-    Py_ssize_t mask = ((PyDictObject *)dict)->ma_mask;
-
-    while (i <= mask && ep[i].me_value == NULL) {
-        i++;
-    }
-
-    *pos = i + 1;
-
-    if (i > mask) {
-        return false;
-    }
-
-    *key_ptr = ep[i].me_key;
-    *value_ptr = ep[i].me_value;
-
-    return true;
-
-#else
-
-    PyDictObject *mp = (PyDictObject *)dict;
-    PyDictKeyEntry *entry;
-    PyObject *value;
-
-    Py_ssize_t i = *pos;
-    assert(i >= 0);
-
-#ifndef PY_NOGIL
-    if (mp->ma_values) {
-        if (i >= mp->ma_used) {
-            return false;
-        }
-
-        entry = &DK_ENTRIES(mp->ma_keys)[i];
-        value = DK_VALUE(mp, i);
-
-        assert(value != NULL);
-#else
-    if (false) {
-#endif
-    } else {
-#if PYTHON_VERSION < 0x360
-        Py_ssize_t n = mp->ma_keys->dk_size;
-#else
-        Py_ssize_t n = mp->ma_keys->dk_nentries;
-#endif
-        if (i >= n) {
-            return false;
-        }
-
-        entry = &DK_ENTRIES(mp->ma_keys)[i];
-
-        while (i < n && entry->me_value == NULL) {
-            entry += 1;
-            i += 1;
-        }
-
-        if (i >= n) {
-            return false;
-        }
-
-        value = entry->me_value;
-    }
-
-    *pos = i + 1;
-
-    *key_ptr = entry->me_key;
-    *value_ptr = value;
-
-    return true;
-#endif
+    return ((char *)mp->ma_values)[-3 - i];
 }
+#endif
 
 #if PYTHON_VERSION >= 0x3b0
 
@@ -1327,3 +1256,147 @@ Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t has
 }
 
 #endif
+
+bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
+    CHECK_OBJECT(dict);
+    assert(PyDict_CheckExact(dict));
+
+#if PYTHON_VERSION < 0x300
+    Py_ssize_t i = *pos;
+
+    PyDictEntry *ep = ((PyDictObject *)dict)->ma_table;
+    Py_ssize_t mask = ((PyDictObject *)dict)->ma_mask;
+
+    while (i <= mask && ep[i].me_value == NULL) {
+        i++;
+    }
+
+    *pos = i + 1;
+
+    if (i > mask) {
+        return false;
+    }
+
+    *key_ptr = ep[i].me_key;
+    *value_ptr = ep[i].me_value;
+
+    return true;
+
+#elif PYTHON_VERSION < 0x3b0
+    PyDictObject *mp = (PyDictObject *)dict;
+    PyDictKeyEntry *entry;
+    PyObject *value;
+
+    Py_ssize_t i = *pos;
+    assert(i >= 0);
+
+#ifndef PY_NOGIL
+    if (mp->ma_values) {
+        if (i >= mp->ma_used) {
+            return false;
+        }
+
+        entry = &DK_ENTRIES(mp->ma_keys)[i];
+        value = DK_VALUE(mp, i);
+
+        assert(value != NULL);
+#else
+    if (false) {
+#endif
+    } else {
+#if PYTHON_VERSION < 0x360
+        Py_ssize_t n = mp->ma_keys->dk_size;
+#else
+        Py_ssize_t n = mp->ma_keys->dk_nentries;
+#endif
+        if (i >= n) {
+            return false;
+        }
+
+        entry = &DK_ENTRIES(mp->ma_keys)[i];
+
+        while (i < n && entry->me_value == NULL) {
+            entry += 1;
+            i += 1;
+        }
+
+        if (i >= n) {
+            return false;
+        }
+
+        value = entry->me_value;
+    }
+
+    *pos = i + 1;
+
+    *key_ptr = entry->me_key;
+    *value_ptr = value;
+
+    return true;
+#else
+    PyDictObject *mp = (PyDictObject *)dict;
+    Py_ssize_t i = *pos;
+    PyObject *key, *value;
+
+    if (mp->ma_values) {
+        // Shared keys dictionary.
+        assert(mp->ma_used <= SHARED_KEYS_MAX_SIZE);
+
+        if (i >= mp->ma_used) {
+            return false;
+        }
+
+        int index = Nuitka_py_get_index_from_order(mp, i);
+        value = mp->ma_values->values[index];
+
+        key = DK_UNICODE_ENTRIES(mp->ma_keys)[index].me_key;
+
+        assert(value != NULL);
+    } else {
+        Py_ssize_t n = mp->ma_keys->dk_nentries;
+
+        if (i >= n) {
+            return false;
+        }
+
+        // Unicode keys or general keys have different sizes, make sure to index
+        // the right type, the algorithm is the same however.
+        if (DK_IS_UNICODE(mp->ma_keys)) {
+            PyDictUnicodeEntry *entry_ptr = &DK_UNICODE_ENTRIES(mp->ma_keys)[i];
+
+            while (i < n && entry_ptr->me_value == NULL) {
+                entry_ptr++;
+                i++;
+            }
+
+            if (i >= n) {
+                return false;
+            }
+
+            key = entry_ptr->me_key;
+            value = entry_ptr->me_value;
+        } else {
+            PyDictKeyEntry *entry_ptr = &DK_ENTRIES(mp->ma_keys)[i];
+
+            while (i < n && entry_ptr->me_value == NULL) {
+                entry_ptr++;
+                i++;
+            }
+
+            if (i >= n) {
+                return false;
+            }
+
+            key = entry_ptr->me_key;
+            value = entry_ptr->me_value;
+        }
+    }
+
+    *pos = i + 1;
+
+    *key_ptr = key;
+    *value_ptr = value;
+
+    return true;
+#endif
+}

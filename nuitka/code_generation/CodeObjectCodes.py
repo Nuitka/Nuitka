@@ -124,7 +124,7 @@ def getCodeObjectsInitCode(context):
             ", ".join(str(s) for s in _getMakeCodeObjectArgs(code_object_key, context)),
         )
 
-        code = "%s = MAKE_CODEOBJECT(module_filename_obj, %s);" % args
+        code = "%s = MAKE_CODE_OBJECT(module_filename_obj, %s);" % args
 
         statements.append(code)
 

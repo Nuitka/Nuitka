@@ -32,27 +32,27 @@ extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObje
 // Create a code object for the given filename and function name
 
 #if PYTHON_VERSION < 0x300
-#define MAKE_CODEOBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,        \
-                        kw_only_count, pos_only_count)                                                                 \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+                         kw_only_count, pos_only_count)                                                                \
     makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
                                     PyObject *argnames, PyObject *freevars, int arg_count);
 #elif PYTHON_VERSION < 0x380
-#define MAKE_CODEOBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,        \
-                        kw_only_count, pos_only_count)                                                                 \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+                         kw_only_count, pos_only_count)                                                                \
     makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
                                     PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count);
 #elif PYTHON_VERSION < 0x3b0
-#define MAKE_CODEOBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,        \
-                        kw_only_count, pos_only_count)                                                                 \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+                         kw_only_count, pos_only_count)                                                                \
     makeCodeObject(filename, line, flags, function_name, argnames, freevars, arg_count, kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
                                     PyObject *argnames, PyObject *freevars, int arg_count, int kw_only_count,
                                     int pos_only_count);
 #else
-#define MAKE_CODEOBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,        \
-                        kw_only_count, pos_only_count)                                                                 \
+#define MAKE_CODE_OBJECT(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,       \
+                         kw_only_count, pos_only_count)                                                                \
     makeCodeObject(filename, line, flags, function_name, function_qualname, argnames, freevars, arg_count,             \
                    kw_only_count, pos_only_count)
 extern PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *function_name,
@@ -71,9 +71,17 @@ struct Nuitka_FrameObject {
     PyFrameObject m_frame;
 
 #if PYTHON_VERSION >= 0x3b0
-    PyFrameState m_frame_state;
     PyObject *m_generator;
+    PyFrameState m_frame_state;
     _PyInterpreterFrame m_interpreter_frame;
+
+    // In Python 3.11, the frame object is no longer variable size, and as such
+    // we inherit the wrong kind of header, not PyVarObject, leading to f_back
+    // the PyFrameObject and and ob_size aliasing, which is not good, but we
+    // want to expose the same binary interface, while still being variable size,
+    // so what we do is to preserve the size in this field instead.
+    Py_ssize_t m_ob_size;
+
 #endif
 
     // Our own extra stuff, attached variables.
@@ -129,7 +137,7 @@ extern int count_hit_frame_cache_instances;
 
 extern void dumpFrameStack(void);
 
-inline static PyCodeObject *Nuitka_FrameGetCode(PyFrameObject *frame) {
+inline static PyCodeObject *Nuitka_Frame_GetCodeObject(PyFrameObject *frame) {
 #if PYTHON_VERSION >= 0x3b0
     assert(frame->f_frame);
     return frame->f_frame->f_code;
@@ -140,7 +148,12 @@ inline static PyCodeObject *Nuitka_FrameGetCode(PyFrameObject *frame) {
 
 inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
     CHECK_OBJECT(frame_object);
-    CHECK_CODE_OBJECT(Nuitka_FrameGetCode(&frame_object->m_frame));
+
+    // TODO: Need to do this manually, as this is making frame caching code
+    // vulnerable to mistakes, but so far the compiled frame type is private
+    // assert(PyObject_IsInstance((PyObject *)frame_object, (PyObject *)&PyFrame_Type));
+
+    CHECK_CODE_OBJECT(Nuitka_Frame_GetCodeObject(&frame_object->m_frame));
 }
 
 // Mark frame as currently executed. Starting with Python 3.4 that means it
@@ -207,9 +220,9 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
 
 #if _DEBUG_FRAME
     if (old) {
-        assertCodeObject(old->f_code);
+        CHECK_CODE_OBJECT(old->f_code);
 
-        printf("Upstacking to frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)old)),
+        printf("Stacking up to frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)old)),
                Nuitka_String_AsString(PyObject_Repr((PyObject *)old->f_code)));
     }
 #endif
@@ -231,14 +244,26 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
     _PyInterpreterFrame *old = tstate->cframe->current_frame;
     frame_object->m_interpreter_frame.previous = old;
     tstate->cframe->current_frame = &frame_object->m_interpreter_frame;
+
+    if (old != NULL) {
+        frame_object->m_frame.f_back = old->frame_obj;
+        Py_INCREF(old->frame_obj);
+    }
+
+#if _DEBUG_FRAME
+    if (old) {
+        printf("Stacking up to frame 0x%x %s\n", old, Nuitka_String_AsString(PyObject_Repr((PyObject *)old->f_code)));
+    }
+#endif
 #endif
 
     Nuitka_Frame_MarkAsExecuting(frame_object);
     Py_INCREF(frame_object);
 
 #if _DEBUG_FRAME
-    printf("Now at top frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)tstate->frame)),
-           Nuitka_String_AsString(PyObject_Repr((PyObject *)tstate->frame->f_code)));
+    printf("Now at top frame 0x%x %s %s\n", frame_object,
+           Nuitka_String_AsString(PyObject_Str((PyObject *)frame_object)),
+           Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
 #endif
 }
 
@@ -251,7 +276,7 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
 
 #if _DEBUG_FRAME
     printf("Taking off frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)old)),
-           Nuitka_String_AsString(PyObject_Repr((PyObject *)old->f_code)));
+           Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&old->m_frame))));
 #endif
 
     // Put previous frame on top.
@@ -311,12 +336,7 @@ NUITKA_MAY_BE_UNUSED static PyCodeObject *Nuitka_GetFrameCodeObject(struct Nuitk
 }
 
 NUITKA_MAY_BE_UNUSED static int Nuitka_GetFrameLineNumber(struct Nuitka_FrameObject *nuitka_frame) {
-#if PYTHON_VERSION < 0x3b0
     return nuitka_frame->m_frame.f_lineno;
-#else
-    // TODO: We probably want to have our own line number instead.
-    return _PyInterpreterFrame_LASTI(&nuitka_frame->m_interpreter_frame);
-#endif
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject **Nuitka_GetCodeVarNames(PyCodeObject *code_object) {
@@ -326,7 +346,7 @@ NUITKA_MAY_BE_UNUSED static PyObject **Nuitka_GetCodeVarNames(PyCodeObject *code
     // TODO: Might get away with co_names which will be much faster, that functions
     // that build a new tuple, that we would have to keep around, but it might be
     // merged with closure variable names, etc. as as such might become wrong.
-    return &PyTuple_GET_ITEM(code_object->co_names, 0);
+    return &PyTuple_GET_ITEM(code_object->co_localsplusnames, 0);
 #endif
 }
 

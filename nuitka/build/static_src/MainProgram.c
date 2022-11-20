@@ -190,8 +190,8 @@ static int HANDLE_PROGRAM_EXIT(void) {
             PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
             PyFrameObject *frame = tb->tb_frame;
 
-            if (0 ==
-                strcmp(PyUnicode_AsUTF8(Nuitka_FrameGetCode(frame)->co_filename), "<frozen importlib._bootstrap>")) {
+            if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
+                            "<frozen importlib._bootstrap>")) {
                 thread_state->curexc_traceback = (PyObject *)tb->tb_next;
                 Py_INCREF(tb->tb_next);
 
