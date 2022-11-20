@@ -127,6 +127,21 @@ def getComplexCallSequenceErrorTemplate():
     return getComplexCallSequenceErrorTemplate.result
 
 
+def getUnboundLocalErrorErrorTemplate():
+    if not hasattr(getUnboundLocalErrorErrorTemplate, "result"):
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=undefined-variable
+            del _f
+        except UnboundLocalError as e:
+            result = e.args[0].replace("_f", "%s")
+            getUnboundLocalErrorErrorTemplate.result = result
+        else:
+            sys.exit("Error, cannot detect expected error message.")
+
+    return getUnboundLocalErrorErrorTemplate.result
+
+
 _needs_set_literal_reverse_insertion = None
 
 
@@ -159,6 +174,7 @@ def getRunningPythonDLLPath():
     )
 
     # We trust ctypes internals here, pylint: disable=protected-access
+    # spell-checker: ignore pythonapi
     return getWindowsRunningProcessModuleFilename(ctypes.pythonapi._handle)
 
 
@@ -208,6 +224,7 @@ def getPythonABI():
         # Cyclic dependency here.
         from nuitka.Options import shallUsePythonDebug
 
+        # spell-checker: ignore getobjects
         if shallUsePythonDebug() or hasattr(sys, "getobjects"):
             if not abiflags.startswith("d"):
                 abiflags = "d" + abiflags
