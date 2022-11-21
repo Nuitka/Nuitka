@@ -24,7 +24,7 @@ from __future__ import print_function
 
 
 def func(_arg1, _arg2, _arg3, **_star):
-    """ Some documentation. """
+    """Some documentation."""
 
 
 print("Starting out: func, __name__:", func, func.__name__)

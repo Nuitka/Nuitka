@@ -17,6 +17,8 @@
 #
 """ Exercise assertions in their flavors."""
 
+# nuitka-project: --nofollow-imports
+
 from __future__ import print_function
 
 

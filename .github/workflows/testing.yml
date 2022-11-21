@@ -47,8 +47,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run tests/basics/Empty.py
-          python -m nuitka --show-scons --run tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |
@@ -105,8 +105,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
-          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |
@@ -147,8 +147,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
-          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |
@@ -184,8 +184,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests\basics\Empty.py
-          python -m nuitka --show-scons --run tests\basics\Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
+          python -m nuitka --show-scons --run tests\basics\EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |

@@ -258,7 +258,7 @@ def simpleFunction25():
     def inplace_adder(b):
         X.f += b
 
-    return inplace_adder(6 ** 8)
+    return inplace_adder(6**8)
 
 
 def simpleFunction26():
@@ -1030,7 +1030,7 @@ def simpleFunction110():
 
 ####################################
 
-u = u"__name__"
+u = "__name__"
 
 
 def simpleFunction111():
@@ -1086,7 +1086,7 @@ def simpleFunction114():
     del l[:]
 
 
-i = 2 ** 16 + 1
+i = 2**16 + 1
 
 
 def simpleFunction115():

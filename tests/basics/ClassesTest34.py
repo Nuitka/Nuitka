@@ -15,33 +15,34 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from __future__ import print_function
+from enum import Enum
 
-print("Module name is", __name__)
+print("Enum class with duplicate enumeration values:")
+try:
+
+    class Color(Enum):
+        red = 1
+        green = 2
+        blue = 3
+        red = 4
+
+        print("not allowed to get here")
+
+except Exception as e:
+    print("Occurred", e)
+
+print("Class variable that conflicts with closure variable:")
 
 
-class SomeClass:
-    pass
+def testClassNamespaceOverridesClosure():
+    # See #17853.
+    x = 42
+
+    class X:
+        locals()["x"] = 43
+        y = x
+
+    print("should be 43:", X.y)
 
 
-print("Class inside main module names its module as", repr(SomeClass.__module__))
-
-if __name__ == "__main__":
-    print("Executed as __main__:")
-
-    import sys, os
-
-    # The sys.argv[0] might contain ".exe", ".py" or no suffix at all.
-    # Remove it, so the "diff" output is more acceptable.
-    args = sys.argv[:]
-    args[0] = (
-        os.path.basename(args[0])
-        .replace(".exe", ".py")
-        .replace(".bin", ".py")
-        .replace(".py", "")
-    )
-
-    print("Arguments were (stripped argv[0] suffix):", repr(args))
-
-    # Output the flags, so we can test if we are compatible with these too.
-    print("The sys.flags are:", sys.flags)
+testClassNamespaceOverridesClosure()

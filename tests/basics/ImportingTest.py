@@ -59,16 +59,16 @@ print("As import gave", myname)
 
 def localImportFailure():
     try:
-        from os import path, lala, listdir
+        from os import listdir, listdir2, path
     except Exception as e:
         print("gives", type(e), repr(e))
 
     try:
-        print(listdir)
+        print(path)
     except UnboundLocalError:
-        print("and listdir was not imported", end=" ")
+        print("and path was not imported", end=" ")
 
-    print("but path was", path)
+    print("but listdir was", listdir)
 
 
 print("From import that fails in the middle", end=" ")

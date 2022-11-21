@@ -15,25 +15,34 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print(u"gfcrk")
-print(repr(u"g\xfcrk"))
+from __future__ import print_function
 
-print(r"""\x00""")
+print("Module name is", __name__)
 
-print("\ttest\n")
 
-print(
-    """
-something
-with
-new
-lines"""
-)
+class SomeClass:
+    pass
 
-print(u"favicon.ico (32\xd732)")
 
-# TODO: Python3 has a problem here, hard to find, disabled for now.
-if False:
-    encoding = "utf-16-be"
-    print("[\uDC80]".encode(encoding))
-    print("[\\udc80]")
+print("Class inside main module names its module as", repr(SomeClass.__module__))
+
+if __name__ == "__main__":
+    print("Executed as __main__:")
+
+    import os
+    import sys
+
+    # The sys.argv[0] might contain ".exe", ".py" or no suffix at all.
+    # Remove it, so the "diff" output is more acceptable.
+    args = sys.argv[:]
+    args[0] = (
+        os.path.basename(args[0])
+        .replace(".exe", ".py")
+        .replace(".bin", ".py")
+        .replace(".py", "")
+    )
+
+    print("Arguments were (stripped argv[0] suffix):", repr(args))
+
+    # Output the flags, so we can test if we are compatible with these too.
+    print("The sys.flags are:", sys.flags)

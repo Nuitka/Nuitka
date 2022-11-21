@@ -286,7 +286,7 @@ def someFunctionThatReturnsDeletedValueViaPower():
     c = C()
 
     a = 1
-    c ** 1
+    c**1
     return a
 
 

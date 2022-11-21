@@ -141,7 +141,7 @@ print(
 )
 
 
-def defaultValueTest4(_no_default, funced_defaulted=lambda x: x ** 2):
+def defaultValueTest4(_no_default, funced_defaulted=lambda x: x**2):
     return funced_defaulted(4)
 
 
@@ -151,7 +151,7 @@ print(
 )
 
 
-def defaultValueTest4a(_no_default, funced_defaulted=lambda x: x ** 2):
+def defaultValueTest4a(_no_default, funced_defaulted=lambda x: x**2):
     c = 1
     d = funced_defaulted(1)
 
@@ -170,7 +170,7 @@ print(
 )
 
 
-def defaultValueTest4b(_no_default, funced_defaulted=lambda x: x ** 3):
+def defaultValueTest4b(_no_default, funced_defaulted=lambda x: x**3):
     d = funced_defaulted(1)
 
     # Nested generators

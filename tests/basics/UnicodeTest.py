@@ -15,46 +15,25 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" These tests contain all forms of closure absuse.
+print("gfcrk")
+print(repr("g\xfcrk"))
 
-"""
-from __future__ import print_function
+print(r"""\x00""")
 
-a = 1
-b = 1
+print("\ttest\n")
 
+print(
+    """
+something
+with
+new
+lines"""
+)
 
-def someFunction():
-    a = a  # pylint: disable=redefined-outer-name,unused-variable
+print("favicon.ico (32\xd732)")
 
-
-class SomeClass:
-    b = b
-
-
-SomeClass()
-
-try:
-    someFunction()
-except UnboundLocalError as e:
-    print("Expected unbound local error occurred:", repr(e))
-
-try:
-
-    class AnotherClass:
-        b = undefined_global
-
-
-except NameError as e:
-    print("Expected name error occurred:", repr(e))
-
-try:
-
-    class YetAnotherClass:
-        b = 1
-        del b
-        print(b)
-
-
-except NameError as e:
-    print("Expected name error occurred:", repr(e))
+# TODO: Python3 has a problem here, hard to find, disabled for now.
+if False:
+    encoding = "utf-16-be"
+    print("[\uDC80]".encode(encoding))
+    print("[\\udc80]")

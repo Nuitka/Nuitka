@@ -15,35 +15,44 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from enum import Enum
+""" These tests contain all forms of closure absuse.
 
-print("Enum class with duplicate enumeration values:")
+"""
+from __future__ import print_function
+
+a = 1
+b = 1
+
+
+def someFunction():
+    a = a  # pylint: disable=redefined-outer-name,unused-variable
+
+
+class SomeClass:
+    b = b
+
+
+SomeClass()
+
+try:
+    someFunction()
+except UnboundLocalError as e:
+    print("Expected unbound local error occurred:", repr(e))
+
 try:
 
-    class Color(Enum):
-        red = 1
-        green = 2
-        blue = 3
-        red = 4
+    class AnotherClass:
+        b = undefined_global
 
-        print("not allowed to get here")
+except NameError as e:
+    print("Expected name error occurred:", repr(e))
 
+try:
 
-except Exception as e:
-    print("Occurred", e)
+    class YetAnotherClass:
+        b = 1
+        del b
+        print(b)
 
-print("Class variable that conflicts with closure variable:")
-
-
-def testClassNamespaceOverridesClosure():
-    # See #17853.
-    x = 42
-
-    class X:
-        locals()["x"] = 43
-        y = x
-
-    print("should be 43:", X.y)
-
-
-testClassNamespaceOverridesClosure()
+except NameError as e:
+    print("Expected name error occurred:", repr(e))

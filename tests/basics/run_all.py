@@ -79,23 +79,23 @@ def main():
             extra_flags.append("--python-debug")
 
         # This tests warns about __import__() used.
-        if filename == "OrderChecks.py":
+        if filename == "OrderChecksTest.py":
             extra_flags.append("ignore_warnings")
 
         # This tests warns about an package relative import despite
         # being in no package.
-        if filename == "Importing.py":
+        if filename == "ImportingTest.py":
             extra_flags.append("ignore_warnings")
 
         # TODO: Nuitka does not give output for ignored exception in dtor, this is
         # not fully compatible and potentially an error.
-        if filename == "YieldFrom33.py":
+        if filename == "YieldFromTest33.py":
             extra_flags.append("ignore_stderr")
 
         # For Python2 there is a "builtins" package that gives warnings. TODO: We
         # ought to NOT import that package and detect statically that __builtins__
         # import won't raise ImportError.
-        if filename == "BuiltinOverload.py":
+        if filename == "BuiltinOverloadTest.py":
             extra_flags.append("ignore_warnings")
 
         active = search_mode.consider(dirname=None, filename=filename)

@@ -30,7 +30,7 @@ from __future__ import print_function
 def local_function(a, z=9):
     b = ` a * a + 1 `
 
-    c = (a, b, a ** 32, a + a)
+    c = (a, b, a**32, a + a)
 
     d = long("0")
     e = int("77")

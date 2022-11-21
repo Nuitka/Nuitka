@@ -39,7 +39,7 @@ def defaultValueTest3(no_default, func_defaulted=defaultValueTest1(module_level)
     return [func_defaulted for _i in range(8)]
 
 
-def defaultValueTest4(no_default, funced_defaulted=lambda x: x ** 2):
+def defaultValueTest4(no_default, funced_defaulted=lambda x: x**2):
     c = 1
     d = 1
     return (i + c + d for i in range(8))

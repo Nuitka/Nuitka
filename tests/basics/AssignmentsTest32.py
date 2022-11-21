@@ -44,7 +44,10 @@ except Exception as e:
 print(a, b, c)
 
 print("More complex right hand side, consisting of multiple values:")
-(a, b), c, = [1, 2], "this"  # a = '1', b = '2', c = 'this'
+(a, b), c, = [
+    1,
+    2,
+], "this"  # a = '1', b = '2', c = 'this'
 print(a, b, c)
 
 print("More complex right hand side, too many values:")
@@ -88,22 +91,22 @@ print(a, b, c, d)
 (a, b), (c, *d) = [1, 2], "this"  # a = '1', b = '2', c = 't', d = ['h', 'i', 's']
 print(a, b, c, d)
 
-*a, = (1, 2)  # a = [1,2]
+(*a,) = (1, 2)  # a = [1,2]
 
 
 print("Extended sequence * unpacking with non-iterable:")
 try:
-    *a, = 1  # ERROR -- 'int' object is not iterable
+    (*a,) = 1  # ERROR -- 'int' object is not iterable
 except Exception as e:
     print(repr(e))
 print(a)
 
 print("Extended sequence * unpacking with list:")
-*a, = [1]  # a = [1]
+(*a,) = [1]  # a = [1]
 print(a)
 
 print("Extended sequence * unpacking with tuple:")
-*a, = (1,)  # a = [1]
+(*a,) = (1,)  # a = [1]
 print(a)
 
 print("Extended sequence * unpacking with fixed right side:")
@@ -139,25 +142,25 @@ print(a, b, c)
 *(a, b), c = 1, 2, 3  # a = 1, b = 2, c = 3
 print(a, b, c)
 
-*(a, b), = 1, 2  # a = 1, b = 2
+(*(a, b),) = 1, 2  # a = 1, b = 2
 print(a, b)
 
-*(a, b), = "XY"  # a = 'X', b = 'Y'
+(*(a, b),) = "XY"  # a = 'X', b = 'Y'
 print(a, b)
 
 try:
-    *(a, b), = "this"  # ERROR -- too many values to unpack
+    (*(a, b),) = "this"  # ERROR -- too many values to unpack
 except Exception as e:
     print(repr(e))
 print(a, b)
 
-*(a, *b), = "this"  # a = 't', b = ['h', 'i', 's']
+(*(a, *b),) = "this"  # a = 't', b = ['h', 'i', 's']
 print(a, b)
 
 *(a, *b), c = "this"  # a = 't', b = ['h', 'i'], c = 's'
 print(a, b, c)
 
-*(a, *b), = 1, 2, 3, 3, 4, 5, 6, 7  # a = 1, b = [2, 3, 3, 4, 5, 6, 7]
+(*(a, *b),) = 1, 2, 3, 3, 4, 5, 6, 7  # a = 1, b = [2, 3, 3, 4, 5, 6, 7]
 print(a, b)
 
 try:
