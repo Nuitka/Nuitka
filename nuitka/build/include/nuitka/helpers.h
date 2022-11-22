@@ -475,7 +475,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_s
 
 // Make a deep copy of an object of general or specific type.
 extern PyObject *DEEP_COPY(PyObject *value);
-extern PyObject *DEEP_COPY_DICT(PyObject *value);
+extern PyObject *DEEP_COPY_DICT(PyObject *dict_value);
 extern PyObject *DEEP_COPY_LIST(PyObject *value);
 extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
 extern PyObject *DEEP_COPY_SET(PyObject *value);

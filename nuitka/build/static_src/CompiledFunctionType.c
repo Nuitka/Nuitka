@@ -1476,27 +1476,7 @@ static Py_ssize_t handleKeywordArgsSplit(struct Nuitka_FunctionObject const *fun
     return kw_found;
 }
 
-#if PYTHON_VERSION < 0x3b0
-typedef PyObject *PyDictValues;
-#endif
-
-static inline PyDictValues *Nuitka_PyDict_new_values(Py_ssize_t size) {
-#if PYTHON_VERSION < 0x3b0
-    return PyMem_NEW(PyObject *, size);
-#else
-    // With Python3.11 or higher a prefix is allocated too.
-    size_t prefix_size = _Py_SIZE_ROUND_UP(size + 2, sizeof(PyObject *));
-    size_t n = prefix_size + size * sizeof(PyObject *);
-    uint8_t *mem = (uint8_t *)PyMem_Malloc(n);
-
-    assert(mem != NULL);
-
-    assert(prefix_size % sizeof(PyObject *) == 0);
-    mem[prefix_size - 1] = (uint8_t)prefix_size;
-
-    return (PyDictValues *)(mem + prefix_size);
-#endif
-}
+static PyObject *COPY_DICT_KW(PyObject *dict_value);
 
 static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
                                            PyObject *kw) {
@@ -1506,114 +1486,12 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
     if (kw == NULL || ((PyDictObject *)kw)->ma_used == 0) {
         python_pars[star_dict_index] = PyDict_New();
     } else {
-#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
-        python_pars[star_dict_index] = PyDict_Copy(kw);
-#else
-#if PYTHON_VERSION < 0x300
-        python_pars[star_dict_index] = _PyDict_NewPresized(((PyDictObject *)kw)->ma_used);
+        python_pars[star_dict_index] = COPY_DICT_KW(kw);
 
-        for (int i = 0; i <= ((PyDictObject *)kw)->ma_mask; i++) {
-            PyDictEntry *entry = &((PyDictObject *)kw)->ma_table[i];
-
-            if (entry->me_value != NULL) {
-                if (unlikely(!checkKeywordType(entry->me_key))) {
-                    formatErrorKeywordsMustBeString(function);
-                    return false;
-                }
-
-                int res = PyDict_SetItem(python_pars[star_dict_index], entry->me_key, entry->me_value);
-
-                if (unlikely(res != 0)) {
-                    return false;
-                }
-            }
+        if (unlikely(python_pars[star_dict_index] == NULL)) {
+            formatErrorKeywordsMustBeString(function);
+            return false;
         }
-#else
-        /* Python 3 */
-#ifndef PY_NOGIL
-        if (_PyDict_HasSplitTable((PyDictObject *)kw)) {
-            PyDictObject *mp = (PyDictObject *)kw;
-
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = mp->ma_keys->dk_size;
-#elif PYTHON_VERSION < 0x3b0
-            Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
-#else
-            Py_ssize_t size = Nuitka_Py_shared_keys_usable_size(mp->ma_keys);
-#endif
-
-            PyDictValues *new_values = Nuitka_PyDict_new_values(size);
-            assert(new_values != NULL);
-
-            PyDictObject *split_copy = PyObject_GC_New(PyDictObject, &PyDict_Type);
-            assert(split_copy != NULL);
-
-            split_copy->ma_values = new_values;
-            split_copy->ma_keys = mp->ma_keys;
-            split_copy->ma_used = mp->ma_used;
-
-            mp->ma_keys->dk_refcnt += 1;
-
-            for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 0x360
-                PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[i];
-#else
-                PyDictKeyEntry *entry = &DK_ENTRIES(split_copy->ma_keys)[i];
-#endif
-                if ((entry->me_key != NULL) && unlikely(!checkKeywordType(entry->me_key))) {
-                    formatErrorKeywordsMustBeString(function);
-                    return false;
-                }
-
-#if PYTHON_VERSION < 0x3b0
-                split_copy->ma_values[i] = mp->ma_values[i];
-                Py_XINCREF(split_copy->ma_values[i]);
-#else
-                split_copy->ma_values->values[i] = mp->ma_values->values[i];
-                Py_XINCREF(split_copy->ma_values->values[i]);
-#endif
-            }
-
-            Nuitka_GC_Track(split_copy);
-
-            python_pars[star_dict_index] = (PyObject *)split_copy;
-        } else
-#endif
-        {
-            python_pars[star_dict_index] = PyDict_New();
-
-            PyDictObject *mp = (PyDictObject *)kw;
-
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = mp->ma_keys->dk_size;
-#else
-            Py_ssize_t size = mp->ma_keys->dk_nentries;
-#endif
-            for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 0x360
-                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
-#else
-                PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
-#endif
-
-                PyObject *value = entry->me_value;
-
-                if (value != NULL) {
-                    if (unlikely(!checkKeywordType(entry->me_key))) {
-                        formatErrorKeywordsMustBeString(function);
-                        return false;
-                    }
-
-                    int res = PyDict_SetItem(python_pars[star_dict_index], entry->me_key, value);
-
-                    if (unlikely(res != 0)) {
-                        return false;
-                    }
-                }
-            }
-        }
-#endif
-#endif
     }
 
     return true;
@@ -2246,7 +2124,7 @@ static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *functi
 #else
         kw_found = handleKeywordArgsSplitWithStarDict(function, python_pars, &kw_only_found, kw_values, kw_names);
 #endif
-        if (kw_found == -1) {
+        if (unlikely(kw_found == -1)) {
             releaseParameters(function, python_pars);
             return false;
         }
@@ -2256,7 +2134,7 @@ static bool parseArgumentsFullKwSplit(struct Nuitka_FunctionObject const *functi
 #else
         kw_found = handleKeywordArgsSplit(function, python_pars, &kw_only_found, kw_values, kw_names);
 #endif
-        if (kw_found == -1) {
+        if (unlikely(kw_found == -1)) {
             releaseParameters(function, python_pars);
             return false;
         }
@@ -2335,7 +2213,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
 #else
         kw_found = handleKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw);
 #endif
-        if (kw_found == -1) {
+        if (unlikely(kw_found == -1)) {
             releaseParameters(function, python_pars);
             return false;
         }
@@ -2347,7 +2225,7 @@ static bool parseArgumentsFull(struct Nuitka_FunctionObject const *function, PyO
 #else
         kw_found = handleKeywordArgs(function, python_pars, &kw_only_found, kw);
 #endif
-        if (kw_found == -1) {
+        if (unlikely(kw_found == -1)) {
             releaseParameters(function, python_pars);
             return false;
         }
@@ -2683,7 +2561,7 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
     if (function->m_args_star_dict_index != -1) {
         kw_found = handleVectorcallKeywordArgsWithStarDict(function, python_pars, &kw_only_found, kw_names,
                                                            &args[args_size], kw_size);
-        if (kw_found == -1) {
+        if (unlikely(kw_found == -1)) {
             releaseParameters(function, python_pars);
             return false;
         }
@@ -2693,7 +2571,7 @@ static bool parseArgumentsVectorcall(struct Nuitka_FunctionObject const *functio
         kw_found =
             handleVectorcallKeywordArgs(function, python_pars, &kw_only_found, kw_names, &args[args_size], kw_size);
 
-        if (kw_found == -1) {
+        if (unlikely(kw_found == -1)) {
             releaseParameters(function, python_pars);
             return false;
         }
