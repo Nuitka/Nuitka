@@ -84,6 +84,11 @@ def main():
         if status == "building":
             return False
 
+        # It makes need to build visible as well, that too is not an error
+        # really.
+        if status == "outdated":
+            return False
+
         return True
 
     for count, title in enumerate(titles):
