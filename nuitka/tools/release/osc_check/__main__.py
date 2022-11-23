@@ -36,6 +36,7 @@ from nuitka.utils.Execution import check_output
 def main():
     my_print("Querying openSUSE build service status of Nuitka packages.")
 
+    # spell-checker: ignore kayhayen
     osc_cmd = ["osc", "pr", "-c", "home:kayhayen"]
 
     stdout_osc = check_output(args=osc_cmd)
@@ -44,8 +45,8 @@ def main():
         stdout_osc = stdout_osc.decode("utf8")
 
     # Response is really a CSV file, so use that for parsing.
-    csvfile = StringIO(stdout_osc)
-    osc_reader = csv.reader(csvfile, delimiter=";")
+    csv_file = StringIO(stdout_osc)
+    osc_reader = csv.reader(csv_file, delimiter=";")
 
     osc_reader = iter(osc_reader)
 
@@ -64,6 +65,7 @@ def main():
 
     def decideConsideration(title, status):
         # Ignore other arch builds, they might to not even boot at times.
+        # spell-checker: ignore aarch
         if "ppc" in title or "aarch" in title or "arm" in title:
             return False
 

@@ -36,7 +36,12 @@
         "utility": "c",
         "memory": "c",
         "onefilesplashscreen.cpp": "cpp",
-        "compare": "c"
+        "compare": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "ranges": "c",
+        "chrono": "c",
+        "ratio": "c"
     },
     "python.linting.pylintArgs": [
         "--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
@@ -96,6 +101,7 @@
         "basestring",
         "binaryfunc",
         "bitor",
+        "Buildbot",
         "bytecode",
         "bytecodes",
         "CBOOL",
