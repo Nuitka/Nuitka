@@ -155,8 +155,7 @@ nuitka_packages = findNuitkaPackages()
 package_data = {
     "": ["*.txt", "*.rst", "*.c", "*.h", "*.yml"],
     "nuitka.build": [
-        "Backend.scons",
-        "Onefile.scons",
+        "*.scons",
         "static_src/*.c",
         "static_src/*.cpp",
         "static_src/*/*.c",
