@@ -222,6 +222,10 @@
         prefixes:
           - 'lib'
       when: 'linux'
+    - from_filenames:
+        prefixes:
+          - 'opencv_videoio'
+      when: 'win32'
   anti-bloat:
     - description: 'workaround for colliding native module import'
       context:
