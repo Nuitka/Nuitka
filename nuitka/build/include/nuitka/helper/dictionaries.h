@@ -138,8 +138,6 @@ struct _dictkeysobject {
 
 #define DK_ENTRIES(dk) ((PyDictKeyEntry *)(&(dk)->dk_indices.as_1[DK_SIZE(dk) * DK_IXSIZE(dk)]))
 
-#define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
-
 #else
 
 static inline Py_ssize_t Nuitka_Py_shared_keys_usable_size(PyDictKeysObject *keys) {
