@@ -51,7 +51,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const *
             CHECK_OBJECT(args[i]);
 
             if (kw_dict == NULL) {
-                kw_dict = PyDict_New();
+                kw_dict = MAKE_DICT_EMPTY();
             }
 
             int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
@@ -104,27 +104,23 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
     PyTuple_SET_ITEM(pos_args, 2, mode);
     Py_INCREF(mode);
 
-    PyObject *kw_args = NULL;
-
-    if (flags != NULL) {
-        if (kw_args == NULL)
-            kw_args = PyDict_New();
-        PyDict_SetItemString(kw_args, "flags", flags);
-    }
-
-    if (dont_inherit != NULL) {
-        if (kw_args == NULL)
-            kw_args = PyDict_New();
-        PyDict_SetItemString(kw_args, "dont_inherit", dont_inherit);
-    }
-
+    PyObject *kw_values[] = {
+        flags,
+        dont_inherit,
 #if PYTHON_VERSION >= 0x300
-    if (optimize != NULL) {
-        if (kw_args == NULL)
-            kw_args = PyDict_New();
-        PyDict_SetItemString(kw_args, "optimize", optimize);
-    }
+        optimize,
 #endif
+    };
+
+    char const *kw_keys[] = {
+        "flags",
+        "dont_inherit",
+#if PYTHON_VERSION >= 0x300
+        "optimize",
+#endif
+    };
+
+    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
     NUITKA_ASSIGN_BUILTIN(compile);
 

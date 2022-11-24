@@ -21,6 +21,8 @@
 #include "nuitka/prelude.h"
 #endif
 
+/* WARNING, this code is GENERATED. Modify the template HelperDictionaryCopy.c.j2 instead! */
+
 // Usable fraction of keys.
 #define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
 
@@ -28,17 +30,22 @@
 typedef PyObject *PyDictValues;
 #endif
 
-#if PYTHON_VERSION >= 0x3a0
-#define NUITKA_DICT_HAS_FREELIST 1
-static struct _Py_dict_state *_Nuitka_Py_get_dict_state(void) {
-    PyInterpreterState *interp = _PyInterpreterState_GET();
-    return &interp->dict_state;
-}
+#if PYTHON_VERSION < 0x360
+#define DK_ENTRIES_SIZE(keys) (keys->dk_size)
+#elif PYTHON_VERSION < 0x3b0
+#define DK_ENTRIES_SIZE(keys) DK_USABLE_FRACTION(DK_SIZE(keys))
 #else
-#define NUITKA_DICT_HAS_FREELIST 0
+#define DK_ENTRIES_SIZE(keys) (keys->dk_nentries)
 #endif
 
-static inline PyDictValues *Nuitka_PyDict_new_values(Py_ssize_t size) {
+// More than 2/3 of the keys are used, i.e. no space is wasted.
+#if PYTHON_VERSION < 0x360
+#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_size * 2) / 3)
+#else
+#define IS_COMPACT(dict_mp) (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)
+#endif
+
+static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {
 #if PYTHON_VERSION < 0x3b0
     return (PyDictValues *)PyMem_MALLOC(sizeof(PyObject *) * size);
 #else
@@ -56,6 +63,14 @@ static inline PyDictValues *Nuitka_PyDict_new_values(Py_ssize_t size) {
 #endif
 }
 
+#if NUITKA_DICT_HAS_FREELIST
+static struct _Py_dict_state *_Nuitka_Py_get_dict_state(void) {
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    return &interp->dict_state;
+}
+#endif
+
+#if PYTHON_VERSION >= 0x300
 static PyDictObject *_Nuitka_AllocatePyDictObject(void) {
     PyDictObject *result_mp;
 
@@ -77,10 +92,16 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(void) {
 
     return result_mp;
 }
+#endif
 
-#if PYTHON_VERSION >= 0x3a0
-static Py_ssize_t Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
-#if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION >= 0x360 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT)
+static Py_ssize_t _Nuitka_Py_PyDict_KeysSize(PyDictKeysObject *keys) {
+#if PYTHON_VERSION < 0x360
+    return sizeof(PyDictKeysObject) + (DK_SIZE(keys) - 1) * sizeof(PyDictKeyEntry);
+#elif PYTHON_VERSION < 0x370
+    return (sizeof(PyDictKeysObject) - Py_MEMBER_SIZE(PyDictKeysObject, dk_indices) + DK_IXSIZE(keys) * DK_SIZE(keys) +
+            DK_USABLE_FRACTION(DK_SIZE(keys)) * sizeof(PyDictKeyEntry));
+#elif PYTHON_VERSION < 0x3b0
     return (sizeof(PyDictKeysObject) + DK_IXSIZE(keys) * DK_SIZE(keys) +
             DK_USABLE_FRACTION(DK_SIZE(keys)) * sizeof(PyDictKeyEntry));
 #else
@@ -104,7 +125,7 @@ PyObject *DICT_COPY(PyObject *dict_value) {
     assert(PyDict_CheckExact(dict_value));
 
     if (((PyDictObject *)dict_value)->ma_used == 0) {
-        result = PyDict_New();
+        result = MAKE_DICT_EMPTY();
     } else {
         PyDictObject *dict_mp = (PyDictObject *)dict_value;
 
@@ -129,19 +150,13 @@ PyObject *DICT_COPY(PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = dict_mp->ma_keys->dk_size;
-#elif PYTHON_VERSION < 0x3b0
-            Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(dict_mp->ma_keys));
-#else
-            Py_ssize_t size = Nuitka_Py_shared_keys_usable_size(dict_mp->ma_keys);
-#endif
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
-            PyDictValues *new_values = Nuitka_PyDict_new_values(size);
+            PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
 
 #if PYTHON_VERSION >= 0x3b0
@@ -175,11 +190,11 @@ PyObject *DICT_COPY(PyObject *dict_value) {
             Nuitka_GC_Track(result_mp);
         } else
 #endif
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x360
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
             // a fresh copy.
-            if (dict_mp->ma_values == NULL && (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)) {
+            if (dict_mp->ma_values == NULL && IS_COMPACT(dict_mp)) {
             assert(dict_mp->ma_values == NULL);
             assert(dict_mp->ma_keys->dk_refcnt == 1);
 
@@ -189,17 +204,18 @@ PyObject *DICT_COPY(PyObject *dict_value) {
             result_mp->ma_values = NULL;
             result_mp->ma_used = dict_mp->ma_used;
 
-            Py_ssize_t keys_size = Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
-            result_mp->ma_keys = PyObject_MALLOC(keys_size);
+            Py_ssize_t keys_size = _Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
+            result_mp->ma_keys = (PyDictKeysObject *)PyObject_MALLOC(keys_size);
             assert(result_mp->ma_keys);
 
             memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
 
             // Take reference of all keys and values.
+#if PYTHON_VERSION < 0x3b0
             PyDictKeyEntry *entries = DK_ENTRIES(result_mp->ma_keys);
-            Py_ssize_t n = result_mp->ma_keys->dk_nentries;
+            Py_ssize_t size = DK_ENTRIES_SIZE(result_mp->ma_keys);
 
-            for (Py_ssize_t i = 0; i < n; i++) {
+            for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &entries[i];
                 PyObject *value = entry->me_value;
 
@@ -208,13 +224,45 @@ PyObject *DICT_COPY(PyObject *dict_value) {
 
                     Py_INCREF(key);
 
-                    PyObject *value = entry->me_value;
-
                     Py_INCREF(value);
-
-                    entry->me_value = value;
                 }
             }
+#else
+            PyObject **key_ptr, **value_ptr;
+            size_t entry_size;
+
+            bool is_unicode = DK_IS_UNICODE(result_mp->ma_keys);
+
+            if (is_unicode) {
+                PyDictUnicodeEntry *ep0 = DK_UNICODE_ENTRIES(result_mp->ma_keys);
+
+                key_ptr = &ep0->me_key;
+                value_ptr = &ep0->me_value;
+                entry_size = sizeof(PyDictUnicodeEntry) / sizeof(PyObject *);
+            } else {
+                PyDictKeyEntry *ep0 = DK_ENTRIES(result_mp->ma_keys);
+
+                key_ptr = &ep0->me_key;
+                value_ptr = &ep0->me_value;
+                entry_size = sizeof(PyDictKeyEntry) / sizeof(PyObject *);
+            }
+
+            Py_ssize_t size = DK_ENTRIES_SIZE(result_mp->ma_keys);
+
+            for (Py_ssize_t i = 0; i < size; i++) {
+                PyObject *value = *value_ptr;
+
+                if (value != NULL) {
+
+                    Py_INCREF(value);
+                    PyObject *key = *key_ptr;
+                    Py_INCREF(key);
+                }
+
+                value_ptr += entry_size;
+                key_ptr += entry_size;
+            }
+#endif
 
             // The new keys are an object counted.
 #ifdef Py_REF_DEBUG
@@ -227,11 +275,8 @@ PyObject *DICT_COPY(PyObject *dict_value) {
         {
             result = _PyDict_NewPresized(dict_mp->ma_used);
 
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = dict_mp->ma_keys->dk_size;
-#else
-            Py_ssize_t size = dict_mp->ma_keys->dk_nentries;
-#endif
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
+
             for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
 
@@ -256,28 +301,27 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
     PyObject *result;
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
-    CHECK_OBJECT(value);
-    assert(PyDict_CheckExact(value));
+    CHECK_OBJECT(dict_value);
+    assert(PyDict_CheckExact(dict_value));
 
-    result = DICT_COPY(value);
+    result = DICT_COPY(dict_value);
 
     Py_ssize_t pos = 0;
-    PyObject *dict_key, *dict_value;
+    PyObject *key, *value;
 
-    while (Nuitka_DictNext(value, &pos, &dict_key, &dict_value)) {
-        PyObject *dict_value_copy = DEEP_COPY(dict_value);
+    while (Nuitka_DictNext(dict_value, &pos, &key, &value)) {
+        PyObject *dict_value_copy = DEEP_COPY(value);
 
-        if (dict_value_copy != dict_value) {
-            DICT_SET_ITEM(value, dict_key, dict_value_copy);
+        if (dict_value_copy != value) {
+            DICT_SET_ITEM(value, key, value);
         }
     }
-
 #else
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
 
     if (((PyDictObject *)dict_value)->ma_used == 0) {
-        result = PyDict_New();
+        result = MAKE_DICT_EMPTY();
     } else {
         PyDictObject *dict_mp = (PyDictObject *)dict_value;
 
@@ -305,19 +349,13 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = dict_mp->ma_keys->dk_size;
-#elif PYTHON_VERSION < 0x3b0
-            Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(dict_mp->ma_keys));
-#else
-            Py_ssize_t size = Nuitka_Py_shared_keys_usable_size(dict_mp->ma_keys);
-#endif
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
             assert(result_mp != NULL);
             result = (PyObject *)result_mp;
 
-            PyDictValues *new_values = Nuitka_PyDict_new_values(size);
+            PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
 
 #if PYTHON_VERSION >= 0x3b0
@@ -351,11 +389,11 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
             Nuitka_GC_Track(result_mp);
         } else
 #endif
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x360
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
             // a fresh copy.
-            if (dict_mp->ma_values == NULL && (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)) {
+            if (dict_mp->ma_values == NULL && IS_COMPACT(dict_mp)) {
             assert(dict_mp->ma_values == NULL);
             assert(dict_mp->ma_keys->dk_refcnt == 1);
 
@@ -365,17 +403,18 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
             result_mp->ma_values = NULL;
             result_mp->ma_used = dict_mp->ma_used;
 
-            Py_ssize_t keys_size = Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
-            result_mp->ma_keys = PyObject_MALLOC(keys_size);
+            Py_ssize_t keys_size = _Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
+            result_mp->ma_keys = (PyDictKeysObject *)PyObject_MALLOC(keys_size);
             assert(result_mp->ma_keys);
 
             memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
 
             // Take reference of all keys and values.
+#if PYTHON_VERSION < 0x3b0
             PyDictKeyEntry *entries = DK_ENTRIES(result_mp->ma_keys);
-            Py_ssize_t n = result_mp->ma_keys->dk_nentries;
+            Py_ssize_t size = DK_ENTRIES_SIZE(result_mp->ma_keys);
 
-            for (Py_ssize_t i = 0; i < n; i++) {
+            for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &entries[i];
                 PyObject *value = entry->me_value;
 
@@ -384,12 +423,47 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
 
                     Py_INCREF(key);
 
-                    PyObject *value = entry->me_value;
                     value = DEEP_COPY(value);
 
                     entry->me_value = value;
                 }
             }
+#else
+            PyObject **key_ptr, **value_ptr;
+            size_t entry_size;
+
+            bool is_unicode = DK_IS_UNICODE(result_mp->ma_keys);
+
+            if (is_unicode) {
+                PyDictUnicodeEntry *ep0 = DK_UNICODE_ENTRIES(result_mp->ma_keys);
+
+                key_ptr = &ep0->me_key;
+                value_ptr = &ep0->me_value;
+                entry_size = sizeof(PyDictUnicodeEntry) / sizeof(PyObject *);
+            } else {
+                PyDictKeyEntry *ep0 = DK_ENTRIES(result_mp->ma_keys);
+
+                key_ptr = &ep0->me_key;
+                value_ptr = &ep0->me_value;
+                entry_size = sizeof(PyDictKeyEntry) / sizeof(PyObject *);
+            }
+
+            Py_ssize_t size = DK_ENTRIES_SIZE(result_mp->ma_keys);
+
+            for (Py_ssize_t i = 0; i < size; i++) {
+                PyObject *value = *value_ptr;
+
+                if (value != NULL) {
+                    value = DEEP_COPY(value);
+                    *value_ptr = value;
+                    PyObject *key = *key_ptr;
+                    Py_INCREF(key);
+                }
+
+                value_ptr += entry_size;
+                key_ptr += entry_size;
+            }
+#endif
 
             // The new keys are an object counted.
 #ifdef Py_REF_DEBUG
@@ -402,11 +476,8 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
         {
             result = _PyDict_NewPresized(dict_mp->ma_used);
 
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = dict_mp->ma_keys->dk_size;
-#else
-            Py_ssize_t size = dict_mp->ma_keys->dk_nentries;
-#endif
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
+
             for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
 
@@ -434,12 +505,28 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
 // Helper for function calls with star dict arguments. */
 static PyObject *COPY_DICT_KW(PyObject *dict_value) {
     PyObject *result;
+    bool had_kw_error = false;
 
+#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
+    CHECK_OBJECT(dict_value);
+    assert(PyDict_CheckExact(dict_value));
+
+    result = DICT_COPY(dict_value);
+
+    Py_ssize_t pos = 0;
+    PyObject *key, *value;
+
+    while (Nuitka_DictNext(dict_value, &pos, &key, &value)) {
+        if (unlikely(!checkKeywordType(key))) {
+            had_kw_error = true;
+        }
+    }
+#else
     CHECK_OBJECT(dict_value);
     assert(PyDict_CheckExact(dict_value));
 
     if (((PyDictObject *)dict_value)->ma_used == 0) {
-        result = PyDict_New();
+        result = MAKE_DICT_EMPTY();
     } else {
         PyDictObject *dict_mp = (PyDictObject *)dict_value;
 
@@ -454,8 +541,7 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
             if (entry->me_value != NULL) {
                 PyObject *key = entry->me_key;
                 if (unlikely(!checkKeywordType(key))) {
-                    Py_DECREF(result);
-                    return NULL;
+                    had_kw_error = true;
                 }
 
                 PyObject *value = entry->me_value;
@@ -468,13 +554,7 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
         /* Python 3 */
 #ifndef PY_NOGIL
         if (_PyDict_HasSplitTable(dict_mp)) {
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = dict_mp->ma_keys->dk_size;
-#elif PYTHON_VERSION < 0x3b0
-            Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(dict_mp->ma_keys));
-#else
-            Py_ssize_t size = Nuitka_Py_shared_keys_usable_size(dict_mp->ma_keys);
-#endif
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
 
             PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
             assert(result_mp != NULL);
@@ -486,13 +566,12 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
                 if (entry->me_value != NULL) {
                     PyObject *key = entry->me_key;
                     if (unlikely(!checkKeywordType(key))) {
-                        Py_DECREF(result);
-                        return NULL;
+                        had_kw_error = true;
                     }
                 }
             }
 
-            PyDictValues *new_values = Nuitka_PyDict_new_values(size);
+            PyDictValues *new_values = _Nuitka_PyDict_new_values(size);
             assert(new_values != NULL);
 
 #if PYTHON_VERSION >= 0x3b0
@@ -526,11 +605,11 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
             Nuitka_GC_Track(result_mp);
         } else
 #endif
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x360
             // Fast dictionary copy if it has at least 2/3 space usage. This is most relevant
             // for the DICT_COPY, where it might even be the intention to trigger a shrink with
             // a fresh copy.
-            if (dict_mp->ma_values == NULL && (dict_mp->ma_used >= (dict_mp->ma_keys->dk_nentries * 2) / 3)) {
+            if (dict_mp->ma_values == NULL && IS_COMPACT(dict_mp)) {
             assert(dict_mp->ma_values == NULL);
             assert(dict_mp->ma_keys->dk_refcnt == 1);
 
@@ -540,35 +619,72 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
             result_mp->ma_values = NULL;
             result_mp->ma_used = dict_mp->ma_used;
 
-            Py_ssize_t keys_size = Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
-            result_mp->ma_keys = PyObject_MALLOC(keys_size);
+            Py_ssize_t keys_size = _Nuitka_Py_PyDict_KeysSize(dict_mp->ma_keys);
+            result_mp->ma_keys = (PyDictKeysObject *)PyObject_MALLOC(keys_size);
             assert(result_mp->ma_keys);
 
             memcpy(result_mp->ma_keys, dict_mp->ma_keys, keys_size);
 
             // Take reference of all keys and values.
+#if PYTHON_VERSION < 0x3b0
             PyDictKeyEntry *entries = DK_ENTRIES(result_mp->ma_keys);
-            Py_ssize_t n = result_mp->ma_keys->dk_nentries;
+            Py_ssize_t size = DK_ENTRIES_SIZE(result_mp->ma_keys);
 
-            for (Py_ssize_t i = 0; i < n; i++) {
+            for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &entries[i];
                 PyObject *value = entry->me_value;
 
                 if (value != NULL) {
                     PyObject *key = entry->me_key;
                     if (unlikely(!checkKeywordType(key))) {
-                        Py_DECREF(result);
-                        return NULL;
+                        had_kw_error = true;
                     }
                     Py_INCREF(key);
 
-                    PyObject *value = entry->me_value;
-
                     Py_INCREF(value);
-
-                    entry->me_value = value;
                 }
             }
+#else
+            PyObject **key_ptr, **value_ptr;
+            size_t entry_size;
+
+            bool is_unicode = DK_IS_UNICODE(result_mp->ma_keys);
+
+            if (is_unicode) {
+                PyDictUnicodeEntry *ep0 = DK_UNICODE_ENTRIES(result_mp->ma_keys);
+
+                key_ptr = &ep0->me_key;
+                value_ptr = &ep0->me_value;
+                entry_size = sizeof(PyDictUnicodeEntry) / sizeof(PyObject *);
+            } else {
+                PyDictKeyEntry *ep0 = DK_ENTRIES(result_mp->ma_keys);
+
+                key_ptr = &ep0->me_key;
+                value_ptr = &ep0->me_value;
+                entry_size = sizeof(PyDictKeyEntry) / sizeof(PyObject *);
+            }
+
+            Py_ssize_t size = DK_ENTRIES_SIZE(result_mp->ma_keys);
+
+            for (Py_ssize_t i = 0; i < size; i++) {
+                PyObject *value = *value_ptr;
+
+                if (value != NULL) {
+
+                    Py_INCREF(value);
+                    PyObject *key = *key_ptr;
+                    if (is_unicode) {
+                        if (unlikely(!checkKeywordType(key))) {
+                            had_kw_error = true;
+                        }
+                    }
+                    Py_INCREF(key);
+                }
+
+                value_ptr += entry_size;
+                key_ptr += entry_size;
+            }
+#endif
 
             // The new keys are an object counted.
 #ifdef Py_REF_DEBUG
@@ -581,19 +697,15 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
         {
             result = _PyDict_NewPresized(dict_mp->ma_used);
 
-#if PYTHON_VERSION < 0x360
-            Py_ssize_t size = dict_mp->ma_keys->dk_size;
-#else
-            Py_ssize_t size = dict_mp->ma_keys->dk_nentries;
-#endif
+            Py_ssize_t size = DK_ENTRIES_SIZE(dict_mp->ma_keys);
+
             for (Py_ssize_t i = 0; i < size; i++) {
                 PyDictKeyEntry *entry = &DK_ENTRIES(dict_mp->ma_keys)[i];
 
                 if (entry->me_value != NULL) {
                     PyObject *key = entry->me_key;
                     if (unlikely(!checkKeywordType(key))) {
-                        Py_DECREF(result);
-                        return NULL;
+                        had_kw_error = true;
                     }
 
                     PyObject *value = entry->me_value;
@@ -604,6 +716,13 @@ static PyObject *COPY_DICT_KW(PyObject *dict_value) {
             }
         }
 #endif
+    }
+
+#endif
+
+    if (unlikely(had_kw_error)) {
+        Py_DECREF(result);
+        return NULL;
     }
 
     return result;

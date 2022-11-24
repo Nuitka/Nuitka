@@ -445,7 +445,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
                 PyObject *fullpath = JOIN_PATH2(directory, candidate);
 
                 if (installed_extension_modules == NULL) {
-                    installed_extension_modules = PyDict_New();
+                    installed_extension_modules = MAKE_DICT_EMPTY();
                 }
 
 // Force path to unicode, to have easier consumption, as we need a wchar_t or char *
@@ -1386,16 +1386,16 @@ static PyObject *createModuleSpec(PyObject *module_name, PyObject *origin, bool 
     PyTuple_SET_ITEM0(args, 0, module_name);
     PyTuple_SET_ITEM0(args, 1, (PyObject *)&Nuitka_Loader_Type);
 
-    PyObject *kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "is_package", is_package ? Py_True : Py_False);
-    if (origin != NULL) {
-        PyDict_SetItemString(kwargs, "origin", origin);
-    }
+    PyObject *kw_values[] = {is_package ? Py_True : Py_False, origin};
 
-    PyObject *result = CALL_FUNCTION(module_spec_class, args, kwargs);
+    char const *kw_keys[] = {"is_package", "origin"};
+
+    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+
+    PyObject *result = CALL_FUNCTION(module_spec_class, args, kw_args);
 
     Py_DECREF(args);
-    Py_DECREF(kwargs);
+    Py_DECREF(kw_args);
 
     return result;
 }

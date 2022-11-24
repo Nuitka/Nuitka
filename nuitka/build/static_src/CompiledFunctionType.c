@@ -142,7 +142,7 @@ static int Nuitka_Function_set_doc(struct Nuitka_FunctionObject *object, PyObjec
 
 static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *object) {
     if (object->m_dict == NULL) {
-        object->m_dict = PyDict_New();
+        object->m_dict = MAKE_DICT_EMPTY();
     }
 
     Py_INCREF(object->m_dict);
@@ -304,7 +304,7 @@ static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *object, 
 
 static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *object) {
     if (object->m_annotations == NULL) {
-        object->m_annotations = PyDict_New();
+        object->m_annotations = MAKE_DICT_EMPTY();
     }
 
     Py_INCREF(object->m_annotations);
@@ -351,7 +351,7 @@ static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *func
 
 static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *object, PyObject *value) {
     if (object->m_dict == NULL) {
-        object->m_dict = PyDict_New();
+        object->m_dict = MAKE_DICT_EMPTY();
     }
 
     if (value == NULL) {
@@ -1484,7 +1484,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY(struct Nuitka_FunctionObject const *f
     assert(star_dict_index != -1);
 
     if (kw == NULL || ((PyDictObject *)kw)->ma_used == 0) {
-        python_pars[star_dict_index] = PyDict_New();
+        python_pars[star_dict_index] = MAKE_DICT_EMPTY();
     } else {
         python_pars[star_dict_index] = COPY_DICT_KW(kw);
 
@@ -2039,7 +2039,7 @@ static bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyOb
 #endif
 
     if (function->m_args_star_dict_index != -1) {
-        python_pars[function->m_args_star_dict_index] = PyDict_New();
+        python_pars[function->m_args_star_dict_index] = MAKE_DICT_EMPTY();
     }
 
     return true;
@@ -2089,7 +2089,7 @@ static bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function
 #endif
 
     if (function->m_args_star_dict_index != -1) {
-        python_pars[function->m_args_star_dict_index] = PyDict_New();
+        python_pars[function->m_args_star_dict_index] = MAKE_DICT_EMPTY();
     }
 
     return true;

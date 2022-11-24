@@ -191,12 +191,12 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     )
                     ref_count = 1
                 else:
-                    code = "PyDict_Copy(%s)" % context.getConstantCode(
+                    code = "DICT_COPY(%s)" % context.getConstantCode(
                         constant, deep_check=False
                     )
                     ref_count = 1
             else:
-                code = "PyDict_New()"
+                code = "MAKE_DICT_EMPTY()"
                 ref_count = 1
         elif type(constant) is set:
             if not may_escape:

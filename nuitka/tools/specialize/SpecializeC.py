@@ -990,6 +990,8 @@ def makeDictCopyHelperCodes():
 
         template = getDoExtensionUsingTemplateC("HelperDictionaryCopy.c.j2")
 
+        emitGenerationWarning(emit, template.name)
+
         code = template.render()
 
         emit(code)

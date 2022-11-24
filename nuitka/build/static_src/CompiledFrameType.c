@@ -143,13 +143,13 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
 #endif
 
         if (locals_owner->f_locals == NULL) {
-            locals_owner->f_locals = PyDict_New();
+            locals_owner->f_locals = MAKE_DICT_EMPTY();
         }
 
         Py_INCREF(locals_owner->f_locals);
         return locals_owner->f_locals;
     } else {
-        PyObject *result = PyDict_New();
+        PyObject *result = MAKE_DICT_EMPTY();
         PyObject **varnames = Nuitka_GetCodeVarNames(Nuitka_GetFrameCodeObject(nuitka_frame));
 
         char const *w = nuitka_frame->m_type_description;
@@ -675,11 +675,10 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
         Py_INCREF(globals);
         locals_owner->f_locals = globals;
     } else {
-        // TODO: Why not use presized here.
-        locals_owner->f_locals = PyDict_New();
-        CHECK_OBJECT(locals_owner->f_locals);
+        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(module)};
+        locals_owner->f_locals = MAKE_DICT(kw_pairs, 1);
 
-        PyDict_SetItem(locals_owner->f_locals, const_str_plain___module__, MODULE_NAME0(module));
+        CHECK_OBJECT(locals_owner->f_locals);
     }
 
 #if PYTHON_VERSION < 0x340

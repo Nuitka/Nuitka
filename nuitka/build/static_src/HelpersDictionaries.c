@@ -1308,3 +1308,121 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
     return true;
 #endif
 }
+
+PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {
+    PyObject *result = MAKE_DICT_EMPTY();
+
+    if (seq_obj != NULL) {
+        int res;
+
+        if (PyObject_HasAttrString(seq_obj, "keys")) {
+            res = PyDict_Merge(result, seq_obj, 1);
+        } else {
+            res = PyDict_MergeFromSeq2(result, seq_obj, 1);
+        }
+
+        if (res == -1) {
+            return NULL;
+        }
+    }
+
+    if (dict_obj != NULL) {
+        int res = PyDict_Merge(result, dict_obj, 1);
+
+        if (res == -1) {
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+#if NUITKA_DICT_HAS_FREELIST
+PyObject *MAKE_DICT_EMPTY(void) {
+    PyDictObject *empty_dict_mp = (PyDictObject *)const_dict_empty;
+
+    empty_dict_mp->ma_keys->dk_refcnt++;
+
+    PyDictObject *result_mp = _Nuitka_AllocatePyDictObject();
+
+    result_mp->ma_keys = empty_dict_mp->ma_keys;
+    result_mp->ma_values = empty_dict_mp->ma_values;
+    result_mp->ma_used = 0;
+
+    // Key reference needs to be counted.
+#ifdef Py_REF_DEBUG
+    _Py_RefTotal++;
+#endif
+
+    // No Nuitka_GC_Track for the empty dictionary.
+    return (PyObject *)result_mp;
+}
+#endif
+
+PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size) {
+    PyObject *result = _PyDict_NewPresized(size);
+
+    // Reject usage like this.
+    assert(size > 0);
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *key = pairs[i * 2];
+        PyObject *value = pairs[i * 2 + 1];
+
+        int res = PyDict_SetItem(result, key, value);
+
+        if (unlikely(res != 0)) {
+            Py_DECREF(result);
+            return NULL;
+        }
+    }
+
+    return result;
+}
+
+PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size) {
+    PyObject *result = _PyDict_NewPresized(size);
+
+    // Reject usage like this.
+    assert(size > 0);
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *value = pairs[i * 2 + 1];
+
+        if (value != NULL) {
+            PyObject *key = pairs[i * 2];
+            CHECK_OBJECT(key);
+            CHECK_OBJECT(value);
+
+            int res = PyDict_SetItem(result, key, value);
+
+            if (unlikely(res != 0)) {
+                Py_DECREF(result);
+                return NULL;
+            }
+        }
+    }
+
+    return result;
+}
+
+PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size) {
+    PyObject *result = _PyDict_NewPresized(size);
+
+    // Reject usage like this.
+    assert(size > 0);
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *value = values[i];
+
+        if (value != NULL) {
+            CHECK_OBJECT(value);
+
+            int res = PyDict_SetItemString(result, keys[i], value);
+
+            if (unlikely(res != 0)) {
+                Py_DECREF(result);
+                return NULL;
+            }
+        }
+    }
+
+    return result;
+}

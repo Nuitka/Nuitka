@@ -719,9 +719,11 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
     if (likely(file == NULL)) {
         result = CALL_FUNCTION_NO_ARGS(NUITKA_ACCESS_BUILTIN(print));
     } else {
-        PyObject *kw_args = PyDict_New();
-        PyDict_SetItem(kw_args, const_str_plain_file, GET_STDOUT());
+        PyObject *kw_pairs[2] = {const_str_plain_file, GET_STDOUT()};
+        PyObject *kw_args = MAKE_DICT(kw_pairs, 1);
 
+        // TODO: This should use something that does not build a dictionary at all, and not
+        // uses a tuple.
         result = CALL_FUNCTION_WITH_KEYARGS(NUITKA_ACCESS_BUILTIN(print), kw_args);
 
         Py_DECREF(kw_args);
@@ -804,7 +806,8 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
 
-    PyObject *print_kw = PyDict_New();
+    // TODO: Have a helper that creates a dictionary for PyObject **
+    PyObject *print_kw = MAKE_DICT_EMPTY();
     PyDict_SetItem(print_kw, const_str_plain_end, const_str_empty);
 
     if (file == NULL) {
