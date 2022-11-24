@@ -56,14 +56,14 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     const size_t size = _PyObject_VAR_SIZE(type, nitems + 1);
 
     // TODO: This ought to be static for all our types, so remove it as a call.
-    const size_t presize = Nuitka_PyType_PreHeaderSize(type);
-    assert(presize == sizeof(PyGC_Head));
+    const size_t pre_size = Nuitka_PyType_PreHeaderSize(type);
+    assert(pre_size == sizeof(PyGC_Head));
 
-    char *alloc = (char *)PyObject_Malloc(size + presize);
+    char *alloc = (char *)PyObject_Malloc(size + pre_size);
     assert(alloc);
-    PyObject *obj = (PyObject *)(alloc + presize);
+    PyObject *obj = (PyObject *)(alloc + pre_size);
 
-    if (presize) {
+    if (pre_size) {
         ((PyObject **)alloc)[0] = NULL;
         ((PyObject **)alloc)[1] = NULL;
 
@@ -96,12 +96,12 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_
     PyVarObject *op = (PyVarObject *)_PyObject_GC_Malloc(size);
     assert(op != NULL);
 
+    Py_SIZE(op) = nitems;
     Py_TYPE(op) = type;
-    Py_SIZE(op) = size;
-    Py_SET_REFCNT(op, 1);
+    Py_INCREF(type);
 
-    // TODO: Above assignments might replace this actually.
-    op = PyObject_INIT_VAR(op, type, nitems);
+    // TODO: Avoid calling this function too it normally doesn't do much other than Py_SET_REFCNT(op, 1);
+    _Py_NewReference((PyObject *)op);
 
     return op;
 #else
