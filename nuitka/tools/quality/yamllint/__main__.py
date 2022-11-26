@@ -38,12 +38,15 @@ from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
 from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import (
+    getFileContents,
     openTextFile,
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Yaml import (
+    Yaml,
     getYamlPackage,
     getYamlPackageConfigurationSchemaFilename,
+    parseYaml,
 )
 
 
@@ -82,6 +85,32 @@ def checkSchema(document):
                 sys.exit("Error, please fix the errors in yaml.")
 
 
+def _checkValues(filename, module_name, section, value):
+    if type(value) is dict:
+        for k, v in value.items():
+            if k == "description" and v != v.strip():
+                my_print(
+                    "%s: %s config value of %s %s should not contain trailing or leading spaces"
+                    % (filename, module_name, section, k)
+                )
+
+            _checkValues(filename, module_name, section, v)
+    elif type(value) in (list, tuple):
+        for item in value:
+            _checkValues(filename, module_name, section, item)
+
+
+def checkValues(filename):
+    yaml = Yaml(
+        name=filename,
+        data=parseYaml(getFileContents(filename, mode="rb")),
+    )
+
+    for module_name, config in yaml.items():
+        for section, section_config in config.items():
+            _checkValues(filename, module_name, section, section_config)
+
+
 def main():
     parser = OptionParser()
 
@@ -114,6 +143,7 @@ def main():
     for filename in filenames:
         checkYamllint(filename)
         checkSchema(filename)
+        checkValues(filename)
 
 
 if __name__ == "__main__":

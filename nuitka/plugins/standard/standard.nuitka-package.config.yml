@@ -222,6 +222,10 @@
         prefixes:
           - 'lib'
       when: 'linux'
+    - from_filenames:
+        prefixes:
+          - 'opencv_videoio'
+      when: 'win32'
   anti-bloat:
     - description: 'workaround for colliding native module import'
       context:
@@ -1562,6 +1566,15 @@
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: 'pyarrow.vendored.docscrape'
+  anti-bloat:
+    - description: 'remove sphinx reference'
+      replacements_plain:
+        "if 'sphinx' in sys.modules:": 'if False:'
+    - description: 'workaround for MSVC bug with scipy docscrape 1.8.x'
+      replacements_plain:
+        "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
+
 - module-name: 'pycparser.c_parser'
   implicit-imports:
     - depends:
@@ -1958,7 +1971,7 @@
     - description: 'remove sphinx reference'
       replacements_plain:
         "if 'sphinx' in sys.modules:": 'if False:'
-    - description: 'workaround for MSVC bug with scipy 1.8.x '
+    - description: 'workaround for MSVC bug with scipy 1.8.x'
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
 
@@ -2040,7 +2053,7 @@
       replacements_plain:
         "if 'sphinx' in sys.modules:": 'if False:'
     # TODO: Keep the same as 'scipy._lib._docscrape' module
-    - description: 'workaround for MSVC bug with scipy 1.8.x '
+    - description: 'workaround for MSVC bug with scipy docscrape 1.8.x'
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
 
