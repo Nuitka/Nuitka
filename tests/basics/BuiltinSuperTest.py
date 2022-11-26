@@ -102,7 +102,7 @@ class X:
 
     f5 = lambda x: __class__
 
-    def f6(self_by_another_name):  # @NoSelf
+    def f6(self_by_another_name):
         try:
             print("f6", super())
         except TypeError:

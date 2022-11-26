@@ -92,7 +92,7 @@ class NodeCheckMetaClass(ABCMeta):
         # false alarm, pylint: disable=I0021,too-many-function-args
         return ABCMeta.__new__(cls, name, bases, dictionary)
 
-    def __init__(cls, name, bases, dictionary):  # @NoSelf
+    def __init__(cls, name, bases, dictionary):
 
         if not name.endswith("Base"):
             if "kind" not in dictionary:

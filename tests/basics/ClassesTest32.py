@@ -15,12 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Covers call order of Python3 meta classes. """
+
+# nuitka-project: --nofollow-imports
+
+
 try:
     from collections.abc import OrderedDict
 except ImportError:
     from collections import OrderedDict
 
-print("Call order of Python3 metaclasses:")
+print("Call order of Python3 meta classes:")
 
 
 def a():
@@ -75,8 +80,8 @@ def m():
             )
             super().__init__(name, bases, attrs)
 
-        def __prepare__(metacls, bases, **over):  # @NoSelf
-            print("Metaclass M.__prepare__", metacls, bases, displayable(over))
+        def __prepare__(cls, bases, **over):
+            print("Metaclass M.__prepare__", cls, bases, displayable(over))
             return OrderedDict()
 
     print("Called", m)

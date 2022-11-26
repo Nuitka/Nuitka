@@ -126,7 +126,7 @@ class ClosureLocalizer:
     function = function
 
     # Using what looks like a method as a decorator.
-    def deco(f):  # @NoSelf
+    def deco(f):
         f.decorated = True
 
         return f
