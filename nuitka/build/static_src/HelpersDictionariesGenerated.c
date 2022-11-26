@@ -46,12 +46,14 @@ typedef PyObject *PyDictValues;
 #endif
 
 static inline PyDictValues *_Nuitka_PyDict_new_values(Py_ssize_t size) {
+    Py_ssize_t values_size = sizeof(PyObject *) * size;
+
 #if PYTHON_VERSION < 0x3b0
-    return (PyDictValues *)PyMem_MALLOC(sizeof(PyObject *) * size);
+    return (PyDictValues *)PyMem_MALLOC(values_size);
 #else
     // With Python3.11 or higher a prefix is allocated too.
     size_t prefix_size = _Py_SIZE_ROUND_UP(size + 2, sizeof(PyObject *));
-    size_t n = prefix_size + size * sizeof(PyObject *);
+    size_t n = prefix_size + values_size;
     uint8_t *mem = (uint8_t *)PyMem_MALLOC(n);
 
     assert(mem != NULL);
