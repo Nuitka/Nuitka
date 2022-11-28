@@ -25,6 +25,24 @@
 #define CO_NOFREE 0
 #endif
 
+// With Python 3.11 or higher, a lightweight object needs to be put into thread
+// state, rather than the full blown frame, that is more similar to current
+// Nuitka frames.
+#if PYTHON_VERSION < 0x3b0
+typedef PyFrameObject Nuitka_ThreadStateFrameType;
+#else
+typedef _PyInterpreterFrame Nuitka_ThreadStateFrameType;
+#endif
+
+// Print a description of given frame objects in frame debug mode
+#if _DEBUG_FRAME
+extern void PRINT_COMPILED_FRAME(char const *prefix, struct Nuitka_FrameObject *frame);
+extern void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameType *frame);
+#else
+#define PRINT_COMPILED_FRAME(prefix, frame)
+#define PRINT_INTERPRETER_FRAME(prefix, frame)
+#endif
+
 // Create a frame object for the given code object, frame or module.
 extern struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject *module);
 extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *module, Py_ssize_t locals_size);
@@ -89,13 +107,6 @@ struct Nuitka_FrameObject {
     char m_locals_storage[1];
 };
 
-// With Python 3.11 or higher, a lightweight object needs to be put into thread state.
-#if PYTHON_VERSION < 0x3b0
-typedef PyFrameObject Nuitka_ThreadStateFrameType;
-#else
-typedef _PyInterpreterFrame Nuitka_ThreadStateFrameType;
-#endif
-
 inline static void CHECK_CODE_OBJECT(PyCodeObject *code_object) { CHECK_OBJECT(code_object); }
 
 NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObject *frame_object) {
@@ -115,13 +126,7 @@ NUITKA_MAY_BE_UNUSED static inline bool isFrameUnusable(struct Nuitka_FrameObjec
 
 #if _DEBUG_REFRAME
     if (result && frame_object != NULL) {
-        PRINT_STRING("NOT REUSING FRAME:");
-        PRINT_ITEM((PyObject *)frame_object);
-        PRINT_REFCOUNT((PyObject *)frame_object);
-        if (frame_object->m_frame.f_back) {
-            PRINT_ITEM((PyObject *)frame_object->m_frame.f_back);
-        }
-        PRINT_NEW_LINE();
+        PRINT_COMPILED_FRAME("NOT REUSING FRAME:", frame_object);
     }
 #endif
 
@@ -240,6 +245,10 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
         frame_object->m_frame.f_back = old;
     }
 
+    Nuitka_Frame_MarkAsExecuting(frame_object);
+    Py_INCREF(frame_object);
+
+    PRINT_COMPILED_FRAME("Now at top frame:", frame_object);
 #else
     _PyInterpreterFrame *old = tstate->cframe->current_frame;
     frame_object->m_interpreter_frame.previous = old;
@@ -255,15 +264,11 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
         printf("Stacking up to frame 0x%x %s\n", old, Nuitka_String_AsString(PyObject_Repr((PyObject *)old->f_code)));
     }
 #endif
-#endif
 
     Nuitka_Frame_MarkAsExecuting(frame_object);
     Py_INCREF(frame_object);
 
-#if _DEBUG_FRAME
-    printf("Now at top frame 0x%x %s %s\n", frame_object,
-           Nuitka_String_AsString(PyObject_Str((PyObject *)frame_object)),
-           Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
+    PRINT_COMPILED_FRAME("Now at top frame:", frame_object);
 #endif
 }
 
@@ -287,20 +292,20 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     Py_DECREF(old);
 
 #if _DEBUG_FRAME
-    if (tstate->frame) {
-        printf("Now at top frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)tstate->frame)),
-               Nuitka_String_AsString(PyObject_Repr((PyObject *)tstate->frame->f_code)));
-    } else {
-        printf("Now at top no frame\n");
-    }
+    PRINT_INTERPRETER_FRAME("Now at top frame:", tstate->frame);
 #endif
 
 #else
     struct Nuitka_FrameObject *frame_object = (struct Nuitka_FrameObject *)tstate->cframe->current_frame->frame_obj;
+    CHECK_OBJECT(frame_object);
+
     tstate->cframe->current_frame = tstate->cframe->current_frame->previous;
 
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
     Py_DECREF(frame_object);
+
+    CHECK_OBJECT_X(frame_object->m_frame.f_back);
+    Py_CLEAR(frame_object->m_frame.f_back);
 
     frame_object->m_interpreter_frame.previous = NULL;
 #endif
