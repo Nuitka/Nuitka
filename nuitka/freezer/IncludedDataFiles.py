@@ -41,6 +41,7 @@ from nuitka.utils.FileOperations import (
     copyFileWithPermissions,
     getFileContents,
     getFileList,
+    isPathBelow,
     isRelativePath,
     makePath,
     openTextFile,
@@ -49,6 +50,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffixes
+from nuitka.utils.ModuleNames import ModuleName
 
 data_file_tags = []
 
@@ -95,6 +97,16 @@ class IncludedDataFile(object):
         self.data = data
         self.tags = tags_set
         self.tracer = tracer
+
+    def __repr__(self):
+        return "<%s %s source %s dest %s reason '%s' tags '%s'>" % (
+            self.__class__.__name__,
+            self.kind,
+            self.source_path,
+            self.dest_path,
+            self.reason,
+            ",".join(self.tags),
+        )
 
     def needsCopy(self):
         return "copy" in self.tags
@@ -205,6 +217,27 @@ _included_data_files = []
 def addIncludedDataFile(included_datafile):
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
+    for noinclude_datafile_pattern in getShallNotIncludeDataFilePatterns():
+        if fnmatch.fnmatch(
+            included_datafile.dest_path, noinclude_datafile_pattern
+        ) or isPathBelow(
+            path=noinclude_datafile_pattern, filename=included_datafile.dest_path
+        ):
+            included_datafile.tags.add("inhibit")
+            included_datafile.tags.remove("copy")
+
+            return
+
+    # Cyclic dependency
+    from nuitka.plugins.Plugins import Plugins
+
+    Plugins.onDataFileTags(included_datafile)
+
+    # TODO: Catch duplicates sooner.
+    # for candidate in _included_data_files:
+    #     if candidate.dest_path == included_datafile.dest_path:
+    #         assert False, included_datafile
+
     _included_data_files.append(included_datafile)
 
 
@@ -270,7 +303,14 @@ def makeIncludedPackageDataFiles(
     pkg_filenames = getFileList(
         package_directory,
         ignore_dirs=("__pycache__",),
-        ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
+        ignore_suffixes=(
+            ".py",
+            ".pyw",
+            ".pyc",
+            ".pyo",
+            ".pyi",
+            ".dll",
+        )
         + getSharedLibrarySuffixes(),
     )
 
@@ -292,34 +332,9 @@ def makeIncludedPackageDataFiles(
             )
 
 
-def addIncludedDataFilesFromPackageOptions():
-    """Late data files, from plugins and user options that work with packages"""
+def addIncludedDataFilesFromPlugins():
     # Cyclic dependency
     from nuitka import ModuleRegistry
-
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
-            package_name = module.getFullName()
-
-            for module_name_pattern, filename_pattern in getShallIncludePackageData():
-                match, reason = package_name.matchesToShellPattern(
-                    pattern=module_name_pattern
-                )
-
-                if match:
-                    package_directory = module.getCompileTimeDirectory()
-
-                    for included_datafile in makeIncludedPackageDataFiles(
-                        tracer=options_logger,
-                        package_name=package_name,
-                        package_directory=package_directory,
-                        pattern=filename_pattern,
-                        reason=reason,
-                        tags="user",
-                    ):
-                        addIncludedDataFile(included_datafile)
-
-    # Cyclic dependency
     from nuitka.plugins.Plugins import Plugins
 
     # Plugins provide per module through this.
@@ -327,16 +342,37 @@ def addIncludedDataFilesFromPackageOptions():
         for included_datafile in Plugins.considerDataFiles(module=module):
             addIncludedDataFile(included_datafile)
 
-    for included_datafile in getIncludedDataFiles():
-        for noinclude_datafile_pattern in getShallNotIncludeDataFilePatterns():
-            if fnmatch.fnmatch(included_datafile.dest_path, noinclude_datafile_pattern):
-                included_datafile.tags.add("inhibit")
-                included_datafile.tags.remove("copy")
-                break
-        else:
-            Plugins.onDataFileTags(
-                included_datafile,
+
+def addIncludedDataFilesFromPackageOptions():
+    """Late data files, from plugins and user options that work with packages"""
+
+    # Cyclic dependency
+    from nuitka.importing.Importing import locateModule
+
+    # TODO: Should provide ModuleName objects directly.
+
+    for package_name, filename_pattern in getShallIncludePackageData():
+        package_name, package_directory, _kind = locateModule(
+            module_name=ModuleName(package_name),
+            parent_package=None,
+            level=0,
+        )
+
+        if package_directory is None:
+            options_logger.warning(
+                "Failed to locate package directory of '%s'" % package_name.asString()
             )
+            continue
+
+        for included_datafile in makeIncludedPackageDataFiles(
+            tracer=options_logger,
+            package_name=package_name,
+            package_directory=package_directory,
+            pattern=filename_pattern,
+            reason="package data",
+            tags="user",
+        ):
+            addIncludedDataFile(included_datafile)
 
 
 _data_file_traces = OrderedDict()
