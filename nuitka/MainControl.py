@@ -33,6 +33,7 @@ from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
     addIncludedDataFilesFromPackageOptions,
+    addIncludedDataFilesFromPlugins,
     copyDataFiles,
 )
 from nuitka.freezer.IncludedEntryPoints import (
@@ -916,6 +917,7 @@ def main():
     )
 
     addIncludedDataFilesFromFileOptions()
+    addIncludedDataFilesFromPackageOptions()
 
     # Turn that source code into a node tree structure.
     try:
@@ -923,7 +925,7 @@ def main():
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
-    addIncludedDataFilesFromPackageOptions()
+    addIncludedDataFilesFromPlugins()
 
     dumpTreeXML()
 
