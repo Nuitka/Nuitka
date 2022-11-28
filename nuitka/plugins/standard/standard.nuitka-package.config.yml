@@ -426,6 +426,13 @@
     dirs:
       - 'templates'
 
+- module-name: 'Foundation'
+  options:
+    checks:
+      - description: "The 'Foundation' module requires bundle module"
+        macos_bundle: 'yes'
+        when: 'macos'
+
 - module-name: 'frozendict'
   data-files:
     patterns:
