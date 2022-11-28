@@ -15,11 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Tests to cover default parameter behaviours.
+""" Tests to cover default parameter behaviors.
 
 """
 
 from __future__ import print_function
+
+# nuitka-project: --nofollow-imports
 
 # pylint: disable=dangerous-default-value,unused-argument
 
@@ -39,7 +41,7 @@ def defaultValueTest3(no_default, func_defaulted=defaultValueTest1(module_level)
     return [func_defaulted for _i in range(8)]
 
 
-def defaultValueTest4(no_default, funced_defaulted=lambda x: x**2):
+def defaultValueTest4(no_default, lambda_defaulted=lambda x: x**2):
     c = 1
     d = 1
     return (i + c + d for i in range(8))
@@ -63,7 +65,7 @@ print(defaultValueTest1("ignored"))
 module_level = 7
 print(defaultValueTest2("also ignored"))
 
-print(defaultValueTest3("nono not again"))
+print(defaultValueTest3("no-no not again"))
 
 print(list(defaultValueTest4("unused")))
 
