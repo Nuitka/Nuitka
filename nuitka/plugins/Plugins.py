@@ -60,7 +60,9 @@ user_plugins = OrderedSet()
 
 # Trigger modules
 pre_modules = {}
+pre_modules_reasons = {}
 post_modules = {}
+post_modules_reasons = {}
 fake_modules = {}
 
 
@@ -402,7 +404,7 @@ class Plugins(object):
                 pre_modules[full_name],
                 using_module=module,
                 usage_tag="plugins",
-                reason="Not yet propagated by plugins.",
+                reason=" ".join(pre_modules_reasons[full_name]),
                 source_ref=module.source_ref,
             )
 
@@ -411,7 +413,7 @@ class Plugins(object):
                 module=post_modules[full_name],
                 using_module=module,
                 usage_tag="plugins",
-                reason="Not yet propagated by plugins.",
+                reason=" ".join(post_modules_reasons[full_name]),
                 source_ref=module.source_ref,
             )
 
@@ -697,6 +699,7 @@ class Plugins(object):
         if pre_module_load_descriptions:
             total_code = []
             total_flags = OrderedSet()
+            reasons = []
 
             for plugin, pre_code, reason, flags in pre_module_load_descriptions:
                 if pre_code:
@@ -708,6 +711,7 @@ class Plugins(object):
 
                     total_code.append(pre_code)
                     total_flags.update(flags)
+                    reasons.append(reason)
 
             if total_code:
                 assert full_name not in pre_modules
@@ -718,10 +722,12 @@ class Plugins(object):
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
+                pre_modules_reasons[full_name] = tuple(reasons)
 
         if post_module_load_descriptions:
             total_code = []
             total_flags = OrderedSet()
+            reasons = []
 
             for plugin, post_code, reason, flags in post_module_load_descriptions:
                 if post_code:
@@ -733,6 +739,7 @@ class Plugins(object):
 
                     total_code.append(post_code)
                     total_flags.update(flags)
+                    reasons.append(reason)
 
             if total_code:
                 assert full_name not in post_modules
@@ -743,6 +750,7 @@ class Plugins(object):
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
+                post_modules_reasons[full_name] = reasons
 
         if fake_module_descriptions:
             fake_modules[full_name] = []
