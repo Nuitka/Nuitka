@@ -963,3 +963,38 @@ void dumpFrameStack(void) {
 
     RESTORE_ERROR_OCCURRED(saved_exception_type, saved_exception_value, saved_exception_tb);
 }
+
+#if _DEBUG_FRAME
+static void PRINT_UNCOMPILED_FRAME(char const *prefix, PyFrameObject *frame) {
+    PRINT_STRING(prefix);
+    PRINT_STRING(" ");
+
+    if (frame) {
+        PyObject *frame_str = PyObject_Str((PyObject *)frame);
+        PRINT_ITEM(frame_str);
+        Py_DECREF(frame_str);
+
+        PyObject *code_object_str = PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(frame));
+        PRINT_ITEM(code_object_str);
+        Py_DECREF(code_object_str);
+
+        PRINT_REFCOUNT((PyObject *)frame);
+    } else {
+        PRINT_STRING("<NULL> no frame");
+    }
+
+    PRINT_NEW_LINE();
+}
+
+void PRINT_COMPILED_FRAME(char const *prefix, struct Nuitka_FrameObject *frame) {
+    return PRINT_UNCOMPILED_FRAME(prefix, &frame->m_frame);
+}
+
+void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameType *frame) {
+#if PYTHON_VERSION < 0x3b0
+    PRINT_UNCOMPILED_FRAME(prefix, frame);
+#else
+    assert(false);
+#endif
+}
+#endif

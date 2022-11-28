@@ -67,6 +67,7 @@ extern bool PRINT_REPR(PyObject *object);
 // Print the word <NULL>, as an alternative to pointers.
 extern bool PRINT_NULL(void);
 
+// Print the type of an object.
 extern bool PRINT_TYPE(PyObject *object);
 
 #endif
