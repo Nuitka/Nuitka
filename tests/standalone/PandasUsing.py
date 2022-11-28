@@ -24,7 +24,6 @@ import pandas as pd
 # nuitka-skip-unless-imports: pandas
 
 # nuitka-project: --standalone
-# nuitka-project: --enable-plugin=numpy
 
 # Make sure, the usual bad ones are not included with anti-bloat.
 
