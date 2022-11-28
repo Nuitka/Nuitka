@@ -448,6 +448,7 @@ static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrame(PyThreadState *th
         // right to release it.
         assertFrameObject((struct Nuitka_FrameObject *)(generator_frame->frame_obj));
         generator_frame->frame_obj->f_back = return_frame->frame_obj;
+        Py_INCREF(return_frame->frame_obj);
         thread_state->cframe->current_frame = generator_frame;
         generator_frame->previous = return_frame;
 #endif
