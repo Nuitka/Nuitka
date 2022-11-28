@@ -1002,6 +1002,18 @@
         'import numexpr.tests': 'raise ImportError'
 
 - module-name: 'numpy'
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - 'lib'
+      when: 'win32'
+    - from_filenames:
+        relative_path: '.dylibs'
+        prefixes:
+          - 'lib'
+      when: 'macos'
+
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -1024,6 +1036,12 @@
             pass
 
 - module-name: 'numpy.core'
+  dlls:
+    # TODO: From numpy plugin, but does nothing on Windows
+    # at least, should check others.
+    - from_filenames:
+        prefixes:
+          - ''
   implicit-imports:
     - depends:
         - 'numpy.core._dtype_ctypes'
@@ -2009,6 +2027,18 @@
       replacements_plain:
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
+
+- module-name: 'scipy'
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - ''
+    - from_filenames:
+        relative_path: 'extra_dll'
+        prefixes:
+          - ''
+      when: 'win32'
 
 - module-name: 'scipy._distributor_init'
   anti-bloat:
