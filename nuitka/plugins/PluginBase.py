@@ -915,20 +915,23 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             query_codes.append('print("-" * 27)')
 
         if type(setup_codes) is str:
-            setup_codes = setup_codes.split("\n")
+            setup_codes = setup_codes.splitlines()
+
+        if not setup_codes:
+            setup_codes = ["pass"]
 
         cmd = r"""\
 from __future__ import print_function
 from __future__ import absolute_import
 
 try:
-    %(setup_codes)s
+%(setup_codes)s
 except ImportError:
     import sys
     sys.exit(38)
 %(query_codes)s
 """ % {
-            "setup_codes": "\n   ".join(setup_codes),
+            "setup_codes": "\n".join("   %s" % line for line in setup_codes),
             "query_codes": "\n".join(query_codes),
         }
 
