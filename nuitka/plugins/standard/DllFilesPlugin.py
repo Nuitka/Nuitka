@@ -107,6 +107,8 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                         )
 
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
+        dest_path = os.path.normpath(dest_path)
+
         setup_codes = dll_config.get("setup_code")
         filename_code = dll_config.get("filename_code")
 
@@ -116,42 +118,47 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             values=(("filename", filename_code),),
         ).filename
 
-        # Expecting absolute paths internally for DLL sources.
-        filename = os.path.abspath(filename)
+        if type(filename) in (tuple, list):
+            filenames = filename
+        else:
+            filenames = (filename,)
 
-        if dest_path is None:
-            module_filename = self.locateModule(full_name)
+        for filename in filenames:
+            # Expecting absolute paths internally for DLL sources.
+            filename = os.path.abspath(filename)
 
-            if os.path.isdir(module_filename):
-                dest_path = full_name.asPath()
+            if dest_path is None:
+                module_filename = self.locateModule(full_name)
+
+                if os.path.isdir(module_filename):
+                    dest_path = full_name.asPath()
+                else:
+                    dest_path = os.path.join(full_name.asPath(), "..")
+
+                dest_path = os.path.join(
+                    dest_path,
+                    os.path.relpath(filename, os.path.dirname(module_filename)),
+                )
             else:
-                dest_path = os.path.join(full_name.asPath(), "..")
+                dest_path = os.path.join(
+                    dest_path,
+                    os.path.basename(filename),
+                )
 
-            dest_path = os.path.join(
-                dest_path, os.path.relpath(filename, os.path.dirname(module_filename))
-            )
-        else:
-            dest_path = os.path.join(
-                dest_path,
-                os.path.basename(filename),
-            )
-
-        dest_path = os.path.normpath(dest_path)
-
-        if dll_config.get("executable", "no") == "yes":
-            yield self.makeExeEntryPoint(
-                source_path=filename,
-                dest_path=dest_path,
-                package_name=full_name,
-                reason="Yaml config of '%s'" % full_name.asString(),
-            )
-        else:
-            yield self.makeDllEntryPoint(
-                source_path=filename,
-                dest_path=dest_path,
-                package_name=full_name,
-                reason="Yaml config of '%s'" % full_name.asString(),
-            )
+            if dll_config.get("executable", "no") == "yes":
+                yield self.makeExeEntryPoint(
+                    source_path=filename,
+                    dest_path=dest_path,
+                    package_name=full_name,
+                    reason="Yaml config of '%s'" % full_name.asString(),
+                )
+            else:
+                yield self.makeDllEntryPoint(
+                    source_path=filename,
+                    dest_path=dest_path,
+                    package_name=full_name,
+                    reason="Yaml config of '%s'" % full_name.asString(),
+                )
 
     def _handleDllConfig(self, dll_config, full_name, count):
         dest_path = dll_config.get("dest_path")

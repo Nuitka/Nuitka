@@ -1002,6 +1002,29 @@
         'import numexpr.tests': 'raise ImportError'
 
 - module-name: 'numpy'
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - 'lib'
+      when: 'win32'
+    - from_filenames:
+        relative_path: '.dylibs'
+        prefixes:
+          - 'lib'
+      when: 'macos'
+    - by_code:
+        setup_code: |
+          import os, sys
+          library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
+          library_prefix = "mkl_intel" if os.name == "nt" else == "libmkl_intel"
+        filename_code: |
+          [os.path.join(sys.prefix, library_path, filename)
+           for filename in os.listdir(os.path.join(sys.prefix, library_path))
+           if filename.startswith(library_prefix)]
+      dest_path: '.'
+      when: 'win32 and anaconda'
+
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -1024,6 +1047,12 @@
             pass
 
 - module-name: 'numpy.core'
+  dlls:
+    # TODO: From numpy plugin, but does nothing on Windows
+    # at least, should check others.
+    - from_filenames:
+        prefixes:
+          - ''
   implicit-imports:
     - depends:
         - 'numpy.core._dtype_ctypes'
@@ -2009,6 +2038,18 @@
       replacements_plain:
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
+
+- module-name: 'scipy'
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - ''
+    - from_filenames:
+        relative_path: 'extra_dll'
+        prefixes:
+          - ''
+      when: 'win32'
 
 - module-name: 'scipy._distributor_init'
   anti-bloat:
