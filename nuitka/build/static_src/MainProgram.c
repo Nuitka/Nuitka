@@ -74,17 +74,23 @@ static void prepareFrozenModules(void) {
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
 
-    // The CPython library has some pre-existing frozen modules, we only append
-    // to that.
+    // The CPython library before 3.11 has some pre-existing frozen modules, we
+    // only append to those to keep compatible.
     struct _frozen const *search = PyImport_FrozenModules;
-    while (search->name) {
-        search++;
-    }
-    int pre_existing_count = (int)(search - PyImport_FrozenModules);
+    int pre_existing_count;
 
-    /* Allocate new memory and merge the tables. Keeping the old ones has
-     * the advantage that e.g. "import this" is going to work well.
-     */
+    if (search) {
+        while (search->name) {
+            search++;
+        }
+        pre_existing_count = (int)(search - PyImport_FrozenModules);
+    } else {
+        pre_existing_count = 0;
+    }
+
+    // Allocate new memory and merge the tables. Keeping the old ones has the
+    // advantage that e.g. "import this" is going to be compatible, and there
+    // might be Python flavors that add more.
     struct _frozen *merged =
         (struct _frozen *)malloc(sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1));
 
@@ -1033,7 +1039,6 @@ orig_argv = argv;
 #if _NUITKA_FROZEN > 0
     NUITKA_PRINT_TRACE("main(): Removing early frozen module table again.");
     PyImport_FrozenModules = old_frozen;
-    assert(old_frozen != NULL);
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
