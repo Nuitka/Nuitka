@@ -487,11 +487,6 @@ it before using it: '%s' (from --output-filename='%s')."""
             "Error, unsupported OS for onefile '%s'." % getOS()
         )
 
-    if options.follow_none and options.follow_all:
-        Tracing.options_logger.sysexit(
-            "Conflicting options '--follow-imports' and '--nofollow-imports' given."
-        )
-
     for module_pattern, _filename_pattern in getShallIncludePackageData():
         if (
             module_pattern.startswith("-")
@@ -722,21 +717,22 @@ def commentArgs():
             % getOS()
         )
 
-    if options.follow_all and shallMakeModule():
+    if options.follow_all is True and shallMakeModule():
         Tracing.optimization_logger.sysexit(
             """\
 In module mode you must follow modules more selectively, and e.g. should \
 not include standard library or all foreign modules or else it will fail \
-to work. You can selectively add them with '--follow-import-to=name' though."""
+to work. You need to instead selectively add them with \
+'--follow-import-to=name' though."""
         )
 
-    if options.follow_all and standalone_mode:
+    if options.follow_all is True and standalone_mode:
         Tracing.options_logger.info(
             "Following all imports is the default for %s mode and need not be specified."
             % standalone_mode
         )
 
-    if options.follow_none and standalone_mode:
+    if options.follow_all is False and standalone_mode:
         Tracing.options_logger.warning(
             "Following no imports is unlikely to work for %s mode and should not be specified."
             % standalone_mode
@@ -749,8 +745,7 @@ to work. You can selectively add them with '--follow-import-to=name' though."""
 
     if (
         not standalone_mode
-        and not options.follow_all
-        and not options.follow_none
+        and options.follow_all is None
         and not options.follow_modules
         and not options.follow_stdlib
         and not options.include_modules
@@ -954,12 +949,12 @@ def shallFollowStandardLibrary():
 
 def shallFollowNoImports():
     """:returns: bool derived from ``--nofollow-imports``"""
-    return options.follow_none
+    return options.follow_all is False
 
 
 def shallFollowAllImports():
     """:returns: bool derived from ``--follow-imports``"""
-    return options.is_standalone or options.follow_all
+    return options.is_standalone or options.follow_all is True
 
 
 def _splitShellPattern(value):

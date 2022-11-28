@@ -265,19 +265,19 @@ the compilation time by a lot. Defaults to off.""",
 
 follow_group.add_option(
     "--nofollow-imports",
-    action="store_true",
-    dest="follow_none",
-    default=False,
+    action="store_false",
+    dest="follow_all",
+    default=None,
     help="""\
-When --nofollow-imports is used, do not descend into any imported modules at all,
-overrides all other inclusion options. Defaults to off.""",
+Do not descend into any imported modules at all, overrides all other inclusion
+options and not usable for standalone mode. Defaults to off.""",
 )
 
 follow_group.add_option(
     "--follow-imports",
     action="store_true",
     dest="follow_all",
-    default=False,
+    default=None,
     help="""\
 When --follow-imports is used, attempt to descend into all imported modules.
 Defaults to off.""",
