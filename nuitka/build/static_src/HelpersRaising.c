@@ -379,22 +379,15 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
     PyThreadState *tstate = PyThreadState_GET();
     assert(tstate);
 
-    *exception_value = EXC_VALUE(tstate);
-    Py_XINCREF(*exception_value);
 #if PYTHON_VERSION < 0x3b0
     *exception_type = EXC_TYPE(tstate) != NULL ? EXC_TYPE(tstate) : Py_None;
     Py_INCREF(*exception_type);
+    *exception_value = EXC_VALUE(tstate);
+    Py_XINCREF(*exception_value);
     *exception_tb = (PyTracebackObject *)EXC_TRACEBACK(tstate);
     Py_XINCREF(*exception_tb);
-#else
-    *exception_type = PyExceptionInstance_Class(*exception_value);
-    *exception_tb = (PyTracebackObject *)PyException_GetTraceback(*exception_value);
-#endif
-    CHECK_OBJECT(*exception_type);
 
-    // TODO: For Python3.11, it's probably the value to check and this
-    // makes it such that we should just have different paths entirely
-    if (*exception_type == Py_None) {
+    if (unlikely(*exception_type == Py_None)) {
 #if PYTHON_VERSION >= 0x300
         Py_DECREF(*exception_type);
 
@@ -413,6 +406,25 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
 
         return false;
     }
+#else
+    *exception_value = EXC_VALUE(tstate);
+
+    if (*exception_value == Py_None || *exception_value == NULL) {
+        Py_INCREF(PyExc_RuntimeError);
+        *exception_type = PyExc_RuntimeError;
+        *exception_value = PyUnicode_FromString("No active exception to reraise");
+        *exception_tb = NULL;
+
+        return false;
+    } else {
+        *exception_type = PyExceptionInstance_Class(*exception_value);
+        *exception_tb = (PyTracebackObject *)PyException_GetTraceback(*exception_value);
+    }
+#endif
+
+    CHECK_OBJECT(*exception_type);
+    CHECK_OBJECT(*exception_value);
+    CHECK_OBJECT_X(*exception_tb);
 
     return true;
 }
