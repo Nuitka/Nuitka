@@ -46,6 +46,8 @@ extern void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameT
 // Create a frame object for the given code object, frame or module.
 extern struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject *module);
 extern struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *module, Py_ssize_t locals_size);
+extern struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyCodeObject *code, PyObject *module, PyObject *f_locals,
+                                                   Py_ssize_t locals_size);
 
 // Create a code object for the given filename and function name
 
