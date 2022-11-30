@@ -256,7 +256,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
 
     if (old != NULL) {
         frame_object->m_frame.f_back = old->frame_obj;
-        Py_INCREF(old->frame_obj);
+        Py_XINCREF(old->frame_obj);
     }
 
 #if _DEBUG_FRAME
