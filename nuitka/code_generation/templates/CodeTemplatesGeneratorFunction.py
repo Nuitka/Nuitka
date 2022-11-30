@@ -89,7 +89,7 @@ template_generator_exception_exit = """\
     return NULL;
 
     function_exception_exit:
-%(function_cleanup)s\
+%(function_cleanup)s
     assert(%(exception_type)s);
     RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
 
@@ -98,8 +98,7 @@ template_generator_exception_exit = """\
 
 template_generator_noexception_exit = """\
     // Return statement need not be present.
-%(function_cleanup)s\
-
+%(function_cleanup)s
     return NULL;
 """
 
