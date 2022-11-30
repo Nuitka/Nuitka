@@ -76,7 +76,7 @@ static PyObject *impl_%(function_identifier)s(%(parameter_objects_decl)s) {
 
 template_function_exception_exit = """\
 function_exception_exit:
-%(function_cleanup)s\
+%(function_cleanup)s
     assert(%(exception_type)s);
     RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
 

@@ -897,11 +897,11 @@ bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
 
 #if PYTHON_VERSION < 0x3b0
-void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb) {
+void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
 #else
 void _PRINT_EXCEPTION(PyObject *exception_value) {
-    PyObject *exception_type = PyExceptionInstance_Class(exception_value);
-    PyObject *exception_tb = PyException_GetTraceback(exception_value);
+    PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
+    PyObject *exception_tb = exception_value ? PyException_GetTraceback(exception_value) : NULL;
 #endif
     PRINT_REPR(exception_type);
     if (exception_type) {
@@ -921,7 +921,7 @@ void _PRINT_EXCEPTION(PyObject *exception_value) {
     }
 #endif
     PRINT_STRING("|");
-    PRINT_REPR(exception_tb);
+    PRINT_REPR((PyObject *)exception_tb);
 
     PRINT_NEW_LINE();
 }
@@ -930,7 +930,7 @@ void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PRINT_STRING("current_exc=");
-    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, (PyTracebackObject *)tstate->curexc_traceback);
 }
 
 void PRINT_PUBLISHED_EXCEPTION(void) {
