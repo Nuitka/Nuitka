@@ -615,8 +615,8 @@ void _initCompiledFrameType(void) {
     assert(offsetof(struct Nuitka_FrameObject, m_frame) == 0);
 }
 
-static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *module, bool is_module,
-                                             Py_ssize_t locals_size) {
+static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObject *module, PyObject *f_locals,
+                                                       Py_ssize_t locals_size) {
     CHECK_CODE_OBJECT(code);
     CHECK_OBJECT(module);
 
@@ -669,17 +669,9 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
     Py_INCREF(globals);
     locals_owner->f_globals = globals;
 
-    if (likely((code->co_flags & CO_OPTIMIZED) == CO_OPTIMIZED)) {
-        locals_owner->f_locals = NULL;
-    } else if (is_module) {
-        Py_INCREF(globals);
-        locals_owner->f_locals = globals;
-    } else {
-        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(module)};
-        locals_owner->f_locals = MAKE_DICT(kw_pairs, 1);
-
-        CHECK_OBJECT(locals_owner->f_locals);
-    }
+    // Note: Reference taking happens in calling function.
+    CHECK_OBJECT_X(f_locals);
+    locals_owner->f_locals = f_locals;
 
 #if PYTHON_VERSION < 0x340
     frame->f_tstate = PyThreadState_GET();
@@ -708,11 +700,36 @@ static struct Nuitka_FrameObject *MAKE_FRAME(PyCodeObject *code, PyObject *modul
 }
 
 struct Nuitka_FrameObject *MAKE_MODULE_FRAME(PyCodeObject *code, PyObject *module) {
-    return MAKE_FRAME(code, module, true, 0);
+    PyObject *f_locals = ((PyModuleObject *)module)->md_dict;
+    Py_INCREF(f_locals);
+
+    return _MAKE_COMPILED_FRAME(code, module, f_locals, 0);
 }
 
 struct Nuitka_FrameObject *MAKE_FUNCTION_FRAME(PyCodeObject *code, PyObject *module, Py_ssize_t locals_size) {
-    return MAKE_FRAME(code, module, false, locals_size);
+    PyObject *f_locals;
+
+    if (likely((code->co_flags & CO_OPTIMIZED) == CO_OPTIMIZED)) {
+        f_locals = NULL;
+    } else {
+        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(module)};
+        f_locals = MAKE_DICT(kw_pairs, 1);
+    }
+
+    return _MAKE_COMPILED_FRAME(code, module, f_locals, locals_size);
+}
+
+struct Nuitka_FrameObject *MAKE_CLASS_FRAME(PyCodeObject *code, PyObject *module, PyObject *f_locals,
+                                            Py_ssize_t locals_size) {
+    // The frame template sets f_locals on usage itself, need not create it that way.
+    if (f_locals == NULL) {
+        PyObject *kw_pairs[2] = {const_str_plain___module__, MODULE_NAME0(module)};
+        f_locals = MAKE_DICT(kw_pairs, 1);
+    } else {
+        Py_INCREF(f_locals);
+    }
+
+    return _MAKE_COMPILED_FRAME(code, module, f_locals, locals_size);
 }
 
 // This is the backend of MAKE_CODEOBJ macro.

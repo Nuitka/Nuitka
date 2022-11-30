@@ -33,6 +33,7 @@ from nuitka.nodes.DictionaryNodes import makeExpressionMakeDict
 from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
+    StatementsFrameClass,
     StatementsFrameCoroutine,
     StatementsFrameFunction,
     StatementsFrameGenerator,
@@ -478,9 +479,16 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
     if provider.isExpressionOutlineFunction():
         provider = provider.getParentVariableProvider()
 
-    if provider.isExpressionFunctionBody() or provider.isExpressionClassBody():
+    if provider.isExpressionFunctionBody():
         result = StatementsFrameFunction(
             statements=statements, code_object=code_object, source_ref=source_ref
+        )
+    elif provider.isExpressionClassBody():
+        result = StatementsFrameClass(
+            statements=statements,
+            code_object=code_object,
+            locals_scope=provider.getLocalsScope(),
+            source_ref=source_ref,
         )
     elif provider.isExpressionGeneratorObjectBody():
         result = StatementsFrameGenerator(

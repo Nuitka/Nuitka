@@ -26,6 +26,8 @@ them.
 
 """
 
+from abc import abstractmethod
+
 from nuitka.PythonVersions import python_version
 
 from .CodeObjectSpecs import CodeObjectSpec
@@ -259,6 +261,10 @@ class StatementsFrameBase(StatementsSequence):
 
             return self
 
+    @abstractmethod
+    def hasStructureMember(self):
+        """Does the frame have a structure associated, like e.g. generator objects need."""
+
 
 class StatementsFrameModule(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_MODULE"
@@ -292,6 +298,32 @@ class StatementsFrameFunction(StatementsFrameBase):
     @staticmethod
     def hasStructureMember():
         return False
+
+
+class StatementsFrameClass(StatementsFrameBase):
+    kind = "STATEMENTS_FRAME_CLASS"
+
+    __slots__ = ("locals_scope",)
+
+    def __init__(self, statements, code_object, locals_scope, source_ref):
+        StatementsFrameBase.__init__(
+            self,
+            statements=statements,
+            code_object=code_object,
+            # TODO: Guard mode should be derived from where and how it's used, and
+            # should not be static.
+            guard_mode="full",
+            source_ref=source_ref,
+        )
+
+        self.locals_scope = locals_scope
+
+    @staticmethod
+    def hasStructureMember():
+        return False
+
+    def getLocalsScope(self):
+        return self.locals_scope
 
 
 class StatementsFrameGenerator(StatementsFrameBase):

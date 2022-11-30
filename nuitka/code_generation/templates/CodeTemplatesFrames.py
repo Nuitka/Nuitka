@@ -32,7 +32,7 @@ if (isFrameUnusable(%(frame_cache_identifier)s)) {
     }
     count_allocated_frame_cache_instances += 1;
 #endif
-    %(frame_cache_identifier)s = MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s);
+    %(frame_cache_identifier)s = %(make_frame_code)s
 #if _DEBUG_REFCOUNTS
 } else {
     count_hit_frame_cache_instances += 1;
@@ -40,6 +40,7 @@ if (isFrameUnusable(%(frame_cache_identifier)s)) {
 }
 assert(%(frame_cache_identifier)s->m_type_description == NULL);
 %(frame_identifier)s = %(frame_cache_identifier)s;
+%(frame_init_code)s
 
 // Push the new frame as the currently active one.
 pushFrameStack(%(frame_identifier)s);
@@ -56,6 +57,7 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 
 // Put the previous frame back on top.
 popFrameStack();
+%(frame_exit_code)s
 
 goto %(no_exception_exit)s;
 """
@@ -68,6 +70,7 @@ RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
 
 // Put the previous frame back on top.
 popFrameStack();
+%(frame_exit_code)s
 
 goto %(return_exit)s;
 """
@@ -110,6 +113,7 @@ assertFrameObject(%(frame_identifier)s);
 
 // Put the previous frame back on top.
 popFrameStack();
+%(frame_exit_code)s
 
 // Return the error.
 goto %(parent_exception_exit)s;

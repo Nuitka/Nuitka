@@ -1063,6 +1063,9 @@ class PythonFunctionOutlineContext(
         # The outline is only accessible via its parent.
         return self.parent.mayRecurse()
 
+    def getLocalsDictNames(self):
+        return self.parent.getLocalsDictNames()
+
     def addLocalsDictName(self, locals_dict_name):
         return self.parent.addLocalsDictName(locals_dict_name)
 
