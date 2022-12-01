@@ -1871,7 +1871,7 @@ def getForcedStderrPath():
 
 
 def shallShowSourceModifications():
-    """*bool* display plugin source changes"""
+    """*bool* display plugin source changes derived from --show-source-changes"""
     return options is not None and options.show_source_changes
 
 
