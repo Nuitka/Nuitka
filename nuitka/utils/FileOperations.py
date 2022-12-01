@@ -834,7 +834,7 @@ def getWindowsDrive(path):
 
 
 def isPathBelow(path, filename):
-    """Is a path inside of a given directory path
+    """Is a filename inside of a given directory path
 
     Args:
         path: location to be below
@@ -858,7 +858,7 @@ def isPathBelow(path, filename):
 
 
 def isPathBelowOrSameAs(path, filename):
-    """Is a path inside of a given directory path or the same path as that directory."""
+    """Is a filename inside of a given directory path or the same path as that directory."""
     return isPathBelow(path, filename) or areSamePaths(path, filename)
 
 
