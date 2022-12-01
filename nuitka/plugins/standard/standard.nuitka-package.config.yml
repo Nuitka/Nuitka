@@ -269,6 +269,12 @@
     - depends:
         - 'cytoolz.utils'
 
+- module-name: 'dash.dash'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        '"_pytest" in sys.modules': 'False'
+
 - module-name: 'dask'
   data-files:
     patterns:
