@@ -275,6 +275,21 @@
       replacements_plain:
         '"_pytest" in sys.modules': 'False'
 
+- module-name: 'dash.dash_table'
+  data-files:
+    patterns:
+      - 'package-info.json'
+
+- module-name: 'dash.dcc'
+  data-files:
+    patterns:
+      - 'package-info.json'
+
+- module-name: 'dash.html'
+  data-files:
+    patterns:
+      - 'package-info.json'
+
 - module-name: 'dask'
   data-files:
     patterns:
