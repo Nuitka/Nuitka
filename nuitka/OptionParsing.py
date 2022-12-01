@@ -30,9 +30,10 @@ pretty good.
 import os
 import re
 import sys
-from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
+from optparse import SUPPRESS_HELP, OptionGroup
 
 from nuitka.PythonFlavors import getPythonFlavorName
+from nuitka.utils.CommandLineOptions import makeOptionsParser
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -56,25 +57,7 @@ else:
     usage = "usage: %prog [options] main_module.py"
 
 
-class OurOptionParser(OptionParser):
-    # spell-checker: ignore rargs
-    def _process_long_opt(self, rargs, values):
-        arg = rargs[0]
-
-        if "=" not in arg:
-            opt = self._match_long_opt(arg)
-            option = self._long_opt[opt]
-            if option.takes_value():
-                self.error(
-                    "The '%s' option requires an argument with '%s='." % (opt, opt)
-                )
-
-        return OptionParser._process_long_opt(self, rargs, values)
-
-
-parser = OurOptionParser(
-    usage=usage,
-)
+parser = makeOptionsParser(usage=usage)
 
 parser.add_option(
     "--version",
@@ -794,8 +777,8 @@ is used.""",
 )
 
 c_compiler_group.add_option(
-    "-j",
     "--jobs",
+    "-j",
     action="store",
     dest="jobs",
     metavar="N",
