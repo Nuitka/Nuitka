@@ -311,6 +311,13 @@
         - '.IN.A'
         - '.CH.A'
 
+- module-name: 'dotenv'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'load_ipython_extension': 'un-callable'
+      when: 'not use_ipython'
+
 - module-name: 'dotenv.main'
   anti-bloat:
     - description: 'workaround to avoid dotenv requiring package directories'
