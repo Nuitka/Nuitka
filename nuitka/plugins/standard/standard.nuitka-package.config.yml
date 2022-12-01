@@ -1981,6 +1981,16 @@
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
 
+- module-name: 'scipy._distributor_init'
+  anti-bloat:
+    - description: 'workaround for scipy DLL loading'
+      append_plain: |
+        if os.name == "nt":
+          libs_dir = os.path.join(os.path.dirname(__file__), '..', 'scipy.libs')
+          for filename in glob.glob(os.path.join(libs_dir, '*openblas*dll')):
+            WinDLL(filename)
+      when: 'win32 and version("scipy") >= (1, 9, 2)'
+
 - module-name: 'scipy._lib'
   implicit-imports:
     - depends:
