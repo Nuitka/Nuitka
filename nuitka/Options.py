@@ -1323,7 +1323,7 @@ def shallDisableBytecodeCacheUsage():
 
 
 def shallDisableConsoleWindow():
-    """:returns: None (not given), False, or True derived from ``disable-console or ``--enable-console``"""
+    """:returns: None (not given), False, or True derived from ``--disable-console or ``--enable-console``"""
     return options.disable_console
 
 
@@ -1632,6 +1632,10 @@ def getMacOSAppProtectedResourcesAccesses():
     """*list* key, value for protected resources of the app to use for bundle"""
     for macos_protected_resource in options.macos_protected_resources:
         yield macos_protected_resource.split(":", 1)
+
+
+def isMacOSBackgroundApp():
+    """*bool*, derived from ``--macos-app-windowless``"""
 
 
 _python_flags = None
