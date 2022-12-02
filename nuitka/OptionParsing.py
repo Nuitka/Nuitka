@@ -1310,6 +1310,17 @@ filename of the binary.""",
 )
 
 macos_group.add_option(
+    "--macos-app-windowless",
+    action="store_true",
+    dest="macos_app_windowless",
+    default=None,
+    help="""\
+Is this application bundle a background application without a Window. It will
+not appear in dock during launch and not have access to high resolution features
+should it create a Window later.""",
+)
+
+macos_group.add_option(
     "--macos-sign-identity",
     action="store",
     dest="macos_sign_identity",
