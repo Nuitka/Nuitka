@@ -31,6 +31,9 @@ from tempfile import TemporaryFile
 from atomicwrites import atomic_write
 from io import open
 
+from nuitka.utils.Utils import decoratorRetries
+from nuitka.Tracing import general
+
 VERSION = "5.0.0-dev"
 
 HashAlgorithm = hashlib.md5
@@ -452,7 +455,15 @@ class CompilerArtifactsSection(object):
                 artifacts.stderr,
             )
         # Replace the full cache entry atomically
-        os.replace(tempEntryDir, cacheEntryDir)
+        @decoratorRetries(
+            logger=general,
+            purpose="replace %r with %r" % (cacheEntryDir, tempEntryDir),
+            consequence="aborting",
+        )
+        def _replaceEntry():
+            os.replace(tempEntryDir, cacheEntryDir)
+
+        _replaceEntry()
         return size
 
     def getEntry(self, key):
