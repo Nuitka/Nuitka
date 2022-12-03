@@ -269,6 +269,27 @@
     - depends:
         - 'cytoolz.utils'
 
+- module-name: 'dash.dash'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        '"_pytest" in sys.modules': 'False'
+
+- module-name: 'dash.dash_table'
+  data-files:
+    patterns:
+      - 'package-info.json'
+
+- module-name: 'dash.dcc'
+  data-files:
+    patterns:
+      - 'package-info.json'
+
+- module-name: 'dash.html'
+  data-files:
+    patterns:
+      - 'package-info.json'
+
 - module-name: 'dask'
   data-files:
     patterns:
@@ -310,6 +331,13 @@
     - depends:
         - '.IN.A'
         - '.CH.A'
+
+- module-name: 'dotenv'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'load_ipython_extension': 'un-callable'
+      when: 'not use_ipython'
 
 - module-name: 'dotenv.main'
   anti-bloat:
@@ -425,6 +453,13 @@
   data-files:
     dirs:
       - 'templates'
+
+- module-name: 'Foundation'
+  options:
+    checks:
+      - description: "The 'Foundation' module requires bundle module"
+        macos_bundle: 'yes'
+        when: 'macos'
 
 - module-name: 'frozendict'
   data-files:
@@ -1830,6 +1865,20 @@
     - find-dlls-near-module:
         - 'shiboken6'
 
+- module-name: 'pytorch_lightning.utilities.imports'
+  anti-bloat:
+    # TODO: It would be better if we had a form of replacements, e.g. through
+    # the use of variables, that would use the result of the comparison, or if
+    # we could force inline of "compare_version" with constant values.
+    - description: 'workaround for dynamic rich version check'
+      replacements_plain:
+        'compare_version("rich", operator.ge, "10.2.2")': 'True'
+      when: 'version("rich") >= (10, 2, 2)'
+    - description: 'workaround for dynamic rich version check'
+      replacements_plain:
+        'compare_version("rich", operator.ge, "10.2.2")': 'False'
+      when: 'version("rich") < (10, 2, 2)'
+
 - module-name: 'pytorch_lightning.utilities.model_helpers'
   anti-bloat:
     - description: 'remove unittest reference'
@@ -1960,6 +2009,16 @@
       replacements_plain:
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
+
+- module-name: 'scipy._distributor_init'
+  anti-bloat:
+    - description: 'workaround for scipy DLL loading'
+      append_plain: |
+        if os.name == "nt":
+          libs_dir = os.path.join(os.path.dirname(__file__), '..', 'scipy.libs')
+          for filename in glob.glob(os.path.join(libs_dir, '*openblas*dll')):
+            WinDLL(filename)
+      when: 'win32 and version("scipy") >= (1, 9, 2)'
 
 - module-name: 'scipy._lib'
   implicit-imports:
