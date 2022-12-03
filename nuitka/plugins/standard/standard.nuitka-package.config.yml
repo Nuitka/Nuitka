@@ -1865,6 +1865,20 @@
     - find-dlls-near-module:
         - 'shiboken6'
 
+- module-name: 'pytorch_lightning.utilities.imports'
+  anti-bloat:
+    # TODO: It would be better if we had a form of replacements, e.g. through
+    # the use of variables, that would use the result of the comparison, or if
+    # we could force inline of "compare_version" with constant values.
+    - description: 'workaround for dynamic rich version check'
+      replacements_plain:
+        'compare_version("rich", operator.ge, "10.2.2")': 'True'
+      when: 'version("rich") >= (10, 2, 2)'
+    - description: 'workaround for dynamic rich version check'
+      replacements_plain:
+        'compare_version("rich", operator.ge, "10.2.2")': 'False'
+      when: 'version("rich") < (10, 2, 2)'
+
 - module-name: 'pytorch_lightning.utilities.model_helpers'
   anti-bloat:
     - description: 'remove unittest reference'
