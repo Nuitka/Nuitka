@@ -37,6 +37,7 @@ from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
+from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import makePath, putTextFileContents
@@ -477,18 +478,34 @@ class Plugins(object):
         """Ask plugins to provide extra DLLs.
 
         Notes:
-            These will be of type nuitka.freezer.IncludedEntryPoints.IncludedEntryPoint
-            and currently there is a backward compatibility for old style plugins that do
-            provide tuples of 3 elements. But plugins are really supposed to provide the
-            stuff created from factory functions for that type.
+            These will be of type IncludedEntryPoint or generators providing them, so
+            we get "yield from" effective with simple yield.
 
         """
 
         result = []
 
+        # TODO: This is probably something generic that only different
+        def _iterateExtraBinaries(plugin, value):
+            if value is None:
+                pass
+            elif isinstance(value, IncludedEntryPoint):
+                yield value
+            elif isinstance(value, (tuple, list)) or inspect.isgenerator(value):
+                for val in value:
+                    for v in _iterateExtraBinaries(plugin, val):
+                        yield v
+            else:
+                plugin.sysexit(
+                    "Returned object '%s' for module '%s' but should do 'IncludedEntryPoint' or generator."
+                    % (repr(value), module.asString())
+                )
+
         for plugin in getActivePlugins():
-            for extra_dll in plugin.getExtraDlls(module):
-                result.append(extra_dll)
+            for entry_point in _iterateExtraBinaries(
+                plugin, plugin.getExtraDlls(module)
+            ):
+                result.append(entry_point)
 
         return result
 
