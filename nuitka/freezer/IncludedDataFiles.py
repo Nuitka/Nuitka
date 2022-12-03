@@ -32,6 +32,7 @@ from nuitka.Options import (
     getShallIncludeDataFiles,
     getShallIncludePackageData,
     getShallNotIncludeDataFilePatterns,
+    isOnefileMode,
     isStandaloneMode,
     shallMakeModule,
 )
@@ -51,6 +52,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import isMacOS
 
 data_file_tags = []
 
@@ -72,7 +74,9 @@ def getDataFileTags(dest_path):
     return result
 
 
-def _decodeTags(tags):
+def decodeDataFileTags(tags):
+    """In many places, strings are accepted for tags, convert to OrderedSet for internal use."""
+
     if type(tags) is str:
         tags = tags.split(",") if tags else ()
 
@@ -84,7 +88,7 @@ class IncludedDataFile(object):
 
     def __init__(self, kind, source_path, dest_path, reason, data, tags, tracer):
         tags_set = getDataFileTags(dest_path)
-        tags_set.update(_decodeTags(tags))
+        tags_set.update(decodeDataFileTags(tags))
 
         # Copy, unless specified otherwise.
         if not any(tag.startswith("embed-") for tag in tags_set):
@@ -129,7 +133,22 @@ def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
 
 
 def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
-    assert isRelativePath(dest_path), dest_path
+    tags = decodeDataFileTags(tags)
+
+    if "framework_resource" in tags and not isMacOS():
+        tracer.sysexit("Using resource files on non-MacOS")
+
+    inside = True
+    if not isRelativePath(dest_path):
+        if "framework_resource" in tags and not isOnefileMode():
+            inside = isRelativePath(os.path.join("Resources", dest_path))
+        else:
+            inside = False
+
+    if not inside:
+        tracer.sysexit(
+            "Error, cannot use dest path '%s' outside of distribution." % dest_path
+        )
 
     # Refuse directories, these must be kept distinct.
     if os.path.isdir(source_path):
@@ -297,7 +316,7 @@ def addIncludedDataFilesFromFileOptions():
 def makeIncludedPackageDataFiles(
     tracer, package_name, package_directory, pattern, reason, tags
 ):
-    tags = _decodeTags(tags)
+    tags = decodeDataFileTags(tags)
     tags.add("package_data")
 
     pkg_filenames = getFileList(
