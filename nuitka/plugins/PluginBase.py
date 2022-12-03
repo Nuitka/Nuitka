@@ -29,12 +29,14 @@ it being used.
 import ast
 import functools
 import inspect
+import os
 import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
+    decodeDataFileTags,
     makeIncludedDataDirectory,
     makeIncludedDataFile,
     makeIncludedEmptyDirectory,
@@ -51,6 +53,7 @@ from nuitka.ModuleRegistry import (
 )
 from nuitka.Options import (
     isStandaloneMode,
+    shallCreateAppBundle,
     shallMakeModule,
     shallShowExecutedCommands,
 )
@@ -605,6 +608,24 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             dest_path=dest_path,
             reason=reason,
             tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedAppBundleResourceFile(
+        self, source_path, dest_path, reason, tags=""
+    ):
+        tags = decodeDataFileTags(tags)
+        tags.add("framework_resource")
+
+        assert isMacOS() and shallCreateAppBundle()
+
+        # The default dest path root is the "Contents" folder
+        dest_path = os.path.join("..", "Resources", dest_path)
+
+        return self.makeIncludedDataFile(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
             tags=tags,
         )
 
