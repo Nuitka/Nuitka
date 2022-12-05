@@ -35,6 +35,19 @@ def main():
 
     # Also high complexity.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    if (
+        os.name == "nt"
+        and os.path.normcase(os.path.basename(sys.executable)) == "pythonw.exe"
+    ):
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(
+            None,
+            "You have to use the 'python.exe' and not a 'pythonw.exe' to run Nuitka",
+            "Error",
+            0x1000,  # MB_SYSTEMMODAL
+        )
+        sys.exit(1)
 
     if "NUITKA_BINARY_NAME" in os.environ:
         sys.argv[0] = os.environ["NUITKA_BINARY_NAME"]
