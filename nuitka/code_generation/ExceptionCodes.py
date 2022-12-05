@@ -103,7 +103,7 @@ def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
                 )
             else:
                 emit(
-                    "%s = PyException_GetTraceback(EXC_VALUE(PyThreadState_GET()));"
+                    "%s = (PyObject *)GET_EXCEPTION_TRACEBACK(EXC_VALUE(PyThreadState_GET()));"
                     % (value_name,)
                 )
         else:
