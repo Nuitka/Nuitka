@@ -123,7 +123,7 @@ Proceed and download? [Yes]/No """
             deleteFile(download_path, must_exist=True)
 
             Tracing.general.sysexit(
-                "Error, need %r as extracted from %r." % (binary, url)
+                "Error, need '%s' as extracted from '%s'." % (binary, url)
             )
 
     # Check success here, and make sure it's executable.

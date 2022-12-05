@@ -982,7 +982,7 @@ def main():
             packDistFolderToOnefile(dist_dir)
 
             if Options.isRemoveBuildDir():
-                general.info("Removing dist folder %r." % dist_dir)
+                general.info("Removing dist folder '%s'." % dist_dir)
 
                 removeDirectory(path=dist_dir, ignore_errors=False)
             else:
