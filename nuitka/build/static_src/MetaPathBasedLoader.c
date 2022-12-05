@@ -1681,8 +1681,9 @@ static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
 
 #include "nuitka/freelists.h"
 
-// TODO: A freelist is not the right thing for those, they are probably living forever, but it's
-// no big harm too, but make it small.
+// TODO: A free list is not the right thing for those, they are probably living forever, but it's
+// no big harm too, but make it small, maybe be allowing a toggle that makes a specific macro not
+// use the free list mechanism at all.
 
 #define MAX_LOADER_FREE_LIST_COUNT 10
 static struct Nuitka_LoaderObject *free_list_loaders = NULL;
