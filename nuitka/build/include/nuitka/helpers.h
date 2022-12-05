@@ -23,7 +23,11 @@
 #else
 #define _DEBUG_FRAME 0
 #endif
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_REFRAME
+#define _DEBUG_REFRAME 1
+#else
 #define _DEBUG_REFRAME 0
+#endif
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_EXCEPTIONS
 #define _DEBUG_EXCEPTIONS 1
 #else
