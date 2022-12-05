@@ -1133,7 +1133,7 @@ static void Nuitka_Coroutine_tp_dealloc(struct Nuitka_CoroutineObject *coroutine
     Py_XDECREF(coroutine->m_origin);
 #endif
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coros, coroutine, MAX_COROUTINE_FREE_LIST_COUNT);
 
     RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
@@ -1667,7 +1667,7 @@ static void Nuitka_AIterWrapper_dealloc(struct Nuitka_AIterWrapper *aw) {
     CHECK_OBJECT(aw->aw_aiter);
     Py_DECREF(aw->aw_aiter);
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_coroutine_aiter_wrappers, aw, MAX_COROUTINE_FREE_LIST_COUNT);
 }
 
