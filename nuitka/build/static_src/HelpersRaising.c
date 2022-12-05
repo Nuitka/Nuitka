@@ -100,7 +100,8 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
 
         // Note: Cannot be assigned here.
         assert(*exception_tb == NULL);
-        *exception_tb = (PyTracebackObject *)PyException_GetTraceback(*exception_value);
+        *exception_tb = GET_EXCEPTION_TRACEBACK(*exception_value);
+        Py_XINCREF(*exception_tb);
 #endif
 
         return;
@@ -417,8 +418,12 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
 
         return false;
     } else {
+        Py_INCREF(*exception_value);
+
         *exception_type = PyExceptionInstance_Class(*exception_value);
-        *exception_tb = (PyTracebackObject *)PyException_GetTraceback(*exception_value);
+        Py_INCREF(*exception_type);
+        *exception_tb = GET_EXCEPTION_TRACEBACK(*exception_value);
+        Py_XINCREF(*exception_tb);
     }
 #endif
 

@@ -511,6 +511,14 @@ NUITKA_MAY_BE_UNUSED static inline void ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(PyOb
     e->traceback = (PyObject *)exception_tb;
     Py_XDECREF(old);
 }
+
+// Much like PyException_GetTraceback, but does not give a reference.
+NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *GET_EXCEPTION_TRACEBACK(PyObject *exception_value) {
+    assert(PyExceptionInstance_Check(exception_value));
+
+    PyBaseExceptionObject *exc_object = (PyBaseExceptionObject *)(exception_value);
+    return (PyTracebackObject *)exc_object->traceback;
+}
 #endif
 
 // Normalize an exception.
