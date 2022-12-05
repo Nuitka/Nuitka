@@ -439,18 +439,31 @@ static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrame(PyThreadState *th
         // It would be nice if our frame were still alive. Nobody had the
         // right to release it.
         assertFrameObject((struct Nuitka_FrameObject *)generator_frame);
+
+        // Link frames
         assert(return_frame != generator_frame);
         Py_XINCREF(return_frame);
         generator_frame->f_back = return_frame;
+
+        // Make generator frame active
         thread_state->frame = generator_frame;
 #else
         // It would be nice if our frame were still alive. Nobody had the
         // right to release it.
         assertFrameObject((struct Nuitka_FrameObject *)(generator_frame->frame_obj));
-        generator_frame->frame_obj->f_back = return_frame->frame_obj;
-        Py_INCREF(return_frame->frame_obj);
-        thread_state->cframe->current_frame = generator_frame;
+
+        // Link frames
+        if (return_frame) {
+            // Connect frames if possible.
+            PyFrameObject *back_frame = return_frame->frame_obj;
+
+            generator_frame->frame_obj->f_back = back_frame;
+            Py_INCREF(back_frame);
+        }
         generator_frame->previous = return_frame;
+
+        // Make generator frame active
+        thread_state->cframe->current_frame = generator_frame;
 #endif
     }
 
@@ -476,7 +489,10 @@ static void _Nuitka_GeneratorPopFrame(PyThreadState *thread_state, Nuitka_Thread
     thread_state->frame = return_frame;
 #else
     thread_state->cframe->current_frame = return_frame;
-    return_frame->previous = NULL;
+
+    if (return_frame != NULL) {
+        return_frame->previous = NULL;
+    }
 #endif
 }
 
