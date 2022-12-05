@@ -452,7 +452,8 @@ i.e. if you want only a partial copy, remove the files beforehand.
 For package data, there is a better way, using
 ``--include-package-data`` which detects data files of packages
 automatically and copies them over. It even accepts patterns in shell
-style.
+style. It spares you the need to find the package directory yourself and
+should be preferred whenever available.
 
 With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
@@ -873,6 +874,12 @@ will reveal programming errors like unbound local variables. Please look
 carefully at these exceptions keeping in mind that this can be the
 cause. If you program works without standalone, chances are data files
 might be cause.
+
+The most common error indicating file absence is of course an uncaught
+``FileNotFoundError`` with a filename. You should figure out what
+package is missing files and then use ``--include-package-data``
+(preferably), or ``--include-data-dir``/``--include-data-files`` to
+include them.
 
 Missing DLLs in standalone
 ==========================
