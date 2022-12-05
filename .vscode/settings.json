@@ -246,6 +246,7 @@
         "PYTHONHOME",
         "PYTHONIOENCODING",
         "PYTHONPATH",
+        "pythonw",
         "Qualname",
         "redist",
         "reexecute",
