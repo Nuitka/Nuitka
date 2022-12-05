@@ -406,7 +406,7 @@ extern void patchInspectModule(void);
 // for "==" and "!=", but not for "is" checks.
 extern void patchTypeComparison(void);
 
-// Patch the CPython type for tracebacks and make it use a freelist mechanism
+// Patch the CPython type for tracebacks and make it use a free list mechanism
 // to be slightly faster for exception control flows.
 extern void patchTracebackDealloc(void);
 

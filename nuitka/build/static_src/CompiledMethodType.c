@@ -433,7 +433,7 @@ static void Nuitka_Method_tp_dealloc(struct Nuitka_MethodObject *method) {
 
     Py_DECREF((PyObject *)method->m_function);
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_methods, method, MAX_METHOD_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__

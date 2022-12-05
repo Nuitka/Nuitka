@@ -986,7 +986,7 @@ static void Nuitka_Asyncgen_tp_dealloc(struct Nuitka_AsyncgenObject *asyncgen) {
     Py_DECREF(asyncgen->m_name);
     Py_DECREF(asyncgen->m_qualname);
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_asyncgens, asyncgen, MAX_ASYNCGEN_FREE_LIST_COUNT);
 
     RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
@@ -1195,7 +1195,7 @@ static void Nuitka_AsyncgenValueWrapper_tp_dealloc(struct Nuitka_AsyncgenWrapped
     CHECK_OBJECT(asyncgen_value_wrapper->m_value);
     Py_DECREF(asyncgen_value_wrapper->m_value);
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_asyncgen_value_wrappers, asyncgen_value_wrapper, MAX_ASYNCGEN_FREE_LIST_COUNT);
 }
 
@@ -1771,7 +1771,7 @@ static void Nuitka_AsyncgenAthrow_dealloc(struct Nuitka_AsyncgenAthrowObject *as
     CHECK_OBJECT_X(asyncgen_athrow->m_args);
     Py_XDECREF(asyncgen_athrow->m_args);
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_asyncgen_athrows, asyncgen_athrow, MAX_ASYNCGEN_FREE_LIST_COUNT);
 }
 

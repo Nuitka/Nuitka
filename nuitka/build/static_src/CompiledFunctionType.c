@@ -493,7 +493,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
         // a full copy, doing the init.
     }
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_functions, function, MAX_FUNCTION_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__
