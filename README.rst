@@ -642,10 +642,58 @@ and may even be combined:
 
 .. code:: bash
 
-   # These create binaries with icons:
+   # These create binaries with icons on Windows
    python -m nuitka --onefile --windows-icon-from-ico=your-icon.png program.py
    python -m nuitka --onefile --windows-icon-from-ico=your-icon.ico program.py
    python -m nuitka --onefile --windows-icon-template-exe=your-icon.ico program.py
+
+   # These create application bundles with icons on macOS
+   python -m nuitka --macos-create-app-bundle --macos-app-icon=your-icon.png program.py
+   python -m nuitka --macos-create-app-bundle --macos-app-icon=your-icon.icns program.py
+
+.. note::
+
+   With Nuitka, you do not have to create platform specific icons, but
+   instead it will convert e.g. PNG, but also other format on the fly
+   during the build.
+
+MacOS Entitlements
+==================
+
+Entitlements for an macOS application bundle can be added with the
+option, ``--macos-app-protected-resource``, all values are listed on
+`this page from Apple
+<https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources>`__
+
+An example value would be
+``--macos-app-protected-resource=NSMicrophoneUsageDescription:Microphone
+access`` for requesting access to a Microphone. After the colon, the
+descriptive text is to be given.
+
+.. note::
+
+   Beware that in the likely case of using spaces in the description
+   part, you need to quote it for your shell to get through to Nuitka
+   and not be interpreted as Nuitka arguments.
+
+Console Window
+==============
+
+On Windows, the console is opened by programs unless you say so. Nuitka
+defaults to this, effectively being only good for terminal programs, or
+programs where the output is requested to be seen. There is a difference
+in ``pythonw.exe`` and ``python.exe`` along those lines. This is
+replicated in Nuitka with the option ``--disable-console``. Nuitka
+recommends you to consider this in case you are using ``PySide6`` e.g.
+and other GUI packages, e.g. ``wx``, but it leaves the decision up to
+you. In case, you know your program is console application, just using
+``--enable-console`` which will get rid of these kinds of outputs from
+Nuitka.
+
+.. note::
+
+   The ``pythonw.exe`` is never good to be used with Nuitka, as you
+   cannot see its output.
 
 Splash screen
 =============
@@ -903,10 +951,11 @@ standalone binary.
 Windows Programs without console give no errors
 ===============================================
 
-For debugging purposes, remove ``--windows-disable-console`` or use the
-options ``--windows-force-stdout-spec`` and
-``--windows-force-stderr-spec`` with paths as documented for
-``--windows-onefile-tempdir-spec`` above.
+For debugging purposes, remove ``--disable-console`` or use the options
+``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec`` with
+paths as documented for ``--windows-onefile-tempdir-spec`` above. These
+can be relative to the program or absolute, so you can see the outputs
+given.
 
 Deep copying uncompiled functions
 =================================
@@ -1252,7 +1301,8 @@ Best practices for reporting bugs:
 
 -  Please always include the following information in your report, for
    the underlying Python version. You can easily copy&paste this into
-   your report.
+   your report. It does contain more information that you think. Do not
+   write something manually. You may always add of course.
 
    .. code:: bash
 
