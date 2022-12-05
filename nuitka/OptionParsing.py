@@ -1361,7 +1361,7 @@ macos_group.add_option(
     metavar="RESOURCE_DESC",
     default=[],
     help="""\
-Request access for macOS protected resources, e.g.
+Request an entitlement for access to a macOS protected resources, e.g.
 "NSMicrophoneUsageDescription:Microphone access for recording audio."
 requests access to the microphone and provides an informative text for
 the user, why that is needed. Before the colon, is an OS identifier for
