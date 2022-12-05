@@ -297,7 +297,7 @@ def _addIncludedDataFilesFromFileOptions():
         for filename in filenames:
             relative_filename = relpath(filename, src)
 
-            file_reason = "specified data dir %r on command line" % src
+            file_reason = "specified data dir '%s' on command line" % src
 
             rel_path = os.path.join(dest, relative_filename)
 

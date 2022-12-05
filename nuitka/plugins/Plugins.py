@@ -186,7 +186,7 @@ def _loadPluginClassesFromPackage(scan_package):
         except Exception:
             if Options.is_non_debug:
                 plugins_logger.warning(
-                    "Problem loading plugin %r (%s), ignored. Use '--debug' to make it visible."
+                    "Problem loading plugin %r ('%s'), ignored. Use '--debug' to make it visible."
                     % (item.name, module_loader.get_filename())
                 )
                 continue

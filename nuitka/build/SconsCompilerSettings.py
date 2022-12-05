@@ -218,7 +218,7 @@ def checkWindowsCompilerFound(
         compiler_path = getExecutablePath(env["CC"], env=env)
 
         scons_details_logger.info(
-            "Checking usability of %r from %r" % (compiler_path, env["CC"])
+            "Checking usability of '%s' from '%s'." % (compiler_path, env["CC"])
         )
 
         # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
@@ -233,7 +233,9 @@ def checkWindowsCompilerFound(
 
             if decision:
                 scons_logger.info(
-                    "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, that compiler is ignored!"
+                    """\
+Mismatch between Python binary ('%s' -> '%s') and \
+C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
                     % (
                         os.environ["NUITKA_PYTHON_EXE_PATH"],
                         linker_arch,
@@ -254,7 +256,7 @@ def checkWindowsCompilerFound(
             # Requested a specific MSVC version, check if that worked.
             elif msvc_version != getMsvcVersionString(env):
                 scons_logger.info(
-                    "Failed to find requested MSVC version (%r != %r)."
+                    "Failed to find requested MSVC version ('%s' != '%s')."
                     % (msvc_version, getMsvcVersionString(env))
                 )
 
@@ -274,7 +276,7 @@ def checkWindowsCompilerFound(
                     or "force-winlibs-gcc" in env.experimental_flags
                 ):
                     scons_logger.info(
-                        "Too old gcc %r (%r < %r) ignored!"
+                        "Too old gcc '%s' (%r < %r) ignored!"
                         % (compiler_path, gcc_version, min_version)
                     )
 
@@ -449,7 +451,7 @@ unsigned char constant_bin_data[] =\n{\n
         writeConstantsDataSource()
     else:
         scons_logger.sysexit(
-            "Error, illegal resource mode %r specified" % resource_mode
+            "Error, illegal resource mode '%s' specified" % resource_mode
         )
 
 

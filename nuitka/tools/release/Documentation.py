@@ -84,7 +84,7 @@ def checkRstLint(document):
 
     import restructuredtext_lint  # pylint: disable=I0021,import-error
 
-    my_print("Checking %r for proper restructured text ..." % document, style="blue")
+    my_print("Checking '%s' for proper restructured text ..." % document, style="blue")
     lint_results = restructuredtext_lint.lint(
         contents.decode("utf8"),
         document,

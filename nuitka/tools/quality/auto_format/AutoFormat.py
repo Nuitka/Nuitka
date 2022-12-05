@@ -149,11 +149,11 @@ def _checkRequiredVersion(tool, tool_call):
 
     else:
         tools_logger.sysexit(
-            "Error, couldn't determine version output of %r (%r)"
+            "Error, couldn't determine version output of '%s' ('%s')"
             % (tool, " ".join(tool_call))
         )
 
-    message = "Version of %r via %r is required to be %r and not %r." % (
+    message = "Version of '%s' via '%s' is required to be %r and not %r." % (
         tool,
         " ".join(tool_call),
         required_version,
@@ -259,7 +259,7 @@ def _getPythonBinaryCall(binary_name):
             my_print(message, style="red")
 
         tools_logger.sysexit(
-            "Error, cannot find %r version %r, not installed or wrong version for this Python?"
+            "Error, cannot find '%s' version %r, not installed or wrong version for this Python?"
             % (binary_name, _getRequiredVersion(binary_name))
         )
 
@@ -650,7 +650,7 @@ def autoFormatFile(
 
 @contextlib.contextmanager
 def withFileOpenedAndAutoFormatted(filename):
-    my_print("Auto-format %r ..." % filename)
+    my_print("Auto-format '%s' ..." % filename)
 
     tmp_filename = filename + ".tmp"
     with openTextFile(tmp_filename, "w") as output:

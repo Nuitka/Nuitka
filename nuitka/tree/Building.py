@@ -1210,7 +1210,7 @@ def _makeModuleBodyTooComplex(module_name, module_filename, source_code, is_pack
 
         recursion_logger.warning(
             """\
-Cannot follow import to import module '%r' ('%r') because code is too complex."""
+Cannot follow import to import module '%r' ('%s') because code is too complex."""
             % (
                 module_name,
                 module_filename,

@@ -166,4 +166,4 @@ def writeCompilationReport(report_filename):
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
 
-    general.info("Compilation report in file %r." % report_filename)
+    general.info("Compilation report in file '%s'." % report_filename)

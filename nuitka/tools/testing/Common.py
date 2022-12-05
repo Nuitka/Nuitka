@@ -1297,7 +1297,7 @@ def setupCacheHashSalt(test_code_path):
 
 
 def displayFolderContents(name, path):
-    test_logger.info("Listing of %s %r:" % (name, path))
+    test_logger.info("Listing of %s '%s':" % (name, path))
 
     if os.path.exists(path):
         if isWin32Windows():

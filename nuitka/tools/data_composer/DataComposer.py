@@ -399,7 +399,7 @@ def main():
     names = set()
 
     for fullpath, filename in const_files:
-        data_composer_logger.info("Working on constant file %r." % filename)
+        data_composer_logger.info("Working on constant file '%s'." % filename)
 
         with open(fullpath, "rb") as const_file:
             constants_reader = ConstantStreamReader(const_file)

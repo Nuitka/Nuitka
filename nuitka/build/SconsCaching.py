@@ -255,7 +255,7 @@ def enableClcache(env, source_dir):
         env["CLCACHE_DIR"] = clcache_dir
 
     scons_details_logger.info(
-        "Using inline copy of clcache with %r cl binary." % cl_binary
+        "Using inline copy of clcache with '%s' cl binary." % cl_binary
     )
 
     import atexit

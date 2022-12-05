@@ -143,7 +143,7 @@ def myDetectVersion(env, cc):
     if cc not in v_cache:
         v_cache[cc] = _myDetectVersion(cc)
 
-        scons_details_logger.info("CC %r version check gives %r" % (cc, v_cache[cc]))
+        scons_details_logger.info("CC '%s' version check gives %r" % (cc, v_cache[cc]))
 
     return v_cache[cc]
 
