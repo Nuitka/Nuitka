@@ -267,7 +267,7 @@ def addResourceToFile(target_filename, data, resource_kind, lang_id, res_name, l
 
     @decoratorRetries(
         logger=logger,
-        purpose="add resources to file %r" % target_filename,
+        purpose="add resources to file '%s'" % target_filename,
         consequence="the result is unusable",
     )
     def _addResourceToFile():

@@ -136,7 +136,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     yield self.makeIncludedDataDirectory(
                         source_path=source_path,
                         dest_path=os.path.join(target_dir, data_dir),
-                        reason="package data directory %r for %r"
+                        reason="package data directory '%s' for %r"
                         % (data_dir, module_name.asString()),
                         tags="config",
                     )
@@ -200,7 +200,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         )
 
         if not file_list:
-            msg = "No files or folders found for '%s' in subfolder(s) %r (%r)." % (
+            msg = "No files or folders found for '%s' in subfolder(s) '%s' (%r)." % (
                 module.getFullName(),
                 sub_dirs,
                 data_dirs,

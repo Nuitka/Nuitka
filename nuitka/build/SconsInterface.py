@@ -432,7 +432,7 @@ def setCommonSconsOptions(options):
 
         if macos_min_version is None:
             Tracing.general.sysexit(
-                "Could not detect minimum macOS version for %r." % sys.executable
+                "Could not detect minimum macOS version for '%s'." % sys.executable
             )
 
         options["macos_min_version"] = macos_min_version

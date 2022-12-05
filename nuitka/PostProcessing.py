@@ -263,12 +263,12 @@ def executePostProcessingResources(manifest, onefile):
 
         if res_copied == 0:
             postprocessing_logger.warning(
-                "The specified icon template executable %r didn't contain anything to copy."
+                "The specified icon template executable '%s' didn't contain anything to copy."
                 % template_exe
             )
         else:
             postprocessing_logger.warning(
-                "Copied %d icon resources from %r." % (res_copied, template_exe)
+                "Copied %d icon resources from '%s'." % (res_copied, template_exe)
             )
     else:
         _addWindowsIconFromIcons(onefile=onefile)

@@ -145,7 +145,7 @@ def _enableExperimentalSettings(env, experimental_flags):
 def prepareEnvironment(mingw_mode, anaconda_python, python_prefix):
     # Add environment specified compilers to the PATH variable.
     if "CC" in os.environ:
-        scons_details_logger.info("CC=%r" % os.environ["CC"])
+        scons_details_logger.info("CC='%s'" % os.environ["CC"])
 
         os.environ["CC"] = os.path.normpath(os.path.expanduser(os.environ["CC"]))
 

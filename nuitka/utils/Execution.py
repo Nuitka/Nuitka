@@ -347,10 +347,12 @@ def executeToolChecked(logger, command, absence_message, stderr_filter=None):
             result = new_result
 
     if result != 0:
-        logger.sysexit("Error, call to %r failed: %s -> %s." % (tool, command, stderr))
+        logger.sysexit(
+            "Error, call to '%s' failed: %s -> %s." % (tool, command, stderr)
+        )
     elif stderr:
         logger.sysexit(
-            "Error, call to %r gave warnings: %s -> %s." % (tool, command, stderr)
+            "Error, call to '%s' gave warnings: %s -> %s." % (tool, command, stderr)
         )
 
     return stdout
