@@ -184,7 +184,6 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
 #else
 #define EXC_TYPE(x) ((PyObject *)Py_TYPE(x->exc_state.exc_value))
 #define EXC_VALUE(x) (x->exc_state.exc_value)
-#define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
 #endif
 
 #if PYTHON_VERSION < 0x370
@@ -566,6 +565,13 @@ NUITKA_MAY_BE_UNUSED static inline void PUBLISH_CURRENT_EXCEPTION(PyObject **exc
 #endif
 
     SET_CURRENT_EXCEPTION(&exc_state);
+
+#if PYTHON_VERSION >= 0x3b0
+    // TODO: We shouldn't get these in the first place, we don't transfer the
+    // type anymore and the exception tb could come in already attached.
+    Py_DECREF(*exception_type);
+    Py_XDECREF(*exception_tb);
+#endif
 
     *exception_type = NULL;
     *exception_value = NULL;

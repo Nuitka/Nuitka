@@ -278,20 +278,20 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
 #if PYTHON_VERSION < 0x3b0
-    struct Nuitka_FrameObject *old = (struct Nuitka_FrameObject *)(tstate->frame);
-    CHECK_OBJECT(old);
+    struct Nuitka_FrameObject *frame_object = (struct Nuitka_FrameObject *)(tstate->frame);
+    CHECK_OBJECT(frame_object);
 
 #if _DEBUG_FRAME
-    printf("Taking off frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)old)),
-           Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&old->m_frame))));
+    printf("Taking off frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)frame_object)),
+           Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
 #endif
 
     // Put previous frame on top.
-    tstate->frame = old->m_frame.f_back;
-    old->m_frame.f_back = NULL;
+    tstate->frame = frame_object->m_frame.f_back;
+    frame_object->m_frame.f_back = NULL;
 
-    Nuitka_Frame_MarkAsNotExecuting(old);
-    Py_DECREF(old);
+    Nuitka_Frame_MarkAsNotExecuting(frame_object);
+    Py_DECREF(frame_object);
 
 #if _DEBUG_FRAME
     PRINT_INTERPRETER_FRAME("Now at top frame:", tstate->frame);
