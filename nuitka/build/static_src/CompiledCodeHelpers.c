@@ -901,7 +901,7 @@ void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTra
 #else
 void _PRINT_EXCEPTION(PyObject *exception_value) {
     PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
-    PyObject *exception_tb = exception_value ? PyException_GetTraceback(exception_value) : NULL;
+    PyTracebackObject *exception_tb = exception_value ? GET_EXCEPTION_TRACEBACK(exception_value) : NULL;
 #endif
     PRINT_REPR(exception_type);
     if (exception_type) {
