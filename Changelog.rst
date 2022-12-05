@@ -13,6 +13,11 @@ Nuitka blog.
 Bug Fixes
 =========
 
+-  macOS: Framework build of PySide6 were not properly supporting the
+   use of WebEngine. This requires including frameworks and resources in
+   new ways, and actually some duplication of files, making the bundle
+   big, but this seems to be unavoidable to keep the signature intact.
+
 -  Standalone: Added workaround for ``dotenv``. Do not insist on
    compiled package directories that may not be there in case of no data
    files. Fixed in 1.2.1 already.
@@ -27,6 +32,53 @@ Bug Fixes
    ``--clean-cache=ccache`` which will remove it, otherwise there would
    be no way to cure it. Added in 1.2.1 already.
 
+-  Standalone: Added data files for ``folium`` package. Added in 1.2.1
+   already.
+
+-  Standalone: Added data files for ``branca`` package. Added in 1.2.1
+   already.
+
+-  Fix, some forms ``try`` that had exiting ``finally`` branches were
+   tracing values only assigned in the ``try`` block incorrectly. Fixed
+   in 1.2.2 already.
+
+-  Alpine: Fix, Also include ``libstdc++`` for Alpine to not use the
+   system one which is required by its other binaries, much like we
+   already do for Anaconda. Fixed in 1.2.2 already.
+
+-  Standalone: Added support for latest ``pytorch``. One of our
+   workarounds no longer applies. Fixed in 1.2.2 already.
+
+-  Standalone: Added support for webcam on Windows with
+   ``opencv-python``. Fixed in 1.2.3 already.
+
+-  Standalone: Added support for ``pytorch_lightning``, it was not
+   finding metadata for ``rich`` package. Fixed in 1.2.4 already.
+
+-  Standalone: Added data files for ``dash`` package. Fixed in 1.2.4
+   already.
+
+-  Windows: Retry replace ``clcache`` entry after a delay, this works
+   around Virus scanners giving access denied while they are checking
+   the file. Naturally you ought to disable those for your build space,
+   but new users often don't have this. Fixed in 1.2.4 already.
+
+-  Standalone: Added support for ``scipy`` 1.9.2 changes.
+
+-  Catch corrupt object file outputs from ``gcc`` as well and suggest to
+   clean cache as well. This has been observed to happen at least on
+   Windows and should help resolve the ``ccache`` situation there.
+
+-  Windows: In case ``clcache`` fails to acquire the global lock, simply
+   ignore that. This happens sporadically and barely is a real locking
+   issue, since that would require two compilations at the same time and
+   for that it largely works.
+
+-  Compatibility: Classes should have the ``f_locals`` set to the actual
+   mapping used in their frame. This makes Nuitka usable with the
+   ``multidispatch`` package which tries to find methods there while the
+   class is building.
+
 New Features
 ============
 
@@ -38,17 +90,97 @@ New Features
 
       The ``clcache`` is implied in ``ccache`` for simplicity.
 
--  UI: With the same values as ``--disable-cache`` Nuitka may now be
-   called with ``--clean-cache`` in a compilation or without a filename
-   argument, and then it will erase those caches current data before
-   making a compilation.
+-  UI: With the same values as ``--disable-cache`` Nuitka may now also
+   be called with ``--clean-cache`` in a compilation or without a
+   filename argument, and then it will erase those caches current data
+   before making a compilation.
+
+-  macOS: Added ``--macos-app-windowless`` option for application
+   bundles that should run in the background.
+
+-  Plugins: Added ability to provide data files for macOS ``Resources``
+   folder of application bundles.
+
+-  macOS: Fix, Qt WebEngine was not working for framework using Python
+   builds, like the ones from PyPI. This adds support for both PySide2
+   and PySide6 to distribute those as well.
+
+Optimization
+============
+
+-  Anti-Bloat: Remove the use of ``pytest`` for ``dash`` package
+   compilation.
+
+-  Anti-Bloat: Remove the use of ``ipython`` for ``dotenv`` package
+   compilation.
+
+-  Avoid using non-optimal ``malloc`` related macros and functions of
+   Python, and instead of the fasted form generally. This avoids Python
+   DLL calls that on Windows can be particularly slow.
+
+-  More efficient code for object initialization, avoiding one DLL call
+   to set up our object, but adding a new one. This solves a TODO
+   partially. The new call will be inlined in the future as well.
+
+-  Python3.10+: When creating dictionaries, use the newly exposed
+   dictionary free list. This can speedup code that repeatedly allocates
+   and releases dictionaries by a lot.
+
+-  Python3.6+: Added fast path to dictionary copy. Compact dictionaries
+   have their keys and values copied directly. This is inspired by a
+   Python 3.10 change, but applicable to older Python as well.
 
 Organisational
 ==============
 
+-  Plugins: The ``numpy`` plugin functionality was moved to Nuitka
+   package configuration, and as a result, the plugin is now deprecated
+   and devoid of functionality. This drops MKL specific code for
+   ``numpy``, but we don't have an installations that use it, may not
+   exist anymore.
+
+-  User Manual: Added information about macOS entitlements and Windows
+   console. These features are supported very well by Nuitka, but needed
+   documentation.
+
+-  UI: Remove alternative options from ``--help`` output. These are
+   there often only for historic reasons, e.g. when an option was
+   renamed. They should not bother users reading them.
+
+-  Quality: Detect trailing/leading spaces in Nuitka package
+   configuration ``description`` values during their automatic check.
+
 -  UI: Enhanced ``--version`` output to include the C compiler
    selection. It is doing that respecting your other options, e.g.
    ``--clang``, etc. so it will be helpful in debugging setup issues.
+
+   UI: Some error messages were using ``%r`` rather than ``'%s'`` to
+   output file paths, but that escaped backslashes on Windows, making
+   them look worse, so we changed away from this.
+
+-  UI: Document more clearly what ``--output-dir`` actually controls.
+
+-  macOS: Added options hint that the ``Foundation`` module requires
+   bundle mode to be usable.
+
+-  UI: Allow using both ``--follow-imports`` and ``--nofollow-imports``
+   on command line rather than erroring out. Simply use what was given
+   last, this allows overriding what was given in project options tests
+   should the need arise.
+
+-  Reports: Include plugin reasons for pre and post load modules
+   provided. This solves a TODO and makes it easier to debug plugins.
+
+-  UI: Handle ``--include-package-data`` before compilation, removing
+   the ability to use pattern. This makes it easier to recognize
+   mistakes without a long compilation and plugins can know them this
+   way too.
+
+-  GitHub: Migration workflows to using newer actions for Python and
+   checkout. Also use newer Ubuntu LTS for Linux test runner.
+
+-  UI: Catch user error of running Nuitka with the ``pythonw`` binary on
+   Windows.
 
 Cleanups
 ========
@@ -56,6 +188,34 @@ Cleanups
 -  When adding the new Scons file for C compiler version output, more
    values that are needed for both onefile and backend compilation were
    moved to centralized code, simplifying these somewhat again.
+
+-  Remove unused ``main_module`` tag. It cannot happen that a module
+   name matches, and still thinks of itself as ``__main__`` during
+   compilation, so that idea was unnecessary.
+
+-  Generate the dictionary copy variants from template code rather than
+   having manual duplications. For ``dict.copy()``, for deep copy
+   (needed e.g. when there are escaping mutable keyword argument
+   constant values in say a function call), and for ``**kw`` value
+   preparation in the called function (checking argument types), we have
+   had diverged copies, that are now unified in a single Jinja2 template
+   for optimization.
+
+-  Plugins: Also allow providing generators for providing extra DLLs
+   much like we already do for data files.
+
+-  Naming of basic tests now makes sure to use a ``Test`` suffix, so in
+   Visual Code selector they are more distinct from Nuitka code modules.
+
+-  Rather than populating empty dictionaries, helper code now uses
+   factory functions to create them, passing keys and values, and
+   allowing values to be optional, removing noisy ``if`` branches at
+   call side.
+
+-  Removed remaining ``PyDev`` annotations, we don't need those anymore
+   for a long time already.
+
+-  Spelling cleanups were resumed, as an ongoing action.
 
 This release is not done yet.
 
@@ -9012,7 +9172,7 @@ Optimization
 -  Python2: Selecting the metaclass is now visible in the tree and can
    be statically optimized.
 
--  For executables, we now also use a freelist for traceback objects,
+-  For executables, we now also use a free list for traceback objects,
    which also makes exception cases slightly faster.
 
 -  Generator expressions no longer require the use of a function call
