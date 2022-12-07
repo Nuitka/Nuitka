@@ -88,21 +88,19 @@ is_verbose = None
 
 
 def checkPathSpec(value, arg_name):
-    if "%COMPANY%" in value and not getWindowsCompanyName():
+    if "%COMPANY%" in value and not getCompanyName():
         Tracing.options_logger.sysexit(
             "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
-    if "%PRODUCT%" in value and not getWindowsProductName():
+    if "%PRODUCT%" in value and not getProductName():
         Tracing.options_logger.sysexit(
             "Using value '%%PRODUCT%%' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
-    if "%VERSION%" in value and not (
-        getWindowsFileVersion() or getWindowsProductVersion()
-    ):
+    if "%VERSION%" in value and not (getFileVersion() or getProductVersion()):
         Tracing.options_logger.sysexit(
             "Using value '%%VERSION%%' in '%s=%s' value without being specified."
             % (arg_name, value)
@@ -444,25 +442,25 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     try:
-        file_version = getWindowsFileVersion()
+        file_version = getFileVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
         Tracing.options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
     try:
-        product_version = getWindowsProductVersion()
+        product_version = getProductVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
         Tracing.options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )
 
-    if getWindowsCompanyName() == "":
+    if getCompanyName() == "":
         Tracing.options_logger.sysexit(
             """Error, empty string is not an acceptable company name."""
         )
 
-    if getWindowsProductName() == "":
+    if getProductName() == "":
         Tracing.options_logger.sysexit(
             """Error, empty string is not an acceptable product name."""
         )
@@ -477,7 +475,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             )
 
     if file_version or product_version or getWindowsVersionInfoStrings():
-        if not (file_version or product_version) and getWindowsCompanyName():
+        if not (file_version or product_version) and getCompanyName():
             Tracing.options_logger.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
@@ -675,10 +673,6 @@ def commentArgs():
             getWindowsIconExecutablePath()
             or shallAskForWindowsAdminRights()
             or shallAskForWindowsUIAccessRights()
-            or getWindowsCompanyName()
-            or getWindowsProductName()
-            or getWindowsProductVersion()
-            or getWindowsFileVersion()
             or getWindowsSplashScreen()
         ):
             Tracing.options_logger.warning(
@@ -1527,21 +1521,21 @@ def getWindowsVersionInfoStrings():
 
     result = {}
 
-    company_name = getWindowsCompanyName()
+    company_name = getCompanyName()
     if company_name:
         result["CompanyName"] = company_name
 
-    product_name = getWindowsProductName()
+    product_name = getProductName()
     if product_name:
         result["ProductName"] = product_name
 
-    if options.windows_file_description:
-        result["FileDescription"] = options.windows_file_description
+    if options.file_description:
+        result["FileDescription"] = options.file_description
 
     return result
 
 
-def _parseWindowsVersionNumber(value):
+def _parseVersionNumber(value):
     if value:
         parts = value.split(".")
 
@@ -1558,14 +1552,14 @@ def _parseWindowsVersionNumber(value):
         return None
 
 
-def getWindowsProductVersion():
-    """:returns: tuple of 4 ints or None, derived from ``--windows-product-version``"""
-    return _parseWindowsVersionNumber(options.windows_product_version)
+def getProductVersion():
+    """:returns: tuple of 4 ints or None, derived from ``--product-version``"""
+    return _parseVersionNumber(options.product_version)
 
 
-def getWindowsFileVersion():
-    """:returns tuple of 4 ints or None, derived from ``--windows-file-version``"""
-    return _parseWindowsVersionNumber(options.windows_file_version)
+def getFileVersion():
+    """:returns tuple of 4 ints or None, derived from ``--file-version``"""
+    return _parseVersionNumber(options.file_version)
 
 
 def getWindowsSplashScreen():
@@ -1573,14 +1567,14 @@ def getWindowsSplashScreen():
     return options.splash_screen_image
 
 
-def getWindowsCompanyName():
+def getCompanyName():
     """*str* name of the company to use"""
-    return options.windows_company_name
+    return options.company_name
 
 
-def getWindowsProductName():
+def getProductName():
     """*str* name of the product to use"""
-    return options.windows_product_name
+    return options.product_name
 
 
 def getMacOSTargetArch():

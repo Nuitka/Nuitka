@@ -1353,7 +1353,7 @@ def _addPluginCommandLineOptions(parser, plugin_class):
     plugin_name = plugin_class.plugin_name
 
     if plugin_name not in plugin_options:
-        option_group = OptionGroup(parser, "Plugin %s" % plugin_name)
+        option_group = OptionGroup(parser, "Plugin options of '%s'" % plugin_name)
         try:
             plugin_class.addPluginCommandLineOptions(option_group)
         except OptionConflictError as e:

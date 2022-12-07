@@ -237,33 +237,12 @@ parser.add_option_group(include_group)
 follow_group = OptionGroup(parser, "Control the following into imported modules")
 
 follow_group.add_option(
-    "--follow-stdlib",
-    action="store_true",
-    dest="follow_stdlib",
-    default=False,
-    help="""\
-Also descend into imported modules from standard library. This will increase
-the compilation time by a lot. Defaults to off.""",
-)
-
-follow_group.add_option(
-    "--nofollow-imports",
-    action="store_false",
-    dest="follow_all",
-    default=None,
-    help="""\
-Do not descend into any imported modules at all, overrides all other inclusion
-options and not usable for standalone mode. Defaults to off.""",
-)
-
-follow_group.add_option(
     "--follow-imports",
     action="store_true",
     dest="follow_all",
     default=None,
     help="""\
-When --follow-imports is used, attempt to descend into all imported modules.
-Defaults to off.""",
+Descend into all imported modules. Defaults to on in standalone mode, otherwise off.""",
 )
 
 follow_group.add_option(
@@ -287,6 +266,27 @@ follow_group.add_option(
 Do not follow to that module name even if used, or if a package name, to the
 whole package in any case, overrides all other options. Can be given multiple
 times. Default empty.""",
+)
+
+follow_group.add_option(
+    "--nofollow-imports",
+    action="store_false",
+    dest="follow_all",
+    default=None,
+    help="""\
+Do not descend into any imported modules at all, overrides all other inclusion
+options and not usable for standalone mode. Defaults to off.""",
+)
+
+follow_group.add_option(
+    "--follow-stdlib",
+    action="store_true",
+    dest="follow_stdlib",
+    default=False,
+    help="""\
+Also descend into imported modules from standard library. This will increase
+the compilation time by a lot and is also not well tested at this time and
+sometimes won't work. Defaults to off.""",
 )
 
 parser.add_option_group(follow_group)
@@ -474,27 +474,13 @@ execute_group.add_option(
     dest="keep_pythonpath",
     default=False,
     help="""\
-When immediately executing the created binary ('--execute'), don't reset
-'PYTHONPATH' environment. When all modules are successfully included, you
-ought to not need PYTHONPATH anymore.""",
+When immediately executing the created binary or module using '--run',
+don't reset 'PYTHONPATH' environment. When all modules are successfully
+included, you ought to not need PYTHONPATH anymore, and definitely not
+for standalone mode.""",
 )
 
 parser.add_option_group(execute_group)
-
-
-dump_group = OptionGroup(parser, "Dump options for internal tree")
-
-dump_group.add_option(
-    "--xml",
-    action="store",
-    dest="xml_output",
-    metavar="XML_OUTPUT",
-    default=None,
-    help="Write the final result of optimization in XML form to given filename.",
-)
-
-
-parser.add_option_group(dump_group)
 
 
 compilation_group = OptionGroup(parser, "Compilation choices")
@@ -504,7 +490,7 @@ compilation_group.add_option(
     action="append",
     dest="user_yaml_files",
     default=[],
-    metavar="USER_YAML",
+    metavar="YAML_FILENAME",
     help="""\
 User provided Yaml file with package configuration. You can include DLLs,
 remove bloat, add hidden dependencies. Check User Manual for a complete
@@ -561,7 +547,6 @@ is incompatible for modules that normally can be loaded into any package.""",
 
 
 parser.add_option_group(compilation_group)
-
 
 output_group = OptionGroup(parser, "Output choices")
 
@@ -682,6 +667,15 @@ existing files and simply compile them as C again. Allows compiling edited
 C files for quick debugging changes to the generated source, e.g. to see if
 code is passed by, values output, etc, Defaults to off. Depends on compiling
 Python source to determine which files it should look at.""",
+)
+
+debug_group.add_option(
+    "--xml",
+    action="store",
+    dest="xml_output",
+    metavar="XML_FILENAME",
+    default=None,
+    help="Write the internal program structure, result of optimization in XML form to given filename.",
 )
 
 debug_group.add_option(
@@ -818,52 +812,6 @@ parser.add_option_group(c_compiler_group)
 
 caching_group = OptionGroup(parser, "Cache Control")
 
-
-caching_group.add_option(
-    "--disable-bytecode-cache",
-    action="store_true",
-    dest="disable_bytecode_cache",
-    default=False,
-    help="""\
-Do not reuse dependency analysis results for modules, esp. from standard library,
-that are included as bytecode.""",
-)
-
-caching_group.add_option(
-    "--disable-ccache",
-    action="store_true",
-    dest="disable_ccache",
-    default=False,
-    help="""\
-Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).""",
-)
-
-if isWin32Windows():
-    caching_group.add_option(
-        "--disable-dll-dependency-cache",
-        action="store_true",
-        dest="disable_dll_dependency_cache",
-        default=False,
-        help="""\
-Disable the dependency walker cache. Will result in much longer times to create
-the distribution folder, but might be used in case the cache is suspect to cause
-errors.
-""",
-    )
-
-    caching_group.add_option(
-        "--force-dll-dependency-cache-update",
-        action="store_true",
-        dest="update_dependency_cache",
-        default=False,
-        help="""\
-For an update of the dependency walker cache. Will result in much longer times
-to create the distribution folder, but might be used in case the cache is suspect
-to cause errors or known to need an update.
-""",
-    )
-
-
 _cache_names = ("all", "ccache", "bytecode")
 
 if isWin32Windows():
@@ -894,6 +842,50 @@ allowed values are: %s. can be given multiple times or with comma separated
 values. Default none."""
     % (",".join('"%s"' % cache_name for cache_name in _cache_names)),
 )
+
+caching_group.add_option(
+    "--disable-bytecode-cache",
+    action="store_true",
+    dest="disable_bytecode_cache",
+    default=False,
+    help="""\
+Do not reuse dependency analysis results for modules, esp. from standard library,
+that are included as bytecode. Same as --disable-cache=bytecode.""",
+)
+
+caching_group.add_option(
+    "--disable-ccache",
+    action="store_true",
+    dest="disable_ccache",
+    default=False,
+    help="""\
+Do not attempt to use ccache (gcc, clang, etc.) or clcache (MSVC, clangcl).
+Same as --disable-cache=ccache.""",
+)
+
+if isWin32Windows():
+    caching_group.add_option(
+        "--disable-dll-dependency-cache",
+        action="store_true",
+        dest="disable_dll_dependency_cache",
+        default=False,
+        help="""\
+Disable the dependency walker cache. Will result in much longer times to create
+the distribution folder, but might be used in case the cache is suspect to cause
+errors. Same as --disable-cache=dll-dependencies.""",
+    )
+
+    caching_group.add_option(
+        "--force-dll-dependency-cache-update",
+        action="store_true",
+        dest="update_dependency_cache",
+        default=False,
+        help="""\
+For an update of the dependency walker cache. Will result in much longer times
+to create the distribution folder, but might be used in case the cache is suspect
+to cause errors or known to need an update.
+""",
+    )
 
 
 parser.add_option_group(caching_group)
@@ -964,6 +956,17 @@ parser.add_option_group(pgo_group)
 tracing_group = OptionGroup(parser, "Tracing features")
 
 tracing_group.add_option(
+    "--report",
+    action="store",
+    dest="compilation_report_filename",
+    metavar="REPORT_FILENAME",
+    default=None,
+    help="""\
+Report module, data files, compilation, plugin, etc. details in an XML output file. This is also
+super useful for issue reporting. Default is off.""",
+)
+
+tracing_group.add_option(
     "--quiet",
     action="store_true",
     dest="quiet",
@@ -979,8 +982,17 @@ tracing_group.add_option(
     dest="show_scons",
     default=False,
     help="""\
-Operate Scons in non-quiet mode, showing the executed commands.
-Defaults to off.""",
+Run the C building backend Scons with verbose information, showing the executed commands,
+detected compilers. Defaults to off.""",
+)
+
+tracing_group.add_option(
+    "--no-progress-bar",
+    "--no-progressbar",
+    action="store_false",
+    dest="progress_bar",
+    default=True,
+    help="""Disable progress bars. Defaults to off.""",
 )
 
 tracing_group.add_option(
@@ -988,18 +1000,9 @@ tracing_group.add_option(
     action="store_true",
     dest="show_progress",
     default=False,
-    help="""Provide progress information and statistics.
-Defaults to off.""",
+    help="""Obsolete: Provide progress information and statistics.
+Disables normal progress bar. Defaults to off.""",
 )
-
-tracing_group.add_option(
-    "--no-progressbar",
-    action="store_false",
-    dest="progress_bar",
-    default=True,
-    help="""Disable progress bar. Defaults to off.""",
-)
-
 
 tracing_group.add_option(
     "--show-memory",
@@ -1010,7 +1013,6 @@ tracing_group.add_option(
 Defaults to off.""",
 )
 
-
 tracing_group.add_option(
     "--show-modules",
     action="store_true",
@@ -1018,7 +1020,7 @@ tracing_group.add_option(
     default=False,
     help="""\
 Provide information for included modules and DLLs
-Defaults to off.""",
+Obsolete: You should use '--report' file instead. Defaults to off.""",
 )
 
 tracing_group.add_option(
@@ -1028,16 +1030,7 @@ tracing_group.add_option(
     metavar="PATH",
     default=None,
     help="""\
-Where to output --show-modules, should be a filename. Default is standard output.""",
-)
-
-tracing_group.add_option(
-    "--report",
-    action="store",
-    dest="compilation_report_filename",
-    default=None,
-    help="""\
-Report module, data file, compilation details in an XML output file. Default is off.""",
+Where to output '--show-modules', should be a filename. Default is standard output.""",
 )
 
 tracing_group.add_option(
@@ -1057,7 +1050,7 @@ tracing_group.add_option(
     metavar="PATH",
     default=None,
     help="""\
-Where to output --verbose, should be a filename. Default is standard output.""",
+Where to output from '--verbose', should be a filename. Default is standard output.""",
 )
 
 parser.add_option_group(tracing_group)
@@ -1113,7 +1106,6 @@ Force standard error of the program to go to this location. Useful for programs 
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
 Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
 )
-
 
 parser.add_option_group(os_group)
 
@@ -1177,74 +1169,6 @@ windows_group.add_option(
     help="""\
 Request Windows User Control, to enforce running from a few folders only, remote
 desktop access. (Windows only). Defaults to off.""",
-)
-
-windows_group.add_option(
-    "--company-name",
-    "--windows-company-name",
-    action="store",
-    dest="windows_company_name",
-    metavar="WINDOWS_COMPANY_NAME",
-    default=None,
-    help="""\
-Name of the company to use in Windows Version information.
-
-One of file or product version is required, when a version resource needs to be
-added, e.g. to specify product name, or company name. Defaults to unused.""",
-)
-
-windows_group.add_option(
-    "--product-name",
-    "--windows-product-name",
-    action="store",
-    dest="windows_product_name",
-    metavar="WINDOWS_PRODUCT_NAME",
-    default=None,
-    help="""\
-Name of the product to use in Windows Version information. Defaults to base
-filename of the binary.""",
-)
-
-
-windows_group.add_option(
-    "--windows-file-version",
-    "--file-version",
-    action="store",
-    dest="windows_file_version",
-    metavar="WINDOWS_FILE_VERSION",
-    default=None,
-    help="""\
-File version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
-One of file or product version is required, when a version resource needs to be
-added, e.g. to specify product name, or company name. Defaults to unused.""",
-)
-
-windows_group.add_option(
-    "--product-version",
-    "--windows-product-version",
-    action="store",
-    dest="windows_product_version",
-    metavar="WINDOWS_PRODUCT_VERSION",
-    default=None,
-    help="""\
-Product version to use in Windows Version information. Must be a sequence of
-up to 4 numbers, e.g. 1.0.0.0, only this format is allowed.
-One of file or product version is required, when a version resource needs to be
-added, e.g. to specify product name, or company name. Defaults to unused.""",
-)
-
-windows_group.add_option(
-    "--windows-file-description",
-    action="store",
-    dest="windows_file_description",
-    metavar="WINDOWS_FILE_DESCRIPTION",
-    default=None,
-    help="""\
-Description of the file use in Windows Version information.
-
-One of file or product version is required, when a version resource needs to be
-added, e.g. to specify product name, or company name. Defaults to nonsense.""",
 )
 
 parser.add_option_group(windows_group)
@@ -1388,6 +1312,66 @@ linux_group.add_option(
 
 parser.add_option_group(linux_group)
 
+version_group = OptionGroup(parser, "Binary Version Information")
+
+version_group.add_option(
+    "--company-name",
+    "--windows-company-name",
+    action="store",
+    dest="company_name",
+    metavar="COMPANY_NAME",
+    default=None,
+    help="Name of the company to use in version information. Defaults to unused.",
+)
+
+version_group.add_option(
+    "--product-name",
+    "--windows-product-name",
+    action="store",
+    dest="product_name",
+    metavar="PRODUCT_NAME",
+    default=None,
+    help="""\
+Name of the product to use in version information. Defaults to base filename of the binary.""",
+)
+
+version_group.add_option(
+    "--file-version",
+    "--windows-file-version",
+    action="store",
+    dest="file_version",
+    metavar="FILE_VERSION",
+    default=None,
+    help="""\
+File version to use in version information. Must be a sequence of up to 4
+numbers, e.g. 1.0 or 1.0.0.0, no more digits are allowed, no strings are
+allowed. Defaults to unused.""",
+)
+
+version_group.add_option(
+    "--product-version",
+    "--windows-product-version",
+    action="store",
+    dest="product_version",
+    metavar="PRODUCT_VERSION",
+    default=None,
+    help="""\
+Product version to use in version information. Same rules as for file version.
+Defaults to unused.""",
+)
+
+version_group.add_option(
+    "--file-description",
+    "--windows-file-description",
+    action="store",
+    dest="file_description",
+    metavar="FILE_DESCRIPTION",
+    default=None,
+    help="""\
+Description of the file used in version information. Windows only at this time. Defaults to binary filename.""",
+)
+
+parser.add_option_group(version_group)
 
 plugin_group = OptionGroup(parser, "Plugin control")
 

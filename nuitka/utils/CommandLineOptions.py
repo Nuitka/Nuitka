@@ -54,9 +54,6 @@ class OurHelpFormatter(IndentedHelpFormatter):
         if option._short_opts and not long_opts:
             sys.exit("Error, cannot have short only options with no long option name.")
 
-        if long_opts[1:]:
-            print(long_opts[1:])
-
         return long_opts[0]
 
 
