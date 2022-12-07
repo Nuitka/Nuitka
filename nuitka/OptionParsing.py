@@ -1234,14 +1234,18 @@ filename of the binary.""",
 )
 
 macos_group.add_option(
-    "--macos-app-windowless",
-    action="store_true",
-    dest="macos_app_windowless",
-    default=None,
+    "--macos-app-mode",
+    action="store",
+    dest="macos_app_mode",
+    metavar="MODE",
+    choices=("gui", "background", "ui-element"),
+    default="gui",
     help="""\
-Is this application bundle a background application without a Window. It will
-not appear in dock during launch and not have access to high resolution features
-should it create a Window later.""",
+Mode of application for the application bundle. When launching a Window, and appearing
+in Docker is desired, default value "gui" is a good fit. Without a Window ever, the
+application is a "background" application. For UI elements that get to display later,
+"ui-element" is in-between. The application will not appear in dock, but get full
+access to desktop when it does open a Window later.""",
 )
 
 macos_group.add_option(

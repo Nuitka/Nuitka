@@ -95,8 +95,9 @@ New Features
    filename argument, and then it will erase those caches current data
    before making a compilation.
 
--  macOS: Added ``--macos-app-windowless`` option for application
-   bundles that should run in the background.
+-  macOS: Added ``--macos-app-mode`` option for application bundles that
+   should run in the background (``background``) or are only a UI
+   element (``ui-element``).
 
 -  Plugins: Added ability to provide data files for macOS ``Resources``
    folder of application bundles.
