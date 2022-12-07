@@ -238,14 +238,14 @@ def executePostProcessingResources(manifest, onefile):
 
     if (
         Options.getWindowsVersionInfoStrings()
-        or Options.getWindowsProductVersion()
-        or Options.getWindowsFileVersion()
+        or Options.getProductVersion()
+        or Options.getFileVersion()
     ):
 
         addVersionInfoResource(
             string_values=Options.getWindowsVersionInfoStrings(),
-            product_version=Options.getWindowsProductVersion(),
-            file_version=Options.getWindowsFileVersion(),
+            product_version=Options.getProductVersion(),
+            file_version=Options.getFileVersion(),
             file_date=(0, 0),
             is_exe=not Options.shallMakeModule(),
             result_filename=result_filename,
