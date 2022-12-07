@@ -428,10 +428,11 @@ produces a folder for which you can specify ``--standalone``.
 
    python -m nuitka --standalone program.py
 
-Follow all imports is default in this mode. You can selectively exclude
-modules by specifically saying ``--nofollow-import-to``, but then an
-``ImportError`` will be raised when import of it is attempted at program
-run time.
+Following all imports is default in this mode. You can selectively
+exclude modules by specifically saying ``--nofollow-import-to``, but
+then an ``ImportError`` will be raised when import of it is attempted at
+program run time. This may cause different behavior, but it may also
+improve your compile time if done wisely.
 
 For data files to be included, use the option
 ``--include-data-files=<source>=<target>`` where the source is a file
@@ -465,9 +466,10 @@ When that is working, you can use the onefile mode if you so desire.
 
    python -m nuitka --onefile program.py
 
-This will create a single binary, which on Linux will not even unpack
-itself, but instead loop back mount its contents as a filesystem and use
-that.
+This will create a single binary, that extracts itself on the target,
+before running the program. But notice, that accessing files relative to
+your program is impacted, make sure to read the section `Onefile:
+Finding files`_ as well.
 
 .. code:: bash
 
@@ -478,37 +480,45 @@ that.
 
    There are more platform specific options, e.g. related to icons,
    splash screen, and version information, consider the ``--help``
-   output for the details of these and check the section "Good Looks".
+   output for the details of these and check the section `Tweaks_`.
 
-Again, on Windows, for the temporary file directory, by default the user
-one is used, however this can be overridden with a path specification
-given in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%``
-which is the default and asserts that the temporary directories created
-cannot collide.
+For the unpacking, by default a unique user temporary path one is used,
+and then deleted, however this default
+``--onefile-tempdir-spec="%TEMP%\\onefile_%PID%_%TIME%"`` can be
+overridden with a path specification that is using then using a cached
+path, avoiding repeated unpacking, e.g. with
+``--onefile-tempdir-spec="%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION"``
+which uses version information, and user specific cache directory.
+
+.. note::
+
+   Using cached paths will e.g. be relevant too, when Windows Firewall
+   comes into play, because otherwise, the binary will be a different
+   one to it each time it is run.
 
 Currently these expanded tokens are available:
 
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| Token       | What this Expands to                                                      | Example                          |
-+=============+===========================================================================+==================================+
-| %TEMP%      | User temporary file directory                                             | C:\Users\...\AppData\Locals\Temp |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %PID%       | Process ID                                                                | 2772                             |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %TIME%      | Time in seconds since the epoch.                                          | 1299852985                       |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %PROGRAM%   | Full program run-time filename of executable.                             | C:\SomeWhere\YourOnefile.exe     |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %CACHE_DIR% | Cache directory for the user.                                             | C:\Users\SomeBody\AppData\Local  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %COMPANY%   | Value given as ``--windows-company-name``                                 | YourCompanyName                  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %PRODUCT%   | Value given as ``--windows-product-name``                                 | YourProductName                  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %VERSION%   | Combination of ``--windows-file-version`` & ``--windows-product-version`` | 3.0.0.0-1.0.0.0                  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %HOME%      | Home directory for the user.                                              | /home/somebody                   |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
++-------------+-----------------------------------------------------------+----------------------------------+
+| Token       | What this Expands to                                      | Example                          |
++=============+===========================================================+==================================+
+| %TEMP%      | User temporary file directory                             | C:\Users\...\AppData\Locals\Temp |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %PID%       | Process ID                                                | 2772                             |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %TIME%      | Time in seconds since the epoch.                          | 1299852985                       |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %PROGRAM%   | Full program run-time filename of executable.             | C:\SomeWhere\YourOnefile.exe     |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %CACHE_DIR% | Cache directory for the user.                             | C:\Users\SomeBody\AppData\Local  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %COMPANY%   | Value given as ``--company-name``                         | YourCompanyName                  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %PRODUCT%   | Value given as ``--product-name``                         | YourProductName                  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %VERSION%   | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %HOME%      | Home directory for the user.                              | /home/somebody                   |
++-------------+-----------------------------------------------------------+----------------------------------+
 
 .. note::
 
