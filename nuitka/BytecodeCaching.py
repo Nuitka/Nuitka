@@ -40,7 +40,7 @@ def getBytecodeCacheDir():
 
 
 def _getCacheFilename(module_name, extension):
-    return os.path.join(getCacheDir(), "%s.%s" % (module_name, extension))
+    return os.path.join(getBytecodeCacheDir(), "%s.%s" % (module_name, extension))
 
 
 def makeCacheName(module_name, source_code):
