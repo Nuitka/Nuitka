@@ -98,6 +98,8 @@ def createPlistInfoFile(logger, onefile):
     # Console mode, which is why we have to use bundle in the first place typically.
     if Options.isMacOSBackgroundApp():
         infos["LSBackgroundOnly"] = True
+    elif Options.isMacOSUiElementApp():
+        infos["LSUIElement"] = True
     else:
         infos["NSHighResolutionCapable"] = True
 

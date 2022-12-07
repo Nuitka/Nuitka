@@ -1629,7 +1629,13 @@ def getMacOSAppProtectedResourcesAccesses():
 
 
 def isMacOSBackgroundApp():
-    """*bool*, derived from ``--macos-app-windowless``"""
+    """*bool*, derived from ``--macos-app-mode``"""
+    return options.macos_app_mode == "background"
+
+
+def isMacOSUiElementApp():
+    """*bool*, derived from ``--macos-app-mode``"""
+    return options.macos_app_mode == "ui-element"
 
 
 _python_flags = None
