@@ -194,7 +194,7 @@ assert(%(context_identifier)s->m_frame->m_frame.f_back == NULL);
 
 pushFrameStack(%(context_identifier)s->m_frame);
 
-// Taking a reference prevents reused while being used.
+// Taking a reference prevents reuse of generator frame while it is being used.
 Py_INCREF(%(context_identifier)s->m_frame->m_frame.f_back);
 
 #if PYTHON_VERSION >= 0x300
