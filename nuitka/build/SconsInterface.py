@@ -458,8 +458,8 @@ def setCommonSconsOptions(options):
 
     # Merge version information if possible, to avoid collisions, or deep nesting
     # in file system.
-    product_version = Options.getWindowsProductVersion()
-    file_version = Options.getWindowsFileVersion()
+    product_version = Options.getProductVersion()
+    file_version = Options.getFileVersion()
 
     if product_version is None:
         product_version = file_version
