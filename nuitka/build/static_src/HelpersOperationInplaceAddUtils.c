@@ -138,3 +138,16 @@ NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, Py
     return UNICODE_APPEND(operand1, operand2);
 #endif
 }
+
+
+void PyFloat_SET_DOUBLE(PyObject **pobj, double fval) {
+    if (Py_REFCNT(*pobj) == 1) {
+        PyFloatObject *float_obj = *(PyFloatObject**)pobj;
+        float_obj->ob_fval = fval;
+    }
+    else {
+        PyObject *old_obj = *pobj;
+        *pobj = PyFloat_FromDouble(fval);
+        Py_DECREF(old_obj);
+    }
+}

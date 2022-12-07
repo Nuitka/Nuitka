@@ -1213,14 +1213,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_FLOAT_FLOAT(PyObject **operand1, Py
     }
 
 exit_result_ok_cfloat:
-    if (Py_REFCNT(*operand1) == 1) {
-        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
-    } else {
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = PyFloat_FromDouble(cfloat_result);
-    }
+    PyFloat_SET_DOUBLE(operand1, cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -1446,14 +1439,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_OBJECT_FLOAT(PyObject **operand1, P
         }
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
-            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
-        } else {
-            // We got an object handed, that we have to release.
-            Py_DECREF(*operand1);
-
-            *operand1 = PyFloat_FromDouble(cfloat_result);
-        }
+        PyFloat_SET_DOUBLE(operand1, cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1684,14 +1670,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_FLOAT_OBJECT(PyObject **operand1, P
         }
 
     exit_result_ok_cfloat:
-        if (Py_REFCNT(*operand1) == 1) {
-            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
-        } else {
-            // We got an object handed, that we have to release.
-            Py_DECREF(*operand1);
-
-            *operand1 = PyFloat_FromDouble(cfloat_result);
-        }
+        PyFloat_SET_DOUBLE(operand1, cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -2305,14 +2284,7 @@ static inline bool _INPLACE_OPERATION_OLDDIV_FLOAT_CFLOAT(PyObject **operand1, d
     }
 
 exit_result_ok_cfloat:
-    if (Py_REFCNT(*operand1) == 1) {
-        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
-    } else {
-        // We got an object handed, that we have to release.
-        Py_DECREF(*operand1);
-
-        *operand1 = PyFloat_FromDouble(cfloat_result);
-    }
+    PyFloat_SET_DOUBLE(operand1, cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok:

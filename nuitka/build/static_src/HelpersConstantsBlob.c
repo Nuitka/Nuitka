@@ -976,11 +976,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 static PyObject *_const_float_minus_0_0 = NULL;
 
                 if (_const_float_minus_0_0 == NULL) {
-                    _const_float_minus_0_0 = PyFloat_FromDouble(0.0);
-
-                    // Older Python3 has variable signs from C, so be explicit about it.
-                    PyFloat_AS_DOUBLE(_const_float_minus_0_0) =
-                        copysign(PyFloat_AS_DOUBLE(_const_float_minus_0_0), -1.0);
+                    _const_float_minus_0_0 = PyFloat_FromDouble(copysign(0.0, -1.0));
                 }
                 z = _const_float_minus_0_0;
 
@@ -991,10 +987,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 static PyObject *_const_float_plus_nan = NULL;
 
                 if (_const_float_plus_nan == NULL) {
-                    _const_float_plus_nan = PyFloat_FromDouble(Py_NAN);
-
-                    // Older Python3 has variable signs for NaN from C, so be explicit about it.
-                    PyFloat_AS_DOUBLE(_const_float_plus_nan) = copysign(PyFloat_AS_DOUBLE(_const_float_plus_nan), 1.0);
+                    _const_float_plus_nan = PyFloat_FromDouble(copysign(Py_NAN, 1.0));
                 }
                 z = _const_float_plus_nan;
 
@@ -1004,11 +997,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 static PyObject *_const_float_minus_nan = NULL;
 
                 if (_const_float_minus_nan == NULL) {
-                    _const_float_minus_nan = PyFloat_FromDouble(Py_NAN);
-
-                    // Older Python3 has variable signs for NaN from C, so be explicit about it.
-                    PyFloat_AS_DOUBLE(_const_float_minus_nan) =
-                        copysign(PyFloat_AS_DOUBLE(_const_float_minus_nan), -1.0);
+                    _const_float_minus_nan = PyFloat_FromDouble(copysign(Py_NAN, -1.0));
                 }
                 z = _const_float_minus_nan;
 
@@ -1018,10 +1007,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 static PyObject *_const_float_plus_inf = NULL;
 
                 if (_const_float_plus_inf == NULL) {
-                    _const_float_plus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
-
-                    // Older Python3 has variable signs from C, so be explicit about it.
-                    PyFloat_AS_DOUBLE(_const_float_plus_inf) = copysign(PyFloat_AS_DOUBLE(_const_float_plus_inf), 1.0);
+                    _const_float_plus_inf = PyFloat_FromDouble(copysign(Py_HUGE_VAL, 1.0));
                 }
                 z = _const_float_plus_inf;
 
@@ -1031,11 +1017,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                 static PyObject *_const_float_minus_inf = NULL;
 
                 if (_const_float_minus_inf == NULL) {
-                    _const_float_minus_inf = PyFloat_FromDouble(Py_HUGE_VAL);
-
-                    // Older Python3 has variable signs from C, so be explicit about it.
-                    PyFloat_AS_DOUBLE(_const_float_minus_inf) =
-                        copysign(PyFloat_AS_DOUBLE(_const_float_minus_inf), -1.0);
+                    _const_float_minus_inf = PyFloat_FromDouble(copysign(Py_HUGE_VAL, -1.0));
                 }
                 z = _const_float_minus_inf;
 
