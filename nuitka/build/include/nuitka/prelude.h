@@ -349,6 +349,10 @@ extern PyThreadState *_PyThreadState_Current;
 #define Py_SET_SIZE(op, size) ((PyVarObject *)(op))->ob_size = size
 #endif
 
+#ifndef PyFloat_SET_DOUBLE
+#define PyFloat_SET_DOUBLE(op, value) ((PyFloatObject *)(op))->ob_fval = value
+#endif
+
 // For older Python, we don't have a feature "CLASS" anymore, that's implied now.
 #if PYTHON_VERSION < 0x300
 #define NuitkaType_HasFeatureClass(descr) (PyType_HasFeature(Py_TYPE(descr), Py_TPFLAGS_HAVE_CLASS))
