@@ -55,4 +55,12 @@ except ImportError:
 else:
     print("Imported tkinter tix module.")
 
+try:
+    import tkinter.ttk
+except ImportError:
+    print("No ttk found.")
+else:
+    print("Imported tkinter ttk module.")
+
+
 print("OK.")

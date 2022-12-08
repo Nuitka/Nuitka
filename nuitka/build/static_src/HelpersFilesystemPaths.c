@@ -85,7 +85,8 @@ bool readFileChunk(FILE_HANDLE file_handle, void *buffer, size_t size) {
 
 bool writeFileChunk(FILE_HANDLE target_file, void *chunk, size_t chunk_size) {
 #if defined(_WIN32)
-    return WriteFile(target_file, chunk, (DWORD)chunk_size, NULL, NULL);
+    DWORD write_size = 0;
+    return WriteFile(target_file, chunk, (DWORD)chunk_size, &write_size, NULL);
 #else
     size_t written = fwrite(chunk, 1, chunk_size, target_file);
     return written == chunk_size;

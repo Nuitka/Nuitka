@@ -1218,6 +1218,11 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             continue;
         }
 
+        if (strcmp(current->name, "__main__") == 0) {
+            current++;
+            continue;
+        }
+
         if (current->name[strlen(s)] == 0) {
             current++;
             continue;
@@ -1232,7 +1237,12 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
 
         PyObject *r = PyTuple_New(2);
 
-        PyObject *name = Nuitka_String_FromString(current->name + strlen(s) + 1);
+        PyObject *name;
+        if (self->m_loader_entry) {
+            name = Nuitka_String_FromString(current->name + strlen(s) + 1);
+        } else {
+            name = Nuitka_String_FromString(current->name);
+        }
 
         if (CHECK_IF_TRUE(prefix)) {
             PyObject *old = name;
