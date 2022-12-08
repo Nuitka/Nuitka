@@ -538,7 +538,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             msg = "Found %d %s DLLs from %s%s installation." % (
                 count,
                 "file" if count < 2 else "files",
-                "" if not section else (" '%s' " % section),
+                "" if not section else ("'%s' " % section),
                 module_name.asString(),
             )
 
