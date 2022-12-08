@@ -65,18 +65,14 @@ def makeDiffable(output):
     return result
 
 
-fromdate = None
-todate = None
-
-
 def compareOutput(kind, out1, out2):
     diff = difflib.unified_diff(
         makeDiffable(out1),
         makeDiffable(out2),
         "{program} ({detail})".format(program="nuitka1 " + filename, detail=kind),
         "{program} ({detail})".format(program="nuitka2 " + filename, detail=kind),
-        fromdate,
-        todate,
+        None,
+        None,
         n=3,
     )
 

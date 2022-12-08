@@ -73,8 +73,11 @@ tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 logging_info_re = re.compile(r"^Nuitka.*?:INFO")
 logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
 
+# Python3.11 style traceback carets are not done by Nuitka (yet?)
+syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
-def normalizeTimeDiff(outputStr):
+
+def _normalizeTimeDiff(outputStr):
     """
     use regular expression to normalize the time output
 
@@ -98,7 +101,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
     # pylint: disable=too-many-branches,too-many-statements
 
     # do not compare time differences
-    output = normalizeTimeDiff(output)
+    output = _normalizeTimeDiff(output)
 
     result = []
 
@@ -149,6 +152,9 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         ):
             continue
         if line.startswith("Nuitka:WARNING: Using very slow fallback for ordered sets"):
+            continue
+
+        if syntax_error_caret_re.match(line):
             continue
 
         line = instance_re.sub(r"at 0xxxxxxxxx\1", line)
@@ -242,16 +248,16 @@ exceeded while calling a Python object' in \
 def compareOutput(
     kind, out_cpython, out_nuitka, ignore_warnings, syntax_errors, trace_result=True
 ):
-    fromdate = ""
-    todate = ""
+    from_date = ""
+    to_date = ""
 
     diff = difflib.unified_diff(
         makeDiffable(out_cpython, ignore_warnings, syntax_errors),
         makeDiffable(out_nuitka, ignore_warnings, syntax_errors),
         "{program} ({detail})".format(program=os.environ["PYTHON"], detail=kind),
         "{program} ({detail})".format(program="nuitka", detail=kind),
-        fromdate,
-        todate,
+        from_date,
+        to_date,
         n=3,
     )
 
