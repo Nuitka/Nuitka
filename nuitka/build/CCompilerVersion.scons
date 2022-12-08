@@ -150,7 +150,14 @@ msvc_version = getArgumentDefaulted("msvc_version", None)
 # Disable ccache/clcache usage if that is requested
 disable_ccache = getArgumentBool("disable_ccache", False)
 
+# Allow automatic downloads for ccache, etc.
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+# Minimum version required on macOS.
+macos_min_version = getArgumentDefaulted("macos_min_version", "")
+
+# Target arch for macOS.
+macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
 # Anaconda Python might use its own compiler.
 anaconda_python = getArgumentBool("anaconda_python", False)
@@ -231,6 +238,8 @@ env.unstripped_mode = debug_mode or unstripped_mode
 env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.low_memory = False
+env.macos_min_version = macos_min_version
+env.macos_target_arch = macos_target_arch
 
 # Requested or user provided, detect if it's clang even from environment
 if isClangName(env.the_cc_name):
