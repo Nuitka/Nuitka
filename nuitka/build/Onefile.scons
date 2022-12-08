@@ -192,6 +192,7 @@ cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
 
+# Allow automatic downloads for ccache, etc.
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
 # Onefile bootstrap is optional.
