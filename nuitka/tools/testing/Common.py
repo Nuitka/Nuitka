@@ -29,7 +29,7 @@ import tempfile
 import threading
 import time
 from contextlib import contextmanager
-from optparse import OptionGroup, OptionParser
+from optparse import OptionParser
 
 from nuitka.__past__ import subprocess
 from nuitka.PythonVersions import (
@@ -753,7 +753,7 @@ def createSearchMode():
 
     parser = OptionParser()
 
-    select_group = OptionGroup(parser, "Select Tests")
+    select_group = parser.add_option_group("Select Tests")
 
     select_group.add_option(
         "--pattern",
@@ -772,9 +772,9 @@ Execute only tests matching the pattern. Defaults to all tests.""",
 Execute all tests, continue execution even after failure of one.""",
     )
 
-    parser.add_option_group(select_group)
+    del select_group
 
-    debug_group = OptionGroup(parser, "Test features")
+    debug_group = parser.add_option_group("Test features")
 
     debug_group.add_option(
         "--debug",
@@ -795,7 +795,7 @@ Defaults to off.""",
 Defaults to off.""",
     )
 
-    parser.add_option_group(debug_group)
+    del debug_group
 
     options, positional_args = parser.parse_args()
 
