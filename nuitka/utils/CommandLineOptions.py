@@ -19,7 +19,20 @@
 
 
 import sys
-from optparse import IndentedHelpFormatter, OptionParser
+from optparse import IndentedHelpFormatter, OptionGroup, OptionParser
+
+# For re-export only:
+from optparse import SUPPRESS_HELP  # isort:skip pylint: disable=unused-import
+
+
+class OurOptionGroup(OptionGroup):
+    def add_option(self, *args, **kwargs):
+        require_compiling = kwargs.pop("require_compiling", True)
+
+        result = OptionGroup.add_option(self, *args, **kwargs)
+        result.require_compiling = require_compiling
+
+        return result
 
 
 class OurOptionParser(OptionParser):
@@ -36,6 +49,42 @@ class OurOptionParser(OptionParser):
                 )
 
         return OptionParser._process_long_opt(self, rargs, values)
+
+    def add_option(self, *args, **kwargs):
+        require_compiling = kwargs.pop("require_compiling", True)
+
+        result = OptionParser.add_option(self, *args, **kwargs)
+        result.require_compiling = require_compiling
+
+        return result
+
+    def add_option_group(self, group):
+        # We restrain ourselves here, pylint: disable=arguments-differ
+
+        if isinstance(group, str):
+            group = OurOptionGroup(self, group)
+        self.option_groups.append(group)
+
+        return group
+
+    def iterateOptions(self):
+        for option in self.option_list:
+            yield option
+
+        for option_group in self.option_groups:
+            for option in option_group.option_list:
+                yield option
+
+    def hasNonCompilingAction(self, options):
+        for option in self.iterateOptions():
+            # Help option
+            if not hasattr(option, "require_compiling"):
+                continue
+
+            if not option.require_compiling and getattr(options, option.dest):
+                return True
+
+        return False
 
 
 class OurHelpFormatter(IndentedHelpFormatter):

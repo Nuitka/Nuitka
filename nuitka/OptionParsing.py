@@ -30,10 +30,9 @@ pretty good.
 import os
 import re
 import sys
-from optparse import SUPPRESS_HELP, OptionGroup
 
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.utils.CommandLineOptions import makeOptionsParser
+from nuitka.utils.CommandLineOptions import SUPPRESS_HELP, makeOptionsParser
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -64,6 +63,7 @@ parser.add_option(
     dest="version",
     action="store_true",
     default=False,
+    require_compiling=False,
     help="""\
 Show version information and important details for bug reports, then exit. Defaults to off.""",
 )
@@ -155,8 +155,8 @@ needed. On non-Windows, Python 2.6 or 2.7 will do as well.""",
 )
 
 
-include_group = OptionGroup(
-    parser, "Control the inclusion of modules and packages in result"
+include_group = parser.add_option_group(
+    "Control the inclusion of modules and packages in result"
 )
 
 include_group.add_option(
@@ -231,10 +231,10 @@ include_group.add_option(
     help=SUPPRESS_HELP,
 )
 
-parser.add_option_group(include_group)
+del include_group
 
 
-follow_group = OptionGroup(parser, "Control the following into imported modules")
+follow_group = parser.add_option_group("Control the following into imported modules")
 
 follow_group.add_option(
     "--follow-imports",
@@ -289,9 +289,9 @@ the compilation time by a lot and is also not well tested at this time and
 sometimes won't work. Defaults to off.""",
 )
 
-parser.add_option_group(follow_group)
+del follow_group
 
-onefile_group = OptionGroup(parser, "Onefile options")
+onefile_group = parser.add_option_group("Onefile options")
 
 onefile_group.add_option(
     "--onefile-tempdir-spec",
@@ -307,9 +307,9 @@ and being non-static it's removed. Use e.g. a string like
 static cache path, this will then not be removed.""",
 )
 
-parser.add_option_group(onefile_group)
+del onefile_group
 
-data_group = OptionGroup(parser, "Data files")
+data_group = parser.add_option_group("Data files")
 
 data_group.add_option(
     "--include-package-data",
@@ -375,10 +375,10 @@ data for "package_name" should be matched as "package_name/*.txt". Or for the
 whole directory simply use "package_name". Default empty.""",
 )
 
-parser.add_option_group(data_group)
+del data_group
 
 
-dll_group = OptionGroup(parser, "DLL files")
+dll_group = parser.add_option_group("DLL files")
 
 dll_group.add_option(
     "--noinclude-dlls",
@@ -393,9 +393,20 @@ the package "package_name" it should be matched as "package_name/someDLL.*".
 Default empty.""",
 )
 
-parser.add_option_group(dll_group)
 
-warnings_group = OptionGroup(parser, "Control the warnings to be given by Nuitka")
+dll_group.add_option(
+    "--list-package-dlls",
+    action="store",
+    dest="list_package_dlls",
+    default="",
+    require_compiling=False,
+    help="""\
+Output the DLLs found for a given package name. Default not done.""",
+)
+
+del dll_group
+
+warnings_group = parser.add_option_group("Control the warnings to be given by Nuitka")
 
 
 warnings_group.add_option(
@@ -441,10 +452,10 @@ of the URL at the end, without the HTML suffix. Can be given multiple times and
 accepts shell pattern. Default empty.""",
 )
 
-parser.add_option_group(warnings_group)
+del warnings_group
 
 
-execute_group = OptionGroup(parser, "Immediate execution after compilation")
+execute_group = parser.add_option_group("Immediate execution after compilation")
 
 execute_group.add_option(
     "--run",
@@ -480,10 +491,10 @@ included, you ought to not need PYTHONPATH anymore, and definitely not
 for standalone mode.""",
 )
 
-parser.add_option_group(execute_group)
+del execute_group
 
 
-compilation_group = OptionGroup(parser, "Compilation choices")
+compilation_group = parser.add_option_group("Compilation choices")
 
 compilation_group.add_option(
     "--user-package-configuration-file",
@@ -546,9 +557,9 @@ is incompatible for modules that normally can be loaded into any package.""",
 )
 
 
-parser.add_option_group(compilation_group)
+del compilation_group
 
-output_group = OptionGroup(parser, "Output choices")
+output_group = parser.add_option_group("Output choices")
 
 output_group.add_option(
     "--output-filename",
@@ -601,10 +612,10 @@ used to detect implicit imports.
 Defaults to off.""",
 )
 
-parser.add_option_group(output_group)
+del output_group
 
 
-debug_group = OptionGroup(parser, "Debug features")
+debug_group = parser.add_option_group("Debug features")
 
 debug_group.add_option(
     "--debug",
@@ -732,10 +743,10 @@ parser.add_option(
 )
 
 
-parser.add_option_group(debug_group)
+del debug_group
 
 
-c_compiler_group = OptionGroup(parser, "Backend C compiler choice")
+c_compiler_group = parser.add_option_group("Backend C compiler choice")
 
 c_compiler_group.add_option(
     "--clang",
@@ -808,9 +819,9 @@ and "auto" (when it's known to work). Defaults to "auto".""",
 )
 
 
-parser.add_option_group(c_compiler_group)
+del c_compiler_group
 
-caching_group = OptionGroup(parser, "Cache Control")
+caching_group = parser.add_option_group("Cache Control")
 
 _cache_names = ("all", "ccache", "bytecode")
 
@@ -836,6 +847,7 @@ caching_group.add_option(
     dest="clean_caches",
     choices=_cache_names,
     default=[],
+    require_compiling=False,
     help="""\
 Clean the given caches before executing, specify "all" for all cached. Currently
 allowed values are: %s. can be given multiple times or with comma separated
@@ -888,9 +900,9 @@ to cause errors or known to need an update.
     )
 
 
-parser.add_option_group(caching_group)
+del caching_group
 
-pgo_group = OptionGroup(parser, "PGO compilation choices")
+pgo_group = parser.add_option_group("PGO compilation choices")
 
 pgo_group.add_option(
     "--pgo",
@@ -950,10 +962,10 @@ launch it through a script that prepares it to run. Default use created program.
 )
 
 
-parser.add_option_group(pgo_group)
+del pgo_group
 
 
-tracing_group = OptionGroup(parser, "Tracing features")
+tracing_group = parser.add_option_group("Tracing features")
 
 tracing_group.add_option(
     "--report",
@@ -1053,10 +1065,10 @@ tracing_group.add_option(
 Where to output from '--verbose', should be a filename. Default is standard output.""",
 )
 
-parser.add_option_group(tracing_group)
+del tracing_group
 
 
-os_group = OptionGroup(parser, "General OS controls")
+os_group = parser.add_option_group("General OS controls")
 
 os_group.add_option(
     "--disable-console",
@@ -1107,10 +1119,10 @@ disabled console and programs using the Windows Services Plugin of Nuitka commer
 Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
 )
 
-parser.add_option_group(os_group)
+del os_group
 
 
-windows_group = OptionGroup(parser, "Windows specific controls")
+windows_group = parser.add_option_group("Windows specific controls")
 
 windows_group.add_option(
     "--windows-dependency-tool",
@@ -1171,10 +1183,10 @@ Request Windows User Control, to enforce running from a few folders only, remote
 desktop access. (Windows only). Defaults to off.""",
 )
 
-parser.add_option_group(windows_group)
+del windows_group
 
 
-macos_group = OptionGroup(parser, "macOS specific controls")
+macos_group = parser.add_option_group("macOS specific controls")
 
 macos_group.add_option(
     "--macos-target-arch",
@@ -1299,10 +1311,10 @@ the option can be specified multiple times. Default empty.""",
 )
 
 
-parser.add_option_group(macos_group)
+del macos_group
 
 
-linux_group = OptionGroup(parser, "Linux specific controls")
+linux_group = parser.add_option_group("Linux specific controls")
 
 linux_group.add_option(
     "--linux-icon",
@@ -1314,9 +1326,9 @@ linux_group.add_option(
     help="Add executable icon for onefile binary to use. Can be given only one time. Defaults to Python icon if available.",
 )
 
-parser.add_option_group(linux_group)
+del linux_group
 
-version_group = OptionGroup(parser, "Binary Version Information")
+version_group = parser.add_option_group("Binary Version Information")
 
 version_group.add_option(
     "--company-name",
@@ -1375,9 +1387,9 @@ version_group.add_option(
 Description of the file used in version information. Windows only at this time. Defaults to binary filename.""",
 )
 
-parser.add_option_group(version_group)
+del version_group
 
-plugin_group = OptionGroup(parser, "Plugin control")
+plugin_group = parser.add_option_group("Plugin control")
 
 plugin_group.add_option(
     "--enable-plugin",
@@ -1387,7 +1399,7 @@ plugin_group.add_option(
     metavar="PLUGIN_NAME",
     default=[],
     help="""\
-Enabled plugins. Must be plug-in names. Use --plugin-list to query the
+Enabled plugins. Must be plug-in names. Use '--plugin-list' to query the
 full list and exit. Default empty.""",
 )
 
@@ -1399,8 +1411,9 @@ plugin_group.add_option(
     metavar="PLUGIN_NAME",
     default=[],
     help="""\
-Disabled plugins. Must be plug-in names. Use --plugin-list to query the
-full list and exit. Default empty.""",
+Disabled plugins. Must be plug-in names. Use '--plugin-list' to query the
+full list and exit. Most standard plugins are not a good idea to disable.
+Default empty.""",
 )
 
 plugin_group.add_option(
@@ -1419,8 +1432,9 @@ use. Defaults to off.""",
 plugin_group.add_option(
     "--plugin-list",
     action="store_true",
-    dest="list_plugins",
+    dest="plugin_list",
     default=False,
+    require_compiling=False,
     help="""\
 Show list of all available plugins and exit. Defaults to off.""",
 )
@@ -1444,7 +1458,7 @@ Show source changes to original Python file content before compilation. Mostly
 intended for developing plugins. Default False.""",
 )
 
-parser.add_option_group(plugin_group)
+del plugin_group
 
 
 def _considerPluginOptions(logger):
@@ -1668,19 +1682,25 @@ def parseOptions(logger):
 
     options, positional_args = parser.parse_args()
 
-    if options.list_plugins:
-        from nuitka.plugins.Plugins import listPlugins
-
-        listPlugins()
-        sys.exit(0)
-
-    if not positional_args and not options.clean_caches and not options.version:
+    if not positional_args and not parser.hasNonCompilingAction(options):
         parser.print_help()
 
         logger.sysexit(
             """
 Error, need positional argument with python module or main program."""
         )
+
+    if options.plugin_list:
+        from nuitka.plugins.Plugins import listPlugins
+
+        listPlugins()
+        sys.exit(0)
+
+    if options.list_package_dlls:
+        from nuitka.tools.scanning.DisplayPackageDLLs import displayDLLs
+
+        displayDLLs(options.list_package_dlls)
+        sys.exit(0)
 
     if not options.immediate_execution and len(positional_args) > 1:
         parser.print_help()
