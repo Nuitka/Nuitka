@@ -65,7 +65,12 @@ from nuitka.utils.ModuleNames import (
     pre_module_load_trigger_name,
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
-from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isLinux,
+    isMacOS,
+    isWin32Windows,
+)
 
 _warned_unused_plugins = set()
 
@@ -1022,6 +1027,14 @@ except ImportError:
                 "version": _getPackageVersion,
             }
         )
+
+        if isWin32Windows():
+            context.update(
+                {
+                    "arch_x86": getArchitecture() == "x86",
+                    "arch_amd64": getArchitecture() == "x86_64",
+                }
+            )
 
         versions = getSupportedPythonVersions()
 

@@ -192,6 +192,19 @@
         prefixes:
           - 'Python.Runtime'
 
+- module-name: 'clr_loader.ffi'
+  dlls:
+    - from_filenames:
+        relative_path: 'dlls/x86'
+        prefixes:
+          - 'ClrLoader'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'dlls/amd64'
+        prefixes:
+          - 'ClrLoader'
+      when: 'win32 and arch_amd64'
+
 - module-name: 'connexion'
   data-files:
     dirs:
@@ -1869,6 +1882,13 @@
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
+
+- module-name: 'pythonnet'
+  dlls:
+    - from_filenames:
+        relative_path: 'runtime'
+        prefixes:
+          - 'Python.Runtime'
 
 - module-name: 'pytorch_lightning.utilities.imports'
   anti-bloat:
