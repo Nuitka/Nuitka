@@ -755,6 +755,11 @@
       - 'fonts'
       - 'images'
 
+- module-name: 'lark'
+  data-files:
+    dirs:
+      - 'grammars'
+
 - module-name: 'lightgbm.libpath'
   dlls:
     - from_filenames:
