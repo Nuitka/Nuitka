@@ -22,8 +22,11 @@ import sys
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import getSystemPrefixPath
 from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
 from nuitka.utils.Utils import isWin32Windows
+
+# spell-checker: ignore tkinterdnd,tkdnd,tcltk
 
 
 def _isTkInterModule(module):
@@ -145,6 +148,47 @@ The Tcl library dir. See comments for Tk library dir.""",
             tags="tcl",
         )
 
+    @staticmethod
+    def _getTclCandidatePaths():
+        # Check typical locations of the dirs
+        yield os.environ.get("TCL_LIBRARY")
+
+        for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
+            yield os.path.join(sys_prefix_path, "tcl", "tcl8.5")
+            yield os.path.join(sys_prefix_path, "tcl", "tcl8.6")
+            yield os.path.join(sys_prefix_path, "lib", "tcl8.5")
+            yield os.path.join(sys_prefix_path, "lib", "tcl8.6")
+            # Newer Anaconda.
+            yield os.path.join(sys_prefix_path, "Library", "lib", "tcl8.6")
+
+        if not isWin32Windows():
+            yield "/usr/share/tcltk/tcl8.6"
+            yield "/usr/share/tcltk/tcl8.5"
+            yield "/usr/share/tcl8.6"
+            yield "/usr/share/tcl8.5"
+            yield "/usr/lib64/tcl/tcl8.5"
+            yield "/usr/lib64/tcl/tcl8.6"
+
+    @staticmethod
+    def _getTkCandidatePaths():
+        yield os.environ.get("TK_LIBRARY")
+
+        for sys_prefix_path in (sys.prefix, getSystemPrefixPath()):
+            yield os.path.join(sys_prefix_path, "tcl", "tk8.5")
+            yield os.path.join(sys_prefix_path, "tcl", "tk8.6")
+            yield os.path.join(sys_prefix_path, "lib", "tk8.5")
+            yield os.path.join(sys_prefix_path, "lib", "tk8.6")
+            # Newer Anaconda.
+            yield os.path.join(sys_prefix_path, "Library", "lib", "tk8.6")
+
+        if not isWin32Windows():
+            yield "/usr/share/tcltk/tk8.6"
+            yield "/usr/share/tcltk/tk8.5"
+            yield "/usr/share/tk8.6"
+            yield "/usr/share/tk8.5"
+            yield "/usr/lib64/tcl/tk8.5"
+            yield "/usr/lib64/tcl/tk8.6"
+
     def considerDataFiles(self, module):
         """Provide TCL libraries to the dist folder.
 
@@ -165,70 +209,45 @@ The Tcl library dir. See comments for Tk library dir.""",
 
             return
 
-        if not _isTkInterModule(module):
+        if not _isTkInterModule(module) or self.files_copied:
             return
 
-        # Check typical locations of the dirs
-        candidates_tcl = (
-            os.environ.get("TCL_LIBRARY"),
-            "/usr/share/tcltk/tcl8.6",
-            "/usr/share/tcltk/tcl8.5",
-            "/usr/share/tcl8.6",
-            "/usr/share/tcl8.5",
-            "/usr/lib64/tcl/tcl8.5",
-            "/usr/lib64/tcl/tcl8.6",
-            os.path.join(sys.prefix, "tcl", "tcl8.5"),
-            os.path.join(sys.prefix, "tcl", "tcl8.6"),
-            os.path.join(sys.prefix, "lib", "tcl8.5"),
-            os.path.join(sys.prefix, "lib", "tcl8.6"),
-        )
-
-        candidates_tk = (
-            os.environ.get("TK_LIBRARY"),
-            "/usr/share/tcltk/tk8.6",
-            "/usr/share/tcltk/tk8.5",
-            "/usr/share/tk8.6",
-            "/usr/share/tk8.5",
-            "/usr/lib64/tcl/tk8.5",
-            "/usr/lib64/tcl/tk8.6",
-            os.path.join(sys.prefix, "tcl", "tk8.5"),
-            os.path.join(sys.prefix, "tcl", "tk8.6"),
-            os.path.join(sys.prefix, "lib", "tk8.5"),
-            os.path.join(sys.prefix, "lib", "tk8.6"),
-        )
-
-        tcl = self.tcl_library_dir
-        if tcl is None:
-            for tcl in candidates_tcl:
-                if tcl is not None and os.path.exists(tcl):
+        tcl_library_dir = self.tcl_library_dir
+        if tcl_library_dir is None:
+            for tcl_library_dir in self._getTclCandidatePaths():
+                if tcl_library_dir is not None and os.path.exists(tcl_library_dir):
                     break
 
-        if tcl is None or not os.path.exists(tcl):
+        if tcl_library_dir is None or not os.path.exists(tcl_library_dir):
             self.sysexit(
-                "Could not find Tcl, you might need to set 'TCL_LIBRARY' and if that works, report a bug."
+                """\
+Could not find Tcl, you might need to use '--tcl-library-dir' and if \
+that works, report a bug so it can be added to Nuitka."""
             )
 
-        tk = self.tk_library_dir
-        if tk is None:
-            for tk in candidates_tk:
-                if tk is not None and os.path.exists(tk):
+        tk_library_dir = self.tk_library_dir
+        if tk_library_dir is None:
+            for tk_library_dir in self._getTkCandidatePaths():
+                if tk_library_dir is not None and os.path.exists(tk_library_dir):
                     break
 
-        if tk is None or not os.path.exists(tk):
+        if tk_library_dir is None or not os.path.exists(tk_library_dir):
             self.sysexit(
-                "Could not find Tk, you might need to set 'TK_LIBRARY' and if that works, report a bug."
+                """\
+Could not find Tk, you might need to use '--tk-library-dir' and if \
+that works, report a bug."""
             )
 
         # survived the above, now do provide the locations
         yield self.makeIncludedDataDirectory(
-            source_path=tk,
+            source_path=tk_library_dir,
             dest_path="tk",
-            reason="Tk copy needed for standalone Tcl",
+            reason="Tk needed for tkinter usage",
             ignore_dirs=("demos",),
             tags="tk",
         )
         yield self.makeIncludedDataDirectory(
-            source_path=tcl,
+            source_path=tcl_library_dir,
             dest_path="tcl",
             reason="Tcl needed for tkinter usage",
             tags="tcl",
@@ -236,11 +255,13 @@ The Tcl library dir. See comments for Tk library dir.""",
 
         if isWin32Windows():
             yield self.makeIncludedDataDirectory(
-                source_path=os.path.join(tcl, "..", "tcl8"),
+                source_path=os.path.join(tcl_library_dir, "..", "tcl8"),
                 dest_path="tcl8",
                 reason="Tcl needed for tkinter usage",
                 tags="tcl",
             )
+
+        self.files_copied = True
 
     def getExtraDlls(self, module):
         if module.getFullName() == "tkinterdnd2.TkinterDnD":
