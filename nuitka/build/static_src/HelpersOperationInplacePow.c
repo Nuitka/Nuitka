@@ -158,7 +158,7 @@ exit_result_ok_cfloat:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     }
     goto exit_result_ok;
 
@@ -174,19 +174,19 @@ exit_result_ok_right:
 exit_result_ok_const_float_0_0:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-    *operand1 = PyFloat_FromDouble(0.0);
+    *operand1 = MAKE_FLOAT_FROM_DOUBLE(0.0);
     goto exit_result_ok;
 
 exit_result_ok_const_float_1_0:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-    *operand1 = PyFloat_FromDouble(1.0);
+    *operand1 = MAKE_FLOAT_FROM_DOUBLE(1.0);
     goto exit_result_ok;
 
 exit_result_ok_const_float_minus_1_0:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
-    *operand1 = PyFloat_FromDouble(-1.0);
+    *operand1 = MAKE_FLOAT_FROM_DOUBLE(-1.0);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -497,7 +497,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
             // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
-            *operand1 = PyFloat_FromDouble(cfloat_result);
+            *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         }
         goto exit_result_ok;
 
@@ -513,19 +513,19 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
     exit_result_ok_const_float_0_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-        *operand1 = PyFloat_FromDouble(0.0);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(0.0);
         goto exit_result_ok;
 
     exit_result_ok_const_float_1_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-        *operand1 = PyFloat_FromDouble(1.0);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(1.0);
         goto exit_result_ok;
 
     exit_result_ok_const_float_minus_1_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-        *operand1 = PyFloat_FromDouble(-1.0);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(-1.0);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -841,7 +841,7 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
             // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
-            *operand1 = PyFloat_FromDouble(cfloat_result);
+            *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         }
         goto exit_result_ok;
 
@@ -857,19 +857,19 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
     exit_result_ok_const_float_0_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-        *operand1 = PyFloat_FromDouble(0.0);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(0.0);
         goto exit_result_ok;
 
     exit_result_ok_const_float_1_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-        *operand1 = PyFloat_FromDouble(1.0);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(1.0);
         goto exit_result_ok;
 
     exit_result_ok_const_float_minus_1_0:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
-        *operand1 = PyFloat_FromDouble(-1.0);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(-1.0);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1419,8 +1419,8 @@ static inline bool _INPLACE_OPERATION_POW_INT_INT(PyObject **operand1, PyObject 
 
     if (b < 0) {
         // TODO: Use CFLOAT once available.
-        PyObject *operand1_float = PyFloat_FromDouble(a);
-        PyObject *operand2_float = PyFloat_FromDouble(b);
+        PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+        PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
         PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
@@ -1712,8 +1712,8 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_INT(PyObject **operand1, PyObje
 
         if (b < 0) {
             // TODO: Use CFLOAT once available.
-            PyObject *operand1_float = PyFloat_FromDouble(a);
-            PyObject *operand2_float = PyFloat_FromDouble(b);
+            PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+            PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
             PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
@@ -2010,8 +2010,8 @@ static inline bool _INPLACE_OPERATION_POW_INT_OBJECT(PyObject **operand1, PyObje
 
         if (b < 0) {
             // TODO: Use CFLOAT once available.
-            PyObject *operand1_float = PyFloat_FromDouble(a);
-            PyObject *operand2_float = PyFloat_FromDouble(b);
+            PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+            PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
             PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
@@ -2586,8 +2586,8 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
 
         if (b < 0) {
             // TODO: Use CFLOAT once available.
-            PyObject *operand1_float = PyFloat_FromDouble(a);
-            PyObject *operand2_float = PyFloat_FromDouble(b);
+            PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+            PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
             PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 

@@ -134,32 +134,8 @@ static inline bool Nuitka_Generator_Check(PyObject *object);
 static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 
 #include "nuitka/calling.h"
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT(PyObject *value) {
-    PyObject *result;
-
-#if PYTHON_VERSION < 0x300
-    if (PyString_CheckExact(value)) {
-        result = PyFloat_FromString(value, NULL);
-    }
-#else
-    if (PyUnicode_CheckExact(value)) {
-        result = PyFloat_FromString(value);
-    }
-#endif
-    else {
-        result = PyNumber_Float(value);
-    }
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-}
-
 #include "nuitka/helper/complex.h"
-
+#include "nuitka/helper/floats.h"
 #include "nuitka/helper/ints.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {

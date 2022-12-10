@@ -48,6 +48,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"
 #include "HelpersFiles.c"
+#include "HelpersFloats.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
 #include "HelpersImportHard.c"

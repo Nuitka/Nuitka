@@ -93,7 +93,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_INT(PyObject *operand1, Py
     }
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -331,7 +331,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_INT(PyObject *operand1,
         }
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -586,7 +586,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_OBJECT(PyObject *operand1,
         }
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -1097,7 +1097,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_FLOAT(PyObject *operand1
     }
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -1290,7 +1290,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_FLOAT(PyObject *operand
         }
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1500,7 +1500,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_OBJECT(PyObject *operand
         }
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -1900,7 +1900,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_INT_CLONG(PyObject *operand1, 
     }
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -2000,7 +2000,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_CLONG_INT(long operand1, PyObj
     }
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -2070,7 +2070,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_FLOAT_CFLOAT(PyObject *operand
     }
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -2123,7 +2123,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_CFLOAT_FLOAT(double operand1, 
     }
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -2205,7 +2205,7 @@ static PyObject *_BINARY_OPERATION_TRUEDIV_OBJECT_OBJECT_OBJECT(PyObject *operan
         }
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_object:

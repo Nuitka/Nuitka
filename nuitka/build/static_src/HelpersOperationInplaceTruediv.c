@@ -102,7 +102,7 @@ exit_result_ok_cfloat:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
-    *operand1 = PyFloat_FromDouble(cfloat_result);
+    *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -383,7 +383,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_INT(PyObject **operand1, Py
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -668,7 +668,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_INT_OBJECT(PyObject **operand1, Py
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_object:
@@ -1259,7 +1259,7 @@ exit_result_ok_cfloat:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     }
     goto exit_result_ok;
 
@@ -1491,7 +1491,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_FLOAT(PyObject **operand1, 
             // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
-            *operand1 = PyFloat_FromDouble(cfloat_result);
+            *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         }
         goto exit_result_ok;
 
@@ -1727,7 +1727,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_FLOAT_OBJECT(PyObject **operand1, 
             // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
-            *operand1 = PyFloat_FromDouble(cfloat_result);
+            *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         }
         goto exit_result_ok;
 
@@ -2269,7 +2269,7 @@ exit_result_ok_cfloat:
     // We got an object handed, that we have to release.
     Py_DECREF(*operand1);
 
-    *operand1 = PyFloat_FromDouble(cfloat_result);
+    *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_object:
@@ -2357,7 +2357,7 @@ exit_result_ok_cfloat:
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     }
     goto exit_result_ok;
 
@@ -2445,7 +2445,7 @@ static inline bool _INPLACE_OPERATION_TRUEDIV_OBJECT_OBJECT(PyObject **operand1,
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_object:
