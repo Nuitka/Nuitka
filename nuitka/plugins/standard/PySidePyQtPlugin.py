@@ -36,7 +36,7 @@ from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
 # Use to detect the Qt plugin that is active and check for conflicts.
 _qt_binding_names = ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
@@ -944,29 +944,62 @@ Prefix = .
                             )
 
                     self.reportFileCount(full_name, count, section="OpenGL")
-
         elif full_name == self.binding_name + ".QtNetwork":
-            if not isWin32Windows():
-                dll_path = self.locateDLL("crypto")
-                if dll_path is not None:
-                    yield self.makeDllEntryPoint(
-                        source_path=dll_path,
-                        dest_path=os.path.basename(dll_path),
-                        package_name=full_name,
-                        reason="needed by '%s'" % full_name.asString(),
-                    )
-
-                dll_path = self.locateDLL("ssl")
-                if dll_path is not None:
-                    yield self.makeDllEntryPoint(
-                        source_path=dll_path,
-                        dest_path=os.path.basename(dll_path),
-                        package_name=full_name,
-                        reason="needed by '%s'" % full_name.asString(),
-                    )
+            yield self._getExtraBinariesQtNetwork(full_name=full_name)
         elif self.isQtWebEngineModule(full_name):
             if not self._isUsingMacOSFrameworks():
                 yield self._getExtraBinariesWebEngineGeneric(full_name=full_name)
+
+    def _getExtraBinariesQtNetwork(self, full_name):
+        if isWin32Windows():
+            if self.binding_name == "PyQt5":
+                arch_name = getArchitecture()
+
+                if arch_name == "x86":
+                    arch_suffix = ""
+                elif arch_name == "x86_64":
+                    arch_suffix = "-x64"
+                else:
+                    self.sysexit(
+                        "Error, unknown architecture encountered, need to add support for %s."
+                        % arch_name
+                    )
+
+                # Manually loaded DLLs by Qt5.
+                for dll_basename in ("libssl-1_1", "libcrypto-1_1"):
+                    dll_filename = dll_basename + arch_suffix + ".dll"
+
+                    for plugin_dir in self._getQtBinDirs():
+                        candidate = os.path.join(plugin_dir, dll_filename)
+
+                        if os.path.exists(candidate):
+                            yield self.makeDllEntryPoint(
+                                source_path=candidate,
+                                dest_path=dll_filename,
+                                package_name=full_name,
+                                reason="needed by '%s'" % full_name.asString(),
+                            )
+
+                            break
+
+        else:
+            dll_path = self.locateDLL("crypto")
+            if dll_path is not None:
+                yield self.makeDllEntryPoint(
+                    source_path=dll_path,
+                    dest_path=os.path.basename(dll_path),
+                    package_name=full_name,
+                    reason="needed by '%s'" % full_name.asString(),
+                )
+
+            dll_path = self.locateDLL("ssl")
+            if dll_path is not None:
+                yield self.makeDllEntryPoint(
+                    source_path=dll_path,
+                    dest_path=os.path.basename(dll_path),
+                    package_name=full_name,
+                    reason="needed by '%s'" % full_name.asString(),
+                )
 
     def removeDllDependencies(self, dll_filename, dll_filenames):
         for value in self.getQtPluginDirs():
