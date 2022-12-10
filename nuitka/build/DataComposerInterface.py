@@ -46,7 +46,7 @@ def _runDataComposer(source_dir):
     }
 
     if isExperimental("debug-constants"):
-        mapping["NUITKA_DATACOMPOSER_VERBOSE"] = "1"
+        mapping["NUITKA_DATA_COMPOSER_VERBOSE"] = "1"
 
     blob_filename = getConstantBlobFilename(source_dir)
 

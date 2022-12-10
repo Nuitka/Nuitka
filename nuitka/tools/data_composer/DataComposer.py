@@ -382,7 +382,7 @@ def _writeConstantsBlob(output_filename, desc):
 
 def main():
     data_composer_logger.is_quiet = (
-        os.environ.get("NUITKA_DATACOMPOSER_VERBOSE", "0") != "1"
+        os.environ.get("NUITKA_DATA_COMPOSER_VERBOSE", "0") != "1"
     )
 
     # Internal tool, most simple command line handling. This is the build directory
