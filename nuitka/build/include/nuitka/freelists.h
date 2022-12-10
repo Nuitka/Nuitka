@@ -31,7 +31,7 @@
             assert(result != NULL);                                                                                    \
         }                                                                                                              \
                                                                                                                        \
-        _Py_NewReference((PyObject *)result);                                                                          \
+        Nuitka_Py_NewReference((PyObject *)result);                                                                    \
     } else {                                                                                                           \
         result = (object_type *)Nuitka_GC_NewVar(&type_type, size);                                                    \
     }                                                                                                                  \
@@ -44,7 +44,7 @@
         free_list##_count -= 1;                                                                                        \
         assert(free_list##_count >= 0);                                                                                \
                                                                                                                        \
-        _Py_NewReference((PyObject *)result);                                                                          \
+        Nuitka_Py_NewReference((PyObject *)result);                                                                    \
     } else {                                                                                                           \
         result = (object_type *)PyObject_GC_New(object_type, &type_type);                                              \
     }                                                                                                                  \

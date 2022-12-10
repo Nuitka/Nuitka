@@ -18,6 +18,19 @@
 #ifndef __NUITKA_ALLOCATOR_H__
 #define __NUITKA_ALLOCATOR_H__
 
+// After Python 3.9 this was moved into the DLL potentially, making
+// it expensive to call.
+#if PYTHON_VERSION >= 0x390
+static void Nuitka_Py_NewReference(PyObject *op) {
+#ifdef Py_REF_DEBUG
+    _Py_RefTotal++;
+#endif
+    Py_SET_REFCNT(op, 1);
+}
+#else
+#define Nuitka_Py_NewReference(op) _Py_NewReference(op)
+#endif
+
 #if PYTHON_VERSION >= 0x3b0
 
 #include <internal/pycore_gc.h>
@@ -82,7 +95,7 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     Py_SET_TYPE(obj, type);
     Py_INCREF(type);
 
-    _Py_NewReference(obj);
+    Nuitka_Py_NewReference(obj);
 
     return obj;
 }
@@ -100,8 +113,7 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_
     Py_TYPE(op) = type;
     Py_INCREF(type);
 
-    // TODO: Avoid calling this function too it normally doesn't do much other than Py_SET_REFCNT(op, 1);
-    _Py_NewReference((PyObject *)op);
+    Nuitka_Py_NewReference((PyObject *)op);
 
     return op;
 #else

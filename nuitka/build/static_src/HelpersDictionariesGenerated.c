@@ -82,7 +82,7 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(void) {
     if (state->numfree) {
         result_mp = state->free_list[--state->numfree];
 
-        _Py_NewReference((PyObject *)result_mp);
+        Nuitka_Py_NewReference((PyObject *)result_mp);
 
         assert(PyDict_CheckExact((PyObject *)result_mp));
         assert(result_mp != NULL);
