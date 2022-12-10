@@ -173,6 +173,8 @@ of files that you may not want to be included.""",
                         "egldeviceintegrations",
                         # OpenGL rendering, maybe should be something separate.
                         "xcbglintegrations",
+                        # SSL network needs those
+                        "tls",
                     )
                     if self.hasPluginFamily(family)
                 )
