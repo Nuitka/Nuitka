@@ -177,10 +177,10 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
         # Need to use private CPython API unless we want to re-implement it, pylint: disable=protected-access
         import ctypes
 
-        ctypes.pythonapi._PyType_CalculateMetaclass.argtypes = [
+        ctypes.pythonapi._PyType_CalculateMetaclass.argtypes = (
             ctypes.py_object,
             ctypes.py_object,
-        ]
+        )
         ctypes.pythonapi._PyType_CalculateMetaclass.restype = ctypes.py_object
 
         bases = self.subnode_bases.getCompileTimeConstant()
