@@ -190,6 +190,7 @@ version for lto mode (>= 4.6). Disabled."""
 
         if not env.clangcl_mode:
             env.Append(LINKFLAGS=["/LTCG"])
+            env.Append(LINKFLAGS=["/CGTHREADS:%d" % job_count])
 
     if orig_lto_mode == "auto":
         scons_details_logger.info(
