@@ -3122,6 +3122,26 @@
       # Using tags, to still make it possible to compile in case of main module.
       when: 'not main_module'
 
+- module-name: 'timm.models.layers.config'
+  anti-bloat:
+    - description: 'remove torchscript JIT usage'
+      replacements_plain:
+        '_NO_JIT = False': '_NO_JIT = True'
+        '_NO_ACTIVATION_JIT = False': '_NO_ACTIVATION_JIT = True'
+
+- module-name: 'timm.models.layers.create_act'
+  anti-bloat:
+    - description: 'remove TorchScript JIT usage'
+      replacements_plain:
+        'from .activations_jit import *': ''
+        'from .activations_me import *': ''
+        '_ACT_FN_JIT =': 'if False: _ACT_FN_JIT ='
+        '_ACT_FN_ME =': 'if False: _ACT_FN_ME ='
+        '_ACT_FNS = (_ACT_FN_ME, _ACT_FN_JIT, _ACT_FN_DEFAULT)': '_ACT_FNS = (_ACT_FN_DEFAULT,)'
+        '_ACT_LAYER_JIT =': 'if False: _ACT_LAYER_JIT ='
+        '_ACT_LAYER_ME =': 'if False: _ACT_LAYER_ME ='
+        '_ACT_LAYERS = (_ACT_LAYER_ME, _ACT_LAYER_JIT, _ACT_LAYER_DEFAULT)': '_ACT_LAYERS = (_ACT_LAYER_DEFAULT,)'
+
 - module-name: 'tinycss2'
   data-files:
     patterns:
@@ -3152,6 +3172,14 @@
       replacements_plain:
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
         'f.f_code.co_name != "<module>"': "not f.f_code.co_name.startswith('<module')"
+
+- module-name: 'torch.jit._state'
+  implicit-imports:
+    - pre-import-code:
+        - |
+          import os
+          os.environ['PYTORCH_JIT'] = "0"
+      when: 'standalone'
 
 - module-name: 'torch.onnx.symbolic_registry'
   implicit-imports:
