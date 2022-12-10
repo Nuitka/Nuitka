@@ -144,12 +144,11 @@ def main():
     no_site = "Numpy" not in case_name
 
     if nuitka:
-
         nuitka_call = [
             os.environ["PYTHON"],
             nuitka,
             "--quiet",
-            "--no-progress",
+            "--no-progressbar",
         ]
 
         if no_site:
