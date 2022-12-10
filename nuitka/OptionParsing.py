@@ -999,8 +999,8 @@ detected compilers. Defaults to off.""",
 )
 
 tracing_group.add_option(
-    "--no-progress-bar",
     "--no-progressbar",
+    "--no-progress-bar",
     action="store_false",
     dest="progress_bar",
     default=True,
