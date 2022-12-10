@@ -82,12 +82,12 @@ def getResourcesFromDLL(filename, resource_kinds, with_data=False):
     )
 
     EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA
-    EnumResourceNames.argtypes = [
+    EnumResourceNames.argtypes = (
         ctypes.wintypes.HMODULE,
         ctypes.wintypes.LPVOID,
         EnumResourceNameCallback,
         ctypes.wintypes.LPARAM,
-    ]
+    )
 
     DONT_RESOLVE_DLL_REFERENCES = 0x1
     LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE = 0x40
@@ -163,10 +163,10 @@ def _openFileWindowsResources(filename):
     fullpath = os.path.abspath(filename)
     if type(filename) is str and str is bytes:
         BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA
-        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCSTR, ctypes.wintypes.BOOL]
+        BeginUpdateResource.argtypes = (ctypes.wintypes.LPCSTR, ctypes.wintypes.BOOL)
     else:
         BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceW
-        BeginUpdateResource.argtypes = [ctypes.wintypes.LPCWSTR, ctypes.wintypes.BOOL]
+        BeginUpdateResource.argtypes = (ctypes.wintypes.LPCWSTR, ctypes.wintypes.BOOL)
 
     BeginUpdateResource.restype = ctypes.wintypes.HANDLE
 
@@ -180,7 +180,7 @@ def _openFileWindowsResources(filename):
 
 def _closeFileWindowsResources(update_handle):
     EndUpdateResource = ctypes.windll.kernel32.EndUpdateResourceA
-    EndUpdateResource.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.BOOL]
+    EndUpdateResource.argtypes = (ctypes.wintypes.HANDLE, ctypes.wintypes.BOOL)
     EndUpdateResource.restype = ctypes.wintypes.BOOL
 
     ret = EndUpdateResource(update_handle, False)
@@ -199,14 +199,14 @@ def _updateWindowsResource(update_handle, resource_kind, res_name, lang_id, data
 
     UpdateResourceA = ctypes.windll.kernel32.UpdateResourceA
 
-    UpdateResourceA.argtypes = [
+    UpdateResourceA.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.LPVOID,
         ctypes.wintypes.LPVOID,
         ctypes.wintypes.WORD,
         ctypes.wintypes.LPVOID,
         ctypes.wintypes.DWORD,
-    ]
+    )
 
     ret = UpdateResourceA(update_handle, resource_kind, res_name, lang_id, data, size)
 
