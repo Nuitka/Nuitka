@@ -484,7 +484,7 @@ Finding files`_ as well.
 
 For the unpacking, by default a unique user temporary path one is used,
 and then deleted, however this default
-``--onefile-tempdir-spec="%TEMP%\\onefile_%PID%_%TIME%"`` can be
+``--onefile-tempdir-spec="%TEMP%/onefile_%PID%_%TIME%"`` can be
 overridden with a path specification that is using then using a cached
 path, avoiding repeated unpacking, e.g. with
 ``--onefile-tempdir-spec="%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION"``
