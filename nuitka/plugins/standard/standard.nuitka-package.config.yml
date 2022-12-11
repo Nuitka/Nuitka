@@ -1275,7 +1275,6 @@
 - module-name: 'pandas._testing'
   anti-bloat:
     - description: 'remove pytest testing framework'
-
       change_function:
         'ensure_clean': "'(lambda: None)'"
         # TODO: See pandas._testing._io TODO as well.
@@ -1287,7 +1286,6 @@
 - module-name: 'pandas._testing._io'
   anti-bloat:
     - description: 'remove pytest testing framework'
-
       change_function:
         'network': "'(lambda: None)'"
         # TODO: Actually it would be nice to specify "un-callable" rather than
@@ -1300,9 +1298,9 @@
 - module-name: 'pandas.compat._optional'
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils.version.LooseVersion(version) < minimum_version': "'False'"
-        'import distutils.version': "''"
+      replacements_plain:
+        'distutils.version.LooseVersion(version) < minimum_version': 'False'
+        'import distutils.version': ''
 
 - module-name: 'pandas.compat.numpy'
   anti-bloat:
