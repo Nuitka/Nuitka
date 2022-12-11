@@ -3117,6 +3117,13 @@
         'import site as _site': "'_site = None'"
         'if _running_from_pip_package()': "'if False'"
 
+- module-name: 'tensorflow_probability.python'
+  anti-bloat:
+    - description: 'remove useless distutils usage'
+      replacements_plain:
+        'distutils.version.LooseVersion': ''
+        'import distutils.version': ''
+
 - module-name: 'text_unidecode'
   data-files:
     patterns:
