@@ -27,7 +27,12 @@ DLL presence, link paths, etc.
 import os
 import sys
 
-from nuitka.utils.FileOperations import isPathBelowOrSameAs
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    isFilenameBelowPath,
+    isFilenameSameAsOrBelowPath,
+)
+from nuitka.utils.InstalledPythons import getInstalledPythonRegistryPaths
 from nuitka.utils.Utils import (
     isFedoraBasedLinux,
     isLinux,
@@ -81,17 +86,17 @@ def isApplePython():
         return True
 
     # Older macOS had that
-    if isPathBelowOrSameAs(path="/usr/bin/", filename=getSystemPrefixPath()):
+    if isFilenameSameAsOrBelowPath(path="/usr/bin/", filename=getSystemPrefixPath()):
         return True
     # Newer macOS has that
-    if isPathBelowOrSameAs(
+    if isFilenameSameAsOrBelowPath(
         path="/Library/Developer/CommandLineTools/", filename=getSystemPrefixPath()
     ):
         return True
 
     # Xcode has that on macOS, we consider it an Apple Python for now, it might
     # be more usable than Apple Python, we but we delay that.
-    if isPathBelowOrSameAs(
+    if isFilenameSameAsOrBelowPath(
         path="/Applications/Xcode.app/Contents/Developer/",
         filename=getSystemPrefixPath(),
     ):
@@ -122,7 +127,7 @@ def isPyenvPython():
     if isWin32Windows():
         return False
 
-    return os.environ.get("PYENV_ROOT") and isPathBelowOrSameAs(
+    return os.environ.get("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
         path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
     )
 
@@ -198,11 +203,19 @@ def isFedoraPackagePython():
 def isCPythonOfficialPackage():
     """Official CPython download, kind of hard to detect since self-compiled doesn't change much."""
 
+    sys_prefix = getSystemPrefixPath()
+
     # For macOS however, it's very knowable.
-    if isMacOS() and sys.executable.startswith(
-        "/Library/Frameworks/Python.framework/Versions/"
+    if isMacOS() and isFilenameBelowPath(
+        path="/Library/Frameworks/Python.framework/Versions/", filename=sys_prefix
     ):
         return True
+
+    # For Windows, we check registry.
+    if isWin32Windows():
+        for registry_python_exe in getInstalledPythonRegistryPaths(python_version_str):
+            if areSamePaths(sys_prefix, os.path.dirname(registry_python_exe)):
+                return True
 
     return False
 

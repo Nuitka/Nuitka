@@ -30,7 +30,7 @@ import os
 
 from nuitka.Options import shallUseStaticLibPython
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import getFileContents, isPathBelow
+from nuitka.utils.FileOperations import getFileContents, isFilenameBelowPath
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import (
     isNetBSD,
@@ -132,7 +132,7 @@ def isStandardLibraryPath(filename):
         return False
 
     for candidate in getStandardLibraryPaths():
-        if isPathBelow(path=candidate, filename=filename):
+        if isFilenameBelowPath(path=candidate, filename=filename):
             return True
 
     return False

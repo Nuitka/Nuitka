@@ -42,7 +42,7 @@ from nuitka.utils.FileOperations import (
     copyFileWithPermissions,
     getFileContents,
     getFileList,
-    isPathBelow,
+    isFilenameBelowPath,
     isRelativePath,
     makePath,
     openTextFile,
@@ -239,7 +239,7 @@ def addIncludedDataFile(included_datafile):
     for noinclude_datafile_pattern in getShallNotIncludeDataFilePatterns():
         if fnmatch.fnmatch(
             included_datafile.dest_path, noinclude_datafile_pattern
-        ) or isPathBelow(
+        ) or isFilenameBelowPath(
             path=noinclude_datafile_pattern, filename=included_datafile.dest_path
         ):
             included_datafile.tags.add("inhibit")
