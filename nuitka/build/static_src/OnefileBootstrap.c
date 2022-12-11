@@ -71,7 +71,7 @@
 #else
 #define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
 #define _NUITKA_ONEFILE_TEMP_BOOL 0
-#define _NUITKA_AUTO_UPDATE 1
+#define _NUITKA_AUTO_UPDATE_BOOL 1
 #define _NUITKA_EXPERIMENTAL_DEBUG_AUTO_UPDATE
 #define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
 #define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
@@ -79,6 +79,7 @@
 #if __APPLE__
 #define _NUITKA_PAYLOAD_FROM_MACOS_SECTION
 #endif
+
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
@@ -669,8 +670,12 @@ void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(); }
 #include "OnefileSplashScreen.cpp"
 #endif
 
-#ifdef _NUITKA_AUTO_UPDATE
+#if _NUITKA_AUTO_UPDATE_BOOL && !defined(__IDE_ONLY__)
 #include "nuitka_onefile_auto_updater.h"
+#endif
+
+#if _NUITKA_AUTO_UPDATE_BOOL
+extern bool exe_file_updatable;
 #endif
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
@@ -703,7 +708,7 @@ int main(int argc, char **argv) {
     signal(SIGINT, ourConsoleCtrlHandler);
 #endif
 
-#ifdef _NUITKA_AUTO_UPDATE
+#ifdef _NUITKA_AUTO_UPDATE_BOOL
     checkAutoUpdates();
 #endif
 
@@ -947,7 +952,7 @@ int main(int argc, char **argv) {
     closeFile(exe_file);
 #endif
 
-#ifdef _NUITKA_AUTO_UPDATE
+#ifdef _NUITKA_AUTO_UPDATE_BOOL
     exe_file_updatable = true;
 #endif
 
