@@ -452,7 +452,7 @@ if isMacOS():
     addConstantBlobFile(
         env=env,
         blob_filename=os.path.join(source_dir, "__payload.bin"),
-        resource_desc=("mac_section", "user choice from experimental flag"),
+        resource_desc=("mac_section", "default on macOS"),
         target_arch=target_arch,
     )
 
