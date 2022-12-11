@@ -63,7 +63,8 @@ Bug Fixes
    the file. Naturally you ought to disable those for your build space,
    but new users often don't have this. Fixed in 1.2.4 already.
 
--  Standalone: Added support for ``scipy`` 1.9.2 changes.
+-  Standalone: Added support for ``scipy`` 1.9.2 changes. Fixed in 1.2.4
+   already.
 
 -  Catch corrupt object file outputs from ``gcc`` as well and suggest to
    clean cache as well. This has been observed to happen at least on
@@ -78,6 +79,19 @@ Bug Fixes
    mapping used in their frame. This makes Nuitka usable with the
    ``multidispatch`` package which tries to find methods there while the
    class is building.
+
+-  Anaconda: Fix, newer Anaconda versions have TCL and Tk in new places,
+   breaking the ``tk-inter`` automatic detection. This was fixed in
+   1.2.6 already.
+
+-  Windows 7: Fix, onefile was not working anymore, a new API usage was
+   not done in a compatible fashion. Fixed in 1.2.6 already.
+
+-  Standalone: Added data files for ``lark`` package. Fixed in 1.2.6
+   already.
+
+-  Fix, ``pkgutil.iter_modules`` without arguments was given wrong
+   compiled package names. Fixed in 1.2.6 already.
 
 New Features
 ============
@@ -109,6 +123,28 @@ New Features
 Optimization
 ============
 
+-  Python3.10+: When creating dictionaries, we use the newly exposed
+   dictionary free list. This can speedup code that repeatedly allocates
+   and releases dictionaries by a lot.
+
+-  Python3.6+: Added fast path to dictionary copy. Compact dictionaries
+   have their keys and values copied directly. This is inspired by a
+   Python 3.10 change, but applicable to older Python as well.
+
+-  Python3.9+: Faster compiled object creation, esp. on Python platforms
+   that use a DLLs for libpython, which is a given on Windows. This
+   makes up for core changes that went unnoticed so far and should
+   regain relative speedups to standard Python.
+
+-  Python3.10+: Faster float operations, we use the newly exposed float
+   free list. This can speed up all kinds of float operations that are
+   not doable in-place by a lot.
+
+-  Windows: When using MSVC and LTO, the linking stage was done with
+   only one thread, we now use the proper options to use all cores. This
+   is controlled by ``--jobs`` much like C compilation already is. For
+   large programs this will give big savings in overall execution time.
+
 -  Anti-Bloat: Remove the use of ``pytest`` for ``dash`` package
    compilation.
 
@@ -122,14 +158,6 @@ Optimization
 -  More efficient code for object initialization, avoiding one DLL call
    to set up our object, but adding a new one. This solves a TODO
    partially. The new call will be inlined in the future as well.
-
--  Python3.10+: When creating dictionaries, use the newly exposed
-   dictionary free list. This can speedup code that repeatedly allocates
-   and releases dictionaries by a lot.
-
--  Python3.6+: Added fast path to dictionary copy. Compact dictionaries
-   have their keys and values copied directly. This is inspired by a
-   Python 3.10 change, but applicable to older Python as well.
 
 Organisational
 ==============
