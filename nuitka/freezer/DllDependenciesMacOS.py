@@ -26,7 +26,7 @@ from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
-from nuitka.utils.FileOperations import areSamePaths, isPathBelow
+from nuitka.utils.FileOperations import areSamePaths, isFilenameBelowPath
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.Json import loadJsonFromFilename
 from nuitka.utils.SharedLibraries import (
@@ -127,7 +127,7 @@ def _parseOtoolListingOutput(output):
         filename = line.split(" (", 1)[0].strip()
 
         # Ignore dependency from system paths.
-        if not isPathBelow(
+        if not isFilenameBelowPath(
             path=(
                 "/usr/lib/",
                 "/System/Library/Frameworks/",

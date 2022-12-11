@@ -116,31 +116,8 @@ class InstalledPython(object):
 _installed_pythons = {}
 
 
-def _getPythonInstallPathsWindows(python_version):
-    """Find Python installation on Windows.
-
-    Find a Python installation, first try a few
-    guesses for their paths, then look into registry for user or system wide
-    installations.
-    """
-    seen = set()
-
-    # Shortcuts for the default installation directories, to avoid going to
-    # registry at all unless necessary. Any Python2 will do for Scons, so it
-    # might be avoided entirely.
-
-    candidate = r"c:\python%s\python.exe" % python_version.replace(".", "")
-
-    if os.path.isfile(candidate):
-        candidate = os.path.join(
-            getDirectoryRealPath(os.path.dirname(candidate)),
-            os.path.basename(candidate),
-        )
-
-        yield candidate
-
-        seen.add(candidate)
-
+def getInstalledPythonRegistryPaths(python_version):
+    """Yield all Pythons as found in the Windows registry."""
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     if str is bytes:
         import _winreg as winreg  # pylint: disable=I0021,import-error,no-name-in-module
@@ -167,9 +144,39 @@ def _getPythonInstallPathsWindows(python_version):
                         os.path.join(install_dir, "python.exe")
                     )
 
-                    if os.path.exists(candidate) and candidate not in seen:
+                    if os.path.exists(candidate):
                         yield candidate
-                        seen.add(candidate)
+
+
+def _getPythonInstallPathsWindows(python_version):
+    """Find Python installation on Windows.
+
+    Find a Python installation, first try a few
+    guesses for their paths, then look into registry for user or system wide
+    installations.
+    """
+    seen = set()
+
+    # Shortcuts for the default installation directories, to avoid going to
+    # registry at all unless necessary. Any Python2 will do for Scons, so it
+    # might be avoided entirely.
+
+    candidate = r"c:\python%s\python.exe" % python_version.replace(".", "")
+
+    if os.path.isfile(candidate):
+        candidate = os.path.join(
+            getDirectoryRealPath(os.path.dirname(candidate)),
+            os.path.basename(candidate),
+        )
+
+        yield candidate
+
+        seen.add(candidate)
+
+    for candidate in getInstalledPythonRegistryPaths(python_version=python_version):
+        if candidate not in seen:
+            seen.add(candidate)
+            yield candidate
 
 
 def findPythons(python_version):

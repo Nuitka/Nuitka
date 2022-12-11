@@ -294,6 +294,12 @@ def getSystemPrefixPath():
 
             sys_prefix = os.path.normpath(os.path.join(python_binary, "..", ".."))
 
+        # Resolve symlinks on Windows manually.
+        if os.name == "nt":
+            from nuitka.utils.FileOperations import getDirectoryRealPath
+
+            sys_prefix = getDirectoryRealPath(sys_prefix)
+
         _the_sys_prefix = sys_prefix
 
     return _the_sys_prefix

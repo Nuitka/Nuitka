@@ -833,7 +833,7 @@ def getWindowsDrive(path):
     return os.path.normcase(drive)
 
 
-def isPathBelow(path, filename):
+def isFilenameBelowPath(path, filename):
     """Is a filename inside of a given directory path
 
     Args:
@@ -842,7 +842,7 @@ def isPathBelow(path, filename):
     """
     if type(path) in (tuple, list):
         for p in path:
-            if isPathBelow(path=p, filename=filename):
+            if isFilenameBelowPath(path=p, filename=filename):
                 return True
 
         return False
@@ -857,9 +857,9 @@ def isPathBelow(path, filename):
     return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
 
 
-def isPathBelowOrSameAs(path, filename):
+def isFilenameSameAsOrBelowPath(path, filename):
     """Is a filename inside of a given directory path or the same path as that directory."""
-    return isPathBelow(path, filename) or areSamePaths(path, filename)
+    return isFilenameBelowPath(path, filename) or areSamePaths(path, filename)
 
 
 def getWindowsShortPathName(filename):
@@ -941,7 +941,7 @@ def getReportPath(filename):
     if os.path.isabs(os.path.expanduser(filename)):
         abs_filename = os.path.abspath(os.path.expanduser(filename))
         home_path = os.path.expanduser("~")
-        if isPathBelow(path=home_path, filename=abs_filename):
+        if isFilenameBelowPath(path=home_path, filename=abs_filename):
             return os.path.join("~", relpath(path=abs_filename, start=home_path))
 
     return filename

@@ -52,7 +52,7 @@ from nuitka.utils.FileOperations import (
     getFileContentByLine,
     getFileContents,
     getFileList,
-    isPathBelowOrSameAs,
+    isFilenameSameAsOrBelowPath,
     makePath,
     openTextFile,
     removeDirectory,
@@ -1472,7 +1472,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             # Terminal info files are OK too.
             "/lib/terminfo",
         ):
-            if isPathBelowOrSameAs(ignored_dir, loaded_filename):
+            if isFilenameSameAsOrBelowPath(ignored_dir, loaded_filename):
                 ignore = False
                 break
         if not ignore:
@@ -1790,7 +1790,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/System/Library/dyld",
                 "/usr/lib/system/",
             ):
-                if isPathBelowOrSameAs(ignored_dir, loaded_filename):
+                if isFilenameSameAsOrBelowPath(ignored_dir, loaded_filename):
                     ignore = False
                     break
             if not ignore:
