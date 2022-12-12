@@ -1189,7 +1189,9 @@ class NuitkaPluginPySide2Plugins(NuitkaPluginQtBindingsPluginBase):
         if self._getNuitkaPatchLevel() < 1:
             self.warning(
                 """\
-For the standard PySide2 incomplete workarounds are applied. For full support: https://nuitka.net/pages/pyside2.html"""
+For the standard PySide2 incomplete workarounds are applied. For \
+full support consider provided information.""",
+                mnemonic="pyside2",
             )
 
             if python_version < 0x360:
