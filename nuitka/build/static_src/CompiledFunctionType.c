@@ -209,13 +209,7 @@ static int Nuitka_Function_set_compiled_constant(struct Nuitka_FunctionObject *o
 
 static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *object) {
     if (object->m_closure_given > 0) {
-        PyObject *result = PyTuple_New(object->m_closure_given);
-
-        for (Py_ssize_t i = 0; i < object->m_closure_given; i++) {
-            PyTuple_SET_ITEM0(result, i, (PyObject *)object->m_closure[i]);
-        }
-
-        return result;
+        return MAKE_TUPLE((PyObject *const *)object->m_closure, object->m_closure_given);
     } else {
         Py_INCREF(Py_None);
         return Py_None;
@@ -1623,14 +1617,8 @@ static void makeStarListTupleCopy(struct Nuitka_FunctionObject const *function, 
 
     // Copy left-over argument values to the star list parameter given.
     if (args_size > function->m_args_positional_count) {
-        python_pars[list_star_index] = PyTuple_New(args_size - function->m_args_positional_count);
-
-        for (Py_ssize_t i = 0; i < args_size - function->m_args_positional_count; i++) {
-            PyObject *value = args[function->m_args_positional_count + i];
-
-            PyTuple_SET_ITEM(python_pars[list_star_index], i, value);
-            Py_INCREF(value);
-        }
+        python_pars[list_star_index] =
+            MAKE_TUPLE(&args[function->m_args_positional_count], args_size - function->m_args_positional_count);
     } else {
         python_pars[list_star_index] = const_tuple_empty;
         Py_INCREF(const_tuple_empty);
@@ -1644,14 +1632,8 @@ static void makeStarListTupleCopyMethod(struct Nuitka_FunctionObject const *func
 
     // Copy left-over argument values to the star list parameter given.
     if (args_size + 1 > function->m_args_positional_count) {
-        python_pars[list_star_index] = PyTuple_New(args_size + 1 - function->m_args_positional_count);
-
-        for (Py_ssize_t i = 0; i < args_size + 1 - function->m_args_positional_count; i++) {
-            PyObject *value = args[function->m_args_positional_count + i - 1];
-
-            PyTuple_SET_ITEM(python_pars[list_star_index], i, value);
-            Py_INCREF(value);
-        }
+        python_pars[list_star_index] =
+            MAKE_TUPLE(&args[function->m_args_positional_count - 1], args_size + 1 - function->m_args_positional_count);
     } else {
         python_pars[list_star_index] = const_tuple_empty;
         Py_INCREF(const_tuple_empty);
@@ -1757,13 +1739,11 @@ static bool handleMethodArgumentsPlainOnly(struct Nuitka_FunctionObject const *f
         // Without self, there can only be star list to get the object as its
         // first element. Or we complain about illegal arguments.
         if (function->m_args_star_list_index == 0) {
-            python_pars[0] = PyTuple_New(args_size + 1);
-            PyTuple_SET_ITEM(python_pars[0], 0, object);
-            Py_INCREF(object);
+            python_pars[0] = MAKE_TUPLE_EMPTY(args_size + 1);
+            PyTuple_SET_ITEM0(python_pars[0], 0, object);
 
             for (Py_ssize_t i = 0; i < args_size; i++) {
-                PyTuple_SET_ITEM(python_pars[0], i + 1, args[i]);
-                Py_INCREF(args[i]);
+                PyTuple_SET_ITEM0(python_pars[0], i + 1, args[i]);
             }
 
             return true;

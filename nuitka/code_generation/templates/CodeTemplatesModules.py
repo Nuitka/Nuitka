@@ -171,7 +171,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
         return NULL;
     }
 
-    PyObject *code_object_desc = PyTuple_New(6);
+    PyObject *code_object_desc = MAKE_TUPLE_EMPTY(6);
     PyTuple_SET_ITEM0(code_object_desc, 0, function->m_code_object->co_filename);
     PyTuple_SET_ITEM0(code_object_desc, 1, function->m_code_object->co_name);
     PyTuple_SET_ITEM(code_object_desc, 2, PyLong_FromLong(function->m_code_object->co_firstlineno));
@@ -181,7 +181,7 @@ static PyObject *_reduce_compiled_function(PyObject *self, PyObject *args, PyObj
 
     CHECK_OBJECT_DEEP(code_object_desc);
 
-    PyObject *result = PyTuple_New(4);
+    PyObject *result = MAKE_TUPLE_EMPTY(4);
     PyTuple_SET_ITEM(result, 0, PyLong_FromLong(offset));
     PyTuple_SET_ITEM(result, 1, code_object_desc);
     PyTuple_SET_ITEM0(result, 2, function->m_defaults);

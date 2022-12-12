@@ -54,6 +54,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersImportHard.c"
 #include "HelpersRaising.c"
 #include "HelpersStrings.c"
+#include "HelpersTuples.c"
 
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
@@ -196,10 +197,8 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
     }
 
     if (fallback) {
-        PyObject *pos_args = PyTuple_New(2);
-        PyTuple_SET_ITEM(pos_args, 0, low_temp);
-        PyTuple_SET_ITEM(pos_args, 1, high_temp);
-
+        // Transfers references to tuple.
+        PyObject *pos_args = MAKE_TUPLE2_0(low_temp, high_temp);
         NUITKA_ASSIGN_BUILTIN(range);
 
         PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(range), pos_args);
@@ -261,10 +260,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
     }
 
     if (fallback) {
-        PyObject *pos_args = PyTuple_New(3);
-        PyTuple_SET_ITEM(pos_args, 0, low_temp);
-        PyTuple_SET_ITEM(pos_args, 1, high_temp);
-        PyTuple_SET_ITEM(pos_args, 2, step_temp);
+        PyObject *pos_args = MAKE_TUPLE3_0(low_temp, high_temp, step_temp);
 
         NUITKA_ASSIGN_BUILTIN(range);
 
@@ -817,9 +813,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
         PyDict_SetItem(print_kw, const_str_plain_file, file);
     }
 
-    PyObject *print_args = PyTuple_New(1);
-    PyTuple_SET_ITEM(print_args, 0, object);
-    Py_INCREF(object);
+    PyObject *print_args = MAKE_TUPLE1(object);
 
     PyObject *result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
 
@@ -1439,11 +1433,7 @@ PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start) {
     CHECK_OBJECT(sequence);
     CHECK_OBJECT(start);
 
-    PyObject *pos_args = PyTuple_New(2);
-    PyTuple_SET_ITEM(pos_args, 0, sequence);
-    Py_INCREF(sequence);
-    PyTuple_SET_ITEM(pos_args, 1, start);
-    Py_INCREF(start);
+    PyObject *pos_args = MAKE_TUPLE2(sequence, start);
 
     PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
@@ -2004,10 +1994,9 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 iternextfunc default_iternext;
 
 void _initSlotIterNext(void) {
-    PyObject *pos_args = PyTuple_New(1);
-    PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyBaseObject_Type);
-    Py_INCREF(&PyBaseObject_Type);
+    PyObject *pos_args = MAKE_TUPLE1((PyObject *)&PyBaseObject_Type);
 
+    // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
     PyDict_SetItem(kw_args, const_str_plain___iter__, Py_True);
 

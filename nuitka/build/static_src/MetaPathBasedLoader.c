@@ -1235,8 +1235,6 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             continue;
         }
 
-        PyObject *r = PyTuple_New(2);
-
         PyObject *name;
         if (self->m_loader_entry) {
             name = Nuitka_String_FromString(current->name + strlen(s) + 1);
@@ -1250,6 +1248,7 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             Py_DECREF(old);
         }
 
+        PyObject *r = MAKE_TUPLE_EMPTY(2);
         PyTuple_SET_ITEM(r, 0, name);
         PyTuple_SET_ITEM0(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
 
@@ -1392,9 +1391,7 @@ static PyObject *createModuleSpec(PyObject *module_name, PyObject *origin, bool 
         return NULL;
     }
 
-    PyObject *args = PyTuple_New(2);
-    PyTuple_SET_ITEM0(args, 0, module_name);
-    PyTuple_SET_ITEM0(args, 1, (PyObject *)&Nuitka_Loader_Type);
+    PyObject *args = MAKE_TUPLE2(module_name, (PyObject *)&Nuitka_Loader_Type);
 
     PyObject *kw_values[] = {is_package ? Py_True : Py_False, origin};
 
@@ -1623,12 +1620,9 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
     PyObject *temp;
 
     if (entry) {
-        temp = PyTuple_New(1);
-
         // Create a distribution object for the entry
         PyObject *distribution = Nuitka_Distribution_New(entry);
-        PyTuple_SET_ITEM(temp, 0, distribution);
-
+        temp = MAKE_TUPLE1_0(distribution);
     } else {
         temp = const_tuple_empty;
         Py_INCREF(const_tuple_empty);

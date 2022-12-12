@@ -626,7 +626,8 @@ retry:
     CHECK_OBJECT(result);
 
     for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = PyTuple_New(2);
+        // Later populated.
+        PyObject *item = MAKE_TUPLE_EMPTY(2);
         CHECK_OBJECT(item);
 
         PyList_SET_ITEM(result, i, item);

@@ -41,11 +41,10 @@ void _initSlotCompare(void) {
     // actual value used for "__cmp__".
 
     // Use "int" as the base class.
-    PyObject *pos_args = PyTuple_New(1);
-    PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyLong_Type);
-    Py_INCREF(&PyLong_Type);
+    PyObject *pos_args = MAKE_TUPLE1((PyObject *)&PyLong_Type);
 
     // Use "__cmp__" with true value, won't matter.
+    // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
 #if PYTHON_VERSION < 0x0300
     PyDict_SetItem(kw_args, const_str_plain___cmp__, Py_True);

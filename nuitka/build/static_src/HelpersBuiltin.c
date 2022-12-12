@@ -61,12 +61,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const *
         i++;
     }
 
-    PyObject *args_tuple = PyTuple_New(usable_args);
-    for (i = 0; i < usable_args; i++) {
-        PyTuple_SET_ITEM(args_tuple, i, args[i]);
-
-        Py_INCREF(args[i]);
-    }
+    PyObject *args_tuple = MAKE_TUPLE(args, usable_args);
 
     PyObject *result = CALL_FUNCTION(callable, args_tuple, kw_dict);
     Py_XDECREF(kw_dict);
@@ -96,13 +91,7 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
         return source_code;
     }
 
-    PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM(pos_args, 0, source_code);
-    Py_INCREF(source_code);
-    PyTuple_SET_ITEM(pos_args, 1, file_name);
-    Py_INCREF(file_name);
-    PyTuple_SET_ITEM(pos_args, 2, mode);
-    Py_INCREF(mode);
+    PyObject *pos_args = MAKE_TUPLE3(source_code, file_name, mode);
 
     PyObject *kw_values[] = {
         flags,
@@ -588,13 +577,7 @@ PyObject *BUILTIN_TYPE1(PyObject *arg) {
 }
 
 PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict) {
-    PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM(pos_args, 0, name);
-    Py_INCREF(name);
-    PyTuple_SET_ITEM(pos_args, 1, bases);
-    Py_INCREF(bases);
-    PyTuple_SET_ITEM(pos_args, 2, dict);
-    Py_INCREF(dict);
+    PyObject *pos_args = MAKE_TUPLE3(name, bases, dict);
 
     PyObject *result = PyType_Type.tp_new(&PyType_Type, pos_args, NULL);
 
