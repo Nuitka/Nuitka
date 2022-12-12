@@ -445,18 +445,6 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 
 #include <nuitka/threading.h>
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_ssize_t size) {
-    PyObject *result = PyTuple_New(size);
-
-    for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = elements[i];
-        Py_INCREF(item);
-        PyTuple_SET_ITEM(result, i, item);
-    }
-
-    return result;
-}
-
 // Make a deep copy of an object of general or specific type.
 extern PyObject *DEEP_COPY(PyObject *value);
 extern PyObject *DEEP_COPY_DICT(PyObject *dict_value);

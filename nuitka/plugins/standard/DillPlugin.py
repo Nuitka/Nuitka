@@ -158,9 +158,7 @@ void registerDillPluginTables(char const *module_name, PyMethodDef *reduce_compi
         PyObject_SetAttrString((PyObject *)builtin_module, "compiled_function_tables", function_tables);
     }
 
-    PyObject *funcs = PyTuple_New(2);
-    PyTuple_SET_ITEM(funcs, 0, PyCFunction_New(reduce_compiled_function, NULL));
-    PyTuple_SET_ITEM(funcs, 1, PyCFunction_New(create_compiled_function, NULL));
+    PyObject *funcs = MAKE_TUPLE2_0(PyCFunction_New(reduce_compiled_function, NULL), PyCFunction_New(create_compiled_function, NULL));
 
     PyDict_SetItemString(function_tables, module_name, funcs);
 }

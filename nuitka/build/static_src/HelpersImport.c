@@ -420,8 +420,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
             }
 
             if (level_int > 0) {
-                PyObject *fromlist = PyTuple_New(1);
-                PyTuple_SET_ITEM0(fromlist, 0, import_name);
+                PyObject *fromlist = MAKE_TUPLE1(import_name);
 
                 result = IMPORT_MODULE5(const_str_empty, globals, globals, fromlist, level);
 

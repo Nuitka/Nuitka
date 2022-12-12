@@ -75,7 +75,8 @@ PyObject *DEEP_COPY_TUPLE(PyObject *value) {
     assert(PyTuple_CheckExact(value));
 
     Py_ssize_t n = PyTuple_GET_SIZE(value);
-    PyObject *result = PyTuple_New(n);
+
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(n);
 
     for (Py_ssize_t i = 0; i < n; i++) {
         PyTuple_SET_ITEM(result, i, DEEP_COPY(PyTuple_GET_ITEM(value, i)));

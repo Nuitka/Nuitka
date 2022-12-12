@@ -31,6 +31,10 @@ static void Nuitka_Py_NewReference(PyObject *op) {
 #define Nuitka_Py_NewReference(op) _Py_NewReference(op)
 #endif
 
+static inline int Nuitka_PyType_HasFeature(PyTypeObject *type, unsigned long feature) {
+    return ((type->tp_flags & feature) != 0);
+}
+
 #if PYTHON_VERSION >= 0x3b0
 
 #include <internal/pycore_gc.h>
@@ -53,15 +57,11 @@ static void Nuitka_PyObject_GC_Link(PyObject *op) {
     }
 }
 
-static inline int _PyType_HasFeature(PyTypeObject *type, unsigned long feature) {
-    return ((type->tp_flags & feature) != 0);
-}
-
-#define _PyType_IS_GC(t) _PyType_HasFeature((t), Py_TPFLAGS_HAVE_GC)
+#define _PyType_IS_GC(t) Nuitka_PyType_HasFeature((t), Py_TPFLAGS_HAVE_GC)
 
 static inline size_t Nuitka_PyType_PreHeaderSize(PyTypeObject *tp) {
     return _PyType_IS_GC(tp) * sizeof(PyGC_Head) +
-           _PyType_HasFeature(tp, Py_TPFLAGS_MANAGED_DICT) * 2 * sizeof(PyObject *);
+           Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_MANAGED_DICT) * 2 * sizeof(PyObject *);
 }
 
 static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t nitems) {
@@ -111,7 +111,14 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_
 
     Py_SIZE(op) = nitems;
     Py_TYPE(op) = type;
-    Py_INCREF(type);
+
+#if PYTHON_VERSION >= 0x380
+    // TODO: Might have two variants, or more sure this is also false for all of our types,
+    // we are just wasting time for compiled times here.
+    if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
+        Py_INCREF(type);
+    }
+#endif
 
     Nuitka_Py_NewReference((PyObject *)op);
 
