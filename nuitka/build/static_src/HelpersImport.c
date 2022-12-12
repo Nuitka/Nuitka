@@ -116,8 +116,27 @@ PyObject *IMPORT_MODULE5(PyObject *module_name, PyObject *globals, PyObject *loc
     PyObject *pos_args[] = {module_name, globals, locals, import_items, level};
 
     NUITKA_ASSIGN_BUILTIN(__import__);
+    PyObject *import_function = NUITKA_ACCESS_BUILTIN(__import__);
 
-    PyObject *import_result = CALL_FUNCTION_WITH_ARGS5(NUITKA_ACCESS_BUILTIN(__import__), pos_args);
+// TODO: This should be reserved for the import statements, but not for
+// the import built-in, we have to make a difference there with 3.10 to
+// be compatible.
+#if PYTHON_VERSION >= 0x3a0 && 0
+    // Fast path for default "__import__" avoids function call.
+    PyThreadState *thread_state = _PyThreadState_GET();
+
+    if (import_function == thread_state->interp->import_func) {
+        int level_int = _PyLong_AsInt(level);
+
+        if (level_int == -1 && HAS_ERROR_OCCURRED(thread_state)) {
+            return NULL;
+        }
+
+        return PyImport_ImportModuleLevelObject(module_name, globals, locals, import_items, level_int);
+    }
+#endif
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS5(import_function, pos_args);
 
     return import_result;
 }
