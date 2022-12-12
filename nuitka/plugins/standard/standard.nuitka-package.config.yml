@@ -673,10 +673,12 @@
 
 - module-name: 'h5py'
   anti-bloat:
-    - description: 'remove h5py testing framework and interactive IPython completer'
-
+    - description: 'remove IPython reference'
       change_function:
         'enable_ipython_completer': "'(lambda: None)'"
+      when: 'not use_ipython'
+    - description: 'remove h5py testing framework'
+      change_function:
         'run_tests': "'(lambda args=None: None)'"
 
 - module-name: 'h5py.h5'
@@ -993,6 +995,7 @@
       replacements_plain:
         'from IPython.paths import get_ipython_cache_dir': 'raise ImportError'
         'from IPython.utils.path import get_ipython_cache_dir': 'raise ImportError'
+      when: 'not use_ipython'
 
 - module-name: 'numba.cuda'
   anti-bloat:
@@ -1350,9 +1353,9 @@
 - module-name: 'pandas.io.formats.printing'
   anti-bloat:
     - description: 'remove IPython reference'
-
       change_function:
         'enable_data_resource_formatter': "'(lambda enable: None)'"
+      when: 'not use_ipython'
 
 - module-name: 'pandas.io.formats.style'
   implicit-imports:
@@ -1504,6 +1507,7 @@
     - description: 'remove IPython reference'
       replacements:
         'from IPython.display import display as ipython_display': "'raise ImportError'"
+      when: 'not use_ipython'
 
 - module-name: 'pint.compat'
   anti-bloat:
@@ -1974,6 +1978,13 @@
         - '.LCSseq_cpp'
         - '.Levenshtein_cpp'
         - '.DamerauLevenshtein_cpp'
+
+- module-name: 'rdkit'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'kernel_name = get_ipython().__class__.__name__': 'raise NameError'
+      when: 'not use_ipython'
 
 - module-name: 'reportlab.rl_config'
   implicit-imports:
@@ -3252,7 +3263,6 @@
 - module-name: 'tqdm'
   anti-bloat:
     - description: 'remove IPython reference'
-
       change_function:
         'tnrange': "'(lambda *args, **kwargs: None)'"
         'tqdm_notebook': "'(lambda *args, **kwargs: None)'"
@@ -3262,7 +3272,6 @@
   anti-bloat:
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
-
       when: 'not use_ipython'
 
 - module-name: 'tzdata'
