@@ -622,7 +622,7 @@ PyObject *DICT_ITEMS(PyObject *dict) {
      */
 retry:
     size = mp->ma_used;
-    result = PyList_New(size);
+    result = MAKE_LIST_EMPTY(size);
     CHECK_OBJECT(result);
 
     for (Py_ssize_t i = 0; i < size; i++) {
@@ -676,7 +676,7 @@ PyObject *DICT_KEYS(PyObject *dict) {
      */
 retry:
     size = mp->ma_used;
-    result = PyList_New(size);
+    result = MAKE_LIST_EMPTY(size);
     CHECK_OBJECT(result);
 
     if (unlikely(size != mp->ma_used)) {
@@ -721,7 +721,7 @@ PyObject *DICT_VALUES(PyObject *dict) {
      */
 retry:
     size = mp->ma_used;
-    result = PyList_New(size);
+    result = MAKE_LIST_EMPTY(size);
     CHECK_OBJECT(result);
 
     if (unlikely(size != mp->ma_used)) {

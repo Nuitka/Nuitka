@@ -18,12 +18,6 @@
 #ifndef __NUITKA_HELPER_LISTS_H__
 #define __NUITKA_HELPER_LISTS_H__
 
-extern PyObject *MAKE_LIST(PyObject *iterable);
-
-extern PyObject *LIST_COPY(PyObject *list);
-
-extern bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other);
-
 // Like PyList_SET_ITEM but takes a reference to the item.
 #define PyList_SET_ITEM0(tuple, index, value)                                                                          \
     {                                                                                                                  \
@@ -32,6 +26,17 @@ extern bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other);
         PyList_SET_ITEM(tuple, index, tmp);                                                                            \
     }
 
+#ifndef _PyList_ITEMS
+#define _PyList_ITEMS(op) (((PyListObject *)(op))->ob_item)
+#endif
+
+#if PYTHON_VERSION >= 0x3a0
+#define NUITKA_LIST_HAS_FREELIST 1
+extern PyObject *MAKE_LIST_EMPTY(Py_ssize_t size);
+#else
+#define NUITKA_LIST_HAS_FREELIST 0
+
+#define MAKE_LIST_EMPTY(size) PyList_New(size)
 #endif
 
 extern bool LIST_EXTEND(PyObject *list, PyObject *other);
@@ -40,3 +45,11 @@ extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);
 // Like PyList_Append, but we get to specify the transfer of refcount ownership.
 extern bool LIST_APPEND1(PyObject *target, PyObject *item);
 extern bool LIST_APPEND0(PyObject *target, PyObject *item);
+
+extern PyObject *MAKE_LIST(PyObject *iterable);
+
+extern PyObject *LIST_COPY(PyObject *list);
+
+extern bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other);
+
+#endif

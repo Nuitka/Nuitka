@@ -231,7 +231,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     )
                     ref_count = 1
             else:
-                code = "PyList_New(0)"
+                # TODO: For the zero elements list, maybe have a dedicated function, which
+                # avoids a bit of tests, not sure we want LTO do this.
+                code = "MAKE_LIST_EMPTY(0)"
                 ref_count = 1
         elif type(constant) is tuple:
             needs_deep = False

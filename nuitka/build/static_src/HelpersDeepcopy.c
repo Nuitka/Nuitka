@@ -41,7 +41,7 @@ PyObject *DEEP_COPY_LIST(PyObject *value) {
     assert(PyList_CheckExact(value));
 
     Py_ssize_t n = PyList_GET_SIZE(value);
-    PyObject *result = PyList_New(n);
+    PyObject *result = MAKE_LIST_EMPTY(n);
 
     PyTypeObject *type = NULL;
     copy_func copy_function = NULL;

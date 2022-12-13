@@ -35,7 +35,7 @@ static PyObject *LIST_CONCAT(PyObject *operand1, PyObject *operand2) {
 
     Py_ssize_t size = Py_SIZE(operand1) + Py_SIZE(operand2);
 
-    PyListObject *result = (PyListObject *)PyList_New(size);
+    PyListObject *result = (PyListObject *)MAKE_LIST_EMPTY(size);
     if (unlikely(result == NULL)) {
         return NULL;
     }

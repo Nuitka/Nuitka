@@ -87,7 +87,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
         size = ESTIMATE_RANGE(high, low, -step);
     }
 
-    PyObject *result = PyList_New(size);
+    PyObject *result = MAKE_LIST_EMPTY(size);
 
     long current = low;
 
@@ -102,7 +102,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
 static PyObject *_BUILTIN_RANGE_INT2(long low, long high) { return _BUILTIN_RANGE_INT3(low, high, 1); }
 
 static PyObject *_BUILTIN_RANGE_INT(long boundary) {
-    PyObject *result = PyList_New(boundary > 0 ? boundary : 0);
+    PyObject *result = MAKE_LIST_EMPTY(boundary > 0 ? boundary : 0);
 
     for (int i = 0; i < boundary; i++) {
         PyList_SET_ITEM(result, i, PyInt_FromLong(i));
