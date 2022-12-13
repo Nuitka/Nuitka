@@ -89,7 +89,7 @@ static PyDictObject *_Nuitka_AllocatePyDictObject(void) {
     } else
 #endif
     {
-        result_mp = PyObject_GC_New(PyDictObject, &PyDict_Type);
+        result_mp = (PyDictObject *)Nuitka_GC_New(&PyDict_Type);
     }
 
     return result_mp;

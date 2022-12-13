@@ -774,7 +774,7 @@ static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *ty
     assert(PyDict_CheckExact((PyObject *)dict));
 
 #if PYTHON_VERSION < 0x300
-    dictiterobject *di = PyObject_GC_New(dictiterobject, type);
+    dictiterobject *di = (dictiterobject *)Nuitka_GC_New(type);
     CHECK_OBJECT(di);
     Py_INCREF(dict);
     di->di_dict = dict;
@@ -792,7 +792,7 @@ static inline PyObject *_MAKE_DICT_ITERATOR(PyDictObject *dict, PyTypeObject *ty
     Nuitka_GC_Track(di);
     return (PyObject *)di;
 #else
-    _PyDictViewObject *dv = PyObject_GC_New(_PyDictViewObject, type);
+    _PyDictViewObject *dv = (_PyDictViewObject *)Nuitka_GC_New(type);
     CHECK_OBJECT(dv);
 
     Py_INCREF(dict);
@@ -859,7 +859,7 @@ static PyObject *_MAKE_DICT_VIEW(PyDictObject *dict, PyTypeObject *type) {
     CHECK_OBJECT((PyObject *)dict);
     assert(PyDict_CheckExact((PyObject *)dict));
 
-    dictviewobject *dv = PyObject_GC_New(dictviewobject, type);
+    dictviewobject *dv = (dictviewobject *)Nuitka_GC_New(type);
 
     CHECK_OBJECT(dv);
     Py_INCREF(dict);

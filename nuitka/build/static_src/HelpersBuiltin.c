@@ -545,7 +545,7 @@ typedef struct {
 } calliterobject;
 
 PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
-    calliterobject *result = PyObject_GC_New(calliterobject, &PyCallIter_Type);
+    calliterobject *result = (calliterobject *)Nuitka_GC_New(&PyCallIter_Type);
 
     if (unlikely(result == NULL)) {
         return NULL;

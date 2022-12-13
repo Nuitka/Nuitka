@@ -78,7 +78,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR_INFALLIBLE(PyObject *iterate
     } else {
         assert(PySequence_Check(iterated));
 
-        seqiterobject *result = PyObject_GC_New(seqiterobject, &PySeqIter_Type);
+        seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
 
         result->it_index = 0;
@@ -122,7 +122,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR(PyObject *iterated) {
             return result;
         }
     } else if (PySequence_Check(iterated)) {
-        seqiterobject *result = PyObject_GC_New(seqiterobject, &PySeqIter_Type);
+        seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
 
         result->it_index = 0;
@@ -162,7 +162,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_UNPACK_ITERATOR(PyObject *iterated) {
             return result;
         }
     } else if (PySequence_Check(iterated)) {
-        seqiterobject *result = PyObject_GC_New(seqiterobject, &PySeqIter_Type);
+        seqiterobject *result = (seqiterobject *)Nuitka_GC_New(&PySeqIter_Type);
         assert(result);
 
         result->it_index = 0;
