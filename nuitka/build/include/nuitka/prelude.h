@@ -123,6 +123,12 @@ extern _PyRuntimeState _PyRuntime;
 #define PyThreadState_GET() ((PyThreadState *)_Py_atomic_load_relaxed(&_PyThreadState_Current))
 #endif
 
+#if PYTHON_VERSION >= 0x380
+#include <internal/pycore_object.h>
+#else
+#include <objimpl.h>
+#endif
+
 #undef Py_BUILD_CORE
 
 #endif
@@ -295,12 +301,12 @@ typedef long Py_hash_t;
 #define NUITKA_LOCAL_MODULE static
 
 /* Due to ABI issues, it seems that on Windows the symbols used by
- * "_PyObject_GC_TRACK" are not exported and we need to use a function that does
- * it instead.
+ * "_PyObject_GC_TRACK" were not exported before 3.8 and we need to use a
+ * function that does it instead.
  *
- * TODO: Make it work for 3.7 too.
+ * TODO: Make it work for Win32 Python <= 3.7 too.
  */
-#if defined(_WIN32) || defined(__MSYS__) || PYTHON_VERSION >= 0x370
+#if (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
