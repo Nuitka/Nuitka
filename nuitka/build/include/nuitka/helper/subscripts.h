@@ -39,19 +39,19 @@ static void formatNotSubscriptableError(PyObject *source) {
 #endif
 
 static PyObject *SEQUENCE_GET_ITEM_CONST(PyObject *sequence, Py_ssize_t int_subscript) {
-    PySequenceMethods *m = Py_TYPE(sequence)->tp_as_sequence;
-    assert(m != NULL);
+    PySequenceMethods *tp_as_sequence = Py_TYPE(sequence)->tp_as_sequence;
+    assert(tp_as_sequence != NULL);
 
 #if PYTHON_VERSION < 0x370
-    if (unlikely(m->sq_item == NULL)) {
+    if (unlikely(tp_as_sequence->sq_item == NULL)) {
         PyErr_Format(PyExc_TypeError, "'%s' object does not support indexing", Py_TYPE(sequence)->tp_name);
         return NULL;
     }
 #endif
 
     if (int_subscript < 0) {
-        if (m->sq_length) {
-            Py_ssize_t length = (*m->sq_length)(sequence);
+        if (tp_as_sequence->sq_length) {
+            Py_ssize_t length = (*tp_as_sequence->sq_length)(sequence);
             if (length < 0) {
                 return NULL;
             }
@@ -60,7 +60,7 @@ static PyObject *SEQUENCE_GET_ITEM_CONST(PyObject *sequence, Py_ssize_t int_subs
         }
     }
 
-    PyObject *res = m->sq_item(sequence, int_subscript);
+    PyObject *res = tp_as_sequence->sq_item(sequence, int_subscript);
     return res;
 }
 
@@ -73,11 +73,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
     return PyObject_GetItem(source, const_subscript);
 #else
     PyTypeObject *type = Py_TYPE(source);
-    PyMappingMethods *mapping_methods = type->tp_as_mapping;
+    PyMappingMethods *tp_as_mapping = type->tp_as_mapping;
 
     PyObject *result;
 
-    if (mapping_methods && mapping_methods->mp_subscript) {
+    if (tp_as_mapping && tp_as_mapping->mp_subscript) {
         if (PyList_CheckExact(source)) {
             Py_ssize_t list_size = PyList_GET_SIZE(source);
 
@@ -131,7 +131,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
         }
 #endif
         else {
-            result = mapping_methods->mp_subscript(source, const_subscript);
+            result = tp_as_mapping->mp_subscript(source, const_subscript);
         }
     } else if (HAS_SEQUENCE_ITEM_SLOT(type)) {
         result = SEQUENCE_GET_ITEM_CONST(source, int_subscript);
@@ -181,10 +181,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
     return PyObject_GetItem(source, subscript);
 #else
     PyTypeObject *type = Py_TYPE(source);
-    PyMappingMethods *mapping = type->tp_as_mapping;
+    PyMappingMethods *tp_as_mapping = type->tp_as_mapping;
 
-    if (mapping != NULL && mapping->mp_subscript != NULL) {
-        return mapping->mp_subscript(source, subscript);
+    if (tp_as_mapping != NULL && tp_as_mapping->mp_subscript != NULL) {
+        return tp_as_mapping->mp_subscript(source, subscript);
     } else if (HAS_SEQUENCE_ITEM_SLOT(type)) {
         if (PyIndex_Check(subscript)) {
             Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
@@ -244,9 +244,9 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyObject *source, PyObject 
     }
 #else
     PyTypeObject *type = Py_TYPE(source);
-    PyMappingMethods *mapping_methods = type->tp_as_mapping;
+    PyMappingMethods *tp_as_mapping = type->tp_as_mapping;
 
-    if (mapping_methods && mapping_methods->mp_subscript) {
+    if (tp_as_mapping && tp_as_mapping->mp_subscript) {
         if (PyList_CheckExact(source)) {
             Py_ssize_t list_size = PyList_GET_SIZE(source);
 
@@ -297,7 +297,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT_CONST(PyObject *source, PyObject 
         }
 #endif
         else {
-            PyObject *result = mapping_methods->mp_subscript(source, const_subscript);
+            PyObject *result = tp_as_mapping->mp_subscript(source, const_subscript);
 
             bool bool_result = !DROP_ERROR_OCCURRED();
 
@@ -360,10 +360,10 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subsc
     }
 #else
     PyTypeObject *type = Py_TYPE(source);
-    PyMappingMethods *mapping = type->tp_as_mapping;
+    PyMappingMethods *tp_as_mapping = type->tp_as_mapping;
 
-    if (mapping != NULL && mapping->mp_subscript != NULL) {
-        PyObject *result = mapping->mp_subscript(source, subscript);
+    if (tp_as_mapping != NULL && tp_as_mapping->mp_subscript != NULL) {
+        PyObject *result = tp_as_mapping->mp_subscript(source, subscript);
         bool bool_result = !DROP_ERROR_OCCURRED();
 
         Py_XDECREF(result);
@@ -423,9 +423,9 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
     int res = PyObject_SetItem(target, subscript, value);
     return res == 0;
 #else
-    PyMappingMethods *mapping_methods = Py_TYPE(target)->tp_as_mapping;
+    PyMappingMethods *tp_as_mapping = Py_TYPE(target)->tp_as_mapping;
 
-    if (mapping_methods != NULL && mapping_methods->mp_ass_subscript) {
+    if (tp_as_mapping != NULL && tp_as_mapping->mp_ass_subscript) {
         if (PyList_CheckExact(target)) {
             Py_ssize_t list_size = PyList_GET_SIZE(target);
 
@@ -448,7 +448,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
 
             return true;
         } else {
-            int res = mapping_methods->mp_ass_subscript(target, subscript, value);
+            int res = tp_as_mapping->mp_ass_subscript(target, subscript, value);
 
             if (unlikely(res == -1)) {
                 return false;
@@ -466,7 +466,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
                 }
             }
 
-            return SEQUENCE_SETITEM(target, key_value, value);
+            return SEQUENCE_SET_ITEM(target, key_value, value);
         } else if (Py_TYPE(target)->tp_as_sequence->sq_ass_item) {
             PyErr_Format(PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE(subscript)->tp_name);
 
@@ -493,10 +493,10 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subsc
     int res = PyObject_SetItem(target, subscript, value);
     return res == 0;
 #else
-    PyMappingMethods *mapping_methods = Py_TYPE(target)->tp_as_mapping;
+    PyMappingMethods *tp_as_mapping = Py_TYPE(target)->tp_as_mapping;
 
-    if (mapping_methods != NULL && mapping_methods->mp_ass_subscript) {
-        int res = mapping_methods->mp_ass_subscript(target, subscript, value);
+    if (tp_as_mapping != NULL && tp_as_mapping->mp_ass_subscript) {
+        int res = tp_as_mapping->mp_ass_subscript(target, subscript, value);
 
         if (unlikely(res == -1)) {
             return false;
@@ -511,7 +511,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subsc
                 }
             }
 
-            return SEQUENCE_SETITEM(target, key_value, value);
+            return SEQUENCE_SET_ITEM(target, key_value, value);
         } else if (Py_TYPE(target)->tp_as_sequence->sq_ass_item) {
             PyErr_Format(PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE(subscript)->tp_name);
 

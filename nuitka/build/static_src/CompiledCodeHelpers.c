@@ -52,7 +52,10 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
 #include "HelpersImportHard.c"
+#include "HelpersLists.c"
+#include "HelpersMappings.c"
 #include "HelpersRaising.c"
+#include "HelpersSequences.c"
 #include "HelpersStrings.c"
 #include "HelpersTuples.c"
 
@@ -601,7 +604,7 @@ PyObject *BUILTIN_ALL(PyObject *value) {
 PyObject *BUILTIN_LEN(PyObject *value) {
     CHECK_OBJECT(value);
 
-    Py_ssize_t res = PyObject_Size(value);
+    Py_ssize_t res = Nuitka_PyObject_Size(value);
 
     if (unlikely(res < 0 && ERROR_OCCURRED())) {
         return NULL;
@@ -2044,7 +2047,6 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersDeepcopy.c"
 
 #include "HelpersAttributes.c"
-#include "HelpersLists.c"
 
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryBitand.c"

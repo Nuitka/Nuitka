@@ -379,7 +379,7 @@ PyObject *MAKE_LIST(PyObject *iterable) {
 #else
 #if PYTHON_VERSION >= 0x340
     if (_PyObject_HasLen(iterable)) {
-        Py_ssize_t iter_len = PyObject_Size(iterable);
+        Py_ssize_t iter_len = Nuitka_PyObject_Size(iterable);
 
         if (unlikely(iter_len == -1)) {
             if (!PyErr_ExceptionMatches(PyExc_TypeError)) {
