@@ -3160,6 +3160,14 @@
       replacements_plain:
         'distutils.version.LooseVersion': ''
         'import distutils.version': ''
+  implicit-imports:
+    - depends:
+        - 'tensorflow_probability.python.experimental'
+
+- module-name: 'tensorflow_probability.python.bijectors.glow'
+  implicit-imports:
+    - depends:
+        - 'keras.api._v2'
 
 - module-name: 'text_unidecode'
   data-files:
