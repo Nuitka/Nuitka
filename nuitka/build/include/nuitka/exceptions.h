@@ -20,6 +20,11 @@
 
 // Exception helpers for generated code and compiled code helpers.
 
+// Fundamental, because we use it for print style debugging in everything.
+#include "nuitka/checkers.h"
+#include "nuitka/constants.h"
+#include "nuitka/printing.h"
+
 // Did an error occur.
 NUITKA_MAY_BE_UNUSED static inline bool HAS_ERROR_OCCURRED(PyThreadState *tstate) {
     return tstate->curexc_type != NULL;
