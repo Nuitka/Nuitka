@@ -151,6 +151,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE5_0(PyObject *element1, PyObject
     return result;
 }
 
+// Make this new macro available for older Python too.
+#ifndef _PyTuple_ITEMS
+#define _PyTuple_ITEMS(op) (((PyTupleObject *)(op))->ob_item)
+#endif
+
 extern PyObject *TUPLE_CONCAT(PyObject *tuple1, PyObject *tuple2);
 
 #endif

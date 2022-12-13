@@ -214,7 +214,7 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
 
     if (is_package) {
         /* Set __path__ properly, unlike frozen module importer does. */
-        PyObject *path_list = PyList_New(1);
+        PyObject *path_list = MAKE_LIST_EMPTY(1);
         if (unlikely(path_list == NULL))
             return NULL;
 
@@ -324,7 +324,7 @@ static PyObject *_getImportingSuffixesByPriority(int kind) {
     static PyObject *result = NULL;
 
     if (result == NULL) {
-        result = PyList_New(0);
+        result = MAKE_LIST_EMPTY(0);
 
         PyObject *imp_module = PyImport_ImportModule("imp");
         PyObject *get_suffixes_func = PyObject_GetAttrString(imp_module, "get_suffixes");
@@ -382,7 +382,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
         return false;
     }
 
-    PyObject *candidates = PyList_New(0);
+    PyObject *candidates = MAKE_LIST_EMPTY(0);
 
     // Search only relative to the parent name of course.
     char const *module_relname_str = Nuitka_String_AsString(module_name) + strlen(parent_module_name) + 1;
@@ -1192,7 +1192,7 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
         return NULL;
     }
 
-    PyObject *result = PyList_New(0);
+    PyObject *result = MAKE_LIST_EMPTY(0);
 
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
     assert(current);

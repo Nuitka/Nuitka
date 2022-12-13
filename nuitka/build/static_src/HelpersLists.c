@@ -25,13 +25,49 @@
 #include "nuitka/prelude.h"
 #endif
 
-// TODO: Move these into prelude maybe
-#ifndef _PyTuple_ITEMS
-#define _PyTuple_ITEMS(op) (((PyTupleObject *)(op))->ob_item)
-#endif
+#if NUITKA_LIST_HAS_FREELIST
+static struct _Py_list_state *_Nuitka_Py_get_list_state(void) {
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    return &interp->list;
+}
 
-#ifndef _PyList_ITEMS
-#define _PyList_ITEMS(op) (((PyListObject *)(op))->ob_item)
+PyObject *MAKE_LIST_EMPTY(Py_ssize_t size) {
+    assert(size >= 0);
+
+    struct _Py_list_state *state = _Nuitka_Py_get_list_state();
+    PyListObject *result_list;
+
+    assert(state->numfree >= 0);
+
+    if (state->numfree) {
+        state->numfree -= 1;
+        result_list = state->free_list[state->numfree];
+
+        Nuitka_Py_NewReference((PyObject *)result_list);
+    } else {
+        // TODO: Have Nuitka_GC_New available.
+        result_list = (PyListObject *)Nuitka_GC_New(&PyList_Type);
+    }
+
+    // Elements are allocated separately.
+    if (size > 0) {
+        result_list->ob_item = (PyObject **)PyMem_Calloc(size, sizeof(PyObject *));
+
+        if (unlikely(result_list->ob_item == NULL)) {
+            Py_DECREF(result_list);
+            return PyErr_NoMemory();
+        }
+    } else {
+        result_list->ob_item = NULL;
+    }
+
+    Py_SET_SIZE(result_list, size);
+    result_list->allocated = size;
+
+    Nuitka_GC_Track(result_list);
+
+    return (PyObject *)result_list;
+}
 #endif
 
 PyObject *LIST_COPY(PyObject *list) {
@@ -39,7 +75,7 @@ PyObject *LIST_COPY(PyObject *list) {
     assert(PyList_CheckExact(list));
 
     Py_ssize_t size = PyList_GET_SIZE(list);
-    PyObject *result = PyList_New(size);
+    PyObject *result = MAKE_LIST_EMPTY(size);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -365,7 +401,9 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 #endif
 
 PyObject *MAKE_LIST(PyObject *iterable) {
-    PyObject *list = PyList_New(0);
+    // TODO: Could create the list with length on 3.4 hint already, however the memory
+    // is not allocated for a 0 sized list yet, so it probably doesn't matter much.
+    PyObject *list = MAKE_LIST_EMPTY(0);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
     PyObject *result = _PyList_Extend((PyListObject *)list, iterable);
