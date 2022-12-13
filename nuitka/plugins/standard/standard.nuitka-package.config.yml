@@ -2715,7 +2715,6 @@
         relative_path: 'core/platform'
         prefixes:
           - '_cpu_feature_guard'
-
   anti-bloat:
     - description: 'remove useless distutils and test framework usage'
       replacements_plain:
@@ -2725,6 +2724,9 @@
         '_site.ENABLE_USER_SITE': 'False'
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
         'from ._api.v2 import test': 'test = None'
+      append_plain: |
+        import sys
+        sys.modules["tensorflow.compat"] = compat
   implicit-imports:
     - depends:
         - 'tensorboard'
