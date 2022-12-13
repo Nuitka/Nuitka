@@ -43,6 +43,8 @@ PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size) {
         state->free_list[size] = (PyTupleObject *)result_tuple->ob_item[0];
         state->numfree[size] -= 1;
 
+        // TODO: At least 3.11.0 corrupted this.
+        Py_SET_SIZE(result_tuple, size);
         assert(Py_SIZE(result_tuple) == size);
         assert(Py_TYPE(result_tuple) == &PyTuple_Type);
 

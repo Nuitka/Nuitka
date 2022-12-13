@@ -18,6 +18,14 @@
 #ifndef __NUITKA_ALLOCATOR_H__
 #define __NUITKA_ALLOCATOR_H__
 
+#include "nuitka/exceptions.h"
+
+// Macro introduced with Python3.9 or higher.
+#ifndef Py_SET_TYPE
+static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) { ob->ob_type = type; }
+#define Py_SET_TYPE(ob, type) _Py_SET_TYPE((PyObject *)(ob), type)
+#endif
+
 // After Python 3.9 this was moved into the DLL potentially, making
 // it expensive to call.
 #if PYTHON_VERSION >= 0x390
@@ -57,8 +65,6 @@ static void Nuitka_PyObject_GC_Link(PyObject *op) {
     }
 }
 
-#define _PyType_IS_GC(t) Nuitka_PyType_HasFeature((t), Py_TPFLAGS_HAVE_GC)
-
 static inline size_t Nuitka_PyType_PreHeaderSize(PyTypeObject *tp) {
     return _PyType_IS_GC(tp) * sizeof(PyGC_Head) +
            Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_MANAGED_DICT) * 2 * sizeof(PyObject *);
@@ -93,7 +99,35 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
 
     // Initialize the object references.
     Py_SET_TYPE(obj, type);
-    Py_INCREF(type);
+    if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
+        Py_INCREF(type);
+    }
+
+    Nuitka_Py_NewReference(obj);
+
+    return obj;
+}
+
+static PyObject *Nuitka_PyType_AllocNoTrack(PyTypeObject *type) {
+    // TODO: This ought to be static for all our types, so remove it as a call.
+    const size_t pre_size = Nuitka_PyType_PreHeaderSize(type);
+
+    char *alloc = (char *)PyObject_Malloc(_PyObject_SIZE(type) + pre_size);
+    assert(alloc);
+    PyObject *obj = (PyObject *)(alloc + pre_size);
+
+    assert(pre_size);
+    ((PyObject **)alloc)[0] = NULL;
+    ((PyObject **)alloc)[1] = NULL;
+
+    Nuitka_PyObject_GC_Link(obj);
+
+    // Initialize the object references.
+    Py_SET_TYPE(obj, type);
+
+    if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
+        Py_INCREF(type);
+    }
 
     Nuitka_Py_NewReference(obj);
 
@@ -110,7 +144,7 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_
     assert(op != NULL);
 
     Py_SIZE(op) = nitems;
-    Py_TYPE(op) = type;
+    Py_SET_TYPE(op, type);
 
 #if PYTHON_VERSION >= 0x380
     // TODO: Might have two variants, or more sure this is also false for all of our types,
@@ -132,12 +166,13 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_
 }
 
 NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_New(PyTypeObject *type) {
+#if PYTHON_VERSION < 0x3b0
     size_t size = _PyObject_SIZE(type);
 
     PyVarObject *op = (PyVarObject *)_PyObject_GC_Malloc(size);
     assert(op != NULL);
 
-    Py_TYPE(op) = type;
+    Py_SET_TYPE(op, type);
 
 #if PYTHON_VERSION >= 0x380
     // TODO: Might have two variants, or more sure this is also false for all of our types,
@@ -145,9 +180,13 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_New(PyTypeObject *type) {
     if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         Py_INCREF(type);
     }
+#endif
 
     Nuitka_Py_NewReference((PyObject *)op);
-
+#else
+    // TODO: We ought to inline this probably too, no point as a separate function.
+    PyObject *op = Nuitka_PyType_AllocNoTrack(type);
+#endif
     return op;
 }
 

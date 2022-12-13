@@ -76,30 +76,6 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *arg
 extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args);
 
-// Most fundamental, because we use it for debugging in everything else.
-#include "nuitka/helper/printing.h"
-
-// Helper to check that an object is valid and has positive reference count.
-#define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
-#define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
-
-// Helper to check an array of objects with CHECK_OBJECT
-#ifndef __NUITKA_NO_ASSERT__
-#define CHECK_OBJECTS(values, count)                                                                                   \
-    {                                                                                                                  \
-        for (int i = 0; i < count; i++) {                                                                              \
-            CHECK_OBJECT((values)[i]);                                                                                 \
-        }                                                                                                              \
-    }
-#else
-#define CHECK_OBJECTS(values, count)
-#endif
-
-extern void CHECK_OBJECT_DEEP(PyObject *value);
-extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
-
-#include "nuitka/exceptions.h"
-
 // For use with "--trace-execution", code can make outputs. Otherwise they
 // are just like comments.
 #include "nuitka/tracing.h"
