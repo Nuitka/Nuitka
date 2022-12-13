@@ -3167,6 +3167,13 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'tkextrafont'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libextrafont'
+      when: 'win32'
+
 - module-name: 'torch'
   data-files:
     dirs:
