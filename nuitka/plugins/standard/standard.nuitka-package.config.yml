@@ -2738,6 +2738,10 @@
       append_plain: |
         import sys
         sys.modules["tensorflow.compat"] = compat
+        sys.modules["tensorflow.compat.v1"] = compat.v1
+        sys.modules["tensorflow.compat.v2"] = compat.v2
+        sys.modules["tensorflow.compat.v1.logging"] = compat.v1.logging
+        sys.modules["tensorflow.compat.v2.experimental"] = compat.v2.experimental
   implicit-imports:
     - depends:
         - 'tensorboard'
