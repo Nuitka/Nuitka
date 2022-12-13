@@ -131,4 +131,24 @@ NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *type, Py_ssize_
     return op;
 }
 
+NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_New(PyTypeObject *type) {
+    size_t size = _PyObject_SIZE(type);
+
+    PyVarObject *op = (PyVarObject *)_PyObject_GC_Malloc(size);
+    assert(op != NULL);
+
+    Py_TYPE(op) = type;
+
+#if PYTHON_VERSION >= 0x380
+    // TODO: Might have two variants, or more sure this is also false for all of our types,
+    // we are just wasting time for compiled times here.
+    if (Nuitka_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
+        Py_INCREF(type);
+    }
+
+    Nuitka_Py_NewReference((PyObject *)op);
+
+    return op;
+}
+
 #endif

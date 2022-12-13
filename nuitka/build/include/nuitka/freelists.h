@@ -46,7 +46,7 @@
                                                                                                                        \
         Nuitka_Py_NewReference((PyObject *)result);                                                                    \
     } else {                                                                                                           \
-        result = (object_type *)PyObject_GC_New(object_type, &type_type);                                              \
+        result = (object_type *)Nuitka_GC_New(&type_type);                                                             \
     }                                                                                                                  \
     CHECK_OBJECT(result);
 
