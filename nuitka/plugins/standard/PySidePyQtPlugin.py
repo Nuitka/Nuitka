@@ -173,6 +173,8 @@ of files that you may not want to be included.""",
                         "egldeviceintegrations",
                         # OpenGL rendering, maybe should be something separate.
                         "xcbglintegrations",
+                        # SSL network needs those
+                        "tls",
                     )
                     if self.hasPluginFamily(family)
                 )
@@ -944,8 +946,8 @@ class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
         self.warning(
             """\
 For the obsolete PyQt5 the Nuitka support is incomplete. Threading, callbacks \
-to compiled functions, etc., etc. may be lacking. For methods to work around it \
-go to: https://nuitka.net/pages/pyqt5.html"""
+to compiled functions, etc. may not be working.""",
+            mnemonic="pyqt5",
         )
 
     def _getQtInformation(self):
