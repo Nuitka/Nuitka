@@ -93,6 +93,24 @@ Bug Fixes
 -  Fix, ``pkgutil.iter_modules`` without arguments was given wrong
    compiled package names. Fixed in 1.2.6 already.
 
+-  Standalone: Added support for newer ``clr`` DLLs changes. Fixed in
+   1.2.7 already.
+
+-  Standalone: Added workarounds for ``tensorflow.compat`` namespace not
+   being available. Fixed in 1.2.7 already.
+
+-  Standalone: Added support for ``tkextrafont``. Fixed in 1.2.7
+   already.
+
+-  Python3: Fix, locals dict test code testing if a variable was present
+   in a mapping could leak references. Fixed in 1.2.7 already.
+
+-  Standalone: Added support for ``timm`` package. Fixed in 1.2.7
+   already.
+
+-  Plugins: Add ``tls`` to list of sensible plugins. This enables at
+   least ``pyqt6`` plugin to do networking with SSL encryption.
+
 New Features
 ============
 
@@ -144,12 +162,16 @@ Optimization
    only one thread, we now use the proper options to use all cores. This
    is controlled by ``--jobs`` much like C compilation already is. For
    large programs this will give big savings in overall execution time.
+   Added in 1.2.7 already.
 
 -  Anti-Bloat: Remove the use of ``pytest`` for ``dash`` package
    compilation.
 
 -  Anti-Bloat: Remove the use of ``ipython`` for ``dotenv`` package
    compilation.
+
+-  Anti-Bloat: Remove ``ipython`` usage in ``rdkit`` improving compile
+   time for standalone by a lot. Fixed in 1.2.7 already.
 
 -  Avoid using non-optimal ``malloc`` related macros and functions of
    Python, and instead of the fasted form generally. This avoids Python
@@ -175,6 +197,9 @@ Organisational
 -  UI: Remove alternative options from ``--help`` output. These are
    there often only for historic reasons, e.g. when an option was
    renamed. They should not bother users reading them.
+
+-  Plugins: Expose the mnemonics option to plugin warnings function, and
+   use it for ``pyside2`` and ``pyqt5`` plugins.
 
 -  Quality: Detect trailing/leading spaces in Nuitka package
    configuration ``description`` values during their automatic check.
