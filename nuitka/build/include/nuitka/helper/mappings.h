@@ -30,6 +30,7 @@ NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM(PyObject *mapping, PyObject *ke
             return -1;
         }
     } else {
+        Py_DECREF(result);
         return 1;
     }
 }
