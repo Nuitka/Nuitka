@@ -1923,11 +1923,11 @@
     - description: 'workaround for dynamic rich version check'
       replacements_plain:
         'compare_version("rich", operator.ge, "10.2.2")': 'True'
-      when: 'version("rich") >= (10, 2, 2)'
+      when: 'version("rich") is not None and version("rich") >= (10, 2, 2)'
     - description: 'workaround for dynamic rich version check'
       replacements_plain:
         'compare_version("rich", operator.ge, "10.2.2")': 'False'
-      when: 'version("rich") < (10, 2, 2)'
+      when: 'version("rich") is not None and version("rich") < (10, 2, 2)'
 
 - module-name: 'pytorch_lightning.utilities.model_helpers'
   anti-bloat:
