@@ -160,6 +160,7 @@ package_data = {
         "static_src/*.cpp",
         "static_src/*/*.c",
         "static_src/*/*.h",
+        "inline_copy/zstd/LICENSE.txt",
         "inline_copy/zstd/*.h",
         "inline_copy/zstd/*/*.h",
         "inline_copy/zstd/*/*.c",
@@ -199,6 +200,7 @@ if "nuitka.plugins.commercial" in nuitka_packages:
             continue
 
     package_data["nuitka.plugins.commercial"] = commercial_data_files
+    package_data["nuitka.tools.commercial.container_build"] = ["Containerfile"]
 
 orig_byte_compile = distutils.util.byte_compile
 
