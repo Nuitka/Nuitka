@@ -68,7 +68,12 @@ from nuitka.utils.ModuleNames import (
     pre_module_load_trigger_name,
 )
 from nuitka.utils.SharedLibraries import locateDLL, locateDLLsInDirectory
-from nuitka.utils.Utils import isLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isLinux,
+    isMacOS,
+    isWin32Windows,
+)
 
 _warned_unused_plugins = set()
 
@@ -1045,6 +1050,14 @@ except ImportError:
             }
         )
 
+        if isWin32Windows():
+            context.update(
+                {
+                    "arch_x86": getArchitecture() == "x86",
+                    "arch_amd64": getArchitecture() == "x86_64",
+                }
+            )
+
         versions = getSupportedPythonVersions()
 
         for version in versions:
@@ -1078,8 +1091,14 @@ except ImportError:
         return result
 
     @classmethod
-    def warning(cls, message):
-        plugins_logger.warning(cls.plugin_name + ": " + message)
+    def warning(cls, message, **kwargs):
+        # Doing keyword only arguments manually, to keep older Python compatibility, and avoid
+        # user errors still.
+        mnemonic = kwargs.pop("mnemonic", None)
+        if kwargs:
+            plugins_logger.sysexit("Illegal arguments for self.warning")
+
+        plugins_logger.warning(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
     @classmethod
     def info(cls, message):

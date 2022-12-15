@@ -192,6 +192,19 @@
         prefixes:
           - 'Python.Runtime'
 
+- module-name: 'clr_loader.ffi'
+  dlls:
+    - from_filenames:
+        relative_path: 'dlls/x86'
+        prefixes:
+          - 'ClrLoader'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'dlls/amd64'
+        prefixes:
+          - 'ClrLoader'
+      when: 'win32 and arch_amd64'
+
 - module-name: 'connexion'
   data-files:
     dirs:
@@ -660,10 +673,12 @@
 
 - module-name: 'h5py'
   anti-bloat:
-    - description: 'remove h5py testing framework and interactive IPython completer'
-
+    - description: 'remove IPython reference'
       change_function:
         'enable_ipython_completer': "'(lambda: None)'"
+      when: 'not use_ipython'
+    - description: 'remove h5py testing framework'
+      change_function:
         'run_tests': "'(lambda args=None: None)'"
 
 - module-name: 'h5py.h5'
@@ -980,6 +995,7 @@
       replacements_plain:
         'from IPython.paths import get_ipython_cache_dir': 'raise ImportError'
         'from IPython.utils.path import get_ipython_cache_dir': 'raise ImportError'
+      when: 'not use_ipython'
 
 - module-name: 'numba.cuda'
   anti-bloat:
@@ -1360,9 +1376,9 @@
 - module-name: 'pandas.io.formats.printing'
   anti-bloat:
     - description: 'remove IPython reference'
-
       change_function:
         'enable_data_resource_formatter': "'(lambda enable: None)'"
+      when: 'not use_ipython'
 
 - module-name: 'pandas.io.formats.style'
   implicit-imports:
@@ -1514,6 +1530,7 @@
     - description: 'remove IPython reference'
       replacements:
         'from IPython.display import display as ipython_display': "'raise ImportError'"
+      when: 'not use_ipython'
 
 - module-name: 'pint.compat'
   anti-bloat:
@@ -1893,6 +1910,13 @@
     - find-dlls-near-module:
         - 'shiboken6'
 
+- module-name: 'pythonnet'
+  dlls:
+    - from_filenames:
+        relative_path: 'runtime'
+        prefixes:
+          - 'Python.Runtime'
+
 - module-name: 'pytorch_lightning.utilities.imports'
   anti-bloat:
     # TODO: It would be better if we had a form of replacements, e.g. through
@@ -1977,6 +2001,13 @@
         - '.LCSseq_cpp'
         - '.Levenshtein_cpp'
         - '.DamerauLevenshtein_cpp'
+
+- module-name: 'rdkit'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'kernel_name = get_ipython().__class__.__name__': 'raise NameError'
+      when: 'not use_ipython'
 
 - module-name: 'reportlab.rl_config'
   implicit-imports:
@@ -2730,7 +2761,6 @@
         relative_path: 'core/platform'
         prefixes:
           - '_cpu_feature_guard'
-
   anti-bloat:
     - description: 'remove useless distutils and test framework usage'
       replacements_plain:
@@ -2740,6 +2770,13 @@
         '_site.ENABLE_USER_SITE': 'False'
         # TODO: Have "unusable", something that triggers a telling "RuntimeError" when used.
         'from ._api.v2 import test': 'test = None'
+      append_plain: |
+        import sys
+        sys.modules["tensorflow.compat"] = compat
+        sys.modules["tensorflow.compat.v1"] = compat.v1
+        sys.modules["tensorflow.compat.v2"] = compat.v2
+        sys.modules["tensorflow.compat.v1.logging"] = compat.v1.logging
+        sys.modules["tensorflow.compat.v2.experimental"] = compat.v2.experimental
   implicit-imports:
     - depends:
         - 'tensorboard'
@@ -3119,6 +3156,13 @@
         'import site as _site': "'_site = None'"
         'if _running_from_pip_package()': "'if False'"
 
+- module-name: 'tensorflow_probability.python'
+  anti-bloat:
+    - description: 'remove useless distutils usage'
+      replacements_plain:
+        'distutils.version.LooseVersion': ''
+        'import distutils.version': ''
+
 - module-name: 'text_unidecode'
   data-files:
     patterns:
@@ -3135,10 +3179,37 @@
       change_function:
         'main': 'un-callable'
 
+- module-name: 'timm.models.layers.config'
+  anti-bloat:
+    - description: 'remove torchscript JIT usage'
+      replacements_plain:
+        '_NO_JIT = False': '_NO_JIT = True'
+        '_NO_ACTIVATION_JIT = False': '_NO_ACTIVATION_JIT = True'
+
+- module-name: 'timm.models.layers.create_act'
+  anti-bloat:
+    - description: 'remove TorchScript JIT usage'
+      replacements_plain:
+        'from .activations_jit import *': ''
+        'from .activations_me import *': ''
+        '_ACT_FN_JIT =': 'if False: _ACT_FN_JIT ='
+        '_ACT_FN_ME =': 'if False: _ACT_FN_ME ='
+        '_ACT_FNS = (_ACT_FN_ME, _ACT_FN_JIT, _ACT_FN_DEFAULT)': '_ACT_FNS = (_ACT_FN_DEFAULT,)'
+        '_ACT_LAYER_JIT =': 'if False: _ACT_LAYER_JIT ='
+        '_ACT_LAYER_ME =': 'if False: _ACT_LAYER_ME ='
+        '_ACT_LAYERS = (_ACT_LAYER_ME, _ACT_LAYER_JIT, _ACT_LAYER_DEFAULT)': '_ACT_LAYERS = (_ACT_LAYER_DEFAULT,)'
+
 - module-name: 'tinycss2'
   data-files:
     patterns:
       - 'VERSION'
+
+- module-name: 'tkextrafont'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'libextrafont'
+      when: 'win32'
 
 - module-name: 'torch'
   data-files:
@@ -3165,6 +3236,14 @@
       replacements_plain:
         "f.f_code.co_name != '<module>'": "not f.f_code.co_name.startswith('<module')"
         'f.f_code.co_name != "<module>"': "not f.f_code.co_name.startswith('<module')"
+
+- module-name: 'torch.jit._state'
+  implicit-imports:
+    - pre-import-code:
+        - |
+          import os
+          os.environ['PYTORCH_JIT'] = "0"
+      when: 'standalone'
 
 - module-name: 'torch.onnx.symbolic_registry'
   implicit-imports:
@@ -3235,7 +3314,6 @@
 - module-name: 'tqdm'
   anti-bloat:
     - description: 'remove IPython reference'
-
       change_function:
         'tnrange': "'(lambda *args, **kwargs: None)'"
         'tqdm_notebook': "'(lambda *args, **kwargs: None)'"
@@ -3245,7 +3323,6 @@
   anti-bloat:
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
-
       when: 'not use_ipython'
 
 - module-name: 'tzdata'
