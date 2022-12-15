@@ -1017,13 +1017,13 @@
         setup_code: |
           import os, sys
           library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
-          library_prefix = "mkl_intel" if os.name == "nt" else == "libmkl_intel"
+          library_prefix = "mkl_" if os.name == "nt" else "libmkl_"
         filename_code: |
           [os.path.join(sys.prefix, library_path, filename)
            for filename in os.listdir(os.path.join(sys.prefix, library_path))
            if filename.startswith(library_prefix)]
       dest_path: '.'
-      when: 'win32 and anaconda'
+      when: 'anaconda'
 
   implicit-imports:
     - depends:
@@ -1047,12 +1047,6 @@
             pass
 
 - module-name: 'numpy.core'
-  dlls:
-    # TODO: From numpy plugin, but does nothing on Windows
-    # at least, should check others.
-    - from_filenames:
-        prefixes:
-          - ''
   implicit-imports:
     - depends:
         - 'numpy.core._dtype_ctypes'

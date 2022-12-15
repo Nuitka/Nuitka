@@ -185,22 +185,21 @@ def _resolveBinaryPathDLLsMacOS(
 
         # Some extension modules seem to reference themselves by a different
         # extension module name, so use that if it exists.
-        if not os.path.exists(resolved_path):
-            if python_version >= 0x300:
-                so_suffixes = getSharedLibrarySuffixes()[:-1]
+        if not os.path.exists(resolved_path) and python_version >= 0x300:
+            so_suffixes = getSharedLibrarySuffixes()[:-1]
 
-                specific_suffix = so_suffixes[0]
-                abi_suffix = so_suffixes[1]
+            specific_suffix = so_suffixes[0]
+            abi_suffix = so_suffixes[1]
 
-                if resolved_path.endswith(specific_suffix):
-                    candidate = resolved_path[: -len(specific_suffix)] + abi_suffix
-                elif resolved_path.endswith(abi_suffix):
-                    candidate = resolved_path[: -len(specific_suffix)] + abi_suffix
-                else:
-                    candidate = None
+            if resolved_path.endswith(specific_suffix):
+                candidate = resolved_path[: -len(specific_suffix)] + abi_suffix
+            elif resolved_path.endswith(abi_suffix):
+                candidate = resolved_path[: -len(specific_suffix)] + abi_suffix
+            else:
+                candidate = None
 
-                if candidate is not None and os.path.exists(candidate):
-                    resolved_path = candidate
+            if candidate is not None and os.path.exists(candidate):
+                resolved_path = candidate
 
         if not os.path.exists(resolved_path):
             # TODO: Make this a plugin decision, to move this from here to PySide6 plugin:
