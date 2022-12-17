@@ -1311,7 +1311,7 @@ Report issues or bugs
 =====================
 
 Should you encounter any issues, bugs, or ideas, please visit the
-`Nuitka bug tracker <https://github.com/kayhayen/Nuitka/issues>`__ and
+`Nuitka bug tracker <https://github.com/Nuitka/Nuitka/issues>`__ and
 report them.
 
 Best practices for reporting bugs:

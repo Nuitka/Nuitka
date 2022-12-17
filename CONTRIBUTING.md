@@ -5,12 +5,12 @@ to answer commonly asked questions regarding that, and to provide some insight
 
 * If you plan on submitting an issue
 
-  Please follow this [template](https://github.com/kayhayen/Nuitka/blob/develop/.github/ISSUE_TEMPLATE.md).
+  Please follow this [template](https://github.com/Nuitka/Nuitka/blob/develop/.github/ISSUE_TEMPLATE.md).
 
 * If you want to open a pull request
 
   Make sure to read the information on this page but also have a look at our
-  [pull request template](https://github.com/kayhayen/Nuitka/blob/develop/.github/PULL_REQUEST_TEMPLATE.md).
+  [pull request template](https://github.com/Nuitka/Nuitka/blob/develop/.github/PULL_REQUEST_TEMPLATE.md).
 
 ## Getting Started
 
@@ -60,7 +60,7 @@ and first of all..
 
 * Search for existing issues
 
-  Consider [GitHub issues tagged as "question"](https://github.com/kayhayen/Nuitka/issues?q=label%3Aquestion)
+  Consider [GitHub issues tagged as "question"](https://github.com/Nuitka/Nuitka/issues?q=label%3Aquestion)
 
 * If not asked yet, ask it there.
 
