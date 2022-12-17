@@ -10956,7 +10956,7 @@ Bug Fixes
 -  Windows: Fix, when installing Python2 only for the user, the
    detection of it via registry failed as it was only searching system
    key. This was `a github pull request
-   <https://github.com/kayhayen/Nuitka/pull/8>`__. Fixed in 0.5.14.3
+   <https://github.com/Nuitka/Nuitka/pull/8>`__. Fixed in 0.5.14.3
    already.
 
 -  Some modules have extremely complex expressions requiring too deep
@@ -14197,7 +14197,7 @@ Organisational
 -  Nuitka is now available on the social code platforms as well
 
    -  Bitbucket (since removed)
-   -  `GitHub <https://github.com/kayhayen/Nuitka>`__
+   -  `GitHub <https://github.com/Nuitka/Nuitka>`__
    -  Gitorious (since discontinued)
    -  Google Code (since discontinued)
 
