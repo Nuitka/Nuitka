@@ -20,6 +20,11 @@
 #include <sys/sysctl.h>
 #endif
 
+// We are using in onefile bootstrap as well, so copy it.
+#ifndef Py_MIN
+#define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
+#endif
+
 #include "nuitka/filesystem_paths.h"
 
 filename_char_t *getBinaryPath(void) {
@@ -157,7 +162,35 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <copyfile.h>
 #else
+#if defined(__MSYS__)
+static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
+    char buffer[32768];
+
+    *bytesCopied = 0;
+
+    while (count > 0) {
+        ssize_t read_bytes = read(input_file, buffer, Py_MIN(sizeof(buffer), count));
+
+        if (unlikely(read <= 0)) {
+            return false;
+        }
+
+        count -= read_bytes;
+
+        ssize_t written_bytes = write(output_file, buffer, read_bytes);
+
+        if (unlikely(written_bytes != read_bytes)) {
+            return false;
+        }
+
+        *bytesCopied += written_bytes;
+    }
+
+    return true;
+}
+#else
 #include <sys/sendfile.h>
+#endif
 #endif
 #endif
 

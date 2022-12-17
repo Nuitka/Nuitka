@@ -186,7 +186,7 @@ def makeGccUseLinkerFile(source_files, module_mode, env):
     # Note: For Windows, it's done in mingw.py because of its use of
     # a class rather than a string here, that is not working for the
     # monkey patching.
-    if os.name != "nt":
+    if type(env["SHLINKCOM"]) is str:
         env["SHLINKCOM"] = env["SHLINKCOM"].replace(
             "$SOURCES", "@%s" % env.get("ESCAPE", lambda x: x)(tmp_linker_filename)
         )

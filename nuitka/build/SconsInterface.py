@@ -32,7 +32,11 @@ from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isMSYS2MingwPython,
+    isNuitkaPython,
+)
 from nuitka.PythonVersions import (
     getSystemPrefixPath,
     getTargetPythonDLLPath,
@@ -370,22 +374,22 @@ def setCommonSconsOptions(options):
     options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
 
     if Options.shallRunInDebugger():
-        options["full_names"] = "true"
+        options["full_names"] = asBoolStr(True)
 
     if Options.assumeYesForDownloads():
         options["assume_yes_for_downloads"] = asBoolStr(True)
 
     if not Options.shallUseProgressBar():
-        options["progress_bar"] = "false"
+        options["progress_bar"] = asBoolStr(False)
 
     if Options.isClang():
-        options["clang_mode"] = "true"
+        options["clang_mode"] = asBoolStr(True)
 
     if Options.isShowScons():
-        options["show_scons"] = "true"
+        options["show_scons"] = asBoolStr(True)
 
     if Options.isMingw64():
-        options["mingw_mode"] = "true"
+        options["mingw_mode"] = asBoolStr(True)
 
     if Options.getMsvcVersion():
         options["msvc_version"] = Options.getMsvcVersion()
@@ -407,6 +411,9 @@ def setCommonSconsOptions(options):
 
     if isAnacondaPython():
         options["anaconda_python"] = asBoolStr(True)
+
+    if isMSYS2MingwPython():
+        options["msys2_mingw_python"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:

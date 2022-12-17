@@ -31,7 +31,7 @@ from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Execution import executeProcess
 from nuitka.utils.FileOperations import getFileContentByLine, openTextFile
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.Utils import isLinux, isMacOS, isPosixWindows
 
 
 def initScons():
@@ -195,14 +195,18 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
     ):
         args["MSVC_USE_SCRIPT"] = False
 
-    if mingw_mode:
+    if mingw_mode or isPosixWindows():
         # Force usage of MinGW64, not using MSVC tools.
         tools = ["mingw"]
 
         # This code would be running anyway, make it do not thing by monkey patching.
         import SCons.Tool.MSCommon.vc  # pylint: disable=I0021,import-error
+        import SCons.Tool.msvc  # pylint: disable=I0021,import-error
 
         SCons.Tool.MSCommon.vc.msvc_setup_env = lambda *args: None
+        SCons.Tool.msvc.msvc_exists = (
+            SCons.Tool.MSCommon.vc.msvc_exists
+        ) = lambda *args: False
     else:
         # Everything else should use default, that is MSVC tools, but not MinGW64.
         tools = ["default"]

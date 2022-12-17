@@ -150,17 +150,11 @@ python_version = tuple(int(d) for d in python_version_str.split("."))
 abiflags = getArgumentDefaulted("abiflags", "")
 python_abi_version = python_version_str + abiflags
 
-# Our own Python fork, for which we know a lot of optimization can be done.
-nuitka_python = getArgumentBool("nuitka_python", False)
-
 # The Debian Python, for which we know that some optimization can be done.
 debian_python = getArgumentBool("debian_python", False)
 
 # The Fedora Python, for which we know that some optimization can be done.
 fedora_python = getArgumentBool("fedora_python", False)
-
-# For the msys2 python, we can know a few things, it's not Win32 entirely.
-msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
 
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
@@ -393,11 +387,14 @@ env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
 
-# Python specific modes have to influence some decisions
-env.nuitka_python = nuitka_python
+# Python specific modes have to influence some decisions.
+
+# Our own Python fork, for which we know a lot of optimization can be done.
+env.nuitka_python = getArgumentBool("nuitka_python", False)
 env.debian_python = debian_python
 env.fedora_python = fedora_python
-env.msys2_mingw_python = msys2_mingw_python
+# For the msys2 python, we can know a few things, it's not Win32 entirely.
+env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
 env.static_libpython = static_libpython
 env.python_version = python_version
 
@@ -647,17 +644,17 @@ def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
 
-if nuitka_python:
+if env.nuitka_python:
     env.Append(CPPDEFINES=["_NUITKA_PYTHON"])
 
 if static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if static_libpython and (not win_target or nuitka_python):
+if static_libpython and (not win_target or env.nuitka_python):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 if win_target:
-    if nuitka_python:
+    if env.nuitka_python:
         env.Append(
             LINKFLAGS=[
                 "/LTCG",
@@ -715,7 +712,7 @@ elif not module_mode:
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH=[python_lib_path])
 
-    if nuitka_python:
+    if env.nuitka_python:
         link_data = loadJsonFromFilename(os.path.join(python_prefix, "link.json"))
         for lib in link_data["libraries"]:
             # Need to prevent Scons from stripping .a from the passed in libs.
