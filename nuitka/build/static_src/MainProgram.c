@@ -1169,7 +1169,7 @@ orig_argv = argv;
 /* This is an unofficial API, not available on Windows, but on Linux and others
  * it is exported, and has been used by some code.
  */
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__MSYS__)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1184,7 +1184,6 @@ void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
 
     *argv = orig_argv;
 }
-
 #else
 #if defined(__GNUC__)
 __attribute__((weak))

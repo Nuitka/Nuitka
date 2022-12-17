@@ -60,7 +60,6 @@ from nuitka.PythonFlavors import (
     isApplePython,
     isDebianPackagePython,
     isFedoraPackagePython,
-    isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
 )
@@ -585,9 +584,6 @@ def runSconsBackend():
 
     if isFedoraPackagePython():
         options["fedora_python"] = asBoolStr(True)
-
-    if isMSYS2MingwPython():
-        options["msys2_mingw_python"] = asBoolStr(True)
 
     if isApplePython():
         options["apple_python"] = asBoolStr(True)

@@ -29,7 +29,12 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     putTextFileContents,
 )
-from nuitka.utils.Utils import isFedoraBasedLinux, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    isFedoraBasedLinux,
+    isMacOS,
+    isPosixWindows,
+    isWin32Windows,
+)
 
 from .SconsHacks import myDetectVersion
 from .SconsUtils import (
@@ -321,6 +326,9 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif isWin32Windows():
         resource_mode = "win_resource"
         reason = "default for Windows"
+    elif isPosixWindows():
+        resource_mode = "linker"
+        reason = "default MSYS2 Posix"
     elif isMacOS():
         resource_mode = "mac_section"
         reason = "default for macOS"
@@ -398,7 +406,10 @@ unsigned char const *getConstantsBlobData(void) {
                 "-Wl,%s" % blob_filename,
                 "-Wl,-b",
                 "-Wl,%s"
-                % getLinkerArch(target_arch=target_arch, mingw_mode=env.mingw_mode),
+                % getLinkerArch(
+                    target_arch=target_arch,
+                    mingw_mode=env.mingw_mode or isPosixWindows(),
+                ),
                 "-Wl,-defsym",
                 "-Wl,%sconstant_bin_data=_binary_%s___constants_bin_start"
                 % (
@@ -750,7 +761,12 @@ def switchFromGccToGpp(env):
         env.gcc_version = None
         return
 
-    env.gcc_version = myDetectVersion(env, env.the_compiler)
+    the_compiler = getExecutablePath(env.the_compiler, env)
+
+    if the_compiler is None:
+        return
+
+    env.gcc_version = myDetectVersion(env, the_compiler)
 
     if env.gcc_version is None:
         scons_logger.sysexit(
