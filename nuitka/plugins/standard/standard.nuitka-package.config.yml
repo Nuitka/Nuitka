@@ -737,6 +737,12 @@
     dirs:
       - 'schemas'
 
+- module-name: 'keras.api._v2.keras.__internal__.utils'
+  anti-bloat:
+    - description: 'remove keras testing tools reference'
+      replacements_plain:
+        'from keras.testing_infra.test_utils import layer_test': ''
+
 - module-name: 'kivy'
   data-files:
     dirs:
