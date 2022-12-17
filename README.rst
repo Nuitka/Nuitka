@@ -391,9 +391,18 @@ The resulting file ``some_module.so`` can then be used instead of
 
 .. note::
 
-   The option ``--follow-imports`` and other variants work as well, but
-   the included modules will only become importable *after* you imported
-   the ``some_module`` name.
+   The option ``--follow-import-to`` and work as well, but the included
+   modules will only become importable *after* you imported the
+   ``some_module`` name. If these kinds of imports are invisible to
+   Nuitka, e.g. dynamically created, you can use ``--include-module`` or
+   ``--include-package`` in that case, but for static imports it should
+   not be needed.
+
+-- note:
+
+.. code::
+
+   An extension module can never include other extension modules. You will have to create a wheel for this to be doable.
 
 .. note::
 
@@ -413,10 +422,17 @@ also feasible, use Nuitka like this:
 .. note::
 
    The inclusion of the package contents needs to be provided manually,
-   otherwise, the package is empty. You can be more specific if you
-   want, and only include part of it. Data files located inside the
-   package will not be embedded by this process, you need to copy them
-   yourself with this approach.
+   otherwise, the package is mostly empty. You can be more specific if
+   you want, and only include part of it, or exclude part of it, e.g.
+   with ``--nofollow-import-to='*.tests'`` you would not include the
+   unused test part of your code.
+
+.. note::
+
+   Data files located inside the package will not be embedded by this
+   process, you need to copy them yourself with this approach.
+   Alternatively you can use the `file embedding of Nuitka commercial
+   <https://nuitka.net/doc/commercial/protect-data-files.html>`__.
 
 Use Case 4 - Program Distribution
 =================================
