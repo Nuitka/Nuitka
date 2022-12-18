@@ -159,7 +159,7 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if !defined(_WIN32)
 #include <fcntl.h>
 #include <unistd.h>
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__)
 #include <copyfile.h>
 #else
 #if defined(__MSYS__)
@@ -188,7 +188,7 @@ static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t
 
     return true;
 }
-#else
+#elif !defined(__FreeBSD__)
 #include <sys/sendfile.h>
 #endif
 #endif
@@ -223,9 +223,15 @@ bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mo
         return false;
     }
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__)
     // Use fcopyfile works on FreeBSD and macOS
     bool result = fcopyfile(input_file, output_file, 0, COPYFILE_ALL) == 0;
+#elif defined(__FreeBSD__)
+    struct stat input_fileinfo = {0};
+    fstat(input_file, &input_fileinfo);
+    off_t bytesCopied = 0;
+
+    bool result = sendfile(output_file, input_file, 0, input_fileinfo.st_size, 0, &bytesCopied, 0);
 #else
     // sendfile will work with on Linux 2.6.33+
     struct stat fileinfo = {0};
