@@ -150,12 +150,6 @@ python_version = tuple(int(d) for d in python_version_str.split("."))
 abiflags = getArgumentDefaulted("abiflags", "")
 python_abi_version = python_version_str + abiflags
 
-# The Debian Python, for which we know that some optimization can be done.
-debian_python = getArgumentBool("debian_python", False)
-
-# The Fedora Python, for which we know that some optimization can be done.
-fedora_python = getArgumentBool("fedora_python", False)
-
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getArgumentBool("python_debug", False)
 
@@ -177,16 +171,9 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # PGO mode: Use profile guided optimization of C compiler if available.
 pgo_mode = getArgumentDefaulted("pgo_mode", "no")
 
-static_libpython = getArgumentDefaulted("static_libpython", "")
-if static_libpython:
-    assert os.path.exists(static_libpython), static_libpython
-
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
 win_target = os.name == "nt"
-
-# Non-elf binary, for linker settings.
-noelf_mode = getArgumentBool("noelf_mode", False)
 
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
@@ -298,9 +285,6 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
-# Anaconda Python might use its own compiler.
-anaconda_python = getArgumentBool("anaconda_python", False)
-
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
 
@@ -308,9 +292,7 @@ if getArgumentBool("progress_bar", True) and not show_scons_mode:
 job_count = GetOption("num_jobs")
 
 # Prepare environment for compiler detection.
-mingw_mode = prepareEnvironment(
-    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
-)
+mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
 
 # Patch the compiler detection.
 Environment.Detect = getEnhancedToolDetect()
@@ -360,17 +342,11 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
 env.unstripped_mode = debug_mode or unstripped_mode
-env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
 env.low_memory = low_memory
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
-
-# Various flavors could influence builds.
-env.anaconda_python = anaconda_python
-env.pyenv_python = getArgumentBool("pyenv_python", False)
-env.apple_python = getArgumentBool("pyenv_python", False)
 
 # Requested or user provided, detect if it's clang even from environment
 if isClangName(env.the_cc_name):
@@ -386,17 +362,6 @@ env.clang_mode = clang_mode
 env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
-
-# Python specific modes have to influence some decisions.
-
-# Our own Python fork, for which we know a lot of optimization can be done.
-env.nuitka_python = getArgumentBool("nuitka_python", False)
-env.debian_python = debian_python
-env.fedora_python = fedora_python
-# For the msys2 python, we can know a few things, it's not Win32 entirely.
-env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
-env.static_libpython = static_libpython
-env.python_version = python_version
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
@@ -546,7 +511,7 @@ if not env.msvc_mode:
 if python_debug:
     env.Append(CPPDEFINES=["Py_DEBUG"])
 
-if static_libpython:
+if env.static_libpython:
     env.Append(CPPDEFINES=["Py_NO_ENABLE_SHARED"])
 
 
@@ -562,7 +527,7 @@ def detectHostMultiArch():
     return None
 
 
-if env.gcc_mode and debian_python:
+if env.gcc_mode and env.debian_python:
     # TODO: Seems rather meaningless nowadays and hard codes this to not be
     # self compiled or so.
     if python_version == (3, 3):
@@ -647,10 +612,10 @@ def getWindowsPythonDLLPath():
 if env.nuitka_python:
     env.Append(CPPDEFINES=["_NUITKA_PYTHON"])
 
-if static_libpython:
+if env.static_libpython:
     env.Append(CPPDEFINES=["_NUITKA_STATIC_LIBPYTHON"])
 
-if static_libpython and (not win_target or env.nuitka_python):
+if env.static_libpython and (not win_target or env.nuitka_python):
     env.Append(CPPDEFINES=["_NUITKA_USE_UNEXPOSED_API"])
 
 if win_target:
@@ -675,8 +640,8 @@ if win_target:
             env.Append(LINKFLAGS=link_data["link_flags"])
         if "compile_flags" in link_data:
             env.Append(CFLAGS=link_data["compile_flags"])
-    elif env.gcc_mode and static_libpython:
-        env.Append(LIBS=[env.File(static_libpython)])
+    elif env.gcc_mode and env.static_libpython:
+        env.Append(LIBS=[env.File(env.static_libpython)])
     else:
         # Some non CPython flavors on Windows have this.
         def addWinLib():
@@ -733,8 +698,8 @@ elif not module_mode:
             env.Append(LINKFLAGS=link_data["link_flags"])
         if "compile_flags" in link_data:
             env.Append(CFLAGS=link_data["compile_flags"])
-    elif static_libpython:
-        env.Append(LIBS=[env.File(static_libpython)])
+    elif env.static_libpython:
+        env.Append(LIBS=[env.File(env.static_libpython)])
 
         # The linker won't succeed in searching for those for system Python of Debian
         # compiled Pythons. Help that. For self-compiled,
@@ -933,7 +898,7 @@ if job_count:
 def createBuildDefinitionsFile():
     build_definitions = {}
 
-    if uninstalled_python and not static_libpython:
+    if uninstalled_python and not env.static_libpython:
         build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
     build_definitions["NO_PYTHON_WARNINGS"] = 1 if no_python_warnings else 0

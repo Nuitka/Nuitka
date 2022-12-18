@@ -140,9 +140,6 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
-# Non-elf binary, for linker settings.
-noelf_mode = getArgumentBool("noelf_mode", False)
-
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
@@ -201,9 +198,6 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
-# Anaconda Python might use its own compiler.
-anaconda_python = getArgumentBool("anaconda_python", False)
-
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
 
@@ -211,9 +205,7 @@ if getArgumentBool("progress_bar", True) and not show_scons_mode:
 job_count = GetOption("num_jobs")
 
 # Prepare environment for compiler detection.
-mingw_mode = prepareEnvironment(
-    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
-)
+mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
 
 # TODO: Merge to prepareEnvironment as well.
 if "CXX" in os.environ:
@@ -281,14 +273,11 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.unstripped_mode = debug_mode or unstripped_mode
-env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
-
-env.anaconda_python = anaconda_python
 
 # Requested or user provided, detect if it's clang even from environment
 if isClangName(env.the_cc_name):
@@ -304,15 +293,6 @@ env.clang_mode = clang_mode
 env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
-
-# Python specific modes have to influence some decisions.
-# Our own Python fork, for which we know a lot of optimization can be done.
-env.nuitka_python = getArgumentBool("nuitka_python", False)
-env.debian_python = False
-env.fedora_python = False
-# For the msys2 python, we can know a few things, it's not Win32 entirely.
-env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
-env.static_libpython = None
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(

@@ -142,7 +142,7 @@ def _enableExperimentalSettings(env, experimental_flags):
     env.experimental_flags = experimental_flags
 
 
-def prepareEnvironment(mingw_mode, anaconda_python, python_prefix):
+def prepareEnvironment(mingw_mode):
     # Add environment specified compilers to the PATH variable.
     if "CC" in os.environ:
         scons_details_logger.info("CC='%s'" % os.environ["CC"])
@@ -165,7 +165,10 @@ def prepareEnvironment(mingw_mode, anaconda_python, python_prefix):
             )
             mingw_mode = True
     else:
+        anaconda_python = getArgumentBool("anaconda_python", False)
+
         if isLinux() and anaconda_python:
+            python_prefix = getArgumentRequired("python_prefix")
             addToPATH(None, os.path.join(python_prefix, "bin"), prefix=True)
 
     return mingw_mode
@@ -228,6 +231,29 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
         **args
     )
 
+    # Various flavors could influence builds.
+    env.nuitka_python = getArgumentBool("nuitka_python", False)
+    env.debian_python = getArgumentBool("debian_python", False)
+    env.fedora_python = getArgumentBool("fedora_python", False)
+    env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
+    env.anaconda_python = getArgumentBool("anaconda_python", False)
+    env.pyenv_python = getArgumentBool("pyenv_python", False)
+    env.apple_python = getArgumentBool("apple_python", False)
+
+    # Non-elf binary, important for linker settings.
+    env.noelf_mode = getArgumentBool("noelf_mode", False)
+
+    # Python specific modes have to influence some decisions.
+    env.static_libpython = getArgumentDefaulted("static_libpython", "")
+    if env.static_libpython:
+        assert os.path.exists(env.static_libpython), env.static_libpython
+
+    python_version_str = getArgumentDefaulted("python_version", None)
+    if python_version_str is not None:
+        env.python_version = tuple(int(d) for d in python_version_str.split("."))
+    else:
+        env.python_version = None
+
     _enableExperimentalSettings(env, experimental)
 
     return env
@@ -279,7 +305,7 @@ def getExecutablePath(filename, env):
     for path_element in path_elements:
         path_element = path_element.strip('"')
 
-        full = os.path.join(path_element, filename)
+        full = os.path.normpath(os.path.join(path_element, filename))
 
         if os.path.exists(full):
             return full

@@ -217,6 +217,7 @@ def checkWindowsCompilerFound(
     env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
+    # Many cases to deal with, pylint: disable=too-many-branches
 
     if os.name == "nt":
         # On Windows, in case MSVC was not found and not previously forced, use the
@@ -226,6 +227,11 @@ def checkWindowsCompilerFound(
         scons_details_logger.info(
             "Checking usability of '%s' from '%s'." % (compiler_path, env["CC"])
         )
+
+        # On MSYS2, cannot use the POSIX compiler, drop that even before we check arches, since that
+        # will of course still match.
+        if env.msys2_mingw_python and compiler_path.endswith("/usr/bin/gcc.exe"):
+            compiler_path = None
 
         # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
         if compiler_path is not None:
