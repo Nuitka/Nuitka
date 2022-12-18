@@ -1914,6 +1914,13 @@
     - find-dlls-near-module:
         - 'shiboken6'
 
+- module-name: 'python_utils.terminal'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'pythonnet'
   dlls:
     - from_filenames:
@@ -1955,6 +1962,46 @@
   data-files:
     dirs:
       - 'zoneinfo'
+
+- module-name: 'pyvista'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from pyvista.jupyter import set_jupyter_backend, PlotterITK': 'set_jupyter_backend = PlotterITK = None'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.core.dataobject'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.display import HTML, display as _display': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.plotting.mapper'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from ..jupyter.pv_ipygany import check_colormap': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.plotting.plotting'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from ..jupyter.notebook import handle_plotter': 'raise ImportError'
+      change_function:
+        # This uses IPython to convert to HTML.
+        '_save_panel': 'un-callable'
+        'export_html': 'un-callable'
+        'to_pythreejs': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.themes'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from pyvista.jupyter import _validate_jupyter_backend': '_validate_jupyter_backend = str'
+      when: 'not use_ipython'
 
 - module-name: 'pywt'
   data-files:
@@ -3335,6 +3382,15 @@
   anti-bloat:
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
+      when: 'not use_ipython'
+
+- module-name: 'trimesh.viewer.notebook'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'ipy = get_ipython()': 'raise ImportError'
+      change_function:
+        'scene_to_notebook': 'un-callable'
       when: 'not use_ipython'
 
 - module-name: 'tzdata'
