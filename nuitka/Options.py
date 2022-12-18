@@ -71,6 +71,7 @@ from nuitka.utils.Utils import (
     isLinux,
     isMacOS,
     isOpenBSD,
+    isPosixWindows,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
@@ -685,10 +686,14 @@ def commentArgs():
                 "Requesting Windows specific compilers has no effect on other platforms."
             )
 
-    if isMingw64() and getMsvcVersion():
-        Tracing.options_logger.sysexit(
-            "Requesting both Windows specific compilers makes no sense."
-        )
+    if options.msvc_version:
+        if isMSYS2MingwPython() or isPosixWindows():
+            Tracing.options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
+
+        if isMingw64():
+            Tracing.options_logger.sysexit(
+                "Requesting both Windows specific compilers makes no sense."
+            )
 
     if getMsvcVersion() and getMsvcVersion() not in ("list", "latest"):
         if getMsvcVersion().count(".") != 1 or not all(
