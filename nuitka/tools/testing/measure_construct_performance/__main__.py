@@ -99,6 +99,10 @@ def main():
     elif nuitka:
         sys.exit("Error, nuitka binary '%s' not found." % nuitka)
 
+    diff_filename = options.diff_filename
+    if diff_filename is not None:
+        diff_filename = os.path.abspath(diff_filename)
+
     setup(silent=True, go_main=False)
 
     _setPythonPath(case_name)
@@ -155,6 +159,7 @@ def main():
             nuitka,
             "--quiet",
             "--no-progressbar",
+            "--nofollow-imports",
             "--python-flag=no_site",
         ]
 
@@ -195,7 +200,7 @@ def main():
             os.path.basename(test_case_2).replace(".py", exe_suffix),
         )
 
-        if options.diff_filename:
+        if diff_filename:
             suffixes = [".c", ".cpp"]
 
             for suffix in suffixes:
@@ -220,7 +225,7 @@ def main():
             import difflib
 
             putTextFileContents(
-                options.diff_filename,
+                diff_filename,
                 difflib.HtmlDiff().make_table(
                     getFileContentByLine(cpp_1),
                     getFileContentByLine(cpp_2),
