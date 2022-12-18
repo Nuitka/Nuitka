@@ -321,6 +321,69 @@ def getCallModulePrefix(module_name, function_name):
     return ""
 
 
+def makeMixinName(named_children, named_children_types):
+    def _addType(name):
+        if name in named_children_types:
+            return name + "_" + named_children_types[name].title()
+        else:
+            return name
+
+    mixin_name = "".join(
+        makeTitleCased(_addType(named_child)) for named_child in named_children
+    )
+
+    return mixin_name
+
+
+children_mixins = [
+    (("group", "name"), {}),
+]
+
+
+def makeChildrenHavingMixinNodes():
+    filename_python = "nuitka/nodes/ChildrenHavingMixins.py"
+
+    template = getTemplate(
+        package_name=__package__,
+        template_subdir="templates_python",
+        template_name="ChildrenHavingMixin.py.j2",
+    )
+
+    mixins_done = set()
+
+    with withFileOpenedAndAutoFormatted(filename_python) as output_python:
+
+        def emit(*args):
+            writeLine(output_python, *args)
+
+        emitGenerationWarning(emit, "Children having mixins", template.name)
+
+        emit("""# Loop unrolling over child names, pylint: disable=too-many-branches""")
+
+        for named_children, named_children_types in children_mixins:
+            assert named_children
+            mixin_name = makeMixinName(named_children, named_children_types)
+
+            mixin_name = "".join(
+                makeTitleCased(named_child) for named_child in named_children
+            )
+
+            if mixin_name in mixins_done:
+                continue
+
+            code = template.render(
+                name=template.name,
+                mixin_name=mixin_name,
+                named_children=named_children,
+                named_children_types=named_children_types,
+                single_child=len(named_children) == 1,
+            )
+
+            emit(code)
+
+            mixins_done.add(mixin_name)
+
+
 def makeHardImportNodes():
     filename_python = "nuitka/nodes/HardImportNodesGenerated.py"
 
@@ -345,6 +408,12 @@ hard_import_node_classes = {}
         )
 
         for spec_name, spec in getSpecs(nuitka.specs.HardImportSpecs):
+            children_types = {}
+            if spec.name == "pkg_resources.require":
+                children_types["requirements"] = "tuple"
+
+            children_mixins.append((spec.getParameterNames(), children_types))
+
             module_name, function_name = spec.name.rsplit(".", 1)
             code = template.render(
                 name=template.name,
@@ -368,4 +437,5 @@ hard_import_node_classes = {}
 
 def main():
     makeHardImportNodes()
+    makeChildrenHavingMixinNodes()
     makeAttributeNodes()
