@@ -1,0 +1,316 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+
+from nuitka.nodes.NodeBases import NodeBase
+from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
+
+class ChildrenHavingMixin{{mixin_name}}(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    {# We need to expose this, at least until getChildNameNice and "nice_children" are covered too. #}
+    named_children = {{ named_children }}
+
+    {# TODO: We could hard code the presence more right, will improve performance #}
+    checkers = {}
+
+    {# TODO: Stop passing a dictionary ASAP, genericity is not needed here. #}
+    def __init__(self, values):
+        {# TODO: This should be removed #}
+        assert (
+            type(self.named_children) is tuple and self.named_children
+        ), self.named_children
+
+        {# TODO: This should be removed #}
+        # Check for completeness of given values, everything should be there
+        # but of course, might be put to None.
+        if set(values.keys()) != set(self.named_children):
+            raise NuitkaNodeDesignError(
+                "Must pass named children in value dictionary",
+                set(values.keys()),
+                set(self.named_children),
+            )
+
+{% for named_child in named_children %}
+        value = values[ "{{named_child}}" ]
+
+        if "{{named_child}}" in self.checkers:
+            value = self.checkers["{{named_child}}"](value)
+
+        {# TODO: We ought to know if we allow this per value ahead of time. #}
+        if type(value) is tuple:
+            assert None not in value, "{{named_child}}"
+
+            for val in value:
+                val.parent = self
+        elif value is None:
+            pass
+        else:
+            value.parent = self
+
+        self.subnode_{{named_child}} = value
+{% endfor %}
+
+    {# TODO: We to generate methods that imply the name rather than passing it, e.g. setChildStatements #}
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
+
+        if name in self.checkers:
+            value = self.checkers[name](value)
+
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    {# TODO: We to generate methods that imply the name rather than passing it, e.g. clearChildYesBranch #}
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in {{ named_children }}, name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        # Determine old value, and check it has no parent anymore.
+{% if single_child %}
+        old_value = self.subnode_{{named_children[0]}}
+        assert old_value is not None
+        {# TODO: We to call finalize here, instead of on the outside. #}
+        assert old_value.parent is None
+        self.subnode_{{named_children[0]}} = None
+{% else %}
+        attr_name = "subnode_" + name
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+        assert old_value is not None
+        assert old_value.parent is None
+
+        setattr(self, attr_name, None)
+{% endif %}
+
+    {# TODO: This should be unused with finished template #}
+    def getChild(self, name):
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    def getVisitableNodes(self):
+        """ The visitable nodes, with tuple values flattened. """
+
+{% if single_child %}
+{% if named_children_types.get(named_children[0]) == "tuple" %}
+        return self.subnode_{{named_children[0]}}
+{% else %}
+        value = self.subnode_{{named_children[0]}}
+
+        {# In this case, generator is not faster. #}
+        if value is None:
+            return ()
+        else:
+            return (value,)
+{% endif %}
+{% else %}
+        {# TODO: Consider if a generator is faster. #}
+        result = []
+
+        {% for named_child in named_children %}
+
+        value = self.subnode_{{named_child}}
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            result.extend(value)
+        else:
+            assert isinstance(value, NodeBase), ("has illegal child", "{{named_child}}", value, value.__class__)
+            result.append(value)
+
+        {% endfor %}
+
+        return tuple(result)
+{% endif %}
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+{% if single_child %}
+        return (
+            ("{{named_children[0]}}", self.subnode_{{named_children[0]}}),
+        )
+{% else %}
+        return (
+{% for named_child in named_children %}
+            ("{{named_child}}", self.subnode_{{named_child}}),
+{% endfor %}
+        )
+{% endif %}
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+{% if single_child %}
+        value = self.subnode_{{named_children[0]}}
+{% if named_children_types.get(named_children[0]) == "tuple" %}
+        if old_node not in value:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+
+        if new_node is not None:
+            new_value = tuple(
+                (val if val is not old_node else new_node) for val in value
+            )
+        else:
+            new_value = tuple(val for val in value if val is not old_node)
+
+        new_node.parent = self
+
+        self.subnode_{{named_children[0]}} = new_value
+{% else %}
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
+
+        if old_node is value:
+            new_node.parent = self
+            self.subnode_{{named_children[0]}} = new_node
+        else:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+{% endif %}
+{% else %}
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
+{% for named_child in named_children %}
+        value = self.subnode_{{named_child}}
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            if old_node in value:
+                if new_node is not None:
+                    {# TODO: Inline setChild effect, or use lists to store tuples #}
+                    self.setChild(
+                        "{{named_child}}",
+                        tuple(
+                            (val if val is not old_node else new_node)
+                            for val in value
+                        ),
+                    )
+                else:
+                    self.setChild(
+                        "{{named_child}}",
+                        tuple(
+                            val
+                            for val in value
+                            if val is not old_node
+                        )
+                    )
+
+                return "{{named_child}}"
+        else:
+            assert isinstance(value, NodeBase), ("has illegal child", "{{named_child}}", value, value.__class__)
+
+            if old_node is value:
+                self.setChild("{{named_child}}", new_node)
+
+                return "{{named_child}}"
+
+{% endfor %}
+        raise AssertionError("Didn't find child", old_node, "in", self)
+{% endif %}
+
+    def getCloneArgs(self):
+        """ Get clones of all children to pass for a new node.
+
+            Needs to make clones of child nodes too.
+        """
+
+{% if single_child %}
+{% if named_children_types.get(named_children[0]) == "tuple" %}
+        value = self.subnode_{{named_children[0]}}
+
+        values = {"{{named_children[0]}}": tuple(v.makeClone() for v in value)}
+        values.update(self.getDetails())
+
+        return values
+{% else %}
+        value = self.subnode_{{named_children[0]}}
+
+        values = {"{{named_children[0]}}": value.makeClone()}
+        values.update(self.getDetails())
+
+        return values
+{% endif %}
+{% else %}
+        values = {}
+
+{% for named_child in named_children %}
+        value = self.subnode_{{named_child}}
+
+        if value is None:
+            values["{{named_child}}"] = None
+        elif type(value) is tuple:
+            values["{{named_child}}"] = tuple(v.makeClone() for v in value)
+        else:
+            values["{{named_child}}"] = value.makeClone()
+{% endfor %}
+
+        values.update(self.getDetails())
+
+        return values
+{% endif %}
+
+    def finalize(self):
+        del self.parent
+
+{% if single_child %}
+{% if named_children_types.get(named_children[0]) == "tuple" %}
+        for c in self.{{named_children[0]}}:
+            c.finalize()
+{% else %}
+        self.subnode_{{named_children[0]}}.finalize()
+{% endif %}
+{% else %}
+{% for named_child in named_children %}
+        if self.subnode_{{named_child}} is not None:
+            self.subnode_{{named_child}}.finalize()
+{% endfor %}
+{% endif %}
