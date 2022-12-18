@@ -256,7 +256,7 @@ class ParameterSpec(object):
         if self.dict_star_arg is not None:
             result.append(self.dict_star_arg)
 
-        return result
+        return tuple(result)
 
     def getStarListArgumentName(self):
         return self.list_star_arg

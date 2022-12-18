@@ -21,34 +21,21 @@
 
 
 from nuitka.Constants import isCompileTimeConstantValue
-from nuitka.Options import isStandaloneMode, shallMakeModule
-from nuitka.specs.BuiltinParameterSpecs import (
-    BuiltinParameterSpec,
-    extractBuiltinArgs,
-)
+from nuitka.Options import isStandaloneMode
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Importing import importFromCompileTime
 from nuitka.utils.Utils import withNoDeprecationWarning
 
 from .AttributeNodes import makeExpressionAttributeLookup
 from .ContainerMakingNodes import makeExpressionMakeList
-from .ExpressionBases import (
-    ExpressionBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-    ExpressionChildTupleHavingBase,
-    ExpressionNoSideEffectsMixin,
-)
-from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
-
-pkg_resources_require_spec = BuiltinParameterSpec(
-    "pkg_resources.require", (), default_count=0, list_star_arg="requirements"
-)
-pkg_resources_get_distribution_spec = BuiltinParameterSpec(
-    "pkg_resources.get_distribution", ("dist",), default_count=0
-)
-pkg_resources_iter_entry_points_spec = BuiltinParameterSpec(
-    "pkg_resources.iter_entry_points", ("group", "name"), default_count=1
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
+from .HardImportNodesGenerated import (
+    ExpressionImportlibMetadataBackportVersionCallBase,
+    ExpressionImportlibMetadataDistributionCallBase,
+    ExpressionImportlibMetadataVersionCallBase,
+    ExpressionPkgResourcesGetDistributionCallBase,
+    ExpressionPkgResourcesIterEntryPointsCallBase,
+    ExpressionPkgResourcesRequireCallBase,
 )
 
 
@@ -63,56 +50,10 @@ def _getPkgResourcesModule():
     return importFromCompileTime("pkg_resources", must_exist=True)
 
 
-class ExpressionPkgResourcesRequireRef(
-    ExpressionImportModuleNameHardExistsSpecificBase
-):
-    """Function reference pkg_resources.require"""
-
-    kind = "EXPRESSION_PKG_RESOURCES_REQUIRE_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="pkg_resources",
-            import_name="require",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionPkgResourcesRequireCall,
-            builtin_spec=pkg_resources_require_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'pkg_resources.require' recognized.",
-        )
-
-
-class ExpressionPkgResourcesRequireCall(ExpressionChildTupleHavingBase):
+class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
     kind = "EXPRESSION_PKG_RESOURCES_REQUIRE_CALL"
 
-    named_child = "requirements"
-
-    __slots__ = ("attempted",)
-
-    def __init__(self, requirements, source_ref):
-        ExpressionChildTupleHavingBase.__init__(
-            self, value=requirements, source_ref=source_ref
-        )
-
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
-
-    def _replaceWithCompileTimeValue(self, trace_collection):
+    def replaceWithCompileTimeValue(self, trace_collection):
         require = _getPkgResourcesModule().require
         ResolutionError = _getPkgResourcesModule().ResolutionError
         InvalidRequirement = (
@@ -170,66 +111,13 @@ class ExpressionPkgResourcesRequireCall(ExpressionChildTupleHavingBase):
                 "Compile time predicted 'pkg_resources.require' result",
             )
 
-    def computeExpression(self, trace_collection):
-        if self.attempted or not pkg_resources_require_spec.isCompileTimeComputable(
-            self.subnode_requirements
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
 
-            return self, None, None
-
-        with withNoDeprecationWarning():
-            return self._replaceWithCompileTimeValue(trace_collection)
-
-
-class ExpressionPkgResourcesGetDistributionRef(
-    ExpressionImportModuleNameHardExistsSpecificBase
+class ExpressionPkgResourcesGetDistributionCall(
+    ExpressionPkgResourcesGetDistributionCallBase
 ):
-    """Function reference pkg_resources.get_distribution"""
-
-    kind = "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="pkg_resources",
-            import_name="get_distribution",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionPkgResourcesGetDistributionCall,
-            builtin_spec=pkg_resources_get_distribution_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'pkg_resources.get_distribution' recognized.",
-        )
-
-
-class ExpressionPkgResourcesGetDistributionCall(ExpressionChildHavingBase):
     kind = "EXPRESSION_PKG_RESOURCES_GET_DISTRIBUTION_CALL"
 
-    named_child = "dist"
-
-    __slots__ = ("attempted",)
-
-    def __init__(self, dist, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=dist, source_ref=source_ref)
-
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
-
-    def _replaceWithCompileTimeValue(self, trace_collection):
+    def replaceWithCompileTimeValue(self, trace_collection):
         get_distribution = _getPkgResourcesModule().get_distribution
         DistributionNotFound = _getPkgResourcesModule().DistributionNotFound
 
@@ -264,123 +152,17 @@ class ExpressionPkgResourcesGetDistributionCall(ExpressionChildHavingBase):
                 "Compile time predicted 'pkg_resources.get_distribution' result",
             )
 
-    def computeExpression(self, trace_collection):
-        if (
-            self.attempted
-            or not pkg_resources_get_distribution_spec.isCompileTimeComputable(
-                (self.subnode_dist,)
-            )
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
 
-            return self, None, None
+class ImportlibMetadataVersionCallMixin:
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
-        with withNoDeprecationWarning():
-            return self._replaceWithCompileTimeValue(trace_collection)
+    def _getImportlibMetadataModule(self):
+        return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
 
-
-importlib_metadata_version_spec = BuiltinParameterSpec(
-    "importlib.metadata.version", ("distribution_name",), default_count=0
-)
-
-
-class ExpressionImportlibMetadataVersionRef(
-    ExpressionImportModuleNameHardExistsSpecificBase
-):
-    """Function reference importlib.metadata.version"""
-
-    kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="importlib.metadata",
-            import_name="version",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionImportlibMetadataVersionCall,
-            builtin_spec=importlib_metadata_version_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'importlib.metadata.version' recognized.",
-        )
-
-
-class ExpressionImportlibMetadataBackportVersionRef(
-    ExpressionImportModuleNameHardExistsSpecificBase
-):
-    """Function reference importlib_metadata.version"""
-
-    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="importlib_metadata",
-            import_name="version",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionImportlibMetadataBackportVersionCall,
-            builtin_spec=importlib_metadata_version_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'importlib_metadata.version' recognized.",
-        )
-
-
-def _getImportlibMetadataModule():
-    """Helper for importing importlib.metadata from installation at compile time.
-
-    This is not for using the inline copy, but the one from the actual
-    installation of the user. It suppresses warnings and caches the value
-    avoid making more __import__ calls that necessary.
-    """
-
-    return importFromCompileTime("importlib.metadata", must_exist=True)
-
-
-class ExpressionImportlibMetadataVersionCall(ExpressionChildHavingBase):
-    kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL"
-
-    named_child = "distribution_name"
-
-    __slots__ = ("attempted",)
-
-    def __init__(self, distribution_name, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
-        )
-
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
-
-    def _replaceWithCompileTimeValue(self, trace_collection):
-        version = _getImportlibMetadataModule().version
-        PackageNotFoundError = _getImportlibMetadataModule().PackageNotFoundError
+    def replaceWithCompileTimeValue(self, trace_collection):
+        version = self._getImportlibMetadataModule().version
+        PackageNotFoundError = self._getImportlibMetadataModule().PackageNotFoundError
 
         arg = self.subnode_distribution_name.getCompileTimeConstant()
 
@@ -412,22 +194,16 @@ class ExpressionImportlibMetadataVersionCall(ExpressionChildHavingBase):
             return (
                 result,
                 "new_expression",
-                "Compile time predicted 'importlib.metadata.version' result",
+                "Compile time predicted '%s.version' result"
+                % self.importlib_metadata_name,
             )
 
-    def computeExpression(self, trace_collection):
-        if (
-            self.attempted
-            or not pkg_resources_get_distribution_spec.isCompileTimeComputable(
-                (self.subnode_distribution_name,)
-            )
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
 
-            return self, None, None
-
-        with withNoDeprecationWarning():
-            return self._replaceWithCompileTimeValue(trace_collection)
+class ExpressionImportlibMetadataVersionCall(
+    ImportlibMetadataVersionCallMixin, ExpressionImportlibMetadataVersionCallBase
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL"
+    importlib_metadata_name = "importlib.metadata"
 
 
 def _getImportlibMetadataBackportModule():
@@ -441,73 +217,12 @@ def _getImportlibMetadataBackportModule():
     return importFromCompileTime("importlib_metadata", must_exist=True)
 
 
-class ExpressionImportlibMetadataBackportVersionCall(ExpressionChildHavingBase):
+class ExpressionImportlibMetadataBackportVersionCall(
+    ImportlibMetadataVersionCallMixin,
+    ExpressionImportlibMetadataBackportVersionCallBase,
+):
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL"
-
-    named_child = "distribution_name"
-
-    __slots__ = ("attempted",)
-
-    def __init__(self, distribution_name, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
-        )
-
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
-
-    def _replaceWithCompileTimeValue(self, trace_collection):
-        version = _getImportlibMetadataBackportModule().version
-        PackageNotFoundError = (
-            _getImportlibMetadataBackportModule().PackageNotFoundError
-        )
-
-        arg = self.subnode_distribution_name.getCompileTimeConstant()
-
-        try:
-            distribution = version(arg)
-        except PackageNotFoundError:
-            inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
-                % (arg, self.source_ref.getAsString())
-            )
-
-            self.attempted = True
-
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            return self, None, None
-        except Exception as e:  # Catch all the things, pylint: disable=broad-except
-            inclusion_logger.sysexit(
-                "Error, failed to find distribution '%s' at '%s' due to unhandled %s. Please report this bug."
-                % (arg, self.source_ref.getAsString(), repr(e))
-            )
-        else:
-            from .ConstantRefNodes import makeConstantRefNode
-
-            result = makeConstantRefNode(
-                constant=distribution, source_ref=self.source_ref
-            )
-
-            return (
-                result,
-                "new_expression",
-                "Compile time predicted 'importlib_metadata.version' result",
-            )
-
-    def computeExpression(self, trace_collection):
-        if (
-            self.attempted
-            or not pkg_resources_get_distribution_spec.isCompileTimeComputable(
-                (self.subnode_distribution_name,)
-            )
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            return self, None, None
-
-        with withNoDeprecationWarning():
-            return self._replaceWithCompileTimeValue(trace_collection)
+    importlib_metadata_name = "importlib_metadata"
 
 
 # TODO: This is much like a compile time variable, but not a good compile time
@@ -630,56 +345,12 @@ class ExpressionImportlibMetadataDistributionValueRef(
         return self, None, None
 
 
-class ExpressionPkgResourcesIterEntryPointsRef(
-    ExpressionImportModuleNameHardExistsSpecificBase
+class ExpressionPkgResourcesIterEntryPointsCall(
+    ExpressionPkgResourcesIterEntryPointsCallBase
 ):
-    """Function reference pkg_resources.iter_entry_points"""
-
-    kind = "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="pkg_resources",
-            import_name="iter_entry_points",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionPkgResourcesIterEntryPointsCall,
-            builtin_spec=pkg_resources_iter_entry_points_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'pkg_resources.iter_entry_points' recognized.",
-        )
-
-
-class ExpressionPkgResourcesIterEntryPointsCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_PKG_RESOURCES_ITER_ENTRY_POINTS_CALL"
 
-    named_children = "group", "name"
-
-    __slots__ = ("attempted",)
-
-    def __init__(self, group, name, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"group": group, "name": name}, source_ref=source_ref
-        )
-
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
-
-    def _replaceWithCompileTimeValue(self, trace_collection):
+    def replaceWithCompileTimeValue(self, trace_collection):
         iter_entry_points = _getPkgResourcesModule().iter_entry_points
         DistributionNotFound = _getPkgResourcesModule().DistributionNotFound
 
@@ -724,20 +395,6 @@ class ExpressionPkgResourcesIterEntryPointsCall(ExpressionChildrenHavingBase):
                 "new_expression",
                 "Compile time predicted 'pkg_resources.iter_entry_points' result",
             )
-
-    def computeExpression(self, trace_collection):
-        if (
-            self.attempted
-            or not pkg_resources_iter_entry_points_spec.isCompileTimeComputable(
-                (self.subnode_group, self.subnode_name)
-            )
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            return self, None, None
-
-        with withNoDeprecationWarning():
-            return self._replaceWithCompileTimeValue(trace_collection)
 
 
 class ExpressionPkgResourcesEntryPointValueRef(
@@ -808,62 +465,14 @@ class ExpressionPkgResourcesEntryPointValueRef(
         return lookup_node, None, None
 
 
-importlib_metadata_distribution_spec = BuiltinParameterSpec(
-    "importlib.metadata.distribution", ("distribution_name",), default_count=0
-)
-
-
-class ExpressionImportlibMetadataDistributionRef(
-    ExpressionImportModuleNameHardExistsSpecificBase
-):
-    """Function reference importlib.metadata.distribution"""
-
-    kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="importlib.metadata",
-            import_name="distribution",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionImportlibMetadataDistributionCall,
-            builtin_spec=importlib_metadata_distribution_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'importlib.metadata.distribution' recognized.",
-        )
-
-
-class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase):
-    named_child = "distribution_name"
-
-    __slots__ = ("attempted",)
-
-    def __init__(self, distribution_name, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
-        )
-
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
+class ImportlibMetadataDistributionCallMixin:
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def _getImportlibMetadataModule(self):
         return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
 
-    def _replaceWithCompileTimeValue(self, trace_collection):
+    def replaceWithCompileTimeValue(self, trace_collection):
         distribution_func = self._getImportlibMetadataModule().distribution
         PackageNotFoundError = self._getImportlibMetadataModule().PackageNotFoundError
 
@@ -900,135 +509,38 @@ class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase)
                 % self.importlib_metadata_name,
             )
 
-    def computeExpression(self, trace_collection):
-        if (
-            self.attempted
-            or not importlib_metadata_distribution_spec.isCompileTimeComputable(
-                (self.subnode_distribution_name,)
-            )
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-            return self, None, None
-
-        return self._replaceWithCompileTimeValue(trace_collection)
-
 
 class ExpressionImportlibMetadataDistributionCall(
-    ExpressionImportlibMetadataDistributionCallBase
+    ImportlibMetadataDistributionCallMixin,
+    ExpressionImportlibMetadataDistributionCallBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL"
     importlib_metadata_name = "importlib.metadata"
 
 
 class ExpressionImportlibMetadataBackportDistributionCall(
-    ExpressionImportlibMetadataDistributionCallBase
+    ImportlibMetadataDistributionCallMixin,
+    ExpressionImportlibMetadataDistributionCallBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL"
     importlib_metadata_name = "importlib_metadata"
 
 
-class ExpressionImportlibMetadataBackportDistributionRef(
-    ExpressionImportModuleNameHardExistsSpecificBase
-):
-    """Function reference importlib_metadata.distribution"""
-
-    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_REF"
-
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="importlib_metadata",
-            import_name="distribution",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionImportlibMetadataBackportDistributionCall,
-            builtin_spec=importlib_metadata_version_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to 'importlib_metadata.distribution' recognized.",
-        )
-
-
-importlib_metadata_metadata_spec = BuiltinParameterSpec(
-    "importlib.metadata.metadata", ("distribution_name",), default_count=0
-)
-
-
-class ExpressionImportlibMetadataMetadataRefBase(
-    ExpressionImportModuleNameHardExistsSpecificBase
-):
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name=self.importlib_metadata_name,
-            import_name="metadata",
-            module_guaranteed=not shallMakeModule(),
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Calls to metadata are inlined manually through the distribution
-        # nodes.
-        def makeMetadataCall(distribution_name, source_ref):
-            return makeExpressionAttributeLookup(
-                expression=self.importlib_metadata_distribution_call_class(
-                    distribution_name=distribution_name, source_ref=source_ref
-                ),
-                attribute_name="metadata",
-                source_ref=self.source_ref,
-            )
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=makeMetadataCall,
-            builtin_spec=importlib_metadata_metadata_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to '%s.metadata' recognized." % self.importlib_metadata_name,
-        )
-
-
-class ExpressionImportlibMetadataMetadataRef(
-    ExpressionImportlibMetadataMetadataRefBase
-):
-    """Function reference importlib.metadata.metadata"""
-
-    kind = "EXPRESSION_IMPORTLIB_METADATA_METADATA_REF"
-
-    importlib_metadata_name = "importlib.metadata"
-    importlib_metadata_distribution_call_class = (
-        ExpressionImportlibMetadataDistributionCall
+def makeExpressionImportlibMetadataMetadataCall(distribution_name, source_ref):
+    return makeExpressionAttributeLookup(
+        expression=ExpressionImportlibMetadataDistributionCall(
+            distribution_name=distribution_name, source_ref=source_ref
+        ),
+        attribute_name="metadata",
+        source_ref=source_ref,
     )
 
 
-class ExpressionImportlibMetadataBackportMetadataRef(
-    ExpressionImportlibMetadataMetadataRefBase
-):
-    """Function reference importlib_metadata.metadata"""
-
-    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_METADATA_REF"
-
-    importlib_metadata_name = "importlib_metadata"
-    importlib_metadata_distribution_call_class = (
-        ExpressionImportlibMetadataBackportDistributionCall
+def makeExpressionImportlibMetadataBackportMetadataCall(distribution_name, source_ref):
+    return makeExpressionAttributeLookup(
+        expression=ExpressionImportlibMetadataBackportDistributionCall(
+            distribution_name=distribution_name, source_ref=source_ref
+        ),
+        attribute_name="metadata",
+        source_ref=source_ref,
     )
