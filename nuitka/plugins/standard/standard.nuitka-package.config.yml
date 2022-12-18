@@ -2555,6 +2555,16 @@
     - depends:
         - 'sklearn.utils._typedefs'
 
+- module-name: 'sklearn.metrics._pairwise_distances_reduction._argkmin'
+  implicit-imports:
+    - depends:
+        - 'sklearn.metrics._pairwise_distances_reduction._middle_term_computer'
+
+- module-name: 'sklearn.metrics._pairwise_distances_reduction._base'
+  implicit-imports:
+    - depends:
+        - 'sklearn.metrics._pairwise_distances_reduction._datasets_pair'
+
 - module-name: 'sklearn.metrics.cluster'
   implicit-imports:
     - depends:
