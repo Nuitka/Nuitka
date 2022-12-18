@@ -1,0 +1,149 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+from nuitka.Options import shallMakeModule
+
+from nuitka.nodes.ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
+from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
+from nuitka.specs.HardImportSpecs import {{module_name_code}}_{{function_name_code}}_spec
+
+class Expression{{module_name_title}}{{function_name_title}}Ref(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference {{module_name}}.{{function_name}}"""
+
+    kind = "EXPRESSION_{{module_name_code.upper()}}_{{function_name_code.upper()}}_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="{{module_name}}",
+            import_name="{{function_name}}",
+            module_guaranteed=not shallMakeModule(),
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from nuitka.nodes.{{call_node_module_name}} import {{call_node_prefix}}Expression{{module_name_title}}{{function_name_title}}Call
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class={{call_node_prefix}}Expression{{module_name_title}}{{function_name_title}}Call,
+            builtin_spec={{module_name_code}}_{{function_name_code}}_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to '{{module_name}}.{{function_name}}' recognized.",
+        )
+
+hard_import_node_classes[Expression{{module_name_title}}{{function_name_title}}Ref] = {{module_name_code}}_{{function_name_code}}_spec
+
+{% if parameter_names_count > 1 %}
+from .ExpressionBases import ExpressionChildrenHavingBase
+{% elif parameter_names == ('requirements',) %}
+from .ExpressionBases import ExpressionChildTupleHavingBase
+{% else %}
+from .ExpressionBases import ExpressionChildHavingBase
+{% endif %}
+
+from abc import abstractmethod
+
+class Expression{{module_name_title}}{{function_name_title}}CallBase(
+{% if parameter_names_count > 1 %}
+    ExpressionChildrenHavingBase
+{% elif parameter_names == ('requirements',) %}
+    ExpressionChildTupleHavingBase
+{% else %}
+    ExpressionChildHavingBase
+{% endif %}
+):
+    """Base class for {{module_name_title}}{{function_name_title}}Call
+
+       Generated boiler plate code.
+    """
+{% if parameter_names_count > 1 %}
+    named_children = {{parameter_names}}
+{% else %}
+    named_child = "{{parameter_names[0]}}"
+{% endif %}
+
+    __slots__ = ("attempted",)
+
+    def __init__(self,
+{% for parameter_name in parameter_names %}
+                      {{parameter_name}},
+{% endfor %}
+        source_ref):
+
+{% if parameter_names_count > 1 %}
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values={
+{% for parameter_name in parameter_names %}
+                "{{parameter_name}}": {{parameter_name}},
+{% endfor %}
+            },
+            source_ref=source_ref
+        )
+{% elif parameter_names == ('requirements',) %}
+        ExpressionChildTupleHavingBase.__init__(
+            self,
+            value={{parameter_names[0]}},
+            source_ref=source_ref
+        )
+{% else %}
+        ExpressionChildHavingBase.__init__(
+            self,
+            value={{parameter_names[0]}},
+            source_ref=source_ref
+        )
+{% endif %}
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not {{module_name_code}}_{{function_name_code}}_spec.isCompileTimeComputable(
+{% if argument_names %}
+                (
+{% for argument_name in argument_names %}
+                    self.subnode_{{argument_name}},
+{% endfor %}
+                ),
+{% endif %}
+{% if start_list_argument_name %}
+                self.subnode_{{start_list_argument_name}}
+{% endif %}
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        return self.replaceWithCompileTimeValue(trace_collection)
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass

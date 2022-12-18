@@ -31,11 +31,13 @@ import nuitka.code_generation.Namify
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
+import nuitka.specs.HardImportSpecs
 from nuitka.utils.Jinja2 import getTemplate
 
 from .Common import (
     formatArgs,
     getMethodVariations,
+    getSpecs,
     python2_dict_methods,
     python2_str_methods,
     python3_bytes_methods,
@@ -165,7 +167,7 @@ lambda source_ref: wrapExpressionWithNodeSideEffects(
 """
 
 
-def emitGenerationWarning(emit, template_name):
+def emitGenerationWarning(emit, doc_string, template_name):
     attribute_code_names = set(attribute_information.keys())
     attribute_code_names = set(
         attribute_name.replace("_", "") for attribute_name in attribute_information
@@ -175,10 +177,10 @@ def emitGenerationWarning(emit, template_name):
 
     emit(
         '''
-# pylint: disable=too-many-lines
-# pylint: disable=line-too-long
+# pylint: disable=I0021,too-many-lines
+# pylint: disable=I0021,line-too-long
 
-"""Specialized attribute nodes
+"""%s
 
 WARNING, this code is GENERATED. Modify the template %s instead!
 
@@ -188,6 +190,7 @@ spell-checker: ignore %s
 
 '''
         % (
+            doc_string,
             template_name,
             " ".join(sorted(attribute_code_names)),
             " ".join(sorted(attribute_arg_names)),
@@ -235,7 +238,7 @@ def makeAttributeNodes():
         def emit(*args):
             writeLine(output_python, *args)
 
-        emitGenerationWarning(emit, template.name)
+        emitGenerationWarning(emit, "Specialized attribute nodes", template.name)
 
         emit("from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase")
         emit("from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs")
@@ -288,5 +291,81 @@ def makeAttributeNodes():
             emit(code)
 
 
+def adaptModuleName(value):
+    if value == "importlib_metadata":
+        return "importlib_metadata_backport"
+
+    return value
+
+
+def makeTitleCased(value):
+    return "".join(s.title() for s in value.split("_")).replace(".", "")
+
+
+def makeCodeCased(value):
+    return value.replace(".", "_")
+
+
+def getCallModuleName(module_name, function_name):
+    if module_name in ("pkg_resources", "importlib.metadata", "importlib_metadata"):
+        return "PackageMetadataNodes"
+
+    assert False, (module_name, function_name)
+
+
+def getCallModulePrefix(module_name, function_name):
+    if module_name in ("importlib.metadata", "importlib_metadata"):
+        if function_name == "metadata":
+            return "make"
+
+    return ""
+
+
+def makeHardImportNodes():
+    filename_python = "nuitka/nodes/HardImportNodesGenerated.py"
+
+    template = getTemplate(
+        package_name=__package__,
+        template_subdir="templates_python",
+        template_name="HardImportReferenceNode.py.j2",
+    )
+
+    with withFileOpenedAndAutoFormatted(filename_python) as output_python:
+
+        def emit(*args):
+            writeLine(output_python, *args)
+
+        emitGenerationWarning(emit, "Hard import nodes", template.name)
+
+        emit(
+            """
+hard_import_node_classes = {}
+
+"""
+        )
+
+        for spec_name, spec in getSpecs(nuitka.specs.HardImportSpecs):
+            module_name, function_name = spec.name.rsplit(".", 1)
+            code = template.render(
+                name=template.name,
+                parameter_names_count=len(spec.getParameterNames()),
+                parameter_names=spec.getParameterNames(),
+                argument_names=spec.getArgumentNames(),
+                start_list_argument_name=spec.getStarListArgumentName(),
+                function_name=function_name,
+                function_name_title=makeTitleCased(function_name),
+                function_name_code=makeCodeCased(function_name),
+                module_name=module_name,
+                module_name_code=makeCodeCased(adaptModuleName(module_name)),
+                module_name_title=makeTitleCased(adaptModuleName(module_name)),
+                call_node_module_name=getCallModuleName(module_name, function_name),
+                call_node_prefix=getCallModulePrefix(module_name, function_name),
+                spec_name=spec_name,
+            )
+
+            emit(code)
+
+
 def main():
+    makeHardImportNodes()
     makeAttributeNodes()
