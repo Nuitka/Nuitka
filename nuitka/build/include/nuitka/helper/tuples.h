@@ -158,4 +158,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE5_0(PyObject *element1, PyObject
 
 extern PyObject *TUPLE_CONCAT(PyObject *tuple1, PyObject *tuple2);
 
+extern PyObject *TUPLE_COPY(PyObject *tuple);
+
 #endif

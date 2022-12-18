@@ -293,8 +293,7 @@ def isHashable(constant):
 
 
 def getUnhashableConstant(constant):
-    # Too many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    """Get one unhashable part of a constant."""
 
     constant_type = type(constant)
 
@@ -361,3 +360,59 @@ the_empty_frozenset = frozenset()
 the_empty_slice = slice(None)
 
 the_empty_unicode = unicode()  # black doesn't let us write u"" anymore.
+
+
+def getConstantValueGuide(constant, elements_only):
+    # Many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
+    constant_type = type(constant)
+
+    if constant_type in (
+        str,
+        unicode,
+        complex,
+        int,
+        long,
+        bool,
+        float,
+        NoneType,
+        range,
+        bytes,
+        slice,
+        xrange,
+        type,
+        BuiltinFunctionType,
+        EllipsisType,
+    ):
+        return "i"
+    elif constant_type is list:
+        for element in constant:
+            if isMutable(element):
+                return ("%s" if elements_only else "L%s") % (
+                    "".join(
+                        getConstantValueGuide(element, elements_only=False)
+                        for element in constant
+                    ),
+                )
+
+        return "l"
+
+    elif constant_type is tuple:
+        return ("%s" if elements_only else "T%s") % (
+            "".join(
+                getConstantValueGuide(element, elements_only=False)
+                for element in constant
+            ),
+        )
+    elif constant_type is set:
+        return "S"
+    elif constant_type is bytearray:
+        return "B"
+    elif constant_type is dict:
+        for value in iterItems(constant):
+            if isMutable(value):
+                return "D"
+
+        return "d"
+    else:
+        return "?"
