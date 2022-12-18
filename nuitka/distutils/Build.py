@@ -32,6 +32,7 @@ else:
     suppress_known_deprecation = setuptools.build_meta.suppress_known_deprecation
 
 
+# reusing private "build" package code, pylint: disable=protected-access
 class NuitkaBuildMetaBackend(setuptools.build_meta._BuildMetaBackend):
     def build_wheel(
         self, wheel_directory, config_settings=None, metadata_directory=None
