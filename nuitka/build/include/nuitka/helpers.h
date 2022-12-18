@@ -428,6 +428,10 @@ extern PyObject *DEEP_COPY_LIST(PyObject *value);
 extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
 extern PyObject *DEEP_COPY_SET(PyObject *value);
 
+// Constants deep copies are guided by value type descriptions.
+extern PyObject *DEEP_COPY_LIST_GUIDED(PyObject *value, char const *guide);
+extern PyObject *DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const *guide);
+
 // UnionType, normally not accessible
 extern PyTypeObject *Nuitka_PyUnion_Type;
 

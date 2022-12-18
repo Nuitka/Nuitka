@@ -46,7 +46,7 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_write_shared_unclear_ref0,
     template_write_shared_unclear_ref1,
 )
-from nuitka.Constants import isMutable
+from nuitka.Constants import getConstantValueGuide, isMutable
 
 from .CTypeBases import CTypeBase
 
@@ -221,8 +221,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = "DEEP_COPY_LIST(%s)" % context.getConstantCode(
-                        constant, deep_check=False
+                    code = 'DEEP_COPY_LIST_GUIDED(%s, "%s")' % (
+                        context.getConstantCode(constant, deep_check=False),
+                        getConstantValueGuide(constant, elements_only=True),
                     )
                     ref_count = 1
                 else:
@@ -244,8 +245,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                         needs_deep = True
                         break
             if needs_deep:
-                code = "DEEP_COPY_TUPLE(%s)" % context.getConstantCode(
-                    constant, deep_check=False
+                code = 'DEEP_COPY_TUPLE_GUIDED(%s, "%s")' % (
+                    context.getConstantCode(constant, deep_check=False),
+                    getConstantValueGuide(constant, elements_only=True),
                 )
                 ref_count = 1
             else:

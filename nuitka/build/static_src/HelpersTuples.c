@@ -114,3 +114,23 @@ PyObject *TUPLE_CONCAT(PyObject *tuple1, PyObject *tuple2) {
 
     return (PyObject *)result;
 }
+
+PyObject *TUPLE_COPY(PyObject *tuple) {
+    CHECK_OBJECT(tuple);
+    assert(PyTuple_CheckExact(tuple));
+
+    Py_ssize_t size = PyTuple_GET_SIZE(tuple);
+    PyObject *result = MAKE_TUPLE_EMPTY(size);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = PyTuple_GET_ITEM(tuple, i);
+        Py_INCREF(item);
+        PyList_SET_ITEM(result, i, item);
+    }
+
+    return result;
+}

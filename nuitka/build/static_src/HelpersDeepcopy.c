@@ -547,3 +547,82 @@ void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
         CHECK_OBJECT_DEEP(values[i]);
     }
 }
+
+static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide);
+static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide);
+
+static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyObject *value, char const **guide) {
+    char code = **guide;
+    *guide += 1;
+
+    switch (code) {
+    case 'i':
+        Py_INCREF(value);
+        return value;
+    case 'L':
+        return _DEEP_COPY_LIST_GUIDED(value, guide);
+    case 'l':
+        return LIST_COPY(value);
+    case 'T':
+        return _DEEP_COPY_TUPLE_GUIDED(value, guide);
+    case 't':
+        return TUPLE_COPY(value);
+    case 'D':
+        return DEEP_COPY_DICT(value);
+    case 'd':
+        return DICT_COPY(value);
+    case 'S':
+        return DEEP_COPY_SET(value);
+    case 'B':
+        return BYTEARRAY_COPY(value);
+    case '?':
+        return DEEP_COPY(value);
+    default:
+        NUITKA_CANNOT_GET_HERE("Illegal type guide");
+        abort();
+    }
+}
+
+static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide) {
+    assert(PyList_CheckExact(value));
+
+    Py_ssize_t size = PyList_GET_SIZE(value);
+
+    PyObject *result = MAKE_LIST_EMPTY(size);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(PyList_GET_ITEM(value, i), guide);
+
+        PyList_SET_ITEM(result, i, item);
+    }
+
+    return result;
+}
+
+static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide) {
+    assert(PyTuple_CheckExact(value));
+
+    Py_ssize_t size = PyTuple_GET_SIZE(value);
+
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(size);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(PyTuple_GET_ITEM(value, i), guide);
+
+        PyTuple_SET_ITEM(result, i, item);
+    }
+
+    return result;
+}
+
+PyObject *DEEP_COPY_LIST_GUIDED(PyObject *value, char const *guide) {
+    PyObject *result = _DEEP_COPY_LIST_GUIDED(value, &guide);
+    assert(*guide == 0);
+    return result;
+}
+
+PyObject *DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const *guide) {
+    PyObject *result = _DEEP_COPY_TUPLE_GUIDED(value, &guide);
+    assert(*guide == 0);
+    return result;
+}
