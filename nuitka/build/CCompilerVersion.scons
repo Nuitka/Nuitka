@@ -69,7 +69,6 @@ from .SconsUtils import (
     getArgumentBool,
     getArgumentDefaulted,
     getArgumentList,
-    getArgumentRequired,
     getExecutablePath,
     initScons,
     isClangName,
@@ -104,9 +103,6 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
-# Non-elf binary, for linker settings.
-noelf_mode = getArgumentBool("noelf_mode", False)
-
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
@@ -123,13 +119,10 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
 
-# For the msys2 python, we can know a few things, it's not Win32 entirely.
-msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
-
 # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
 # is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and not (mingw_mode or msys2_mingw_python) and clang_mode:
+if win_target and not mingw_mode and clang_mode:
     clang_mode = False
     clangcl_mode = True
 
@@ -139,10 +132,6 @@ scons_details_logger.is_quiet = not show_scons_mode
 
 if int(os.environ.get("NUITKA_QUIET", "0")):
     setQuiet()
-
-# Home of Python to be compiled against, used to find tools like clcache and
-# ccache, no linking against Python is needed here.
-python_prefix = getArgumentRequired("python_prefix")
 
 # Forced MSVC version (windows-only)
 msvc_version = getArgumentDefaulted("msvc_version", None)
@@ -159,16 +148,11 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
-# Anaconda Python might use its own compiler.
-anaconda_python = getArgumentBool("anaconda_python", False)
-
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
 # Prepare environment for compiler detection.
-mingw_mode = prepareEnvironment(
-    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
-)
+mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
 
 # TODO: Merge to prepareEnvironment as well.
 if "CXX" in os.environ:
@@ -235,7 +219,6 @@ env.the_compiler = env["CC"] or env["CXX"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.debug_mode = debug_mode
 env.unstripped_mode = debug_mode or unstripped_mode
-env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.low_memory = False
 env.macos_min_version = macos_min_version
@@ -255,15 +238,6 @@ env.clang_mode = clang_mode
 env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
-
-# Python specific modes have to influence some decisions.
-# Our own Python fork, for which we know a lot of optimization can be done.
-env.nuitka_python = getArgumentBool("nuitka_python", False)
-env.debian_python = False
-env.fedora_python = False
-# For the msys2 python, we can know a few things, it's not Win32 entirely.
-env.msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
-env.static_libpython = None
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
