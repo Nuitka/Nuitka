@@ -233,7 +233,7 @@ def main():
     # where main Nuitka put the .const files.
     dist_dir = sys.argv[1]
     onefile_output_filename = sys.argv[2]
-    start_binary = sys.argv[3]
+    start_binary = os.path.normpath(sys.argv[3])  # Might switch from MSYS2 to CPython
     file_checksums = sys.argv[4] == "True"
 
     if os.environ.get("NUITKA_PROGRESS_BAR") == "1":
