@@ -764,7 +764,7 @@ c_compiler_group.add_option(
     dest="mingw64",
     default=False,
     help="""\
-Enforce the use of MinGW64 on Windows. Defaults to off.""",
+Enforce the use of MinGW64 on Windows. Defaults to off unless MSYS2 with MinGW Python is used.""",
 )
 
 c_compiler_group.add_option(
