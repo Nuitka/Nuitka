@@ -17,9 +17,10 @@
 {#                                                                              #}
 
 from nuitka.nodes.NodeBases import NodeBase
-from nuitka.nodes.NodeMetaClasses import NuitkaNodeDesignError
 
-class ChildrenHavingMixin{{mixin_name}}(object):
+from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithSideEffects
+
+class ChildrenHaving{{mixin_name}}Mixin(object):
     # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -29,41 +30,27 @@ class ChildrenHavingMixin{{mixin_name}}(object):
     {# TODO: We could hard code the presence more right, will improve performance #}
     checkers = {}
 
-    {# TODO: Stop passing a dictionary ASAP, genericity is not needed here. #}
-    def __init__(self, values):
-        {# TODO: This should be removed #}
-        assert (
-            type(self.named_children) is tuple and self.named_children
-        ), self.named_children
-
-        {# TODO: This should be removed #}
-        # Check for completeness of given values, everything should be there
-        # but of course, might be put to None.
-        if set(values.keys()) != set(self.named_children):
-            raise NuitkaNodeDesignError(
-                "Must pass named children in value dictionary",
-                set(values.keys()),
-                set(self.named_children),
-            )
-
+    def __init__(self,
 {% for named_child in named_children %}
-        value = values[ "{{named_child}}" ]
-
+                 {{named_child}},
+{% endfor %}
+    ):
+{% for named_child in named_children %}
         if "{{named_child}}" in self.checkers:
-            value = self.checkers["{{named_child}}"](value)
+            {{named_child}} = self.checkers["{{named_child}}"]({{named_child}})
 
         {# TODO: We ought to know if we allow this per value ahead of time. #}
-        if type(value) is tuple:
-            assert None not in value, "{{named_child}}"
+        if type({{named_child}}) is tuple:
+            for val in {{named_child}}:
+                assert val is not None, "{{named_child}}"
 
-            for val in value:
                 val.parent = self
-        elif value is None:
+        elif {{named_child}} is None:
             pass
         else:
-            value.parent = self
+            {{named_child}}.parent = self
 
-        self.subnode_{{named_child}} = value
+        self.subnode_{{named_child}} = {{named_child}}
 {% endfor %}
 
     {# TODO: We to generate methods that imply the name rather than passing it, e.g. setChildStatements #}
@@ -303,7 +290,7 @@ class ChildrenHavingMixin{{mixin_name}}(object):
 
 {% if single_child %}
 {% if named_children_types.get(named_children[0]) == "tuple" %}
-        for c in self.{{named_children[0]}}:
+        for c in self.subnode_{{named_children[0]}}:
             c.finalize()
 {% else %}
         self.subnode_{{named_children[0]}}.finalize()
@@ -313,4 +300,81 @@ class ChildrenHavingMixin{{mixin_name}}(object):
         if self.subnode_{{named_child}} is not None:
             self.subnode_{{named_child}}.finalize()
 {% endfor %}
+{% endif %}
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+{% if single_child %}
+{% if named_children_types.get(named_children[0]) == "tuple" %}
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.subnode_{{named_children[0]}}):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+{% else %}
+        # First apply the sub-expression, as they it's evaluated before.
+        value = self.subnode_{{named_children[0]}}
+
+        if value is not None:
+            expression = trace_collection.onExpression(expression)
+
+            if expression.willRaiseException(BaseException):
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+{% endif %}
+{% else %}
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
 {% endif %}
