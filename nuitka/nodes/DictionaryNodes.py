@@ -26,14 +26,15 @@ that is the child of the dictionary creation.
 from nuitka import Constants
 
 from .AttributeNodes import makeExpressionAttributeLookup
+from .ChildrenHavingMixins import ChildrenHavingPairsTupleMixin
 from .ConstantRefNodes import (
     ExpressionConstantDictEmptyRef,
     makeConstantRefNode,
 )
 from .ExpressionBases import (
+    ExpressionBase,
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase,
-    ExpressionChildTupleHavingBase,
 )
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
@@ -100,18 +101,22 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
 class ExpressionMakeDict(
     ExpressionDictShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildTupleHavingBase,
+    ChildrenHavingPairsTupleMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_MAKE_DICT"
 
-    named_child = "pairs"
+    named_children = ("pairs",)
 
     def __init__(self, pairs, source_ref):
         assert pairs
 
-        ExpressionChildTupleHavingBase.__init__(
-            self, value=tuple(pairs), source_ref=source_ref
+        ChildrenHavingPairsTupleMixin.__init__(
+            self,
+            pairs=tuple(pairs),
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         pairs = self.subnode_pairs

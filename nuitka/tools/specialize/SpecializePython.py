@@ -339,6 +339,12 @@ children_mixins = []
 
 # tuple having container creations
 children_mixins.append((("elements",), {"elements": "tuple"}))
+children_mixins.append((("pairs",), {"pairs": "tuple"}))
+
+# ExpressionBuiltinMakeException
+children_mixins.append((("args",), {"args": "tuple"}))
+# ExpressionStringConcatenation
+children_mixins.append((("values",), {"values": "tuple"}))
 
 
 def makeChildrenHavingMixinNodes():
