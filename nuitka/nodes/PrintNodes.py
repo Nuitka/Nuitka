@@ -65,7 +65,7 @@ class StatementPrintValue(StatementChildrenHavingBase):
 Exception raise in 'print' statement destination converted to explicit raise.""",
             )
 
-        value = trace_collection.onExpression(expression=self.subnode_value)
+        value = trace_collection.onExpression(self.subnode_value)
 
         if value.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
