@@ -102,7 +102,7 @@ class ExpressionConditional(ConditionalValueComputeMixin, ExpressionChildrenHavi
 
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        condition = trace_collection.onExpression(expression=self.subnode_condition)
+        condition = trace_collection.onExpression(self.subnode_condition)
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -268,7 +268,7 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
     def computeExpressionRaw(self, trace_collection):
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        left = trace_collection.onExpression(expression=self.subnode_left)
+        left = trace_collection.onExpression(self.subnode_left)
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
@@ -580,7 +580,7 @@ class StatementConditional(ConditionalValueComputeMixin, StatementChildrenHaving
     def computeStatement(self, trace_collection):
         # This is rather complex stuff, pylint: disable=too-many-branches,too-many-statements
 
-        condition = trace_collection.onExpression(expression=self.subnode_condition)
+        condition = trace_collection.onExpression(self.subnode_condition)
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
