@@ -24,13 +24,14 @@ from abc import abstractmethod
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
+from .ChildrenHavingMixins import ChildrenHavingElementsTupleMixin
 from .ConstantRefNodes import (
     ExpressionConstantListEmptyRef,
     ExpressionConstantSetEmptyRef,
     ExpressionConstantTupleEmptyRef,
     makeConstantRefNode,
 )
-from .ExpressionBases import ExpressionChildTupleHavingBase
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
     ExpressionListShapeExactMixin,
     ExpressionSetShapeExactMixin,
@@ -45,11 +46,11 @@ from .NodeMakingHelpers import (
 
 
 class ExpressionMakeSequenceBase(
-    SideEffectsFromChildrenMixin, ExpressionChildTupleHavingBase
+    SideEffectsFromChildrenMixin, ChildrenHavingElementsTupleMixin, ExpressionBase
 ):
     __slots__ = ("sequence_kind",)
 
-    named_child = "elements"
+    named_children = ("elements",)
 
     def __init__(self, sequence_kind, elements, source_ref):
         assert elements
@@ -59,9 +60,12 @@ class ExpressionMakeSequenceBase(
 
         self.sequence_kind = sequence_kind.lower()
 
-        ExpressionChildTupleHavingBase.__init__(
-            self, value=tuple(elements), source_ref=source_ref
+        ChildrenHavingElementsTupleMixin.__init__(
+            self,
+            elements=tuple(elements),
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
     @staticmethod
     def isExpressionMakeSequence():
