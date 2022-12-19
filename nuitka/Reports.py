@@ -32,6 +32,7 @@ from nuitka.ModuleRegistry import (
     getModuleInfluences,
     getModuleOptimizationTimingInfos,
 )
+from nuitka.nodes.ImportNodes import getMissingModules
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
@@ -84,6 +85,12 @@ def writeCompilationReport(report_filename):
             module_xml_node.append(timing_xml_node)
 
         root.append(module_xml_node)
+
+    modules_node = TreeXML.Element("missing-modules")
+    for module_name in getMissingModules():
+        modules_node.append(TreeXML.Element("module", name=module_name))
+
+    root.append(modules_node)
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":

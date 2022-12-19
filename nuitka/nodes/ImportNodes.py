@@ -148,6 +148,9 @@ hard_modules_version = {
 
 hard_modules_limited = ("importlib.metadata", "ctypes.wintypes", "importlib_metadata")
 
+global missing_modules
+missing_modules = []
+
 
 def isHardModule(module_name):
     if module_name not in hard_modules:
@@ -328,6 +331,10 @@ def _checkHardModules():
 
 
 _checkHardModules()
+
+
+def getMissingModules():
+    return missing_modules
 
 
 def makeExpressionImportModuleNameHard(
@@ -1015,9 +1022,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             module_name = resolveModuleName(module_name)
 
             while True:
+                backup_module_name = str(module_name)
                 module_name = module_name.getPackageName()
 
                 if module_name is None:
+                    missing_modules.append(backup_module_name)
                     break
 
                 module_name_found, module_filename, finding = locateModule(
