@@ -33,6 +33,166 @@ from .NodeBases import NodeBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 
+class ChildrenHavingArgsTupleMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    named_children = ("args",)
+
+    checkers = {}
+
+    def __init__(
+        self,
+        args,
+    ):
+        if "args" in self.checkers:
+            args = self.checkers["args"](args)
+
+        if type(args) is tuple:
+            for val in args:
+                assert val is not None, "args"
+
+                val.parent = self
+        elif args is None:
+            pass
+        else:
+            args.parent = self
+
+        self.subnode_args = args
+
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
+
+        if name in self.checkers:
+            value = self.checkers[name](value)
+
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in ("args",), name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        # Determine old value, and check it has no parent anymore.
+        old_value = self.subnode_args
+        assert old_value is not None
+        assert old_value.parent is None
+        self.subnode_args = None
+
+    def getChild(self, name):
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return self.subnode_args
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("args", self.subnode_args),)
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+        value = self.subnode_args
+        if old_node not in value:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+
+        if new_node is not None:
+            new_value = tuple(
+                (val if val is not old_node else new_node) for val in value
+            )
+        else:
+            new_value = tuple(val for val in value if val is not old_node)
+
+        new_node.parent = self
+
+        self.subnode_args = new_value
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        value = self.subnode_args
+
+        values = {"args": tuple(v.makeClone() for v in value)}
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_args:
+            c.finalize()
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.subnode_args):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
 class ChildrenHavingDistMixin(object):
     # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -339,6 +499,166 @@ class ChildrenHavingDistributionNameMixin(object):
         return self.computeExpression(trace_collection)
 
 
+class ChildrenHavingElementsTupleMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    named_children = ("elements",)
+
+    checkers = {}
+
+    def __init__(
+        self,
+        elements,
+    ):
+        if "elements" in self.checkers:
+            elements = self.checkers["elements"](elements)
+
+        if type(elements) is tuple:
+            for val in elements:
+                assert val is not None, "elements"
+
+                val.parent = self
+        elif elements is None:
+            pass
+        else:
+            elements.parent = self
+
+        self.subnode_elements = elements
+
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
+
+        if name in self.checkers:
+            value = self.checkers[name](value)
+
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in ("elements",), name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        # Determine old value, and check it has no parent anymore.
+        old_value = self.subnode_elements
+        assert old_value is not None
+        assert old_value.parent is None
+        self.subnode_elements = None
+
+    def getChild(self, name):
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return self.subnode_elements
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("elements", self.subnode_elements),)
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+        value = self.subnode_elements
+        if old_node not in value:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+
+        if new_node is not None:
+            new_value = tuple(
+                (val if val is not old_node else new_node) for val in value
+            )
+        else:
+            new_value = tuple(val for val in value if val is not old_node)
+
+        new_node.parent = self
+
+        self.subnode_elements = new_value
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        value = self.subnode_elements
+
+        values = {"elements": tuple(v.makeClone() for v in value)}
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_elements:
+            c.finalize()
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.subnode_elements):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
 class ChildrenHavingGroupNameMixin(object):
     # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -622,6 +942,166 @@ class ChildrenHavingGroupNameMixin(object):
         return self.computeExpression(trace_collection)
 
 
+class ChildrenHavingPairsTupleMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    named_children = ("pairs",)
+
+    checkers = {}
+
+    def __init__(
+        self,
+        pairs,
+    ):
+        if "pairs" in self.checkers:
+            pairs = self.checkers["pairs"](pairs)
+
+        if type(pairs) is tuple:
+            for val in pairs:
+                assert val is not None, "pairs"
+
+                val.parent = self
+        elif pairs is None:
+            pass
+        else:
+            pairs.parent = self
+
+        self.subnode_pairs = pairs
+
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
+
+        if name in self.checkers:
+            value = self.checkers[name](value)
+
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in ("pairs",), name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        # Determine old value, and check it has no parent anymore.
+        old_value = self.subnode_pairs
+        assert old_value is not None
+        assert old_value.parent is None
+        self.subnode_pairs = None
+
+    def getChild(self, name):
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return self.subnode_pairs
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("pairs", self.subnode_pairs),)
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+        value = self.subnode_pairs
+        if old_node not in value:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+
+        if new_node is not None:
+            new_value = tuple(
+                (val if val is not old_node else new_node) for val in value
+            )
+        else:
+            new_value = tuple(val for val in value if val is not old_node)
+
+        new_node.parent = self
+
+        self.subnode_pairs = new_value
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        value = self.subnode_pairs
+
+        values = {"pairs": tuple(v.makeClone() for v in value)}
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_pairs:
+            c.finalize()
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.subnode_pairs):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
 class ChildrenHavingRequirementsTupleMixin(object):
     # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
@@ -760,6 +1240,166 @@ class ChildrenHavingRequirementsTupleMixin(object):
         # First apply the sub-expressions, as they are evaluated before
         # the actual operation.
         for count, sub_expression in enumerate(self.subnode_requirements):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+class ChildrenHavingValuesTupleMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    named_children = ("values",)
+
+    checkers = {}
+
+    def __init__(
+        self,
+        values,
+    ):
+        if "values" in self.checkers:
+            values = self.checkers["values"](values)
+
+        if type(values) is tuple:
+            for val in values:
+                assert val is not None, "values"
+
+                val.parent = self
+        elif values is None:
+            pass
+        else:
+            values.parent = self
+
+        self.subnode_values = values
+
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
+        assert name in self.named_children, name
+
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
+
+        if name in self.checkers:
+            value = self.checkers[name](value)
+
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in ("values",), name
+
+        if name in self.checkers:
+            self.checkers[name](None)
+
+        # Determine old value, and check it has no parent anymore.
+        old_value = self.subnode_values
+        assert old_value is not None
+        assert old_value.parent is None
+        self.subnode_values = None
+
+    def getChild(self, name):
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return self.subnode_values
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("values", self.subnode_values),)
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+        value = self.subnode_values
+        if old_node not in value:
+            raise AssertionError("Didn't find child", old_node, "in", self)
+
+        if new_node is not None:
+            new_value = tuple(
+                (val if val is not old_node else new_node) for val in value
+            )
+        else:
+            new_value = tuple(val for val in value if val is not old_node)
+
+        new_node.parent = self
+
+        self.subnode_values = new_value
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        value = self.subnode_values
+
+        values = {"values": tuple(v.makeClone() for v in value)}
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.subnode_values:
+            c.finalize()
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.subnode_values):
             expression = trace_collection.onExpression(sub_expression)
 
             if expression.willRaiseException(BaseException):
