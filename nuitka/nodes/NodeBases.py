@@ -920,7 +920,7 @@ class StatementBase(NodeBase):
         for count, expression in enumerate(expressions):
             assert expression.isExpression(), (self, expression)
 
-            expression = trace_collection.onExpression(expression=expression)
+            expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseException(BaseException):
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(

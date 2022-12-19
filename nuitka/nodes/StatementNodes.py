@@ -229,7 +229,7 @@ class StatementExpressionOnly(StatementChildHavingBase):
         return self.subnode_expression.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        expression = trace_collection.onExpression(expression=self.subnode_expression)
+        expression = trace_collection.onExpression(self.subnode_expression)
 
         return expression.computeExpressionDrop(
             statement=self, trace_collection=trace_collection
