@@ -10,6 +10,11 @@ Nuitka blog.
  Nuitka Release 1.3 (Draft)
 ****************************
 
+This release contains a large amount of performance work, that should
+specifically be useful on Windows, but also generally. A bit of
+scalability work has been applied, and as usual many bug fixes and small
+improvements, many of which have been in hotfixes.
+
 Bug Fixes
 =========
 
@@ -54,6 +59,10 @@ Bug Fixes
 
 -  Standalone: Added support for ``pytorch_lightning``, it was not
    finding metadata for ``rich`` package. Fixed in 1.2.4 already.
+
+   For the release we found that ``pytorch_lightning`` may not find
+   ``rich`` installed. Need to guard ``version()`` checks in our package
+   configuration.
 
 -  Standalone: Added data files for ``dash`` package. Fixed in 1.2.4
    already.
@@ -111,6 +120,14 @@ Bug Fixes
 -  Plugins: Add ``tls`` to list of sensible plugins. This enables at
    least ``pyqt6`` plugin to do networking with SSL encryption.
 
+-  Standalone: Added implicit dependencies of ``sklearn.cluster``.
+
+-  FreeBSD: Fix, ``fcopyfile`` is no longer available on newest OS
+   version, and include files for ``sendfile`` have changed.
+
+-  MSYS2: Add back support for MSYS Posix variant. Now onefile works
+   there too.
+
 New Features
 ============
 
@@ -138,16 +155,24 @@ New Features
    builds, like the ones from PyPI. This adds support for both PySide2
    and PySide6 to distribute those as well.
 
+-  MSYS2: When asking a CPython installation to compress from the POSIX
+   Python, it crashed on the main filename being not the same.
+
+-  Scons: Fix, need to preserve environment attached modes when
+   switching to winlibs gcc on Windows. This was observed with MSYS2,
+   but might have effects in other cases too.
+
 Optimization
 ============
 
--  Python3.10+: When creating dictionaries, we use the newly exposed
-   dictionary free list. This can speedup code that repeatedly allocates
-   and releases dictionaries by a lot.
+-  Python3.10+: When creating dictionaries, lists, and tuples, we use
+   the newly exposed dictionary free list. This can speedup code that
+   repeatedly allocates and releases dictionaries by a lot.
 
 -  Python3.6+: Added fast path to dictionary copy. Compact dictionaries
    have their keys and values copied directly. This is inspired by a
-   Python 3.10 change, but applicable to older Python as well.
+   Python3.10 change, but it is applicable to older Python as well, and
+   so we did.
 
 -  Python3.9+: Faster compiled object creation, esp. on Python platforms
    that use a DLLs for libpython, which is a given on Windows. This
@@ -158,6 +183,47 @@ Optimization
    free list. This can speed up all kinds of float operations that are
    not doable in-place by a lot.
 
+-  Python3.8+: On Windows, faster object tracking is now available, this
+   previously had to go through a DLL call, that is now removed in this
+   way as it was for non-Windows only so far.
+
+-  Python3.7+: On non-Windows, faster object tracking is now used, this
+   was regressed when adding support for this version, becoming equally
+   bad as all of Windows at the time. However, we now managed to restore
+   it.
+
+-  Optimization: Faster deep copy of mutable tuples and list constants,
+   these were already faster, but e.g. went up from 137% gain factor to
+   201% on Python3.10 as a result. We now use guided a deep copy, which
+   then has the information, what types it is going to copy, removing
+   the need to check through a dictionary.
+
+-  Optimization: Also have own allocator function for fixed size
+   objects. This accelerates allocation of compiled cells, dictionaries,
+   some iterators, and lists objects.
+
+-  More efficient code for object initialization, avoiding one DLL calls
+   to set up our compiled objects.
+
+-  Have our own ``PyObject_Size`` variant, that will be slightly faster
+   and avoids DLL usage for ``len`` and size hints, e.g. in container
+   creations.
+
+-  Avoid using non-optimal ``malloc`` related macros and functions of
+   Python, and instead of the fasted form generally. This avoids Python
+   DLL calls that on Windows can be particularly slow.
+
+-  Scalability: Generated child mixins are now used for the generated
+   package metadata hard import nodes calls, and for all instances of
+   single child tuple containers. These are more efficient for creation
+   and traversal of the tree, directly improving the Python compile
+   time.
+
+-  Scalability: Slightly more efficient compile time constant property
+   detections. For ``frozenset`` there was not need to check for
+   hashable values, and some branches could be replaced with e.g.
+   defining our own ``EllipsisType`` for use in short paths.
+
 -  Windows: When using MSVC and LTO, the linking stage was done with
    only one thread, we now use the proper options to use all cores. This
    is controlled by ``--jobs`` much like C compilation already is. For
@@ -167,28 +233,22 @@ Optimization
 -  Anti-Bloat: Remove the use of ``pytest`` for ``dash`` package
    compilation.
 
--  Anti-Bloat: Remove the use of ``ipython`` for ``dotenv`` package
-   compilation.
+-  Anti-Bloat: Remove the use of IPython for ``dotenv``, ``pyvista``,
+   ``python_utils``, and ``trimesh`` package compilation.
 
--  Anti-Bloat: Remove ``ipython`` usage in ``rdkit`` improving compile
-   time for standalone by a lot. Fixed in 1.2.7 already.
+-  Anti-Bloat: Remove IPython usage in ``rdkit`` improving compile time
+   for standalone by a lot. Fixed in 1.2.7 already.
 
--  Avoid using non-optimal ``malloc`` related macros and functions of
-   Python, and instead of the fasted form generally. This avoids Python
-   DLL calls that on Windows can be particularly slow.
-
--  More efficient code for object initialization, avoiding one DLL call
-   to set up our object, but adding a new one. This solves a TODO
-   partially. The new call will be inlined in the future as well.
+-  Anti-Bloat: Avoid ``keras`` testing framework when using that
+   package.
 
 Organisational
 ==============
 
 -  Plugins: The ``numpy`` plugin functionality was moved to Nuitka
    package configuration, and as a result, the plugin is now deprecated
-   and devoid of functionality. This drops MKL specific code for
-   ``numpy``, but we don't have an installations that use it, may not
-   exist anymore.
+   and devoid of functionality. On non-Windows, this removes unused
+   duplications of the ``numpy.core`` DLLs.
 
 -  User Manual: Added information about macOS entitlements and Windows
    console. These features are supported very well by Nuitka, but needed
@@ -203,6 +263,10 @@ Organisational
 
 -  Quality: Detect trailing/leading spaces in Nuitka package
    configuration ``description`` values during their automatic check.
+
+-  UI: Detect the CPython official flavor on Windows by comparing to
+   registry paths and consider real prefixes, when being used in
+   virtualenv more often, e.g. when checking for CPython on Apple.
 
 -  UI: Enhanced ``--version`` output to include the C compiler
    selection. It is doing that respecting your other options, e.g.
@@ -236,8 +300,22 @@ Organisational
 -  UI: Catch user error of running Nuitka with the ``pythonw`` binary on
    Windows.
 
+-  UI: Make it clear that MSYS2 defaults to ``--mingw64`` mode. It had
+   been like this, but the ``--help`` output didn't say so.
+
+-  GitHub: Updated contribution guidelines for better readability.
+
+-  GitHub: Use organisation URLs everywhere, some were still pointing to
+   the personal rather than the organisation one. While these are
+   redirected, it is not good to have them like this.
+
 Cleanups
 ========
+
+-  Nodes for hard import calls of package meta data now have their base
+   classes fully automatically created, replacing what was previously
+   manual code. This aims at making them more consistent and easier to
+   add.
 
 -  When adding the new Scons file for C compiler version output, more
    values that are needed for both onefile and backend compilation were
@@ -269,9 +347,60 @@ Cleanups
 -  Removed remaining ``PyDev`` annotations, we don't need those anymore
    for a long time already.
 
+-  Cleanup, avoid lists objects for ctypes defined functions and their
+   ``arglist``, actually tuples are sufficient and naturally better to
+   use.
+
 -  Spelling cleanups were resumed, as an ongoing action.
 
-This release is not done yet.
+Tests
+=====
+
+-  Added construct test that demonstrates the mutable constant argument
+   passing for lists to see the performance gains in this area too.
+
+-  Made construct runner ``--diff`` output usable for interactive usage.
+
+-  Repaired Nuitka Speedcenter, but it's not yet too usable for general
+   consumption. More work will be needed there, esp. to make comparisons
+   more accessible for the general public.
+
+Summary
+=======
+
+The major achievement of this release was the removal of the long lived
+``numpy`` plug-in, replacing it with package based configuration, that
+is even more optimal and works perfectly across all platforms on both
+important package installation flavors.
+
+This release has a lot of consolidation efforts, but also as a result of
+3.11 investigations, addresses a lot of issues, that have crept in over
+time with Python3 releases since 3.7, each time, something had not been
+noticed. There will more need for investigation of relative performance
+losses, but this should address the most crucial ones, and also takes
+advantage of optimization that had become with 3.10 already.
+
+There is also some initial results from cleanups with the composite node
+tree structure, and how it is managed. Generated "child(ren) having"
+mixins, allow for faster traversal of the node tree.
+
+Some technical things also improved in Scons. Using multiple cores in
+LTO with MSVC with help this a lot, although for big compilations
+``--lto=no`` probably has to be recommended still.
+
+More ``anti-bloat`` work on more packages rounds up the work.
+
+For macOS specifically, the WebEngine support is cruical to some users,
+and the new ``--macos-app-mode`` with more GUI friendly default resolves
+long standing problems in this area.
+
+And for MSYS2 and FreeBSD, support has been re-activated, so now 4 OSes
+work extremely well (others too likely), and on those, most Python
+flavors work well.
+
+The performance and scalability improvements are going to be crucial.
+It's a pity that 3.11 is not yet supported, but we will be getting
+there.
 
 ********************
  Nuitka Release 1.2
