@@ -39,6 +39,7 @@ from nuitka.importing.Importing import (
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
+from nuitka.ModuleRegistry import addMissingModule
 from nuitka.Options import (
     isStandaloneMode,
     shallMakeModule,
@@ -147,9 +148,6 @@ hard_modules_version = {
 }
 
 hard_modules_limited = ("importlib.metadata", "ctypes.wintypes", "importlib_metadata")
-
-global missing_modules
-missing_modules = []
 
 
 def isHardModule(module_name):
@@ -331,10 +329,6 @@ def _checkHardModules():
 
 
 _checkHardModules()
-
-
-def getMissingModules():
-    return missing_modules
 
 
 def makeExpressionImportModuleNameHard(
@@ -1022,11 +1016,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             module_name = resolveModuleName(module_name)
 
             while True:
-                backup_module_name = str(module_name)
+                backup_module_name = module_name
                 module_name = module_name.getPackageName()
 
                 if module_name is None:
-                    missing_modules.append(backup_module_name)
+                    addMissingModule(backup_module_name)
                     break
 
                 module_name_found, module_filename, finding = locateModule(

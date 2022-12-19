@@ -28,11 +28,11 @@ from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.ModuleRegistry import (
     getDoneModules,
+    getMissingModules,
     getModuleInclusionInfos,
     getModuleInfluences,
     getModuleOptimizationTimingInfos,
 )
-from nuitka.nodes.ImportNodes import getMissingModules
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
