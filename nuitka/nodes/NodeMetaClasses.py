@@ -74,12 +74,8 @@ class NodeCheckMetaClass(ABCMeta):
             dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
 
         if "named_children" in dictionary:
-            if len(dictionary["named_children"]) <= 1:
-                raise NuitkaNodeDesignError(
-                    name, "Use ExpressionChildHaving for one child node classes"
-                )
-
             assert type(dictionary["named_children"]) is tuple
+
             dictionary["__slots__"] += tuple(
                 intern("subnode_" + named_child)
                 for named_child in dictionary["named_children"]
