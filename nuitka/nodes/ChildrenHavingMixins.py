@@ -28,9 +28,15 @@ spell-checker: ignore args chars count default encoding end errors fillchar iter
 
 
 # Loop unrolling over child names, pylint: disable=too-many-branches
-
 from .NodeBases import NodeBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+
+def convertNoneConstantToNone(node):
+    if node is None or node.isExpressionConstantNoneRef():
+        return None
+    else:
+        return node
 
 
 class ChildrenHavingArgsTupleMixin(object):
@@ -45,18 +51,11 @@ class ChildrenHavingArgsTupleMixin(object):
         self,
         args,
     ):
-        if "args" in self.checkers:
-            args = self.checkers["args"](args)
+        assert type(args) is tuple
 
-        if type(args) is tuple:
-            for val in args:
-                assert val is not None, "args"
-
-                val.parent = self
-        elif args is None:
-            pass
-        else:
-            args.parent = self
+        for val in args:
+            assert val is not None
+            val.parent = self
 
         self.subnode_args = args
 
@@ -65,15 +64,9 @@ class ChildrenHavingArgsTupleMixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -82,11 +75,9 @@ class ChildrenHavingArgsTupleMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -95,18 +86,11 @@ class ChildrenHavingArgsTupleMixin(object):
         # Only accept legal child names
         assert name in ("args",), name
 
-        if name in self.checkers:
-            self.checkers[name](None)
-
         # Determine old value, and check it has no parent anymore.
         old_value = self.subnode_args
         assert old_value is not None
         assert old_value.parent is None
         self.subnode_args = None
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -205,17 +189,9 @@ class ChildrenHavingDistMixin(object):
         self,
         dist,
     ):
-        if "dist" in self.checkers:
-            dist = self.checkers["dist"](dist)
+        assert type(dist) is not tuple
 
-        if type(dist) is tuple:
-            for val in dist:
-                assert val is not None, "dist"
-
-                val.parent = self
-        elif dist is None:
-            pass
-        else:
+        if dist is not None:
             dist.parent = self
 
         self.subnode_dist = dist
@@ -225,15 +201,9 @@ class ChildrenHavingDistMixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -242,11 +212,9 @@ class ChildrenHavingDistMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -255,18 +223,11 @@ class ChildrenHavingDistMixin(object):
         # Only accept legal child names
         assert name in ("dist",), name
 
-        if name in self.checkers:
-            self.checkers[name](None)
-
         # Determine old value, and check it has no parent anymore.
         old_value = self.subnode_dist
         assert old_value is not None
         assert old_value.parent is None
         self.subnode_dist = None
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -329,9 +290,9 @@ class ChildrenHavingDistMixin(object):
         """
 
         # First apply the sub-expression, as they it's evaluated before.
-        value = self.subnode_dist
+        expression = self.subnode_dist
 
-        if value is not None:
+        if expression is not None:
             expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseException(BaseException):
@@ -358,17 +319,9 @@ class ChildrenHavingDistributionNameMixin(object):
         self,
         distribution_name,
     ):
-        if "distribution_name" in self.checkers:
-            distribution_name = self.checkers["distribution_name"](distribution_name)
+        assert type(distribution_name) is not tuple
 
-        if type(distribution_name) is tuple:
-            for val in distribution_name:
-                assert val is not None, "distribution_name"
-
-                val.parent = self
-        elif distribution_name is None:
-            pass
-        else:
+        if distribution_name is not None:
             distribution_name.parent = self
 
         self.subnode_distribution_name = distribution_name
@@ -378,15 +331,9 @@ class ChildrenHavingDistributionNameMixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -395,11 +342,9 @@ class ChildrenHavingDistributionNameMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -408,18 +353,11 @@ class ChildrenHavingDistributionNameMixin(object):
         # Only accept legal child names
         assert name in ("distribution_name",), name
 
-        if name in self.checkers:
-            self.checkers[name](None)
-
         # Determine old value, and check it has no parent anymore.
         old_value = self.subnode_distribution_name
         assert old_value is not None
         assert old_value.parent is None
         self.subnode_distribution_name = None
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -482,9 +420,9 @@ class ChildrenHavingDistributionNameMixin(object):
         """
 
         # First apply the sub-expression, as they it's evaluated before.
-        value = self.subnode_distribution_name
+        expression = self.subnode_distribution_name
 
-        if value is not None:
+        if expression is not None:
             expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseException(BaseException):
@@ -511,18 +449,11 @@ class ChildrenHavingElementsTupleMixin(object):
         self,
         elements,
     ):
-        if "elements" in self.checkers:
-            elements = self.checkers["elements"](elements)
+        assert type(elements) is tuple
 
-        if type(elements) is tuple:
-            for val in elements:
-                assert val is not None, "elements"
-
-                val.parent = self
-        elif elements is None:
-            pass
-        else:
-            elements.parent = self
+        for val in elements:
+            assert val is not None
+            val.parent = self
 
         self.subnode_elements = elements
 
@@ -531,15 +462,9 @@ class ChildrenHavingElementsTupleMixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -548,11 +473,9 @@ class ChildrenHavingElementsTupleMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -561,18 +484,11 @@ class ChildrenHavingElementsTupleMixin(object):
         # Only accept legal child names
         assert name in ("elements",), name
 
-        if name in self.checkers:
-            self.checkers[name](None)
-
         # Determine old value, and check it has no parent anymore.
         old_value = self.subnode_elements
         assert old_value is not None
         assert old_value.parent is None
         self.subnode_elements = None
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -659,57 +575,46 @@ class ChildrenHavingElementsTupleMixin(object):
         return self.computeExpression(trace_collection)
 
 
-class ChildrenHavingGroupNameMixin(object):
+class ChildrenHavingExpressionLowerUpperMixin(object):
     # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    named_children = ("group", "name")
+    named_children = ("expression", "lower", "upper")
 
-    checkers = {}
+    checkers = {
+        "lower": convertNoneConstantToNone,
+        "upper": convertNoneConstantToNone,
+    }
 
     def __init__(
         self,
-        group,
-        name,
+        expression,
+        lower,
+        upper,
     ):
-        if "group" in self.checkers:
-            group = self.checkers["group"](group)
+        if expression is not None:
+            expression.parent = self
 
-        if type(group) is tuple:
-            for val in group:
-                assert val is not None, "group"
+        self.subnode_expression = expression
 
-                val.parent = self
-        elif group is None:
-            pass
-        else:
-            group.parent = self
+        lower = convertNoneConstantToNone(lower)
+        if lower is not None:
+            lower.parent = self
 
-        self.subnode_group = group
-        if "name" in self.checkers:
-            name = self.checkers["name"](name)
+        self.subnode_lower = lower
 
-        if type(name) is tuple:
-            for val in name:
-                assert val is not None, "name"
+        upper = convertNoneConstantToNone(upper)
+        if upper is not None:
+            upper.parent = self
 
-                val.parent = self
-        elif name is None:
-            pass
-        else:
-            name.parent = self
-
-        self.subnode_name = name
+        self.subnode_upper = upper
 
     def setChild(self, name, value):
         """Set a child value.
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
 
@@ -723,18 +628,16 @@ class ChildrenHavingGroupNameMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
 
     def clearChild(self, name):
         # Only accept legal child names
-        assert name in ("group", "name"), name
+        assert name in ("expression", "lower", "upper"), name
 
         if name in self.checkers:
             self.checkers[name](None)
@@ -748,9 +651,302 @@ class ChildrenHavingGroupNameMixin(object):
 
         setattr(self, attr_name, None)
 
-    def getChild(self, name):
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+
+        value = self.subnode_expression
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            result.extend(value)
+        else:
+            assert isinstance(value, NodeBase), (
+                "has illegal child",
+                "expression",
+                value,
+                value.__class__,
+            )
+            result.append(value)
+
+        value = self.subnode_lower
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            result.extend(value)
+        else:
+            assert isinstance(value, NodeBase), (
+                "has illegal child",
+                "lower",
+                value,
+                value.__class__,
+            )
+            result.append(value)
+
+        value = self.subnode_upper
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            result.extend(value)
+        else:
+            assert isinstance(value, NodeBase), (
+                "has illegal child",
+                "upper",
+                value,
+                value.__class__,
+            )
+            result.append(value)
+
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("expression", self.subnode_expression),
+            ("lower", self.subnode_lower),
+            ("upper", self.subnode_upper),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
+        value = self.subnode_expression
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            if old_node in value:
+                if new_node is not None:
+                    self.subnode_expression = tuple(
+                        (val if val is not old_node else new_node) for val in value
+                    )
+                else:
+                    self.subnode_expression = tuple(
+                        val for val in value if val is not old_node
+                    )
+
+                return "expression"
+        else:
+            assert isinstance(value, NodeBase), (
+                "has illegal child",
+                "expression",
+                value,
+                value.__class__,
+            )
+
+            if old_node is value:
+                self.setChild("expression", new_node)
+
+                return "expression"
+
+        value = self.subnode_lower
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            if old_node in value:
+                if new_node is not None:
+                    self.subnode_lower = tuple(
+                        (val if val is not old_node else new_node) for val in value
+                    )
+                else:
+                    self.subnode_lower = tuple(
+                        val for val in value if val is not old_node
+                    )
+
+                return "lower"
+        else:
+            assert isinstance(value, NodeBase), (
+                "has illegal child",
+                "lower",
+                value,
+                value.__class__,
+            )
+
+            if old_node is value:
+                self.setChild("lower", new_node)
+
+                return "lower"
+
+        value = self.subnode_upper
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            if old_node in value:
+                if new_node is not None:
+                    self.subnode_upper = tuple(
+                        (val if val is not old_node else new_node) for val in value
+                    )
+                else:
+                    self.subnode_upper = tuple(
+                        val for val in value if val is not old_node
+                    )
+
+                return "upper"
+        else:
+            assert isinstance(value, NodeBase), (
+                "has illegal child",
+                "upper",
+                value,
+                value.__class__,
+            )
+
+            if old_node is value:
+                self.setChild("upper", new_node)
+
+                return "upper"
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {}
+
+        value = self.subnode_expression
+
+        if value is None:
+            values["expression"] = None
+        elif type(value) is tuple:
+            values["expression"] = tuple(v.makeClone() for v in value)
+        else:
+            values["expression"] = value.makeClone()
+        value = self.subnode_lower
+
+        if value is None:
+            values["lower"] = None
+        elif type(value) is tuple:
+            values["lower"] = tuple(v.makeClone() for v in value)
+        else:
+            values["lower"] = value.makeClone()
+        value = self.subnode_upper
+
+        if value is None:
+            values["upper"] = None
+        elif type(value) is tuple:
+            values["upper"] = tuple(v.makeClone() for v in value)
+        else:
+            values["upper"] = value.makeClone()
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_expression.finalize()
+        self.subnode_lower.finalize()
+        self.subnode_upper.finalize()
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+
+class ChildrenHavingGroupNameMixin(object):
+    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    named_children = ("group", "name")
+
+    checkers = {}
+
+    def __init__(
+        self,
+        group,
+        name,
+    ):
+        if group is not None:
+            group.parent = self
+
+        self.subnode_group = group
+
+        if name is not None:
+            name.parent = self
+
+        self.subnode_name = name
+
+    def setChild(self, name, value):
+        """Set a child value.
+
+        Do not overload, provider self.checkers instead.
+        """
+        # Lists as inputs are OK, but turn them into tuples on the fly.
+        if type(value) is list:
+            value = tuple(value)
+
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        # Determine old value, and inform it about losing its parent.
         attr_name = "subnode_" + name
-        return getattr(self, attr_name)
+        old_value = getattr(self, attr_name)
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    def clearChild(self, name):
+        # Only accept legal child names
+        assert name in ("group", "name"), name
+
+        # Determine old value, and check it has no parent anymore.
+        attr_name = "subnode_" + name
+        # Determine old value, and inform it about losing its parent.
+        old_value = getattr(self, attr_name)
+        assert old_value is not None
+        assert old_value.parent is None
+
+        setattr(self, attr_name, None)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -815,15 +1011,12 @@ class ChildrenHavingGroupNameMixin(object):
         elif type(value) is tuple:
             if old_node in value:
                 if new_node is not None:
-                    self.setChild(
-                        "group",
-                        tuple(
-                            (val if val is not old_node else new_node) for val in value
-                        ),
+                    self.subnode_group = tuple(
+                        (val if val is not old_node else new_node) for val in value
                     )
                 else:
-                    self.setChild(
-                        "group", tuple(val for val in value if val is not old_node)
+                    self.subnode_group = tuple(
+                        val for val in value if val is not old_node
                     )
 
                 return "group"
@@ -847,15 +1040,12 @@ class ChildrenHavingGroupNameMixin(object):
         elif type(value) is tuple:
             if old_node in value:
                 if new_node is not None:
-                    self.setChild(
-                        "name",
-                        tuple(
-                            (val if val is not old_node else new_node) for val in value
-                        ),
+                    self.subnode_name = tuple(
+                        (val if val is not old_node else new_node) for val in value
                     )
                 else:
-                    self.setChild(
-                        "name", tuple(val for val in value if val is not old_node)
+                    self.subnode_name = tuple(
+                        val for val in value if val is not old_node
                     )
 
                 return "name"
@@ -954,18 +1144,11 @@ class ChildrenHavingPairsTupleMixin(object):
         self,
         pairs,
     ):
-        if "pairs" in self.checkers:
-            pairs = self.checkers["pairs"](pairs)
+        assert type(pairs) is tuple
 
-        if type(pairs) is tuple:
-            for val in pairs:
-                assert val is not None, "pairs"
-
-                val.parent = self
-        elif pairs is None:
-            pass
-        else:
-            pairs.parent = self
+        for val in pairs:
+            assert val is not None
+            val.parent = self
 
         self.subnode_pairs = pairs
 
@@ -974,15 +1157,9 @@ class ChildrenHavingPairsTupleMixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -991,11 +1168,9 @@ class ChildrenHavingPairsTupleMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -1004,18 +1179,11 @@ class ChildrenHavingPairsTupleMixin(object):
         # Only accept legal child names
         assert name in ("pairs",), name
 
-        if name in self.checkers:
-            self.checkers[name](None)
-
         # Determine old value, and check it has no parent anymore.
         old_value = self.subnode_pairs
         assert old_value is not None
         assert old_value.parent is None
         self.subnode_pairs = None
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -1114,18 +1282,11 @@ class ChildrenHavingRequirementsTupleMixin(object):
         self,
         requirements,
     ):
-        if "requirements" in self.checkers:
-            requirements = self.checkers["requirements"](requirements)
+        assert type(requirements) is tuple
 
-        if type(requirements) is tuple:
-            for val in requirements:
-                assert val is not None, "requirements"
-
-                val.parent = self
-        elif requirements is None:
-            pass
-        else:
-            requirements.parent = self
+        for val in requirements:
+            assert val is not None
+            val.parent = self
 
         self.subnode_requirements = requirements
 
@@ -1134,15 +1295,9 @@ class ChildrenHavingRequirementsTupleMixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -1151,11 +1306,9 @@ class ChildrenHavingRequirementsTupleMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -1164,18 +1317,11 @@ class ChildrenHavingRequirementsTupleMixin(object):
         # Only accept legal child names
         assert name in ("requirements",), name
 
-        if name in self.checkers:
-            self.checkers[name](None)
-
         # Determine old value, and check it has no parent anymore.
         old_value = self.subnode_requirements
         assert old_value is not None
         assert old_value.parent is None
         self.subnode_requirements = None
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
@@ -1274,18 +1420,11 @@ class ChildrenHavingValuesTupleMixin(object):
         self,
         values,
     ):
-        if "values" in self.checkers:
-            values = self.checkers["values"](values)
+        assert type(values) is tuple
 
-        if type(values) is tuple:
-            for val in values:
-                assert val is not None, "values"
-
-                val.parent = self
-        elif values is None:
-            pass
-        else:
-            values.parent = self
+        for val in values:
+            assert val is not None
+            val.parent = self
 
         self.subnode_values = values
 
@@ -1294,15 +1433,9 @@ class ChildrenHavingValuesTupleMixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -1311,11 +1444,9 @@ class ChildrenHavingValuesTupleMixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -1324,18 +1455,11 @@ class ChildrenHavingValuesTupleMixin(object):
         # Only accept legal child names
         assert name in ("values",), name
 
-        if name in self.checkers:
-            self.checkers[name](None)
-
         # Determine old value, and check it has no parent anymore.
         old_value = self.subnode_values
         assert old_value is not None
         assert old_value.parent is None
         self.subnode_values = None
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""

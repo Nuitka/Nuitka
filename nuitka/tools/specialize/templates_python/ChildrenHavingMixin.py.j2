@@ -27,31 +27,59 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
     {# We need to expose this, at least until getChildNameNice and "nice_children" are covered too. #}
     named_children = {{ named_children }}
 
-    {# TODO: We could hard code the presence more right, will improve performance #}
-    checkers = {}
+    checkers = {
+{% for named_child in named_children %}
+{% if named_child in named_children_checkers %}
+        "{{named_child}}" : {{named_children_checkers[named_child]}},
+{% endif %}
+{% endfor %}
+    }
 
     def __init__(self,
 {% for named_child in named_children %}
                  {{named_child}},
 {% endfor %}
     ):
+{% if single_child %}
+{% if named_children[0] in named_children_checkers %}
+        {{named_children[0]}} = {{named_children_checkers[named_children[0]]}}(({{named_children[0]}})
+{% endif %}
+{% if named_children_types.get(named_children[0]) == "tuple" %}
+        assert type({{named_children[0]}}) is tuple
+
+        for val in {{named_children[0]}}:
+            assert val is not None
+            val.parent = self
+
+        self.subnode_{{named_children[0]}} = {{named_children[0]}}
+{% else %}
+        assert type({{named_children[0]}}) is not tuple
+
+        if {{named_children[0]}} is not None:
+            {{named_children[0]}}.parent = self
+
+        self.subnode_{{named_children[0]}} = {{named_children[0]}}
+{% endif %}
+{% else %}
 {% for named_child in named_children %}
-        if "{{named_child}}" in self.checkers:
-            {{named_child}} = self.checkers["{{named_child}}"]({{named_child}})
+{% if named_child in named_children_checkers %}
+        {{named_child}} = {{named_children_checkers[named_child]}}({{named_child}})
+{% endif %}
+{% if named_children_types.get(named_child) == "tuple" %}
+        assert type({{named_child}}) is tuple
 
-        {# TODO: We ought to know if we allow this per value ahead of time. #}
-        if type({{named_child}}) is tuple:
-            for val in {{named_child}}:
-                assert val is not None, "{{named_child}}"
-
-                val.parent = self
-        elif {{named_child}} is None:
-            pass
-        else:
+        for val in {{named_child}}:
+            assert val is not None
+            val.parent = self
+{% else %}
+        if {{named_child}} is not None:
             {{named_child}}.parent = self
+{% endif %}
 
         self.subnode_{{named_child}} = {{named_child}}
+
 {% endfor %}
+{% endif %}
 
     {# TODO: We to generate methods that imply the name rather than passing it, e.g. setChildStatements #}
     def setChild(self, name, value):
@@ -59,15 +87,15 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
 
         Do not overload, provider self.checkers instead.
         """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
+        # Lists as inputs are OK, but turn them into tuples on the fly.
         if type(value) is list:
             value = tuple(value)
 
+{# While we still have these without names, avoid this most of the time #}
+{% if named_children_checkers %}
         if name in self.checkers:
             value = self.checkers[name](value)
+{% endif %}
 
         # Re-parent value to us.
         if type(value) is tuple:
@@ -76,11 +104,9 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         elif value is not None:
             value.parent = self
 
-        attr_name = "subnode_" + name
-
         # Determine old value, and inform it about losing its parent.
+        attr_name = "subnode_" + name
         old_value = getattr(self, attr_name)
-
         assert old_value is not value, value
 
         setattr(self, attr_name, value)
@@ -90,8 +116,11 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         # Only accept legal child names
         assert name in {{ named_children }}, name
 
+{# While we still have these without names, avoid this most of the time #}
+{% if named_children_checkers %}
         if name in self.checkers:
             self.checkers[name](None)
+{% endif %}
 
         # Determine old value, and check it has no parent anymore.
 {% if single_child %}
@@ -109,11 +138,6 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
 
         setattr(self, attr_name, None)
 {% endif %}
-
-    {# TODO: This should be unused with finished template #}
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
 
     def getVisitableNodes(self):
         """ The visitable nodes, with tuple values flattened. """
@@ -134,7 +158,7 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         {# TODO: Consider if a generator is faster. #}
         result = []
 
-        {% for named_child in named_children %}
+{% for named_child in named_children %}
 
         value = self.subnode_{{named_child}}
 
@@ -213,23 +237,17 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         elif type(value) is tuple:
             if old_node in value:
                 if new_node is not None:
-                    {# TODO: Inline setChild effect, or use lists to store tuples #}
-                    self.setChild(
-                        "{{named_child}}",
-                        tuple(
+                    self.subnode_{{named_child}} = tuple(
                             (val if val is not old_node else new_node)
                             for val in value
-                        ),
-                    )
+                        )
                 else:
-                    self.setChild(
-                        "{{named_child}}",
-                        tuple(
+                    self.subnode_{{named_child}} = tuple(
                             val
                             for val in value
                             if val is not old_node
                         )
-                    )
+
 
                 return "{{named_child}}"
         else:
@@ -336,9 +354,9 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         return self.computeExpression(trace_collection)
 {% else %}
         # First apply the sub-expression, as they it's evaluated before.
-        value = self.subnode_{{named_children[0]}}
+        expression = self.subnode_{{named_children[0]}}
 
-        if value is not None:
+        if expression is not None:
             expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseException(BaseException):
