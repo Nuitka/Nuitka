@@ -58,34 +58,17 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
 
 hard_import_node_classes[Expression{{module_name_title}}{{function_name_title}}Ref] = {{module_name_code}}_{{function_name_code}}_spec
 
-{% if parameter_names_count > 1 %}
-from .ExpressionBases import ExpressionChildrenHavingBase
-{% elif parameter_names == ('requirements',) %}
-from .ExpressionBases import ExpressionChildTupleHavingBase
-{% else %}
-from .ExpressionBases import ExpressionChildHavingBase
-{% endif %}
+from .ExpressionBases import ExpressionBase
+from .ChildrenHavingMixins import ChildrenHaving{{mixin_name}}Mixin
 
 from abc import abstractmethod
 
-class Expression{{module_name_title}}{{function_name_title}}CallBase(
-{% if parameter_names_count > 1 %}
-    ExpressionChildrenHavingBase
-{% elif parameter_names == ('requirements',) %}
-    ExpressionChildTupleHavingBase
-{% else %}
-    ExpressionChildHavingBase
-{% endif %}
-):
+class Expression{{module_name_title}}{{function_name_title}}CallBase(ChildrenHaving{{mixin_name}}Mixin, ExpressionBase):
     """Base class for {{module_name_title}}{{function_name_title}}Call
 
        Generated boiler plate code.
     """
-{% if parameter_names_count > 1 %}
-    named_children = {{parameter_names}}
-{% else %}
-    named_child = "{{parameter_names[0]}}"
-{% endif %}
+    named_children = {{ parameter_names }}
 
     __slots__ = ("attempted",)
 
@@ -95,29 +78,17 @@ class Expression{{module_name_title}}{{function_name_title}}CallBase(
 {% endfor %}
         source_ref):
 
-{% if parameter_names_count > 1 %}
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHaving{{mixin_name}}Mixin.__init__(
             self,
-            values={
 {% for parameter_name in parameter_names %}
-                "{{parameter_name}}": {{parameter_name}},
+            {{parameter_name}} = {{parameter_name}},
 {% endfor %}
-            },
-            source_ref=source_ref
         )
-{% elif parameter_names == ('requirements',) %}
-        ExpressionChildTupleHavingBase.__init__(
+
+        ExpressionBase.__init__(
             self,
-            value={{parameter_names[0]}},
             source_ref=source_ref
         )
-{% else %}
-        ExpressionChildHavingBase.__init__(
-            self,
-            value={{parameter_names[0]}},
-            source_ref=source_ref
-        )
-{% endif %}
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()

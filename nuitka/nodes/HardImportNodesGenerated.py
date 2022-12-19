@@ -41,11 +41,13 @@ from nuitka.specs.HardImportSpecs import (
     pkg_resources_require_spec,
 )
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-    ExpressionChildTupleHavingBase,
+from .ChildrenHavingMixins import (
+    ChildrenHavingDistMixin,
+    ChildrenHavingDistributionNameMixin,
+    ChildrenHavingGroupNameMixin,
+    ChildrenHavingRequirementsTupleMixin,
 )
+from .ExpressionBases import ExpressionBase
 from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 hard_import_node_classes = {}
@@ -95,22 +97,25 @@ hard_import_node_classes[
 
 
 class ExpressionImportlibMetadataBackportDistributionCallBase(
-    ExpressionChildHavingBase
+    ChildrenHavingDistributionNameMixin, ExpressionBase
 ):
     """Base class for ImportlibMetadataBackportDistributionCall
 
     Generated boiler plate code.
     """
 
-    named_child = "distribution_name"
+    named_children = ("distribution_name",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, distribution_name, source_ref):
 
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
+        ChildrenHavingDistributionNameMixin.__init__(
+            self,
+            distribution_name=distribution_name,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -176,21 +181,26 @@ hard_import_node_classes[
 ] = importlib_metadata_backport_metadata_spec
 
 
-class ExpressionImportlibMetadataBackportMetadataCallBase(ExpressionChildHavingBase):
+class ExpressionImportlibMetadataBackportMetadataCallBase(
+    ChildrenHavingDistributionNameMixin, ExpressionBase
+):
     """Base class for ImportlibMetadataBackportMetadataCall
 
     Generated boiler plate code.
     """
 
-    named_child = "distribution_name"
+    named_children = ("distribution_name",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, distribution_name, source_ref):
 
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
+        ChildrenHavingDistributionNameMixin.__init__(
+            self,
+            distribution_name=distribution_name,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -256,21 +266,26 @@ hard_import_node_classes[
 ] = importlib_metadata_backport_version_spec
 
 
-class ExpressionImportlibMetadataBackportVersionCallBase(ExpressionChildHavingBase):
+class ExpressionImportlibMetadataBackportVersionCallBase(
+    ChildrenHavingDistributionNameMixin, ExpressionBase
+):
     """Base class for ImportlibMetadataBackportVersionCall
 
     Generated boiler plate code.
     """
 
-    named_child = "distribution_name"
+    named_children = ("distribution_name",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, distribution_name, source_ref):
 
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
+        ChildrenHavingDistributionNameMixin.__init__(
+            self,
+            distribution_name=distribution_name,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -336,21 +351,26 @@ hard_import_node_classes[
 ] = importlib_metadata_distribution_spec
 
 
-class ExpressionImportlibMetadataDistributionCallBase(ExpressionChildHavingBase):
+class ExpressionImportlibMetadataDistributionCallBase(
+    ChildrenHavingDistributionNameMixin, ExpressionBase
+):
     """Base class for ImportlibMetadataDistributionCall
 
     Generated boiler plate code.
     """
 
-    named_child = "distribution_name"
+    named_children = ("distribution_name",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, distribution_name, source_ref):
 
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
+        ChildrenHavingDistributionNameMixin.__init__(
+            self,
+            distribution_name=distribution_name,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -416,21 +436,26 @@ hard_import_node_classes[
 ] = importlib_metadata_metadata_spec
 
 
-class ExpressionImportlibMetadataMetadataCallBase(ExpressionChildHavingBase):
+class ExpressionImportlibMetadataMetadataCallBase(
+    ChildrenHavingDistributionNameMixin, ExpressionBase
+):
     """Base class for ImportlibMetadataMetadataCall
 
     Generated boiler plate code.
     """
 
-    named_child = "distribution_name"
+    named_children = ("distribution_name",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, distribution_name, source_ref):
 
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
+        ChildrenHavingDistributionNameMixin.__init__(
+            self,
+            distribution_name=distribution_name,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -496,21 +521,26 @@ hard_import_node_classes[
 ] = importlib_metadata_version_spec
 
 
-class ExpressionImportlibMetadataVersionCallBase(ExpressionChildHavingBase):
+class ExpressionImportlibMetadataVersionCallBase(
+    ChildrenHavingDistributionNameMixin, ExpressionBase
+):
     """Base class for ImportlibMetadataVersionCall
 
     Generated boiler plate code.
     """
 
-    named_child = "distribution_name"
+    named_children = ("distribution_name",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, distribution_name, source_ref):
 
-        ExpressionChildHavingBase.__init__(
-            self, value=distribution_name, source_ref=source_ref
+        ChildrenHavingDistributionNameMixin.__init__(
+            self,
+            distribution_name=distribution_name,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -576,19 +606,26 @@ hard_import_node_classes[
 ] = pkg_resources_get_distribution_spec
 
 
-class ExpressionPkgResourcesGetDistributionCallBase(ExpressionChildHavingBase):
+class ExpressionPkgResourcesGetDistributionCallBase(
+    ChildrenHavingDistMixin, ExpressionBase
+):
     """Base class for PkgResourcesGetDistributionCall
 
     Generated boiler plate code.
     """
 
-    named_child = "dist"
+    named_children = ("dist",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, dist, source_ref):
 
-        ExpressionChildHavingBase.__init__(self, value=dist, source_ref=source_ref)
+        ChildrenHavingDistMixin.__init__(
+            self,
+            dist=dist,
+        )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -654,7 +691,9 @@ hard_import_node_classes[
 ] = pkg_resources_iter_entry_points_spec
 
 
-class ExpressionPkgResourcesIterEntryPointsCallBase(ExpressionChildrenHavingBase):
+class ExpressionPkgResourcesIterEntryPointsCallBase(
+    ChildrenHavingGroupNameMixin, ExpressionBase
+):
     """Base class for PkgResourcesIterEntryPointsCall
 
     Generated boiler plate code.
@@ -666,14 +705,13 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(ExpressionChildrenHavingBase
 
     def __init__(self, group, name, source_ref):
 
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingGroupNameMixin.__init__(
             self,
-            values={
-                "group": group,
-                "name": name,
-            },
-            source_ref=source_ref,
+            group=group,
+            name=name,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -738,21 +776,26 @@ class ExpressionPkgResourcesRequireRef(
 hard_import_node_classes[ExpressionPkgResourcesRequireRef] = pkg_resources_require_spec
 
 
-class ExpressionPkgResourcesRequireCallBase(ExpressionChildTupleHavingBase):
+class ExpressionPkgResourcesRequireCallBase(
+    ChildrenHavingRequirementsTupleMixin, ExpressionBase
+):
     """Base class for PkgResourcesRequireCall
 
     Generated boiler plate code.
     """
 
-    named_child = "requirements"
+    named_children = ("requirements",)
 
     __slots__ = ("attempted",)
 
     def __init__(self, requirements, source_ref):
 
-        ExpressionChildTupleHavingBase.__init__(
-            self, value=requirements, source_ref=source_ref
+        ChildrenHavingRequirementsTupleMixin.__init__(
+            self,
+            requirements=requirements,
         )
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()

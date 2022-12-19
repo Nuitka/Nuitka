@@ -335,9 +335,10 @@ def makeMixinName(named_children, named_children_types):
     return mixin_name
 
 
-children_mixins = [
-    (("group", "name"), {}),
-]
+children_mixins = []
+
+# tuple having container creations
+children_mixins.append((("elements",), {"elements": "tuple"}))
 
 
 def makeChildrenHavingMixinNodes():
@@ -360,13 +361,9 @@ def makeChildrenHavingMixinNodes():
 
         emit("""# Loop unrolling over child names, pylint: disable=too-many-branches""")
 
-        for named_children, named_children_types in children_mixins:
+        for named_children, named_children_types in sorted(children_mixins):
             assert named_children
             mixin_name = makeMixinName(named_children, named_children_types)
-
-            mixin_name = "".join(
-                makeTitleCased(named_child) for named_child in named_children
-            )
 
             if mixin_name in mixins_done:
                 continue
@@ -408,15 +405,17 @@ hard_import_node_classes = {}
         )
 
         for spec_name, spec in getSpecs(nuitka.specs.HardImportSpecs):
-            children_types = {}
-            if spec.name == "pkg_resources.require":
-                children_types["requirements"] = "tuple"
+            named_children_types = {}
 
-            children_mixins.append((spec.getParameterNames(), children_types))
+            if spec.name == "pkg_resources.require":
+                named_children_types["requirements"] = "tuple"
 
             module_name, function_name = spec.name.rsplit(".", 1)
             code = template.render(
                 name=template.name,
+                mixin_name=makeMixinName(
+                    spec.getParameterNames(), named_children_types
+                ),
                 parameter_names_count=len(spec.getParameterNames()),
                 parameter_names=spec.getParameterNames(),
                 argument_names=spec.getArgumentNames(),
@@ -431,6 +430,8 @@ hard_import_node_classes = {}
                 call_node_prefix=getCallModulePrefix(module_name, function_name),
                 spec_name=spec_name,
             )
+
+            children_mixins.append((spec.getParameterNames(), named_children_types))
 
             emit(code)
 
