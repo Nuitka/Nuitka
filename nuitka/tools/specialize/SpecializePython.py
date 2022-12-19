@@ -337,14 +337,28 @@ def makeMixinName(named_children, named_children_types):
 
 children_mixins = []
 
+
+def addChildrenMixin(named_children, named_children_types, named_children_checkers):
+    children_mixins.append(
+        (named_children, named_children_types, named_children_checkers)
+    )
+
+
 # tuple having container creations
-children_mixins.append((("elements",), {"elements": "tuple"}))
-children_mixins.append((("pairs",), {"pairs": "tuple"}))
+addChildrenMixin(("elements",), {"elements": "tuple"}, {})
+addChildrenMixin(("pairs",), {"pairs": "tuple"}, {})
 
 # ExpressionBuiltinMakeException
-children_mixins.append((("args",), {"args": "tuple"}))
+addChildrenMixin(("args",), {"args": "tuple"}, {})
 # ExpressionStringConcatenation
-children_mixins.append((("values",), {"values": "tuple"}))
+addChildrenMixin(("values",), {"values": "tuple"}, {})
+
+# ExpressionSliceLookup
+addChildrenMixin(
+    ("expression", "lower", "upper"),
+    {},
+    {"upper": "convertNoneConstantToNone", "lower": "convertNoneConstantToNone"},
+)
 
 
 def makeChildrenHavingMixinNodes():
@@ -367,7 +381,19 @@ def makeChildrenHavingMixinNodes():
 
         emit("""# Loop unrolling over child names, pylint: disable=too-many-branches""")
 
-        for named_children, named_children_types in sorted(children_mixins):
+        emit(
+            """
+def convertNoneConstantToNone(node):
+    if node is None or node.isExpressionConstantNoneRef():
+        return None
+    else:
+        return node
+"""
+        )
+
+        for named_children, named_children_types, named_children_checkers in sorted(
+            children_mixins
+        ):
             assert named_children
             mixin_name = makeMixinName(named_children, named_children_types)
 
@@ -379,6 +405,7 @@ def makeChildrenHavingMixinNodes():
                 mixin_name=mixin_name,
                 named_children=named_children,
                 named_children_types=named_children_types,
+                named_children_checkers=named_children_checkers,
                 single_child=len(named_children) == 1,
             )
 
@@ -416,6 +443,8 @@ hard_import_node_classes = {}
             if spec.name == "pkg_resources.require":
                 named_children_types["requirements"] = "tuple"
 
+            named_children_checkers = {}
+
             module_name, function_name = spec.name.rsplit(".", 1)
             code = template.render(
                 name=template.name,
@@ -437,7 +466,13 @@ hard_import_node_classes = {}
                 spec_name=spec_name,
             )
 
-            children_mixins.append((spec.getParameterNames(), named_children_types))
+            children_mixins.append(
+                (
+                    spec.getParameterNames(),
+                    named_children_types,
+                    named_children_checkers,
+                )
+            )
 
             emit(code)
 
