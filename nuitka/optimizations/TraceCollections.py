@@ -658,17 +658,14 @@ class TraceCollectionBase(object):
         if expression is None and allow_none:
             return None
 
-        assert expression.isExpression(), expression
+        # assert expression.isExpression(), expression
 
         parent = expression.parent
         assert parent, expression
 
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peep hole optimization.
-        r = expression.computeExpressionRaw(trace_collection=self)
-        assert type(r) is tuple, (expression, expression.getVisitableNodes(), r)
-
-        new_node, change_tags, change_desc = r
+        new_node, change_tags, change_desc = expression.computeExpressionRaw(self)
 
         if change_tags is not None:
             # This is mostly for tracing and indication that a change occurred

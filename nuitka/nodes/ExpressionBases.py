@@ -1277,7 +1277,7 @@ class ExpressionChildHavingBase(ExpressionBase):
         value = getattr(self, attr_name)
 
         if value is not None:
-            expression = trace_collection.onExpression(expression=value)
+            expression = trace_collection.onExpression(value)
 
             if expression.willRaiseException(BaseException):
                 return (
@@ -1425,7 +1425,7 @@ class ExpressionChildTupleHavingBase(ExpressionBase):
         for count, sub_expression in enumerate(sub_expressions):
             assert sub_expression.isExpression(), (self, sub_expression)
 
-            expression = trace_collection.onExpression(expression=sub_expression)
+            expression = trace_collection.onExpression(sub_expression)
 
             if expression.willRaiseException(BaseException):
                 wrapped_expression = wrapExpressionWithSideEffects(

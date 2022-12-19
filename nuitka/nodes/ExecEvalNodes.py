@@ -158,7 +158,7 @@ class StatementExec(StatementChildrenHavingBase):
         return StatementChildrenHavingBase.setChild(self, name, value)
 
     def computeStatement(self, trace_collection):
-        source_code = trace_collection.onExpression(expression=self.subnode_source)
+        source_code = trace_collection.onExpression(self.subnode_source)
 
         if source_code.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
