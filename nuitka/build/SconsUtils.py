@@ -248,11 +248,15 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
     if env.static_libpython:
         assert os.path.exists(env.static_libpython), env.static_libpython
 
+    # Python version we are working on.
     python_version_str = getArgumentDefaulted("python_version", None)
     if python_version_str is not None:
         env.python_version = tuple(int(d) for d in python_version_str.split("."))
     else:
         env.python_version = None
+
+    # Modules count, determines if this is a large compilation.
+    env.module_count = getArgumentInt("module_count", 0)
 
     _enableExperimentalSettings(env, experimental)
 
