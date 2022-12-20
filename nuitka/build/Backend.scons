@@ -201,10 +201,6 @@ if win_target and not mingw_mode and clang_mode:
     clang_mode = False
     clangcl_mode = True
 
-# Shared library and compiled modules count, determines the need for the
-# compiled module loader.
-module_count = getArgumentInt("module_count")
-
 # Frozen modules count, determines the need for the bytecode frozen
 # modules loader.
 frozen_modules = getArgumentInt("frozen_modules", 0)

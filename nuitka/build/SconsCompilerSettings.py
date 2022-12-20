@@ -168,6 +168,19 @@ def _enableLtoSettings(
         lto_mode = False
         reason = "not known to be supported"
 
+    # Do not default to LTO for large compilations, unless asked for it.
+    module_count_threshold = 250
+    if (
+        orig_lto_mode == "auto"
+        and lto_mode
+        and env.module_count > module_count_threshold
+    ):
+        lto_mode = False
+        reason = "might to be too slow %s (>= %d threshold), force with --lto=yes" % (
+            env.module_count,
+            module_count_threshold,
+        )
+
     if lto_mode and env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 6):
         scons_logger.warning(
             """\
