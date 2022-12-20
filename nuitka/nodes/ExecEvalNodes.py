@@ -140,6 +140,11 @@ class StatementExec(StatementChildrenHavingBase):
 
     named_children = ("source", "globals_arg", "locals_arg")
 
+    checkers = {
+        "globals_arg": convertNoneConstantToNone,
+        "locals_arg": convertNoneConstantToNone,
+    }
+
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
@@ -150,12 +155,6 @@ class StatementExec(StatementChildrenHavingBase):
             },
             source_ref=source_ref,
         )
-
-    def setChild(self, name, value):
-        if name in ("globals_arg", "locals_arg"):
-            value = convertNoneConstantToNone(value)
-
-        return StatementChildrenHavingBase.setChild(self, name, value)
 
     def computeStatement(self, trace_collection):
         source_code = trace_collection.onExpression(self.subnode_source)

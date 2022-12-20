@@ -1236,7 +1236,7 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
                 )
 
         # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection=trace_collection)
+        return self.computeExpression(trace_collection)
 
 
 class ExpressionChildHavingBase(ExpressionBase):
@@ -1288,7 +1288,7 @@ class ExpressionChildHavingBase(ExpressionBase):
                 )
 
         # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection=trace_collection)
+        return self.computeExpression(trace_collection)
 
     def setChild(self, name, value):
         """Set a child value.
