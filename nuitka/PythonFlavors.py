@@ -34,6 +34,7 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import getInstalledPythonRegistryPaths
 from nuitka.utils.Utils import (
+    isAndroidBasedLinux,
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
@@ -106,6 +107,7 @@ def isApplePython():
 
 
 def isHomebrewPython():
+    # spell-checker: ignore sitecustomize
     if not isMacOS():
         return False
 
@@ -133,12 +135,23 @@ def isPyenvPython():
 
 
 def isMSYS2MingwPython():
+    """MSYS2 the MinGW64 variant that is more Win32 compatible."""
     if not isWin32Windows() or "GCC" not in sys.version:
         return False
 
     import sysconfig
 
     return "-mingw_" in sysconfig.get_config_var("SO")
+
+
+def isTermuxPython():
+    """Is this Termux Android Python."""
+    # spell-checker: ignore termux
+
+    if not isAndroidBasedLinux():
+        return False
+
+    return "com.termux" in getSystemPrefixPath().split("/")
 
 
 def isUninstalledPython():
@@ -169,11 +182,14 @@ def isUninstalledPython():
 
 
 def isWinPython():
+    """Is this Python from WinPython."""
     return "WinPython" in sys.version
 
 
 def isDebianPackagePython():
     """Is this Python from a debian package."""
+
+    # spell-checker: ignore multiarch
 
     if not isLinux():
         return False
@@ -222,7 +238,7 @@ def isCPythonOfficialPackage():
 
 def getPythonFlavorName():
     """For output to the user only."""
-    # return driven, pylint: disable=too-many-return-statements
+    # return driven, pylint: disable=too-many-branches,too-many-return-statements
 
     if isNuitkaPython():
         return "Nuitka Python"
@@ -244,6 +260,8 @@ def getPythonFlavorName():
         return "MSYS2 Posix"
     elif isMSYS2MingwPython():
         return "MSYS2 MinGW"
+    elif isTermuxPython():
+        return "Android Termux"
     elif isCPythonOfficialPackage():
         return "CPython Official"
     else:
