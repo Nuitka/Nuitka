@@ -555,12 +555,7 @@ def runSconsBackend():
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
         "nuitka_src": getSconsDataPath(),
-        "module_count": "%d"
-        % (
-            1
-            + len(ModuleRegistry.getDoneModules())
-            + len(ModuleRegistry.getUncompiledNonTechnicalModules())
-        ),
+        "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
     }
 
     if Options.isLowMemory():
