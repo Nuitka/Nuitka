@@ -1316,12 +1316,16 @@ there is still more work needed, esp. to make it do more optimization.
 Try it out, and when popular packages do not work, please make reports
 on GitHub.
 
-Follow me on Twitter
-====================
+Follow me on Mastodon and Twitter
+=================================
 
-Nuitka announcements and interesting stuff is pointed to on the Twitter
-account, but obviously with not too many details. `@KayHayen
-<https://twitter.com/KayHayen>`_.
+Nuitka announcements and interesting stuff is pointed to on both the
+Mastodon and Twitter accounts, but obviously with not too many details,
+usually pointing to the website, but sometimes I also ask questions
+there.
+
+`@KayHayen on Mastodon <https://fosstodon.org/@kayhayen>`_. `@KayHayen
+on Twitter <https://twitter.com/KayHayen>`_.
 
 Report issues or bugs
 =====================
