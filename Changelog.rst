@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 1.3 (Draft)
-****************************
+********************
+ Nuitka Release 1.3
+********************
 
 This release contains a large amount of performance work, that should
 specifically be useful on Windows, but also generally. A bit of
