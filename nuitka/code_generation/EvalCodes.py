@@ -341,7 +341,10 @@ def _generateEvalCode(to_name, node, emit, context):
     locals_name = context.allocateTempName("eval_locals")
 
     generateExpressionCode(
-        to_name=source_name, expression=node.subnode_source, emit=emit, context=context
+        to_name=source_name,
+        expression=node.subnode_source_code,
+        emit=emit,
+        context=context,
     )
 
     generateExpressionCode(

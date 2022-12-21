@@ -1,0 +1,120 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Python test originally created or extracted from other peoples work. The #}
+{#     parts from me are licensed as below. It is at least Free Software where  #}
+{#     it's copied from other people. In these cases, that will normally be     #}
+{#     indicated.                                                               #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#         http://www.apache.org/licenses/LICENSE-2.0                           #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+# This test does check operations in optimizable and not optimizable forms
+# to check for proper errors, exceptions, etc.
+
+# While we use that for comparison code, no need to compile that.
+# nuitka-project: --nofollow-import-to=nuitka
+
+from __future__ import print_function
+
+import os
+import sys
+
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    ),
+)
+from nuitka.tools.testing.Common import checkReferenceCount
+
+# isort:start
+
+# Function to hide type because it is not seen through
+def forgetType(value):
+    return value
+
+
+{% for bytes_method_name in bytes_method_names %}
+
+{% if bytes_method_name in ("capitalize", "upper", "lower", "swapcase", "title", "isalnum", "isalpha", "isdigit", "islower", "isupper", "isspace", "istitle") %}
+{% set method_arg_variants = [""] %}
+{% elif "partition" in bytes_method_name or "strip" in bytes_method_name %}
+{% set method_arg_variants = ["b'a'", "1", "None"] %}
+{% elif bytes_method_name == "splitlines" %}
+{% set method_arg_variants = ["", "True"] %}
+{% elif "split" in bytes_method_name %}
+{% set method_arg_variants = ["", "1", "b'a'", "None", "b'a', 'b'", "b'a', 1", "None, 1"] %}
+{% elif bytes_method_name == "join"  %}
+{% set method_arg_variants = ["[b'a', 1]", "None", "1", "[b'a', b'b']"] %}
+{% elif bytes_method_name == "replace"  %}
+{% set method_arg_variants = ["b'a', 1", "b'a', ''"] %}
+{% elif bytes_method_name in ("encode", "decode") %}
+{% set method_arg_variants = ["", "b'a'", "b'a', 'utf8'"] %}
+{% elif "find" in bytes_method_name or "index" in bytes_method_name or "with" in bytes_method_name %}
+{% set method_arg_variants = ["1", "b'a'", "b'a', b'b'", "b'a', b'b', b'c'"] %}
+{% elif bytes_method_name == "count"  %}
+{% set method_arg_variants = ["b'a'", "b'a', 1", "b'a', b'b'", "b'a', 1, 2"] %}
+{% elif bytes_method_name == "expandtabs"  %}
+{% set method_arg_variants = ["", "1"] %}
+{% elif bytes_method_name == "translate"  %}
+{% set method_arg_variants = ["b'12'"] %}
+{% elif bytes_method_name in ("zfill", "ljust", "rjust", "center") %}
+{% set method_arg_variants = ["12"] %}
+{% else %}
+{% set method_arg_variants = ["", "1", "b'a'", "b'a', b'b'", "b'a', b'b', b'c'"] %}
+{% endif %}
+
+{% if method_arguments[bytes_method_name] %}
+{% do method_arg_variants.append("%s=1" % method_arguments[bytes_method_name][-1]) %}
+{% endif %}
+
+{% for method_args in method_arg_variants %}
+
+{% set left_1 = "b'some_value'" %}
+{% set left_2 = "b'other_value'" %}
+
+{% set operation_id = "check%s%s" % (bytes_method_name.title(), (""if loop.index == 0 else loop.index)) %}
+
+def {{operation_id}}(cond=None):
+    # First value type, which we expect to be compile time computed.
+    try:
+        # We expect this to be compile time error checked still.
+        x = b"static_value".{{bytes_method_name}}({{method_args}})
+    except Exception as e: # pylint: disable=broad-except
+        if cond is not None:
+            print("bytes.{{bytes_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time occurred:", repr(e))
+    else:
+        if cond is not None:
+            print("bytes.{{bytes_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) compile time result:", type(x), x)
+
+    # Now the branch may make things less clear for mixed types and
+    # also require the operation to be checked at run time.
+    left = {{left_1}} if cond else {{left_2}}
+
+    try:
+        # We expect this to be compile time error checked still.
+        x = left.{{bytes_method_name}}({{method_args}})
+    except Exception as e: # pylint: disable=broad-except
+        if cond is not None:
+            print("bytes.{{bytes_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime occurred:", repr(e))
+    else:
+        if cond is not None:
+            print("bytes.{{bytes_method_name}}({{method_args.count(",")+1 if method_args else 0}} args) runtime result:", type(x), x)
+
+{{operation_id}}(1)
+{{operation_id}}(0)
+
+checkReferenceCount({{operation_id}})
+
+{% endfor %}
+{% endfor %}

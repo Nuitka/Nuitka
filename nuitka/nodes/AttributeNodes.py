@@ -35,10 +35,13 @@ and annotation is happening in the nodes that implement these compute slots.
 """
 
 from .AttributeLookupNodes import ExpressionAttributeLookup
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildHavingExpressionMixin,
+    ChildrenExpressionBuiltinGetattrMixin,
+    ChildrenExpressionBuiltinHasattrMixin,
+    ChildrenExpressionBuiltinSetattrMixin,
 )
+from .ExpressionBases import ExpressionBase
 from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeCompileTimeConstantReplacementNode,
@@ -177,7 +180,7 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
         )
 
 
-class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
+class ExpressionBuiltinGetattr(ChildrenExpressionBuiltinGetattrMixin, ExpressionBase):
     """Built-in "getattr".
 
     Typical code like this: getattr(object_arg, name, default)
@@ -187,14 +190,14 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
-    named_children = ("expression", "name", "default")
+    named_children = ("expression", "name", "default|optional")
 
     def __init__(self, expression, name, default, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "name": name, "default": default},
-            source_ref=source_ref,
+        ChildrenExpressionBuiltinGetattrMixin.__init__(
+            self, expression=expression, name=name, default=default
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -237,7 +240,7 @@ attribute '%s' to mere attribute lookup"""
         return self, None, None
 
 
-class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
+class ExpressionBuiltinSetattr(ChildrenExpressionBuiltinSetattrMixin, ExpressionBase):
     """Built-in "setattr".
 
     Typical code like this: setattr(source, attribute, value)
@@ -248,30 +251,34 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     named_children = ("expression", "attribute", "value")
 
     def __init__(self, expression, name, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinSetattrMixin.__init__(
             self,
-            values={"expression": expression, "attribute": name, "value": value},
-            source_ref=source_ref,
+            expression=expression,
+            attribute=name,
+            value=value,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Note: Might be possible to predict or downgrade to mere attribute set.
+        # TODO: Might be possible to predict or downgrade to mere attribute set
+        # in case of a compile time string attribute value.
         return self, None, None
 
 
-class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
+class ExpressionBuiltinHasattr(ChildrenExpressionBuiltinHasattrMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ("expression", "attribute")
 
     def __init__(self, expression, name, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "attribute": name},
-            source_ref=source_ref,
+        ChildrenExpressionBuiltinHasattrMixin.__init__(
+            self, expression=expression, attribute=name
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more
@@ -314,17 +321,17 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionAttributeCheck(ExpressionChildHavingBase):
+class ExpressionAttributeCheck(ChildHavingExpressionMixin, ExpressionBase):
     kind = "EXPRESSION_ATTRIBUTE_CHECK"
 
-    named_child = "expression"
+    named_children = ("expression",)
 
     __slots__ = ("attribute_name",)
 
     def __init__(self, expression, attribute_name, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=expression, source_ref=source_ref
-        )
+        ChildHavingExpressionMixin.__init__(self, expression=expression)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.attribute_name = attribute_name
 

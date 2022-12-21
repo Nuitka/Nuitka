@@ -77,7 +77,7 @@ def withChangeIndicationsTo(signal_change):
 class CollectionUpdateMixin(object):
     """Mixin to use in every collection to add traces."""
 
-    # Mixins are not allow to specify slots.
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def hasVariableTrace(self, variable, version):
@@ -122,7 +122,7 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
     These are modules, functions, etc. typically entry points.
     """
 
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     # Many things are traced

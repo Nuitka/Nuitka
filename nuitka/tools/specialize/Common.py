@@ -210,27 +210,31 @@ python3_bytes_methods = (
     "capitalize",
     "center",
     "count",
-    "decode",  # has full coverage
+    "decode",
     "endswith",
     "expandtabs",
     "find",
     # static method
     # "fromhex",
-    "hex",
+    # TODO: Python3.5 or higher:
+    # "hex",
     "index",
     "isalnum",
     "isalpha",
-    "isascii",
     "isdigit",
     "islower",
     "isspace",
     "istitle",
     "isupper",
+    # TODO: Python3.7 or higher:
+    # "ishex",
+    # "isascii",
     "join",
     "ljust",
     "lower",
     "lstrip",
-    "maketrans",
+    # static method
+    # "maketrans",
     "partition",
     # TODO: Python3.9 or higher:
     # "removeprefix",
@@ -295,10 +299,12 @@ def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
             for arg_name in arg_names
         ]
 
-    else:
-        arg_names = arg_name_mapping = arg_counts = arg_tests = None
+        result_shape = spec.getTypeShape()
 
-    return present, arg_names, arg_tests, arg_name_mapping, arg_counts
+    else:
+        arg_names = arg_name_mapping = arg_counts = arg_tests = result_shape = None
+
+    return present, arg_names, arg_tests, arg_name_mapping, arg_counts, result_shape
 
 
 def getSpecs(spec_module):
@@ -307,14 +313,14 @@ def getSpecs(spec_module):
             yield name, getattr(spec_module, name)
 
 
-def formatArgs(args, starting=True, finishing=True):
+def formatArgs(args, starting=True, finishing=True, quoted=False):
     result = []
     if args:
         if not starting:
             result.append(",")
 
         for arg in args:
-            result.append(arg)
+            result.append('"%s"' % arg if quoted else arg)
 
             if arg is not args[-1] or not finishing:
                 result.append(",")

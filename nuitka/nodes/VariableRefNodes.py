@@ -785,10 +785,7 @@ class ExpressionTempVariableRef(
             ),
         )
 
-        outline_body.setChild(
-            "body",
-            makeStatementsSequenceFromStatements(*statements),
-        )
+        outline_body.setChildBody(makeStatementsSequenceFromStatements(*statements))
 
         return False, trace_collection.computedExpressionResultRaw(
             outline_body,

@@ -52,7 +52,7 @@ class StatementReturn(StatementChildHavingBase):
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        if expression.willRaiseException(BaseException):
+        if expression.willRaiseAnyException():
             from .NodeMakingHelpers import (
                 makeStatementExpressionOnlyReplacementNode,
             )

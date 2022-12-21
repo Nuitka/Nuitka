@@ -24,21 +24,20 @@ whose implementation lives here. The creation itself also lives here.
 
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionNoSideEffectsMixin,
-)
+from .ChildrenHavingMixins import ChildHavingGeneratorRefMixin
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import MarkUnoptimizedFunctionIndicatorMixin
 from .ReturnNodes import StatementReturn, StatementReturnNone
 
 
 class ExpressionMakeGeneratorObject(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    ExpressionNoSideEffectsMixin, ChildHavingGeneratorRefMixin, ExpressionBase
 ):
+
     kind = "EXPRESSION_MAKE_GENERATOR_OBJECT"
 
-    named_child = "generator_ref"
+    named_children = ("generator_ref",)
 
     __slots__ = ("variable_closure_traces",)
 
@@ -47,9 +46,9 @@ class ExpressionMakeGeneratorObject(
             generator_ref.getFunctionBody().isExpressionGeneratorObjectBody()
         ), generator_ref
 
-        ExpressionChildHavingBase.__init__(
-            self, value=generator_ref, source_ref=source_ref
-        )
+        ChildHavingGeneratorRefMixin.__init__(self, generator_ref=generator_ref)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable_closure_traces = None
 
@@ -152,7 +151,7 @@ class StatementGeneratorReturn(StatementReturn):
         if expression.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        if expression.willRaiseException(BaseException):
+        if expression.willRaiseAnyException():
             from .NodeMakingHelpers import (
                 makeStatementExpressionOnlyReplacementNode,
             )

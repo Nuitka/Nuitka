@@ -24,10 +24,11 @@ it that could be in-lined sometimes for more static analysis.
 
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildHavingSequenceMixin,
+    ChildrenHavingSequenceStartMixin,
 )
+from .ExpressionBases import ExpressionBase
 
 
 class ExpressionBuiltinSumMixin(object):
@@ -54,15 +55,17 @@ class ExpressionBuiltinSumMixin(object):
         )
 
 
-class ExpressionBuiltinSum1(ExpressionBuiltinSumMixin, ExpressionChildHavingBase):
+class ExpressionBuiltinSum1(
+    ExpressionBuiltinSumMixin, ChildHavingSequenceMixin, ExpressionBase
+):
     kind = "EXPRESSION_BUILTIN_SUM1"
 
-    named_child = "sequence"
+    named_children = ("sequence",)
 
     def __init__(self, sequence, source_ref):
-        assert sequence is not None
+        ChildHavingSequenceMixin.__init__(self, sequence=sequence)
 
-        ExpressionChildHavingBase.__init__(self, value=sequence, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         sequence = self.subnode_sequence
@@ -73,18 +76,21 @@ class ExpressionBuiltinSum1(ExpressionBuiltinSumMixin, ExpressionChildHavingBase
         )
 
 
-class ExpressionBuiltinSum2(ExpressionBuiltinSumMixin, ExpressionChildrenHavingBase):
+class ExpressionBuiltinSum2(
+    ExpressionBuiltinSumMixin, ChildrenHavingSequenceStartMixin, ExpressionBase
+):
     kind = "EXPRESSION_BUILTIN_SUM2"
 
     named_children = ("sequence", "start")
 
     def __init__(self, sequence, start, source_ref):
-        assert sequence is not None
-        assert start is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"sequence": sequence, "start": start}, source_ref=source_ref
+        ChildrenHavingSequenceStartMixin.__init__(
+            self,
+            sequence=sequence,
+            start=start,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         sequence = self.subnode_sequence

@@ -25,7 +25,8 @@ of checks, and add methods automatically.
 from abc import ABCMeta
 
 from nuitka.__past__ import intern
-from nuitka.Errors import NuitkaNodeDesignError
+from nuitka.Errors import NuitkaAssumptionError, NuitkaNodeDesignError
+from nuitka.PythonVersions import python_version
 
 
 def _checkBases(name, bases):
@@ -52,10 +53,6 @@ def _checkBases(name, bases):
 class NodeCheckMetaClass(ABCMeta):
     kinds = {}
 
-    # This is in conflict with Pylint 1.9.2 used for Python2, it
-    # should be "mcls" for one and "cls" for the other.
-    # pylint: disable=I0021,bad-mcs-classmethod-argument
-
     def __new__(cls, name, bases, dictionary):  # pylint: disable=I0021,arguments-differ
         _checkBases(name, bases)
 
@@ -77,9 +74,20 @@ class NodeCheckMetaClass(ABCMeta):
             assert type(dictionary["named_children"]) is tuple
 
             dictionary["__slots__"] += tuple(
-                intern("subnode_" + named_child)
+                intern("subnode_" + named_child.split("|", 1)[0])
                 for named_child in dictionary["named_children"]
             )
+
+        if "python_version_spec" in dictionary:
+            condition = "%s %s" % (python_version, dictionary["python_version_spec"])
+
+            # We trust our node class files, pylint: disable=eval-used
+            if not eval(condition):
+
+                def __init__(self, *args, **kwargs):
+                    raise NuitkaAssumptionError(name, "assumption violated", condition)
+
+                dictionary["__init__"] = __init__
 
         # Not a method:
         if "checker" in dictionary:
@@ -90,7 +98,7 @@ class NodeCheckMetaClass(ABCMeta):
 
     def __init__(cls, name, bases, dictionary):
 
-        if not name.endswith("Base"):
+        if not name.endswith(("Base", "Mixin")):
             if "kind" not in dictionary:
                 raise NuitkaNodeDesignError(name, "Must provide class variable 'kind'")
 

@@ -111,6 +111,6 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
             source_ref=function_source_ref,
         )
 
-    outline_body.setChild("body", body)
+    outline_body.setChildBody(body)
 
     return outline_body

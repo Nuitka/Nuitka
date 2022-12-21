@@ -29,7 +29,8 @@ from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ChildrenHavingMixins import ChildrenHavingLeftRightMixin
+from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects,
@@ -54,7 +55,7 @@ class ExpressionPropertiesFromTypeShapeMixin(object):
 
 
 class ExpressionOperationBinaryBase(
-    ExpressionPropertiesFromTypeShapeMixin, ExpressionChildrenHavingBase
+    ExpressionPropertiesFromTypeShapeMixin, ChildrenHavingLeftRightMixin, ExpressionBase
 ):
     """Base class for all binary operation expression."""
 
@@ -64,9 +65,9 @@ class ExpressionOperationBinaryBase(
     nice_children = tuple(child_name + " operand" for child_name in named_children)
 
     def __init__(self, left, right, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"left": left, "right": right}, source_ref=source_ref
-        )
+        ChildrenHavingLeftRightMixin.__init__(self, left=left, right=right)
+
+        ExpressionBase.__init__(self, source_ref)
 
         # Question might be asked early on, later this is cached from last computation.
         self.type_shape = tshape_unknown
@@ -225,14 +226,14 @@ class ExpressionOperationBinaryBase(
 
         return self, None, None
 
-    def canPredictIterationValues(self):
+    @staticmethod
+    def canPredictIterationValues():
         # TODO: Actually we could very well, esp. for sequence repeats.
-        # pylint: disable=no-self-use
         return False
 
 
 class ExpressionOperationAddMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def getValueShape(self):
@@ -289,7 +290,7 @@ class ExpressionOperationBinarySub(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationMultMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def getValueShape(self):
@@ -491,7 +492,7 @@ class ExpressionOperationBinaryPow(ExpressionOperationBinaryBase):
 
 
 class ExpressionOperationLshiftMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def getValueShape(self):

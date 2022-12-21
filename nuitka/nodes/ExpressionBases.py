@@ -30,12 +30,12 @@ from nuitka.__past__ import long
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import ChildrenHavingMixin, NodeBase
+from .ChildrenHavingMixins import ChildHavingValueMixin
+from .NodeBases import NodeBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithNodeSideEffects,
-    wrapExpressionWithSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
     tshape_bytes,
@@ -1201,194 +1201,8 @@ Predicted '%s' on compiled time constant values."""
         return truth_value, result, "Predicted compile time constant truth value."
 
 
-class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
-    def __init__(self, values, source_ref):
-        ExpressionBase.__init__(self, source_ref)
-
-        ChildrenHavingMixin.__init__(self, values=values)
-
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-        # First apply the sub-expressions, as they are evaluated before
-        # the actual operation.
-        for count, sub_expression in enumerate(self.getVisitableNodes()):
-            expression = trace_collection.onExpression(sub_expression)
-
-            if expression.willRaiseException(BaseException):
-                sub_expressions = self.getVisitableNodes()
-
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-
-class ExpressionChildHavingBase(ExpressionBase):
-    checker = None
-
-    def __init__(self, value, source_ref):
-        ExpressionBase.__init__(self, source_ref)
-
-        if self.checker is not None:
-            value = self.checker(value)  # False alarm, pylint: disable=not-callable
-
-        if value is not None:
-
-            value.parent = self
-
-        attr_name = "subnode_" + self.named_child
-        setattr(self, attr_name, value)
-
-    def finalize(self):
-        del self.parent
-
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        if value is not None:
-            value.finalize()
-
-    # TODO: De-duplicate this with multiple child variant.
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-        # First apply the sub-expression, as they it's evaluated before.
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        if value is not None:
-            expression = trace_collection.onExpression(value)
-
-            if expression.willRaiseException(BaseException):
-                return (
-                    expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
-
-    def setChild(self, name, value):
-        """Set a child value.
-
-        Do not overload, provide self.checkers instead.
-        """
-        # Only accept legal child name
-        assert name == self.named_child, name
-
-        if self.checker is not None:
-            value = self.checker(value)  # False alarm, pylint: disable=not-callable
-
-        attr_name = "subnode_" + self.named_child
-
-        # Checks if it's a real change in debug mode.
-        if Options.is_debug:
-            # Determine old value, and inform it about losing its parent.
-            old_value = getattr(self, attr_name)
-            assert old_value is not value, value
-
-        # Re-parent value to us.
-        if value is not None:
-            value.parent = self
-
-        setattr(self, attr_name, value)
-
-    def clearChild(self, name):
-        # Only accept legal child name
-        assert name == self.named_child, name
-
-        if self.checker is not None:
-            self.checker(None)  # False alarm, pylint: disable=not-callable
-
-        attr_name = "subnode_" + name
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-        assert old_value is not None
-
-        setattr(self, attr_name, None)
-
-    def getChild(self, name):
-        # Only accept legal child name
-        assert name == self.named_child, name
-
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
-
-    def getVisitableNodes(self):
-        # TODO:
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        # In this case, generator is not faster.
-        if value is None:
-            return ()
-        else:
-            return (value,)
-
-    def getVisitableNodesNamed(self):
-        """Named children items.
-
-        For generic code to use in outputs and code generation.
-        """
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        yield self.named_child, value
-
-    def replaceChild(self, old_node, new_node):
-        if new_node is not None and not isinstance(new_node, NodeBase):
-            raise AssertionError(
-                "Cannot replace with", new_node, "old", old_node, "in", self
-            )
-
-        # Find the replaced node, as an added difficulty, what might be
-        # happening, is that the old node is an element of a tuple, in which we
-        # may also remove that element, by setting it to None.
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        if old_node is value:
-            new_node.parent = self
-            setattr(self, attr_name, new_node)
-        else:
-            raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        # Make clones of child nodes too.
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        values = {self.named_child: value.makeClone()}
-        values.update(self.getDetails())
-
-        return values
-
-
 class ExpressionSpecBasedComputationMixin(object):
-    # Mixins are not allow to specify slots.
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     builtin_spec = None
@@ -1411,7 +1225,7 @@ class ExpressionSpecBasedComputationMixin(object):
 
 
 class ExpressionSpecBasedComputationNoRaiseMixin(object):
-    # Mixins are not allow to specify slots.
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     builtin_spec = None
@@ -1431,15 +1245,20 @@ class ExpressionSpecBasedComputationNoRaiseMixin(object):
 
 
 class ExpressionBuiltinSingleArgBase(
-    ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
+    ExpressionSpecBasedComputationMixin, ChildHavingValueMixin, ExpressionBase
 ):
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.subnode_value
+
+        # TODO: Can this happen, where, and can we have a different base class then.
+        assert value is not None
 
         if value is None:
             return self.computeBuiltinSpec(

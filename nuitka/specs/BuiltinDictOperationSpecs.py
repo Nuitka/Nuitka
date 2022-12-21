@@ -17,6 +17,14 @@
 #
 """Dictionary operation specs. """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    tshape_bool,
+    tshape_dict,
+    tshape_list,
+    tshape_none,
+    tshape_tuple,
+)
+
 from .BuiltinParameterSpecs import (
     BuiltinParameterSpecNoKeywords,
     BuiltinParameterSpecSinglePosArgStarDictArgs,
@@ -35,6 +43,7 @@ class DictMethodSpec(BuiltinParameterSpecNoKeywords):
         dict_star_arg=None,
         pos_only_args=(),
         kw_only_args=(),
+        type_shape=None,
     ):
         BuiltinParameterSpecNoKeywords.__init__(
             self,
@@ -45,27 +54,33 @@ class DictMethodSpec(BuiltinParameterSpecNoKeywords):
             dict_star_arg=dict_star_arg,
             pos_only_args=pos_only_args,
             kw_only_args=kw_only_args,
+            type_shape=type_shape,
         )
 
 
-dict_copy_spec = DictMethodSpec("copy")
-dict_clear_spec = DictMethodSpec("clear")
+dict_copy_spec = DictMethodSpec("copy", type_shape=tshape_dict)
+dict_clear_spec = DictMethodSpec("clear", type_shape=tshape_none)
 
-dict_items_spec = DictMethodSpec("items")
+# items is the Python2 variant, iteritems is the Python3 variant of items
+dict_items_spec = DictMethodSpec("items", type_shape=tshape_list)
 dict_iteritems_spec = DictMethodSpec("iteritems")
 dict_viewitems_spec = DictMethodSpec("viewitems")
 
-dict_keys_spec = DictMethodSpec("keys")
+# keys is the Python2 variant, iterkeys is the Python3 variant of keys
+dict_keys_spec = DictMethodSpec("keys", type_shape=tshape_list)
 dict_iterkeys_spec = DictMethodSpec("iterkeys")
 dict_viewkeys_spec = DictMethodSpec("viewkeys")
 
-dict_values_spec = DictMethodSpec("values")
+# values is the Python2 variant, itervalues is the Python3 variant of keys
+dict_values_spec = DictMethodSpec("values", type_shape=tshape_list)
 dict_itervalues_spec = DictMethodSpec("itervalues")
 dict_viewvalues_spec = DictMethodSpec("viewvalues")
 
 dict_get_spec = DictMethodSpec("get", arg_names=("key", "default"), default_count=1)
 
-dict_has_key_spec = DictMethodSpec("has_key", arg_names=("key",))
+dict_has_key_spec = DictMethodSpec(
+    "has_key", arg_names=("key",), type_shape=tshape_bool
+)
 
 dict_setdefault_spec = DictMethodSpec(
     "setdefault", arg_names=("key", "default"), default_count=1
@@ -73,8 +88,11 @@ dict_setdefault_spec = DictMethodSpec(
 
 dict_pop_spec = DictMethodSpec("pop", arg_names=("key", "default"), default_count=1)
 
-dict_popitem_spec = DictMethodSpec("popitem")
+dict_popitem_spec = DictMethodSpec("popitem", type_shape=tshape_tuple)
 
 dict_update_spec = BuiltinParameterSpecSinglePosArgStarDictArgs(
-    "dict.update", list_star_arg="iterable", dict_star_arg="pairs"
+    "dict.update",
+    list_star_arg="iterable",
+    dict_star_arg="pairs",
+    type_shape=tshape_none,
 )

@@ -41,6 +41,7 @@ class BuiltinParameterSpec(ParameterSpec):
         dict_star_arg=None,
         pos_only_args=(),
         kw_only_args=(),
+        type_shape=None,
     ):
         ParameterSpec.__init__(
             self,
@@ -52,6 +53,7 @@ class BuiltinParameterSpec(ParameterSpec):
             ps_default_count=default_count,
             ps_pos_only_args=pos_only_args,
             ps_kw_only_args=kw_only_args,
+            type_shape=type_shape,
         )
 
         self.builtin = getattr(builtins, name, None)
@@ -278,11 +280,10 @@ else:
 
 
 # These builtins are only available for Python2
-if python_version < 0x300:
-    builtin_long_spec = BuiltinParameterSpec("long", ("x", "base"), default_count=2)
-    builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
-        "execfile", ("filename", "globals", "locals"), default_count=2
-    )
+builtin_long_spec = BuiltinParameterSpec("long", ("x", "base"), default_count=2)
+builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
+    "execfile", ("filename", "globals", "locals"), default_count=2
+)
 
 builtin_unicode_p2_spec = BuiltinParameterSpec(
     "unicode", ("string", "encoding", "errors"), default_count=3
@@ -323,7 +324,9 @@ builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), default_co
 
 
 class BuiltinParameterSpecSinglePosArgStarDictArgs(BuiltinParameterSpec):
-    def __init__(self, name, list_star_arg="list_args", dict_star_arg="kw_args"):
+    def __init__(
+        self, name, list_star_arg="list_args", dict_star_arg="kw_args", type_shape=None
+    ):
         BuiltinParameterSpec.__init__(
             self,
             name=name,
@@ -332,6 +335,7 @@ class BuiltinParameterSpecSinglePosArgStarDictArgs(BuiltinParameterSpec):
             list_star_arg=list_star_arg,
             is_list_star_arg_single=True,
             dict_star_arg=dict_star_arg,
+            type_shape=type_shape,
         )
 
 

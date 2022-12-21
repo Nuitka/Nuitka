@@ -23,12 +23,16 @@ that should allow some important optimizations.
 
 from nuitka.specs import BuiltinParameterSpecs
 
+from .ChildrenHavingMixins import (
+    ChildHavingValueMixin,
+    ChildrenExpressionBuiltinBytearray3Mixin,
+    ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin,
+)
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     CompileTimeConstantExpressionBase,
+    ExpressionBase,
     ExpressionBuiltinSingleArgBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
 )
 from .ExpressionShapeMixins import (
@@ -59,15 +63,17 @@ class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
 
 
 class ExpressionBuiltinContainerBase(
-    ExpressionSpecBasedComputationMixin, ExpressionChildHavingBase
+    ExpressionSpecBasedComputationMixin, ChildHavingValueMixin, ExpressionBase
 ):
-
+    # For overload.
     builtin_spec = None
 
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.subnode_value
@@ -124,13 +130,15 @@ class ExpressionBuiltinFrozenset(
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
 
 
-class ExpressionBuiltinFloat(ExpressionChildHavingBase):
+class ExpressionBuiltinFloat(ChildHavingValueMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def getTypeShape():
@@ -179,16 +187,21 @@ class ExpressionBuiltinBool(ExpressionBoolShapeExactMixin, ExpressionBuiltinType
 
 
 class ExpressionBuiltinUnicodeBase(
-    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
+    ExpressionSpecBasedComputationMixin,
+    ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin,
+    ExpressionBase,
 ):
-    named_children = ("value", "encoding", "errors")
+    named_children = ("value|optional", "encoding|optional", "errors|optional")
 
     def __init__(self, value, encoding, errors, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin.__init__(
             self,
-            values={"value": value, "encoding": encoding, "errors": errors},
-            source_ref=source_ref,
+            value=value,
+            encoding=encoding,
+            errors=errors,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         args = [self.subnode_value, self.subnode_encoding, self.subnode_errors]
@@ -276,13 +289,15 @@ class ExpressionBuiltinBytes3(
     builtin_spec = BuiltinParameterSpecs.builtin_bytes_p3_spec
 
 
-class ExpressionBuiltinBytes1(ExpressionChildHavingBase):
+class ExpressionBuiltinBytes1(ChildHavingValueMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_BYTES1"
 
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def getTypeShape():
@@ -310,20 +325,25 @@ class ExpressionBuiltinBytearray1(
 
 
 class ExpressionBuiltinBytearray3(
-    ExpressionBytearrayShapeExactMixin, ExpressionChildrenHavingBase
+    ExpressionBytearrayShapeExactMixin,
+    ChildrenExpressionBuiltinBytearray3Mixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_BUILTIN_BYTEARRAY3"
 
-    named_children = ("string", "encoding", "errors")
+    named_children = ("string", "encoding|optional", "errors|optional")
 
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
     def __init__(self, string, encoding, errors, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinBytearray3Mixin.__init__(
             self,
-            values={"string": string, "encoding": encoding, "errors": errors},
-            source_ref=source_ref,
+            string=string,
+            encoding=encoding,
+            errors=errors,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

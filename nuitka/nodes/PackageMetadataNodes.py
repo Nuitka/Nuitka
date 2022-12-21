@@ -27,15 +27,35 @@ from nuitka.utils.Importing import importFromCompileTime
 from nuitka.utils.Utils import withNoDeprecationWarning
 
 from .AttributeNodes import makeExpressionAttributeLookup
-from .ContainerMakingNodes import makeExpressionMakeList
+from .ContainerMakingNodes import (
+    ExpressionMakeSequenceMixin,
+    makeExpressionMakeList,
+    makeExpressionMakeTuple,
+)
+from .DictionaryNodes import ExpressionMakeDictMixin, makeExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
+from .ExpressionBasesGenerated import (
+    ExpressionImportlibMetadataBackportEntryPointsValueRefBase,
+    ExpressionImportlibMetadataBackportEntryPointValueRefBase,
+    ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase,
+    ExpressionImportlibMetadataEntryPointsValueRefBase,
+    ExpressionImportlibMetadataEntryPointValueRefBase,
+    ExpressionImportlibMetadataSelectableGroupsValueRefBase,
+)
 from .HardImportNodesGenerated import (
+    ExpressionImportlibMetadataBackportEntryPointsCallBase,
     ExpressionImportlibMetadataBackportVersionCallBase,
     ExpressionImportlibMetadataDistributionCallBase,
+    ExpressionImportlibMetadataEntryPointsBefore310CallBase,
+    ExpressionImportlibMetadataEntryPointsSince310CallBase,
     ExpressionImportlibMetadataVersionCallBase,
     ExpressionPkgResourcesGetDistributionCallBase,
     ExpressionPkgResourcesIterEntryPointsCallBase,
     ExpressionPkgResourcesRequireCallBase,
+)
+from .KeyValuePairNodes import (
+    makeExpressionKeyValuePairConstantKey,
+    makeKeyValuePairExpressionsFromKwArgs,
 )
 
 
@@ -68,18 +88,14 @@ class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
             distributions = require(*args)
         except ResolutionError:
             inclusion_logger.warning(
-                "Cannot find requirement '%s' at '%s', expect potential run time problem, unless this unused code."
+                "Cannot find requirement %s at '%s', expect potential run time problem, unless this unused code."
                 % (",".join(repr(s) for s in args), self.source_ref.getAsString())
             )
-
-            self.attempted = True
 
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
         except (TypeError, InvalidRequirement):
-            self.attempted = True
-
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
@@ -94,12 +110,12 @@ class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
             )
         else:
             result = makeExpressionMakeList(
-                elements=[
+                elements=tuple(
                     ExpressionPkgResourcesDistributionValueRef(
                         distribution=distribution, source_ref=self.source_ref
                     )
                     for distribution in distributions
-                ],
+                ),
                 source_ref=self.source_ref,
             )
 
@@ -131,8 +147,6 @@ class ExpressionPkgResourcesGetDistributionCall(
                 % (arg, self.source_ref.getAsString())
             )
 
-            self.attempted = True
-
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
@@ -153,8 +167,7 @@ class ExpressionPkgResourcesGetDistributionCall(
             )
 
 
-class ImportlibMetadataVersionCallMixin:
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+class ImportlibMetadataVersionCallMixin(object):
     __slots__ = ()
 
     def _getImportlibMetadataModule(self):
@@ -173,8 +186,6 @@ class ImportlibMetadataVersionCallMixin:
                 "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (arg, self.source_ref.getAsString())
             )
-
-            self.attempted = True
 
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -203,6 +214,7 @@ class ExpressionImportlibMetadataVersionCall(
     ImportlibMetadataVersionCallMixin, ExpressionImportlibMetadataVersionCallBase
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL"
+    python_version_spec = ">= 0x380"
     importlib_metadata_name = "importlib.metadata"
 
 
@@ -313,6 +325,8 @@ class ExpressionImportlibMetadataDistributionValueRef(
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_VALUE_REF"
 
+    # This is also usable with the backport, generated code finds what is working for it.
+
     __slots__ = ("distribution", "original_name", "computed_attributes")
 
     def __init__(self, distribution, original_name, source_ref):
@@ -369,8 +383,6 @@ class ExpressionPkgResourcesIterEntryPointsCall(
                 % (group, self.source_ref.getAsString())
             )
 
-            self.attempted = True
-
             trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
@@ -410,10 +422,11 @@ class ExpressionPkgResourcesEntryPointValueRef(
         with withNoDeprecationWarning():
             EntryPoint = _getPkgResourcesModule().EntryPoint
 
-            preserved_attributes = self.preserved_attributes
-
             entry_point = EntryPoint(
-                **dict((key, getattr(entry_point, key)) for key in preserved_attributes)
+                **dict(
+                    (key, getattr(entry_point, key))
+                    for key in self.preserved_attributes
+                )
             )
 
         ExpressionBase.__init__(self, source_ref)
@@ -465,8 +478,7 @@ class ExpressionPkgResourcesEntryPointValueRef(
         return lookup_node, None, None
 
 
-class ImportlibMetadataDistributionCallMixin:
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+class ImportlibMetadataDistributionCallMixin(object):
     __slots__ = ()
 
     def _getImportlibMetadataModule(self):
@@ -485,8 +497,6 @@ class ImportlibMetadataDistributionCallMixin:
                 "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
                 % (arg, self.source_ref.getAsString())
             )
-
-            self.attempted = True
 
             trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -515,6 +525,9 @@ class ExpressionImportlibMetadataDistributionCall(
     ExpressionImportlibMetadataDistributionCallBase,
 ):
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL"
+
+    python_version_spec = ">= 0x380"
+
     importlib_metadata_name = "importlib.metadata"
 
 
@@ -543,4 +556,339 @@ def makeExpressionImportlibMetadataBackportMetadataCall(distribution_name, sourc
         ),
         attribute_name="metadata",
         source_ref=source_ref,
+    )
+
+
+class ExpressionImportlibMetadataEntryPointValueMixin(object):
+    __slots__ = ()
+
+    preserved_attributes = ("name", "value", "group")
+
+    def _getImportlibMetadataModule(self):
+        return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
+
+    def finalize(self):
+        del self.entry_point
+        del self.computed_attributes
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return True
+
+    @staticmethod
+    def getTruthValue():
+        return True
+
+    def computeExpressionRaw(self, trace_collection):
+        # Cannot compute any further, this is already the best.
+        return self, None, None
+
+    def isKnownToHaveAttribute(self, attribute_name):
+        if attribute_name not in self.computed_attributes:
+            self.computed_attributes[attribute_name] = hasattr(
+                self.entry_point, attribute_name
+            )
+
+        return self.computed_attributes[attribute_name]
+
+    def getKnownAttributeValue(self, attribute_name):
+        return getattr(self.entry_point, attribute_name)
+
+    def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
+        # If it raises, or the attribute itself is a compile time constant,
+        # then do execute it.
+        if not self.isKnownToHaveAttribute(
+            attribute_name
+        ) or isCompileTimeConstantValue(
+            getattr(self.entry_point, attribute_name, None)
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=lookup_node,
+                computation=lambda: getattr(self.entry_point, attribute_name),
+                description="Attribute '%s' pre-computed." % (attribute_name),
+            )
+
+        return lookup_node, None, None
+
+
+class ExpressionImportlibMetadataEntryPointValueRef(
+    ExpressionNoSideEffectsMixin,
+    ExpressionImportlibMetadataEntryPointValueMixin,
+    ExpressionImportlibMetadataEntryPointValueRefBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINT_VALUE_REF"
+
+    python_version_spec = ">= 0x380"
+
+    __slots__ = ("entry_point", "computed_attributes")
+
+    auto_compute_handling = "final,no_raise"
+
+    importlib_metadata_name = "importlib.metadata"
+
+    def __init__(self, entry_point, source_ref):
+        ExpressionImportlibMetadataEntryPointValueRefBase.__init__(self, source_ref)
+
+        EntryPoint = self._getImportlibMetadataModule().EntryPoint
+
+        entry_point = EntryPoint(
+            **dict(
+                (key, getattr(entry_point, key)) for key in self.preserved_attributes
+            )
+        )
+
+        self.entry_point = entry_point
+        self.computed_attributes = {}
+
+
+class ExpressionImportlibMetadataBackportEntryPointValueRef(
+    ExpressionNoSideEffectsMixin,
+    ExpressionImportlibMetadataEntryPointValueMixin,
+    ExpressionImportlibMetadataBackportEntryPointValueRefBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINT_VALUE_REF"
+
+    __slots__ = ("entry_point", "computed_attributes")
+
+    auto_compute_handling = "final,no_raise"
+
+    importlib_metadata_name = "importlib_metadata"
+
+    def __init__(self, entry_point, source_ref):
+        ExpressionImportlibMetadataBackportEntryPointValueRefBase.__init__(
+            self, source_ref
+        )
+
+        EntryPoint = self._getImportlibMetadataModule().EntryPoint
+
+        entry_point = EntryPoint(
+            **dict(
+                (key, getattr(entry_point, key)) for key in self.preserved_attributes
+            )
+        )
+
+        self.entry_point = entry_point
+        self.computed_attributes = {}
+
+
+class ExpressionImportlibMetadataSelectableGroupsValueRef(
+    ExpressionMakeDictMixin, ExpressionImportlibMetadataSelectableGroupsValueRefBase
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_SELECTABLE_GROUPS_VALUE_REF"
+
+    python_version_spec = ">= 0x3a0"
+
+    named_children = ("pairs|tuple",)
+
+    auto_compute_handling = "final,no_raise"
+
+    # TODO: Derived from dict shape is missing here.
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+
+class ExpressionImportlibMetadataBackportSelectableGroupsValueRef(
+    ExpressionMakeDictMixin,
+    ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_SELECTABLE_GROUPS_VALUE_REF"
+
+    named_children = ("pairs|tuple",)
+
+    auto_compute_handling = "final,no_raise"
+
+    # TODO: Derived from dict shape is missing here.
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+
+class ExpressionImportlibMetadataEntryPointsValueRef(
+    ExpressionMakeSequenceMixin,
+    ExpressionImportlibMetadataBackportEntryPointsValueRefBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_VALUE_REF"
+
+    python_version_spec = ">= 0x3a0"
+
+    named_children = ("elements|tuple",)
+
+    auto_compute_handling = "final,no_raise"
+
+    # TODO: Derived from dict shape is missing here.
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+    @staticmethod
+    def getSequenceName():
+        """Get name for use in traces"""
+        return "importlib.metadata.EntryPoints"
+
+
+class ExpressionImportlibMetadataBackportEntryPointsValueRef(
+    ExpressionMakeSequenceMixin, ExpressionImportlibMetadataEntryPointsValueRefBase
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_VALUE_REF"
+
+    named_children = ("elements|tuple",)
+
+    auto_compute_handling = "final,no_raise"
+
+    @staticmethod
+    def getSequenceName():
+        """Get name for use in traces"""
+        return "importlib_metadata.EntryPoints"
+
+    # TODO: Derived from dict shape is missing here.
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+
+class ExpressionImportlibMetadataEntryPointsCallMixin(object):
+    __slots__ = ()
+
+    def _getImportlibMetadataModule(self):
+        return importFromCompileTime(self.importlib_metadata_name, must_exist=True)
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        metadata_importlib = self._getImportlibMetadataModule()
+
+        constant_args = dict(
+            (param.getKeyCompileTimeConstant(), param.getValueCompileTimeConstant())
+            for param in self.subnode_params
+        )
+
+        try:
+            entry_points_result = metadata_importlib.entry_points(**constant_args)
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            inclusion_logger.sysexit(
+                "Error, failed to find entrypoints at '%s' due to unhandled %s. Please report this bug."
+                % (self.source_ref.getAsString(), repr(e))
+            )
+        else:
+            if (
+                hasattr(metadata_importlib, "SelectableGroups")
+                and type(entry_points_result) is metadata_importlib.SelectableGroups
+            ):
+                pairs = [
+                    makeExpressionKeyValuePairConstantKey(
+                        key=key,
+                        value=self.makeEntryPointsValueRef(
+                            elements=tuple(
+                                self.makeEntryPointValueRef(
+                                    entry_point=entry_point, source_ref=self.source_ref
+                                )
+                                for entry_point in value
+                            ),
+                            source_ref=self.source_ref,
+                        ),
+                    )
+                    for key, value in entry_points_result.items()
+                ]
+
+                result = self.makeSelectableGroupsValueRef(
+                    pairs=tuple(pairs), source_ref=self.source_ref
+                )
+            elif type(entry_points_result) is dict:
+                pairs = [
+                    makeExpressionKeyValuePairConstantKey(
+                        key=key,
+                        value=makeExpressionMakeTuple(
+                            elements=tuple(
+                                self.makeEntryPointValueRef(
+                                    entry_point=entry_point, source_ref=self.source_ref
+                                )
+                                for entry_point in value
+                            ),
+                            source_ref=self.source_ref,
+                        ),
+                    )
+                    for key, value in entry_points_result.items()
+                ]
+
+                result = makeExpressionMakeDict(
+                    pairs=tuple(pairs), source_ref=self.source_ref
+                )
+            elif (
+                hasattr(metadata_importlib, "EntryPoints")
+                and type(entry_points_result) is metadata_importlib.EntryPoints
+            ):
+                result = self.makeEntryPointsValueRef(
+                    elements=tuple(
+                        self.makeEntryPointValueRef(
+                            entry_point=entry_point, source_ref=self.source_ref
+                        )
+                        for entry_point in entry_points_result
+                    ),
+                    source_ref=self.source_ref,
+                )
+
+            else:
+                assert False, type(entry_points_result)
+
+            return (
+                result,
+                "new_expression",
+                "Compile time predicted '%s' result" % self.importlib_metadata_name,
+            )
+
+
+class ExpressionImportlibMetadataEntryPointsBefore310Call(
+    ExpressionImportlibMetadataEntryPointsCallMixin,
+    ExpressionImportlibMetadataEntryPointsBefore310CallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_BEFORE310_CALL"
+
+    # TODO: How to be sure, this is picked up on top of base class python
+    # version spec
+    python_version_spec = ">= 0x380"
+
+    importlib_metadata_name = "importlib.metadata"
+
+    makeEntryPointValueRef = ExpressionImportlibMetadataEntryPointValueRef
+
+    # For the mixing to work properly.
+    subnode_params = ()
+
+
+def makeExpressionImportlibMetadataEntryPointsSince310Call(params, source_ref):
+    return ExpressionImportlibMetadataEntryPointsSince310Call(
+        params=makeKeyValuePairExpressionsFromKwArgs(params), source_ref=source_ref
+    )
+
+
+class ExpressionImportlibMetadataEntryPointsSince310Call(
+    ExpressionImportlibMetadataEntryPointsCallMixin,
+    ExpressionImportlibMetadataEntryPointsSince310CallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_ENTRY_POINTS_SINCE310_CALL"
+
+    importlib_metadata_name = "importlib.metadata"
+
+    makeEntryPointsValueRef = ExpressionImportlibMetadataEntryPointsValueRef
+    makeEntryPointValueRef = ExpressionImportlibMetadataEntryPointValueRef
+    makeSelectableGroupsValueRef = ExpressionImportlibMetadataSelectableGroupsValueRef
+
+
+def makeExpressionImportlibMetadataBackportEntryPointsCall(params, source_ref):
+    return ExpressionImportlibMetadataBackportEntryPointsCall(
+        params=makeKeyValuePairExpressionsFromKwArgs(params), source_ref=source_ref
+    )
+
+
+class ExpressionImportlibMetadataBackportEntryPointsCall(
+    ExpressionImportlibMetadataEntryPointsCallMixin,
+    ExpressionImportlibMetadataBackportEntryPointsCallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_ENTRY_POINTS_CALL"
+
+    importlib_metadata_name = "importlib_metadata"
+
+    makeEntryPointsValueRef = ExpressionImportlibMetadataBackportEntryPointsValueRef
+    makeEntryPointValueRef = ExpressionImportlibMetadataBackportEntryPointValueRef
+    makeSelectableGroupsValueRef = (
+        ExpressionImportlibMetadataBackportSelectableGroupsValueRef
     )

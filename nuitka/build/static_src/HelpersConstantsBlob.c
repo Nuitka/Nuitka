@@ -890,7 +890,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *items[3];
             data = _unpackBlobConstants(&items[0], data, 3);
 
-            PyObject *s = MAKE_SLICEOBJ3(items[0], items[1], items[2]);
+            PyObject *s = MAKE_SLICE_OBJECT3(items[0], items[1], items[2]);
 
             *output = s;
             is_object = true;

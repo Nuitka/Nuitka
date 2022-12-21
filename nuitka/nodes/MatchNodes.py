@@ -17,22 +17,24 @@
 #
 """ Nodes for match statement for Python3.10+ """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ChildrenHavingMixins import ChildHavingExpressionMixin
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionTupleShapeExactMixin
 
 
-class ExpressionMatchArgs(ExpressionTupleShapeExactMixin, ExpressionChildHavingBase):
+class ExpressionMatchArgs(
+    ExpressionTupleShapeExactMixin, ChildHavingExpressionMixin, ExpressionBase
+):
     kind = "EXPRESSION_MATCH_ARGS"
 
-    named_child = "expression"
+    named_children = ("expression",)
 
     __slots__ = ("max_allowed",)
 
     def __init__(self, expression, max_allowed, source_ref):
+        ChildHavingExpressionMixin.__init__(self, expression=expression)
 
-        ExpressionChildHavingBase.__init__(
-            self, value=expression, source_ref=source_ref
-        )
+        ExpressionBase.__init__(self, source_ref)
 
         self.max_allowed = max_allowed
 

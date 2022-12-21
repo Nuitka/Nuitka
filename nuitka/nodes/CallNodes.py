@@ -25,23 +25,29 @@ There will be a method "computeExpressionCall" to aid predicting them in other
 nodes.
 """
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildrenExpressionCallEmptyMixin,
+    ChildrenExpressionCallKeywordsOnlyMixin,
+    ChildrenExpressionCallMixin,
+    ChildrenExpressionCallNoKeywordsMixin,
 )
+from .ExpressionBases import ExpressionBase
 
 
-class ExpressionCall(ExpressionChildrenHavingBase):
+class ExpressionCall(ChildrenExpressionCallMixin, ExpressionBase):
     kind = "EXPRESSION_CALL"
 
-    named_children = ("called", "args", "kwargs")
+    named_children = ("called|setter", "args", "kwargs")
 
     def __init__(self, called, args, kwargs, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionCallMixin.__init__(
             self,
-            values={"called": called, "args": args, "kwargs": kwargs},
-            source_ref=source_ref,
+            called=called,
+            args=args,
+            kwargs=kwargs,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def isExpressionCall():
@@ -59,22 +65,26 @@ class ExpressionCall(ExpressionChildrenHavingBase):
 
     def extractSideEffectsPreCall(self):
         args = self.subnode_args
-        kw = self.subnode_kwargs
+        kwargs = self.subnode_kwargs
 
-        return args.extractSideEffects() + kw.extractSideEffects()
+        return args.extractSideEffects() + kwargs.extractSideEffects()
 
 
-class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
+class ExpressionCallNoKeywords(ChildrenExpressionCallNoKeywordsMixin, ExpressionBase):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
-    named_children = ("called", "args")
+    named_children = ("called|setter", "args")
 
     subnode_kwargs = None
 
     def __init__(self, called, args, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"called": called, "args": args}, source_ref=source_ref
+        ChildrenExpressionCallNoKeywordsMixin.__init__(
+            self,
+            called=called,
+            args=args,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called
@@ -96,17 +106,23 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
         return args.extractSideEffects()
 
 
-class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
+class ExpressionCallKeywordsOnly(
+    ChildrenExpressionCallKeywordsOnlyMixin, ExpressionBase
+):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
-    named_children = ("called", "kwargs")
+    named_children = ("called|setter", "kwargs")
 
     subnode_args = None
 
     def __init__(self, called, kwargs, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"called": called, "kwargs": kwargs}, source_ref=source_ref
+        ChildrenExpressionCallKeywordsOnlyMixin.__init__(
+            self,
+            called=called,
+            kwargs=kwargs,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called
@@ -123,21 +139,23 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
         return True
 
     def extractSideEffectsPreCall(self):
-        kw = self.subnode_kwargs
+        kwargs = self.subnode_kwargs
 
-        return kw.extractSideEffects()
+        return kwargs.extractSideEffects()
 
 
-class ExpressionCallEmpty(ExpressionChildHavingBase):
+class ExpressionCallEmpty(ChildrenExpressionCallEmptyMixin, ExpressionBase):
     kind = "EXPRESSION_CALL_EMPTY"
 
-    named_child = "called"
+    named_children = ("called|setter",)
 
     subnode_args = None
     subnode_kwargs = None
 
     def __init__(self, called, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=called, source_ref=source_ref)
+        ChildrenExpressionCallEmptyMixin.__init__(self, called=called)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called

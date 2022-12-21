@@ -341,7 +341,7 @@ Side effects of assignments promoted to statements.""",
 
         # No assignment will occur, if the assignment source raises, so give up
         # on this, and return it as the only side effect.
-        if source.willRaiseException(BaseException):
+        if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
             )
@@ -491,7 +491,8 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
             source_ref=iterated_value.source_ref,
         )
 
-        self.subnode_source.setChild("value", reference_iterated)
+        # TODO: Unclear what node this really is right now, need to try out.
+        self.subnode_source.setChildValue(reference_iterated)
 
         # Make sure variable trace is computed.
         assign_iterated.computeStatement(trace_collection)
@@ -553,7 +554,7 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
 
         # No assignment will occur, if the assignment source raises, so give up
         # on this, and return it as the only side effect.
-        if source.willRaiseException(BaseException):
+        if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
             )
@@ -771,7 +772,7 @@ class StatementAssignmentVariableHardValue(StatementAssignmentVariableBase):
 
         # No assignment will occur, if the assignment source raises, so give up
         # on this, and return it as the only side effect.
-        if source.willRaiseException(BaseException):
+        if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
             )

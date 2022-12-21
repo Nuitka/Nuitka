@@ -58,16 +58,16 @@ from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isWin32Windows
 
+from .ChildrenHavingMixins import (
+    ChildHavingModuleMixin,
+    ChildrenExpressionBuiltinImportMixin,
+    ChildrenExpressionImportlibImportModuleCallMixin,
+)
 from .ConstantRefNodes import (
     ExpressionConstantSysVersionInfoRef,
     makeConstantRefNode,
 )
-from .CtypesNodes import ExpressionCtypesCdllRef
-from .ExpressionBases import (
-    ExpressionBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-)
+from .ExpressionBases import ExpressionBase
 from .ImportHardNodes import (
     ExpressionImportHardBase,
     ExpressionImportModuleNameHardExists,
@@ -79,17 +79,6 @@ from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
     makeRaiseImportErrorReplacementExpression,
-)
-from .PackageResourceNodes import (
-    ExpressionImportlibResourcesReadBinaryRef,
-    ExpressionImportlibResourcesReadTextRef,
-    ExpressionOsPathExistsRef,
-    ExpressionOsPathIsdirRef,
-    ExpressionOsPathIsfileRef,
-    ExpressionOsUnameRef,
-    ExpressionPkglibGetDataRef,
-    ExpressionPkgResourcesResourceStreamRef,
-    ExpressionPkgResourcesResourceStringRef,
 )
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
 
@@ -225,17 +214,7 @@ module_typing_trust = {
 module_os_trust = {"name": trust_constant}
 
 module_os_path_trust = {"exists": trust_node, "isfile": trust_node, "isdir": trust_node}
-trust_node_factory[(os.path.__name__, "exists")] = ExpressionOsPathExistsRef
-trust_node_factory[(os.path.__name__, "isfile")] = ExpressionOsPathIsfileRef
-trust_node_factory[(os.path.__name__, "isdir")] = ExpressionOsPathIsdirRef
 
-
-if isWin32Windows():
-    module_os_trust["uname"] = trust_not_exist
-else:
-    module_os_trust["uname"] = trust_node
-
-    trust_node_factory[("os", "uname")] = ExpressionOsUnameRef
 
 module_ctypes_trust = {"CDLL": trust_node}
 
@@ -255,12 +234,14 @@ hard_modules_trust = {
         "version": trust_node,
         "distribution": trust_node,
         "metadata": trust_node,
+        "entry_points": trust_node,
         "PackageNotFoundError": trust_exist,
     },
     "importlib_metadata": {
         "version": trust_node,
         "distribution": trust_node,
         "metadata": trust_node,
+        "entry_points": trust_node,
         "PackageNotFoundError": trust_exist,
     },
     "_frozen_importlib": {},
@@ -291,26 +272,20 @@ def _addHardImportNodeClasses():
     for hard_import_node_class, spec in hard_import_node_classes.items():
         module_name, function_name = spec.name.rsplit(".", 1)
 
+        if module_name in hard_modules_aliases:
+            module_name = hard_modules_aliases.get(module_name)
+
         trust_node_factory[(module_name, function_name)] = hard_import_node_class
+
+        # hard_modules_trust[module_name][function_name] = trust_node
 
 
 _addHardImportNodeClasses()
 
-trust_node_factory[("pkgutil", "get_data")] = ExpressionPkglibGetDataRef
-
-trust_node_factory[
-    ("pkg_resources", "resource_string")
-] = ExpressionPkgResourcesResourceStringRef
-trust_node_factory[
-    ("pkg_resources", "resource_stream")
-] = ExpressionPkgResourcesResourceStreamRef
-trust_node_factory[
-    ("importlib.resources", "read_binary")
-] = ExpressionImportlibResourcesReadBinaryRef
-trust_node_factory[
-    ("importlib.resources", "read_text")
-] = ExpressionImportlibResourcesReadTextRef
-trust_node_factory[("ctypes", "CDLL")] = ExpressionCtypesCdllRef
+# Remove this one again, not available on Windows, but the node generation does
+# not know that.
+if isWin32Windows():
+    module_os_trust["uname"] = trust_not_exist
 
 
 def _checkHardModules():
@@ -365,7 +340,7 @@ def isHardModuleWithoutSideEffect(module_name):
 
 
 class ExpressionImportAllowanceMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -808,17 +783,23 @@ def _getImportNameAsStr(value):
     return result
 
 
-class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
+class ExpressionImportlibImportModuleCall(
+    ChildrenExpressionImportlibImportModuleCallMixin, ExpressionBase
+):
     """Call to "importlib.import_module" """
 
     kind = "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL"
 
-    named_children = "name", "package"
+    named_children = "name", "package|optional"
 
     def __init__(self, name, package, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"name": name, "package": package}, source_ref=source_ref
+        ChildrenExpressionImportlibImportModuleCallMixin.__init__(
+            self,
+            name=name,
+            package=package,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def _resolveImportLibArgs(module_name, package_name):
@@ -889,6 +870,8 @@ class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
                         % resolved_module_name,
                     )
 
+        # TODO: This is special for this node, need to support for for call base of hard imports
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
@@ -905,7 +888,7 @@ module_importlib_trust["import_module"] = trust_node
 trust_node_factory[("importlib", "import_module")] = ExpressionImportlibImportModuleRef
 
 
-class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
+class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBase):
     __slots__ = (
         "follow_attempted",
         "finding",
@@ -916,20 +899,25 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
-    named_children = ("name", "globals_arg", "locals_arg", "fromlist", "level")
+    named_children = (
+        "name",
+        "globals_arg|optional",
+        "locals_arg|optional",
+        "fromlist|optional",
+        "level|optional",
+    )
 
     def __init__(self, name, globals_arg, locals_arg, fromlist, level, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinImportMixin.__init__(
             self,
-            values={
-                "name": name,
-                "globals_arg": globals_arg,
-                "locals_arg": locals_arg,
-                "fromlist": fromlist,
-                "level": level,
-            },
-            source_ref=source_ref,
+            name=name,
+            globals_arg=globals_arg,
+            locals_arg=locals_arg,
+            fromlist=fromlist,
+            level=level,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.follow_attempted = False
 
@@ -1240,15 +1228,17 @@ class StatementImportStar(StatementChildHavingBase):
         return "star import statement"
 
 
-class ExpressionImportName(ExpressionChildHavingBase):
+class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
     kind = "EXPRESSION_IMPORT_NAME"
 
-    named_child = "module"
+    named_children = ("module",)
 
     __slots__ = ("import_name", "level")
 
     def __init__(self, module, import_name, level, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=module, source_ref=source_ref)
+        ChildHavingModuleMixin.__init__(self, module=module)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.import_name = import_name
         self.level = level

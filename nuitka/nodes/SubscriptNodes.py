@@ -26,8 +26,9 @@ other nodes.
 
 from nuitka.PythonVersions import python_version
 
+from .ChildrenHavingMixins import ChildrenHavingExpressionSubscriptMixin
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -102,17 +103,19 @@ class StatementDelSubscript(StatementChildrenHavingBase):
         return "subscript del statement"
 
 
-class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
+class ExpressionSubscriptLookup(ChildrenHavingExpressionSubscriptMixin, ExpressionBase):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
     named_children = ("expression", "subscript")
 
     def __init__(self, expression, subscript, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingExpressionSubscriptMixin.__init__(
             self,
-            values={"expression": expression, "subscript": subscript},
-            source_ref=source_ref,
+            expression=expression,
+            subscript=subscript,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         return self.subnode_expression.computeExpressionSubscript(
@@ -157,18 +160,21 @@ def hasSubscript(value, subscript):
 class ExpressionSubscriptCheck(
     ExpressionBoolShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildrenHavingBase,
+    ChildrenHavingExpressionSubscriptMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_SUBSCRIPT_CHECK"
 
     named_children = ("expression", "subscript")
 
     def __init__(self, expression, subscript, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingExpressionSubscriptMixin.__init__(
             self,
-            values={"expression": expression, "subscript": subscript},
-            source_ref=source_ref,
+            expression=expression,
+            subscript=subscript,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more

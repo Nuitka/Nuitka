@@ -26,9 +26,10 @@ from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 from nuitka.tree.TreeHelpers import makeStatementsSequence
 
+from .ChildrenHavingMixins import ChildHavingFallbackMixin
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
-from .ExpressionBases import ExpressionBase, ExpressionChildHavingBase
+from .ExpressionBases import ExpressionBase
 from .NodeBases import StatementBase, StatementChildHavingBase
 from .VariableAssignNodes import makeStatementAssignmentVariable
 from .VariableDelNodes import makeStatementDelVariable
@@ -36,17 +37,19 @@ from .VariableRefNodes import ExpressionTempVariableRef
 from .VariableReleaseNodes import makeStatementReleaseVariable
 
 
-class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
+class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, ExpressionBase):
     kind = "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK"
 
-    named_child = "fallback"
+    named_children = ("fallback",)
 
     __slots__ = ("locals_scope", "variable", "variable_trace")
 
     def __init__(self, locals_scope, variable_name, fallback, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=fallback, source_ref=source_ref)
-
         assert locals_scope is not None
+
+        ChildHavingFallbackMixin.__init__(self, fallback=fallback)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.locals_scope = locals_scope
         self.variable = locals_scope.getLocalsDictVariable(variable_name)
@@ -166,18 +169,17 @@ class ExpressionLocalsVariableRefOrFallback(ExpressionChildHavingBase):
 
             # Create a cloned node with the locals variable.
             call_node_clone = call_node.makeClone()
-            call_node_clone.setChild(
-                "called",
+            call_node_clone.setChildCalled(
                 ExpressionLocalsVariableRef(
                     locals_scope=self.locals_scope,
                     variable_name=variable_name,
                     source_ref=self.source_ref,
-                ),
+                )
             )
 
             # Make the original one for the fallback
             call_node = call_node.makeCloneShallow()
-            call_node.setChild("called", self.subnode_fallback)
+            call_node.setChildCalled(self.subnode_fallback)
 
             result = ExpressionConditional(
                 condition=ExpressionLocalsVariableCheck(
@@ -572,7 +574,7 @@ class StatementSetLocals(StatementChildHavingBase):
     def computeStatement(self, trace_collection):
         new_locals = trace_collection.onExpression(self.subnode_new_locals)
 
-        if new_locals.willRaiseException(BaseException):
+        if new_locals.willRaiseAnyException():
             from .NodeMakingHelpers import (
                 makeStatementExpressionOnlyReplacementNode,
             )

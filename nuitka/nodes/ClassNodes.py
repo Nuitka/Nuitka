@@ -23,7 +23,11 @@ The classes are are at the core of the language and have their complexities.
 
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ChildrenHavingMixins import (
+    ChildrenExpressionBuiltinType3Mixin,
+    ChildrenHavingMetaclassBasesMixin,
+)
+from .ExpressionBases import ExpressionBase
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle
 from .OutlineNodes import ExpressionOutlineFunctionBase
@@ -135,15 +139,19 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         return True
 
 
-class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
+class ExpressionSelectMetaclass(ChildrenHavingMetaclassBasesMixin, ExpressionBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
     named_children = ("metaclass", "bases")
 
     def __init__(self, metaclass, bases, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"metaclass": metaclass, "bases": bases}, source_ref=source_ref
+        ChildrenHavingMetaclassBasesMixin.__init__(
+            self,
+            metaclass=metaclass,
+            bases=bases,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Meta class selection is very computable, and should be done, but we need
@@ -153,17 +161,20 @@ class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
+class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
-    named_children = ("type_name", "bases", "dict")
+    named_children = ("type_name", "bases", "dict_arg")
 
-    def __init__(self, type_name, bases, type_dict, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+    def __init__(self, type_name, bases, dict_arg, source_ref):
+        ChildrenExpressionBuiltinType3Mixin.__init__(
             self,
-            values={"type_name": type_name, "bases": bases, "dict": type_dict},
-            source_ref=source_ref,
+            type_name=type_name,
+            bases=bases,
+            dict_arg=dict_arg,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def _calculateMetaClass(self):
         # TODO: Share code with ExpressionSelectMetaclass
