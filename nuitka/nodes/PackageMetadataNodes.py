@@ -253,7 +253,7 @@ class ExpressionPkgResourcesDistributionValueRef(
                 )
             )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.distribution = distribution
         self.computed_attributes = {}
@@ -316,7 +316,7 @@ class ExpressionImportlibMetadataDistributionValueRef(
     __slots__ = ("distribution", "original_name", "computed_attributes")
 
     def __init__(self, distribution, original_name, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.distribution = distribution
         self.original_name = original_name
@@ -416,7 +416,7 @@ class ExpressionPkgResourcesEntryPointValueRef(
                 **dict((key, getattr(entry_point, key)) for key in preserved_attributes)
             )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.entry_point = entry_point
         self.computed_attributes = {}

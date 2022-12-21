@@ -51,7 +51,7 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     __slots__ = ("builtin_name",)
 
     def __init__(self, builtin_name, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+        CompileTimeConstantExpressionBase.__init__(self, source_ref)
 
         self.builtin_name = builtin_name
 

@@ -98,7 +98,7 @@ class ExpressionConstantUntrackedRefBase(CompileTimeConstantExpressionBase):
     __slots__ = ("constant",)
 
     def __init__(self, constant, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+        CompileTimeConstantExpressionBase.__init__(self, source_ref)
 
         self.constant = constant
 

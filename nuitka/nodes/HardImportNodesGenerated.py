@@ -115,7 +115,7 @@ class ExpressionImportlibMetadataBackportDistributionCallBase(
             distribution_name=distribution_name,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -200,7 +200,7 @@ class ExpressionImportlibMetadataBackportMetadataCallBase(
             distribution_name=distribution_name,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -285,7 +285,7 @@ class ExpressionImportlibMetadataBackportVersionCallBase(
             distribution_name=distribution_name,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -370,7 +370,7 @@ class ExpressionImportlibMetadataDistributionCallBase(
             distribution_name=distribution_name,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -455,7 +455,7 @@ class ExpressionImportlibMetadataMetadataCallBase(
             distribution_name=distribution_name,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -540,7 +540,7 @@ class ExpressionImportlibMetadataVersionCallBase(
             distribution_name=distribution_name,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -625,7 +625,7 @@ class ExpressionPkgResourcesGetDistributionCallBase(
             dist=dist,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -711,7 +711,7 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(
             name=name,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()
@@ -795,7 +795,7 @@ class ExpressionPkgResourcesRequireCallBase(
             requirements=requirements,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()

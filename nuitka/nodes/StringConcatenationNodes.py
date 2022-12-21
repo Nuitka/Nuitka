@@ -40,7 +40,7 @@ class ExpressionStringConcatenation(
 
         ChildrenHavingValuesTupleMixin.__init__(self, values=tuple(values))
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments

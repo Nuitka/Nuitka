@@ -65,7 +65,7 @@ class ExpressionMakeSequenceBase(
             elements=tuple(elements),
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def isExpressionMakeSequence():

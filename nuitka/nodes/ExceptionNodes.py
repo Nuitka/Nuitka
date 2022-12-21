@@ -276,7 +276,7 @@ class ExpressionBuiltinMakeException(ChildrenHavingArgsTupleMixin, ExpressionBas
     def __init__(self, exception_name, args, source_ref):
         ChildrenHavingArgsTupleMixin.__init__(self, args=tuple(args))
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.exception_name = exception_name
 
@@ -345,7 +345,7 @@ class ExpressionCaughtExceptionTypeRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
@@ -356,7 +356,7 @@ class ExpressionCaughtExceptionValueRef(ExpressionCaughtMixin, ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
@@ -367,7 +367,7 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionCaughtMixin, ExpressionBas
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
