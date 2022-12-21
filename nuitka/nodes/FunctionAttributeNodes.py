@@ -49,7 +49,7 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
     __slots__ = ("function_body",)
 
     def __init__(self, function_body, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+        CompileTimeConstantExpressionBase.__init__(self, source_ref)
 
         self.function_body = function_body
 

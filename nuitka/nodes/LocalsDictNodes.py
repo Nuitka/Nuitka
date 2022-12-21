@@ -222,7 +222,7 @@ class ExpressionLocalsVariableRef(ExpressionBase):
 
     def __init__(self, locals_scope, variable_name, source_ref):
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.locals_scope = locals_scope
         self.variable = locals_scope.getLocalsDictVariable(variable_name)
@@ -318,7 +318,7 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
     def __init__(self, locals_scope, variable_name, source_ref):
         self.variable_name = variable_name
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.locals_scope = locals_scope
 

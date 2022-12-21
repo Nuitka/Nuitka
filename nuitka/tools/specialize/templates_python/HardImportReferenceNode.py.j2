@@ -85,10 +85,7 @@ class Expression{{module_name_title}}{{function_name_title}}CallBase(ChildrenHav
 {% endfor %}
         )
 
-        ExpressionBase.__init__(
-            self,
-            source_ref=source_ref
-        )
+        ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
         self.attempted = shallMakeModule()

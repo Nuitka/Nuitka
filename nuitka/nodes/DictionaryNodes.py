@@ -116,7 +116,7 @@ class ExpressionMakeDict(
             pairs=tuple(pairs),
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         pairs = self.subnode_pairs

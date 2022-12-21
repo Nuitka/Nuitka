@@ -337,7 +337,7 @@ class ExpressionConstantGenericAlias(CompileTimeConstantExpressionBase):
     __slots__ = ("generic_alias",)
 
     def __init__(self, generic_alias, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+        CompileTimeConstantExpressionBase.__init__(self, source_ref)
 
         self.generic_alias = generic_alias
 
@@ -368,7 +368,7 @@ class ExpressionConstantUnionType(CompileTimeConstantExpressionBase):
     __slots__ = ("union_type",)
 
     def __init__(self, union_type, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+        CompileTimeConstantExpressionBase.__init__(self, source_ref)
 
         self.union_type = union_type
 

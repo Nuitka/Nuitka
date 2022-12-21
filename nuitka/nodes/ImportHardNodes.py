@@ -29,7 +29,7 @@ class ExpressionImportHardBase(ExpressionBase):
     __slots__ = ("module_name", "finding", "module_filename")
 
     def __init__(self, module_name, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.module_name = ModuleName(module_name)
 

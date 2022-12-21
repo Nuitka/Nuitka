@@ -61,7 +61,7 @@ class ExpressionVariableRefBase(ExpressionBase):
     __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable = variable
         self.variable_trace = None

@@ -942,7 +942,7 @@ class CompileTimeConstantExpressionBase(ExpressionNoSideEffectsMixin, Expression
     __slots__ = ("computed_attribute",)
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.computed_attribute = None
 
@@ -1203,7 +1203,7 @@ Predicted '%s' on compiled time constant values."""
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
     def __init__(self, values, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         ChildrenHavingMixin.__init__(self, values=values)
 
@@ -1243,7 +1243,7 @@ class ExpressionChildHavingBase(ExpressionBase):
     checker = None
 
     def __init__(self, value, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         if self.checker is not None:
             value = self.checker(value)  # False alarm, pylint: disable=not-callable

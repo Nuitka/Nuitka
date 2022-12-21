@@ -116,7 +116,7 @@ class ExpressionVariableNameRef(ExpressionBase):
     def __init__(self, provider, variable_name, source_ref):
         assert not provider.isExpressionOutlineBody(), source_ref
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable_name = variable_name
 
