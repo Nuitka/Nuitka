@@ -31,7 +31,11 @@ from nuitka.Options import (
     shallCreateAppBundle,
 )
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.plugins.Plugins import getActiveQtPlugin
+from nuitka.plugins.Plugins import (
+    getActiveQtPlugin,
+    getQtBindingNames,
+    getQtPluginNames,
+)
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileList, listDir
@@ -39,18 +43,13 @@ from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
 
 # Use to detect the Qt plugin that is active and check for conflicts.
-_qt_binding_names = ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
-
-# Detect usage of "wx" and warn/exclude that as well. Add more here as
-# necessary.
-_other_gui_binding_names = ("wx",)
-
-
-def getQtPluginNames():
-    return tuple(qt_binding_name.lower() for qt_binding_name in _qt_binding_names)
+_qt_binding_names = getQtBindingNames()
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
+    # Automatically suppress detectors for any other toolkit
+    plugin_gui_toolkit = True
+
     # For overload in the derived bindings plugin.
     binding_name = None
 
@@ -1058,24 +1057,9 @@ behavior with the uncompiled code to debug it."""
                 )
 
     def onModuleCompleteSet(self, module_set):
-        for module in module_set:
-            module_name = module.getFullName()
-
-            if module_name in _qt_binding_names and module_name != self.binding_name:
-                self.warning(
-                    """\
-Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
-'--nofollow-import-to=%(unwanted)s' or uninstall it."""
-                    % {"unwanted": module_name, "binding_name": self.binding_name}
-                )
-
-            if module_name in _other_gui_binding_names:
-                self.warning(
-                    """\
-Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered. Use \
-'--nofollow-import-to=%(unwanted)s' or uninstall it."""
-                    % {"unwanted": module_name, "binding_name": self.binding_name}
-                )
+        self.onModuleCompleteSetGUI(
+            module_set=module_set, plugin_binding_name=self.binding_name
+        )
 
     def onModuleSourceCode(self, module_name, source_code):
         """Third party packages that make binding selections."""
