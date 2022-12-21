@@ -128,6 +128,12 @@ Bug Fixes
 -  MSYS2: Add back support for MSYS Posix variant. Now onefile works
    there too.
 
+-  Fix, when picking up data files from command line and plugins,
+   different exclusions were applied. This has been unified to get
+   better coverage for avoiding to include DLLs and the like as data
+   files. DLLs are not data files and must be dealt with differently
+   after all.
+
 New Features
 ============
 
@@ -147,6 +153,20 @@ New Features
 -  macOS: Added ``--macos-app-mode`` option for application bundles that
    should run in the background (``background``) or are only a UI
    element (``ui-element``).
+
+-  Plugins: In the Nuitka package configuration files, the ``when``
+   allows now to check if a plugin is active. This allowed us to limit
+   console warnings to only packages whose plugin was activated.
+
+-  Plugins: Can now mark a plugin as a GUI toolkit responsible with the
+   consequence that other toolkit detector plugins are all disabled, so
+   when using ``tk-inter`` no longer will you be asked about ``PySide6``
+   plugin, as that is not what you are using apparently.
+
+-  Plugins: Generalized the GUI toolkit detection to include
+   ``tk-inter`` as well, so it will now point out that ``wx`` and the Qt
+   bindings should be removed for best results, if they are included in
+   the compilation.
 
 -  Plugins: Added ability to provide data files for macOS ``Resources``
    folder of application bundles.
@@ -308,6 +328,9 @@ Organisational
 -  GitHub: Use organisation URLs everywhere, some were still pointing to
    the personal rather than the organisation one. While these are
    redirected, it is not good to have them like this.
+
+-  Mastodon: Added link to https://fosstodon.org/@kayhayen to the PyPI
+   package and User Manual.
 
 Cleanups
 ========
