@@ -65,6 +65,7 @@ pre_modules_reasons = {}
 post_modules = {}
 post_modules_reasons = {}
 fake_modules = {}
+has_active_gui_toolkit_plugin = False
 
 
 def _addActivePlugin(plugin_class, args, force=False):
@@ -91,6 +92,12 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     active_plugins[plugin_name] = plugin_instance
 
+    # Singleton, pylint: disable=global-statement
+    global has_active_gui_toolkit_plugin
+    has_active_gui_toolkit_plugin = has_active_gui_toolkit_plugin or getattr(
+        plugin_class, "plugin_gui_toolkit", False
+    )
+
 
 def getActivePlugins():
     """Return list of active plugins.
@@ -104,14 +111,32 @@ def getActivePlugins():
 
 
 def getActiveQtPlugin():
-    from .standard.PySidePyQtPlugin import getQtPluginNames
-
     for plugin_name in getQtPluginNames():
         if hasActivePlugin(plugin_name):
             if hasActivePlugin(plugin_name):
                 return plugin_name
 
     return None
+
+
+def getQtBindingNames():
+    return ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
+
+
+def getOtherGUIBindingNames():
+    return ("wx", "tkinter", "Tkinter")
+
+
+def getQtPluginNames():
+    return tuple(qt_binding_name.lower() for qt_binding_name in getQtBindingNames())
+
+
+def getOtherGuiPluginNames():
+    return ("tk-inter",)
+
+
+def getGuiPluginNames():
+    return getQtPluginNames() + getOtherGuiPluginNames()
 
 
 def hasActivePlugin(plugin_name):
@@ -133,6 +158,19 @@ def hasActivePlugin(plugin_name):
     # Detectors do not count.
     plugin_instance = active_plugins.get(plugin_name)
     return not hasattr(plugin_instance, "detector_for")
+
+
+def getUserActivatedPluginNames():
+    for plugin_name, plugin_instance in active_plugins.items():
+        # Detectors do not count.
+        if hasattr(plugin_instance, "detector_for"):
+            continue
+
+        # Always activated does not count either
+        if plugin_instance.isAlwaysEnabled():
+            continue
+
+        yield plugin_name
 
 
 def getPluginClass(plugin_name):
@@ -1307,12 +1345,16 @@ def activatePlugins():
                 "Error, conflicting enable/disable of plug-in '%s'." % plugin_name
             )
 
+    plugin_detectors = OrderedSet()
+
     for (plugin_name, (plugin_class, plugin_detector)) in sorted(
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
             if plugin_class.isAlwaysEnabled():
-                plugin_class.warning("Plugin is defined as always enabled.")
+                plugin_class.warning(
+                    "Plugin is defined as always enabled, no need to enable it."
+                )
 
             if plugin_class.isRelevant():
                 _addActivePlugin(plugin_class, args=True)
@@ -1333,20 +1375,18 @@ def activatePlugins():
             and Options.shallDetectMissingPlugins()
             and plugin_detector.isRelevant()
         ):
-            _addActivePlugin(plugin_detector, args=False)
+            plugin_detectors.add(plugin_detector)
 
     for plugin_class in user_plugins:
         _addActivePlugin(plugin_class, args=True)
 
-
-def lateActivatePlugin(plugin_name, option_values):
-    """Activate plugin after the command line parsing, expects options to be set."""
-
-    values = getPluginClass(plugin_name).getPluginDefaultOptionValues()
-    values.update(option_values)
-    setPluginOptions(plugin_name, values)
-
-    _addActivePlugin(getPluginClass(plugin_name), args=True, force=True)
+    # Suppress GUI toolkit detectors automatically.
+    for plugin_detector in plugin_detectors:
+        if (
+            not has_active_gui_toolkit_plugin
+            or plugin_detector.plugin_name not in getGuiPluginNames()
+        ):
+            _addActivePlugin(plugin_detector, args=False)
 
 
 def _addPluginCommandLineOptions(parser, plugin_class):
