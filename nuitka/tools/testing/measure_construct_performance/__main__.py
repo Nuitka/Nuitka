@@ -34,6 +34,7 @@ from nuitka.tools.testing.Common import (
     check_output,
     convertUsing2to3,
     decideNeeds2to3,
+    getPythonSysPath,
     getPythonVersionString,
     getTempDir,
     my_print,
@@ -48,6 +49,11 @@ from nuitka.utils.FileOperations import (
     getFileContents,
     putTextFileContents,
 )
+
+
+def _setPythonPath(case_name):
+    if "Numpy" in case_name:
+        os.environ["PYTHONPATH"] = getPythonSysPath()
 
 
 def main():
@@ -81,6 +87,8 @@ def main():
     if os.path.exists(test_case):
         test_case = os.path.abspath(test_case)
 
+    case_name = os.path.basename(test_case)
+
     if options.cpython == "no":
         options.cpython = ""
 
@@ -91,7 +99,13 @@ def main():
     elif nuitka:
         sys.exit("Error, nuitka binary '%s' not found." % nuitka)
 
+    diff_filename = options.diff_filename
+    if diff_filename is not None:
+        diff_filename = os.path.abspath(diff_filename)
+
     setup(silent=True, go_main=False)
+
+    _setPythonPath(case_name)
 
     assert os.path.exists(test_case), (test_case, os.getcwd())
 
@@ -139,21 +153,15 @@ def main():
 
     os.chdir(getTempDir())
 
-    case_name = os.path.basename(test_case)
-
-    no_site = "Numpy" not in case_name
-
     if nuitka:
-
         nuitka_call = [
             os.environ["PYTHON"],
             nuitka,
             "--quiet",
-            "--no-progress",
+            "--no-progressbar",
+            "--nofollow-imports",
+            "--python-flag=no_site",
         ]
-
-        if no_site:
-            nuitka_call.append("--python-flag=-S")
 
         nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
 
@@ -165,7 +173,7 @@ def main():
 
         check_call(nuitka_call)
 
-        if os.path.exists(os.path.basename(test_case).replace(".py", ".exe")):
+        if os.path.exists(case_name.replace(".py", ".exe")):
             exe_suffix = ".exe"
         else:
             exe_suffix = ".bin"
@@ -192,7 +200,7 @@ def main():
             os.path.basename(test_case_2).replace(".py", exe_suffix),
         )
 
-        if options.diff_filename:
+        if diff_filename:
             suffixes = [".c", ".cpp"]
 
             for suffix in suffixes:
@@ -217,7 +225,7 @@ def main():
             import difflib
 
             putTextFileContents(
-                options.diff_filename,
+                diff_filename,
                 difflib.HtmlDiff().make_table(
                     getFileContentByLine(cpp_1),
                     getFileContentByLine(cpp_2),
@@ -249,9 +257,9 @@ def main():
         my_print("NUITKA_CONSTRUCT=%s" % nuitka_diff)
 
     if options.cpython:
+        os.environ["PYTHON"] = options.cpython
+
         cpython_call = [os.environ["PYTHON"], "-S", test_case_1]
-        if not no_site:
-            cpython_call.remove("-S")
 
         cpython_1 = runValgrind(
             "CPython construct",
@@ -261,8 +269,6 @@ def main():
         )
 
         cpython_call = [os.environ["PYTHON"], "-S", test_case_2]
-        if not no_site:
-            cpython_call.remove("-S")
 
         cpython_2 = runValgrind(
             "CPython baseline",

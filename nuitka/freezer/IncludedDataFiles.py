@@ -32,6 +32,7 @@ from nuitka.Options import (
     getShallIncludeDataFiles,
     getShallIncludePackageData,
     getShallNotIncludeDataFilePatterns,
+    isOnefileMode,
     isStandaloneMode,
     shallMakeModule,
 )
@@ -41,6 +42,7 @@ from nuitka.utils.FileOperations import (
     copyFileWithPermissions,
     getFileContents,
     getFileList,
+    isFilenameBelowPath,
     isRelativePath,
     makePath,
     openTextFile,
@@ -49,6 +51,8 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffixes
+from nuitka.utils.ModuleNames import ModuleName
+from nuitka.utils.Utils import isMacOS
 
 data_file_tags = []
 
@@ -70,7 +74,9 @@ def getDataFileTags(dest_path):
     return result
 
 
-def _decodeTags(tags):
+def decodeDataFileTags(tags):
+    """In many places, strings are accepted for tags, convert to OrderedSet for internal use."""
+
     if type(tags) is str:
         tags = tags.split(",") if tags else ()
 
@@ -82,7 +88,7 @@ class IncludedDataFile(object):
 
     def __init__(self, kind, source_path, dest_path, reason, data, tags, tracer):
         tags_set = getDataFileTags(dest_path)
-        tags_set.update(_decodeTags(tags))
+        tags_set.update(decodeDataFileTags(tags))
 
         # Copy, unless specified otherwise.
         if not any(tag.startswith("embed-") for tag in tags_set):
@@ -95,6 +101,16 @@ class IncludedDataFile(object):
         self.data = data
         self.tags = tags_set
         self.tracer = tracer
+
+    def __repr__(self):
+        return "<%s %s source %s dest %s reason '%s' tags '%s'>" % (
+            self.__class__.__name__,
+            self.kind,
+            self.source_path,
+            self.dest_path,
+            self.reason,
+            ",".join(self.tags),
+        )
 
     def needsCopy(self):
         return "copy" in self.tags
@@ -117,7 +133,22 @@ def makeIncludedEmptyDirectory(dest_path, reason, tracer, tags):
 
 
 def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
-    assert isRelativePath(dest_path), dest_path
+    tags = decodeDataFileTags(tags)
+
+    if "framework_resource" in tags and not isMacOS():
+        tracer.sysexit("Using resource files on non-MacOS")
+
+    inside = True
+    if not isRelativePath(dest_path):
+        if "framework_resource" in tags and not isOnefileMode():
+            inside = isRelativePath(os.path.join("Resources", dest_path))
+        else:
+            inside = False
+
+    if not inside:
+        tracer.sysexit(
+            "Error, cannot use dest path '%s' outside of distribution." % dest_path
+        )
 
     # Refuse directories, these must be kept distinct.
     if os.path.isdir(source_path):
@@ -135,6 +166,24 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
         tracer=tracer,
         tags=tags,
     )
+
+
+# By default ignore all things that close to code.
+default_ignored_suffixes = (
+    ".py",
+    ".pyw",
+    ".pyc",
+    ".pyo",
+    ".pyi",
+    ".so",
+    ".pyd",
+    ".dll",
+)
+if not isMacOS():
+    default_ignored_suffixes += (".DS_Store",)
+default_ignored_suffixes += getSharedLibrarySuffixes()
+
+default_ignored_dirs = ("__pycache__",)
 
 
 def makeIncludedDataDirectory(
@@ -162,8 +211,10 @@ def makeIncludedDataDirectory(
     ):
         filename_relative = os.path.relpath(filename, source_path)
 
-        if filename_relative.endswith((".py", ".pyc", ".pyi", ".so", ".pyd")):
+        if filename_relative.endswith(default_ignored_suffixes):
             continue
+
+        ignore_dirs = tuple(ignore_dirs) + default_ignored_dirs
 
         filename_dest = os.path.join(dest_path, filename_relative)
 
@@ -205,6 +256,27 @@ _included_data_files = []
 def addIncludedDataFile(included_datafile):
     included_datafile.tags.update(getDataFileTags(included_datafile.dest_path))
 
+    for noinclude_datafile_pattern in getShallNotIncludeDataFilePatterns():
+        if fnmatch.fnmatch(
+            included_datafile.dest_path, noinclude_datafile_pattern
+        ) or isFilenameBelowPath(
+            path=noinclude_datafile_pattern, filename=included_datafile.dest_path
+        ):
+            included_datafile.tags.add("inhibit")
+            included_datafile.tags.remove("copy")
+
+            return
+
+    # Cyclic dependency
+    from nuitka.plugins.Plugins import Plugins
+
+    Plugins.onDataFileTags(included_datafile)
+
+    # TODO: Catch duplicates sooner.
+    # for candidate in _included_data_files:
+    #     if candidate.dest_path == included_datafile.dest_path:
+    #         assert False, included_datafile
+
     _included_data_files.append(included_datafile)
 
 
@@ -245,7 +317,7 @@ def _addIncludedDataFilesFromFileOptions():
         for filename in filenames:
             relative_filename = relpath(filename, src)
 
-            file_reason = "specified data dir %r on command line" % src
+            file_reason = "specified data dir '%s' on command line" % src
 
             rel_path = os.path.join(dest, relative_filename)
 
@@ -264,14 +336,13 @@ def addIncludedDataFilesFromFileOptions():
 def makeIncludedPackageDataFiles(
     tracer, package_name, package_directory, pattern, reason, tags
 ):
-    tags = _decodeTags(tags)
+    tags = decodeDataFileTags(tags)
     tags.add("package_data")
 
     pkg_filenames = getFileList(
         package_directory,
         ignore_dirs=("__pycache__",),
-        ignore_suffixes=(".py", ".pyw", ".pyc", ".pyo", ".dll")
-        + getSharedLibrarySuffixes(),
+        ignore_suffixes=default_ignored_suffixes,
     )
 
     if pkg_filenames:
@@ -292,34 +363,9 @@ def makeIncludedPackageDataFiles(
             )
 
 
-def addIncludedDataFilesFromPackageOptions():
-    """Late data files, from plugins and user options that work with packages"""
+def addIncludedDataFilesFromPlugins():
     # Cyclic dependency
     from nuitka import ModuleRegistry
-
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonPackage() or module.isUncompiledPythonPackage():
-            package_name = module.getFullName()
-
-            for module_name_pattern, filename_pattern in getShallIncludePackageData():
-                match, reason = package_name.matchesToShellPattern(
-                    pattern=module_name_pattern
-                )
-
-                if match:
-                    package_directory = module.getCompileTimeDirectory()
-
-                    for included_datafile in makeIncludedPackageDataFiles(
-                        tracer=options_logger,
-                        package_name=package_name,
-                        package_directory=package_directory,
-                        pattern=filename_pattern,
-                        reason=reason,
-                        tags="user",
-                    ):
-                        addIncludedDataFile(included_datafile)
-
-    # Cyclic dependency
     from nuitka.plugins.Plugins import Plugins
 
     # Plugins provide per module through this.
@@ -327,16 +373,37 @@ def addIncludedDataFilesFromPackageOptions():
         for included_datafile in Plugins.considerDataFiles(module=module):
             addIncludedDataFile(included_datafile)
 
-    for included_datafile in getIncludedDataFiles():
-        for noinclude_datafile_pattern in getShallNotIncludeDataFilePatterns():
-            if fnmatch.fnmatch(included_datafile.dest_path, noinclude_datafile_pattern):
-                included_datafile.tags.add("inhibit")
-                included_datafile.tags.remove("copy")
-                break
-        else:
-            Plugins.onDataFileTags(
-                included_datafile,
+
+def addIncludedDataFilesFromPackageOptions():
+    """Late data files, from plugins and user options that work with packages"""
+
+    # Cyclic dependency
+    from nuitka.importing.Importing import locateModule
+
+    # TODO: Should provide ModuleName objects directly.
+
+    for package_name, filename_pattern in getShallIncludePackageData():
+        package_name, package_directory, _kind = locateModule(
+            module_name=ModuleName(package_name),
+            parent_package=None,
+            level=0,
+        )
+
+        if package_directory is None:
+            options_logger.warning(
+                "Failed to locate package directory of '%s'" % package_name.asString()
             )
+            continue
+
+        for included_datafile in makeIncludedPackageDataFiles(
+            tracer=options_logger,
+            package_name=package_name,
+            package_directory=package_directory,
+            pattern=filename_pattern,
+            reason="package data",
+            tags="user",
+        ):
+            addIncludedDataFile(included_datafile)
 
 
 _data_file_traces = OrderedDict()

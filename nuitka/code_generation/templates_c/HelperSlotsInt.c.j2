@@ -194,8 +194,8 @@
 {% elif operator == "**" %}
     if (b < 0) {
         // TODO: Use CFLOAT once available.
-        PyObject *operand1_float = PyFloat_FromDouble(a);
-        PyObject *operand2_float = PyFloat_FromDouble(b);
+        PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+        PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
         PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 

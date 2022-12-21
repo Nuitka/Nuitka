@@ -82,6 +82,7 @@ def _getMakeCodeObjectArgs(code_object_handle, context):
         code_object_handle.line_number,
         " | ".join(co_flags) or "0",
         context.getConstantCode(constant=code_object_handle.co_name),
+        context.getConstantCode(constant=code_object_handle.co_qualname),
         context.getConstantCode(constant=code_object_handle.co_varnames)
         if code_object_handle.co_varnames
         else "NULL",
@@ -123,7 +124,7 @@ def getCodeObjectsInitCode(context):
             ", ".join(str(s) for s in _getMakeCodeObjectArgs(code_object_key, context)),
         )
 
-        code = "%s = MAKE_CODEOBJECT(module_filename_obj, %s);" % args
+        code = "%s = MAKE_CODE_OBJECT(module_filename_obj, %s);" % args
 
         statements.append(code)
 

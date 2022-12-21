@@ -33,13 +33,15 @@ import sys
 
 from nuitka import Progress, Tracing
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.OptionParsing import isPyenvPython, parseOptions
+from nuitka.OptionParsing import parseOptions
 from nuitka.PythonFlavors import (
+    getPythonFlavorName,
     isAnacondaPython,
     isApplePython,
     isDebianPackagePython,
     isMSYS2MingwPython,
     isNuitkaPython,
+    isPyenvPython,
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
@@ -59,7 +61,9 @@ from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
     getCPUCoreCount,
+    getLinuxDistribution,
     getOS,
+    getWindowsRelease,
     hasOnefileSupportedOS,
     hasStandaloneSupportedOS,
     isDebianBasedLinux,
@@ -67,10 +71,11 @@ from nuitka.utils.Utils import (
     isLinux,
     isMacOS,
     isOpenBSD,
+    isPosixWindows,
     isWin32OrPosixWindows,
     isWin32Windows,
 )
-from nuitka.Version import getNuitkaVersion
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 options = None
 positional_args = None
@@ -84,21 +89,19 @@ is_verbose = None
 
 
 def checkPathSpec(value, arg_name):
-    if "%COMPANY%" in value and not getWindowsCompanyName():
+    if "%COMPANY%" in value and not getCompanyName():
         Tracing.options_logger.sysexit(
             "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
-    if "%PRODUCT%" in value and not getWindowsProductName():
+    if "%PRODUCT%" in value and not getProductName():
         Tracing.options_logger.sysexit(
             "Using value '%%PRODUCT%%' in '%s=%s' value without being specified."
             % (arg_name, value)
         )
 
-    if "%VERSION%" in value and not (
-        getWindowsFileVersion() or getWindowsProductVersion()
-    ):
+    if "%VERSION%" in value and not (getFileVersion() or getProductVersion()):
         Tracing.options_logger.sysexit(
             "Using value '%%VERSION%%' in '%s=%s' value without being specified."
             % (arg_name, value)
@@ -154,6 +157,52 @@ very well known environment, anchor with e.g. %%TEMP%%, %%CACHE_DIR%% is recomme
         )
 
 
+def _getVersionInformationValues():
+    # TODO: Might be nice if we could delay version information computation
+    # until it's actually used.
+    yield getNuitkaVersion()
+    yield "Commercial: %s" % getCommercialVersion()
+    yield "Python: %s" % sys.version.split("\n", 1)[0]
+    yield "Flavor: %s" % getPythonFlavorName()
+    yield "Executable: %s" % sys.executable
+    yield "OS: %s" % getOS()
+    yield "Arch: %s" % getArchitecture()
+
+    if isLinux():
+        dist_name, dist_base, dist_version = getLinuxDistribution()
+
+        if dist_base is not None:
+            yield "Distribution: %s (based on %s) %s" % (
+                dist_name,
+                dist_base,
+                dist_version,
+            )
+        else:
+            yield "Distribution: %s %s" % (dist_name, dist_version)
+
+    if isWin32OrPosixWindows():
+        yield "WindowsRelease: %s" % getWindowsRelease()
+
+
+def printVersionInformation():
+    print("\n".join(_getVersionInformationValues()))
+
+    from nuitka.build.SconsInterface import (
+        asBoolStr,
+        runScons,
+        setCommonSconsOptions,
+    )
+
+    scons_options = {"compiler_version_mode": asBoolStr("true")}
+    env_values = setCommonSconsOptions(options=scons_options)
+
+    runScons(
+        options=scons_options,
+        env_values=env_values,
+        scons_filename="CCompilerVersion.scons",
+    )
+
+
 def parseArgs():
     """Parse the command line arguments
 
@@ -185,6 +234,14 @@ def parseArgs():
     if hasattr(options, "experimental"):
         _experimental.update(options.experimental)
 
+    # Dedicated option for caches, ccache and bytecode
+    if options.disable_ccache:
+        options.disabled_caches.append("ccache")
+    if options.disable_bytecode_cache:
+        options.disabled_caches.append("bytecode")
+    if getattr(options, "disable_dll_dependency_cache", False):
+        options.disabled_caches.append("dll-dependencies")
+
     # TODO: Have dedicated option for it.
     is_report_missing = is_debug
 
@@ -202,10 +259,11 @@ def parseArgs():
         else:
             return arg
 
-    Tracing.options_logger.info(
-        "Used command line options: %s"
-        % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
-    )
+    if not options.version:
+        Tracing.options_logger.info(
+            "Used command line options: %s"
+            % " ".join(_quoteArg(arg) for arg in sys.argv[1:])
+        )
 
     if os.environ.get("NUITKA_REEXECUTION") and not isAllowedToReexecute():
         Tracing.general.sysexit(
@@ -226,6 +284,18 @@ def parseArgs():
     is_verbose = options.verbose
 
     Tracing.optimization_logger.is_quiet = not options.verbose
+
+    if options.version:
+        printVersionInformation()
+        sys.exit(0)
+
+    if options.clean_caches:
+        from nuitka.CacheCleanup import cleanCaches
+
+        cleanCaches()
+
+        if not positional_args:
+            sys.exit(0)
 
     if options.show_inclusion_output:
         Tracing.inclusion_logger.setFileHandle(
@@ -303,7 +373,7 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
 
     if scons_python is not None and not os.path.isfile(scons_python):
         Tracing.options_logger.sysexit(
-            "Error, no such Python binary %r, should be full path." % scons_python
+            "Error, no such Python binary '%s', should be full path." % scons_python
         )
 
     output_filename = getOutputFilename()
@@ -365,7 +435,7 @@ it before using it: '%s' (from --output-filename='%s')."""
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
         Tracing.options_logger.sysexit(
-            "Error, icon path %r does not exist." % icon_exe_path
+            "Error, icon path '%s' does not exist." % icon_exe_path
         )
 
     if isMacOS() and not shallCreateAppBundle() and shallDisableConsoleWindow():
@@ -374,25 +444,25 @@ it before using it: '%s' (from --output-filename='%s')."""
         )
 
     try:
-        file_version = getWindowsFileVersion()
+        file_version = getFileVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
         Tracing.options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
     try:
-        product_version = getWindowsProductVersion()
+        product_version = getProductVersion()
     except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
         Tracing.options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )
 
-    if getWindowsCompanyName() == "":
+    if getCompanyName() == "":
         Tracing.options_logger.sysexit(
             """Error, empty string is not an acceptable company name."""
         )
 
-    if getWindowsProductName() == "":
+    if getProductName() == "":
         Tracing.options_logger.sysexit(
             """Error, empty string is not an acceptable product name."""
         )
@@ -407,17 +477,14 @@ it before using it: '%s' (from --output-filename='%s')."""
             )
 
     if file_version or product_version or getWindowsVersionInfoStrings():
-        if not (file_version or product_version) and getWindowsCompanyName():
+        if not (file_version or product_version) and getCompanyName():
             Tracing.options_logger.sysexit(
                 "Error, company name and file or product version need to be given when any version information is given."
             )
 
     if isOnefileMode() and not hasOnefileSupportedOS():
-        Tracing.options_logger.sysexit("Error, unsupported OS for onefile %r" % getOS())
-
-    if options.follow_none and options.follow_all:
         Tracing.options_logger.sysexit(
-            "Conflicting options '--follow-imports' and '--nofollow-imports' given."
+            "Error, unsupported OS for onefile '%s'." % getOS()
         )
 
     for module_pattern, _filename_pattern in getShallIncludePackageData():
@@ -427,7 +494,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "\\" in module_pattern
         ):
             Tracing.options_logger.sysexit(
-                "Error, '--include-package-data' needs module name or pattern as an argument, not %r."
+                "Error, '--include-package-data' needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
 
@@ -438,7 +505,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "\\" in module_pattern
         ):
             Tracing.options_logger.sysexit(
-                "Error, '--follow-import-to' options needs module name or pattern as an argument, not %r."
+                "Error, '--follow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
     for module_pattern in getShallFollowInNoCase():
@@ -448,7 +515,7 @@ it before using it: '%s' (from --output-filename='%s')."""
             or "\\" in module_pattern
         ):
             Tracing.options_logger.sysexit(
-                "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not %r."
+                "Error, '--nofollow-import-to' options needs module name or pattern as an argument, not '%s'."
                 % module_pattern
             )
 
@@ -494,20 +561,20 @@ it before using it: '%s' (from --output-filename='%s')."""
 
         if os.path.isabs(dst):
             Tracing.options_logger.sysexit(
-                "Error, must specify relative target path for data dir, not %r as in %r."
+                "Error, must specify relative target path for data dir, not '%s' as in '%s'."
                 % (dst, data_dir)
             )
 
         if not os.path.isdir(src):
             Tracing.options_logger.sysexit(
-                "Error, must specify existing source data directory, not %r as in %r."
+                "Error, must specify existing source data directory, not '%s' as in '%s'."
                 % (dst, data_dir)
             )
 
     for pattern in getShallFollowExtraFilePatterns():
         if os.path.isdir(pattern):
             Tracing.options_logger.sysexit(
-                "Error, pattern %r given to '--include-plugin-files' cannot be a directory name."
+                "Error, pattern '%s' given to '--include-plugin-files' cannot be a directory name."
                 % pattern
             )
 
@@ -608,10 +675,6 @@ def commentArgs():
             getWindowsIconExecutablePath()
             or shallAskForWindowsAdminRights()
             or shallAskForWindowsUIAccessRights()
-            or getWindowsCompanyName()
-            or getWindowsProductName()
-            or getWindowsProductVersion()
-            or getWindowsFileVersion()
             or getWindowsSplashScreen()
         ):
             Tracing.options_logger.warning(
@@ -623,17 +686,21 @@ def commentArgs():
                 "Requesting Windows specific compilers has no effect on other platforms."
             )
 
-    if isMingw64() and getMsvcVersion():
-        Tracing.options_logger.sysexit(
-            "Requesting both Windows specific compilers makes no sense."
-        )
+    if options.msvc_version:
+        if isMSYS2MingwPython() or isPosixWindows():
+            Tracing.options_logger.sysexit("Requesting MSVC on MSYS2 is not allowed.")
+
+        if isMingw64():
+            Tracing.options_logger.sysexit(
+                "Requesting both Windows specific compilers makes no sense."
+            )
 
     if getMsvcVersion() and getMsvcVersion() not in ("list", "latest"):
         if getMsvcVersion().count(".") != 1 or not all(
             x.isdigit() for x in getMsvcVersion().split(".")
         ):
             Tracing.options_logger.sysexit(
-                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not %r."
+                "For --msvc only values 'latest', 'info', and 'X.Y' values are allowed, but not '%s'."
                 % getMsvcVersion()
             )
 
@@ -650,21 +717,22 @@ def commentArgs():
             % getOS()
         )
 
-    if options.follow_all and shallMakeModule():
+    if options.follow_all is True and shallMakeModule():
         Tracing.optimization_logger.sysexit(
             """\
 In module mode you must follow modules more selectively, and e.g. should \
 not include standard library or all foreign modules or else it will fail \
-to work. You can selectively add them with '--follow-import-to=name' though."""
+to work. You need to instead selectively add them with \
+'--follow-import-to=name' though."""
         )
 
-    if options.follow_all and standalone_mode:
+    if options.follow_all is True and standalone_mode:
         Tracing.options_logger.info(
             "Following all imports is the default for %s mode and need not be specified."
             % standalone_mode
         )
 
-    if options.follow_none and standalone_mode:
+    if options.follow_all is False and standalone_mode:
         Tracing.options_logger.warning(
             "Following no imports is unlikely to work for %s mode and should not be specified."
             % standalone_mode
@@ -677,8 +745,7 @@ to work. You can selectively add them with '--follow-import-to=name' though."""
 
     if (
         not standalone_mode
-        and not options.follow_all
-        and not options.follow_none
+        and options.follow_all is None
         and not options.follow_modules
         and not options.follow_stdlib
         and not options.include_modules
@@ -882,12 +949,12 @@ def shallFollowStandardLibrary():
 
 def shallFollowNoImports():
     """:returns: bool derived from ``--nofollow-imports``"""
-    return options.follow_none
+    return options.follow_all is False
 
 
 def shallFollowAllImports():
     """:returns: bool derived from ``--follow-imports``"""
-    return options.is_standalone or options.follow_all
+    return options.is_standalone or options.follow_all is True
 
 
 def _splitShellPattern(value):
@@ -1228,18 +1295,35 @@ def getMsvcVersion():
         return None
 
 
+def shallCleanCache(cache_name):
+    """:returns: bool derived from ``--clean-cache``"""
+
+    if cache_name == "clcache":
+        cache_name = "ccache"
+
+    return "all" in options.clean_caches or cache_name in options.clean_caches
+
+
+def shallDisableCacheUsage(cache_name):
+    """:returns: bool derived from ``--disable-cache``"""
+    if options is None:
+        return False
+
+    return "all" in options.disabled_caches or cache_name in options.disabled_caches
+
+
 def shallDisableCCacheUsage():
-    """:returns: bool derived from ``--disable-ccache``"""
-    return options.disable_ccache
+    """:returns: bool derived from ``--disable-ccache`` or ``--disable--cache=ccache``"""
+    return shallDisableCacheUsage("ccache")
 
 
 def shallDisableBytecodeCacheUsage():
     """:returns: bool derived from ``--disable-bytecode-cache``"""
-    return options.disable_bytecode_cache
+    return shallDisableCacheUsage("bytecode")
 
 
 def shallDisableConsoleWindow():
-    """:returns: None (not given), False, or True derived from ``disable-console or ``--enable-console``"""
+    """:returns: None (not given), False, or True derived from ``--disable-console or ``--enable-console``"""
     return options.disable_console
 
 
@@ -1443,21 +1527,27 @@ def getWindowsVersionInfoStrings():
 
     result = {}
 
-    company_name = getWindowsCompanyName()
+    company_name = getCompanyName()
     if company_name:
         result["CompanyName"] = company_name
 
-    product_name = getWindowsProductName()
+    product_name = getProductName()
     if product_name:
         result["ProductName"] = product_name
 
-    if options.windows_file_description:
-        result["FileDescription"] = options.windows_file_description
+    if options.file_description:
+        result["FileDescription"] = options.file_description
+
+    if options.legal_copyright:
+        result["LegalCopyright"] = options.legal_copyright
+
+    if options.legal_trademarks:
+        result["LegalTrademarks"] = options.legal_trademarks
 
     return result
 
 
-def _parseWindowsVersionNumber(value):
+def _parseVersionNumber(value):
     if value:
         parts = value.split(".")
 
@@ -1474,14 +1564,14 @@ def _parseWindowsVersionNumber(value):
         return None
 
 
-def getWindowsProductVersion():
-    """:returns: tuple of 4 ints or None, derived from ``--windows-product-version``"""
-    return _parseWindowsVersionNumber(options.windows_product_version)
+def getProductVersion():
+    """:returns: tuple of 4 ints or None, derived from ``--product-version``"""
+    return _parseVersionNumber(options.product_version)
 
 
-def getWindowsFileVersion():
-    """:returns tuple of 4 ints or None, derived from ``--windows-file-version``"""
-    return _parseWindowsVersionNumber(options.windows_file_version)
+def getFileVersion():
+    """:returns tuple of 4 ints or None, derived from ``--file-version``"""
+    return _parseVersionNumber(options.file_version)
 
 
 def getWindowsSplashScreen():
@@ -1489,14 +1579,14 @@ def getWindowsSplashScreen():
     return options.splash_screen_image
 
 
-def getWindowsCompanyName():
+def getCompanyName():
     """*str* name of the company to use"""
-    return options.windows_company_name
+    return options.company_name
 
 
-def getWindowsProductName():
+def getProductName():
     """*str* name of the product to use"""
-    return options.windows_product_name
+    return options.product_name
 
 
 def getMacOSTargetArch():
@@ -1550,6 +1640,16 @@ def getMacOSAppProtectedResourcesAccesses():
         yield macos_protected_resource.split(":", 1)
 
 
+def isMacOSBackgroundApp():
+    """*bool*, derived from ``--macos-app-mode``"""
+    return options.macos_app_mode == "background"
+
+
+def isMacOSUiElementApp():
+    """*bool*, derived from ``--macos-app-mode``"""
+    return options.macos_app_mode == "ui-element"
+
+
 _python_flags = None
 
 
@@ -1595,7 +1695,9 @@ def _getPythonFlags():
                 elif part in ("-m", "package_mode"):
                     _python_flags.add("package_mode")
                 else:
-                    Tracing.options_logger.sysexit("Unsupported python flag %r." % part)
+                    Tracing.options_logger.sysexit(
+                        "Unsupported python flag '%s'." % part
+                    )
 
     return _python_flags
 
@@ -1668,7 +1770,7 @@ def shallNotUseDependsExeCachedResults():
 
 def shallNotStoreDependsExeCachedResults():
     """:returns: bool derived from ``--disable-dll-dependency-cache``"""
-    return getattr(options, "no_dependency_cache", False)
+    return shallDisableCacheUsage("dll-dependencies")
 
 
 def getPluginNameConsideringRenames(plugin_name):
@@ -1785,7 +1887,7 @@ def getForcedStderrPath():
 
 
 def shallShowSourceModifications():
-    """*bool* display plugin source changes"""
+    """*bool* display plugin source changes derived from --show-source-changes"""
     return options is not None and options.show_source_changes
 
 

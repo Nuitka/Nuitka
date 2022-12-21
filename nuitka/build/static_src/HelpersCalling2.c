@@ -173,7 +173,11 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
-        return _fast_function_noargs(called);
+#if PYTHON_VERSION < 0x3b0
+        return callPythonFunctionNoArgs(called);
+#else
+        return _PyFunction_Vectorcall(called, NULL, 0, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -531,7 +535,11 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 1);
+#else
+        return _PyFunction_Vectorcall(called, args, 1, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -905,7 +913,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 1);
+#else
+        return _PyFunction_Vectorcall(called, args, 1, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -1260,7 +1272,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 2);
+#else
+        return _PyFunction_Vectorcall(called, args, 2, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -1617,7 +1633,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 2);
+#else
+        return _PyFunction_Vectorcall(called, args, 2, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -1965,7 +1985,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 3);
+#else
+        return _PyFunction_Vectorcall(called, args, 3, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -2322,7 +2346,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 3);
+#else
+        return _PyFunction_Vectorcall(called, args, 3, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -2670,7 +2698,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 4);
+#else
+        return _PyFunction_Vectorcall(called, args, 4, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -3027,7 +3059,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 4);
+#else
+        return _PyFunction_Vectorcall(called, args, 4, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -3375,7 +3411,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 5);
+#else
+        return _PyFunction_Vectorcall(called, args, 5, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -3732,7 +3772,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 5);
+#else
+        return _PyFunction_Vectorcall(called, args, 5, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -4080,7 +4124,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 6);
+#else
+        return _PyFunction_Vectorcall(called, args, 6, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -4437,7 +4485,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 6);
+#else
+        return _PyFunction_Vectorcall(called, args, 6, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -4785,7 +4837,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 7);
+#else
+        return _PyFunction_Vectorcall(called, args, 7, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -5142,7 +5198,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 7);
+#else
+        return _PyFunction_Vectorcall(called, args, 7, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -5490,7 +5550,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 8);
+#else
+        return _PyFunction_Vectorcall(called, args, 8, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -5847,7 +5911,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 8);
+#else
+        return _PyFunction_Vectorcall(called, args, 8, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -6195,7 +6263,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 9);
+#else
+        return _PyFunction_Vectorcall(called, args, 9, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -6552,7 +6624,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 9);
+#else
+        return _PyFunction_Vectorcall(called, args, 9, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -6900,7 +6976,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 10);
+#else
+        return _PyFunction_Vectorcall(called, args, 10, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -7257,7 +7337,11 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
     } else if (PyFunction_Check(called)) {
+#if PYTHON_VERSION < 0x3b0
         return callPythonFunction(called, args, 10);
+#else
+        return _PyFunction_Vectorcall(called, args, 10, NULL);
+#endif
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {

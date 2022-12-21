@@ -151,20 +151,20 @@ static inline void SAVE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *gener
 #endif
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
 #if PYTHON_VERSION < 0x3b0
-    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+    PyTracebackObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 #endif
 
 #if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
-    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
+    SET_EXC_TRACEBACK(thread_state, thread_state->frame->f_exc_traceback);
 #else
 #if PYTHON_VERSION < 0x3b0
     EXC_TYPE(thread_state) = generator->m_exc_state.exception_type;
 #endif
     EXC_VALUE(thread_state) = generator->m_exc_state.exception_value;
 #if PYTHON_VERSION < 0x3b0
-    EXC_TRACEBACK(thread_state) = (PyObject *)generator->m_exc_state.exception_tb;
+    SET_EXC_TRACEBACK(thread_state, generator->m_exc_state.exception_tb);
 #endif
 #endif
 
@@ -176,7 +176,7 @@ static inline void SAVE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *gener
 #if PYTHON_VERSION < 0x370
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+    thread_state->frame->f_exc_traceback = (PyObject *)saved_exception_traceback;
 #else
 #if PYTHON_VERSION < 0x3b0
     generator->m_exc_state.exception_type = saved_exception_type;
@@ -198,24 +198,24 @@ static inline void RESTORE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *ge
 #endif
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
 #if PYTHON_VERSION < 0x3b0
-    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+    PyTracebackObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 #endif
 
 #if PYTHON_VERSION < 0x370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
-    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
+    SET_EXC_TRACEBACK(thread_state, thread_state->frame->f_exc_traceback);
 
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+    thread_state->frame->f_exc_traceback = (PyObject *)saved_exception_traceback;
 #else
 #if PYTHON_VERSION < 0x3b0
     EXC_TYPE(thread_state) = generator->m_exc_state.exception_type;
 #endif
     EXC_VALUE(thread_state) = generator->m_exc_state.exception_value;
 #if PYTHON_VERSION < 0x3b0
-    EXC_TRACEBACK(thread_state) = (PyObject *)generator->m_exc_state.exception_tb;
+    SET_EXC_TRACEBACK(thread_state, generator->m_exc_state.exception_tb);
 #endif
 
 #if PYTHON_VERSION < 0x3b0

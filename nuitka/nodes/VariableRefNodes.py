@@ -24,7 +24,10 @@ and its expressions, changing the meaning of course dramatically.
 
 from nuitka import Builtins, Variables
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    getUnboundLocalErrorErrorTemplate,
+    python_version,
+)
 from nuitka.tree.TreeHelpers import makeStatementsSequenceFromStatements
 
 from .ConstantRefNodes import makeConstantRefNode
@@ -521,8 +524,7 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
             result = makeRaiseExceptionReplacementExpression(
                 expression=self,
                 exception_type="UnboundLocalError",
-                exception_value="""local variable '%s' referenced before assignment"""
-                % variable_name,
+                exception_value=getUnboundLocalErrorErrorTemplate() % variable_name,
             )
 
             return (

@@ -52,6 +52,12 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
         return isStandaloneMode()
 
     def _handleDllConfigFromFilenames(self, dest_path, dll_config, full_name):
+        # The "when" is at that level too for these.
+        if not self.evaluateCondition(
+            full_name=full_name, condition=dll_config.get("when", "True")
+        ):
+            return
+
         relative_path = dll_config.get("relative_path", ".")
 
         module_filename = self.locateModule(full_name)
@@ -106,16 +112,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                             reason="Yaml config of '%s'" % full_name.asString(),
                         )
 
-    def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
-        setup_codes = dll_config.get("setup_code")
-        filename_code = dll_config.get("filename_code")
-
-        filename = self.queryRuntimeInformationMultiple(
-            "%s_%s" % (full_name.asString().replace(".", "_"), count),
-            setup_codes=setup_codes,
-            values=(("filename", filename_code),),
-        ).filename
-
+    def _handleDllConfigByCodeResult(self, filename, full_name, dest_path, executable):
         # Expecting absolute paths internally for DLL sources.
         filename = os.path.abspath(filename)
 
@@ -128,7 +125,8 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 dest_path = os.path.join(full_name.asPath(), "..")
 
             dest_path = os.path.join(
-                dest_path, os.path.relpath(filename, os.path.dirname(module_filename))
+                dest_path,
+                os.path.relpath(filename, os.path.dirname(module_filename)),
             )
         else:
             dest_path = os.path.join(
@@ -138,7 +136,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
         dest_path = os.path.normpath(dest_path)
 
-        if dll_config.get("executable", "no") == "yes":
+        if executable:
             yield self.makeExeEntryPoint(
                 source_path=filename,
                 dest_path=dest_path,
@@ -151,6 +149,36 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
                 dest_path=dest_path,
                 package_name=full_name,
                 reason="Yaml config of '%s'" % full_name.asString(),
+            )
+
+    def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
+        # The "when" is at that level too for these.
+        if not self.evaluateCondition(
+            full_name=full_name,
+            condition=dll_config.get("when", "True"),
+        ):
+            return
+
+        setup_codes = dll_config.get("setup_code")
+        filename_code = dll_config.get("filename_code")
+
+        filename = self.queryRuntimeInformationMultiple(
+            "%s_%s" % (full_name.asString().replace(".", "_"), count),
+            setup_codes=setup_codes,
+            values=(("filename", filename_code),),
+        ).filename
+
+        if type(filename) in (tuple, list):
+            filenames = filename
+        else:
+            filenames = (filename,)
+
+        for filename in filenames:
+            yield self._handleDllConfigByCodeResult(
+                filename=filename,
+                full_name=full_name,
+                dest_path=os.path.normpath(dest_path),
+                executable=dll_config.get("executable", "no") == "yes",
             )
 
     def _handleDllConfig(self, dll_config, full_name, count):

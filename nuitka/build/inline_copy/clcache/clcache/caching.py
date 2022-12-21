@@ -385,7 +385,12 @@ class CacheLock(object):
         result = windll.kernel32.WaitForSingleObject(
             self._mutex, wintypes.INT(self._timeoutMs)
         )
+
+
         if result not in [0, self.WAIT_ABANDONED_CODE]:
+            # Nuitka: Just give up
+            return
+
             if result == self.WAIT_TIMEOUT_CODE:
                 errorString = (
                     "Failed to acquire lock {} after {}ms; "

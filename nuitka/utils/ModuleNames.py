@@ -219,13 +219,13 @@ class ModuleName(str):
         """
 
         if self == pattern:
-            return True, "is exact match of %r" % pattern
+            return True, "is exact match of '%s'" % pattern
         elif self.isBelowNamespace(pattern):
-            return True, "is package content of %r" % pattern
+            return True, "is package content of '%s'" % pattern
         elif fnmatch.fnmatch(self.asString(), pattern):
-            return True, "matches pattern %r" % pattern
+            return True, "matches pattern '%s'" % pattern
         elif fnmatch.fnmatch(self.asString(), pattern + ".*"):
-            return True, "is package content of match to pattern %r" % pattern
+            return True, "is package content of match to pattern '%s'" % pattern
         else:
             return False, None
 

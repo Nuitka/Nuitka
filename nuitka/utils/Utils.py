@@ -102,6 +102,8 @@ def getLinuxDistribution():
             result, base, version = _parseOsReleaseFileContents("/etc/SuSE-release")
         elif os.path.exists("/etc/issue"):
             result, base, version = _parseOsReleaseFileContents("/etc/issue")
+        elif isAndroidBasedLinux():
+            result = "Android"
 
         if result is None:
             from .Execution import check_output
@@ -151,6 +153,11 @@ def isFedoraBasedLinux():
     dist_name, base, _dist_version = getLinuxDistribution()
 
     return (base or dist_name) == "Fedora"
+
+
+def isAndroidBasedLinux():
+    # spell-checker: ignore googlesource
+    return "ANDROID_ARGUMENT" in os.environ or "android.googlesource.com" in sys.version
 
 
 def isWin32Windows():

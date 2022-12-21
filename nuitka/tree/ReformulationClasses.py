@@ -84,6 +84,7 @@ def buildClassNode2(provider, node, source_ref):
 
     code_object = CodeObjectSpec(
         co_name=node.name,
+        co_qualname=provider.getChildQualname(node.name),
         co_kind="Class",
         co_varnames=(),
         co_freevars=(),

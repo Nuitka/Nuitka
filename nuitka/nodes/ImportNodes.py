@@ -79,17 +79,6 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
     makeRaiseImportErrorReplacementExpression,
 )
-from .PackageMetadataNodes import (
-    ExpressionImportlibMetadataBackportDistributionRef,
-    ExpressionImportlibMetadataBackportMetadataRef,
-    ExpressionImportlibMetadataBackportVersionRef,
-    ExpressionImportlibMetadataDistributionRef,
-    ExpressionImportlibMetadataMetadataRef,
-    ExpressionImportlibMetadataVersionRef,
-    ExpressionPkgResourcesGetDistributionRef,
-    ExpressionPkgResourcesIterEntryPointsRef,
-    ExpressionPkgResourcesRequireRef,
-)
 from .PackageResourceNodes import (
     ExpressionImportlibResourcesReadBinaryRef,
     ExpressionImportlibResourcesReadTextRef,
@@ -295,14 +284,18 @@ hard_modules_trust = {
 }
 
 
+def _addHardImportNodeClasses():
+    from .HardImportNodesGenerated import hard_import_node_classes
+
+    for hard_import_node_class, spec in hard_import_node_classes.items():
+        module_name, function_name = spec.name.rsplit(".", 1)
+
+        trust_node_factory[(module_name, function_name)] = hard_import_node_class
+
+
+_addHardImportNodeClasses()
+
 trust_node_factory[("pkgutil", "get_data")] = ExpressionPkglibGetDataRef
-trust_node_factory[("pkg_resources", "require")] = ExpressionPkgResourcesRequireRef
-trust_node_factory[
-    ("pkg_resources", "get_distribution")
-] = ExpressionPkgResourcesGetDistributionRef
-trust_node_factory[
-    ("pkg_resources", "iter_entry_points")
-] = ExpressionPkgResourcesIterEntryPointsRef
 
 trust_node_factory[
     ("pkg_resources", "resource_string")
@@ -310,24 +303,6 @@ trust_node_factory[
 trust_node_factory[
     ("pkg_resources", "resource_stream")
 ] = ExpressionPkgResourcesResourceStreamRef
-trust_node_factory[
-    ("importlib.metadata", "version")
-] = ExpressionImportlibMetadataVersionRef
-trust_node_factory[
-    ("importlib_metadata", "version")
-] = ExpressionImportlibMetadataBackportVersionRef
-trust_node_factory[
-    ("importlib.metadata", "distribution")
-] = ExpressionImportlibMetadataDistributionRef
-trust_node_factory[
-    ("importlib_metadata", "distribution")
-] = ExpressionImportlibMetadataBackportDistributionRef
-trust_node_factory[
-    ("importlib.metadata", "metadata")
-] = ExpressionImportlibMetadataMetadataRef
-trust_node_factory[
-    ("importlib_metadata", "metadata")
-] = ExpressionImportlibMetadataBackportMetadataRef
 trust_node_factory[
     ("importlib.resources", "read_binary")
 ] = ExpressionImportlibResourcesReadBinaryRef

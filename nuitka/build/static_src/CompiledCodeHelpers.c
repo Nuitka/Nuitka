@@ -48,11 +48,16 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"
 #include "HelpersFiles.c"
+#include "HelpersFloats.c"
 #include "HelpersHeapStorage.c"
 #include "HelpersImport.c"
 #include "HelpersImportHard.c"
+#include "HelpersLists.c"
+#include "HelpersMappings.c"
 #include "HelpersRaising.c"
+#include "HelpersSequences.c"
 #include "HelpersStrings.c"
+#include "HelpersTuples.c"
 
 #include "HelpersFilesystemPaths.c"
 #include "HelpersSafeStrings.c"
@@ -82,7 +87,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
         size = ESTIMATE_RANGE(high, low, -step);
     }
 
-    PyObject *result = PyList_New(size);
+    PyObject *result = MAKE_LIST_EMPTY(size);
 
     long current = low;
 
@@ -97,7 +102,7 @@ static PyObject *_BUILTIN_RANGE_INT3(long low, long high, long step) {
 static PyObject *_BUILTIN_RANGE_INT2(long low, long high) { return _BUILTIN_RANGE_INT3(low, high, 1); }
 
 static PyObject *_BUILTIN_RANGE_INT(long boundary) {
-    PyObject *result = PyList_New(boundary > 0 ? boundary : 0);
+    PyObject *result = MAKE_LIST_EMPTY(boundary > 0 ? boundary : 0);
 
     for (int i = 0; i < boundary; i++) {
         PyList_SET_ITEM(result, i, PyInt_FromLong(i));
@@ -195,10 +200,8 @@ PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high) {
     }
 
     if (fallback) {
-        PyObject *pos_args = PyTuple_New(2);
-        PyTuple_SET_ITEM(pos_args, 0, low_temp);
-        PyTuple_SET_ITEM(pos_args, 1, high_temp);
-
+        // Transfers references to tuple.
+        PyObject *pos_args = MAKE_TUPLE2_0(low_temp, high_temp);
         NUITKA_ASSIGN_BUILTIN(range);
 
         PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(range), pos_args);
@@ -260,10 +263,7 @@ PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step) {
     }
 
     if (fallback) {
-        PyObject *pos_args = PyTuple_New(3);
-        PyTuple_SET_ITEM(pos_args, 0, low_temp);
-        PyTuple_SET_ITEM(pos_args, 1, high_temp);
-        PyTuple_SET_ITEM(pos_args, 2, step_temp);
+        PyObject *pos_args = MAKE_TUPLE3_0(low_temp, high_temp, step_temp);
 
         NUITKA_ASSIGN_BUILTIN(range);
 
@@ -604,7 +604,7 @@ PyObject *BUILTIN_ALL(PyObject *value) {
 PyObject *BUILTIN_LEN(PyObject *value) {
     CHECK_OBJECT(value);
 
-    Py_ssize_t res = PyObject_Size(value);
+    Py_ssize_t res = Nuitka_PyObject_Size(value);
 
     if (unlikely(res < 0 && ERROR_OCCURRED())) {
         return NULL;
@@ -719,9 +719,11 @@ bool PRINT_NEW_LINE_TO(PyObject *file) {
     if (likely(file == NULL)) {
         result = CALL_FUNCTION_NO_ARGS(NUITKA_ACCESS_BUILTIN(print));
     } else {
-        PyObject *kw_args = PyDict_New();
-        PyDict_SetItem(kw_args, const_str_plain_file, GET_STDOUT());
+        PyObject *kw_pairs[2] = {const_str_plain_file, GET_STDOUT()};
+        PyObject *kw_args = MAKE_DICT(kw_pairs, 1);
 
+        // TODO: This should use something that does not build a dictionary at all, and not
+        // uses a tuple.
         result = CALL_FUNCTION_WITH_KEYARGS(NUITKA_ACCESS_BUILTIN(print), kw_args);
 
         Py_DECREF(kw_args);
@@ -804,7 +806,8 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     FETCH_ERROR_OCCURRED_UNTRACED(&exception_type, &exception_value, &exception_tb);
 
-    PyObject *print_kw = PyDict_New();
+    // TODO: Have a helper that creates a dictionary for PyObject **
+    PyObject *print_kw = MAKE_DICT_EMPTY();
     PyDict_SetItem(print_kw, const_str_plain_end, const_str_empty);
 
     if (file == NULL) {
@@ -813,9 +816,7 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
         PyDict_SetItem(print_kw, const_str_plain_file, file);
     }
 
-    PyObject *print_args = PyTuple_New(1);
-    PyTuple_SET_ITEM(print_args, 0, object);
-    Py_INCREF(object);
+    PyObject *print_args = MAKE_TUPLE1(object);
 
     PyObject *result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(print), print_args, print_kw);
 
@@ -893,7 +894,13 @@ bool PRINT_NULL(void) { return PRINT_STRING("<NULL>"); }
 
 bool PRINT_TYPE(PyObject *object) { return PRINT_ITEM((PyObject *)Py_TYPE(object)); }
 
-void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObject *exception_tb) {
+#if PYTHON_VERSION < 0x3b0
+void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb) {
+#else
+void _PRINT_EXCEPTION(PyObject *exception_value) {
+    PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
+    PyTracebackObject *exception_tb = exception_value ? GET_EXCEPTION_TRACEBACK(exception_value) : NULL;
+#endif
     PRINT_REPR(exception_type);
     if (exception_type) {
         PRINT_REFCOUNT(exception_type);
@@ -912,7 +919,7 @@ void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyObj
     }
 #endif
     PRINT_STRING("|");
-    PRINT_REPR(exception_tb);
+    PRINT_REPR((PyObject *)exception_tb);
 
     PRINT_NEW_LINE();
 }
@@ -921,7 +928,7 @@ void PRINT_CURRENT_EXCEPTION(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
     PRINT_STRING("current_exc=");
-    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, (PyTracebackObject *)tstate->curexc_traceback);
 }
 
 void PRINT_PUBLISHED_EXCEPTION(void) {
@@ -1429,11 +1436,7 @@ PyObject *BUILTIN_SUM2(PyObject *sequence, PyObject *start) {
     CHECK_OBJECT(sequence);
     CHECK_OBJECT(start);
 
-    PyObject *pos_args = PyTuple_New(2);
-    PyTuple_SET_ITEM(pos_args, 0, sequence);
-    Py_INCREF(sequence);
-    PyTuple_SET_ITEM(pos_args, 1, start);
-    Py_INCREF(start);
+    PyObject *pos_args = MAKE_TUPLE2(sequence, start);
 
     PyObject *result = CALL_FUNCTION_WITH_POSARGS2(NUITKA_ACCESS_BUILTIN(sum), pos_args);
 
@@ -1994,10 +1997,9 @@ volatile int _Py_Ticker = _Py_CheckInterval;
 iternextfunc default_iternext;
 
 void _initSlotIterNext(void) {
-    PyObject *pos_args = PyTuple_New(1);
-    PyTuple_SET_ITEM(pos_args, 0, (PyObject *)&PyBaseObject_Type);
-    Py_INCREF(&PyBaseObject_Type);
+    PyObject *pos_args = MAKE_TUPLE1((PyObject *)&PyBaseObject_Type);
 
+    // Note: Not using MAKE_DICT_EMPTY on purpose, this is called early on.
     PyObject *kw_args = PyDict_New();
     PyDict_SetItem(kw_args, const_str_plain___iter__, Py_True);
 
@@ -2045,7 +2047,6 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersDeepcopy.c"
 
 #include "HelpersAttributes.c"
-#include "HelpersLists.c"
 
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryBitand.c"

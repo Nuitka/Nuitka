@@ -37,6 +37,8 @@ from .Builtins import (
 
 NoneType = type(None)
 
+EllipsisType = type(Ellipsis)
+
 
 def compareConstants(a, b):
     # Many many cases to deal with, pylint: disable=too-many-branches,too-many-return-statements
@@ -174,9 +176,10 @@ def isConstant(constant):
         frozenset,
         xrange,
         bytearray,
+        EllipsisType,
     ):
         return True
-    elif constant in (Ellipsis, NoneType, NotImplemented):
+    elif constant in (NoneType, NotImplemented):
         return True
     elif constant in builtin_anon_value_list:
         return True
@@ -208,7 +211,7 @@ def isMutable(constant):
     a prime example of immutable, dictionaries are mutable.
     """
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
@@ -226,7 +229,9 @@ def isMutable(constant):
         slice,
         xrange,
         type,
+        frozenset,
         BuiltinFunctionType,
+        EllipsisType,
     ):
         return False
     elif constant_type in (dict, list, set, bytearray):
@@ -235,13 +240,6 @@ def isMutable(constant):
         for value in constant:
             if isMutable(value):
                 return True
-        return False
-    elif constant_type is frozenset:
-        for value in constant:
-            if isMutable(value):
-                return True
-        return False
-    elif constant is Ellipsis:
         return False
     elif constant is NotImplemented:
         return False
@@ -263,7 +261,6 @@ def isHashable(constant):
     mutable, and still not hashable: slices.
     """
     # Many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
@@ -279,7 +276,9 @@ def isHashable(constant):
         xrange,
         bytes,
         type,
+        frozenset,
         BuiltinFunctionType,
+        EllipsisType,
     ):
         return True
     elif constant_type in (dict, list, set, slice, bytearray):
@@ -289,20 +288,12 @@ def isHashable(constant):
             if not isHashable(value):
                 return False
         return True
-    elif constant_type is frozenset:
-        for value in constant:
-            if not isHashable(value):
-                return False
-        return True
-    elif constant is Ellipsis:
-        return True
     else:
         assert False, constant_type
 
 
 def getUnhashableConstant(constant):
-    # Too many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    """Get one unhashable part of a constant."""
 
     constant_type = type(constant)
 
@@ -318,7 +309,9 @@ def getUnhashableConstant(constant):
         xrange,
         bytes,
         type,
+        slice,
         BuiltinFunctionType,
+        EllipsisType,
     ):
         return None
     elif constant_type in (dict, list, set):
@@ -329,11 +322,7 @@ def getUnhashableConstant(constant):
             if res is not None:
                 return res
         return None
-    elif constant is Ellipsis:
-        return None
     elif constant in constant_builtin_types:
-        return None
-    elif constant_type is slice:
         return None
     else:
         assert False, constant_type
@@ -371,3 +360,59 @@ the_empty_frozenset = frozenset()
 the_empty_slice = slice(None)
 
 the_empty_unicode = unicode()  # black doesn't let us write u"" anymore.
+
+
+def getConstantValueGuide(constant, elements_only):
+    # Many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
+    constant_type = type(constant)
+
+    if constant_type in (
+        str,
+        unicode,
+        complex,
+        int,
+        long,
+        bool,
+        float,
+        NoneType,
+        range,
+        bytes,
+        slice,
+        xrange,
+        type,
+        BuiltinFunctionType,
+        EllipsisType,
+    ):
+        return "i"
+    elif constant_type is list:
+        for element in constant:
+            if isMutable(element):
+                return ("%s" if elements_only else "L%s") % (
+                    "".join(
+                        getConstantValueGuide(element, elements_only=False)
+                        for element in constant
+                    ),
+                )
+
+        return "l"
+
+    elif constant_type is tuple:
+        return ("%s" if elements_only else "T%s") % (
+            "".join(
+                getConstantValueGuide(element, elements_only=False)
+                for element in constant
+            ),
+        )
+    elif constant_type is set:
+        return "S"
+    elif constant_type is bytearray:
+        return "B"
+    elif constant_type is dict:
+        for value in iterItems(constant):
+            if isMutable(value):
+                return "D"
+
+        return "d"
+    else:
+        return "?"

@@ -240,6 +240,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     code_object = CodeObjectSpec(
         co_name="<genexpr>",
+        co_qualname=provider.getChildQualname("<genexpr>"),
         co_kind="Generator",
         co_varnames=(".0",),
         co_freevars=(),
@@ -652,6 +653,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
 
         code_object = CodeObjectSpec(
             co_name=name,
+            co_qualname=provider.getChildQualname(name),
             co_kind="Function",
             co_varnames=(),
             co_freevars=(),

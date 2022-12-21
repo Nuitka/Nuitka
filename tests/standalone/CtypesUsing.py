@@ -45,11 +45,11 @@ if os.name == "nt":
         ]
 
     GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
-    GetProcessMemoryInfo.argtypes = [
+    GetProcessMemoryInfo.argtypes = (
         wintypes.HANDLE,
         ctypes.POINTER(PROCESS_MEMORY_COUNTERS_EX),
         wintypes.DWORD,
-    ]
+    )
     GetProcessMemoryInfo.restype = wintypes.BOOL
 
     counters = PROCESS_MEMORY_COUNTERS_EX()
@@ -67,7 +67,7 @@ elif sys.platform == "linux":
     libc = ctypes.CDLL("libc.so.6")
 
     printf = libc.printf
-    # printf.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    # printf.argtypes = (ctypes.c_char_p, ctypes.c_char_p)
     printf(b"Hello, %s\n", b"World!")
 
     print("OK.")

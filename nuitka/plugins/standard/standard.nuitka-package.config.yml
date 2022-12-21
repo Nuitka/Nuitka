@@ -225,6 +225,11 @@
     - depends:
         - '_curses'
 
+- module-name: 'customtkinter'
+  data-files:
+    dirs:
+      - 'assets'
+
 - module-name: 'cv2'
   data-files:
     dirs:
@@ -737,6 +742,12 @@
     dirs:
       - 'schemas'
 
+- module-name: 'keras.api._v2.keras.__internal__.utils'
+  anti-bloat:
+    - description: 'remove keras testing tools reference'
+      replacements_plain:
+        'from keras.testing_infra.test_utils import layer_test': ''
+
 - module-name: 'kivy'
   data-files:
     dirs:
@@ -1023,6 +1034,29 @@
         'import numexpr.tests': 'raise ImportError'
 
 - module-name: 'numpy'
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - 'lib'
+      when: 'win32'
+    - from_filenames:
+        relative_path: '.dylibs'
+        prefixes:
+          - 'lib'
+      when: 'macos'
+    - by_code:
+        setup_code: |
+          import os, sys
+          library_path = os.path.join("Library", "bin") if os.name == "nt" else "lib"
+          library_prefix = "mkl_" if os.name == "nt" else "libmkl_"
+        filename_code: |
+          [os.path.join(sys.prefix, library_path, filename)
+           for filename in os.listdir(os.path.join(sys.prefix, library_path))
+           if filename.startswith(library_prefix)]
+      dest_path: '.'
+      when: 'anaconda'
+
   implicit-imports:
     - depends:
         - 'numpy._mklinit'
@@ -1252,7 +1286,6 @@
 - module-name: 'pandas._testing'
   anti-bloat:
     - description: 'remove pytest testing framework'
-
       change_function:
         'ensure_clean': "'(lambda: None)'"
         # TODO: See pandas._testing._io TODO as well.
@@ -1264,7 +1297,6 @@
 - module-name: 'pandas._testing._io'
   anti-bloat:
     - description: 'remove pytest testing framework'
-
       change_function:
         'network': "'(lambda: None)'"
         # TODO: Actually it would be nice to specify "un-callable" rather than
@@ -1277,9 +1309,9 @@
 - module-name: 'pandas.compat._optional'
   anti-bloat:
     - description: 'remove useless distutils usage'
-      replacements:
-        'distutils.version.LooseVersion(version) < minimum_version': "'False'"
-        'import distutils.version': "''"
+      replacements_plain:
+        'distutils.version.LooseVersion(version) < minimum_version': 'False'
+        'import distutils.version': ''
 
 - module-name: 'pandas.compat.numpy'
   anti-bloat:
@@ -1721,18 +1753,20 @@
     checks:
       - description: 'PyQt5 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyqt5")'
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
-        when: 'macos and not anaconda'
+        when: 'macos and not anaconda and plugin("pyqt5")'
       - description: 'PyQt5 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
-        when: 'macos'
+        when: 'macos and plugin("pyqt5")'
 
 - module-name: 'PyQt6'
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyqt6")'
 
 - module-name: 'pyqtgraph'
   data-files:
@@ -1871,9 +1905,10 @@
     checks:
       - description: 'PySide2 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyside2")'
       - description: 'PySide2 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
-        when: 'macos'
+        when: 'macos and plugin("pyside2")'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken2'
@@ -1883,9 +1918,17 @@
     checks:
       - description: 'PySide6 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyside6")'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
+
+- module-name: 'python_utils.terminal'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+      when: 'not use_ipython'
 
 - module-name: 'pythonnet'
   dlls:
@@ -1902,11 +1945,11 @@
     - description: 'workaround for dynamic rich version check'
       replacements_plain:
         'compare_version("rich", operator.ge, "10.2.2")': 'True'
-      when: 'version("rich") >= (10, 2, 2)'
+      when: 'version("rich") is not None and version("rich") >= (10, 2, 2)'
     - description: 'workaround for dynamic rich version check'
       replacements_plain:
         'compare_version("rich", operator.ge, "10.2.2")': 'False'
-      when: 'version("rich") < (10, 2, 2)'
+      when: 'version("rich") is not None and version("rich") < (10, 2, 2)'
 
 - module-name: 'pytorch_lightning.utilities.model_helpers'
   anti-bloat:
@@ -1928,6 +1971,46 @@
   data-files:
     dirs:
       - 'zoneinfo'
+
+- module-name: 'pyvista'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from pyvista.jupyter import set_jupyter_backend, PlotterITK': 'set_jupyter_backend = PlotterITK = None'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.core.dataobject'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.display import HTML, display as _display': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.plotting.mapper'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from ..jupyter.pv_ipygany import check_colormap': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.plotting.plotting'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from ..jupyter.notebook import handle_plotter': 'raise ImportError'
+      change_function:
+        # This uses IPython to convert to HTML.
+        '_save_panel': 'un-callable'
+        'export_html': 'un-callable'
+        'to_pythreejs': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'pyvista.themes'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from pyvista.jupyter import _validate_jupyter_backend': '_validate_jupyter_backend = str'
+      when: 'not use_ipython'
 
 - module-name: 'pywt'
   data-files:
@@ -2045,6 +2128,18 @@
       replacements_plain:
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
+
+- module-name: 'scipy'
+  dlls:
+    - from_filenames:
+        relative_path: '.libs'
+        prefixes:
+          - ''
+    - from_filenames:
+        relative_path: 'extra_dll'
+        prefixes:
+          - ''
+      when: 'win32'
 
 - module-name: 'scipy._distributor_init'
   anti-bloat:
@@ -2468,6 +2563,16 @@
   implicit-imports:
     - depends:
         - 'sklearn.utils._typedefs'
+
+- module-name: 'sklearn.metrics._pairwise_distances_reduction._argkmin'
+  implicit-imports:
+    - depends:
+        - 'sklearn.metrics._pairwise_distances_reduction._middle_term_computer'
+
+- module-name: 'sklearn.metrics._pairwise_distances_reduction._base'
+  implicit-imports:
+    - depends:
+        - 'sklearn.metrics._pairwise_distances_reduction._datasets_pair'
 
 - module-name: 'sklearn.metrics.cluster'
   implicit-imports:
@@ -3127,6 +3232,14 @@
       replacements_plain:
         'distutils.version.LooseVersion': ''
         'import distutils.version': ''
+  implicit-imports:
+    - depends:
+        - 'tensorflow_probability.python.experimental'
+
+- module-name: 'tensorflow_probability.python.bijectors.glow'
+  implicit-imports:
+    - depends:
+        - 'keras.api._v2'
 
 - module-name: 'text_unidecode'
   data-files:
@@ -3143,8 +3256,6 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'main': 'un-callable'
-      # Using tags, to still make it possible to compile in case of main module.
-      when: 'not main_module'
 
 - module-name: 'timm.models.layers.config'
   anti-bloat:
@@ -3290,6 +3401,15 @@
   anti-bloat:
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
+      when: 'not use_ipython'
+
+- module-name: 'trimesh.viewer.notebook'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'ipy = get_ipython()': 'raise ImportError'
+      change_function:
+        'scene_to_notebook': 'un-callable'
       when: 'not use_ipython'
 
 - module-name: 'tzdata'

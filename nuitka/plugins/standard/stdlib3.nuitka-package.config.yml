@@ -299,6 +299,10 @@
   implicit-imports:
     - depends:
         - '_tkinter'
+  options:
+    checks:
+      - console: 'recommend'
+        when: 'plugin("tk-inter")'
 
 - module-name: 'tokenize'
   anti-bloat:

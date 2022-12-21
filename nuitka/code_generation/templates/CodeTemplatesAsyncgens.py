@@ -71,7 +71,7 @@ template_asyncgen_exception_exit = """\
     NUITKA_CANNOT_GET_HERE("return must be present");
 
     function_exception_exit:
-%(function_cleanup)s\
+%(function_cleanup)s
     assert(%(exception_type)s);
     RESTORE_ERROR_OCCURRED(%(exception_type)s, %(exception_value)s, %(exception_tb)s);
     return NULL;
@@ -80,8 +80,7 @@ template_asyncgen_exception_exit = """\
 template_asyncgen_noexception_exit = """\
     NUITKA_CANNOT_GET_HERE("return must be present");
 
-%(function_cleanup)s\
-
+%(function_cleanup)s
     return NULL;
 """
 

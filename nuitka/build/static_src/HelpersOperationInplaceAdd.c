@@ -688,7 +688,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
         if (a_negative) {
             if (b_negative) {
                 *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                Py_SIZE(*operand1) = -Py_ABS(Py_SIZE(*operand1));
+                Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
             } else {
                 *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
             }
@@ -715,8 +715,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_LONG(PyObject **operand1, PyObjec
         if (a_negative) {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-
-                Py_SIZE(z) = -(Py_SIZE(z));
+                Py_SET_SIZE(z, -(Py_SIZE(z)));
             } else {
                 z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
             }
@@ -999,7 +998,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                    Py_SIZE(*operand1) = -Py_ABS(Py_SIZE(*operand1));
+                    Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
                 } else {
                     *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
                 }
@@ -1026,8 +1025,7 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_LONG(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-
-                    Py_SIZE(z) = -(Py_SIZE(z));
+                    Py_SET_SIZE(z, -(Py_SIZE(z)));
                 } else {
                     z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
                 }
@@ -1304,7 +1302,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                    Py_SIZE(*operand1) = -Py_ABS(Py_SIZE(*operand1));
+                    Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
                 } else {
                     *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
                 }
@@ -1331,8 +1329,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_OBJECT(PyObject **operand1, PyObj
             if (a_negative) {
                 if (b_negative) {
                     z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-
-                    Py_SIZE(z) = -(Py_SIZE(z));
+                    Py_SET_SIZE(z, -(Py_SIZE(z)));
                 } else {
                     z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
                 }
@@ -1422,12 +1419,12 @@ static inline bool _INPLACE_OPERATION_ADD_FLOAT_FLOAT(PyObject **operand1, PyObj
 
 exit_result_ok_cfloat:
     if (Py_REFCNT(*operand1) == 1) {
-        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+        PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     }
     goto exit_result_ok;
 
@@ -1658,12 +1655,12 @@ static inline bool _INPLACE_OPERATION_ADD_OBJECT_FLOAT(PyObject **operand1, PyOb
 
     exit_result_ok_cfloat:
         if (Py_REFCNT(*operand1) == 1) {
-            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+            PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
             // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
-            *operand1 = PyFloat_FromDouble(cfloat_result);
+            *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         }
         goto exit_result_ok;
 
@@ -1888,12 +1885,12 @@ static inline bool _INPLACE_OPERATION_ADD_FLOAT_OBJECT(PyObject **operand1, PyOb
 
     exit_result_ok_cfloat:
         if (Py_REFCNT(*operand1) == 1) {
-            PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+            PyFloat_SET_DOUBLE(*operand1, cfloat_result);
         } else {
             // We got an object handed, that we have to release.
             Py_DECREF(*operand1);
 
-            *operand1 = PyFloat_FromDouble(cfloat_result);
+            *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         }
         goto exit_result_ok;
 
@@ -2522,7 +2519,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long o
         if (a_negative) {
             if (b_negative) {
                 *operand1 = _Nuitka_LongAddInplaceDigits(*operand1, b_digits, b_digit_count);
-                Py_SIZE(*operand1) = -Py_ABS(Py_SIZE(*operand1));
+                Py_SET_SIZE(*operand1, -Py_ABS(Py_SIZE(*operand1)));
             } else {
                 *operand1 = _Nuitka_LongSubInplaceDigits(*operand1, b_digits, b_digit_count, -1);
             }
@@ -2549,8 +2546,7 @@ static inline bool _INPLACE_OPERATION_ADD_LONG_DIGIT(PyObject **operand1, long o
         if (a_negative) {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-
-                Py_SIZE(z) = -(Py_SIZE(z));
+                Py_SET_SIZE(z, -(Py_SIZE(z)));
             } else {
                 z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
             }
@@ -2633,12 +2629,12 @@ static inline bool _INPLACE_OPERATION_ADD_FLOAT_CFLOAT(PyObject **operand1, doub
 
 exit_result_ok_cfloat:
     if (Py_REFCNT(*operand1) == 1) {
-        PyFloat_AS_DOUBLE(*operand1) = cfloat_result;
+        PyFloat_SET_DOUBLE(*operand1, cfloat_result);
     } else {
         // We got an object handed, that we have to release.
         Py_DECREF(*operand1);
 
-        *operand1 = PyFloat_FromDouble(cfloat_result);
+        *operand1 = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     }
     goto exit_result_ok;
 

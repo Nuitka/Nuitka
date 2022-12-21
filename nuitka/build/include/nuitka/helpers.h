@@ -18,9 +18,21 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_FRAME
+#define _DEBUG_FRAME 1
+#else
 #define _DEBUG_FRAME 0
+#endif
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_REFRAME
+#define _DEBUG_REFRAME 1
+#else
 #define _DEBUG_REFRAME 0
+#endif
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_EXCEPTIONS
+#define _DEBUG_EXCEPTIONS 1
+#else
 #define _DEBUG_EXCEPTIONS 0
+#endif
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_GENERATOR
 #define _DEBUG_GENERATOR 1
 #else
@@ -64,30 +76,6 @@ extern PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *arg
 extern PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args);
 extern PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args);
 
-// Most fundamental, because we use it for debugging in everything else.
-#include "nuitka/helper/printing.h"
-
-// Helper to check that an object is valid and has positive reference count.
-#define CHECK_OBJECT(value) (assert((value) != NULL), assert(Py_REFCNT(value) > 0))
-#define CHECK_OBJECT_X(value) (assert((value) == NULL || Py_REFCNT(value) > 0))
-
-// Helper to check an array of objects with CHECK_OBJECT
-#ifndef __NUITKA_NO_ASSERT__
-#define CHECK_OBJECTS(values, count)                                                                                   \
-    {                                                                                                                  \
-        for (int i = 0; i < count; i++) {                                                                              \
-            CHECK_OBJECT((values)[i]);                                                                                 \
-        }                                                                                                              \
-    }
-#else
-#define CHECK_OBJECTS(values, count)
-#endif
-
-extern void CHECK_OBJECT_DEEP(PyObject *value);
-extern void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size);
-
-#include "nuitka/exceptions.h"
-
 // For use with "--trace-execution", code can make outputs. Otherwise they
 // are just like comments.
 #include "nuitka/tracing.h"
@@ -122,32 +110,8 @@ static inline bool Nuitka_Generator_Check(PyObject *object);
 static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 
 #include "nuitka/calling.h"
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT(PyObject *value) {
-    PyObject *result;
-
-#if PYTHON_VERSION < 0x300
-    if (PyString_CheckExact(value)) {
-        result = PyFloat_FromString(value, NULL);
-    }
-#else
-    if (PyUnicode_CheckExact(value)) {
-        result = PyFloat_FromString(value);
-    }
-#endif
-    else {
-        result = PyNumber_Float(value);
-    }
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
-}
-
 #include "nuitka/helper/complex.h"
-
+#include "nuitka/helper/floats.h"
 #include "nuitka/helper/ints.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
@@ -398,7 +362,7 @@ extern void patchInspectModule(void);
 // for "==" and "!=", but not for "is" checks.
 extern void patchTypeComparison(void);
 
-// Patch the CPython type for tracebacks and make it use a freelist mechanism
+// Patch the CPython type for tracebacks and make it use a free list mechanism
 // to be slightly faster for exception control flows.
 extern void patchTracebackDealloc(void);
 
@@ -457,24 +421,16 @@ extern PyObject *JOIN_PATH2(PyObject *dirname, PyObject *filename);
 
 #include <nuitka/threading.h>
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_ssize_t size) {
-    PyObject *result = PyTuple_New(size);
-
-    for (Py_ssize_t i = 0; i < size; i++) {
-        PyObject *item = elements[i];
-        Py_INCREF(item);
-        PyTuple_SET_ITEM(result, i, item);
-    }
-
-    return result;
-}
-
 // Make a deep copy of an object of general or specific type.
 extern PyObject *DEEP_COPY(PyObject *value);
-extern PyObject *DEEP_COPY_DICT(PyObject *value);
+extern PyObject *DEEP_COPY_DICT(PyObject *dict_value);
 extern PyObject *DEEP_COPY_LIST(PyObject *value);
 extern PyObject *DEEP_COPY_TUPLE(PyObject *value);
 extern PyObject *DEEP_COPY_SET(PyObject *value);
+
+// Constants deep copies are guided by value type descriptions.
+extern PyObject *DEEP_COPY_LIST_GUIDED(PyObject *value, char const *guide);
+extern PyObject *DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const *guide);
 
 // UnionType, normally not accessible
 extern PyTypeObject *Nuitka_PyUnion_Type;
