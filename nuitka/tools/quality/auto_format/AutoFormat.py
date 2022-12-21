@@ -163,8 +163,12 @@ def _checkRequiredVersion(tool, tool_call):
     return required_version == actual_version, message
 
 
-def _cleanupPyLintComments(filename):
-    new_code = old_code = getFileContents(filename, encoding="utf8")
+def _cleanupPyLintComments(filename, effective_filename):
+    try:
+        new_code = old_code = getFileContents(filename, encoding="utf8")
+    except UnicodeDecodeError:
+        my_print("Problem with file %s not having UTF8 encoding." % effective_filename)
+        raise
 
     def replacer(part):
         def changePyLintTagName(pylint_token):
@@ -594,7 +598,7 @@ def autoFormatFile(
 
             if not _shouldNotFormatCode(effective_filename):
                 _cleanupImportSortOrder(tmp_filename)
-                _cleanupPyLintComments(tmp_filename)
+                _cleanupPyLintComments(tmp_filename, effective_filename)
 
                 black_call = _getPythonBinaryCall("black")
 
