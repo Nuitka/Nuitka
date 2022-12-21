@@ -168,6 +168,24 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     )
 
 
+# By default ignore all things that close to code.
+default_ignored_suffixes = (
+    ".py",
+    ".pyw",
+    ".pyc",
+    ".pyo",
+    ".pyi",
+    ".so",
+    ".pyd",
+    ".dll",
+)
+if not isMacOS():
+    default_ignored_suffixes += (".DS_Store",)
+default_ignored_suffixes += getSharedLibrarySuffixes()
+
+default_ignored_dirs = ("__pycache__",)
+
+
 def makeIncludedDataDirectory(
     source_path,
     dest_path,
@@ -193,8 +211,10 @@ def makeIncludedDataDirectory(
     ):
         filename_relative = os.path.relpath(filename, source_path)
 
-        if filename_relative.endswith((".py", ".pyc", ".pyi", ".so", ".pyd")):
+        if filename_relative.endswith(default_ignored_suffixes):
             continue
+
+        ignore_dirs = tuple(ignore_dirs) + default_ignored_dirs
 
         filename_dest = os.path.join(dest_path, filename_relative)
 
@@ -322,15 +342,7 @@ def makeIncludedPackageDataFiles(
     pkg_filenames = getFileList(
         package_directory,
         ignore_dirs=("__pycache__",),
-        ignore_suffixes=(
-            ".py",
-            ".pyw",
-            ".pyc",
-            ".pyo",
-            ".pyi",
-            ".dll",
-        )
-        + getSharedLibrarySuffixes(),
+        ignore_suffixes=default_ignored_suffixes,
     )
 
     if pkg_filenames:
