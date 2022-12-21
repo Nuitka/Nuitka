@@ -157,6 +157,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         )
     elif guard_mode == "full":
         getFrameGuardHeavyCode(
+            frame_node=statement_sequence,
             code_identifier=code_identifier,
             type_descriptions=type_descriptions,
             parent_exception_exit=parent_exception_exit,
@@ -230,6 +231,7 @@ def getFrameAttachLocalsCode(context, frame_identifier):
 
 
 def getFrameGuardHeavyCode(
+    frame_node,
     code_identifier,
     codes,
     type_descriptions,
@@ -258,17 +260,65 @@ def getFrameGuardHeavyCode(
         exception_lineno,
     ) = context.variable_storage.getExceptionVariableDescriptions()
 
+    frame_init_code = ""
+    frame_exit_code = ""
+
+    # Expose the locals dictionary with the frame locals if it exists.
+    if frame_node.isStatementsFrameClass():
+        use_locals_dict = (
+            frame_node.getLocalsScope().getCodeName() in context.getLocalsDictNames()
+        )
+
+        make_frame_code = (
+            """MAKE_CLASS_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_dict_name)s, %(locals_size)s);"""
+            % {
+                "code_identifier": code_identifier,
+                "module_identifier": getModuleAccessCode(context),
+                "locals_size": getFrameLocalsStorageSize(type_descriptions),
+                "locals_dict_name": frame_node.getLocalsScope().getCodeName()
+                if use_locals_dict
+                else "NULL",
+            }
+        )
+
+        if use_locals_dict:
+            # TODO: Have a function that clears an optional existing reference and assigns a new
+            # value taking a reference.
+            frame_init_code = """\
+assert(%(frame_identifier)s->m_frame.f_locals == NULL);
+%(frame_identifier)s->m_frame.f_locals = %(locals_dict)s;
+Py_INCREF(%(frame_identifier)s->m_frame.f_locals);
+""" % {
+                "frame_identifier": frame_identifier,
+                "locals_dict": frame_node.getLocalsScope().getCodeName(),
+            }
+            frame_exit_code = """
+Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
+""" % {
+                "frame_identifier": frame_identifier,
+            }
+
+    else:
+        make_frame_code = (
+            """MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s);"""
+            % {
+                "code_identifier": code_identifier,
+                "module_identifier": getModuleAccessCode(context),
+                "locals_size": getFrameLocalsStorageSize(type_descriptions),
+            }
+        )
+
     emit(
         template_frame_guard_full_block
         % {
             "frame_identifier": frame_identifier,
             "frame_cache_identifier": frame_cache_identifier,
-            "code_identifier": code_identifier,
-            "locals_size": getFrameLocalsStorageSize(type_descriptions),
             "codes": indented(codes, 0),
-            "module_identifier": getModuleAccessCode(context),
             "no_exception_exit": no_exception_exit,
             "needs_preserve": 1 if needs_preserve else 0,
+            "make_frame_code": make_frame_code,
+            "frame_init_code": frame_init_code,
+            "frame_exit_code": frame_exit_code,
         }
     )
 
@@ -280,6 +330,7 @@ def getFrameGuardHeavyCode(
                 "return_exit": parent_return_exit,
                 "frame_return_exit": frame_return_exit,
                 "needs_preserve": 1 if needs_preserve else 0,
+                "frame_exit_code": frame_exit_code,
             }
         )
 
@@ -305,6 +356,7 @@ def getFrameGuardHeavyCode(
                 "needs_preserve": 1 if needs_preserve else 0,
                 "exception_tb": exception_tb,
                 "exception_lineno": exception_lineno,
+                "frame_exit_code": frame_exit_code,
             }
         )
 

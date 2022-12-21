@@ -46,7 +46,7 @@ def getLdLibraryPath(package_name, python_rpaths, original_dir):
     return _ld_library_cache[key]
 
 
-def getPackageSpecificDLLDirectories(package_name):
+def getPackageSpecificDLLDirectories(package_name, consider_plugins=True):
     scan_dirs = OrderedSet()
 
     if package_name is not None:
@@ -59,10 +59,11 @@ def getPackageSpecificDLLDirectories(package_name):
 
             scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
 
-        scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
+        if consider_plugins:
+            scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
 
     # TODO: Move this to plugins DLLs section.
-    if package_name == "torchvision":
+    if package_name == "torchvision" and consider_plugins:
         scan_dirs.update(getPackageSpecificDLLDirectories(ModuleName("torch")))
 
     return scan_dirs

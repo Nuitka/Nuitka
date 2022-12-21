@@ -27,8 +27,6 @@
 #include "nuitka/prelude.h"
 #endif
 
-#include "longintrepr.h"
-
 static Py_ssize_t CONVERT_LONG_TO_REPEAT_FACTOR(PyObject *value) {
     /* Inline PyLong_AsSsize_t here for our special purpose. */
     Py_ssize_t i = Py_SIZE(value);

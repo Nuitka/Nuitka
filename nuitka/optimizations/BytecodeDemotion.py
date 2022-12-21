@@ -21,8 +21,8 @@
 
 import marshal
 
+from nuitka.BytecodeCaching import writeImportedModulesNamesToCache
 from nuitka.Bytecodes import compileSourceToBytecode
-from nuitka.Caching import writeImportedModulesNamesToCache
 from nuitka.importing.ImportCache import (
     isImportedModuleByName,
     replaceImportedModule,

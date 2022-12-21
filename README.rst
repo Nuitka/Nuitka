@@ -391,9 +391,18 @@ The resulting file ``some_module.so`` can then be used instead of
 
 .. note::
 
-   The option ``--follow-imports`` and other variants work as well, but
-   the included modules will only become importable *after* you imported
-   the ``some_module`` name.
+   The option ``--follow-import-to`` and work as well, but the included
+   modules will only become importable *after* you imported the
+   ``some_module`` name. If these kinds of imports are invisible to
+   Nuitka, e.g. dynamically created, you can use ``--include-module`` or
+   ``--include-package`` in that case, but for static imports it should
+   not be needed.
+
+-- note:
+
+.. code::
+
+   An extension module can never include other extension modules. You will have to create a wheel for this to be doable.
 
 .. note::
 
@@ -413,10 +422,17 @@ also feasible, use Nuitka like this:
 .. note::
 
    The inclusion of the package contents needs to be provided manually,
-   otherwise, the package is empty. You can be more specific if you
-   want, and only include part of it. Data files located inside the
-   package will not be embedded by this process, you need to copy them
-   yourself with this approach.
+   otherwise, the package is mostly empty. You can be more specific if
+   you want, and only include part of it, or exclude part of it, e.g.
+   with ``--nofollow-import-to='*.tests'`` you would not include the
+   unused test part of your code.
+
+.. note::
+
+   Data files located inside the package will not be embedded by this
+   process, you need to copy them yourself with this approach.
+   Alternatively you can use the `file embedding of Nuitka commercial
+   <https://nuitka.net/doc/commercial/protect-data-files.html>`__.
 
 Use Case 4 - Program Distribution
 =================================
@@ -428,10 +444,11 @@ produces a folder for which you can specify ``--standalone``.
 
    python -m nuitka --standalone program.py
 
-Follow all imports is default in this mode. You can selectively exclude
-modules by specifically saying ``--nofollow-import-to``, but then an
-``ImportError`` will be raised when import of it is attempted at program
-run time.
+Following all imports is default in this mode. You can selectively
+exclude modules by specifically saying ``--nofollow-import-to``, but
+then an ``ImportError`` will be raised when import of it is attempted at
+program run time. This may cause different behavior, but it may also
+improve your compile time if done wisely.
 
 For data files to be included, use the option
 ``--include-data-files=<source>=<target>`` where the source is a file
@@ -452,7 +469,8 @@ i.e. if you want only a partial copy, remove the files beforehand.
 For package data, there is a better way, using
 ``--include-package-data`` which detects data files of packages
 automatically and copies them over. It even accepts patterns in shell
-style.
+style. It spares you the need to find the package directory yourself and
+should be preferred whenever available.
 
 With data files, you are largely on your own. Nuitka keeps track of ones
 that are needed by popular packages, but it might be incomplete. Raise
@@ -464,9 +482,10 @@ When that is working, you can use the onefile mode if you so desire.
 
    python -m nuitka --onefile program.py
 
-This will create a single binary, which on Linux will not even unpack
-itself, but instead loop back mount its contents as a filesystem and use
-that.
+This will create a single binary, that extracts itself on the target,
+before running the program. But notice, that accessing files relative to
+your program is impacted, make sure to read the section `Onefile:
+Finding files`_ as well.
 
 .. code:: bash
 
@@ -477,37 +496,45 @@ that.
 
    There are more platform specific options, e.g. related to icons,
    splash screen, and version information, consider the ``--help``
-   output for the details of these and check the section "Good Looks".
+   output for the details of these and check the section `Tweaks_`.
 
-Again, on Windows, for the temporary file directory, by default the user
-one is used, however this can be overridden with a path specification
-given in ``--windows-onefile-tempdir-spec=%TEMP%\\onefile_%PID%_%TIME%``
-which is the default and asserts that the temporary directories created
-cannot collide.
+For the unpacking, by default a unique user temporary path one is used,
+and then deleted, however this default
+``--onefile-tempdir-spec="%TEMP%/onefile_%PID%_%TIME%"`` can be
+overridden with a path specification that is using then using a cached
+path, avoiding repeated unpacking, e.g. with
+``--onefile-tempdir-spec="%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION"``
+which uses version information, and user specific cache directory.
+
+.. note::
+
+   Using cached paths will e.g. be relevant too, when Windows Firewall
+   comes into play, because otherwise, the binary will be a different
+   one to it each time it is run.
 
 Currently these expanded tokens are available:
 
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| Token       | What this Expands to                                                      | Example                          |
-+=============+===========================================================================+==================================+
-| %TEMP%      | User temporary file directory                                             | C:\Users\...\AppData\Locals\Temp |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %PID%       | Process ID                                                                | 2772                             |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %TIME%      | Time in seconds since the epoch.                                          | 1299852985                       |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %PROGRAM%   | Full program run-time filename of executable.                             | C:\SomeWhere\YourOnefile.exe     |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %CACHE_DIR% | Cache directory for the user.                                             | C:\Users\SomeBody\AppData\Local  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %COMPANY%   | Value given as ``--windows-company-name``                                 | YourCompanyName                  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %PRODUCT%   | Value given as ``--windows-product-name``                                 | YourProductName                  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %VERSION%   | Combination of ``--windows-file-version`` & ``--windows-product-version`` | 3.0.0.0-1.0.0.0                  |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
-| %HOME%      | Home directory for the user.                                              | /home/somebody                   |
-+-------------+---------------------------------------------------------------------------+----------------------------------+
++-------------+-----------------------------------------------------------+----------------------------------+
+| Token       | What this Expands to                                      | Example                          |
++=============+===========================================================+==================================+
+| %TEMP%      | User temporary file directory                             | C:\Users\...\AppData\Locals\Temp |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %PID%       | Process ID                                                | 2772                             |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %TIME%      | Time in seconds since the epoch.                          | 1299852985                       |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %PROGRAM%   | Full program run-time filename of executable.             | C:\SomeWhere\YourOnefile.exe     |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %CACHE_DIR% | Cache directory for the user.                             | C:\Users\SomeBody\AppData\Local  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %COMPANY%   | Value given as ``--company-name``                         | YourCompanyName                  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %PRODUCT%   | Value given as ``--product-name``                         | YourProductName                  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %VERSION%   | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                  |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %HOME%      | Home directory for the user.                              | /home/somebody                   |
++-------------+-----------------------------------------------------------+----------------------------------+
 
 .. note::
 
@@ -642,10 +669,58 @@ and may even be combined:
 
 .. code:: bash
 
-   # These create binaries with icons:
+   # These create binaries with icons on Windows
    python -m nuitka --onefile --windows-icon-from-ico=your-icon.png program.py
    python -m nuitka --onefile --windows-icon-from-ico=your-icon.ico program.py
    python -m nuitka --onefile --windows-icon-template-exe=your-icon.ico program.py
+
+   # These create application bundles with icons on macOS
+   python -m nuitka --macos-create-app-bundle --macos-app-icon=your-icon.png program.py
+   python -m nuitka --macos-create-app-bundle --macos-app-icon=your-icon.icns program.py
+
+.. note::
+
+   With Nuitka, you do not have to create platform specific icons, but
+   instead it will convert e.g. PNG, but also other format on the fly
+   during the build.
+
+MacOS Entitlements
+==================
+
+Entitlements for an macOS application bundle can be added with the
+option, ``--macos-app-protected-resource``, all values are listed on
+`this page from Apple
+<https://developer.apple.com/documentation/bundleresources/information_property_list/protected_resources>`__
+
+An example value would be
+``--macos-app-protected-resource=NSMicrophoneUsageDescription:Microphone
+access`` for requesting access to a Microphone. After the colon, the
+descriptive text is to be given.
+
+.. note::
+
+   Beware that in the likely case of using spaces in the description
+   part, you need to quote it for your shell to get through to Nuitka
+   and not be interpreted as Nuitka arguments.
+
+Console Window
+==============
+
+On Windows, the console is opened by programs unless you say so. Nuitka
+defaults to this, effectively being only good for terminal programs, or
+programs where the output is requested to be seen. There is a difference
+in ``pythonw.exe`` and ``python.exe`` along those lines. This is
+replicated in Nuitka with the option ``--disable-console``. Nuitka
+recommends you to consider this in case you are using ``PySide6`` e.g.
+and other GUI packages, e.g. ``wx``, but it leaves the decision up to
+you. In case, you know your program is console application, just using
+``--enable-console`` which will get rid of these kinds of outputs from
+Nuitka.
+
+.. note::
+
+   The ``pythonw.exe`` is never good to be used with Nuitka, as you
+   cannot see its output.
 
 Splash screen
 =============
@@ -826,6 +901,12 @@ carefully at these exceptions keeping in mind that this can be the
 cause. If you program works without standalone, chances are data files
 might be cause.
 
+The most common error indicating file absence is of course an uncaught
+``FileNotFoundError`` with a filename. You should figure out what
+package is missing files and then use ``--include-package-data``
+(preferably), or ``--include-data-dir``/``--include-data-files`` to
+include them.
+
 Missing DLLs in standalone
 ==========================
 
@@ -903,10 +984,11 @@ standalone binary.
 Windows Programs without console give no errors
 ===============================================
 
-For debugging purposes, remove ``--windows-disable-console`` or use the
-options ``--windows-force-stdout-spec`` and
-``--windows-force-stderr-spec`` with paths as documented for
-``--windows-onefile-tempdir-spec`` above.
+For debugging purposes, remove ``--disable-console`` or use the options
+``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec`` with
+paths as documented for ``--windows-onefile-tempdir-spec`` above. These
+can be relative to the program or absolute, so you can see the outputs
+given.
 
 Deep copying uncompiled functions
 =================================
@@ -1234,25 +1316,30 @@ there is still more work needed, esp. to make it do more optimization.
 Try it out, and when popular packages do not work, please make reports
 on GitHub.
 
-Follow me on Twitter
-====================
+Follow me on Mastodon and Twitter
+=================================
 
-Nuitka announcements and interesting stuff is pointed to on the Twitter
-account, but obviously with not too many details. `@KayHayen
-<https://twitter.com/KayHayen>`_.
+Nuitka announcements and interesting stuff is pointed to on both the
+Mastodon and Twitter accounts, but obviously with not too many details,
+usually pointing to the website, but sometimes I also ask questions
+there.
+
+`@KayHayen on Mastodon <https://fosstodon.org/@kayhayen>`_. `@KayHayen
+on Twitter <https://twitter.com/KayHayen>`_.
 
 Report issues or bugs
 =====================
 
 Should you encounter any issues, bugs, or ideas, please visit the
-`Nuitka bug tracker <https://github.com/kayhayen/Nuitka/issues>`__ and
+`Nuitka bug tracker <https://github.com/Nuitka/Nuitka/issues>`__ and
 report them.
 
 Best practices for reporting bugs:
 
 -  Please always include the following information in your report, for
    the underlying Python version. You can easily copy&paste this into
-   your report.
+   your report. It does contain more information that you think. Do not
+   write something manually. You may always add of course.
 
    .. code:: bash
 

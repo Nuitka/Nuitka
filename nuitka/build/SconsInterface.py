@@ -32,14 +32,23 @@ from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
-from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
+from nuitka.PythonFlavors import (
+    isAnacondaPython,
+    isMSYS2MingwPython,
+    isNuitkaPython,
+)
+from nuitka.PythonVersions import (
+    getSystemPrefixPath,
+    getTargetPythonDLLPath,
+    python_version,
+)
 from nuitka.utils.Execution import (
     getExecutablePath,
     withEnvironmentVarsOverridden,
 )
 from nuitka.utils.FileOperations import (
     deleteFile,
+    getDirectoryRealPath,
     getExternalUsePath,
     getWindowsShortPathName,
     hasFilenameExtension,
@@ -47,7 +56,12 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.SharedLibraries import detectBinaryMinMacOS
-from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 
 from .SconsCaching import checkCachingSuccess
 from .SconsUtils import flushSconsReports
@@ -134,7 +148,7 @@ Anaconda Python.
 
 
 @contextlib.contextmanager
-def _setupSconsEnvironment():
+def _setupSconsEnvironment(scons_filename):
     """Setup the scons execution environment.
 
     For the target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
@@ -150,7 +164,9 @@ def _setupSconsEnvironment():
     if isWin32Windows():
         os.chdir(getWindowsShortPathName(os.getcwd()))
 
-    if isWin32Windows() and not Options.shallUseStaticLibPython():
+    is_backend = scons_filename == "Backend.scons"
+
+    if is_backend and isWin32Windows() and not Options.shallUseStaticLibPython():
         # On Win32, we use the Python.DLL path for some things. We pass it
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
@@ -192,7 +208,7 @@ def _setupSconsEnvironment():
     del os.environ["NUITKA_PACKAGE_DIR"]
 
 
-def _buildSconsCommand(quiet, options, scons_filename):
+def _buildSconsCommand(options, scons_filename):
     """Build the scons command to run.
 
     The options are a dictionary to be passed to scons as a command line,
@@ -201,7 +217,7 @@ def _buildSconsCommand(quiet, options, scons_filename):
 
     scons_command = _getSconsBinaryCall()
 
-    if quiet:
+    if not Options.isShowScons():
         scons_command.append("--quiet")
 
     scons_command += [
@@ -243,11 +259,11 @@ def _buildSconsCommand(quiet, options, scons_filename):
     return scons_command
 
 
-def runScons(options, quiet, env_values, scons_filename):
-    with _setupSconsEnvironment():
+def runScons(options, env_values, scons_filename):
+    with _setupSconsEnvironment(scons_filename):
         env_values["_NUITKA_BUILD_DEFINITIONS_CATALOG"] = ",".join(env_values.keys())
 
-        if Options.shallCompileWithoutBuildDirectory():
+        if "source_dir" in options and Options.shallCompileWithoutBuildDirectory():
             # Make sure we become non-local, by changing all paths to be
             # absolute, but ones that can be resolved by any program
             # externally, as the Python of Scons may not be good at unicode.
@@ -278,7 +294,7 @@ def runScons(options, quiet, env_values, scons_filename):
         env_values["NUITKA_QUIET"] = "1" if Tracing.is_quiet else "0"
 
         scons_command = _buildSconsCommand(
-            quiet=quiet, options=options, scons_filename=scons_filename
+            options=options, scons_filename=scons_filename
         )
 
         if Options.isShowScons():
@@ -289,9 +305,11 @@ def runScons(options, quiet, env_values, scons_filename):
         with withEnvironmentVarsOverridden(env_values):
             result = subprocess.call(scons_command, shell=False, cwd=source_dir)
 
+        # TODO: Actually this should only flush one of these, namely the one for
+        # current source_dir.
         flushSconsReports()
 
-        if result == 0:
+        if "source_dir" in options and result == 0:
             checkCachingSuccess(source_dir or options["source_dir"])
 
         return result == 0
@@ -353,23 +371,25 @@ def setCommonSconsOptions(options):
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
 
+    options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
+
     if Options.shallRunInDebugger():
-        options["full_names"] = "true"
+        options["full_names"] = asBoolStr(True)
 
     if Options.assumeYesForDownloads():
         options["assume_yes_for_downloads"] = asBoolStr(True)
 
     if not Options.shallUseProgressBar():
-        options["progress_bar"] = "false"
+        options["progress_bar"] = asBoolStr(False)
 
     if Options.isClang():
-        options["clang_mode"] = "true"
+        options["clang_mode"] = asBoolStr(True)
 
     if Options.isShowScons():
-        options["show_scons"] = "true"
+        options["show_scons"] = asBoolStr(True)
 
     if Options.isMingw64():
-        options["mingw_mode"] = "true"
+        options["mingw_mode"] = asBoolStr(True)
 
     if Options.getMsvcVersion():
         options["msvc_version"] = Options.getMsvcVersion()
@@ -391,6 +411,9 @@ def setCommonSconsOptions(options):
 
     if isAnacondaPython():
         options["anaconda_python"] = asBoolStr(True)
+
+    if isMSYS2MingwPython():
+        options["msys2_mingw_python"] = asBoolStr(True)
 
     cpp_defines = Plugins.getPreprocessorSymbols()
     if cpp_defines:
@@ -416,7 +439,7 @@ def setCommonSconsOptions(options):
 
         if macos_min_version is None:
             Tracing.general.sysexit(
-                "Could not detect minimum macOS version for %r." % sys.executable
+                "Could not detect minimum macOS version for '%s'." % sys.executable
             )
 
         options["macos_min_version"] = macos_min_version
@@ -430,6 +453,8 @@ def setCommonSconsOptions(options):
 
         options["macos_target_arch"] = macos_target_arch
 
+    options["target_arch"] = getArchitecture()
+
     env_values = OrderedDict()
 
     string_values = Options.getWindowsVersionInfoStrings()
@@ -440,8 +465,8 @@ def setCommonSconsOptions(options):
 
     # Merge version information if possible, to avoid collisions, or deep nesting
     # in file system.
-    product_version = Options.getWindowsProductVersion()
-    file_version = Options.getWindowsFileVersion()
+    product_version = Options.getProductVersion()
+    file_version = Options.getFileVersion()
 
     if product_version is None:
         product_version = file_version

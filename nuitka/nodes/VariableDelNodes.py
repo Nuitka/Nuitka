@@ -25,6 +25,7 @@ from abc import abstractmethod
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.Options import isExperimental
+from nuitka.PythonVersions import getUnboundLocalErrorErrorTemplate
 
 from .NodeBases import StatementBase
 from .NodeMakingHelpers import makeRaiseExceptionReplacementStatement
@@ -271,7 +272,7 @@ class StatementDelVariableIntolerant(StatementDelVariableBase):
             result = makeRaiseExceptionReplacementStatement(
                 statement=self,
                 exception_type="UnboundLocalError",
-                exception_value="""local variable '%s' referenced before assignment"""
+                exception_value=getUnboundLocalErrorErrorTemplate()
                 % self.variable.getName(),
             )
         else:

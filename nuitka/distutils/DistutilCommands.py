@@ -256,7 +256,7 @@ class build(distutils.command.build.build):
 
             # Adding traces for clarity
             wheel_logger.info(
-                "Building: '%s' with command %r" % (module_name.asString(), command),
+                "Building: '%s' with command '%s'" % (module_name.asString(), command),
                 style="blue",
             )
             check_call(command, cwd=build_lib)

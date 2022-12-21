@@ -147,8 +147,7 @@ static PyTypeObject Nuitka_ResourceReader_Type = {
 static PyObject *Nuitka_ResourceReader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry) {
     struct Nuitka_ResourceReaderObject *result;
 
-    result = (struct Nuitka_ResourceReaderObject *)PyObject_GC_New(struct Nuitka_ResourceReaderObject,
-                                                                   &Nuitka_ResourceReader_Type);
+    result = (struct Nuitka_ResourceReaderObject *)Nuitka_GC_New(&Nuitka_ResourceReader_Type);
     Nuitka_GC_Track(result);
 
     result->m_loader_entry = entry;

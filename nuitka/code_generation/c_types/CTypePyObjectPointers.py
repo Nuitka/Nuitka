@@ -46,7 +46,7 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
     template_write_shared_unclear_ref0,
     template_write_shared_unclear_ref1,
 )
-from nuitka.Constants import isMutable
+from nuitka.Constants import getConstantValueGuide, isMutable
 
 from .CTypeBases import CTypeBase
 
@@ -191,12 +191,12 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     )
                     ref_count = 1
                 else:
-                    code = "PyDict_Copy(%s)" % context.getConstantCode(
+                    code = "DICT_COPY(%s)" % context.getConstantCode(
                         constant, deep_check=False
                     )
                     ref_count = 1
             else:
-                code = "PyDict_New()"
+                code = "MAKE_DICT_EMPTY()"
                 ref_count = 1
         elif type(constant) is set:
             if not may_escape:
@@ -221,8 +221,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     needs_deep = False
 
                 if needs_deep:
-                    code = "DEEP_COPY_LIST(%s)" % context.getConstantCode(
-                        constant, deep_check=False
+                    code = 'DEEP_COPY_LIST_GUIDED(%s, "%s")' % (
+                        context.getConstantCode(constant, deep_check=False),
+                        getConstantValueGuide(constant, elements_only=True),
                     )
                     ref_count = 1
                 else:
@@ -231,7 +232,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     )
                     ref_count = 1
             else:
-                code = "PyList_New(0)"
+                # TODO: For the zero elements list, maybe have a dedicated function, which
+                # avoids a bit of tests, not sure we want LTO do this.
+                code = "MAKE_LIST_EMPTY(0)"
                 ref_count = 1
         elif type(constant) is tuple:
             needs_deep = False
@@ -242,8 +245,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
                         needs_deep = True
                         break
             if needs_deep:
-                code = "DEEP_COPY_TUPLE(%s)" % context.getConstantCode(
-                    constant, deep_check=False
+                code = 'DEEP_COPY_TUPLE_GUIDED(%s, "%s")' % (
+                    context.getConstantCode(constant, deep_check=False),
+                    getConstantValueGuide(constant, elements_only=True),
                 )
                 ref_count = 1
             else:

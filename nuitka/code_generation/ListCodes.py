@@ -57,7 +57,7 @@ def generateListCreationCode(to_name, expression, emit, context):
 
         helper_code = generateElementCode(elements[0])
 
-        emit("%s = PyList_New(%d);" % (result_name, len(elements)))
+        emit("%s = MAKE_LIST_EMPTY(%d);" % (result_name, len(elements)))
 
         needs_exception_exit = any(
             element.mayRaiseException(BaseException) for element in elements[1:]

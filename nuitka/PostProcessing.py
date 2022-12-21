@@ -147,7 +147,7 @@ def _addWindowsIconFromIcons(onefile):
             convertImageToIconFormat(
                 logger=postprocessing_logger,
                 image_filename=icon_spec,
-                icon_filename=converted_icon_path,
+                converted_icon_filename=converted_icon_path,
             )
 
             icon_path = converted_icon_path
@@ -238,14 +238,14 @@ def executePostProcessingResources(manifest, onefile):
 
     if (
         Options.getWindowsVersionInfoStrings()
-        or Options.getWindowsProductVersion()
-        or Options.getWindowsFileVersion()
+        or Options.getProductVersion()
+        or Options.getFileVersion()
     ):
 
         addVersionInfoResource(
             string_values=Options.getWindowsVersionInfoStrings(),
-            product_version=Options.getWindowsProductVersion(),
-            file_version=Options.getWindowsFileVersion(),
+            product_version=Options.getProductVersion(),
+            file_version=Options.getFileVersion(),
             file_date=(0, 0),
             is_exe=not Options.shallMakeModule(),
             result_filename=result_filename,
@@ -263,12 +263,12 @@ def executePostProcessingResources(manifest, onefile):
 
         if res_copied == 0:
             postprocessing_logger.warning(
-                "The specified icon template executable %r didn't contain anything to copy."
+                "The specified icon template executable '%s' didn't contain anything to copy."
                 % template_exe
             )
         else:
             postprocessing_logger.warning(
-                "Copied %d icon resources from %r." % (res_copied, template_exe)
+                "Copied %d icon resources from '%s'." % (res_copied, template_exe)
             )
     else:
         _addWindowsIconFromIcons(onefile=onefile)

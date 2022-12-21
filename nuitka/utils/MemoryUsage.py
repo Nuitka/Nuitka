@@ -49,11 +49,11 @@ def getOwnProcessMemoryUsage():
             ]
 
         GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
-        GetProcessMemoryInfo.argtypes = [
+        GetProcessMemoryInfo.argtypes = (
             ctypes.wintypes.HANDLE,
             ctypes.POINTER(PROCESS_MEMORY_COUNTERS_EX),
             ctypes.wintypes.DWORD,
-        ]
+        )
         GetProcessMemoryInfo.restype = ctypes.wintypes.BOOL
 
         counters = PROCESS_MEMORY_COUNTERS_EX()

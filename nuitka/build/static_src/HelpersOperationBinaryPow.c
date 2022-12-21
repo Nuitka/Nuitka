@@ -148,7 +148,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(PyObject *operand1, Py
     }
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok_left:
@@ -447,7 +447,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_FLOAT(PyObject *operand1, P
         }
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -762,7 +762,7 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_FLOAT_OBJECT(PyObject *operand1, P
         }
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok_left:
@@ -1268,8 +1268,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_INT(PyObject *operand1, PyObje
 
     if (b < 0) {
         // TODO: Use CFLOAT once available.
-        PyObject *operand1_float = PyFloat_FromDouble(a);
-        PyObject *operand2_float = PyFloat_FromDouble(b);
+        PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+        PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
         PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
@@ -1520,8 +1520,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_INT(PyObject *operand1, PyO
 
         if (b < 0) {
             // TODO: Use CFLOAT once available.
-            PyObject *operand1_float = PyFloat_FromDouble(a);
-            PyObject *operand2_float = PyFloat_FromDouble(b);
+            PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+            PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
             PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
@@ -1788,8 +1788,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_INT_OBJECT(PyObject *operand1, PyO
 
         if (b < 0) {
             // TODO: Use CFLOAT once available.
-            PyObject *operand1_float = PyFloat_FromDouble(a);
-            PyObject *operand2_float = PyFloat_FromDouble(b);
+            PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+            PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
             PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
@@ -2222,8 +2222,8 @@ static PyObject *_BINARY_OPERATION_POW_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 
         if (b < 0) {
             // TODO: Use CFLOAT once available.
-            PyObject *operand1_float = PyFloat_FromDouble(a);
-            PyObject *operand2_float = PyFloat_FromDouble(b);
+            PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+            PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
             PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 
@@ -2486,8 +2486,8 @@ static nuitka_bool _BINARY_OPERATION_POW_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 
         if (b < 0) {
             // TODO: Use CFLOAT once available.
-            PyObject *operand1_float = PyFloat_FromDouble(a);
-            PyObject *operand2_float = PyFloat_FromDouble(b);
+            PyObject *operand1_float = MAKE_FLOAT_FROM_DOUBLE(a);
+            PyObject *operand2_float = MAKE_FLOAT_FROM_DOUBLE(b);
 
             PyObject *r = _BINARY_OPERATION_POW_OBJECT_FLOAT_FLOAT(operand1_float, operand2_float);
 

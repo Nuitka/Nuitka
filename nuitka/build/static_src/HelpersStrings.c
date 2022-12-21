@@ -354,12 +354,13 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 
     PyObject *new_unicode = (PyObject *)PyObject_REALLOC(unicode, new_size);
     if (unlikely(new_unicode == NULL)) {
-        _Py_NewReference(unicode);
+        Nuitka_Py_NewReference(unicode);
+
         PyErr_NoMemory();
         return NULL;
     }
     unicode = new_unicode;
-    _Py_NewReference(unicode);
+    Nuitka_Py_NewReference(unicode);
 
     _PyUnicode_LENGTH(unicode) = length;
     if (share_wstr) {

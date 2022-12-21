@@ -18,39 +18,6 @@
 #ifndef __NUITKA_HELPER_TUPLES_H__
 #define __NUITKA_HELPER_TUPLES_H__
 
-NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_CONCAT(PyObject *t1, PyObject *t2) {
-    Py_ssize_t size = Py_SIZE(t1) + Py_SIZE(t2);
-
-    // Ignore MemoryError.
-    if (unlikely(size < 0)) {
-        return PyErr_NoMemory();
-    }
-
-    PyTupleObject *result = (PyTupleObject *)PyTuple_New(size);
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    PyObject **src = ((PyTupleObject *)t1)->ob_item;
-    PyObject **dest = result->ob_item;
-
-    for (Py_ssize_t i = 0; i < Py_SIZE(t1); i++) {
-        PyObject *v = src[i];
-        Py_INCREF(v);
-        dest[i] = v;
-    }
-
-    src = ((PyTupleObject *)t2)->ob_item;
-    dest = result->ob_item + Py_SIZE(t1);
-    for (Py_ssize_t i = 0; i < Py_SIZE(t2); i++) {
-        PyObject *v = src[i];
-        Py_INCREF(v);
-        dest[i] = v;
-    }
-
-    return (PyObject *)result;
-}
-
 // Like PyTuple_SET_ITEM but takes a reference to the item.
 #define PyTuple_SET_ITEM0(tuple, index, value)                                                                         \
     {                                                                                                                  \
@@ -58,5 +25,139 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_CONCAT(PyObject *t1, PyObject *t2) {
         Py_INCREF(tmp);                                                                                                \
         PyTuple_SET_ITEM(tuple, index, tmp);                                                                           \
     }
+
+#if PYTHON_VERSION >= 0x3a0
+#define NUITKA_TUPLE_HAS_FREELIST 1
+extern PyObject *MAKE_TUPLE_EMPTY(Py_ssize_t size);
+extern PyObject *MAKE_TUPLE_EMPTY_VAR(Py_ssize_t size);
+#else
+#define NUITKA_TUPLE_HAS_FREELIST 0
+
+#define MAKE_TUPLE_EMPTY(size) PyTuple_New(size)
+#define MAKE_TUPLE_EMPTY_VAR(size) PyTuple_New(size)
+#endif
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE(PyObject *const *elements, Py_ssize_t size) {
+    PyObject *result = MAKE_TUPLE_EMPTY(size);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyTuple_SET_ITEM0(result, i, elements[i]);
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE1(PyObject *element1) {
+    PyObject *result = MAKE_TUPLE_EMPTY(1);
+
+    PyTuple_SET_ITEM0(result, 0, element1);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE1_0(PyObject *element1) {
+    PyObject *result = MAKE_TUPLE_EMPTY(1);
+
+    PyTuple_SET_ITEM(result, 0, element1);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE2(PyObject *element1, PyObject *element2) {
+    PyObject *result = MAKE_TUPLE_EMPTY(2);
+
+    PyTuple_SET_ITEM0(result, 0, element1);
+    PyTuple_SET_ITEM0(result, 1, element2);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE2_0(PyObject *element1, PyObject *element2) {
+    PyObject *result = MAKE_TUPLE_EMPTY(2);
+
+    PyTuple_SET_ITEM(result, 0, element1);
+    PyTuple_SET_ITEM(result, 1, element2);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE3(PyObject *element1, PyObject *element2, PyObject *element3) {
+    PyObject *result = MAKE_TUPLE_EMPTY(3);
+
+    PyTuple_SET_ITEM0(result, 0, element1);
+    PyTuple_SET_ITEM0(result, 1, element2);
+    PyTuple_SET_ITEM0(result, 2, element3);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE3_0(PyObject *element1, PyObject *element2, PyObject *element3) {
+    PyObject *result = MAKE_TUPLE_EMPTY(3);
+
+    PyTuple_SET_ITEM(result, 0, element1);
+    PyTuple_SET_ITEM(result, 1, element2);
+    PyTuple_SET_ITEM(result, 2, element3);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE4(PyObject *element1, PyObject *element2, PyObject *element3,
+                                                  PyObject *element4) {
+    PyObject *result = MAKE_TUPLE_EMPTY(4);
+
+    PyTuple_SET_ITEM0(result, 0, element1);
+    PyTuple_SET_ITEM0(result, 1, element2);
+    PyTuple_SET_ITEM0(result, 2, element3);
+    PyTuple_SET_ITEM0(result, 3, element4);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE4_0(PyObject *element1, PyObject *element2, PyObject *element3,
+                                                    PyObject *element4) {
+    PyObject *result = MAKE_TUPLE_EMPTY(4);
+
+    PyTuple_SET_ITEM(result, 0, element1);
+    PyTuple_SET_ITEM(result, 1, element2);
+    PyTuple_SET_ITEM(result, 2, element3);
+    PyTuple_SET_ITEM(result, 3, element4);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE5(PyObject *element1, PyObject *element2, PyObject *element3,
+                                                  PyObject *element4, PyObject *element5) {
+    PyObject *result = MAKE_TUPLE_EMPTY(5);
+
+    PyTuple_SET_ITEM0(result, 0, element1);
+    PyTuple_SET_ITEM0(result, 1, element2);
+    PyTuple_SET_ITEM0(result, 2, element3);
+    PyTuple_SET_ITEM0(result, 3, element4);
+    PyTuple_SET_ITEM0(result, 4, element5);
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE5_0(PyObject *element1, PyObject *element2, PyObject *element3,
+                                                    PyObject *element4, PyObject *element5) {
+    PyObject *result = MAKE_TUPLE_EMPTY(5);
+
+    PyTuple_SET_ITEM(result, 0, element1);
+    PyTuple_SET_ITEM(result, 1, element2);
+    PyTuple_SET_ITEM(result, 2, element3);
+    PyTuple_SET_ITEM(result, 3, element4);
+    PyTuple_SET_ITEM(result, 4, element5);
+
+    return result;
+}
+
+// Make this new macro available for older Python too.
+#ifndef _PyTuple_ITEMS
+#define _PyTuple_ITEMS(op) (((PyTupleObject *)(op))->ob_item)
+#endif
+
+extern PyObject *TUPLE_CONCAT(PyObject *tuple1, PyObject *tuple2);
+
+extern PyObject *TUPLE_COPY(PyObject *tuple);
 
 #endif

@@ -19,10 +19,10 @@
 
 """
 
+from .ChildrenHavingMixins import ChildrenHavingArgsTupleMixin
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildrenHavingBase,
-    ExpressionChildTupleHavingBase,
     ExpressionNoSideEffectsMixin,
 )
 from .NodeBases import StatementBase, StatementChildrenHavingBase
@@ -266,17 +266,17 @@ Propagated implicit raise expression to raise statement.""",
         )
 
 
-class ExpressionBuiltinMakeException(ExpressionChildTupleHavingBase):
+class ExpressionBuiltinMakeException(ChildrenHavingArgsTupleMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
-    named_child = "args"
+    named_children = ("args",)
 
     __slots__ = ("exception_name",)
 
     def __init__(self, exception_name, args, source_ref):
-        ExpressionChildTupleHavingBase.__init__(
-            self, value=tuple(args), source_ref=source_ref
-        )
+        ChildrenHavingArgsTupleMixin.__init__(self, args=tuple(args))
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.exception_name = exception_name
 

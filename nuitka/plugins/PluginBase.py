@@ -29,12 +29,14 @@ it being used.
 import ast
 import functools
 import inspect
+import os
 import sys
 from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
+    decodeDataFileTags,
     makeIncludedDataDirectory,
     makeIncludedDataFile,
     makeIncludedEmptyDirectory,
@@ -51,6 +53,7 @@ from nuitka.ModuleRegistry import (
 )
 from nuitka.Options import (
     isStandaloneMode,
+    shallCreateAppBundle,
     shallMakeModule,
     shallShowExecutedCommands,
 )
@@ -110,25 +113,34 @@ def _getPackageVersion(distribution_name):
                     DistributionNotFound,
                     get_distribution,
                 )
-
+            except ImportError:
+                # Fallback if nothing is available, which may happen if no package is installed,
+                # but only source code is found.
+                try:
+                    result = _convertVersionToTuple(
+                        __import__(
+                            _getPackageNameFromDistributionName(distribution_name)
+                        ).__version__
+                    )
+                except ImportError:
+                    result = None
+            else:
                 try:
                     result = _convertVersionToTuple(
                         get_distribution(distribution_name).version
                     )
                 except DistributionNotFound:
-                    raise ImportError
-            except ImportError:
-                # Fallback if nothing is available, which may happen if no package is installed,
-                # but only source code is found.
-                result = _convertVersionToTuple(
-                    __import__(
-                        _getPackageNameFromDistributionName(distribution_name)
-                    ).__version__
-                )
+                    result = None
 
         _package_versions[distribution_name] = result
 
     return _package_versions[distribution_name]
+
+
+def _isPluginActive(plugin_name):
+    from .Plugins import getUserActivatedPluginNames
+
+    return plugin_name in getUserActivatedPluginNames()
 
 
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
@@ -213,26 +225,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def addPluginCommandLineOptions(cls, group):
         # Call group.add_option() here.
         pass
-
-    @classmethod
-    def getPluginDefaultOptionValues(cls):
-        """This method is used to get a values to use as defaults.
-
-        Since the defaults are in the command line options, we call
-        that and extract them.
-        """
-
-        from optparse import OptionGroup, OptionParser
-
-        parser = OptionParser()
-        group = OptionGroup(parser, "Pseudo Target")
-        cls.addPluginCommandLineOptions(group)
-
-        result = {}
-        for option in group.option_list:
-            result[option.dest] = option.default
-
-        return result
 
     def isRequiredImplicitImport(self, module, full_name):
         """Indicate whether an implicitly imported module should be accepted.
@@ -464,6 +456,39 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             prepare.
         """
 
+    def onModuleCompleteSetGUI(self, module_set, plugin_binding_name):
+        from .Plugins import getOtherGUIBindingNames, getQtBindingNames
+
+        for module in module_set:
+            module_name = module.getFullName()
+
+            if module_name == plugin_binding_name:
+                continue
+
+            if module_name in getOtherGUIBindingNames():
+                if plugin_binding_name in getQtBindingNames():
+                    recommendation = "Use '--nofollow-import-to=%(unwanted)s'"
+
+                    if module_name in getQtBindingNames():
+                        problem = "conflicts with"
+                    else:
+                        problem = "is redundant with"
+                else:
+                    recommendation = "Use '--enable-plugin=no-qt'"
+                    problem = "is redundant with"
+
+                self.warning(
+                    """\
+Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountered. \
+%(recommendation)s or uninstall it for best compatibility with pure Python execution."""
+                    % {
+                        "unwanted": module_name,
+                        "binding_name": plugin_binding_name,
+                        "recommendation": recommendation,
+                        "problem": problem,
+                    }
+                )
+
     @staticmethod
     def locateModule(module_name):
         """Provide a filename / -path for a to-be-imported module.
@@ -535,7 +560,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             msg = "Found %d %s DLLs from %s%s installation." % (
                 count,
                 "file" if count < 2 else "files",
-                "" if not section else (" '%s' " % section),
+                "" if not section else ("'%s' " % section),
                 module_name.asString(),
             )
 
@@ -610,6 +635,24 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             dest_path=dest_path,
             reason=reason,
             tracer=self,
+            tags=tags,
+        )
+
+    def makeIncludedAppBundleResourceFile(
+        self, source_path, dest_path, reason, tags=""
+    ):
+        tags = decodeDataFileTags(tags)
+        tags.add("framework_resource")
+
+        assert isMacOS() and shallCreateAppBundle()
+
+        # The default dest path root is the "Contents" folder
+        dest_path = os.path.join("..", "Resources", dest_path)
+
+        return self.makeIncludedDataFile(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason=reason,
             tags=tags,
         )
 
@@ -920,20 +963,23 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             query_codes.append('print("-" * 27)')
 
         if type(setup_codes) is str:
-            setup_codes = setup_codes.split("\n")
+            setup_codes = setup_codes.splitlines()
+
+        if not setup_codes:
+            setup_codes = ["pass"]
 
         cmd = r"""\
 from __future__ import print_function
 from __future__ import absolute_import
 
 try:
-    %(setup_codes)s
+%(setup_codes)s
 except ImportError:
     import sys
     sys.exit(38)
 %(query_codes)s
 """ % {
-            "setup_codes": "\n   ".join(setup_codes),
+            "setup_codes": "\n".join("   %s" % line for line in setup_codes),
             "query_codes": "\n".join(query_codes),
         }
 
@@ -1021,10 +1067,9 @@ except ImportError:
                 "module_mode": shallMakeModule(),
                 # TODO: Allow to provide this.
                 "deployment": False,
-                # Module dependent
-                "main_module": full_name.getBasename() == "__main__",
                 # Querying package versions.
                 "version": _getPackageVersion,
+                "plugin": _isPluginActive,
             }
         )
 

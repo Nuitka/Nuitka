@@ -27,11 +27,18 @@ DLL presence, link paths, etc.
 import os
 import sys
 
-from nuitka.utils.FileOperations import isPathBelowOrSameAs
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    isFilenameBelowPath,
+    isFilenameSameAsOrBelowPath,
+)
+from nuitka.utils.InstalledPythons import getInstalledPythonRegistryPaths
 from nuitka.utils.Utils import (
+    isAndroidBasedLinux,
     isFedoraBasedLinux,
     isLinux,
     isMacOS,
+    isPosixWindows,
     isWin32Windows,
     withNoDeprecationWarning,
 )
@@ -80,17 +87,17 @@ def isApplePython():
         return True
 
     # Older macOS had that
-    if isPathBelowOrSameAs(path="/usr/bin/", filename=getSystemPrefixPath()):
+    if isFilenameSameAsOrBelowPath(path="/usr/bin/", filename=getSystemPrefixPath()):
         return True
     # Newer macOS has that
-    if isPathBelowOrSameAs(
+    if isFilenameSameAsOrBelowPath(
         path="/Library/Developer/CommandLineTools/", filename=getSystemPrefixPath()
     ):
         return True
 
     # Xcode has that on macOS, we consider it an Apple Python for now, it might
     # be more usable than Apple Python, we but we delay that.
-    if isPathBelowOrSameAs(
+    if isFilenameSameAsOrBelowPath(
         path="/Applications/Xcode.app/Contents/Developer/",
         filename=getSystemPrefixPath(),
     ):
@@ -100,6 +107,7 @@ def isApplePython():
 
 
 def isHomebrewPython():
+    # spell-checker: ignore sitecustomize
     if not isMacOS():
         return False
 
@@ -121,18 +129,29 @@ def isPyenvPython():
     if isWin32Windows():
         return False
 
-    return os.environ.get("PYENV_ROOT") and isPathBelowOrSameAs(
+    return os.environ.get("PYENV_ROOT") and isFilenameSameAsOrBelowPath(
         path=os.environ["PYENV_ROOT"], filename=getSystemPrefixPath()
     )
 
 
 def isMSYS2MingwPython():
+    """MSYS2 the MinGW64 variant that is more Win32 compatible."""
     if not isWin32Windows() or "GCC" not in sys.version:
         return False
 
     import sysconfig
 
     return "-mingw_" in sysconfig.get_config_var("SO")
+
+
+def isTermuxPython():
+    """Is this Termux Android Python."""
+    # spell-checker: ignore termux
+
+    if not isAndroidBasedLinux():
+        return False
+
+    return "com.termux" in getSystemPrefixPath().split("/")
 
 
 def isUninstalledPython():
@@ -163,11 +182,14 @@ def isUninstalledPython():
 
 
 def isWinPython():
+    """Is this Python from WinPython."""
     return "WinPython" in sys.version
 
 
 def isDebianPackagePython():
     """Is this Python from a debian package."""
+
+    # spell-checker: ignore multiarch
 
     if not isLinux():
         return False
@@ -197,10 +219,50 @@ def isFedoraPackagePython():
 def isCPythonOfficialPackage():
     """Official CPython download, kind of hard to detect since self-compiled doesn't change much."""
 
+    sys_prefix = getSystemPrefixPath()
+
     # For macOS however, it's very knowable.
-    if isMacOS() and sys.executable.startswith(
-        "/Library/Frameworks/Python.framework/Versions/"
+    if isMacOS() and isFilenameBelowPath(
+        path="/Library/Frameworks/Python.framework/Versions/", filename=sys_prefix
     ):
         return True
 
+    # For Windows, we check registry.
+    if isWin32Windows():
+        for registry_python_exe in getInstalledPythonRegistryPaths(python_version_str):
+            if areSamePaths(sys_prefix, os.path.dirname(registry_python_exe)):
+                return True
+
     return False
+
+
+def getPythonFlavorName():
+    """For output to the user only."""
+    # return driven, pylint: disable=too-many-branches,too-many-return-statements
+
+    if isNuitkaPython():
+        return "Nuitka Python"
+    elif isAnacondaPython():
+        return "Anaconda Python"
+    elif isWinPython():
+        return "WinPython"
+    elif isDebianPackagePython():
+        return "Debian Python"
+    elif isFedoraPackagePython():
+        return "Fedora Python"
+    elif isHomebrewPython():
+        return "Homebrew Python"
+    elif isApplePython():
+        return "Apple Python"
+    elif isPyenvPython():
+        return "pyenv"
+    elif isPosixWindows():
+        return "MSYS2 Posix"
+    elif isMSYS2MingwPython():
+        return "MSYS2 MinGW"
+    elif isTermuxPython():
+        return "Android Termux"
+    elif isCPythonOfficialPackage():
+        return "CPython Official"
+    else:
+        return "Unknown"

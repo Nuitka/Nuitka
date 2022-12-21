@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python_version:
@@ -29,12 +29,12 @@ jobs:
     name: Ubuntu Python ${{ matrix.python_version }}
     steps:
       - name: 🛎️ Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: 🐍 Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -47,8 +47,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run tests/basics/Empty.py
-          python -m nuitka --show-scons --run tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |
@@ -89,7 +89,7 @@ jobs:
             - '2.7'
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Verbose installation output for Python
         run: |
@@ -105,8 +105,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
-          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |
@@ -125,10 +125,10 @@ jobs:
             - '3.10'
     name: macOS Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -147,8 +147,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
-          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |
@@ -168,12 +168,12 @@ jobs:
             - '3.10'
     name: Windows Python ${{ matrix.python_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Use Python ${{ matrix.python_version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -184,8 +184,8 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests\basics\Empty.py
-          python -m nuitka --show-scons --run tests\basics\Empty.py
+          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests\basics\EmptyModuleTest.py
+          python -m nuitka --show-scons --run tests\basics\EmptyModuleTest.py
 
       - name: Run Nuitka test suite
         run: |

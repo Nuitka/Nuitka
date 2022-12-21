@@ -65,11 +65,9 @@ static PyObject *Nuitka_Method_reduce(struct Nuitka_MethodObject *method) {
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't pickle method objects");
     return NULL;
 #else
-    PyObject *result = PyTuple_New(2);
+    PyObject *result = MAKE_TUPLE_EMPTY(2);
     PyTuple_SET_ITEM0(result, 0, LOOKUP_BUILTIN(const_str_plain_getattr));
-    PyObject *arg_tuple = PyTuple_New(2);
-    PyTuple_SET_ITEM0(arg_tuple, 0, method->m_object);
-    PyTuple_SET_ITEM0(arg_tuple, 1, method->m_function->m_name);
+    PyObject *arg_tuple = MAKE_TUPLE2(method->m_object, method->m_function->m_name);
     PyTuple_SET_ITEM(result, 1, arg_tuple);
 
     CHECK_OBJECT_DEEP(result);
@@ -85,6 +83,8 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
+    // Python API, spell-checker: ignore copyreg,newobj
+
 #if PYTHON_VERSION < 0x340
 #if PYTHON_VERSION < 0x300
     PyObject *copy_reg = PyImport_ImportModule("copy_reg");
@@ -98,10 +98,9 @@ static PyObject *Nuitka_Method_reduce_ex(struct Nuitka_MethodObject *method, PyO
         return NULL;
     }
 
-    PyObject *result = PyTuple_New(5);
+    PyObject *result = MAKE_TUPLE_EMPTY(5);
     PyTuple_SET_ITEM(result, 0, newobj_func);
-    PyObject *type_tuple = PyTuple_New(1);
-    PyTuple_SET_ITEM0(type_tuple, 0, (PyObject *)&Nuitka_Method_Type);
+    PyObject *type_tuple = MAKE_TUPLE1((PyObject *)&Nuitka_Method_Type);
     PyTuple_SET_ITEM(result, 1, type_tuple);
     PyTuple_SET_ITEM0(result, 2, Py_None);
     PyTuple_SET_ITEM0(result, 3, Py_None);
@@ -433,7 +432,7 @@ static void Nuitka_Method_tp_dealloc(struct Nuitka_MethodObject *method) {
 
     Py_DECREF((PyObject *)method->m_function);
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_methods, method, MAX_METHOD_FREE_LIST_COUNT);
 
 #ifndef __NUITKA_NO_ASSERT__

@@ -37,6 +37,7 @@ from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import IncludedDataFile
+from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
 from nuitka.utils.FileOperations import makePath, putTextFileContents
@@ -60,8 +61,11 @@ user_plugins = OrderedSet()
 
 # Trigger modules
 pre_modules = {}
+pre_modules_reasons = {}
 post_modules = {}
+post_modules_reasons = {}
 fake_modules = {}
+has_active_gui_toolkit_plugin = False
 
 
 def _addActivePlugin(plugin_class, args, force=False):
@@ -88,6 +92,12 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     active_plugins[plugin_name] = plugin_instance
 
+    # Singleton, pylint: disable=global-statement
+    global has_active_gui_toolkit_plugin
+    has_active_gui_toolkit_plugin = has_active_gui_toolkit_plugin or getattr(
+        plugin_class, "plugin_gui_toolkit", False
+    )
+
 
 def getActivePlugins():
     """Return list of active plugins.
@@ -101,14 +111,32 @@ def getActivePlugins():
 
 
 def getActiveQtPlugin():
-    from .standard.PySidePyQtPlugin import getQtPluginNames
-
     for plugin_name in getQtPluginNames():
         if hasActivePlugin(plugin_name):
             if hasActivePlugin(plugin_name):
                 return plugin_name
 
     return None
+
+
+def getQtBindingNames():
+    return ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
+
+
+def getOtherGUIBindingNames():
+    return ("wx", "tkinter", "Tkinter")
+
+
+def getQtPluginNames():
+    return tuple(qt_binding_name.lower() for qt_binding_name in getQtBindingNames())
+
+
+def getOtherGuiPluginNames():
+    return ("tk-inter",)
+
+
+def getGuiPluginNames():
+    return getQtPluginNames() + getOtherGuiPluginNames()
 
 
 def hasActivePlugin(plugin_name):
@@ -130,6 +158,19 @@ def hasActivePlugin(plugin_name):
     # Detectors do not count.
     plugin_instance = active_plugins.get(plugin_name)
     return not hasattr(plugin_instance, "detector_for")
+
+
+def getUserActivatedPluginNames():
+    for plugin_name, plugin_instance in active_plugins.items():
+        # Detectors do not count.
+        if hasattr(plugin_instance, "detector_for"):
+            continue
+
+        # Always activated does not count either
+        if plugin_instance.isAlwaysEnabled():
+            continue
+
+        yield plugin_name
 
 
 def getPluginClass(plugin_name):
@@ -183,7 +224,7 @@ def _loadPluginClassesFromPackage(scan_package):
         except Exception:
             if Options.is_non_debug:
                 plugins_logger.warning(
-                    "Problem loading plugin %r (%s), ignored. Use '--debug' to make it visible."
+                    "Problem loading plugin %r ('%s'), ignored. Use '--debug' to make it visible."
                     % (item.name, module_loader.get_filename())
                 )
                 continue
@@ -402,7 +443,7 @@ class Plugins(object):
                 pre_modules[full_name],
                 using_module=module,
                 usage_tag="plugins",
-                reason="Not yet propagated by plugins.",
+                reason=" ".join(pre_modules_reasons[full_name]),
                 source_ref=module.source_ref,
             )
 
@@ -411,7 +452,7 @@ class Plugins(object):
                 module=post_modules[full_name],
                 using_module=module,
                 usage_tag="plugins",
-                reason="Not yet propagated by plugins.",
+                reason=" ".join(post_modules_reasons[full_name]),
                 source_ref=module.source_ref,
             )
 
@@ -475,18 +516,34 @@ class Plugins(object):
         """Ask plugins to provide extra DLLs.
 
         Notes:
-            These will be of type nuitka.freezer.IncludedEntryPoints.IncludedEntryPoint
-            and currently there is a backward compatibility for old style plugins that do
-            provide tuples of 3 elements. But plugins are really supposed to provide the
-            stuff created from factory functions for that type.
+            These will be of type IncludedEntryPoint or generators providing them, so
+            we get "yield from" effective with simple yield.
 
         """
 
         result = []
 
+        # TODO: This is probably something generic that only different
+        def _iterateExtraBinaries(plugin, value):
+            if value is None:
+                pass
+            elif isinstance(value, IncludedEntryPoint):
+                yield value
+            elif isinstance(value, (tuple, list)) or inspect.isgenerator(value):
+                for val in value:
+                    for v in _iterateExtraBinaries(plugin, val):
+                        yield v
+            else:
+                plugin.sysexit(
+                    "Returned object '%s' for module '%s' but should do 'IncludedEntryPoint' or generator."
+                    % (repr(value), module.asString())
+                )
+
         for plugin in getActivePlugins():
-            for extra_dll in plugin.getExtraDlls(module):
-                result.append(extra_dll)
+            for entry_point in _iterateExtraBinaries(
+                plugin, plugin.getExtraDlls(module)
+            ):
+                result.append(entry_point)
 
         return result
 
@@ -697,6 +754,7 @@ class Plugins(object):
         if pre_module_load_descriptions:
             total_code = []
             total_flags = OrderedSet()
+            reasons = []
 
             for plugin, pre_code, reason, flags in pre_module_load_descriptions:
                 if pre_code:
@@ -708,6 +766,7 @@ class Plugins(object):
 
                     total_code.append(pre_code)
                     total_flags.update(flags)
+                    reasons.append(reason)
 
             if total_code:
                 assert full_name not in pre_modules
@@ -718,10 +777,12 @@ class Plugins(object):
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
+                pre_modules_reasons[full_name] = tuple(reasons)
 
         if post_module_load_descriptions:
             total_code = []
             total_flags = OrderedSet()
+            reasons = []
 
             for plugin, post_code, reason, flags in post_module_load_descriptions:
                 if post_code:
@@ -733,6 +794,7 @@ class Plugins(object):
 
                     total_code.append(post_code)
                     total_flags.update(flags)
+                    reasons.append(reason)
 
             if total_code:
                 assert full_name not in post_modules
@@ -743,6 +805,7 @@ class Plugins(object):
                     code="\n\n".join(total_code),
                     flags=total_flags,
                 )
+                post_modules_reasons[full_name] = reasons
 
         if fake_module_descriptions:
             fake_modules[full_name] = []
@@ -1282,12 +1345,16 @@ def activatePlugins():
                 "Error, conflicting enable/disable of plug-in '%s'." % plugin_name
             )
 
+    plugin_detectors = OrderedSet()
+
     for (plugin_name, (plugin_class, plugin_detector)) in sorted(
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
             if plugin_class.isAlwaysEnabled():
-                plugin_class.warning("Plugin is defined as always enabled.")
+                plugin_class.warning(
+                    "Plugin is defined as always enabled, no need to enable it."
+                )
 
             if plugin_class.isRelevant():
                 _addActivePlugin(plugin_class, args=True)
@@ -1308,27 +1375,25 @@ def activatePlugins():
             and Options.shallDetectMissingPlugins()
             and plugin_detector.isRelevant()
         ):
-            _addActivePlugin(plugin_detector, args=False)
+            plugin_detectors.add(plugin_detector)
 
     for plugin_class in user_plugins:
         _addActivePlugin(plugin_class, args=True)
 
-
-def lateActivatePlugin(plugin_name, option_values):
-    """Activate plugin after the command line parsing, expects options to be set."""
-
-    values = getPluginClass(plugin_name).getPluginDefaultOptionValues()
-    values.update(option_values)
-    setPluginOptions(plugin_name, values)
-
-    _addActivePlugin(getPluginClass(plugin_name), args=True, force=True)
+    # Suppress GUI toolkit detectors automatically.
+    for plugin_detector in plugin_detectors:
+        if (
+            not has_active_gui_toolkit_plugin
+            or plugin_detector.plugin_name not in getGuiPluginNames()
+        ):
+            _addActivePlugin(plugin_detector, args=False)
 
 
 def _addPluginCommandLineOptions(parser, plugin_class):
     plugin_name = plugin_class.plugin_name
 
     if plugin_name not in plugin_options:
-        option_group = OptionGroup(parser, "Plugin %s" % plugin_name)
+        option_group = OptionGroup(parser, "Plugin options of '%s'" % plugin_name)
         try:
             plugin_class.addPluginCommandLineOptions(option_group)
         except OptionConflictError as e:

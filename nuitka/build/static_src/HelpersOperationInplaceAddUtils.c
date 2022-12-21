@@ -39,7 +39,7 @@ NUITKA_MAY_BE_UNUSED static bool STRING_RESIZE(PyObject **value, Py_ssize_t news
 
         return false;
     }
-    _Py_NewReference(*value);
+    Nuitka_Py_NewReference(*value);
 
     sv = (PyStringObject *)*value;
     Py_SIZE(sv) = newsize;

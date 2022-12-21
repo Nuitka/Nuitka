@@ -18,12 +18,12 @@
 #
 
 """
-The Onefile scons file for Windows, check out Backend.scons for where the
-actual compiled binaries are build. If you have Scons or Windows platform
-knowledge, please be especially invited and contribute improvements.
+The Onefile scons file for the bootstrap binary, check out Backend.scons for
+where the actual compiled binaries are build. If you have Scons or Windows
+platform knowledge, please be especially invited and contribute improvements.
 
-This file is used to build a bootstrap binary that only unpacks the Python
-DLL and other data files needed, to have a onefile solution for Windows.
+This file is used to build a bootstrap binary that only unpacks the distribution
+contents to have a launch it.
 """
 
 # Make nuitka package importable from calling installation
@@ -48,7 +48,12 @@ from SCons.Script import (  # pylint: disable=I0021,import-error
     GetOption,
 )
 
-from nuitka.Tracing import my_print, scons_details_logger, setQuiet
+from nuitka.Tracing import (
+    my_print,
+    scons_details_logger,
+    scons_logger,
+    setQuiet,
+)
 from nuitka.utils.Utils import isMacOS
 
 from .SconsCaching import enableCcache, enableClcache
@@ -135,9 +140,6 @@ lto_mode = getArgumentDefaulted("lto_mode", "auto")
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
-# Non-elf binary, for linker settings.
-noelf_mode = getArgumentBool("noelf_mode", False)
-
 # Windows subsystem mode: Disable console for windows builds.
 disable_console = getArgumentBool("disable_console", False)
 
@@ -154,13 +156,10 @@ mingw_mode = getArgumentBool("mingw_mode", False)
 # Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
 clang_mode = getArgumentBool("clang_mode", False)
 
-# For the msys2 python, we can know a few things, it's not Win32 entirely.
-msys2_mingw_python = getArgumentBool("msys2_mingw_python", False)
-
 # Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
 # is changed to ClangCL from Visual Studio.
 clangcl_mode = False
-if win_target and not (mingw_mode or msys2_mingw_python) and clang_mode:
+if clang_mode and win_target and not mingw_mode:
     clang_mode = False
     clangcl_mode = True
 
@@ -178,7 +177,7 @@ python_prefix = getArgumentRequired("python_prefix")
 # Forced MSVC version (windows-only)
 msvc_version = getArgumentDefaulted("msvc_version", None)
 
-# Disable ccache usage if requested
+# Disable ccache/clcache usage if that is requested
 disable_ccache = getArgumentBool("disable_ccache", False)
 
 # Preprocessor defines and link libraries from plugins
@@ -187,10 +186,7 @@ cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
 link_dirs = getArgumentList("link_dirs", "")
 link_libraries = getArgumentList("link_libraries", "")
 
-# Mode to only output compiler information, for use in "nuitka --version"
-# only.
-compiler_version_mode = getArgumentBool("compiler_version", False)
-
+# Allow automatic downloads for ccache, etc.
 assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
 
 # Onefile bootstrap is optional.
@@ -202,25 +198,14 @@ macos_min_version = getArgumentDefaulted("macos_min_version", "")
 # Target arch for macOS.
 macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
 
-# Anaconda Python might use its own compiler.
-anaconda_python = getArgumentBool("anaconda_python", False)
-
 if getArgumentBool("progress_bar", True) and not show_scons_mode:
     enableSconsProgressBar()
-
-
-def printCompilerVersionOutput(*args):
-    if compiler_version_mode or show_scons_mode:
-        my_print("Scons:", *args)
-
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")
 
 # Prepare environment for compiler detection.
-mingw_mode = prepareEnvironment(
-    mingw_mode=mingw_mode, anaconda_python=anaconda_python, python_prefix=python_prefix
-)
+mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
 
 # TODO: Merge to prepareEnvironment as well.
 if "CXX" in os.environ:
@@ -288,14 +273,11 @@ env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = True  # We are only used in this case.
 env.debug_mode = debug_mode
 env.unstripped_mode = debug_mode or unstripped_mode
-env.noelf_mode = noelf_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
 env.low_memory = False  # Never a concern in this case.
 env.macos_min_version = macos_min_version
 env.macos_target_arch = macos_target_arch
-
-env.anaconda_python = anaconda_python
 
 # Requested or user provided, detect if it's clang even from environment
 if isClangName(env.the_cc_name):
@@ -311,14 +293,6 @@ env.clang_mode = clang_mode
 env.msvc_mode = win_target and not env.gcc_mode
 env.mingw_mode = win_target and env.gcc_mode
 env.clangcl_mode = clangcl_mode
-
-# Python specific modes have to influence some decisions, but not
-# for Onefile.
-env.nuitka_python = False
-env.debian_python = False
-env.fedora_python = False
-env.msys2_mingw_python = False
-env.static_libpython = None
 
 # Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
 switchFromGccToGpp(
@@ -341,7 +315,7 @@ if show_scons_mode:
 setupScons(env, source_dir)
 
 # Report the C compiler used.
-reportCCompiler(env, "Onefile")
+reportCCompiler(env, "Onefile", output_func=scons_logger.info)
 
 
 # Set up C compiler settings.
@@ -456,7 +430,7 @@ if isMacOS():
     addConstantBlobFile(
         env=env,
         blob_filename=os.path.join(source_dir, "__payload.bin"),
-        resource_desc=("mac_section", "user choice from experimental flag"),
+        resource_desc=("mac_section", "default on macOS"),
         target_arch=target_arch,
     )
 

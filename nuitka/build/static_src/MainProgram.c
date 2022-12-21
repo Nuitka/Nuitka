@@ -74,17 +74,23 @@ static void prepareFrozenModules(void) {
     // loaded during "Py_Initialize" already, for the others they may be
     // compiled.
 
-    // The CPython library has some pre-existing frozen modules, we only append
-    // to that.
+    // The CPython library before 3.11 has some pre-existing frozen modules, we
+    // only append to those to keep compatible.
     struct _frozen const *search = PyImport_FrozenModules;
-    while (search->name) {
-        search++;
-    }
-    int pre_existing_count = (int)(search - PyImport_FrozenModules);
+    int pre_existing_count;
 
-    /* Allocate new memory and merge the tables. Keeping the old ones has
-     * the advantage that e.g. "import this" is going to work well.
-     */
+    if (search) {
+        while (search->name) {
+            search++;
+        }
+        pre_existing_count = (int)(search - PyImport_FrozenModules);
+    } else {
+        pre_existing_count = 0;
+    }
+
+    // Allocate new memory and merge the tables. Keeping the old ones has the
+    // advantage that e.g. "import this" is going to be compatible, and there
+    // might be Python flavors that add more.
     struct _frozen *merged =
         (struct _frozen *)malloc(sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1));
 
@@ -153,7 +159,7 @@ extern void _initCompiledFrameType();
 static wchar_t **convertCommandLineParameters(int argc, char **argv) {
     // Originally taken from CPython3: There seems to be no sane way to use
     static wchar_t **argv_copy;
-    argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t *) * argc);
+    argv_copy = (wchar_t **)PyMem_MALLOC(sizeof(wchar_t *) * argc);
 
     // Temporarily disable locale for conversions to not use it.
     char *old_locale = strdup(setlocale(LC_ALL, NULL));
@@ -190,8 +196,8 @@ static int HANDLE_PROGRAM_EXIT(void) {
             PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
             PyFrameObject *frame = tb->tb_frame;
 
-            if (0 ==
-                strcmp(PyUnicode_AsUTF8(Nuitka_FrameGetCode(frame)->co_filename), "<frozen importlib._bootstrap>")) {
+            if (0 == strcmp(PyUnicode_AsUTF8(Nuitka_Frame_GetCodeObject(frame)->co_filename),
+                            "<frozen importlib._bootstrap>")) {
                 thread_state->curexc_traceback = (PyObject *)tb->tb_next;
                 Py_INCREF(tb->tb_next);
 
@@ -1033,7 +1039,6 @@ orig_argv = argv;
 #if _NUITKA_FROZEN > 0
     NUITKA_PRINT_TRACE("main(): Removing early frozen module table again.");
     PyImport_FrozenModules = old_frozen;
-    assert(old_frozen != NULL);
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
@@ -1164,7 +1169,7 @@ orig_argv = argv;
 /* This is an unofficial API, not available on Windows, but on Linux and others
  * it is exported, and has been used by some code.
  */
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__MSYS__)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1179,7 +1184,6 @@ void Py_GetArgcArgv(int *argc, wchar_t ***argv) {
 
     *argv = orig_argv;
 }
-
 #else
 #if defined(__GNUC__)
 __attribute__((weak))

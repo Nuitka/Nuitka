@@ -978,6 +978,25 @@ generate_builtin_type_operations = [
 ]
 
 
+def makeDictCopyHelperCodes():
+    filename_c = "nuitka/build/static_src/HelpersDictionariesGenerated.c"
+
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+
+        def emit(*args):
+            writeLine(output_c, *args)
+
+        emitIDE(emit)
+
+        template = getDoExtensionUsingTemplateC("HelperDictionaryCopy.c.j2")
+
+        emitGenerationWarning(emit, template.name)
+
+        code = template.render()
+
+        emit(code)
+
+
 def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
@@ -1095,12 +1114,14 @@ def makeHelperBuiltinTypeMethods():
 
 
 def main():
+    makeDictCopyHelperCodes()
 
     # Cover many things once first, then cover all for quicker turnaround during development.
-    makeHelperBuiltinTypeMethods()
     makeHelpersComparisonOperation("==", "EQ")
     makeHelpersBinaryOperation("+", "ADD")
     makeHelpersInplaceOperation("+", "ADD")
+
+    makeHelperBuiltinTypeMethods()
 
     makeHelpersImportHard()
 

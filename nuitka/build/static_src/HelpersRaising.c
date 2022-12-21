@@ -100,7 +100,8 @@ void RAISE_EXCEPTION_WITH_TYPE(PyObject **exception_type, PyObject **exception_v
 
         // Note: Cannot be assigned here.
         assert(*exception_tb == NULL);
-        *exception_tb = (PyTracebackObject *)PyException_GetTraceback(*exception_value);
+        *exception_tb = GET_EXCEPTION_TRACEBACK(*exception_value);
+        Py_XINCREF(*exception_tb);
 #endif
 
         return;
@@ -379,6 +380,7 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
     PyThreadState *tstate = PyThreadState_GET();
     assert(tstate);
 
+#if PYTHON_VERSION < 0x3b0
     *exception_type = EXC_TYPE(tstate) != NULL ? EXC_TYPE(tstate) : Py_None;
     Py_INCREF(*exception_type);
     *exception_value = EXC_VALUE(tstate);
@@ -386,9 +388,7 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
     *exception_tb = (PyTracebackObject *)EXC_TRACEBACK(tstate);
     Py_XINCREF(*exception_tb);
 
-    CHECK_OBJECT(*exception_type);
-
-    if (*exception_type == Py_None) {
+    if (unlikely(*exception_type == Py_None)) {
 #if PYTHON_VERSION >= 0x300
         Py_DECREF(*exception_type);
 
@@ -407,6 +407,29 @@ bool RERAISE_EXCEPTION(PyObject **exception_type, PyObject **exception_value, Py
 
         return false;
     }
+#else
+    *exception_value = EXC_VALUE(tstate);
+
+    if (*exception_value == Py_None || *exception_value == NULL) {
+        Py_INCREF(PyExc_RuntimeError);
+        *exception_type = PyExc_RuntimeError;
+        *exception_value = PyUnicode_FromString("No active exception to reraise");
+        *exception_tb = NULL;
+
+        return false;
+    } else {
+        Py_INCREF(*exception_value);
+
+        *exception_type = PyExceptionInstance_Class(*exception_value);
+        Py_INCREF(*exception_type);
+        *exception_tb = GET_EXCEPTION_TRACEBACK(*exception_value);
+        Py_XINCREF(*exception_tb);
+    }
+#endif
+
+    CHECK_OBJECT(*exception_type);
+    CHECK_OBJECT(*exception_value);
+    CHECK_OBJECT_X(*exception_tb);
 
     return true;
 }

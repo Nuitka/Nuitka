@@ -350,8 +350,7 @@ static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoade
         init_done = true;
     }
 
-    result = (struct Nuitka_ResourceReaderFilesObject *)PyObject_GC_New(struct Nuitka_ResourceReaderFilesObject,
-                                                                        &Nuitka_ResourceReaderFiles_Type);
+    result = (struct Nuitka_ResourceReaderFilesObject *)Nuitka_GC_New(&Nuitka_ResourceReaderFiles_Type);
     Nuitka_GC_Track(result);
 
     result->m_loader_entry = entry;

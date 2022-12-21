@@ -26,16 +26,15 @@ import numpy
 g = 6
 
 def calledRepeatedly():
-    y = numpy.array([[1, 2, 3], [4, 5, 6]], numpy.int32)
-    # This is supposed to make a call to a compiled function, which is
+    # This is supposed to make a call to a numpy function, which is
     # being optimized separately.
 # construct_begin
     x = numpy.array([[1, 2, 3], [4, 5, 6]], numpy.int32)
 # construct_alternative
-    x = g
+    x = numpy.array, numpy.int32
 # construct_end
 
-    return x, y
+    return x
 
 import itertools
 for x in itertools.repeat(None, 20000):

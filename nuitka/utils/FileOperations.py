@@ -833,8 +833,8 @@ def getWindowsDrive(path):
     return os.path.normcase(drive)
 
 
-def isPathBelow(path, filename):
-    """Is a path inside of a given directory path
+def isFilenameBelowPath(path, filename):
+    """Is a filename inside of a given directory path
 
     Args:
         path: location to be below
@@ -842,7 +842,7 @@ def isPathBelow(path, filename):
     """
     if type(path) in (tuple, list):
         for p in path:
-            if isPathBelow(path=p, filename=filename):
+            if isFilenameBelowPath(path=p, filename=filename):
                 return True
 
         return False
@@ -857,9 +857,9 @@ def isPathBelow(path, filename):
     return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
 
 
-def isPathBelowOrSameAs(path, filename):
-    """Is a path inside of a given directory path or the same path as that directory."""
-    return isPathBelow(path, filename) or areSamePaths(path, filename)
+def isFilenameSameAsOrBelowPath(path, filename):
+    """Is a filename inside of a given directory path or the same path as that directory."""
+    return isFilenameBelowPath(path, filename) or areSamePaths(path, filename)
 
 
 def getWindowsShortPathName(filename):
@@ -875,11 +875,11 @@ def getWindowsShortPathName(filename):
     import ctypes.wintypes
 
     GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW
-    GetShortPathNameW.argtypes = [
+    GetShortPathNameW.argtypes = (
         ctypes.wintypes.LPCWSTR,
         ctypes.wintypes.LPWSTR,
         ctypes.wintypes.DWORD,
-    ]
+    )
     GetShortPathNameW.restype = ctypes.wintypes.DWORD
 
     output_buf_size = 0
@@ -932,6 +932,17 @@ def getExternalUsePath(filename, only_dirname=False):
             filename = os.path.join(dirname, os.path.basename(filename))
         else:
             filename = getWindowsShortPathName(filename)
+
+    return filename
+
+
+def getReportPath(filename):
+    """Convert filename into a path suitable for reporting, avoiding home directory paths."""
+    if os.path.isabs(os.path.expanduser(filename)):
+        abs_filename = os.path.abspath(os.path.expanduser(filename))
+        home_path = os.path.expanduser("~")
+        if isFilenameBelowPath(path=home_path, filename=abs_filename):
+            return os.path.join("~", relpath(path=abs_filename, start=home_path))
 
     return filename
 
