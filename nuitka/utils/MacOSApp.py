@@ -83,7 +83,7 @@ def createPlistInfoFile(logger, onefile):
             convertImageToIconFormat(
                 logger=logger,
                 image_filename=icon_path,
-                icon_filename=converted_icon_path,
+                converted_icon_filename=converted_icon_path,
             )
             icon_path = converted_icon_path
 

@@ -22,12 +22,12 @@
 from .FileOperations import hasFilenameExtension
 
 
-def convertImageToIconFormat(logger, image_filename, icon_filename):
+def convertImageToIconFormat(logger, image_filename, converted_icon_filename):
     """Convert image file to icon file."""
-    icon_format = icon_filename.rsplit(".", 1)[1].lower()
+    icon_format = converted_icon_filename.rsplit(".", 1)[1].lower()
 
     # Limit to supported icon formats.
-    assert hasFilenameExtension(icon_filename, (".ico", ".icns")), icon_format
+    assert hasFilenameExtension(converted_icon_filename, (".ico", ".icns")), icon_format
 
     try:
         import imageio
@@ -45,4 +45,4 @@ def convertImageToIconFormat(logger, image_filename, icon_filename):
             % image_filename
         )
 
-    imageio.imwrite(icon_filename, image)
+    imageio.imwrite(converted_icon_filename, image)

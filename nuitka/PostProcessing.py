@@ -147,7 +147,7 @@ def _addWindowsIconFromIcons(onefile):
             convertImageToIconFormat(
                 logger=postprocessing_logger,
                 image_filename=icon_spec,
-                icon_filename=converted_icon_path,
+                converted_icon_filename=converted_icon_path,
             )
 
             icon_path = converted_icon_path
