@@ -1387,6 +1387,27 @@ version_group.add_option(
 Description of the file used in version information. Windows only at this time. Defaults to binary filename.""",
 )
 
+version_group.add_option(
+    "--copyright",
+    action="store",
+    dest="legal_copyright",
+    metavar="COPYRIGHT_TEXT",
+    default=None,
+    help="""\
+Copyright used in version information. Windows only at this time. Defaults to not present.""",
+)
+
+version_group.add_option(
+    "--trademarks",
+    action="store",
+    dest="legal_trademarks",
+    metavar="TRADEMARK_TEXT",
+    default=None,
+    help="""\
+Copyright used in version information. Windows only at this time. Defaults to not present.""",
+)
+
+
 del version_group
 
 plugin_group = parser.add_option_group("Plugin control")
