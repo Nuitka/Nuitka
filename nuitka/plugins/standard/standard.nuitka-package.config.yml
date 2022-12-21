@@ -325,6 +325,22 @@
       replacements_plain:
         '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
 
+- module-name: 'dependency_injector._cwiring'
+  implicit-imports:
+    - depends:
+        - 'asyncio'
+
+- module-name: 'dependency_injector.containers'
+  implicit-imports:
+    - depends:
+        - 'six'
+        - 'dependency_injector.wiring'
+
+- module-name: 'dependency_injector.providers'
+  implicit-imports:
+    - depends:
+        - 'dependency_injector.errors'
+
 - module-name: 'dipy'
   anti-bloat:
     - description: 'remove dipy and numpy testing framework'
