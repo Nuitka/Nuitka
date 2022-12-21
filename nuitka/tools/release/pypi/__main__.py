@@ -61,7 +61,7 @@ def main():
         my_print("Compiling basic test with runner:", style="blue")
         my_print("*" * 40, style="blue")
         venv.runCommand(
-            "nuitka%d-run ../tests/basics/Asserts.py" % sys.version_info[0],
+            "nuitka%d-run ../tests/basics/AssertsTest.py" % sys.version_info[0],
             style="blue",
         )
         my_print("*" * 40, style="blue")
@@ -69,7 +69,7 @@ def main():
         my_print("Compiling basic test with recommended -m mode:", style="blue")
         my_print("*" * 40, style="blue")
         venv.runCommand(
-            "python -m nuitka ../tests/basics/Asserts.py",
+            "python -m nuitka ../tests/basics/AssertsTest.py",
             style="blue",
         )
         my_print("*" * 40, style="blue")
