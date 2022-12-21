@@ -137,6 +137,12 @@ def _getPackageVersion(distribution_name):
     return _package_versions[distribution_name]
 
 
+def _isPluginActive(plugin_name):
+    from .Plugins import getUserActivatedPluginNames
+
+    return plugin_name in getUserActivatedPluginNames()
+
+
 class NuitkaPluginBase(getMetaClassBase("Plugin")):
     """Nuitka base class for all plugins.
 
@@ -219,26 +225,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
     def addPluginCommandLineOptions(cls, group):
         # Call group.add_option() here.
         pass
-
-    @classmethod
-    def getPluginDefaultOptionValues(cls):
-        """This method is used to get a values to use as defaults.
-
-        Since the defaults are in the command line options, we call
-        that and extract them.
-        """
-
-        from optparse import OptionGroup, OptionParser
-
-        parser = OptionParser()
-        group = OptionGroup(parser, "Pseudo Target")
-        cls.addPluginCommandLineOptions(group)
-
-        result = {}
-        for option in group.option_list:
-            result[option.dest] = option.default
-
-        return result
 
     def isRequiredImplicitImport(self, module, full_name):
         """Indicate whether an implicitly imported module should be accepted.
@@ -469,6 +455,39 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             and error checking, and potentially for later stages to
             prepare.
         """
+
+    def onModuleCompleteSetGUI(self, module_set, plugin_binding_name):
+        from .Plugins import getOtherGUIBindingNames, getQtBindingNames
+
+        for module in module_set:
+            module_name = module.getFullName()
+
+            if module_name == plugin_binding_name:
+                continue
+
+            if module_name in getOtherGUIBindingNames():
+                if plugin_binding_name in getQtBindingNames():
+                    recommendation = "Use '--nofollow-import-to=%(unwanted)s'"
+
+                    if module_name in getQtBindingNames():
+                        problem = "conflicts with"
+                    else:
+                        problem = "is redundant with"
+                else:
+                    recommendation = "Use '--enable-plugin=no-qt'"
+                    problem = "is redundant with"
+
+                self.warning(
+                    """\
+Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountered. \
+%(recommendation)s or uninstall it for best compatibility with pure Python execution."""
+                    % {
+                        "unwanted": module_name,
+                        "binding_name": plugin_binding_name,
+                        "recommendation": recommendation,
+                        "problem": problem,
+                    }
+                )
 
     @staticmethod
     def locateModule(module_name):
@@ -1050,6 +1069,7 @@ except ImportError:
                 "deployment": False,
                 # Querying package versions.
                 "version": _getPackageVersion,
+                "plugin": _isPluginActive,
             }
         )
 
