@@ -51,7 +51,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const *
             CHECK_OBJECT(args[i]);
 
             if (kw_dict == NULL) {
-                kw_dict = PyDict_New();
+                kw_dict = MAKE_DICT_EMPTY();
             }
 
             int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
@@ -61,12 +61,7 @@ PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const *
         i++;
     }
 
-    PyObject *args_tuple = PyTuple_New(usable_args);
-    for (i = 0; i < usable_args; i++) {
-        PyTuple_SET_ITEM(args_tuple, i, args[i]);
-
-        Py_INCREF(args[i]);
-    }
+    PyObject *args_tuple = MAKE_TUPLE(args, usable_args);
 
     PyObject *result = CALL_FUNCTION(callable, args_tuple, kw_dict);
     Py_XDECREF(kw_dict);
@@ -96,35 +91,25 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
         return source_code;
     }
 
-    PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM(pos_args, 0, source_code);
-    Py_INCREF(source_code);
-    PyTuple_SET_ITEM(pos_args, 1, file_name);
-    Py_INCREF(file_name);
-    PyTuple_SET_ITEM(pos_args, 2, mode);
-    Py_INCREF(mode);
+    PyObject *pos_args = MAKE_TUPLE3(source_code, file_name, mode);
 
-    PyObject *kw_args = NULL;
-
-    if (flags != NULL) {
-        if (kw_args == NULL)
-            kw_args = PyDict_New();
-        PyDict_SetItemString(kw_args, "flags", flags);
-    }
-
-    if (dont_inherit != NULL) {
-        if (kw_args == NULL)
-            kw_args = PyDict_New();
-        PyDict_SetItemString(kw_args, "dont_inherit", dont_inherit);
-    }
-
+    PyObject *kw_values[] = {
+        flags,
+        dont_inherit,
 #if PYTHON_VERSION >= 0x300
-    if (optimize != NULL) {
-        if (kw_args == NULL)
-            kw_args = PyDict_New();
-        PyDict_SetItemString(kw_args, "optimize", optimize);
-    }
+        optimize,
 #endif
+    };
+
+    char const *kw_keys[] = {
+        "flags",
+        "dont_inherit",
+#if PYTHON_VERSION >= 0x300
+        "optimize",
+#endif
+    };
+
+    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
 
     NUITKA_ASSIGN_BUILTIN(compile);
 
@@ -560,7 +545,7 @@ typedef struct {
 } calliterobject;
 
 PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
-    calliterobject *result = PyObject_GC_New(calliterobject, &PyCallIter_Type);
+    calliterobject *result = (calliterobject *)Nuitka_GC_New(&PyCallIter_Type);
 
     if (unlikely(result == NULL)) {
         return NULL;
@@ -592,13 +577,7 @@ PyObject *BUILTIN_TYPE1(PyObject *arg) {
 }
 
 PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict) {
-    PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM(pos_args, 0, name);
-    Py_INCREF(name);
-    PyTuple_SET_ITEM(pos_args, 1, bases);
-    Py_INCREF(bases);
-    PyTuple_SET_ITEM(pos_args, 2, dict);
-    Py_INCREF(dict);
+    PyObject *pos_args = MAKE_TUPLE3(name, bases, dict);
 
     PyObject *result = PyType_Type.tp_new(&PyType_Type, pos_args, NULL);
 
@@ -654,10 +633,13 @@ PyObject *BUILTIN_SUPER2(PyDictObject *module_dict, PyObject *type, PyObject *ob
         super_value = NUITKA_ACCESS_BUILTIN(super);
     }
 
-    PyObject *args[] = {type, object};
-    char const *arg_names[] = {"type", "obj"};
+    if (object != NULL) {
+        PyObject *args[] = {type, object};
 
-    return CALL_BUILTIN_KW_ARGS(super_value, args, arg_names, 2);
+        return CALL_FUNCTION_WITH_ARGS2(super_value, args);
+    } else {
+        return CALL_FUNCTION_WITH_SINGLE_ARG(super_value, type);
+    }
 }
 
 PyObject *BUILTIN_SUPER0(PyDictObject *module_dict, PyObject *type, PyObject *object) {

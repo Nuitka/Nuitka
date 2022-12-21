@@ -58,6 +58,8 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
 
     plugin_name = "tk-inter"  # Nuitka knows us by this name
     plugin_desc = "Required by Python's Tk modules"
+    # Automatically suppress detectors for any other toolkit
+    plugin_gui_toolkit = True
 
     def __init__(self, tcl_library_dir, tk_library_dir):
         self.tcl_library_dir = tcl_library_dir
@@ -282,6 +284,16 @@ that works, report a bug."""
                     package_name="tkinterdnd2",
                     reason="tkinterdnd2 package DLL",
                 )
+
+    def onModuleCompleteSet(self, module_set):
+        if str is bytes:
+            plugin_binding_name = "Tkinter"
+        else:
+            plugin_binding_name = "tkinter"
+
+        self.onModuleCompleteSetGUI(
+            module_set=module_set, plugin_binding_name=plugin_binding_name
+        )
 
 
 class NuitkaPluginDetectorTkinter(NuitkaPluginBase):

@@ -2148,7 +2148,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_FLOAT(PyObject *operand1, P
     goto exit_result_ok_cfloat;
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok:
@@ -2344,7 +2344,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_FLOAT(PyObject *operand1, 
         goto exit_result_ok_cfloat;
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -2557,7 +2557,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_OBJECT(PyObject *operand1, 
         goto exit_result_ok_cfloat;
 
     exit_result_ok_cfloat:
-        result = PyFloat_FromDouble(cfloat_result);
+        result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
         goto exit_result_ok;
 
     exit_result_ok:
@@ -3589,7 +3589,7 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_FLOAT_CFLOAT(PyObject *operand1, 
     goto exit_result_ok_cfloat;
 
 exit_result_ok_cfloat:
-    result = PyFloat_FromDouble(cfloat_result);
+    result = MAKE_FLOAT_FROM_DOUBLE(cfloat_result);
     goto exit_result_ok;
 
 exit_result_ok:

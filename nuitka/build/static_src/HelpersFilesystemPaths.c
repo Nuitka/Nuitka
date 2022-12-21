@@ -20,6 +20,11 @@
 #include <sys/sysctl.h>
 #endif
 
+// We are using in onefile bootstrap as well, so copy it.
+#ifndef Py_MIN
+#define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
+#endif
+
 #include "nuitka/filesystem_paths.h"
 
 filename_char_t *getBinaryPath(void) {
@@ -154,10 +159,38 @@ int64_t getFileSize(FILE_HANDLE file_handle) {
 #if !defined(_WIN32)
 #include <fcntl.h>
 #include <unistd.h>
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__)
 #include <copyfile.h>
 #else
+#if defined(__MSYS__)
+static bool sendfile(int output_file, int input_file, off_t *bytesCopied, size_t count) {
+    char buffer[32768];
+
+    *bytesCopied = 0;
+
+    while (count > 0) {
+        ssize_t read_bytes = read(input_file, buffer, Py_MIN(sizeof(buffer), count));
+
+        if (unlikely(read <= 0)) {
+            return false;
+        }
+
+        count -= read_bytes;
+
+        ssize_t written_bytes = write(output_file, buffer, read_bytes);
+
+        if (unlikely(written_bytes != read_bytes)) {
+            return false;
+        }
+
+        *bytesCopied += written_bytes;
+    }
+
+    return true;
+}
+#elif !defined(__FreeBSD__)
 #include <sys/sendfile.h>
+#endif
 #endif
 #endif
 
@@ -190,9 +223,15 @@ bool copyFile(filename_char_t const *source, filename_char_t const *dest, int mo
         return false;
     }
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__)
     // Use fcopyfile works on FreeBSD and macOS
     bool result = fcopyfile(input_file, output_file, 0, COPYFILE_ALL) == 0;
+#elif defined(__FreeBSD__)
+    struct stat input_fileinfo = {0};
+    fstat(input_file, &input_fileinfo);
+    off_t bytesCopied = 0;
+
+    bool result = sendfile(output_file, input_file, 0, input_fileinfo.st_size, 0, &bytesCopied, 0);
 #else
     // sendfile will work with on Linux 2.6.33+
     struct stat fileinfo = {0};

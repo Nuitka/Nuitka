@@ -22,13 +22,14 @@ code alternative to actually looking up that method from the empty string
 object, so it got a dedicated node, also to perform optimizations specific
 to this.
 """
+from .ChildrenHavingMixins import ChildrenHavingValuesTupleMixin
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildTupleHavingBase
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionStrOrUnicodeExactMixin
 
 
 class ExpressionStringConcatenation(
-    ExpressionStrOrUnicodeExactMixin, ExpressionChildTupleHavingBase
+    ExpressionStrOrUnicodeExactMixin, ChildrenHavingValuesTupleMixin, ExpressionBase
 ):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
@@ -37,9 +38,9 @@ class ExpressionStringConcatenation(
     def __init__(self, values, source_ref):
         assert values
 
-        ExpressionChildTupleHavingBase.__init__(
-            self, value=tuple(values), source_ref=source_ref
-        )
+        ChildrenHavingValuesTupleMixin.__init__(self, values=tuple(values))
+
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments

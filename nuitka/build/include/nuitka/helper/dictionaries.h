@@ -76,12 +76,14 @@ static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, Nuitka_StringObject *
 
 // Quick dictionary lookup for a string value.
 
+#if PYTHON_VERSION < 0x3b0
 typedef struct {
     /* Cached hash code of me_key. */
     Py_hash_t me_hash;
     PyObject *me_key;
     PyObject *me_value; /* This field is only meaningful for combined tables */
 } PyDictKeyEntry;
+#endif
 
 #if PYTHON_VERSION < 0x360
 typedef PyDictKeyEntry *(*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
@@ -94,6 +96,9 @@ typedef Py_ssize_t (*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_
 
 // Taken from CPython3.3 "Objects/dictobject.c", lives in "Objects/dict-common.h" later
 
+#if PYTHON_VERSION < 0x3b0
+
+#define DK_SIZE(dk) ((dk)->dk_size)
 struct _dictkeysobject {
     Py_ssize_t dk_refcnt;
     Py_ssize_t dk_size;
@@ -115,11 +120,12 @@ struct _dictkeysobject {
 #endif
 };
 
+#endif
+
 // Taken from Objects/dictobject.c of CPython 3.6
 #if PYTHON_VERSION >= 0x360
 
-#define DK_SIZE(dk) ((dk)->dk_size)
-
+#if PYTHON_VERSION < 0x3b0
 #if SIZEOF_VOID_P > 4
 #define DK_IXSIZE(dk)                                                                                                  \
     (DK_SIZE(dk) <= 0xff ? 1 : DK_SIZE(dk) <= 0xffff ? 2 : DK_SIZE(dk) <= 0xffffffff ? 4 : sizeof(int64_t))
@@ -129,15 +135,26 @@ struct _dictkeysobject {
 
 #define DK_ENTRIES(dk) ((PyDictKeyEntry *)(&(dk)->dk_indices.as_1[DK_SIZE(dk) * DK_IXSIZE(dk)]))
 
-#define DK_USABLE_FRACTION(n) (((n) << 1) / 3)
-
-#else
-
-#define DK_ENTRIES(dk) (dk->dk_entries)
-
 #endif
 
+#else
+#define DK_ENTRIES(dk) (dk->dk_entries)
+#endif
+
+#if PYTHON_VERSION < 0x3b0
+#define DK_VALUE(dk, i) dk->ma_values[i]
+#else
+#define DK_VALUE(dk, i) dk->ma_values->values[i]
+#endif
+
+#define DK_MASK(dk) (DK_SIZE(dk) - 1)
+
 typedef PyObject **Nuitka_DictEntryHandle;
+
+#if PYTHON_VERSION >= 0x3b0
+extern Py_ssize_t Nuitka_PyDictLookup(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
+extern Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
+#endif
 
 static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_StringObject *key) {
     assert(PyDict_CheckExact(dict));
@@ -172,7 +189,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
     );
 
     return value_addr;
-#else
+#elif PYTHON_VERSION < 0x3b0
     PyObject *value;
 
     Py_ssize_t ix = dict->ma_keys->dk_lookup(dict, (PyObject *)key, hash, &value);
@@ -187,6 +204,12 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
         return &DK_ENTRIES(dict->ma_keys)[ix].me_value;
     }
 
+#else
+    PyObject **value;
+    Py_ssize_t found = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value);
+    assert(found != DKIX_ERROR);
+
+    return value;
 #endif
 }
 
@@ -249,33 +272,7 @@ extern PyObject *DICT_GET_ITEM0(PyObject *dict, PyObject *key);
 extern int DICT_HAS_ITEM(PyObject *dict, PyObject *key);
 
 // Convert to dictionary, helper for built-in "dict" mainly.
-NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {
-    PyObject *result = PyDict_New();
-
-    if (seq_obj != NULL) {
-        int res;
-
-        if (PyObject_HasAttrString(seq_obj, "keys")) {
-            res = PyDict_Merge(result, seq_obj, 1);
-        } else {
-            res = PyDict_MergeFromSeq2(result, seq_obj, 1);
-        }
-
-        if (res == -1) {
-            return NULL;
-        }
-    }
-
-    if (dict_obj != NULL) {
-        int res = PyDict_Merge(result, dict_obj, 1);
-
-        if (res == -1) {
-            return NULL;
-        }
-    }
-
-    return result;
-}
+extern PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj);
 
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
     CHECK_OBJECT(value);
@@ -403,5 +400,22 @@ extern void DICT_CLEAR(PyObject *dict);
 
 // Replacement for PyDict_Next that is faster (to call).
 extern bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr);
+
+#if PYTHON_VERSION >= 0x3a0
+#define NUITKA_DICT_HAS_FREELIST 1
+
+// Replacement for PyDict_New that is faster
+extern PyObject *MAKE_DICT_EMPTY(void);
+#else
+#define NUITKA_DICT_HAS_FREELIST 0
+#define MAKE_DICT_EMPTY PyDict_New
+#endif
+
+// Create a dictionary from key/value pairs.
+extern PyObject *MAKE_DICT(PyObject **pairs, Py_ssize_t size);
+// Create a dictionary from key/value pairs (NULL value means skip)
+extern PyObject *MAKE_DICT_X(PyObject **pairs, Py_ssize_t size);
+// Create a dictionary from key/value pairs (NULL value means skip) where keys are C strings.
+extern PyObject *MAKE_DICT_X_CSTR(char const **keys, PyObject **values, Py_ssize_t size);
 
 #endif

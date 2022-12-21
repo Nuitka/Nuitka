@@ -454,6 +454,10 @@ class CompiledPythonModule(
 
         return encodePythonIdentifierToC(self.getFullName())
 
+    @staticmethod
+    def getChildQualname(function_name):
+        return function_name
+
     def addFunction(self, function_body):
         functions = self.subnode_functions
         assert function_body not in functions

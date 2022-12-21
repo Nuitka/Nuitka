@@ -301,6 +301,12 @@ def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
     return present, arg_names, arg_tests, arg_name_mapping, arg_counts
 
 
+def getSpecs(spec_module):
+    for name in sorted(dir(spec_module)):
+        if name.endswith("_spec"):
+            yield name, getattr(spec_module, name)
+
+
 def formatArgs(args, starting=True, finishing=True):
     result = []
     if args:

@@ -81,7 +81,8 @@ def getTupleCreationCode(to_name, elements, emit, context):
 
         helper_code = generateElementCode(elements[0])
 
-        emit("%s = PyTuple_New(%d);" % (to_name, len(elements)))
+        # TODO: Consider more compact tuple creation helpers
+        emit("%s = MAKE_TUPLE_EMPTY(%d);" % (to_name, len(elements)))
 
         needs_exception_exit = any(
             element.mayRaiseException(BaseException) for element in elements[1:]

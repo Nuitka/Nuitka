@@ -161,26 +161,26 @@ def getWindowsAllProcessFileHandles():
             ("Reserved", ctypes.wintypes.ULONG * 100),
         ]
 
-    ctypes.windll.ntdll.NtQueryObject.argtypes = [
+    ctypes.windll.ntdll.NtQueryObject.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.DWORD,
         ctypes.POINTER(PUBLIC_OBJECT_TYPE_INFORMATION),
         ctypes.wintypes.ULONG,
         ctypes.POINTER(ctypes.wintypes.ULONG),
-    ]
+    )
     ctypes.windll.ntdll.NtQueryObject.restype = ctypes.wintypes.DWORD
 
-    ctypes.windll.kernel32.OpenProcess.argtypes = [
+    ctypes.windll.kernel32.OpenProcess.argtypes = (
         ctypes.wintypes.DWORD,
         ctypes.wintypes.BOOL,
         ctypes.wintypes.DWORD,
-    ]
+    )
     ctypes.windll.kernel32.OpenProcess.restype = ctypes.wintypes.HANDLE
     ctypes.windll.kernel32.GetCurrentProcess.restype = ctypes.wintypes.HANDLE
 
     ctypes.windll.kernel32.GetFileType.restype = ctypes.wintypes.DWORD
 
-    ctypes.windll.kernel32.DuplicateHandle.argtypes = [
+    ctypes.windll.kernel32.DuplicateHandle.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.HANDLE,
@@ -188,7 +188,7 @@ def getWindowsAllProcessFileHandles():
         ctypes.wintypes.DWORD,
         ctypes.wintypes.BOOL,
         ctypes.wintypes.DWORD,
-    ]
+    )
 
     ctypes.windll.kernel32.DuplicateHandle.restype = ctypes.wintypes.BOOL
 

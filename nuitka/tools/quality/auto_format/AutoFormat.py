@@ -149,11 +149,11 @@ def _checkRequiredVersion(tool, tool_call):
 
     else:
         tools_logger.sysexit(
-            "Error, couldn't determine version output of %r (%r)"
+            "Error, couldn't determine version output of '%s' ('%s')"
             % (tool, " ".join(tool_call))
         )
 
-    message = "Version of %r via %r is required to be %r and not %r." % (
+    message = "Version of '%s' via '%s' is required to be %r and not %r." % (
         tool,
         " ".join(tool_call),
         required_version,
@@ -163,8 +163,12 @@ def _checkRequiredVersion(tool, tool_call):
     return required_version == actual_version, message
 
 
-def _cleanupPyLintComments(filename):
-    new_code = old_code = getFileContents(filename, encoding="utf8")
+def _cleanupPyLintComments(filename, effective_filename):
+    try:
+        new_code = old_code = getFileContents(filename, encoding="utf8")
+    except UnicodeDecodeError:
+        my_print("Problem with file %s not having UTF8 encoding." % effective_filename)
+        raise
 
     def replacer(part):
         def changePyLintTagName(pylint_token):
@@ -259,7 +263,7 @@ def _getPythonBinaryCall(binary_name):
             my_print(message, style="red")
 
         tools_logger.sysexit(
-            "Error, cannot find %r version %r, not installed or wrong version for this Python?"
+            "Error, cannot find '%s' version %r, not installed or wrong version for this Python?"
             % (binary_name, _getRequiredVersion(binary_name))
         )
 
@@ -594,7 +598,7 @@ def autoFormatFile(
 
             if not _shouldNotFormatCode(effective_filename):
                 _cleanupImportSortOrder(tmp_filename)
-                _cleanupPyLintComments(tmp_filename)
+                _cleanupPyLintComments(tmp_filename, effective_filename)
 
                 black_call = _getPythonBinaryCall("black")
 
@@ -650,7 +654,7 @@ def autoFormatFile(
 
 @contextlib.contextmanager
 def withFileOpenedAndAutoFormatted(filename):
-    my_print("Auto-format %r ..." % filename)
+    my_print("Auto-format '%s' ..." % filename)
 
     tmp_filename = filename + ".tmp"
     with openTextFile(tmp_filename, "w") as output:

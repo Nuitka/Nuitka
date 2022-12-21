@@ -15,8 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-# pylint: disable=too-many-lines
-# pylint: disable=line-too-long
+# pylint: disable=I0021,too-many-lines
+# pylint: disable=I0021,line-too-long
 
 """Specialized attribute nodes
 

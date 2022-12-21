@@ -72,22 +72,35 @@ static void Nuitka_SetStopIterationValue(PyObject *value) {
 
 #if PYTHON_VERSION >= 0x370
 static inline void Nuitka_PyGen_exc_state_clear(_PyErr_StackItem *exc_state) {
+#if PYTHON_VERSION < 0x3b0
     PyObject *t = exc_state->exc_type;
+#endif
     PyObject *v = exc_state->exc_value;
+#if PYTHON_VERSION < 0x3b0
     PyObject *tb = exc_state->exc_traceback;
+#endif
 
+#if PYTHON_VERSION < 0x3b0
     exc_state->exc_type = NULL;
+#endif
     exc_state->exc_value = NULL;
+#if PYTHON_VERSION < 0x3b0
     exc_state->exc_traceback = NULL;
+#endif
 
+#if PYTHON_VERSION < 0x3b0
     Py_XDECREF(t);
+#endif
     Py_XDECREF(v);
+#if PYTHON_VERSION < 0x3b0
     Py_XDECREF(tb);
+#endif
 }
 #endif
 
 #if PYTHON_VERSION >= 0x300
 
+#if PYTHON_VERSION < 0x3b0
 static inline bool Nuitka_PyFrameHasCompleted(PyFrameObject *const frame) {
 #if PYTHON_VERSION < 0x3a0
     return frame->f_stacktop == NULL;
@@ -95,17 +108,7 @@ static inline bool Nuitka_PyFrameHasCompleted(PyFrameObject *const frame) {
     return frame->f_state > FRAME_EXECUTING;
 #endif
 }
-
-static inline bool Nuitka_PyGeneratorIsExecuting(PyGenObject const *gen) {
-#ifdef PY_NOGIL
-    return gen->status == GEN_RUNNING;
-#elif PYTHON_VERSION < 0x3a0
-    return gen->gi_running == 1;
-#else
-    PyFrameObject *frame = gen->gi_frame;
-    return frame->f_state == FRAME_EXECUTING;
 #endif
-}
 
 // This is for CPython iterator objects, the respective code is not exported as
 // API, so we need to redo it. This is an re-implementation that closely follows
@@ -176,7 +179,9 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 
     PyFrameObject *f = gen->gi_frame;
 
-#if PYTHON_VERSION >= 0x3a0
+#if PYTHON_VERSION >= 0x3b0
+    if (gen->gi_frame_state == FRAME_EXECUTING) {
+#elif PYTHON_VERSION >= 0x3a0
     if (f != NULL && _PyFrame_IsExecuting(f)) {
 #else
     if (unlikely(gen->gi_running)) {
@@ -185,7 +190,11 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
         return NULL;
     }
 
+#if PYTHON_VERSION < 0x3b0
     if (f == NULL || Nuitka_PyFrameHasCompleted(f)) {
+#else
+    if (gen->gi_frame_state >= FRAME_COMPLETED) {
+#endif
         // Set exception if called from send()
         if (arg != NULL) {
             SET_CURRENT_EXCEPTION_TYPE0(PyExc_StopIteration);
@@ -341,7 +350,8 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 #endif
 
 // TODO: Disabled for NOGIL until it becomes more ready.
-#if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL)
+// TODO: Disable for Python3.11 initially
+#if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL) && PYTHON_VERSION < 0x3b0
 
 #include <opcode.h>
 

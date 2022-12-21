@@ -332,10 +332,12 @@ def checkPluginPath(plugin_filename, module_package):
                     checkPluginSinglePath(sub_path, module_package=None)
         else:
             recursion_logger.warning(
-                "Failed to include module from %r." % plugin_info[0]
+                "Failed to include module from '%s'." % plugin_info[0]
             )
     else:
-        recursion_logger.warning("Failed to recurse to directory %r." % plugin_filename)
+        recursion_logger.warning(
+            "Failed to recurse to directory '%s'." % plugin_filename
+        )
 
 
 def checkPluginFilenamePattern(pattern):
@@ -357,7 +359,9 @@ def checkPluginFilenamePattern(pattern):
         checkPluginSinglePath(filename, module_package=None)
 
     if not found:
-        recursion_logger.warning("Didn't match any files against pattern %r." % pattern)
+        recursion_logger.warning(
+            "Didn't match any files against pattern '%s'." % pattern
+        )
 
 
 def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):

@@ -33,6 +33,7 @@ from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
     addIncludedDataFilesFromPackageOptions,
+    addIncludedDataFilesFromPlugins,
     copyDataFiles,
 )
 from nuitka.freezer.IncludedEntryPoints import (
@@ -59,14 +60,12 @@ from nuitka.PythonFlavors import (
     isApplePython,
     isDebianPackagePython,
     isFedoraPackagePython,
-    isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
 )
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
-    getSystemPrefixPath,
     python_version,
     python_version_str,
 )
@@ -81,7 +80,6 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     deleteFile,
-    getDirectoryRealPath,
     getExternalUsePath,
     openTextFile,
     removeDirectory,
@@ -91,7 +89,7 @@ from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32Windows
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 from . import ModuleRegistry, Options, OutputDirectories
@@ -540,7 +538,7 @@ def _runPythonPgoBinary():
     return pgo_filename
 
 
-def runSconsBackend(quiet):
+def runSconsBackend():
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches and statements,
     # pylint: disable=too-many-branches,too-many-statements
@@ -556,15 +554,8 @@ def runSconsBackend(quiet):
         "experimental": ",".join(Options.getExperimentalIndications()),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "python_version": python_version_str,
-        "target_arch": getArchitecture(),
-        "python_prefix": getDirectoryRealPath(getSystemPrefixPath()),
         "nuitka_src": getSconsDataPath(),
-        "module_count": "%d"
-        % (
-            1
-            + len(ModuleRegistry.getDoneModules())
-            + len(ModuleRegistry.getUncompiledNonTechnicalModules())
-        ),
+        "module_count": "%d" % len(ModuleRegistry.getDoneModules()),
     }
 
     if Options.isLowMemory():
@@ -588,9 +579,6 @@ def runSconsBackend(quiet):
 
     if isFedoraPackagePython():
         options["fedora_python"] = asBoolStr(True)
-
-    if isMSYS2MingwPython():
-        options["msys2_mingw_python"] = asBoolStr(True)
 
     if isApplePython():
         options["apple_python"] = asBoolStr(True)
@@ -676,7 +664,6 @@ def runSconsBackend(quiet):
 
         result = runScons(
             options=options,
-            quiet=quiet,
             env_values=env_values,
             scons_filename="Backend.scons",
         )
@@ -700,7 +687,6 @@ def runSconsBackend(quiet):
 
             result = runScons(
                 options=options,
-                quiet=quiet,
                 env_values=env_values,
                 scons_filename="Backend.scons",
             )
@@ -716,7 +702,6 @@ def runSconsBackend(quiet):
     result = (
         runScons(
             options=options,
-            quiet=quiet,
             env_values=env_values,
             scons_filename="Backend.scons",
         ),
@@ -854,7 +839,7 @@ def compileTree():
     general.info("Running C compilation via Scons.")
 
     # Run the Scons to build things.
-    result, options = runSconsBackend(quiet=not Options.isShowScons())
+    result, options = runSconsBackend()
 
     return result, options
 
@@ -923,6 +908,7 @@ def main():
     )
 
     addIncludedDataFilesFromFileOptions()
+    addIncludedDataFilesFromPackageOptions()
 
     # Turn that source code into a node tree structure.
     try:
@@ -930,7 +916,7 @@ def main():
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
-    addIncludedDataFilesFromPackageOptions()
+    addIncludedDataFilesFromPlugins()
 
     dumpTreeXML()
 
@@ -987,7 +973,7 @@ def main():
             packDistFolderToOnefile(dist_dir)
 
             if Options.isRemoveBuildDir():
-                general.info("Removing dist folder %r." % dist_dir)
+                general.info("Removing dist folder '%s'." % dist_dir)
 
                 removeDirectory(path=dist_dir, ignore_errors=False)
             else:

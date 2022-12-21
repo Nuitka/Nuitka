@@ -73,7 +73,7 @@ PyObject *MATCH_CLASS_ARGS(PyObject *matched, Py_ssize_t max_allowed) {
         return NULL;
     }
 
-    PyObject *result = PyTuple_New(actual);
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(actual);
 
     for (Py_ssize_t i = 0; i < max_allowed; i++) {
         PyObject *arg_name = PyTuple_GET_ITEM(match_args, i);

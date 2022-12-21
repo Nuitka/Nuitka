@@ -155,8 +155,7 @@ nuitka_packages = findNuitkaPackages()
 package_data = {
     "": ["*.txt", "*.rst", "*.c", "*.h", "*.yml"],
     "nuitka.build": [
-        "Backend.scons",
-        "Onefile.scons",
+        "*.scons",
         "static_src/*.c",
         "static_src/*.cpp",
         "static_src/*/*.c",
@@ -201,6 +200,7 @@ if "nuitka.plugins.commercial" in nuitka_packages:
             continue
 
     package_data["nuitka.plugins.commercial"] = commercial_data_files
+    package_data["nuitka.tools.commercial.container_build"] = ["Containerfile"]
 
 orig_byte_compile = distutils.util.byte_compile
 
@@ -404,6 +404,7 @@ Python compiler with full language support and CPython compatibility""",
         "Support": "https://nuitka.net/pages/support.html",
         "Documentation": "https://nuitka.net/doc/user-manual.html",
         "Donations": "https://nuitka.net/pages/donations.html",
+        "Mastodon": "https://fosstodon.org/@kayhayen",
         "Twitter": "https://twitter.com/KayHayen",
         "Source": "https://github.com/Nuitka/Nuitka",
     },

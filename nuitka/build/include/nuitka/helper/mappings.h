@@ -18,6 +18,8 @@
 #ifndef __NUITKA_MAPPINGS_H__
 #define __NUITKA_MAPPINGS_H__
 
+extern Py_ssize_t Nuitka_PyMapping_Size(PyObject *mapping);
+
 NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM(PyObject *mapping, PyObject *key) {
     PyObject *result = PyObject_GetItem(mapping, key);
 

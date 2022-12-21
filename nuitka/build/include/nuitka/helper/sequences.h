@@ -18,39 +18,10 @@
 #ifndef __NUITKA_HELPER_SEQUENCES_H__
 #define __NUITKA_HELPER_SEQUENCES_H__
 
-// TODO: Provide enhanced form of PySequence_Contains with less overhead.
+// TODO: Provide enhanced form of PySequence_Contains with less overhead as well.
 
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM(PyObject *sequence, Py_ssize_t index, PyObject *value) {
-    CHECK_OBJECT(sequence);
-    CHECK_OBJECT(value);
+extern bool SEQUENCE_SET_ITEM(PyObject *sequence, Py_ssize_t index, PyObject *value);
 
-    PySequenceMethods *sequence_methods = Py_TYPE(sequence)->tp_as_sequence;
-
-    if (sequence_methods != NULL && sequence_methods->sq_ass_item) {
-        if (index < 0) {
-            if (sequence_methods->sq_length) {
-                Py_ssize_t length = (*sequence_methods->sq_length)(sequence);
-
-                if (length < 0) {
-                    return false;
-                }
-
-                index += length;
-            }
-        }
-
-        int res = sequence_methods->sq_ass_item(sequence, index, value);
-
-        if (unlikely(res == -1)) {
-            return false;
-        }
-
-        return true;
-    } else {
-        PyErr_Format(PyExc_TypeError, "'%s' object does not support item assignment", Py_TYPE(sequence)->tp_name);
-
-        return false;
-    }
-}
+extern Py_ssize_t Nuitka_PyObject_Size(PyObject *sequence);
 
 #endif

@@ -37,7 +37,7 @@ def checkVersion():
 
     if not hasModule("pylint"):
         sys.exit(
-            "Error, pylint is not installed for this interpreter %r version."
+            "Error, pylint is not installed for this interpreter '%s' version."
             % os.environ["PYTHON"]
         )
 

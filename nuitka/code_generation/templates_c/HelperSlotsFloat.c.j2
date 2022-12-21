@@ -251,7 +251,7 @@ exit_result_ok_cfloat:
 {% else %}
     {# TODO: Check the reference we were handed down. #}
     if (Py_REFCNT({{ operand1 }}) == 1) {
-        PyFloat_AS_DOUBLE({{ operand1 }}) = cfloat_result;
+        PyFloat_SET_DOUBLE({{ operand1 }}, cfloat_result);
     } else {
         // We got an object handed, that we have to release.
         Py_DECREF({{ operand1 }});

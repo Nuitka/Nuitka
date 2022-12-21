@@ -1,0 +1,265 @@
+# -*- python -*-
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
+
+"""
+The CCompileVersion scons file is for version output of the C compiler used with
+given flags only. Check out Backend.scons for where the actual compiled binaries
+are build.
+
+This is supposed to output compiler related information and then quit. It should
+actually compile anything.
+
+"""
+
+# Make nuitka package importable from calling installation
+
+import sys
+import os
+import types
+
+sys.modules["nuitka"] = types.ModuleType("nuitka")
+sys.modules["nuitka"].__path__ = [os.environ["NUITKA_PACKAGE_DIR"]]
+
+# We are in the build.build package really.
+import nuitka.build  # pylint: disable=unused-import
+
+__package__ = "nuitka.build"  # pylint: disable=redefined-builtin
+
+# isort:start
+
+from SCons.Script import (  # pylint: disable=I0021,import-error
+    ARGUMENTS,
+    Environment,
+    GetOption,
+)
+
+from nuitka.Tracing import (
+    my_print,
+    scons_details_logger,
+    scons_logger,
+    setQuiet,
+)
+
+from .SconsCompilerSettings import (
+    checkWindowsCompilerFound,
+    reportCCompiler,
+    setupCCompiler,
+    switchFromGccToGpp,
+)
+from .SconsHacks import getEnhancedToolDetect
+from .SconsUtils import (
+    addClangClPathFromMSVC,
+    createEnvironment,
+    getArgumentBool,
+    getArgumentDefaulted,
+    getArgumentList,
+    getExecutablePath,
+    initScons,
+    isClangName,
+    isGccName,
+    prepareEnvironment,
+    setArguments,
+)
+
+# spell-checker: ignore ccversion,ccflags,werror,cppdefines,cpppath,cppflags
+# spell-checker: ignore cxxflags,ldflags,libpath,linkflags
+
+# Set the arguments.
+setArguments(ARGUMENTS)
+
+# Set up the basic stuff.
+initScons()
+
+# Module mode: Create a Python extension module, create an executable otherwise.
+module_mode = getArgumentBool("module_mode", False)
+
+# Debug mode: Less optimizations, debug information in the resulting binary.
+debug_mode = getArgumentBool("debug_mode", False)
+
+# Experimental indications. Do things that are not yet safe to do.
+experimental = getArgumentList("experimental", "")
+
+# LTO mode: Use link time optimizations of C compiler if available and known
+# good with the compiler in question.
+lto_mode = getArgumentDefaulted("lto_mode", "auto")
+
+# Windows target mode: Compile for Windows. Used to be an option, but we
+# no longer cross compile this way.
+win_target = os.name == "nt"
+
+# Windows subsystem mode: Disable console for windows builds.
+disable_console = getArgumentBool("disable_console", False)
+
+# Unstripped mode: Do not remove debug symbols.
+unstripped_mode = getArgumentBool("unstripped_mode", False)
+
+# Target arch, uses for compiler choice and quick linking of constants binary
+# data.
+target_arch = ARGUMENTS["target_arch"]
+
+# MinGW compiler mode, optional and interesting to Windows only.
+mingw_mode = getArgumentBool("mingw_mode", False)
+
+# Clang compiler mode, forced on macOS and FreeBSD (excluding PowerPC), optional on Linux.
+clang_mode = getArgumentBool("clang_mode", False)
+
+# Clang on Windows with no requirement to use MinGW64 or using MSYS2 MinGW flavor,
+# is changed to ClangCL from Visual Studio.
+clangcl_mode = False
+if win_target and not mingw_mode and clang_mode:
+    clang_mode = False
+    clangcl_mode = True
+
+# Show scons mode, output information about Scons operation
+show_scons_mode = getArgumentBool("show_scons", False)
+scons_details_logger.is_quiet = not show_scons_mode
+
+if int(os.environ.get("NUITKA_QUIET", "0")):
+    setQuiet()
+
+# Forced MSVC version (windows-only)
+msvc_version = getArgumentDefaulted("msvc_version", None)
+
+# Disable ccache/clcache usage if that is requested
+disable_ccache = getArgumentBool("disable_ccache", False)
+
+# Allow automatic downloads for ccache, etc.
+assume_yes_for_downloads = getArgumentBool("assume_yes_for_downloads", False)
+
+# Minimum version required on macOS.
+macos_min_version = getArgumentDefaulted("macos_min_version", "")
+
+# Target arch for macOS.
+macos_target_arch = getArgumentDefaulted("macos_target_arch", "")
+
+# Amount of jobs to use.
+job_count = GetOption("num_jobs")
+
+# Prepare environment for compiler detection.
+mingw_mode = prepareEnvironment(mingw_mode=mingw_mode)
+
+# TODO: Merge to prepareEnvironment as well.
+if "CXX" in os.environ:
+    os.environ["CXX"] = os.path.normpath(os.environ["CXX"])
+
+    if os.path.isdir(os.environ["CXX"]):
+        sys.exit("Error, the CXX variable must point to file, not directory.")
+
+    cxx_dirname = os.path.dirname(os.environ["CXX"])
+
+    if win_target and isGccName(os.path.basename(os.environ["CXX"])):
+        if show_scons_mode:
+            my_print("Scons: Environment CXX seems to be a gcc, enable mingw_mode.")
+        mingw_mode = True
+
+    if os.path.isdir(cxx_dirname):
+        os.environ["PATH"] = os.pathsep.join(
+            [cxx_dirname] + os.environ["PATH"].split(os.pathsep)
+        )
+
+# Patch the compiler detection.
+Environment.Detect = getEnhancedToolDetect()
+
+# Create Scons environment, the main control tool. Don't include "mingw" on
+# Windows immediately, we will default to MSVC if available.
+env = createEnvironment(
+    mingw_mode=mingw_mode,
+    msvc_version=msvc_version,
+    target_arch=target_arch,
+    experimental=experimental,
+)
+
+scons_details_logger.info("Initial CC: %r" % env.get("CC"))
+scons_details_logger.info(
+    "Initial CCVERSION: %r" % (env.get("CCVERSION"),),
+)
+
+if "CC" in os.environ:
+    # If the environment variable CC is set, use that.
+    env["CCVERSION"] = None
+
+    scons_details_logger.info("Overridden with environment CC: %r" % env["CC"])
+elif clangcl_mode:
+    # If possible, add Clang directory from MSVC if available.
+    addClangClPathFromMSVC(env=env)
+elif clang_mode:
+    # If requested by the user, use the clang compiler, overriding what was
+    # said in environment.
+
+    env["CC"] = "clang"
+    env["CCVERSION"] = None
+
+# On Windows, in case MSVC was not found and not previously forced, use the
+# winlibs MinGW64 as a download, and use it as a fallback.
+env = checkWindowsCompilerFound(
+    env=env,
+    target_arch=target_arch,
+    clang_mode=clang_mode,
+    msvc_version=msvc_version,
+    assume_yes_for_downloads=assume_yes_for_downloads,
+)
+
+env.the_compiler = env["CC"] or env["CXX"]
+env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
+env.debug_mode = debug_mode
+env.unstripped_mode = debug_mode or unstripped_mode
+env.disable_console = disable_console
+env.low_memory = False
+env.macos_min_version = macos_min_version
+env.macos_target_arch = macos_target_arch
+
+# Requested or user provided, detect if it's clang even from environment
+if isClangName(env.the_cc_name):
+    clang_mode = True
+    env["CCVERSION"] = None
+
+# We consider clang to be a form of gcc for the most things, they strive to
+# be compatible.
+env.gcc_mode = isGccName(env.the_cc_name) or clang_mode
+env.clang_mode = clang_mode
+
+# Only use MSVC if not already clear, we are using MinGW.
+env.msvc_mode = win_target and not env.gcc_mode
+env.mingw_mode = win_target and env.gcc_mode
+env.clangcl_mode = clangcl_mode
+
+# Consider switching from gcc to its g++ compiler as a workaround that makes us work without C11.
+switchFromGccToGpp(
+    env=env,
+)
+
+if env.the_compiler is None or getExecutablePath(env.the_compiler, env=env) is None:
+    scons_logger.sysexit("No usable C compiler detected")
+
+env.the_compiler = getExecutablePath(env.the_compiler, env=env)
+
+# Report the C compiler used.
+reportCCompiler(env, "Version", my_print)
+
+# Set up C compiler settings.
+setupCCompiler(
+    env=env,
+    lto_mode=lto_mode,
+    pgo_mode="no",  # TODO: Have this here too, decompression might benefit.
+    job_count=job_count,
+)
+
+# TODO: Report modes.
+
+sys.exit(0)

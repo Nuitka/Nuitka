@@ -783,7 +783,7 @@ return %(return_value)s;""" % {
     @classmethod
     def getReturnFromFloatExpressionCode(cls, operand):
         if cls.type_name == "object":
-            return "return PyFloat_FromDouble(%s);" % operand
+            return "return MAKE_FLOAT_FROM_DOUBLE(%s);" % operand
         elif cls.type_name == "nbool":
             return "return %s;" % cls.getToValueFromBoolExpression(
                 "%s == 0.0" % operand
@@ -796,7 +796,7 @@ return %(return_value)s;""" % {
     @classmethod
     def getAssignFromFloatExpressionCode(cls, result, operand):
         if cls.type_name in ("object", "int", "float"):
-            return "%s = PyFloat_FromDouble(%s);" % (result, operand)
+            return "%s = MAKE_FLOAT_FROM_DOUBLE(%s);" % (result, operand)
         elif cls.type_name == "nbool":
             return "%s = %s;" % (
                 result,
@@ -1735,7 +1735,7 @@ class CFloatDesc(ConcreteCTypeBase):
 
     @staticmethod
     def getAsObjectValueExpression(operand):
-        return "PyFloat_FromDouble(%s)" % operand
+        return "MAKE_FLOAT_FROM_DOUBLE(%s)" % operand
 
     @staticmethod
     def releaseAsObjectValueStatement(operand):

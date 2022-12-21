@@ -153,12 +153,12 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
     """Import a module from a folder by adding it temporarily to sys.path"""
 
     # Cyclic dependency here
-    from .FileOperations import isPathBelow
+    from .FileOperations import isFilenameBelowPath
 
     if module_name in sys.modules:
         # May already be loaded, but the wrong one from a ".pth" file of
         # clcache that we then don't want to use.
-        if module_name != "clcache" or isPathBelow(
+        if module_name != "clcache" or isFilenameBelowPath(
             path=path, filename=sys.modules[module_name].__file__
         ):
             return sys.modules[module_name]

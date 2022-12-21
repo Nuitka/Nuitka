@@ -214,7 +214,7 @@ static PyObject *loadModuleFromCodeObject(PyObject *module, PyCodeObject *code_o
 
     if (is_package) {
         /* Set __path__ properly, unlike frozen module importer does. */
-        PyObject *path_list = PyList_New(1);
+        PyObject *path_list = MAKE_LIST_EMPTY(1);
         if (unlikely(path_list == NULL))
             return NULL;
 
@@ -324,7 +324,7 @@ static PyObject *_getImportingSuffixesByPriority(int kind) {
     static PyObject *result = NULL;
 
     if (result == NULL) {
-        result = PyList_New(0);
+        result = MAKE_LIST_EMPTY(0);
 
         PyObject *imp_module = PyImport_ImportModule("imp");
         PyObject *get_suffixes_func = PyObject_GetAttrString(imp_module, "get_suffixes");
@@ -382,7 +382,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
         return false;
     }
 
-    PyObject *candidates = PyList_New(0);
+    PyObject *candidates = MAKE_LIST_EMPTY(0);
 
     // Search only relative to the parent name of course.
     char const *module_relname_str = Nuitka_String_AsString(module_name) + strlen(parent_module_name) + 1;
@@ -445,7 +445,7 @@ static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_mo
                 PyObject *fullpath = JOIN_PATH2(directory, candidate);
 
                 if (installed_extension_modules == NULL) {
-                    installed_extension_modules = PyDict_New();
+                    installed_extension_modules = MAKE_DICT_EMPTY();
                 }
 
 // Force path to unicode, to have easier consumption, as we need a wchar_t or char *
@@ -1192,7 +1192,7 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
         return NULL;
     }
 
-    PyObject *result = PyList_New(0);
+    PyObject *result = MAKE_LIST_EMPTY(0);
 
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
     assert(current);
@@ -1235,8 +1235,6 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             continue;
         }
 
-        PyObject *r = PyTuple_New(2);
-
         PyObject *name;
         if (self->m_loader_entry) {
             name = Nuitka_String_FromString(current->name + strlen(s) + 1);
@@ -1250,6 +1248,7 @@ static PyObject *_nuitka_loader_iter_modules(struct Nuitka_LoaderObject *self, P
             Py_DECREF(old);
         }
 
+        PyObject *r = MAKE_TUPLE_EMPTY(2);
         PyTuple_SET_ITEM(r, 0, name);
         PyTuple_SET_ITEM0(r, 1, BOOL_FROM((current->flags & NUITKA_PACKAGE_FLAG) != 0));
 
@@ -1392,20 +1391,18 @@ static PyObject *createModuleSpec(PyObject *module_name, PyObject *origin, bool 
         return NULL;
     }
 
-    PyObject *args = PyTuple_New(2);
-    PyTuple_SET_ITEM0(args, 0, module_name);
-    PyTuple_SET_ITEM0(args, 1, (PyObject *)&Nuitka_Loader_Type);
+    PyObject *args = MAKE_TUPLE2(module_name, (PyObject *)&Nuitka_Loader_Type);
 
-    PyObject *kwargs = PyDict_New();
-    PyDict_SetItemString(kwargs, "is_package", is_package ? Py_True : Py_False);
-    if (origin != NULL) {
-        PyDict_SetItemString(kwargs, "origin", origin);
-    }
+    PyObject *kw_values[] = {is_package ? Py_True : Py_False, origin};
 
-    PyObject *result = CALL_FUNCTION(module_spec_class, args, kwargs);
+    char const *kw_keys[] = {"is_package", "origin"};
+
+    PyObject *kw_args = MAKE_DICT_X_CSTR(kw_keys, kw_values, sizeof(kw_values) / sizeof(PyObject *));
+
+    PyObject *result = CALL_FUNCTION(module_spec_class, args, kw_args);
 
     Py_DECREF(args);
-    Py_DECREF(kwargs);
+    Py_DECREF(kw_args);
 
     return result;
 }
@@ -1623,12 +1620,9 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
     PyObject *temp;
 
     if (entry) {
-        temp = PyTuple_New(1);
-
         // Create a distribution object for the entry
         PyObject *distribution = Nuitka_Distribution_New(entry);
-        PyTuple_SET_ITEM(temp, 0, distribution);
-
+        temp = MAKE_TUPLE1_0(distribution);
     } else {
         temp = const_tuple_empty;
         Py_INCREF(const_tuple_empty);
@@ -1681,8 +1675,9 @@ static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
 
 #include "nuitka/freelists.h"
 
-// TODO: A freelist is not the right thing for those, they are probably living forever, but it's
-// no big harm too, but make it small.
+// TODO: A free list is not the right thing for those, they are probably living forever, but it's
+// no big harm too, but make it small, maybe be allowing a toggle that makes a specific macro not
+// use the free list mechanism at all.
 
 #define MAX_LOADER_FREE_LIST_COUNT 10
 static struct Nuitka_LoaderObject *free_list_loaders = NULL;

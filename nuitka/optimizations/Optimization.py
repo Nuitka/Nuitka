@@ -324,13 +324,11 @@ def makeOptimizationPass():
                 unused_function.trace_collection = None
                 unused_function.finalize()
 
-            used_functions = tuple(
+            current_module.subnode_functions = tuple(
                 function
                 for function in current_module.subnode_functions
                 if function in current_module.getUsedFunctions()
             )
-
-            current_module.setChild("functions", used_functions)
 
     _endProgress()
 

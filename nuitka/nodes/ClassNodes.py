@@ -118,6 +118,9 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
     def markAsDirectlyCalled(self):
         pass
 
+    def getChildQualname(self, function_name):
+        return self.getFunctionQualname() + "." + function_name
+
     @staticmethod
     def mayHaveSideEffects():
         # The function definition has no side effects, calculating the defaults
@@ -174,10 +177,10 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
         # Need to use private CPython API unless we want to re-implement it, pylint: disable=protected-access
         import ctypes
 
-        ctypes.pythonapi._PyType_CalculateMetaclass.argtypes = [
+        ctypes.pythonapi._PyType_CalculateMetaclass.argtypes = (
             ctypes.py_object,
             ctypes.py_object,
-        ]
+        )
         ctypes.pythonapi._PyType_CalculateMetaclass.restype = ctypes.py_object
 
         bases = self.subnode_bases.getCompileTimeConstant()
