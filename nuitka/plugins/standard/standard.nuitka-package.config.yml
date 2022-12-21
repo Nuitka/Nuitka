@@ -225,6 +225,11 @@
     - depends:
         - '_curses'
 
+- module-name: 'customtkinter'
+  data-files:
+    dirs:
+      - 'assets'
+
 - module-name: 'cv2'
   data-files:
     dirs:
@@ -1743,18 +1748,20 @@
     checks:
       - description: 'PyQt5 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyqt5")'
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
-        when: 'macos and not anaconda'
+        when: 'macos and not anaconda and plugin("pyqt5")'
       - description: 'PyQt5 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
-        when: 'macos'
+        when: 'macos and plugin("pyqt5")'
 
 - module-name: 'PyQt6'
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyqt6")'
 
 - module-name: 'pyqtgraph'
   data-files:
@@ -1893,9 +1900,10 @@
     checks:
       - description: 'PySide2 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyside2")'
       - description: 'PySide2 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
-        when: 'macos'
+        when: 'macos and plugin("pyside2")'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken2'
@@ -1905,6 +1913,7 @@
     checks:
       - description: 'PySide6 is a GUI framework'
         console: 'recommend'
+        when: 'plugin("pyside6")'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
