@@ -53,7 +53,7 @@ class StatementPrintValue(StatementChildrenHavingBase):
         if dest is not None and dest.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        if dest is not None and dest.willRaiseException(BaseException):
+        if dest is not None and dest.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=dest, node=self
             )
@@ -70,7 +70,7 @@ Exception raise in 'print' statement destination converted to explicit raise."""
         if value.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        if value.willRaiseException(BaseException):
+        if value.willRaiseAnyException():
             if dest is not None:
                 result = wrapStatementWithSideEffects(
                     new_node=makeStatementExpressionOnlyReplacementNode(
@@ -147,7 +147,7 @@ class StatementPrintNewline(StatementChildHavingBase):
         if dest is not None and dest.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        if dest is not None and dest.willRaiseException(BaseException):
+        if dest is not None and dest.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=dest, node=self
             )

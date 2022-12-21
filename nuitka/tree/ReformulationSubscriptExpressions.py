@@ -82,9 +82,9 @@ def buildSubscriptNode(provider, node, source_ref):
         # For Python3 there is no slicing operation, this is always done
         # with subscript using a slice object. For Python2, it is only done
         # if no "step" is provided.
-        use_sliceobj = step is not None or python_version >= 0x300
+        use_slice_object = step is not None or python_version >= 0x300
 
-        if use_sliceobj:
+        if use_slice_object:
             return ExpressionSubscriptLookup(
                 expression=buildNode(provider, node.value, source_ref),
                 subscript=makeExpressionBuiltinSlice(

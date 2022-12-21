@@ -204,7 +204,7 @@ def _generateCallCodePosOnly(
             )
 
 
-def _generateCallCodeKwSplitFromConstant(
+def _getCallCodeKwSplitFromConstant(
     to_name, expression, call_kw, called_name, called_attribute_name, emit, context
 ):
     assert called_name is not None
@@ -283,8 +283,8 @@ def getCallCodeKwSplit(to_name, called_name, kw_names, dict_value_names, emit, c
     context.addCleanupTempName(to_name)
 
 
-def _generateCallCodeKwSplit(
-    to_name, expression, call_kw, called_name, called_attribute_name, emit, context
+def getCallCodeKwPairs(
+    to_name, expression, pairs, called_name, called_attribute_name, emit, context
 ):
     assert called_name is not None
     # TODO: Not yet specialized for method calls.
@@ -296,7 +296,7 @@ def _generateCallCodeKwSplit(
 
     dict_value_names = []
 
-    for count, pair in enumerate(call_kw.subnode_pairs):
+    for count, pair in enumerate(pairs):
         kw_names.append(pair.getKeyCompileTimeConstant())
 
         dict_value_name = context.allocateTempName("kw_call_value_%d" % count)
@@ -315,15 +315,27 @@ def _generateCallCodeKwSplit(
 
     emitLineNumberUpdateCode(expression, emit, context)
 
-    assert len(kw_names) == len(call_kw.subnode_pairs)
-    getCallCodeKwSplit(
-        to_name=to_name,
-        called_name=called_name,
-        kw_names=kw_names,
-        dict_value_names=dict_value_names,
-        emit=emit,
-        context=context,
-    )
+    assert len(kw_names) == len(pairs)
+
+    if kw_names:
+        getCallCodeKwSplit(
+            to_name=to_name,
+            called_name=called_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+    else:
+        # This is called on generic pairs in some cases. TODO: Make passing expression and needs_check propagate more up.
+        getCallCodeNoArgs(
+            to_name=to_name,
+            called_name=called_name,
+            expression=expression,
+            needs_check=True,
+            emit=emit,
+            context=context,
+        )
 
 
 def _generateCallCodeKwDict(
@@ -431,7 +443,7 @@ def generateCallCode(to_name, expression, emit, context):
                     # Optimization should have turned that into a raise exception.
                     assert call_kw.isMappingWithConstantStringKeys()
 
-                    _generateCallCodeKwSplitFromConstant(
+                    _getCallCodeKwSplitFromConstant(
                         to_name=result_name,
                         called_name=called_name,
                         called_attribute_name=called_attribute_name,
@@ -444,12 +456,12 @@ def generateCallCode(to_name, expression, emit, context):
                     call_kw.isExpressionMakeDict()
                     and call_kw.isMappingWithConstantStringKeys()
                 ):
-                    _generateCallCodeKwSplit(
+                    getCallCodeKwPairs(
                         to_name=result_name,
                         called_name=called_name,
                         called_attribute_name=called_attribute_name,
                         expression=expression,
-                        call_kw=call_kw,
+                        pairs=call_kw.subnode_pairs,
                         emit=emit,
                         context=context,
                     )

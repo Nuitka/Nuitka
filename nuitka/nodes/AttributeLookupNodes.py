@@ -20,10 +20,11 @@
 See AttributeNodes otherwise.
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ChildrenHavingMixins import ChildHavingExpressionMixin
+from .ExpressionBases import ExpressionBase
 
 
-class ExpressionAttributeLookup(ExpressionChildHavingBase):
+class ExpressionAttributeLookup(ChildHavingExpressionMixin, ExpressionBase):
     """Looking up an attribute of an object.
 
     Typically code like: source.attribute_name
@@ -31,13 +32,14 @@ class ExpressionAttributeLookup(ExpressionChildHavingBase):
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
-    named_child = "expression"
+    named_children = ("expression",)
+
     __slots__ = ("attribute_name",)
 
     def __init__(self, expression, attribute_name, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=expression, source_ref=source_ref
-        )
+        ChildHavingExpressionMixin.__init__(self, expression=expression)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.attribute_name = attribute_name
 
@@ -68,7 +70,7 @@ class ExpressionAttributeLookup(ExpressionChildHavingBase):
         return None
 
 
-class ExpressionAttributeLookupFixedBase(ExpressionChildHavingBase):
+class ExpressionAttributeLookupFixedBase(ChildHavingExpressionMixin, ExpressionBase):
     """Looking up an attribute of an object.
 
     Typically code like: source.attribute_name
@@ -76,12 +78,12 @@ class ExpressionAttributeLookupFixedBase(ExpressionChildHavingBase):
 
     attribute_name = None
 
-    named_child = "expression"
+    named_children = ("expression",)
 
     def __init__(self, expression, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=expression, source_ref=source_ref
-        )
+        ChildHavingExpressionMixin.__init__(self, expression=expression)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def getAttributeName(self):
         return self.attribute_name

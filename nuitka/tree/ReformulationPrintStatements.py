@@ -34,7 +34,7 @@ from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
-    buildNodeList,
+    buildNodeTuple,
     makeStatementsSequenceFromStatements,
 )
 
@@ -82,7 +82,7 @@ def buildPrintNode(provider, node, source_ref):
             ),
         ]
 
-    values = buildNodeList(provider=provider, nodes=node.values, source_ref=source_ref)
+    values = buildNodeTuple(provider=provider, nodes=node.values, source_ref=source_ref)
 
     if node.dest is not None:
         print_statements = [

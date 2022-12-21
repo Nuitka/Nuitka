@@ -17,7 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" This test uses the meta data lookups that wouldn't work at runtime.
+""" This test uses the meta data of metadata lookups that wouldn't work at runtime.
 
 But since Nuitka resolves them at compile time, no issue should happen, unless
 the module used in the example is not installed.
@@ -27,17 +27,22 @@ the module used in the example is not installed.
 
 import sys
 
-from pkg_resources import get_distribution, require
-
 # nuitka-skip-unless-imports: lxml
 
-x = require("lxml")
-print(x[0].version)
-print(x[0].parsed_version)
-__version__ = get_distribution("lxml").version
-print(__version__)
-__version__ = get_distribution("lxml").parsed_version
-print(__version__)
+try:
+    from pkg_resources import get_distribution, require
+except ImportError:
+    print("No pkg_resources found")
+else:
+    x = require("lxml")
+    print(x[0].version)
+    print(x[0].parsed_version)
+    __version__ = get_distribution("lxml").version
+    print("pkg_resources gives version", __version__)
+    __version__ = get_distribution("lxml").parsed_version
+    print("pkg_resources gives parsed version", __version__)
+
+import sys
 
 try:
     from importlib.metadata import version
@@ -45,7 +50,7 @@ except ImportError:
     print("Old Python", sys.version_info)
 else:
     __version__ = version("lxml")
-    print(__version__)
+    print("Stdlib importlib.metadata gives version", __version__)
 
 
 try:
@@ -54,4 +59,4 @@ except ImportError:
     print("Backport importlib_metadata is not installed.")
 else:
     __version__ = version("lxml")
-    print(__version__)
+    print("Backport importlib_metadata gives version", __version__)

@@ -19,10 +19,12 @@
 
 """
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildrenExpressionListOperationExtendMixin,
+    ChildrenExpressionListOperationPopMixin,
+    ChildrenExpressionSetOperationUpdateMixin,
 )
+from .ExpressionBases import ExpressionBase
 from .NodeBases import StatementChildrenHavingBase
 
 
@@ -53,18 +55,21 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
+class ExpressionListOperationExtend(
+    ChildrenExpressionListOperationExtendMixin, ExpressionBase
+):
     kind = "EXPRESSION_LIST_OPERATION_EXTEND"
 
     named_children = ("list_arg", "value")
 
     def __init__(self, list_arg, value, source_ref):
-        assert list_arg is not None
-        assert value is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"list_arg": list_arg, "value": value}, source_ref=source_ref
+        ChildrenExpressionListOperationExtendMixin.__init__(
+            self,
+            list_arg=list_arg,
+            value=value,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Until we have proper list tracing.
@@ -77,15 +82,17 @@ class ExpressionListOperationExtendForUnpack(ExpressionListOperationExtend):
     kind = "EXPRESSION_LIST_OPERATION_EXTEND_FOR_UNPACK"
 
 
-class ExpressionListOperationPop(ExpressionChildHavingBase):
+class ExpressionListOperationPop(
+    ChildrenExpressionListOperationPopMixin, ExpressionBase
+):
     kind = "EXPRESSION_LIST_OPERATION_POP"
 
-    named_child = "list_arg"
+    named_children = ("list_arg",)
 
     def __init__(self, list_arg, source_ref):
-        assert list_arg is not None
+        ChildrenExpressionListOperationPopMixin.__init__(self, list_arg=list_arg)
 
-        ExpressionChildHavingBase.__init__(self, value=list_arg, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         if not self.subnode_list_arg.isKnownToBeIterableAtMin(1):
@@ -123,18 +130,21 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
+class ExpressionSetOperationUpdate(
+    ChildrenExpressionSetOperationUpdateMixin, ExpressionBase
+):
     kind = "EXPRESSION_SET_OPERATION_UPDATE"
 
     named_children = ("set_arg", "value")
 
     def __init__(self, set_arg, value, source_ref):
-        assert set_arg is not None
-        assert value is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"set_arg": set_arg, "value": value}, source_ref=source_ref
+        ChildrenExpressionSetOperationUpdateMixin.__init__(
+            self,
+            set_arg=set_arg,
+            value=value,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.removeKnowledge(self.subnode_set_arg)

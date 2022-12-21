@@ -331,13 +331,6 @@ def makeStatementsSequenceReplacementNode(statements, node):
     )
 
 
-def convertNoneConstantToNone(node):
-    if node is None or node.isExpressionConstantNoneRef():
-        return None
-    else:
-        return node
-
-
 def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     assert new_node.isExpression()
 

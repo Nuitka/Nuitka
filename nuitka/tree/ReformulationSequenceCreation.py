@@ -44,9 +44,9 @@ from nuitka.nodes.ContainerOperationNodes import (
     ExpressionSetOperationUpdate,
 )
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCall,
-    ExpressionFunctionCreation,
     ExpressionFunctionRef,
+    makeExpressionFunctionCall,
+    makeExpressionFunctionCreation,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -70,7 +70,7 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
-    buildNodeList,
+    buildNodeTuple,
     getKind,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -96,7 +96,7 @@ def buildTupleCreationNode(provider, node, source_ref):
                     )
 
     return makeExpressionMakeTupleOrConstant(
-        elements=buildNodeList(provider, node.elts, source_ref),
+        elements=buildNodeTuple(provider, node.elts, source_ref),
         user_provided=True,
         source_ref=source_ref,
     )
@@ -114,7 +114,7 @@ def buildListCreationNode(provider, node, source_ref):
                     )
 
     return makeExpressionMakeListOrConstant(
-        elements=buildNodeList(provider, node.elts, source_ref),
+        elements=buildNodeTuple(provider, node.elts, source_ref),
         user_provided=True,
         source_ref=source_ref,
     )
@@ -132,7 +132,7 @@ def buildSetCreationNode(provider, node, source_ref):
                     )
 
     return makeExpressionMakeSetLiteralOrConstant(
-        elements=buildNodeList(provider, node.elts, source_ref),
+        elements=buildNodeTuple(provider, node.elts, source_ref),
         user_provided=True,
         source_ref=source_ref,
     )
@@ -235,8 +235,7 @@ def getListUnpackingHelper():
         ),
     )
 
-    result.setChild(
-        "body",
+    result.setChildBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -244,7 +243,7 @@ def getListUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        ),
+        )
     )
 
     return result
@@ -342,8 +341,7 @@ def getSetUnpackingHelper():
         ),
     )
 
-    result.setChild(
-        "body",
+    result.setChildBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -351,7 +349,7 @@ def getSetUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        ),
+        )
     )
 
     return result
@@ -377,8 +375,8 @@ def buildListUnpacking(provider, elements, source_ref):
                 )
             )
 
-    result = ExpressionFunctionCall(
-        function=ExpressionFunctionCreation(
+    result = makeExpressionFunctionCall(
+        function=makeExpressionFunctionCreation(
             function_ref=ExpressionFunctionRef(
                 function_body=getListUnpackingHelper(), source_ref=source_ref
             ),
@@ -387,7 +385,7 @@ def buildListUnpacking(provider, elements, source_ref):
             annotations=None,
             source_ref=source_ref,
         ),
-        values=(makeExpressionMakeTuple(helper_args, source_ref),),
+        values=(makeExpressionMakeTuple(tuple(helper_args), source_ref),),
         source_ref=source_ref,
     )
 
@@ -422,8 +420,8 @@ def _buildSetUnpacking(provider, elements, source_ref):
                 )
             )
 
-    result = ExpressionFunctionCall(
-        function=ExpressionFunctionCreation(
+    result = makeExpressionFunctionCall(
+        function=makeExpressionFunctionCreation(
             function_ref=ExpressionFunctionRef(
                 function_body=getSetUnpackingHelper(), source_ref=source_ref
             ),
@@ -432,7 +430,7 @@ def _buildSetUnpacking(provider, elements, source_ref):
             annotations=None,
             source_ref=source_ref,
         ),
-        values=(makeExpressionMakeTuple(helper_args, source_ref),),
+        values=(makeExpressionMakeTuple(tuple(helper_args), source_ref),),
         source_ref=source_ref,
     )
 

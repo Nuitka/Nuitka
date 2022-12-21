@@ -45,5 +45,9 @@ PyObject *{{builtin_type.type_name.upper()}}_{{method_name.upper()}}{{api_suffix
     Py_DECREF(encoding);
 {% endif %}
 
+    CHECK_OBJECT_X(result);
+{% if extra_check %}
+    assert(result == NULL || {{extra_check}}(result));
+{% endif %}
     return result;
 }

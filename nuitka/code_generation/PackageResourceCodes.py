@@ -20,6 +20,7 @@
 from nuitka.Options import shallMakeModule
 
 from .CallCodes import (
+    getCallCodeKwPairs,
     getCallCodeKwSplit,
     getCallCodeNoArgs,
     getCallCodePosArgsQuick,
@@ -29,9 +30,11 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
+from .DictCodes import getDictionaryCreationCode
 from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
 from .PythonAPICodes import generateCAPIObjectCode
+from .TupleCodes import getTupleCreationCode
 
 
 def generatePkglibGetDataCallCode(to_name, expression, emit, context):
@@ -98,6 +101,66 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
         )
 
 
+def generateImportlibMetadataEntryPointsSince310CallCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entrypoints_value", expression, emit, context
+    ) as result_name:
+        entry_points_function_name = context.allocateTempName(
+            "importlib_metadata_entry_points_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_function_name,
+            module_name="importlib.metadata",
+            import_name="entry_points",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodeKwPairs(
+            to_name=result_name,
+            expression=expression,
+            pairs=expression.subnode_params,
+            called_name=entry_points_function_name,
+            called_attribute_name=None,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportEntryPointsCallCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entrypoints_value", expression, emit, context
+    ) as result_name:
+        entry_points_function_name = context.allocateTempName(
+            "importlib_metadata_backport_entry_points_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_function_name,
+            module_name="importlib_metadata",
+            import_name="entry_points",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodeKwPairs(
+            to_name=result_name,
+            expression=expression,
+            pairs=expression.subnode_params,
+            called_name=entry_points_function_name,
+            called_attribute_name=None,
+            emit=emit,
+            context=context,
+        )
+
+
 def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, context):
     distribution = expression.distribution
     original_name = expression.original_name
@@ -151,6 +214,228 @@ def generatePkgResourcesEntryPointValueCode(to_name, expression, emit, context):
             called_name=entry_point_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataEntryPointValueCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_point_value", expression, emit, context
+    ) as result_name:
+        entry_point_class_name = context.allocateTempName(
+            "entry_point_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_point_class_name,
+            module_name="importlib.metadata",
+            import_name="EntryPoint",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(getattr(expression.entry_point, kw_name))
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=entry_point_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportEntryPointValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_point_value", expression, emit, context
+    ) as result_name:
+        entry_point_class_name = context.allocateTempName(
+            "backport_entry_point_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_point_class_name,
+            module_name="importlib_metadata",
+            import_name="EntryPoint",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(getattr(expression.entry_point, kw_name))
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=entry_point_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataSelectableGroupsValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "selectable_groups_value", expression, emit, context
+    ) as result_name:
+        selectable_group_class_name = context.allocateTempName(
+            "selectable_groups_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=selectable_group_class_name,
+            module_name="importlib.metadata",
+            import_name="SelectableGroups",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_dict = context.allocateTempName("selectable_group_dict")
+
+        getDictionaryCreationCode(
+            to_name=selectable_group_dict,
+            pairs=expression.subnode_pairs,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=selectable_group_class_name,
+            expression=expression,
+            arg_names=(selectable_group_dict,),
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportSelectableGroupsValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "selectable_groups_value", expression, emit, context
+    ) as result_name:
+        selectable_group_class_name = context.allocateTempName(
+            "backport_selectable_groups_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=selectable_group_class_name,
+            module_name="importlib_metadata",
+            import_name="SelectableGroups",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_dict = context.allocateTempName("selectable_group_dict")
+
+        getDictionaryCreationCode(
+            to_name=selectable_group_dict,
+            pairs=expression.subnode_pairs,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=selectable_group_class_name,
+            expression=expression,
+            arg_names=(selectable_group_dict,),
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataEntryPointsValueCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_points_class_value", expression, emit, context
+    ) as result_name:
+        entry_points_class_name = context.allocateTempName(
+            "entry_points_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_class_name,
+            module_name="importlib.metadata",
+            import_name="EntryPoints",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_tuple = context.allocateTempName("selectable_group_dict")
+
+        getTupleCreationCode(
+            to_name=selectable_group_tuple,
+            elements=expression.subnode_elements,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=entry_points_class_name,
+            expression=expression,
+            arg_names=(selectable_group_tuple,),
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportEntryPointsValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_points_class_value", expression, emit, context
+    ) as result_name:
+        entry_points_class_name = context.allocateTempName(
+            "backport_entry_points_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_class_name,
+            module_name="importlib_metadata",
+            import_name="EntryPoints",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_tuple = context.allocateTempName("selectable_group_dict")
+
+        getTupleCreationCode(
+            to_name=selectable_group_tuple,
+            elements=expression.subnode_elements,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=entry_points_class_name,
+            expression=expression,
+            arg_names=(selectable_group_tuple,),
+            needs_check=False,
             emit=emit,
             context=context,
         )

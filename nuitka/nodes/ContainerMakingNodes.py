@@ -24,7 +24,7 @@ from abc import abstractmethod
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
-from .ChildrenHavingMixins import ChildrenHavingElementsTupleMixin
+from .ChildrenHavingMixins import ChildHavingElementsTupleMixin
 from .ConstantRefNodes import (
     ExpressionConstantListEmptyRef,
     ExpressionConstantSetEmptyRef,
@@ -39,72 +39,11 @@ from .ExpressionShapeMixins import (
 )
 from .IterationHandles import ListAndTupleContainerMakingIterationHandle
 from .NodeBases import SideEffectsFromChildrenMixin
-from .NodeMakingHelpers import (
-    makeStatementOnlyNodesFromExpressions,
-    wrapExpressionWithSideEffects,
-)
+from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
-class ExpressionMakeSequenceBase(
-    SideEffectsFromChildrenMixin, ChildrenHavingElementsTupleMixin, ExpressionBase
-):
-    __slots__ = ("sequence_kind",)
-
-    named_children = ("elements",)
-
-    def __init__(self, sequence_kind, elements, source_ref):
-        assert elements
-
-        for element in elements:
-            assert element.isExpression(), element
-
-        self.sequence_kind = sequence_kind.lower()
-
-        ChildrenHavingElementsTupleMixin.__init__(
-            self,
-            elements=tuple(elements),
-        )
-
-        ExpressionBase.__init__(self, source_ref)
-
-    @staticmethod
-    def isExpressionMakeSequence():
-        return True
-
-    @abstractmethod
-    def getSimulator(self):
-        """The simulator for the container making, for overload."""
-
-    def computeExpression(self, trace_collection):
-        elements = self.subnode_elements
-
-        are_constants = True
-
-        for count, element in enumerate(elements):
-            if element.willRaiseException(BaseException):
-                result = wrapExpressionWithSideEffects(
-                    side_effects=elements[:count], new_node=element, old_node=self
-                )
-
-                return result, "new_raise", "Sequence creation raises exception"
-
-            if are_constants and not element.isCompileTimeConstant():
-                are_constants = False
-
-        if are_constants is False:
-            return self, None, None
-
-        simulator = self.getSimulator()
-        assert simulator is not None
-
-        return trace_collection.getCompileTimeComputationResult(
-            node=self,
-            computation=lambda: simulator(
-                element.getCompileTimeConstant() for element in elements
-            ),
-            description="%s with constant arguments." % simulator.__name__.capitalize(),
-            user_provided=True,
-        )
+class ExpressionMakeSequenceMixin(object):
+    __slots__ = ()
 
     def isKnownToBeIterable(self, count):
         return count is None or count == len(self.subnode_elements)
@@ -139,7 +78,10 @@ class ExpressionMakeSequenceBase(
 
         return False
 
+    # TODO: Make this happen from auto-compute, children only side effects
     def computeExpressionDrop(self, statement, trace_collection):
+        # Virtual method overload, pylint: disable=unused-argument
+
         result = makeStatementOnlyNodesFromExpressions(
             expressions=self.subnode_elements
         )
@@ -150,12 +92,66 @@ class ExpressionMakeSequenceBase(
             result,
             "new_statements",
             """\
-Removed sequence creation for unused sequence.""",
+Removed %s creation for unused sequence."""
+            % self.getSequenceName(),
         )
 
     def onContentEscapes(self, trace_collection):
         for element in self.subnode_elements:
             element.onContentEscapes(trace_collection)
+
+    @abstractmethod
+    def getSequenceName(self):
+        """Get name for use in traces"""
+
+
+class ExpressionMakeSequenceBase(
+    SideEffectsFromChildrenMixin,
+    ExpressionMakeSequenceMixin,
+    ChildHavingElementsTupleMixin,
+    ExpressionBase,
+):
+    named_children = ("elements|tuple",)
+
+    def __init__(self, elements, source_ref):
+        assert elements
+
+        ChildHavingElementsTupleMixin.__init__(
+            self,
+            elements=elements,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getSequenceName(self):
+        """Get name for use in traces"""
+        simulator = self.getSimulator()
+        return simulator.__name__.capitalize()
+
+    @staticmethod
+    def isExpressionMakeSequence():
+        return True
+
+    @abstractmethod
+    def getSimulator(self):
+        """The simulator for the container making, for overload."""
+
+    def computeExpression(self, trace_collection):
+        for element in self.subnode_elements:
+            if not element.isCompileTimeConstant():
+                return self, None, None
+
+        simulator = self.getSimulator()
+        assert simulator is not None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node=self,
+            computation=lambda: simulator(
+                element.getCompileTimeConstant() for element in self.subnode_elements
+            ),
+            description="%s with constant arguments." % simulator.__name__.capitalize(),
+            user_provided=True,
+        )
 
 
 def makeExpressionMakeTuple(elements, source_ref):
@@ -194,7 +190,7 @@ class ExpressionMakeTuple(ExpressionTupleShapeExactMixin, ExpressionMakeSequence
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
-            self, sequence_kind="TUPLE", elements=elements, source_ref=source_ref
+            self, elements=elements, source_ref=source_ref
         )
 
     @staticmethod
@@ -216,8 +212,6 @@ def makeExpressionMakeList(elements, source_ref):
 
 
 def makeExpressionMakeListOrConstant(elements, user_provided, source_ref):
-    assert type(elements) is list
-
     for element in elements:
         # TODO: Compile time constant ought to be the criterion.
         if not element.isExpressionConstantRef():
@@ -238,20 +232,8 @@ def makeExpressionMakeListOrConstant(elements, user_provided, source_ref):
     return result
 
 
-class ExpressionMakeList(ExpressionListShapeExactMixin, ExpressionMakeSequenceBase):
-    kind = "EXPRESSION_MAKE_LIST"
-
-    def __init__(self, elements, source_ref):
-        ExpressionMakeSequenceBase.__init__(
-            self, sequence_kind="LIST", elements=elements, source_ref=source_ref
-        )
-
-    @staticmethod
-    def getSimulator():
-        return list
-
-    def getIterationLength(self):
-        return len(self.subnode_elements)
+class ExpressionMakeListMixin(object):
+    __slots__ = ()
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
@@ -269,12 +251,30 @@ Iteration over list lowered to iteration over tuple.""",
         )
 
 
+class ExpressionMakeList(
+    ExpressionListShapeExactMixin, ExpressionMakeListMixin, ExpressionMakeSequenceBase
+):
+    kind = "EXPRESSION_MAKE_LIST"
+
+    def __init__(self, elements, source_ref):
+        ExpressionMakeSequenceBase.__init__(
+            self, elements=elements, source_ref=source_ref
+        )
+
+    @staticmethod
+    def getSimulator():
+        return list
+
+    def getIterationLength(self):
+        return len(self.subnode_elements)
+
+
 class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase):
     kind = "EXPRESSION_MAKE_SET"
 
     def __init__(self, elements, source_ref):
         ExpressionMakeSequenceBase.__init__(
-            self, sequence_kind="SET", elements=elements, source_ref=source_ref
+            self, elements=elements, source_ref=source_ref
         )
 
     @staticmethod
@@ -296,21 +296,11 @@ class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase
         return 1
 
     def computeExpression(self, trace_collection):
-        # For sets, we need to consider
-
-        elements = self.subnode_elements
-
+        # For sets, we need to consider hashing
         are_constants = True
         are_hashable = True
 
-        for count, element in enumerate(elements):
-            if element.willRaiseException(BaseException):
-                result = wrapExpressionWithSideEffects(
-                    side_effects=elements[:count], new_node=element, old_node=self
-                )
-
-                return result, "new_raise", "Sequence creation raises exception"
-
+        for element in self.subnode_elements:
             if are_constants and not element.isCompileTimeConstant():
                 are_constants = False
 
@@ -332,7 +322,7 @@ class ExpressionMakeSet(ExpressionSetShapeExactMixin, ExpressionMakeSequenceBase
         return trace_collection.getCompileTimeComputationResult(
             node=self,
             computation=lambda: simulator(
-                element.getCompileTimeConstant() for element in elements
+                element.getCompileTimeConstant() for element in self.subnode_elements
             ),
             description="%s with constant arguments." % simulator.__name__.capitalize(),
             user_provided=True,

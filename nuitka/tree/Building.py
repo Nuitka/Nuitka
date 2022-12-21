@@ -204,7 +204,7 @@ from .SourceHandling import (
 )
 from .TreeHelpers import (
     buildNode,
-    buildNodeList,
+    buildNodeTuple,
     buildStatementsNode,
     extractDocFromBody,
     getBuildContext,
@@ -668,7 +668,7 @@ def buildFormattedValueNode(provider, node, source_ref):
 def buildJoinedStrNode(provider, node, source_ref):
     if node.values:
         return ExpressionStringConcatenation(
-            values=buildNodeList(provider, node.values, source_ref),
+            values=buildNodeTuple(provider, node.values, source_ref),
             source_ref=source_ref,
         )
     else:

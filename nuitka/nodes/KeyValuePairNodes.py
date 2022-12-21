@@ -28,13 +28,13 @@ from abc import abstractmethod
 from nuitka.PythonVersions import python_version
 
 from .BuiltinHashNodes import ExpressionBuiltinHash
-from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import (
-    ExpressionBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-    ExpressionNoSideEffectsMixin,
+from .ChildrenHavingMixins import (
+    ChildHavingValueMixin,
+    ChildrenHavingKeyValueMixin,
+    ChildrenHavingValueKeyMixin,
 )
+from .ConstantRefNodes import makeConstantRefNode
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .NodeBases import SideEffectsFromChildrenMixin
 
 
@@ -62,23 +62,8 @@ class ExpressionKeyValuePairMixin(object):
         pass
 
 
-class ExpressionKeyValuePair(
-    ExpressionKeyValuePairMixin,
-    SideEffectsFromChildrenMixin,
-    ExpressionChildrenHavingBase,
-):
-    kind = "EXPRESSION_KEY_VALUE_PAIR"
-
-    # They changed the order of evaluation with 3.5 to what you normally would expect.
-    if python_version < 0x350:
-        named_children = ("value", "key")
-    else:
-        named_children = ("key", "value")
-
-    def __init__(self, key, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"key": key, "value": value}, source_ref=source_ref
-        )
+class ExpressionKeyValuePairNonConstantMixin(ExpressionKeyValuePairMixin):
+    __slots__ = ()
 
     def computeExpression(self, trace_collection):
         key = self.subnode_key
@@ -160,17 +145,75 @@ class ExpressionKeyValuePair(
         return self.subnode_value.getCompatibleSourceReference()
 
 
+class ExpressionKeyValuePairOld(
+    ExpressionKeyValuePairNonConstantMixin,
+    SideEffectsFromChildrenMixin,
+    ChildrenHavingValueKeyMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_KEY_VALUE_PAIR_OLD"
+
+    python_version_spec = "< 0x350"
+
+    # They changed the order of evaluation only with Python >=3.5 to what you normally would expect.
+    named_children = ("value", "key")
+
+    def __init__(self, value, key, source_ref):
+        ChildrenHavingValueKeyMixin.__init__(
+            self,
+            value=value,
+            key=key,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionKeyValuePairNew(
+    ExpressionKeyValuePairNonConstantMixin,
+    SideEffectsFromChildrenMixin,
+    ChildrenHavingKeyValueMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_KEY_VALUE_PAIR_NEW"
+
+    python_version_spec = ">= 0x350"
+
+    # They changed the order of evaluation with 3.5 to what you normally would expect.
+    named_children = ("key", "value")
+
+    def __init__(self, key, value, source_ref):
+        ChildrenHavingKeyValueMixin.__init__(
+            self,
+            key=key,
+            value=value,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+# Allow other code to forget about it.
+if python_version < 0x350:
+    ExpressionKeyValuePair = ExpressionKeyValuePairOld
+else:
+    ExpressionKeyValuePair = ExpressionKeyValuePairNew
+
+
 class ExpressionKeyValuePairConstantKey(
-    ExpressionKeyValuePairMixin, SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    ExpressionKeyValuePairMixin,
+    SideEffectsFromChildrenMixin,
+    ChildHavingValueMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_KEY_VALUE_PAIR_CONSTANT_KEY"
 
-    named_child = "value"
+    named_children = ("value",)
 
     __slots__ = ("key",)
 
     def __init__(self, key, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.key = key
 

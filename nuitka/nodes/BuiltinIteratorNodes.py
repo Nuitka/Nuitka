@@ -27,10 +27,8 @@ good.
 from nuitka.PythonVersions import python_version
 
 from .BuiltinLenNodes import ExpressionBuiltinLen
-from .ExpressionBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase,
-)
+from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
@@ -279,7 +277,7 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
         if iterator.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
-        if iterator.willRaiseException(BaseException):
+        if iterator.willRaiseAnyException():
             from .NodeMakingHelpers import (
                 makeStatementExpressionOnlyReplacementNode,
             )
@@ -325,28 +323,20 @@ Explicit raise already raises implicitly building exception type.""",
         return "iteration check statement"
 
 
-class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
+class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ("callable_arg", "sentinel")
 
-    def __init__(self, callable_arg, sentinel, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"callable_arg": callable_arg, "sentinel": sentinel},
-            source_ref=source_ref,
-        )
+    auto_compute_handling = "final"
+
+    # TODO: The "callable" be investigated in a non-final
+    # "auto_compute_handling" here, as maybe it is not really callable.
 
     @staticmethod
     def getTypeShape():
-        # TODO: This could be more specific, this one is a fixed thing!
+        # TODO: This could be more specific, this one is a fixed well known thing!
         return tshape_iterator
-
-    def computeExpression(self, trace_collection):
-        # TODO: The "callable" should be investigated here, maybe it is not
-        # really callable, or raises an exception.
-
-        return self, None, None
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         return self, "new_builtin", "Eliminated useless iterator creation."

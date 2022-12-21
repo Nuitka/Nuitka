@@ -407,6 +407,10 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionImportModuleNameHard():
         return False
 
+    @staticmethod
+    def isExpressionFunctionCreation():
+        return False
+
     def visit(self, context, visitor):
         visitor(self)
 
@@ -473,9 +477,7 @@ class NodeBase(NodeMetaClassBase):
         return self.mayRaiseException(BaseException)
 
     @staticmethod
-    def willRaiseException(exception_type):
-        """Unless we are told otherwise, nothing may raise anything."""
-        # Virtual method, pylint: disable=unused-argument
+    def willRaiseAnyException():
         return False
 
     @staticmethod
@@ -485,7 +487,7 @@ class NodeBase(NodeMetaClassBase):
 
 
 class CodeNodeMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, name, code_prefix):
@@ -534,7 +536,7 @@ class CodeNodeMixin(object):
 
 
 class ChildrenHavingMixin(object):
-    # Mixins are not allow to specify slots.
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     named_children = ()
@@ -728,7 +730,7 @@ class ChildrenHavingMixin(object):
 class ClosureGiverNodeMixin(CodeNodeMixin):
     """Base class for nodes that provide variables for closure takers."""
 
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, name, code_prefix):
@@ -832,7 +834,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 class ClosureTakerMixin(object):
     """Mixin for nodes that accept variables from closure givers."""
 
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, provider):
@@ -922,7 +924,7 @@ class StatementBase(NodeBase):
 
             expression = trace_collection.onExpression(expression)
 
-            if expression.willRaiseException(BaseException):
+            if expression.willRaiseAnyException():
                 wrapped_expression = makeStatementOnlyNodesFromExpressions(
                     expressions[: count + 1]
                 )
@@ -1104,7 +1106,7 @@ class StatementChildHavingBase(StatementBase):
 
 
 class SideEffectsFromChildrenMixin(object):
-    # Mixins are not allow to specify slots.
+    # Mixins are not allowed to specify slots.
     __slots__ = ()
 
     def mayHaveSideEffects(self):

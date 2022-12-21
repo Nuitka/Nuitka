@@ -21,21 +21,24 @@ Some of these come from built-ins, e.g. abs, some from syntax, and repr from bot
 """
 from nuitka import PythonOperators
 
+from .ChildrenHavingMixins import ChildHavingOperandMixin
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
     ExpressionStrOrUnicodeDerivedShapeMixin,
 )
 
 
-class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
-    named_child = "operand"
+class ExpressionOperationUnaryBase(ChildHavingOperandMixin, ExpressionBase):
+    named_children = ("operand",)
 
     __slots__ = ("operator", "simulator")
 
     def __init__(self, operand, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=operand, source_ref=source_ref)
+        ChildHavingOperandMixin.__init__(self, operand=operand)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def getOperator(self):
         return self.operator

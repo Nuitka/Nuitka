@@ -19,99 +19,32 @@
 
 """
 
-from nuitka.PythonVersions import python_version
-from nuitka.specs.BuiltinParameterSpecs import (
-    BuiltinParameterSpec,
-    extractBuiltinArgs,
-)
 
-from .ExpressionBases import ExpressionChildrenHavingBase
-from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
-
-# spell-checker: ignore lasterror,winmode
-
-if python_version >= 0x380:
-    ctypes_cdll_args = (
-        "name",
-        "mode",
-        "handle",
-        "use_errno",
-        "use_lasterror",
-        "winmode",
-    )
-else:
-    ctypes_cdll_args = ("name", "mode", "handle", "use_errno", "use_lasterror")
-
-
-ctypes_cdll_spec = BuiltinParameterSpec(
-    "ctypes.CDLL", ctypes_cdll_args, default_count=len(ctypes_cdll_args) - 1
+from .HardImportNodesGenerated import (
+    ExpressionCtypesCdllBefore38CallBase,
+    ExpressionCtypesCdllSince38CallBase,
 )
 
 
-class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
+class ExpressionCtypesCdllSince38Call(ExpressionCtypesCdllSince38CallBase):
     """Function reference ctypes.CDLL"""
 
-    kind = "EXPRESSION_CTYPES_CDLL_REF"
+    kind = "EXPRESSION_CTYPES_CDLL_SINCE38_CALL"
 
-    def __init__(self, source_ref):
-        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
-            self,
-            module_name="ctypes",
-            import_name="CDLL",
-            module_guaranteed=True,
-            source_ref=source_ref,
-        )
-
-    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        # Anything may happen. On next pass, if replaced, we might be better
-        # but not now.
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Locate DLLs and report to freezer
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class=ExpressionCtypesCdllCall,
-            builtin_spec=ctypes_cdll_spec,
-        )
-
-        return result, "new_expression", "Call to 'ctypes.CDLL' recognized."
+        return self, None, None
 
 
-class ExpressionCtypesCdllCall(ExpressionChildrenHavingBase):
+class ExpressionCtypesCdllBefore38Call(ExpressionCtypesCdllBefore38CallBase):
     """Function reference ctypes.CDLL"""
 
-    kind = "EXPRESSION_CTYPES_CDLL_CALL"
+    kind = "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL"
 
-    named_children = ctypes_cdll_args
-
-    spec = ctypes_cdll_spec
-
-    # Lazy in making winmode Python2 only with same code.
-    def __init__(
-        self,
-        name,
-        mode,
-        handle,
-        use_errno,
-        use_lasterror,
-        winmode=None,
-        source_ref=None,
-    ):
-        values = {
-            "name": name,
-            "mode": mode,
-            "handle": handle,
-            "use_errno": use_errno,
-            "use_lasterror": use_lasterror,
-        }
-
-        if "winmode" in ctypes_cdll_args:
-            values["winmode"] = winmode
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values=values, source_ref=source_ref
-        )
-
-    def computeExpression(self, trace_collection):
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Locate DLLs and report to freezer
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

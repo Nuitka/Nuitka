@@ -25,13 +25,15 @@ largely depend on the arguments slot.
 """
 
 from nuitka.__past__ import long
-from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
+from .ChildrenHavingMixins import (
+    ChildHavingValueMixin,
+    ChildrenHavingValueOptionalBaseMixin,
+)
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+    ExpressionBase,
     ExpressionSpecBasedComputationMixin,
 )
 from .ExpressionShapeMixins import (
@@ -44,13 +46,15 @@ from .shapes.BuiltinTypeShapes import (
 )
 
 
-class ExpressionBuiltinInt1(ExpressionChildHavingBase):
+class ExpressionBuiltinInt1(ChildHavingValueMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_INT1"
 
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def getTypeShape():
@@ -67,11 +71,13 @@ class ExpressionBuiltinInt1(ExpressionChildHavingBase):
 
 
 class ExpressionBuiltinIntLong2Base(
-    ExpressionSpecBasedComputationMixin, ExpressionChildrenHavingBase
+    ExpressionSpecBasedComputationMixin,
+    ChildrenHavingValueOptionalBaseMixin,
+    ExpressionBase,
 ):
-    named_children = ("value", "base")
+    named_children = ("value|optional", "base")
 
-    # Note: Version specific, may be allowed or not.
+    # Note: Python version specific, it may be allowed or not to leave out value.
     try:
         int(base=2)
     except TypeError:
@@ -88,9 +94,13 @@ class ExpressionBuiltinIntLong2Base(
                 constant="0", source_ref=source_ref, user_provided=True
             )
 
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"value": value, "base": base}, source_ref=source_ref
+        ChildrenHavingValueOptionalBaseMixin.__init__(
+            self,
+            value=value,
+            base=base,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.subnode_value
@@ -125,33 +135,34 @@ class ExpressionBuiltinInt2(
     builtin = int
 
 
-if python_version < 0x300:
+class ExpressionBuiltinLong1(ChildHavingValueMixin, ExpressionBase):
+    kind = "EXPRESSION_BUILTIN_LONG1"
 
-    class ExpressionBuiltinLong1(ExpressionChildHavingBase):
-        kind = "EXPRESSION_BUILTIN_LONG1"
+    named_children = ("value",)
 
-        named_child = "value"
+    def __init__(self, value, source_ref):
+        ChildHavingValueMixin.__init__(self, value=value)
 
-        def __init__(self, value, source_ref):
-            ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
-        @staticmethod
-        def getTypeShape():
-            # TODO: Depending on input type shape and value, we should improve this.
-            return tshape_long_derived
+    @staticmethod
+    def getTypeShape():
+        # TODO: Depending on input type shape and value, we should improve this.
+        return tshape_long_derived
 
-        def computeExpression(self, trace_collection):
-            return self.subnode_value.computeExpressionLong(
-                long_node=self, trace_collection=trace_collection
-            )
+    def computeExpression(self, trace_collection):
+        return self.subnode_value.computeExpressionLong(
+            long_node=self, trace_collection=trace_collection
+        )
 
-        def mayRaiseException(self, exception_type):
-            return self.subnode_value.mayRaiseExceptionLong(exception_type)
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseExceptionLong(exception_type)
 
-    class ExpressionBuiltinLong2(
-        ExpressionLongShapeExactMixin, ExpressionBuiltinIntLong2Base
-    ):
-        kind = "EXPRESSION_BUILTIN_LONG2"
 
-        builtin_spec = BuiltinParameterSpecs.builtin_long_spec
-        builtin = long
+class ExpressionBuiltinLong2(
+    ExpressionLongShapeExactMixin, ExpressionBuiltinIntLong2Base
+):
+    kind = "EXPRESSION_BUILTIN_LONG2"
+
+    builtin_spec = BuiltinParameterSpecs.builtin_long_spec
+    builtin = long

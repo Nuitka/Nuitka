@@ -875,11 +875,10 @@ class PythonMainModule(CompiledPythonModule):
             function_work.append((function, iter(iter(xml).next()).next()))
 
         for function, xml in function_work:
-            function.setChild(
-                "body",
+            function.setChildBody(
                 fromXML(
                     provider=function, xml=xml, source_ref=function.getSourceReference()
-                ),
+                )
             )
 
         result.setChild(
