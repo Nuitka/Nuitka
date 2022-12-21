@@ -1538,6 +1538,12 @@ def getWindowsVersionInfoStrings():
     if options.file_description:
         result["FileDescription"] = options.file_description
 
+    if options.legal_copyright:
+        result["LegalCopyright"] = options.legal_copyright
+
+    if options.legal_trademarks:
+        result["LegalTrademarks"] = options.legal_trademarks
+
     return result
 
 
