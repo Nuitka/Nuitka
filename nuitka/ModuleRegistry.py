@@ -48,9 +48,6 @@ ActiveModuleInfo = collections.namedtuple(
 # Already traversed modules
 done_modules = set()
 
-# Missing modules
-missing_modules = set()
-
 # Uncompiled modules
 uncompiled_modules = set()
 
