@@ -31,7 +31,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
-# spell-checker: ignore dask
+# spell-checker: ignore dask,numba
 
 
 class NuitkaPluginAntiBloat(NuitkaPluginBase):
@@ -51,6 +51,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         noinclude_unittest_mode,
         noinclude_ipython_mode,
         noinclude_dask_mode,
+        noinclude_numba_mode,
         noinclude_default_mode,
         custom_choices,
         show_changes,
@@ -68,6 +69,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             noinclude_unittest_mode = noinclude_default_mode
         if noinclude_ipython_mode is None:
             noinclude_ipython_mode = noinclude_default_mode
+        if noinclude_dask_mode is None:
+            noinclude_dask_mode = noinclude_default_mode
+        if noinclude_numba_mode is None:
+            noinclude_numba_mode = noinclude_default_mode
 
         self.config = getYamlPackageConfiguration()
 
@@ -103,6 +108,11 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.handled_modules["dask"] = noinclude_dask_mode
         else:
             self.control_tags["use_dask"] = True
+
+        if noinclude_numba_mode != "allow":
+            self.handled_modules["numba"] = noinclude_numba_mode
+        else:
+            self.control_tags["use_numba"] = True
 
         for custom_choice in custom_choices:
             if ":" not in custom_choice:
@@ -191,6 +201,18 @@ dependencies, and should definitely be avoided.""",
             help="""\
 What to do if a 'dask' import is encountered. This package can be big with
 dependencies, and should definitely be avoided.""",
+        )
+
+        group.add_option(
+            "--noinclude-numba-mode",
+            action="store",
+            dest="noinclude_numba_mode",
+            choices=("error", "warning", "nofollow", "allow"),
+            default=None,
+            help="""\
+What to do if a 'numba' import is encountered. This package can be big with
+dependencies, and is currently not working for standalone. This package is
+big with dependencies, and should definitely be avoided.""",
         )
 
         group.add_option(
