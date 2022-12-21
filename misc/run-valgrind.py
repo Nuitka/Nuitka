@@ -58,7 +58,7 @@ os.environ["PYTHONHASHSEED"] = "0"
 os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
 
 os.system(
-    "%s %s --python-flag=-S --no-progress --output-dir=%s %s %s %s %s"
+    "%s %s --python-flag=-S --no-progressbar --output-dir=%s %s %s %s %s"
     % (
         sys.executable,
         nuitka_binary,

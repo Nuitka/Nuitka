@@ -1236,7 +1236,7 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
                 )
 
         # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection=trace_collection)
+        return self.computeExpression(trace_collection)
 
 
 class ExpressionChildHavingBase(ExpressionBase):
@@ -1277,7 +1277,7 @@ class ExpressionChildHavingBase(ExpressionBase):
         value = getattr(self, attr_name)
 
         if value is not None:
-            expression = trace_collection.onExpression(expression=value)
+            expression = trace_collection.onExpression(value)
 
             if expression.willRaiseException(BaseException):
                 return (
@@ -1288,7 +1288,7 @@ class ExpressionChildHavingBase(ExpressionBase):
                 )
 
         # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection=trace_collection)
+        return self.computeExpression(trace_collection)
 
     def setChild(self, name, value):
         """Set a child value.
@@ -1382,147 +1382,6 @@ class ExpressionChildHavingBase(ExpressionBase):
         value = getattr(self, attr_name)
 
         values = {self.named_child: value.makeClone()}
-        values.update(self.getDetails())
-
-        return values
-
-
-class ExpressionChildTupleHavingBase(ExpressionBase):
-    checker = None
-
-    def __init__(self, value, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
-
-        if self.checker is not None:
-            value = self.checker(value)  # False alarm, pylint: disable=not-callable
-
-        assert type(value) is tuple, self.named_child
-        assert None not in value, self.named_child
-
-        for expression in value:
-            expression.parent = self
-
-        attr_name = "subnode_" + self.named_child
-        setattr(self, attr_name, value)
-
-    def finalize(self):
-        del self.parent
-
-        for c in self.getVisitableNodes():
-            c.finalize()
-
-    # TODO: De-duplicate this with multiple child variant.
-    def computeExpressionRaw(self, trace_collection):
-        """Compute an expression.
-
-        Default behavior is to just visit the child expressions first, and
-        then the node "computeExpression". For a few cases this needs to
-        be overloaded, e.g. conditional expressions.
-        """
-        # First apply the sub-expressions, as they are evaluated before.
-        sub_expressions = self.getVisitableNodes()
-
-        for count, sub_expression in enumerate(sub_expressions):
-            assert sub_expression.isExpression(), (self, sub_expression)
-
-            expression = trace_collection.onExpression(expression=sub_expression)
-
-            if expression.willRaiseException(BaseException):
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
-                    old_node=sub_expression,
-                    new_node=expression,
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    lambda: "For '%s' the child expression '%s' will raise."
-                    % (self.getChildNameNice(), expression.getChildNameNice()),
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection=trace_collection)
-
-    def setChild(self, name, value):
-        """Set a child value.
-
-        Do not overload, provide self.checkers instead.
-        """
-        # Only accept legal child name
-        assert name == self.named_child, name
-
-        # Lists as inputs are OK, but turn them into tuples.
-        if type(value) is list:
-            value = tuple(value)
-
-        if self.checker is not None:
-            value = self.checker(value)  # False alarm, pylint: disable=not-callable
-
-        # Re-parent value to us.
-        for val in value:
-            val.parent = self
-
-        attr_name = "subnode_" + name
-        setattr(self, attr_name, value)
-
-    def clearChild(self, name):
-        # We do not do this for tuples, pylint: disable=unused-argument
-        assert False, self.named_child
-
-    def getChild(self, name):
-        # Only accept legal child names
-        assert name == self.named_child, name
-
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
-
-    def getVisitableNodes(self):
-        attr_name = "subnode_" + self.named_child
-        return getattr(self, attr_name)
-
-    def getVisitableNodesNamed(self):
-        """Named children items.
-
-        For generic code to use in outputs and code generation.
-        """
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        yield self.named_child, value
-
-    def replaceChild(self, old_node, new_node):
-        if new_node is not None and not isinstance(new_node, NodeBase):
-            raise AssertionError(
-                "Cannot replace with", new_node, "old", old_node, "in", self
-            )
-
-        # Find the replaced node, as an added difficulty, what might be
-        # happening, is that the old node is an element of a tuple, in which we
-        # may also remove that element, by setting it to None.
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        if old_node not in value:
-            raise AssertionError("Didn't find child", old_node, "in", self)
-
-        if new_node is not None:
-            new_value = tuple(
-                (val if val is not old_node else new_node) for val in value
-            )
-        else:
-            new_value = tuple(val for val in value if val is not old_node)
-
-        new_node.parent = self
-
-        setattr(self, attr_name, new_value)
-
-    def getCloneArgs(self):
-        # Make clones of child nodes too.
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        values = {self.named_child: tuple(v.makeClone() for v in value)}
         values.update(self.getDetails())
 
         return values

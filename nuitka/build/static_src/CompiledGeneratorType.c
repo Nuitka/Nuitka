@@ -418,6 +418,84 @@ static PyObject *Nuitka_YieldFromGeneratorInitial(struct Nuitka_GeneratorObject 
 
 #endif
 
+static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrame(PyThreadState *thread_state,
+                                                               Nuitka_ThreadStateFrameType *generator_frame) {
+    // First take of running frame from the stack, owning a reference.
+#if PYTHON_VERSION < 0x3b0
+    PyFrameObject *return_frame = thread_state->frame;
+#ifndef __NUITKA_NO_ASSERT__
+    if (return_frame) {
+        assertFrameObject((struct Nuitka_FrameObject *)return_frame);
+    }
+#endif
+#else
+    _PyInterpreterFrame *return_frame = thread_state->cframe->current_frame;
+#endif
+
+    if (generator_frame != NULL) {
+
+        // It's not supposed to be on the top right now.
+#if PYTHON_VERSION < 0x3b0
+        // It would be nice if our frame were still alive. Nobody had the
+        // right to release it.
+        assertFrameObject((struct Nuitka_FrameObject *)generator_frame);
+
+        // Link frames
+        assert(return_frame != generator_frame);
+        Py_XINCREF(return_frame);
+        generator_frame->f_back = return_frame;
+
+        // Make generator frame active
+        thread_state->frame = generator_frame;
+#else
+        // It would be nice if our frame were still alive. Nobody had the
+        // right to release it.
+        assertFrameObject((struct Nuitka_FrameObject *)(generator_frame->frame_obj));
+
+        // Link frames
+        if (return_frame) {
+            // Connect frames if possible.
+            PyFrameObject *back_frame = return_frame->frame_obj;
+
+            generator_frame->frame_obj->f_back = back_frame;
+            Py_INCREF(back_frame);
+        }
+        generator_frame->previous = return_frame;
+
+        // Make generator frame active
+        thread_state->cframe->current_frame = generator_frame;
+#endif
+    }
+
+    return return_frame;
+}
+
+static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrameObject(PyThreadState *thread_state,
+                                                                     struct Nuitka_FrameObject *generator_frame) {
+#if PYTHON_VERSION < 0x3b0
+    Nuitka_ThreadStateFrameType *thread_frame = &generator_frame->m_frame;
+#else
+    Nuitka_ThreadStateFrameType *thread_frame = NULL;
+    if (generator_frame != NULL) {
+        thread_frame = &generator_frame->m_interpreter_frame;
+    }
+#endif
+
+    return _Nuitka_GeneratorPushFrame(thread_state, thread_frame);
+}
+
+static void _Nuitka_GeneratorPopFrame(PyThreadState *thread_state, Nuitka_ThreadStateFrameType *return_frame) {
+#if PYTHON_VERSION < 0x3b0
+    thread_state->frame = return_frame;
+#else
+    thread_state->cframe->current_frame = return_frame;
+
+    if (return_frame != NULL) {
+        return_frame->previous = NULL;
+    }
+#endif
+}
+
 static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value,
                                         PyObject *exception_type, PyObject *exception_value,
                                         PyTracebackObject *exception_tb) {
@@ -465,28 +543,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 #endif
 
         // Put the generator back on the frame stack.
-
-        // First take of running frame from the stack, owning a reference.
-        PyFrameObject *return_frame = thread_state->frame;
-#ifndef __NUITKA_NO_ASSERT__
-        if (return_frame) {
-            assertFrameObject((struct Nuitka_FrameObject *)return_frame);
-        }
-#endif
-
-        if (generator->m_frame) {
-            // It would be nice if our frame were still alive. Nobody had the
-            // right to release it.
-            assertFrameObject(generator->m_frame);
-
-            // It's not supposed to be on the top right now.
-            assert(return_frame != &generator->m_frame->m_frame);
-
-            Py_XINCREF(return_frame);
-            generator->m_frame->m_frame.f_back = return_frame;
-
-            thread_state->frame = &generator->m_frame->m_frame;
-        }
+        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GeneratorPushFrameObject(thread_state, generator->m_frame);
 
         if (generator->m_status == status_Unused) {
             generator->m_status = status_Running;
@@ -550,10 +607,11 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
             Py_CLEAR(generator->m_frame->m_frame.f_back);
         }
 
-        thread_state->frame = return_frame;
+        // Return back to the frame that called us.
+        _Nuitka_GeneratorPopFrame(thread_state, return_frame);
 
 #if _DEBUG_GENERATOR
-        PRINT_GENERATOR_STATUS("Returned from coroutine", generator);
+        PRINT_GENERATOR_STATUS("Returned from generator", generator);
         // dumpFrameStack();
 #endif
 
@@ -569,7 +627,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
             if (generator->m_frame != NULL) {
 #if PYTHON_VERSION >= 0x340
-                generator->m_frame->m_frame.f_gen = NULL;
+                Nuitka_SetFrameGenerator(generator->m_frame, NULL);
 #endif
                 Py_DECREF(generator->m_frame);
                 generator->m_frame = NULL;
@@ -1017,6 +1075,7 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
             generator->m_running = 1;
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
             generator->m_running = 0;
+#if NUITKA_UNCOMPILED_THROW_INTEGRATION
         } else if (PyCoro_CheckExact(generator->m_yieldfrom)) {
             PyGenObject *gen = (PyGenObject *)generator->m_yieldfrom;
 
@@ -1024,6 +1083,7 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
             generator->m_running = 1;
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
             generator->m_running = 0;
+#endif
 #if PYTHON_VERSION >= 0x360
         } else if (Nuitka_AsyncgenAsend_Check(generator->m_yieldfrom)) {
             struct Nuitka_AsyncgenAsendObject *asyncgen_asend =
@@ -1254,7 +1314,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
 
     if (generator->m_frame != NULL) {
 #if PYTHON_VERSION >= 0x340
-        generator->m_frame->m_frame.f_gen = NULL;
+        Nuitka_SetFrameGenerator(generator->m_frame, NULL);
 #endif
         Py_DECREF(generator->m_frame);
         generator->m_frame = NULL;
@@ -1274,7 +1334,7 @@ static void Nuitka_Generator_tp_dealloc(struct Nuitka_GeneratorObject *generator
     Py_DECREF(generator->m_qualname);
 #endif
 
-    /* Put the object into freelist or release to GC */
+    /* Put the object into free list or release to GC */
     releaseToFreeList(free_list_generators, generator, MAX_GENERATOR_FREE_LIST_COUNT);
 
     RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);

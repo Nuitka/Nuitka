@@ -39,22 +39,11 @@ PyObject *IMPORT_MODULE_KW(PyObject *module_name, PyObject *globals, PyObject *l
     CHECK_OBJECT_X(import_items);
     CHECK_OBJECT_X(level);
 
-    PyObject *kw_args = PyDict_New();
-    if (module_name) {
-        PyDict_SetItem(kw_args, const_str_plain_name, module_name);
-    }
-    if (globals) {
-        PyDict_SetItem(kw_args, const_str_plain_globals, globals);
-    }
-    if (locals) {
-        PyDict_SetItem(kw_args, const_str_plain_locals, locals);
-    }
-    if (import_items) {
-        PyDict_SetItem(kw_args, const_str_plain_fromlist, import_items);
-    }
-    if (level) {
-        PyDict_SetItem(kw_args, const_str_plain_level, level);
-    }
+    PyObject *kw_pairs[5 * 2] = {const_str_plain_name,   module_name, const_str_plain_globals,  globals,
+                                 const_str_plain_locals, locals,      const_str_plain_fromlist, import_items,
+                                 const_str_plain_level,  level};
+    PyObject *kw_args = MAKE_DICT_X(kw_pairs, 5);
+
     NUITKA_ASSIGN_BUILTIN(__import__);
 
     PyObject *import_result = CALL_FUNCTION_WITH_KEYARGS(NUITKA_ACCESS_BUILTIN(__import__), kw_args);
@@ -127,8 +116,27 @@ PyObject *IMPORT_MODULE5(PyObject *module_name, PyObject *globals, PyObject *loc
     PyObject *pos_args[] = {module_name, globals, locals, import_items, level};
 
     NUITKA_ASSIGN_BUILTIN(__import__);
+    PyObject *import_function = NUITKA_ACCESS_BUILTIN(__import__);
 
-    PyObject *import_result = CALL_FUNCTION_WITH_ARGS5(NUITKA_ACCESS_BUILTIN(__import__), pos_args);
+// TODO: This should be reserved for the import statements, but not for
+// the import built-in, we have to make a difference there with 3.10 to
+// be compatible.
+#if PYTHON_VERSION >= 0x3a0 && 0
+    // Fast path for default "__import__" avoids function call.
+    PyThreadState *thread_state = _PyThreadState_GET();
+
+    if (import_function == thread_state->interp->import_func) {
+        int level_int = _PyLong_AsInt(level);
+
+        if (level_int == -1 && HAS_ERROR_OCCURRED(thread_state)) {
+            return NULL;
+        }
+
+        return PyImport_ImportModuleLevelObject(module_name, globals, locals, import_items, level_int);
+    }
+#endif
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS5(import_function, pos_args);
 
     return import_result;
 }
@@ -412,8 +420,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
             }
 
             if (level_int > 0) {
-                PyObject *fromlist = PyTuple_New(1);
-                PyTuple_SET_ITEM0(fromlist, 0, import_name);
+                PyObject *fromlist = MAKE_TUPLE1(import_name);
 
                 result = IMPORT_MODULE5(const_str_empty, globals, globals, fromlist, level);
 

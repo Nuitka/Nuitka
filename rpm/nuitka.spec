@@ -187,18 +187,18 @@ then
     echo "Nuitka Version information"
     $python2 -m nuitka.__main__ --version
     echo "Basic compilation test of empty module:"
-    $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/Empty.py
+    $python2 -m nuitka.__main__ --module --show-scons --run tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
-    $python2 -m nuitka.__main__ --show-scons --run tests/basics/Empty.py
+    $python2 -m nuitka.__main__ --show-scons --run tests/basics/EmptyModuleTest.py
 
     $python2 ./tests/run-tests --skip-reflection-test
 else
     echo "Nuitka Version information"
     python3 -m nuitka --version
     echo "Basic compilation test of empty module:"
-    python3 -m nuitka --module --show-scons --run tests/basics/Empty.py
+    python3 -m nuitka --module --show-scons --run tests/basics/EmptyModuleTest.py
     echo "Basic compilation test of empty program:"
-    python3 -m nuitka --show-scons --run tests/basics/Empty.py
+    python3 -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
 
     python3 ./tests/run-tests --skip-reflection-test
 fi

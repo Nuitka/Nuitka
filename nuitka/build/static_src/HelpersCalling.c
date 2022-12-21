@@ -21,6 +21,7 @@
 #include "nuitka/prelude.h"
 #endif
 
+#if PYTHON_VERSION < 0x3b0
 PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE(func);
     PyObject *globals = PyFunction_GET_GLOBALS(func);
@@ -94,7 +95,7 @@ PyObject *callPythonFunction(PyObject *func, PyObject *const *args, int count) {
     return result;
 }
 
-static PyObject *_fast_function_noargs(PyObject *func) {
+static PyObject *callPythonFunctionNoArgs(PyObject *func) {
     PyCodeObject *co = (PyCodeObject *)PyFunction_GET_CODE(func);
     PyObject *globals = PyFunction_GET_GLOBALS(func);
     PyObject *argdefs = PyFunction_GET_DEFAULTS(func);
@@ -157,6 +158,7 @@ static PyObject *_fast_function_noargs(PyObject *func) {
 
     return result;
 }
+#endif
 
 PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObject *positional_args) {
     CHECK_OBJECT(source);

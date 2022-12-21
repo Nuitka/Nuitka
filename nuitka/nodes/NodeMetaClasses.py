@@ -74,12 +74,8 @@ class NodeCheckMetaClass(ABCMeta):
             dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
 
         if "named_children" in dictionary:
-            if len(dictionary["named_children"]) <= 1:
-                raise NuitkaNodeDesignError(
-                    name, "Use ExpressionChildHaving for one child node classes"
-                )
-
             assert type(dictionary["named_children"]) is tuple
+
             dictionary["__slots__"] += tuple(
                 intern("subnode_" + named_child)
                 for named_child in dictionary["named_children"]
@@ -92,7 +88,7 @@ class NodeCheckMetaClass(ABCMeta):
         # false alarm, pylint: disable=I0021,too-many-function-args
         return ABCMeta.__new__(cls, name, bases, dictionary)
 
-    def __init__(cls, name, bases, dictionary):  # @NoSelf
+    def __init__(cls, name, bases, dictionary):
 
         if not name.endswith("Base"):
             if "kind" not in dictionary:

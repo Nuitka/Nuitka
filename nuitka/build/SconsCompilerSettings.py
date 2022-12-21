@@ -24,8 +24,17 @@ import re
 
 from nuitka.Tracing import scons_details_logger, scons_logger
 from nuitka.utils.Download import getCachedDownloadedMinGW64
-from nuitka.utils.FileOperations import openTextFile, putTextFileContents
-from nuitka.utils.Utils import isFedoraBasedLinux, isMacOS, isWin32Windows
+from nuitka.utils.FileOperations import (
+    getReportPath,
+    openTextFile,
+    putTextFileContents,
+)
+from nuitka.utils.Utils import (
+    isFedoraBasedLinux,
+    isMacOS,
+    isPosixWindows,
+    isWin32Windows,
+)
 
 from .SconsHacks import myDetectVersion
 from .SconsUtils import (
@@ -159,6 +168,19 @@ def _enableLtoSettings(
         lto_mode = False
         reason = "not known to be supported"
 
+    # Do not default to LTO for large compilations, unless asked for it.
+    module_count_threshold = 250
+    if (
+        orig_lto_mode == "auto"
+        and lto_mode
+        and env.module_count > module_count_threshold
+    ):
+        lto_mode = False
+        reason = "might to be too slow %s (>= %d threshold), force with --lto=yes" % (
+            env.module_count,
+            module_count_threshold,
+        )
+
     if lto_mode and env.gcc_mode and not env.clang_mode and env.gcc_version < (4, 6):
         scons_logger.warning(
             """\
@@ -208,6 +230,7 @@ def checkWindowsCompilerFound(
     env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
 ):
     """Remove compiler of wrong arch or too old gcc and replace with downloaded winlibs gcc."""
+    # Many cases to deal with, pylint: disable=too-many-branches
 
     if os.name == "nt":
         # On Windows, in case MSVC was not found and not previously forced, use the
@@ -215,8 +238,13 @@ def checkWindowsCompilerFound(
         compiler_path = getExecutablePath(env["CC"], env=env)
 
         scons_details_logger.info(
-            "Checking usability of %r from %r" % (compiler_path, env["CC"])
+            "Checking usability of '%s' from '%s'." % (compiler_path, env["CC"])
         )
+
+        # On MSYS2, cannot use the POSIX compiler, drop that even before we check arches, since that
+        # will of course still match.
+        if env.msys2_mingw_python and compiler_path.endswith("/usr/bin/gcc.exe"):
+            compiler_path = None
 
         # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
         if compiler_path is not None:
@@ -230,7 +258,9 @@ def checkWindowsCompilerFound(
 
             if decision:
                 scons_logger.info(
-                    "Mismatch between Python binary (%r -> %r) and C compiler (%r -> %r) arches, that compiler is ignored!"
+                    """\
+Mismatch between Python binary ('%s' -> '%s') and \
+C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
                     % (
                         os.environ["NUITKA_PYTHON_EXE_PATH"],
                         linker_arch,
@@ -251,7 +281,7 @@ def checkWindowsCompilerFound(
             # Requested a specific MSVC version, check if that worked.
             elif msvc_version != getMsvcVersionString(env):
                 scons_logger.info(
-                    "Failed to find requested MSVC version (%r != %r)."
+                    "Failed to find requested MSVC version ('%s' != '%s')."
                     % (msvc_version, getMsvcVersionString(env))
                 )
 
@@ -271,7 +301,7 @@ def checkWindowsCompilerFound(
                     or "force-winlibs-gcc" in env.experimental_flags
                 ):
                     scons_logger.info(
-                        "Too old gcc %r (%r < %r) ignored!"
+                        "Too old gcc '%s' (%r < %r) ignored!"
                         % (compiler_path, gcc_version, min_version)
                     )
 
@@ -315,6 +345,9 @@ def decideConstantsBlobResourceMode(env, module_mode):
     elif isWin32Windows():
         resource_mode = "win_resource"
         reason = "default for Windows"
+    elif isPosixWindows():
+        resource_mode = "linker"
+        reason = "default MSYS2 Posix"
     elif isMacOS():
         resource_mode = "mac_section"
         reason = "default for macOS"
@@ -392,7 +425,10 @@ unsigned char const *getConstantsBlobData(void) {
                 "-Wl,%s" % blob_filename,
                 "-Wl,-b",
                 "-Wl,%s"
-                % getLinkerArch(target_arch=target_arch, mingw_mode=env.mingw_mode),
+                % getLinkerArch(
+                    target_arch=target_arch,
+                    mingw_mode=env.mingw_mode or isPosixWindows(),
+                ),
                 "-Wl,-defsym",
                 "-Wl,%sconstant_bin_data=_binary_%s___constants_bin_start"
                 % (
@@ -446,7 +482,7 @@ unsigned char constant_bin_data[] =\n{\n
         writeConstantsDataSource()
     else:
         scons_logger.sysexit(
-            "Error, illegal resource mode %r specified" % resource_mode
+            "Error, illegal resource mode '%s' specified" % resource_mode
         )
 
 
@@ -486,7 +522,7 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if not env.c11_mode:
             env.Append(CXXFLAGS=["-fvisibility-inlines-hidden"])
 
-        if isWin32Windows():
+        if isWin32Windows() and hasattr(env, "source_dir"):
             # On Windows, exporting to DLL need to be controlled.
             env.Append(LINKFLAGS=["-Wl,--exclude-all-symbols"])
 
@@ -744,7 +780,12 @@ def switchFromGccToGpp(env):
         env.gcc_version = None
         return
 
-    env.gcc_version = myDetectVersion(env, env.the_compiler)
+    the_compiler = getExecutablePath(env.the_compiler, env)
+
+    if the_compiler is None:
+        return
+
+    env.gcc_version = myDetectVersion(env, the_compiler)
 
     if env.gcc_version is None:
         scons_logger.sysexit(
@@ -801,7 +842,7 @@ version (>= 5.3)."""
             )
 
 
-def reportCCompiler(env, context):
+def reportCCompiler(env, context, output_func):
     cc_output = env.the_cc_name
 
     if env.the_cc_name == "cl":
@@ -809,6 +850,7 @@ def reportCCompiler(env, context):
     else:
         cc_output = env.the_cc_name
 
-    scons_logger.info(
-        "%s C compiler: %s (%s)." % (context, env.the_compiler, cc_output)
+    output_func(
+        "%s C compiler: %s (%s)."
+        % (context, getReportPath(env.the_compiler), cc_output)
     )

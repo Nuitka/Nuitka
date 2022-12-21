@@ -3,7 +3,7 @@ Thank your for contributing to Nuitka!
 !! Please check that you select the **develop branch** (details see below link) !!
 
 Before submitting a PR, please review the guidelines:
-[Contributing Guidelines](https://github.com/kayhayen/Nuitka/blob/develop/CONTRIBUTING.md)
+[Contributing Guidelines](https://github.com/Nuitka/Nuitka/blob/develop/CONTRIBUTING.md)
 
 # What does this PR do?
 

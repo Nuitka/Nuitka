@@ -358,16 +358,11 @@ class ExpressionFunctionBodyBase(
         function_name = self.getFunctionName()
 
         if python_version < 0x340:
-            provider = self.getParentVariableProvider()
+            qualname_provider = self.getParentVariableProvider()
         else:
-            provider = self.qualname_provider
+            qualname_provider = self.qualname_provider
 
-        if provider.isCompiledPythonModule():
-            return function_name
-        elif provider.isExpressionClassBody():
-            return provider.getFunctionQualname() + "." + function_name
-        else:
-            return provider.getFunctionQualname() + ".<locals>." + function_name
+        return qualname_provider.getChildQualname(function_name)
 
     def computeExpression(self, trace_collection):
         assert False
@@ -480,6 +475,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
     def getCodeObject(self):
         return self.code_object
+
+    def getChildQualname(self, function_name):
+        return self.getFunctionQualname() + ".<locals>." + function_name
 
     def computeFunctionRaw(self, trace_collection):
         from nuitka.optimizations.TraceCollections import (

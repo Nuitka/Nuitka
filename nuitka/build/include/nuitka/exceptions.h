@@ -20,7 +20,16 @@
 
 // Exception helpers for generated code and compiled code helpers.
 
+// Fundamental, because we use it for print style debugging in everything.
+#include "nuitka/checkers.h"
+#include "nuitka/constants.h"
+#include "nuitka/printing.h"
+
 // Did an error occur.
+NUITKA_MAY_BE_UNUSED static inline bool HAS_ERROR_OCCURRED(PyThreadState *tstate) {
+    return tstate->curexc_type != NULL;
+}
+
 NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED(void) {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -86,7 +95,7 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED(PyObject **exception_type,
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("FETCH_ERROR_OCCURRED:\n");
-    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+    PRINT_CURRENT_EXCEPTION();
 #endif
 
     tstate->curexc_type = NULL;
@@ -122,7 +131,7 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED(PyObject *exception_type
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("RESTORE_ERROR_OCCURRED:\n");
-    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+    PRINT_CURRENT_EXCEPTION();
 #endif
 
     Py_XDECREF(old_exception_type);
@@ -168,15 +177,18 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
 #if PYTHON_VERSION < 0x370
 #define EXC_TYPE(x) (x->exc_type)
 #define EXC_VALUE(x) (x->exc_value)
-#define EXC_TRACEBACK(x) (x->exc_traceback)
+#define EXC_TRACEBACK(x) ((PyTracebackObject *)(x->exc_traceback))
+#define EXC_TRACEBACK_PTR(x) ((PyTracebackObject **)(&x->exc_traceback))
+#define SET_EXC_TRACEBACK(x, tb) x->exc_traceback = (PyObject *)tb
 #elif PYTHON_VERSION < 0x3b0
 #define EXC_TYPE(x) (x->exc_state.exc_type)
 #define EXC_VALUE(x) (x->exc_state.exc_value)
-#define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
+#define EXC_TRACEBACK(x) ((PyTracebackObject *)(x->exc_state.exc_traceback))
+#define EXC_TRACEBACK_PTR(x) ((PyTracebackObject **)(&x->exc_state.exc_traceback))
+#define SET_EXC_TRACEBACK(x, tb) x->exc_state.exc_traceback = (PyObject *)tb
 #else
 #define EXC_TYPE(x) ((PyObject *)Py_TYPE(x->exc_state.exc_value))
 #define EXC_VALUE(x) (x->exc_state.exc_value)
-#define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
 #endif
 
 #if PYTHON_VERSION < 0x370
@@ -184,11 +196,13 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK(PyTracebackObject *
 #define EXC_VALUE_F(x) (x->m_frame->m_frame.f_exc_value)
 #define EXC_TRACEBACK_F(x) (x->m_frame->m_frame.f_exc_traceback)
 #define ASSIGN_EXC_TRACEBACK_F(x, tb) x->m_frame->m_frame.f_exc_traceback = (PyObject *)(tb)
-#else
+#elif PYTHON_VERSION < 0x3b0
 #define EXC_TYPE_F(x) (x->m_exc_state.exception_type)
 #define EXC_VALUE_F(x) (x->m_exc_state.exception_value)
 #define EXC_TRACEBACK_F(x) (x->m_exc_state.exception_tb)
 #define ASSIGN_EXC_TRACEBACK_F(x, tb) x->m_exc_state.exception_tb = (PyTracebackObject *)(tb)
+#else
+#define EXC_VALUE_F(x) (x->m_exc_state.exception_value)
 #endif
 
 #if PYTHON_VERSION < 0x3b0
@@ -244,9 +258,13 @@ NUITKA_MAY_BE_UNUSED inline static struct Nuitka_ExceptionStackItem GET_CURRENT_
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(struct Nuitka_ExceptionStackItem *exc_state) {
+#if PYTHON_VERSION < 0x3b0
     CHECK_OBJECT_X(exc_state->exception_type);
+#endif
     CHECK_OBJECT_X(exc_state->exception_value);
+#if PYTHON_VERSION < 0x3b0
     CHECK_OBJECT_X(exc_state->exception_tb);
+#endif
 
     PyThreadState *thread_state = PyThreadState_GET();
 
@@ -255,7 +273,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(struct Nuitka_Exce
 #endif
     PyObject *old_value = EXC_VALUE(thread_state);
 #if PYTHON_VERSION < 0x3b0
-    PyObject *old_tb = EXC_TRACEBACK(thread_state);
+    PyTracebackObject *old_tb = EXC_TRACEBACK(thread_state);
 #endif
 
 #if PYTHON_VERSION < 0x3b0
@@ -271,12 +289,12 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(struct Nuitka_Exce
 #endif
     EXC_VALUE(thread_state) = exc_state->exception_value;
 #if PYTHON_VERSION < 0x3b0
-    EXC_TRACEBACK(thread_state) = (PyObject *)exc_state->exception_tb;
+    SET_EXC_TRACEBACK(thread_state, exc_state->exception_tb);
 #endif
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION:\n");
-    PRINT_EXCEPTION(exception_type, exception_value, exception_tb);
+    PRINT_PUBLISHED_EXCEPTION();
 #endif
 
 #if PYTHON_VERSION < 0x3b0
@@ -327,7 +345,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyObject *ex
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0:\n");
-    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+    PRINT_CURRENT_EXCEPTION();
 #endif
 
     Py_XDECREF(old_exception_type);
@@ -352,7 +370,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyObj
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE0:\n");
-    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+    PRINT_CURRENT_EXCEPTION();
 #endif
 
     Py_XDECREF(old_exception_type);
@@ -375,7 +393,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0_VALUE1(PyObj
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION_TYPE0_VALUE1:\n");
-    PRINT_EXCEPTION(tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback);
+    PRINT_CURRENT_EXCEPTION();
 #endif
 
     Py_XDECREF(old_exception_type);
@@ -438,7 +456,7 @@ NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION(struct Nuitka_F
 
     PRINT_ITEM((PyObject *)frame_object);
     PRINT_NEW_LINE();
-    PRINT_EXCEPTION(frame->f_exc_type, frame->f_exc_value, frame->f_exc_traceback);
+    PRINT_EXCEPTION(frame->f_exc_type, frame->f_exc_value, (PyTracebackObject *)frame->f_exc_traceback);
 #endif
 }
 
@@ -499,6 +517,14 @@ NUITKA_MAY_BE_UNUSED static inline void ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(PyOb
     e->traceback = (PyObject *)exception_tb;
     Py_XDECREF(old);
 }
+
+// Much like PyException_GetTraceback, but does not give a reference.
+NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *GET_EXCEPTION_TRACEBACK(PyObject *exception_value) {
+    assert(PyExceptionInstance_Check(exception_value));
+
+    PyBaseExceptionObject *exc_object = (PyBaseExceptionObject *)(exception_value);
+    return (PyTracebackObject *)exc_object->traceback;
+}
 #endif
 
 // Normalize an exception.
@@ -546,6 +572,13 @@ NUITKA_MAY_BE_UNUSED static inline void PUBLISH_CURRENT_EXCEPTION(PyObject **exc
 #endif
 
     SET_CURRENT_EXCEPTION(&exc_state);
+
+#if PYTHON_VERSION >= 0x3b0
+    // TODO: We shouldn't get these in the first place, we don't transfer the
+    // type anymore and the exception tb could come in already attached.
+    Py_DECREF(*exception_type);
+    Py_XDECREF(*exception_tb);
+#endif
 
     *exception_type = NULL;
     *exception_value = NULL;

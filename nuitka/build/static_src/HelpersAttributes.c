@@ -780,7 +780,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
             dict = *dictptr;
 
             if (dict == NULL) {
-                dict = PyDict_New();
+                dict = MAKE_DICT_EMPTY();
                 *dictptr = dict;
             }
         }

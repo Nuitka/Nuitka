@@ -37,130 +37,11 @@ typedef PyObject *(*copy_func)(PyObject *);
 
 static PyObject *DEEP_COPY_ITEM(PyObject *value, PyTypeObject **type, copy_func *copy_function);
 
-PyObject *DEEP_COPY_DICT(PyObject *value) {
-    CHECK_OBJECT(value);
-    assert(PyDict_CheckExact(value));
-
-#if _NUITKA_EXPERIMENTAL_DISABLE_DICT_OPT
-    PyObject *result = DICT_COPY(value);
-
-    Py_ssize_t pos = 0;
-    PyObject *dict_key, *dict_value;
-
-    while (Nuitka_DictNext(value, &pos, &dict_key, &dict_value)) {
-        PyObject *dict_value_copy = DEEP_COPY(dict_value);
-
-        if (dict_value_copy != dict_value) {
-            DICT_SET_ITEM(value, dict_key, dict_value_copy);
-        }
-    }
-
-    return result;
-#else
-
-    if (((PyDictObject *)value)->ma_used == 0) {
-        return PyDict_New();
-    }
-
-#if PYTHON_VERSION < 0x300
-    // For Python3, this can be done much faster in the same way as it is
-    // done in parameter parsing.
-
-    PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
-
-    for (Py_ssize_t i = 0; i <= ((PyDictObject *)value)->ma_mask; i++) {
-        PyDictEntry *entry = &((PyDictObject *)value)->ma_table[i];
-
-        if (entry->me_value != NULL) {
-            PyObject *deep_copy = DEEP_COPY(entry->me_value);
-
-            int res = PyDict_SetItem(result, entry->me_key, deep_copy);
-
-            Py_DECREF(deep_copy);
-            CHECK_OBJECT(deep_copy);
-
-            if (unlikely(res != 0)) {
-                return NULL;
-            }
-        }
-    }
-
-    return result;
-#else
-    /* Python 3 */
-#ifndef PY_NOGIL
-    if (_PyDict_HasSplitTable((PyDictObject *)value)) {
-        PyDictObject *mp = (PyDictObject *)value;
-
-#if PYTHON_VERSION < 0x360
-        Py_ssize_t size = mp->ma_keys->dk_size;
-#else
-        Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
-#endif
-
-        PyObject **new_values = PyMem_NEW(PyObject *, size);
-        assert(new_values != NULL);
-
-        PyDictObject *result = PyObject_GC_New(PyDictObject, &PyDict_Type);
-        assert(result != NULL);
-
-        result->ma_values = new_values;
-        result->ma_keys = mp->ma_keys;
-        result->ma_used = mp->ma_used;
-
-        mp->ma_keys->dk_refcnt += 1;
-
-        for (Py_ssize_t i = 0; i < size; i++) {
-            if (mp->ma_values[i]) {
-                result->ma_values[i] = DEEP_COPY(mp->ma_values[i]);
-            } else {
-                result->ma_values[i] = NULL;
-            }
-        }
-
-        Nuitka_GC_Track(result);
-
-        return (PyObject *)result;
-    } else
-#endif
-    {
-        PyObject *result = _PyDict_NewPresized(((PyDictObject *)value)->ma_used);
-
-        PyDictObject *mp = (PyDictObject *)value;
-
-#if PYTHON_VERSION < 0x360
-        Py_ssize_t size = mp->ma_keys->dk_size;
-#else
-        Py_ssize_t size = mp->ma_keys->dk_nentries;
-#endif
-        for (Py_ssize_t i = 0; i < size; i++) {
-#if PYTHON_VERSION < 0x360
-            PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
-#else
-            PyDictKeyEntry *entry = &DK_ENTRIES(mp->ma_keys)[i];
-#endif
-
-            if (entry->me_value != NULL) {
-                PyObject *deep_copy = DEEP_COPY(entry->me_value);
-
-                PyDict_SetItem(result, entry->me_key, deep_copy);
-
-                Py_DECREF(deep_copy);
-                CHECK_OBJECT(deep_copy);
-            }
-        }
-
-        return result;
-    }
-#endif
-#endif
-}
-
 PyObject *DEEP_COPY_LIST(PyObject *value) {
     assert(PyList_CheckExact(value));
 
     Py_ssize_t n = PyList_GET_SIZE(value);
-    PyObject *result = PyList_New(n);
+    PyObject *result = MAKE_LIST_EMPTY(n);
 
     PyTypeObject *type = NULL;
     copy_func copy_function = NULL;
@@ -194,7 +75,8 @@ PyObject *DEEP_COPY_TUPLE(PyObject *value) {
     assert(PyTuple_CheckExact(value));
 
     Py_ssize_t n = PyTuple_GET_SIZE(value);
-    PyObject *result = PyTuple_New(n);
+
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(n);
 
     for (Py_ssize_t i = 0; i < n; i++) {
         PyTuple_SET_ITEM(result, i, DEEP_COPY(PyTuple_GET_ITEM(value, i)));
@@ -204,7 +86,7 @@ PyObject *DEEP_COPY_TUPLE(PyObject *value) {
 }
 
 PyObject *DEEP_COPY_SET(PyObject *value) {
-    // Sets cannot contain unhashable types, so these all must be immutable,
+    // Sets cannot contain non-hashable types, so these all must be immutable,
     // but the set itself might be changed, so we need to copy it.
     return PySet_New(value);
 }
@@ -664,4 +546,83 @@ void CHECK_OBJECTS_DEEP(PyObject *const *values, Py_ssize_t size) {
     for (Py_ssize_t i = 0; i < size; i++) {
         CHECK_OBJECT_DEEP(values[i]);
     }
+}
+
+static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide);
+static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide);
+
+static PyObject *_DEEP_COPY_ELEMENT_GUIDED(PyObject *value, char const **guide) {
+    char code = **guide;
+    *guide += 1;
+
+    switch (code) {
+    case 'i':
+        Py_INCREF(value);
+        return value;
+    case 'L':
+        return _DEEP_COPY_LIST_GUIDED(value, guide);
+    case 'l':
+        return LIST_COPY(value);
+    case 'T':
+        return _DEEP_COPY_TUPLE_GUIDED(value, guide);
+    case 't':
+        return TUPLE_COPY(value);
+    case 'D':
+        return DEEP_COPY_DICT(value);
+    case 'd':
+        return DICT_COPY(value);
+    case 'S':
+        return DEEP_COPY_SET(value);
+    case 'B':
+        return BYTEARRAY_COPY(value);
+    case '?':
+        return DEEP_COPY(value);
+    default:
+        NUITKA_CANNOT_GET_HERE("Illegal type guide");
+        abort();
+    }
+}
+
+static PyObject *_DEEP_COPY_LIST_GUIDED(PyObject *value, char const **guide) {
+    assert(PyList_CheckExact(value));
+
+    Py_ssize_t size = PyList_GET_SIZE(value);
+
+    PyObject *result = MAKE_LIST_EMPTY(size);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(PyList_GET_ITEM(value, i), guide);
+
+        PyList_SET_ITEM(result, i, item);
+    }
+
+    return result;
+}
+
+static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide) {
+    assert(PyTuple_CheckExact(value));
+
+    Py_ssize_t size = PyTuple_GET_SIZE(value);
+
+    PyObject *result = MAKE_TUPLE_EMPTY_VAR(size);
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(PyTuple_GET_ITEM(value, i), guide);
+
+        PyTuple_SET_ITEM(result, i, item);
+    }
+
+    return result;
+}
+
+PyObject *DEEP_COPY_LIST_GUIDED(PyObject *value, char const *guide) {
+    PyObject *result = _DEEP_COPY_LIST_GUIDED(value, &guide);
+    assert(*guide == 0);
+    return result;
+}
+
+PyObject *DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const *guide) {
+    PyObject *result = _DEEP_COPY_TUPLE_GUIDED(value, &guide);
+    assert(*guide == 0);
+    return result;
 }

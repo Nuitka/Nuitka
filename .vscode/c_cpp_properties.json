@@ -41,7 +41,7 @@
             "intelliSenseMode": "msvc-x64"
         },
         {
-            "name": "Linux",
+            "name": "Linux-Python3.9",
             "includePath": [
                 "/usr/include",
                 "${workspaceFolder}/nuitka/build/include",
@@ -53,6 +53,44 @@
                 "_UNICODE",
                 "__IDE_ONLY__",
                 "PYTHON_VERSION=0x390"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Linux-Python3.10",
+            "includePath": [
+                "/usr/include",
+                "${workspaceFolder}/nuitka/build/include",
+                "/usr/include/python3.10"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3A0"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}"
+        },
+        {
+            "name": "Linux-Python3.11",
+            "includePath": [
+                "/usr/include",
+                "${workspaceFolder}/nuitka/build/include",
+                "/usr/include/python3.11"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3B0"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",

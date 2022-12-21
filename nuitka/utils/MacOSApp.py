@@ -83,7 +83,7 @@ def createPlistInfoFile(logger, onefile):
             convertImageToIconFormat(
                 logger=logger,
                 image_filename=icon_path,
-                icon_filename=converted_icon_path,
+                converted_icon_filename=converted_icon_path,
             )
             icon_path = converted_icon_path
 
@@ -96,10 +96,12 @@ def createPlistInfoFile(logger, onefile):
         infos["CFBundleIconFile"] = icon_name
 
     # Console mode, which is why we have to use bundle in the first place typically.
-    if Options.shallDisableConsoleWindow():
-        infos["NSHighResolutionCapable"] = True
-    else:
+    if Options.isMacOSBackgroundApp():
         infos["LSBackgroundOnly"] = True
+    elif Options.isMacOSUiElementApp():
+        infos["LSUIElement"] = True
+    else:
+        infos["NSHighResolutionCapable"] = True
 
     for resource_name, resource_desc in Options.getMacOSAppProtectedResourcesAccesses():
         if resource_name in infos:

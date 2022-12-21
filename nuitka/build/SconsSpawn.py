@@ -116,6 +116,17 @@ def _filterMsvcLinkOutput(env, module_mode, data, exit_code):
     return data
 
 
+def _raiseCorruptedObjectFilesExit(cache_name):
+    """Error exit due to corrupt object files and point to cache cleanup."""
+    scons_logger.sysexit(
+        """\
+Error, the C linker reported a corrupt object file. You may need to run
+Nuitka with '--clean-cache=%s' once to repair it, or else will
+surely happen again."""
+        % cache_name
+    )
+
+
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
 def _getWindowsSpawnFunction(env, module_mode, source_files):
@@ -185,26 +196,21 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
             my_print(data, style="yellow", end="" if data.endswith("\n") else "\n")
 
         if err:
-            err = b"\r\n".join(
-                line for line in err.split(b"\r\n") if not isIgnoredError(line)
+            if str is not bytes:
+                err = decodeData(err)
+
+            err = "\r\n".join(
+                line for line in err.split("\r\n") if not isIgnoredError(line)
             )
 
             if err:
-                err += b"\r\n"
+                if "corrupt file" in err:
+                    _raiseCorruptedObjectFilesExit(cache_name="clcache")
+                if "Bad magic value" in err:
+                    _raiseCorruptedObjectFilesExit(cache_name="ccache")
 
-                if str is not bytes:
-                    err = decodeData(err)
-
-                if err:
-                    if "corrupt file" in err:
-                        scons_logger.sysexit(
-                            """\
-Error, the C linker reported a corrupt object file. You may \
-need to run Nuitka with '--clean-cache=clcache' once to repair \
-it, or else will be happen again."""
-                        )
-
-                    my_print(err, style="yellow", end="")
+                err += "\r\n"
+                my_print(err, style="yellow", end="")
 
         return rv
 
@@ -231,46 +237,46 @@ def isIgnoredError(line):
     # spell-checker: ignore tmpnam,tempnam,structseq,bytearrayobject
 
     # Debian Python2 static libpython lto warnings:
-    if b"function `posix_tmpnam':" in line:
+    if "function `posix_tmpnam':" in line:
         return True
-    if b"function `posix_tempnam':" in line:
+    if "function `posix_tempnam':" in line:
         return True
 
     # Self compiled Python2 static libpython lot warnings:
-    if b"the use of `tmpnam_r' is dangerous" in line:
+    if "the use of `tmpnam_r' is dangerous" in line:
         return True
-    if b"the use of `tempnam' is dangerous" in line:
+    if "the use of `tempnam' is dangerous" in line:
         return True
-    if line.startswith((b"Objects/structseq.c:", b"Python/import.c:")):
+    if line.startswith(("Objects/structseq.c:", "Python/import.c:")):
         return True
-    if line == b"In function 'load_next',":
+    if line == "In function 'load_next',":
         return True
-    if b"at Python/import.c" in line:
+    if "at Python/import.c" in line:
         return True
 
     # Debian Bullseye when compiling in directory with spaces:
-    if b"overriding recipe for target" in line:
+    if "overriding recipe for target" in line:
         return True
-    if b"ignoring old recipe for target" in line:
+    if "ignoring old recipe for target" in line:
         return True
-    if b"Error 1 (ignored)" in line:
+    if "Error 1 (ignored)" in line:
         return True
 
     # Trusty has buggy toolchain that does this with LTO.
     if (
         line
-        == b"""\
+        == """\
 bytearrayobject.o (symbol from plugin): warning: memset used with constant zero \
 length parameter; this could be due to transposed parameters"""
     ):
         return True
 
     # The gcc LTO with debug information is deeply buggy with many messages:
-    if b"Dwarf Error:" in line:
+    if "Dwarf Error:" in line:
         return True
 
     # gcc from MinGW64 12.1 gives these, that seem non-consequential.
-    if line.startswith(b"mingw32-make:") and line.endswith(b"Error 1 (ignored)"):
+    if line.startswith("mingw32-make:") and line.endswith("Error 1 (ignored)"):
         return True
 
     return False
@@ -283,18 +289,22 @@ def subprocess_spawn(args):
         command=[sh, "-c", " ".join(args)], env=env
     )
 
+    if str is not bytes:
+        stderr = decodeData(stderr)
+
     ignore_next = False
     for line in stderr.splitlines():
         if ignore_next:
             ignore_next = False
             continue
 
+        # Corrupt object files, probably from ccache being interrupted at the wrong time.
+        if "Bad magic value" in line:
+            _raiseCorruptedObjectFilesExit(cache_name="ccache")
+
         if isIgnoredError(line):
             ignore_next = True
             continue
-
-        if str is not bytes:
-            line = decodeData(line)
 
         if exit_code != 0 and "terminated with signal 11" in line:
             exit_code = -11
@@ -371,7 +381,7 @@ def _getWrappedSpawnFunction(env):
             scons_logger.sysexit(
                 """\
 Error, the C compiler '%s' crashed with segfault. Consider upgrading \
-it or using --clang option."""
+it or using '--clang' option."""
                 % env.the_compiler
             )
 

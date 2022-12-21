@@ -96,7 +96,16 @@ def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
     ) as value_name:
 
         if keeper_variables[2] is None:
-            emit("%s = EXC_TRACEBACK(PyThreadState_GET());" % (value_name,))
+            if python_version < 0x3B0:
+                emit(
+                    "%s = (PyObject *)EXC_TRACEBACK(PyThreadState_GET());"
+                    % (value_name,)
+                )
+            else:
+                emit(
+                    "%s = (PyObject *)GET_EXCEPTION_TRACEBACK(EXC_VALUE(PyThreadState_GET()));"
+                    % (value_name,)
+                )
         else:
             emit(
                 """\

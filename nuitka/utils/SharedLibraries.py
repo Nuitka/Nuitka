@@ -170,10 +170,10 @@ def _getDLLVersionWindows(filename):
 
     if type(filename) is unicode:
         GetFileVersionInfoSizeW = ctypes.windll.version.GetFileVersionInfoSizeW
-        GetFileVersionInfoSizeW.argtypes = [
+        GetFileVersionInfoSizeW.argtypes = (
             ctypes.wintypes.LPCWSTR,
             ctypes.wintypes.LPDWORD,
-        ]
+        )
         GetFileVersionInfoSizeW.restype = ctypes.wintypes.HANDLE
         size = GetFileVersionInfoSizeW(filename, None)
     else:
@@ -189,12 +189,12 @@ def _getDLLVersionWindows(filename):
     if type(filename) is unicode:
         # Python3 needs our help here.
         GetFileVersionInfo = ctypes.windll.version.GetFileVersionInfoW
-        GetFileVersionInfo.argtypes = [
+        GetFileVersionInfo.argtypes = (
             ctypes.wintypes.LPCWSTR,
             ctypes.wintypes.DWORD,
             ctypes.wintypes.DWORD,
             ctypes.wintypes.LPVOID,
-        ]
+        )
         GetFileVersionInfo.restype = ctypes.wintypes.BOOL
 
     else:
@@ -207,12 +207,12 @@ def _getDLLVersionWindows(filename):
 
     # Look for codepages
     VerQueryValueA = ctypes.windll.version.VerQueryValueA
-    VerQueryValueA.argtypes = [
+    VerQueryValueA.argtypes = (
         ctypes.wintypes.LPCVOID,
         ctypes.wintypes.LPCSTR,
         ctypes.wintypes.LPVOID,
         ctypes.POINTER(ctypes.c_uint32),
-    ]
+    )
     VerQueryValueA.restype = ctypes.wintypes.BOOL
 
     file_info = ctypes.POINTER(VsFixedFileInfoStructure)()
@@ -684,12 +684,12 @@ def _getWindowsRunningProcessModuleHandles():
         EnumProcessModulesProc = ctypes.windll.kernel32.EnumProcessModules
 
     EnumProcessModulesProc.restype = ctypes.wintypes.BOOL
-    EnumProcessModulesProc.argtypes = [
+    EnumProcessModulesProc.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.POINTER(ctypes.wintypes.HANDLE),
         ctypes.wintypes.LONG,
         ctypes.POINTER(ctypes.wintypes.ULONG),
-    ]
+    )
 
     # Very unlikely that this is not sufficient for CPython.
     handles = (ctypes.wintypes.HANDLE * 1024)()

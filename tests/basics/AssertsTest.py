@@ -1,0 +1,74 @@
+#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
+#
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
+""" Exercise assertions in their flavors."""
+
+# nuitka-project: --nofollow-imports
+
+from __future__ import print_function
+
+
+def testAssert1():
+    assert False
+
+    return 1
+
+
+def testAssert2():
+    assert True
+
+    return 1
+
+
+def testAssert3():
+    assert False, "argument"
+
+    return 1
+
+
+try:
+    print("Function that will assert.")
+    testAssert1()
+    print("No exception.")
+except Exception as e:
+    print("Raised", type(e), e)
+
+try:
+    print("Function that will not assert.")
+    testAssert2()
+    print("No exception.")
+except Exception as e:
+    print("Raised", type(e), e)
+
+try:
+    print("Function that will assert with argument.")
+    testAssert3()
+    print("No exception.")
+except Exception as e:
+    print("Raised", type(e), e)
+
+try:
+    print("Assertion with tuple argument.", end="")
+    assert False, (3,)
+except AssertionError as e:
+    print(str(e))
+
+try:
+    print("Assertion with plain argument.", end="")
+    assert False, 3
+except AssertionError as e:
+    print(str(e))

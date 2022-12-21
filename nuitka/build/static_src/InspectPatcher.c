@@ -290,7 +290,7 @@ void patchTypeComparison(void) {
 static PyTracebackObject *free_list_tracebacks = NULL;
 static int free_list_tracebacks_count = 0;
 
-// Create a traceback for a given frame, using a freelist hacked into the
+// Create a traceback for a given frame, using a free list hacked into the
 // existing type.
 PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) {
 #if 0

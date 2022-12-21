@@ -60,7 +60,7 @@
         if (a_negative) {
             if (b_negative) {
                 {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b_digits, b_digit_count);
-                Py_SIZE({{ operand1 }}) = -Py_ABS(Py_SIZE({{ operand1 }}));
+                Py_SET_SIZE({{ operand1 }}, -Py_ABS(Py_SIZE({{ operand1 }})));
             } else {
                 {# Reversed operands order means sign inversion. #}
                 {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b_digits, b_digit_count, -1);
@@ -90,8 +90,7 @@
         if (a_negative) {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
-
-                Py_SIZE(z) = -(Py_SIZE(z));
+                Py_SET_SIZE(z, -(Py_SIZE(z)));
             } else {
                 {# Reversed operands order. #}
                 z = _Nuitka_LongSubDigits(b_digits, b_digit_count, a_digits, a_digit_count);
@@ -140,7 +139,7 @@
                 {{ operand1 }} = _Nuitka_LongSubInplaceDigits({{ operand1 }}, b_digits, b_digit_count, -1);
             } else {
                 {{ operand1 }} = _Nuitka_LongAddInplaceDigits({{ operand1 }}, b_digits, b_digit_count);
-                Py_SIZE({{ operand1 }}) = -Py_ABS(Py_SIZE({{ operand1 }}));
+                Py_SET_SIZE({{ operand1 }}, -Py_ABS(Py_SIZE({{ operand1 }})));
             }
         } else {
             if (b_negative) {
@@ -171,7 +170,7 @@
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);
             }
 
-            Py_SIZE(z) = -(Py_SIZE(z));
+            Py_SET_SIZE(z, -(Py_SIZE(z)));
         } else {
             if (b_negative) {
                 z = _Nuitka_LongAddDigits(a_digits, a_digit_count, b_digits, b_digit_count);

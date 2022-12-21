@@ -81,8 +81,13 @@ void FORMAT_UNBOUND_LOCAL_ERROR(PyObject **exception_type, PyObject **exception_
     *exception_type = PyExc_UnboundLocalError;
     Py_INCREF(*exception_type);
 
-    *exception_value = Nuitka_String_FromFormat("local variable '%s' referenced before assignment",
-                                                Nuitka_String_AsString_Unchecked(variable_name));
+#if PYTHON_VERSION < 0x3b0
+    char const *message = "local variable '%s' referenced before assignment";
+#else
+    char const *message = "cannot access local variable '%s' where it is not associated with a value";
+#endif
+
+    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
     CHECK_OBJECT(*exception_value);
 }
 
