@@ -28,7 +28,6 @@ from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.ModuleRegistry import (
     getDoneModules,
-    getMissingModules,
     getModuleInclusionInfos,
     getModuleInfluences,
     getModuleOptimizationTimingInfos,
@@ -87,8 +86,16 @@ def writeCompilationReport(report_filename):
         root.append(module_xml_node)
 
     modules_node = TreeXML.Element("missing-modules")
-    for module_name in getMissingModules():
-        modules_node.append(TreeXML.Element("module", name=module_name))
+
+    for module in set(
+        [
+            module[0]
+            for modules in getDoneModules()
+            for module in modules.getUsedModules()
+            if module[2] == "not-found"
+        ]
+    ):
+        modules_node.append(TreeXML.Element("module", name=module))
 
     root.append(modules_node)
 

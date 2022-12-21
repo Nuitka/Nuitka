@@ -184,10 +184,6 @@ def addUsedModule(module, using_module, usage_tag, reason, source_ref):
         module.startTraversal()
 
 
-def addMissingModule(module):
-    missing_modules.add(module)
-
-
 def nextModule():
     if active_modules:
         result = active_modules.pop()
@@ -212,10 +208,6 @@ def getDoneModules():
 
 def hasDoneModule(module_name):
     return any(module.getFullName() == module_name for module in done_modules)
-
-
-def getMissingModules():
-    return missing_modules
 
 
 def getModuleInclusionInfos():

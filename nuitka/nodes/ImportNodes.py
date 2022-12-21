@@ -26,6 +26,7 @@ deeper that what it normally could. The import expression node can lead to
 modules being added. After optimization it will be asked about used modules.
 """
 
+import collections
 import os
 import sys
 
@@ -39,7 +40,6 @@ from nuitka.importing.Importing import (
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
 from nuitka.importing.StandardLibrary import isStandardLibraryPath
-from nuitka.ModuleRegistry import addMissingModule
 from nuitka.Options import (
     isStandaloneMode,
     shallMakeModule,
@@ -283,6 +283,11 @@ hard_modules_trust = {
     "ctypes.wintypes": {},
     "ctypes.macholib": {},
 }
+
+ModuleUsageAttempt = collections.namedtuple(
+    "ImportScanFinding",
+    ("module_name", "filename", "finding", "level"),
+)
 
 
 def _addHardImportNodeClasses():
@@ -972,7 +977,9 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         )
 
         if self.finding != "not-found":
-            self.used_modules = [(module_name, module_filename, self.finding, level)]
+            self.used_modules = [
+                ModuleUsageAttempt(module_name, module_filename, self.finding, level)
+            ]
             import_list = self.subnode_fromlist
 
             if import_list is not None:
@@ -1003,7 +1010,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                     if name_import_module_filename is not None:
                         self.used_modules.append(
-                            (
+                            ModuleUsageAttempt(
                                 name_import_module_name,
                                 name_import_module_filename,
                                 name_import_finding,
@@ -1020,7 +1027,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 module_name = module_name.getPackageName()
 
                 if module_name is None:
-                    addMissingModule(backup_module_name)
+                    self.used_modules = [
+                        ModuleUsageAttempt(
+                            backup_module_name, module_filename, self.finding, level
+                        )
+                    ]
                     break
 
                 module_name_found, module_filename, finding = locateModule(
@@ -1031,7 +1042,9 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                 if module_filename is not None:
                     self.used_modules = [
-                        (module_name_found, module_filename, finding, level)
+                        ModuleUsageAttempt(
+                            module_name_found, module_filename, finding, level
+                        )
                     ]
 
             return None
