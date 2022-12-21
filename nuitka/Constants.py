@@ -381,6 +381,7 @@ def getConstantValueGuide(constant, elements_only):
         slice,
         xrange,
         type,
+        frozenset,
         BuiltinFunctionType,
         EllipsisType,
     ):
@@ -398,6 +399,10 @@ def getConstantValueGuide(constant, elements_only):
         return "l"
 
     elif constant_type is tuple:
+        # Empty tuples need no deep copy, not even a copy.
+        if not constant:
+            return "i"
+
         return ("%s" if elements_only else "T%s") % (
             "".join(
                 getConstantValueGuide(element, elements_only=False)
