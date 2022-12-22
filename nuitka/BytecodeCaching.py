@@ -84,7 +84,7 @@ def getCachedImportedModulesNames(module_name, source_code):
     if data["module_name"] != module_name:
         return None
 
-    used_modules = list(data['modules_used'])
+    used_modules = list(data["modules_used"])
     for module in used_modules:
         module["module_name"] = ModuleName(module["module_name"])
 
