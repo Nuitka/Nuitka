@@ -23,6 +23,7 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 """
 
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.nodes.ImportNodes import ModuleUsageAttempt
 from nuitka.Tracing import general
 
 
@@ -73,18 +74,13 @@ class DetectUsedModules(VisitorNoopMixin):
     def _onEnterNode(self, node):
         if node.isExpressionBuiltinImport():
 
-            for (
-                used_module_name,
-                used_module_filename,
-                finding,
-                level,
-            ) in node.getUsedModules():
+            for module in node.getUsedModules():
                 self.used_modules.add(
-                    (
-                        used_module_name,
-                        used_module_filename,
-                        finding,
-                        level,
+                    ModuleUsageAttempt(
+                        module.module_name,
+                        module.filename,
+                        module.finding,
+                        module.level,
                         node.source_ref,
                     )
                 )
@@ -95,7 +91,9 @@ class DetectUsedModules(VisitorNoopMixin):
         ):
             used_module_name, used_module_filename, finding = node.getUsedModule()
             self.used_modules.add(
-                (used_module_name, used_module_filename, finding, 0, node.source_ref)
+                ModuleUsageAttempt(
+                    used_module_name, used_module_filename, finding, 0, node.source_ref
+                )
             )
 
     def getUsedModules(self):

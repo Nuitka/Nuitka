@@ -286,7 +286,7 @@ hard_modules_trust = {
 
 ModuleUsageAttempt = collections.namedtuple(
     "ImportScanFinding",
-    ("module_name", "filename", "finding", "level"),
+    ("module_name", "filename", "finding", "level", "source_ref"),
 )
 
 
@@ -978,7 +978,9 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
         if self.finding != "not-found":
             self.used_modules = [
-                ModuleUsageAttempt(module_name, module_filename, self.finding, level)
+                ModuleUsageAttempt(
+                    module_name, module_filename, self.finding, level, None
+                )
             ]
             import_list = self.subnode_fromlist
 
@@ -1015,6 +1017,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                                 name_import_module_filename,
                                 name_import_finding,
                                 1,
+                                None,
                             )
                         )
 
@@ -1029,7 +1032,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 if module_name is None:
                     self.used_modules = [
                         ModuleUsageAttempt(
-                            backup_module_name, module_filename, self.finding, level
+                            backup_module_name,
+                            module_filename,
+                            self.finding,
+                            level,
+                            None,
                         )
                     ]
                     break
@@ -1043,7 +1050,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 if module_filename is not None:
                     self.used_modules = [
                         ModuleUsageAttempt(
-                            module_name_found, module_filename, finding, level
+                            module_name_found, module_filename, finding, level, None
                         )
                     ]
 

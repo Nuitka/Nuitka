@@ -24,6 +24,7 @@ such that it allows to restore it directly.
 import os
 
 from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
+from nuitka.nodes.ImportNodes import ModuleUsageAttempt
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, makePath
@@ -62,7 +63,7 @@ def hasCachedImportedModulesNames(module_name, source_code):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 2
+_cache_format_version = 3
 
 
 def getCachedImportedModulesNames(module_name, source_code):
@@ -83,24 +84,26 @@ def getCachedImportedModulesNames(module_name, source_code):
     if data["module_name"] != module_name:
         return None
 
-    return [
-        (ModuleName(used_module_name), line_number)
-        for (used_module_name, line_number) in data["modules_used"]
-    ]
+    used_modules = [module for module in data["modules_used"]]
+    for module in used_modules:
+        module["module_name"] = ModuleName(module["module_name"])
+
+    return [ModuleUsageAttempt(**module) for module in used_modules]
 
 
 def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     cache_name = makeCacheName(module_name, source_code)
     cache_filename = _getCacheFilename(cache_name, "json")
 
+    used_modules = [module._asdict() for module in used_modules]
+    for module in used_modules:
+        module["source_ref"] = module["source_ref"].getLineNumber()
+
     data = {
         "file_format_version": _cache_format_version,
         "module_name": module_name.asString(),
         # We use a tuple, so preserve the order.
-        "modules_used": tuple(
-            (used_module_name.asString(), source_ref.getLineNumber())
-            for used_module_name, _filename, _finding, _level, source_ref in used_modules
-        ),
+        "modules_used": used_modules,
     }
 
     makePath(os.path.dirname(cache_filename))

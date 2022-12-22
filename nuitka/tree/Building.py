@@ -96,6 +96,7 @@ from nuitka.nodes.ExceptionNodes import (
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.ImportNodes import (
+    ModuleUsageAttempt,
     isHardModuleWithoutSideEffect,
     makeExpressionImportModuleFixed,
 )
@@ -1004,24 +1005,14 @@ def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_
 
     used_modules = OrderedSet()
 
-    for used_module_name, line_number in getCachedImportedModulesNames(
-        module_name=module_name, source_code=source_code
-    ):
-        _module_name, module_filename, finding = Importing.locateModule(
-            module_name=used_module_name,
-            parent_package=None,
-            level=0,
-        )
-
-        assert _module_name == used_module_name
-
+    for module in getCachedImportedModulesNames(module_name, source_code):
         used_modules.add(
-            (
-                used_module_name,
-                module_filename,
-                finding,
+            ModuleUsageAttempt(
+                module.module_name,
+                module.filename,
+                module.finding,
                 0,
-                source_ref.atLineNumber(line_number),
+                source_ref.atLineNumber(module.source_ref),
             )
         )
 
