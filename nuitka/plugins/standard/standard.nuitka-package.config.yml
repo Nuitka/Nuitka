@@ -1443,6 +1443,15 @@
         - 'pango'
         - 'cairo'
 
+- module-name: 'passlib.apache'
+  implicit-imports:
+    - depends:
+        - 'passlib.handlers.digests'
+        - 'passlib.handlers.bcrypt'
+        - 'passlib.handlers.md5_crypt'
+        - 'passlib.handlers.des_crypt'
+        - 'passlib.handlers.ldap_digests'
+
 - module-name: 'passlib.hash'
   implicit-imports:
     - depends:
