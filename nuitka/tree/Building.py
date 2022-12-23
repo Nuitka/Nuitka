@@ -1008,11 +1008,11 @@ def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_
     for module in getCachedImportedModulesNames(module_name, source_code):
         used_modules.add(
             ModuleUsageAttempt(
-                module.module_name,
-                module.filename,
-                module.finding,
-                0,
-                source_ref.atLineNumber(module.source_ref),
+                module_name=module.module_name,
+                filename=module.filename,
+                finding=module.finding,
+                level=0,
+                source_ref=source_ref.atLineNumber(module.source_ref),
             )
         )
 

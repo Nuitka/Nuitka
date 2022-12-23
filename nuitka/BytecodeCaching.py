@@ -87,6 +87,8 @@ def getCachedImportedModulesNames(module_name, source_code):
     used_modules = list(data["modules_used"])
     for module in used_modules:
         module["module_name"] = ModuleName(module["module_name"])
+        module["source_ref"] = module["source_ref_line"]
+        del module["source_ref_line"]
 
     return [ModuleUsageAttempt(**module) for module in used_modules]
 
@@ -97,7 +99,8 @@ def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
 
     used_modules = [module._asdict() for module in used_modules]
     for module in used_modules:
-        module["source_ref"] = module["source_ref"].getLineNumber()
+        module["source_ref_line"] = module["source_ref"].getLineNumber()
+        del module["source_ref"]
 
     data = {
         "file_format_version": _cache_format_version,

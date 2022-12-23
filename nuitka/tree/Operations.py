@@ -77,11 +77,11 @@ class DetectUsedModules(VisitorNoopMixin):
             for module in node.getUsedModules():
                 self.used_modules.add(
                     ModuleUsageAttempt(
-                        module.module_name,
-                        module.filename,
-                        module.finding,
-                        module.level,
-                        node.source_ref,
+                        module_name=module.module_name,
+                        filename=module.filename,
+                        finding=module.finding,
+                        level=module.level,
+                        source_ref=node.source_ref,
                     )
                 )
         elif (
@@ -92,7 +92,11 @@ class DetectUsedModules(VisitorNoopMixin):
             used_module_name, used_module_filename, finding = node.getUsedModule()
             self.used_modules.add(
                 ModuleUsageAttempt(
-                    used_module_name, used_module_filename, finding, 0, node.source_ref
+                    module_name=used_module_name,
+                    filename=used_module_filename,
+                    finding=finding,
+                    level=0,
+                    source_ref=node.source_ref,
                 )
             )
 

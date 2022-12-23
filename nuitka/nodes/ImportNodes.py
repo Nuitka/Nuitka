@@ -33,6 +33,7 @@ import sys
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.importing.Importing import (
+    ModuleUsageAttempt,
     getModuleNameAndKindFromFilename,
     isPackageDir,
     locateModule,
@@ -283,11 +284,6 @@ hard_modules_trust = {
     "ctypes.wintypes": {},
     "ctypes.macholib": {},
 }
-
-ModuleUsageAttempt = collections.namedtuple(
-    "ImportScanFinding",
-    ("module_name", "filename", "finding", "level", "source_ref"),
-)
 
 
 def _addHardImportNodeClasses():
@@ -979,7 +975,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if self.finding != "not-found":
             self.used_modules = [
                 ModuleUsageAttempt(
-                    module_name, module_filename, self.finding, level, None
+                    module_name=module_name,
+                    filename=module_filename,
+                    finding=self.finding,
+                    level=level,
+                    source_ref=None,  # it will be set later
                 )
             ]
             import_list = self.subnode_fromlist
@@ -1013,11 +1013,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                     if name_import_module_filename is not None:
                         self.used_modules.append(
                             ModuleUsageAttempt(
-                                name_import_module_name,
-                                name_import_module_filename,
-                                name_import_finding,
-                                1,
-                                None,
+                                module_name=name_import_module_name,
+                                filename=name_import_module_filename,
+                                finding=name_import_finding,
+                                level=1,
+                                source_ref=None,  # it will be set later
                             )
                         )
 
@@ -1032,11 +1032,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 if module_name is None:
                     self.used_modules = [
                         ModuleUsageAttempt(
-                            backup_module_name,
-                            module_filename,
-                            self.finding,
-                            level,
-                            None,
+                            module_name=backup_module_name,
+                            filename=module_filename,
+                            finding=self.finding,
+                            level=level,
+                            source_ref=None,  # it will be set later
                         )
                     ]
                     break
@@ -1050,7 +1050,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 if module_filename is not None:
                     self.used_modules = [
                         ModuleUsageAttempt(
-                            module_name_found, module_filename, finding, level, None
+                            module_name=module_name_found,
+                            filename=module_filename,
+                            finding=finding,
+                            level=level,
+                            source_ref=None,  # it will be set later
                         )
                     ]
 

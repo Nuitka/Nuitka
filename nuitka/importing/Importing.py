@@ -70,6 +70,12 @@ warned_about = set()
 _main_path = None
 
 
+ModuleUsageAttempt = collections.namedtuple(
+    "ImportScanFinding",
+    ("module_name", "filename", "finding", "level", "source_ref"),
+)
+
+
 def setMainScriptDirectory(main_dir):
     """Initialize the main script directory.
 
