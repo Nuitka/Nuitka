@@ -1095,7 +1095,13 @@ except ImportError:
         context["python3_or_higher"] = python_version >= 0x300
 
         # We trust the yaml files, pylint: disable=eval-used
-        result = eval(condition, context)
+        try:
+            result = eval(condition, context)
+        except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            self.sysexit(
+                "Error, failed to evaluate condition '%s' in this context, exception was '%s'."
+                % (condition, e)
+            )
 
         if type(result) is not bool:
             self.sysexit(
