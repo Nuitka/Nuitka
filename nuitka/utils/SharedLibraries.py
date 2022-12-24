@@ -715,7 +715,10 @@ def getWindowsRunningProcessDLLPaths():
     result = OrderedDict()
 
     for handle in _getWindowsRunningProcessModuleHandles():
-        filename = getWindowsRunningProcessModuleFilename(handle)
+        try:
+            filename = getWindowsRunningProcessModuleFilename(handle)
+        except WindowsError:
+            continue
 
         result[os.path.basename(filename)] = filename
 
