@@ -26,7 +26,6 @@ deeper that what it normally could. The import expression node can lead to
 modules being added. After optimization it will be asked about used modules.
 """
 
-import collections
 import os
 import sys
 
