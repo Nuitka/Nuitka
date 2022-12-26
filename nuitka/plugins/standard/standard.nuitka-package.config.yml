@@ -3471,6 +3471,20 @@
         'scene_to_notebook': 'un-callable'
       when: 'not use_ipython'
 
+- module-name: 'trimesh.viewer.windowed'
+  anti-bloat:
+    - description: 'remove IPython reference (used for profiling)'
+      replacements_plain:
+        'if self._profile:': 'if False:'
+      when: 'not use_ipython'
+
+- module-name: 'trimesh.voxel.ops'
+  anti-bloat:
+    - description: 'remove numba reference'
+      change_function:
+        'boolean_sparse': 'un-callable'
+      when: 'not use_numba'
+
 - module-name: 'tzdata'
   data-files:
     dirs:
