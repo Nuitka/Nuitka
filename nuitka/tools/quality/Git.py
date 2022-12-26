@@ -181,7 +181,7 @@ def updateWorkingFile(path, orig_object_hash, new_object_hash):
     if exit_code != 0 and os.name == "nt":
         from .auto_format.AutoFormat import cleanupWindowsNewlines
 
-        cleanupWindowsNewlines(path)
+        cleanupWindowsNewlines(path, path)
 
         output, err, exit_code = executeProcess(
             ["git", "apply", "-"],
