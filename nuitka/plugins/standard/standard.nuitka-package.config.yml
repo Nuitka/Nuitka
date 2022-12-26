@@ -1004,6 +1004,7 @@
     - description: 'required for decorator compatibility'
       replacements_plain:
         'func.__defaults__ = f.__defaults__': ''
+        'real_func = func.__argmap__.compile(func.__wrapped__)': 'return func'
 
 - module-name: 'nose.core'
   data-files:
