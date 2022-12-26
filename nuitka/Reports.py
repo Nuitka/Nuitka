@@ -23,7 +23,6 @@ import os
 import sys
 
 from nuitka import TreeXML
-from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
@@ -88,14 +87,12 @@ def writeCompilationReport(report_filename):
 
     modules_node = TreeXML.Element("missing-modules")
 
-    for module_name in OrderedSet(
-        [
-            module.module_name
-            for modules in getDoneModules()
-            for module in modules.getUsedModules()
-            if module.finding == "not-found"
-        ]
-    ):
+    for module_name in {
+        module.module_name
+        for modules in getDoneModules()
+        for module in modules.getUsedModules()
+        if module.finding == "not-found"
+    }:
         modules_node.append(TreeXML.Element("module", name=module_name))
 
     root.append(modules_node)
