@@ -1550,7 +1550,12 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     return arg
 
 
-def _getProjectOptions(logger, filename_arg, module_mode):
+def getNuitkaProjectOptions(logger, filename_arg, module_mode):
+    """Extract the Nuitka project options.
+
+    Note: This is used by Nuitka project and test tools as well.
+    """
+
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if os.path.isdir(filename_arg):
@@ -1694,7 +1699,11 @@ def parseOptions(logger):
     if filename_arg is not None:
         sys.argv = (
             [sys.argv[0]]
-            + list(_getProjectOptions(logger, filename_arg, "--module" in sys.argv[1:]))
+            + list(
+                getNuitkaProjectOptions(
+                    logger, filename_arg, "--module" in sys.argv[1:]
+                )
+            )
             + sys.argv[1:]
         )
 
