@@ -56,7 +56,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         custom_choices,
         show_changes,
     ):
-        # Many details, due to many repetitive arguments, pylint: disable=too-many-branches
+        # Many details, due to many repetitive arguments, pylint: disable=too-many-branches,too-many-statements
 
         self.show_changes = show_changes
 
@@ -111,6 +111,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         if noinclude_numba_mode != "allow":
             self.handled_modules["numba"] = noinclude_numba_mode
+            self.handled_modules["sparse"] = noinclude_numba_mode
         else:
             self.control_tags["use_numba"] = True
 
