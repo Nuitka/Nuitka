@@ -467,7 +467,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
 
             if module_name in getOtherGUIBindingNames():
                 if plugin_binding_name in getQtBindingNames():
-                    recommendation = "Use '--nofollow-import-to=%(unwanted)s'"
+                    recommendation = "Use '--nofollow-import-to=%s'" % module_name
 
                     if module_name in getQtBindingNames():
                         problem = "conflicts with"
