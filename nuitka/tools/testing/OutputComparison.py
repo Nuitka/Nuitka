@@ -76,32 +76,12 @@ logging_warning_re = re.compile(r"^Nuitka.*?:WARNING")
 # Python3.11 style traceback carets are not done by Nuitka (yet?)
 syntax_error_caret_re = re.compile(r"^\s*~*\^*~*$")
 
-
-def _normalizeTimeDiff(outputStr):
-    """
-    use regular expression to normalize the time output
-
-    e.g.
-    =================== 1059 passed, 8 warnings in 7.99 seconds ===================
-
-    becomes
-    =================== 1059 passed, 8 warnings in x.xx seconds ===================
-    """
-
-    match = re.search(b"in [0-9]+.[0-9][0-9](s| seconds)", outputStr)
-    if match:
-        return (
-            outputStr[: match.start()] + b"in x.xx seconds" + outputStr[match.end() :]
-        )
-    return outputStr
+timing_re = re.compile(r"in [0-9]+.[0-9][0-9](s| seconds)")
 
 
 def makeDiffable(output, ignore_warnings, syntax_errors):
     # Of course many cases to deal with,
     # pylint: disable=too-many-branches,too-many-statements
-
-    # do not compare time differences
-    output = _normalizeTimeDiff(output)
 
     result = []
 
@@ -163,6 +143,7 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
         line = global_name_error_re.sub(r"\1\2\3", line)
         line = module_repr_re.sub(r"\1xxxxx\2", line)
         line = non_ascii_error_rt.sub(r"\1 xxxx", line)
+        line = timing_re.sub(r"in x.xx seconds", line)
 
         # Windows has a different "os.path", update according to it.
         line = line.replace("ntpath", "posixpath")
