@@ -29,6 +29,7 @@ import subprocess
 import sys
 import time
 
+from nuitka.OptionParsing import getNuitkaProjectOptions
 from nuitka.PythonVersions import python_version
 from nuitka.tools.testing.Common import (
     addToPythonPath,
@@ -37,6 +38,7 @@ from nuitka.tools.testing.Common import (
     getTempDir,
     getTestingCPythonOutputsCacheDir,
     killProcess,
+    test_logger,
     withPythonPathChange,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
@@ -293,6 +295,15 @@ def main():
     if args:
         sys.exit("Error, non understood mode(s) '%s'," % ",".join(args))
 
+    project_options = tuple(
+        getNuitkaProjectOptions(
+            logger=test_logger, filename_arg=filename, module_mode=module_mode
+        )
+    )
+
+    if "--standalone" in project_options:
+        standalone_mode = True
+
     # In coverage mode, we don't want to execute, and to do this only in one mode,
     # we enable two step execution, which splits running the binary from the actual
     # compilation:
@@ -476,7 +487,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
     if report:
         extra_options.append("--report=%s" % report)
 
-    if nofollow_imports:
+    if nofollow_imports or (not follow_imports and not standalone_mode):
         extra_options.append("--nofollow-imports")
 
     if follow_imports:
