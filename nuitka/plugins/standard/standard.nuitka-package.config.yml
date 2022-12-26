@@ -1004,6 +1004,7 @@
     - description: 'required for decorator compatibility'
       replacements_plain:
         'func.__defaults__ = f.__defaults__': ''
+        'real_func = func.__argmap__.compile(func.__wrapped__)': 'return func'
 
 - module-name: 'nose.core'
   data-files:
@@ -1015,6 +1016,11 @@
     - description: 'remove numba testing reference'
       change_function:
         'test': 'un-callable'
+  options:
+    checks:
+      - description: "Numba is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'"
+        support_info: 'warning'
+        when: 'not use_numba and standalone'
 
 - module-name: 'numba.core.caching'
   anti-bloat:
@@ -2229,6 +2235,27 @@
     - depends:
         - 'scipy.sparse.csgraph._validation'
 
+- module-name: 'scipy.sparse.linalg._expm_multiply'
+  anti-bloat:
+    - description: 'remove numba reference (via sparse)'
+      replacements_plain:
+        'import sparse': 'raise ImportError'
+      when: 'not use_numba and standalone'
+
+- module-name: 'scipy.sparse.linalg._matfuncs'
+  anti-bloat:
+    - description: 'remove numba reference (via sparse)'
+      replacements_plain:
+        'import sparse': 'raise ImportError'
+      when: 'not use_numba and standalone'
+
+- module-name: 'scipy.sparse.linalg.matfuncs'
+  anti-bloat:
+    - description: 'remove numba reference (via sparse)'
+      replacements_plain:
+        'import sparse': 'raise ImportError'
+      when: 'not use_numba and standalone'
+
 - module-name: 'scipy.spatial'
   implicit-imports:
     - depends:
@@ -2711,6 +2738,13 @@
   data-files:
     dirs:
       - 'lib'
+
+- module-name: 'sparse'
+  options:
+    checks:
+      - description: "Numba (via sparse) is not yet working with Nuitka standalone, recommended to use '--noinclude-numba-mode'"
+        support_info: 'warning'
+        when: 'not use_numba and standalone'
 
 - module-name: 'sphinx.util.docutils'
   anti-bloat:
@@ -3436,6 +3470,20 @@
       change_function:
         'scene_to_notebook': 'un-callable'
       when: 'not use_ipython'
+
+- module-name: 'trimesh.viewer.windowed'
+  anti-bloat:
+    - description: 'remove IPython reference (used for profiling)'
+      replacements_plain:
+        'if self._profile:': 'if False:'
+      when: 'not use_ipython'
+
+- module-name: 'trimesh.voxel.ops'
+  anti-bloat:
+    - description: 'remove numba reference'
+      change_function:
+        'boolean_sparse': 'un-callable'
+      when: 'not use_numba'
 
 - module-name: 'tzdata'
   data-files:
