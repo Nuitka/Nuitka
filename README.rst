@@ -986,9 +986,8 @@ Windows Programs without console give no errors
 
 For debugging purposes, remove ``--disable-console`` or use the options
 ``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec`` with
-paths as documented for ``--windows-onefile-tempdir-spec`` above. These
-can be relative to the program or absolute, so you can see the outputs
-given.
+paths as documented for ``--onefile-tempdir-spec`` above. These can be
+relative to the program or absolute, so you can see the outputs given.
 
 Deep copying uncompiled functions
 =================================
