@@ -797,6 +797,23 @@ def copyFileWithPermissions(source_path, dest_path):
         os.chmod(dest_path, source_mode)
 
 
+def queryUser(question, choices, default, default_non_interactive):
+    assert default in choices, (default, choices)
+    assert default_non_interactive in choices, (default, choices)
+
+    prompt = "%s? (%s)" % (
+        question,
+        "/".join(choice.upper() if choice == default else choice for choice in choices),
+    )
+
+    try:
+        reply = raw_input(prompt) or default
+    except EOFError:
+        reply = default_non_interactive
+
+    return reply.lower()
+
+
 def copyFile(source_path, dest_path):
     """Improved version of shutil.copy
 
@@ -813,12 +830,15 @@ def copyFile(source_path, dest_path):
 
             general.warning("Problem copying file %s:" % e)
 
-            try:
-                reply = raw_input("Retry? (YES/no) ") or "yes"
-            except EOFError:
-                reply = "no"
-
-            if reply.upper() == "YES":
+            if (
+                queryUser(
+                    "Retry?",
+                    choices=("yes", "no"),
+                    default="yes",
+                    default_non_interactive="no",
+                )
+                == "yes"
+            ):
                 continue
 
             raise
