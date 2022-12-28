@@ -375,6 +375,17 @@ data for "package_name" should be matched as "package_name/*.txt". Or for the
 whole directory simply use "package_name". Default empty.""",
 )
 
+data_group.add_option(
+    "--list-package-data",
+    action="store",
+    dest="list_package_data",
+    default="",
+    require_compiling=False,
+    help="""\
+Output the data files found for a given package name. Default not done.""",
+)
+
+
 del data_group
 
 
@@ -1730,6 +1741,12 @@ Error, need positional argument with python module or main program."""
         from nuitka.tools.scanning.DisplayPackageDLLs import displayDLLs
 
         displayDLLs(options.list_package_dlls)
+        sys.exit(0)
+
+    if options.list_package_data:
+        from nuitka.tools.scanning.DisplayPackageData import displayPackageData
+
+        displayPackageData(options.list_package_data)
         sys.exit(0)
 
     if not options.immediate_execution and len(positional_args) > 1:
