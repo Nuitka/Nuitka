@@ -140,6 +140,26 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'cefpython3'
+  data-files:
+    dirs:
+      - 'locales'
+    patterns:
+      - '*.bin'
+      - '*.pak'
+      - '*.dat'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'subprocess'
+        executable: 'yes'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - ''
+      when: 'win32'
+
 - module-name: 'certifi'
   data-files:
     patterns:
