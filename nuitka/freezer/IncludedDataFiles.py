@@ -333,34 +333,35 @@ def addIncludedDataFilesFromFileOptions():
         addIncludedDataFile(included_datafile)
 
 
+def scanIncludedPackageDataFiles(package_directory):
+    return getFileList(
+        package_directory,
+        ignore_dirs=("__pycache__",),
+        ignore_suffixes=default_ignored_suffixes,
+    )
+
+
 def makeIncludedPackageDataFiles(
     tracer, package_name, package_directory, pattern, reason, tags
 ):
     tags = decodeDataFileTags(tags)
     tags.add("package_data")
 
-    pkg_filenames = getFileList(
-        package_directory,
-        ignore_dirs=("__pycache__",),
-        ignore_suffixes=default_ignored_suffixes,
-    )
+    file_reason = "package '%s' %s" % (package_name, reason)
 
-    if pkg_filenames:
-        file_reason = "package '%s' %s" % (package_name, reason)
+    for pkg_filename in scanIncludedPackageDataFiles(package_directory):
+        rel_path = os.path.relpath(pkg_filename, package_directory)
 
-        for pkg_filename in pkg_filenames:
-            rel_path = os.path.relpath(pkg_filename, package_directory)
+        if pattern and not fnmatch.fnmatch(rel_path, pattern):
+            continue
 
-            if pattern and not fnmatch.fnmatch(rel_path, pattern):
-                continue
-
-            yield makeIncludedDataFile(
-                source_path=pkg_filename,
-                dest_path=os.path.join(package_name.asPath(), rel_path),
-                reason=file_reason,
-                tracer=tracer,
-                tags=tags,
-            )
+        yield makeIncludedDataFile(
+            source_path=pkg_filename,
+            dest_path=os.path.join(package_name.asPath(), rel_path),
+            reason=file_reason,
+            tracer=tracer,
+            tags=tags,
+        )
 
 
 def addIncludedDataFilesFromPlugins():
@@ -394,6 +395,8 @@ def addIncludedDataFilesFromPackageOptions():
                 "Failed to locate package directory of '%s'" % package_name.asString()
             )
             continue
+
+        # TODO: Maybe warn about packages that have no data files found.
 
         for included_datafile in makeIncludedPackageDataFiles(
             tracer=options_logger,

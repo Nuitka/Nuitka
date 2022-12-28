@@ -1000,7 +1000,7 @@ def getMustIncludePackages():
 
 
 def getShallIncludePackageData():
-    """*iterable of (module pattern, filename pattern)*, derived from ``--include-package-data=``
+    """*iterable of (module name, filename pattern)*, derived from ``--include-package-data=``
 
     The filename pattern can be None if not given. Empty values give None too.
     """
