@@ -592,7 +592,22 @@ static void setModuleFileValue(PyObject *module, wchar_t const *filename) {
 #else
 static void setModuleFileValue(PyObject *module, char const *filename) {
 #endif
-    if (HAS_ATTR_BOOL(module, const_str_plain___file__) == false) {
+    bool needs_update = false;
+
+    PyObject *existing_file_value = LOOKUP_ATTRIBUTE(module, const_str_plain___file__);
+
+    if (existing_file_value == NULL) {
+        CLEAR_ERROR_OCCURRED();
+        needs_update = true;
+    } else {
+        if (existing_file_value == Py_None) {
+            needs_update = true;
+        }
+
+        Py_DECREF(existing_file_value);
+    }
+
+    if (needs_update) {
 #ifdef _WIN32
         int res = SET_ATTRIBUTE(module, const_str_plain___file__, NuitkaUnicode_FromWideChar(filename, -1));
 #else
