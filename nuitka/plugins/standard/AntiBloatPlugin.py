@@ -443,14 +443,23 @@ which can and should be a top level package and then one choice, "error",
                     body=body,
                 )
 
-    def onModuleRecursion(self, module_name, module_filename, module_kind):
+    def onModuleRecursion(
+        self, module_name, module_filename, module_kind, using_module, source_ref
+    ):
         for handled_module_name, mode in self.handled_modules.items():
             if module_name.hasNamespace(handled_module_name):
                 # Make sure the compilation aborts or warns if asked to
                 if mode == "error":
                     raise NuitkaForbiddenImportEncounter(module_name)
-                if mode == "warning":
-                    self.warning("Unwanted import of '%s' encountered." % module_name)
+                if mode == "warning" and (
+                    using_module is None
+                    or not using_module.getFullName().hasNamespace(handled_module_name)
+                ):
+                    self.warning(
+                        "Undesirable import of '%s' at '%s' encountered. It may slow down compilation."
+                        % (handled_module_name, source_ref.getAsString()),
+                        mnemonic="unwanted-module",
+                    )
 
     def onModuleEncounter(self, module_name, module_filename, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
