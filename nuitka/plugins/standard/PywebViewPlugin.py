@@ -18,13 +18,10 @@
 """ Details see below in class definition.
 """
 
-import os
-
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import getActiveQtPlugin
-from nuitka.utils.FileOperations import getFileList, hasFilenameExtension
-from nuitka.utils.Utils import getArchitecture, getOS, isMacOS, isWin32Windows
+from nuitka.utils.Utils import getOS, isMacOS, isWin32Windows
 
 # spellchecker: ignore pywebview,mshtml
 
@@ -47,61 +44,6 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
             True if this is a standalone compilation.
         """
         return isStandaloneMode()
-
-    @staticmethod
-    def _getWebviewFiles(module, dlls):
-        # TODO: Clarify non-Windows needs.
-        if not isWin32Windows():
-            return
-
-        webview_libdir = os.path.join(module.getCompileTimeDirectory(), "lib")
-        for filename in getFileList(webview_libdir):
-            filename_relative = os.path.relpath(filename, webview_libdir)
-
-            if getArchitecture() == "x86":
-                if "x64" in filename_relative:
-                    continue
-            else:
-                if "x86" in filename_relative:
-                    continue
-
-            is_dll = hasFilenameExtension(filename_relative, ".dll")
-
-            if dlls and not is_dll or not dlls and is_dll:
-                continue
-
-            yield filename, filename_relative
-
-    def getExtraDlls(self, module):
-        if module.getFullName() == "webview":
-            for filename, filename_relative in self._getWebviewFiles(module, dlls=True):
-                yield self.makeDllEntryPoint(
-                    source_path=filename,
-                    dest_path=os.path.normpath(
-                        os.path.join(
-                            "webview/lib",
-                            filename_relative,
-                        )
-                    ),
-                    package_name=module.getFullName(),
-                    reason="needed by 'webview'",
-                )
-
-    def considerDataFiles(self, module):
-        if module.getFullName() == "webview":
-            for filename, filename_relative in self._getWebviewFiles(
-                module, dlls=False
-            ):
-                yield self.makeIncludedDataFile(
-                    source_path=filename,
-                    dest_path=os.path.normpath(
-                        os.path.join(
-                            "webview/lib",
-                            filename_relative,
-                        )
-                    ),
-                    reason="Package 'webview' datafile",
-                )
 
     def onModuleEncounter(self, module_name, module_filename, module_kind):
         # Make sure webview platforms are included as needed.
