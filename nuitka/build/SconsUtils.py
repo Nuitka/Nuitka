@@ -329,7 +329,7 @@ def changeKeyboardInterruptToErrorExit():
 def setEnvironmentVariable(env, key, value):
     if value is None:
         del os.environ[key]
-    elif value in os.environ:
+    elif key in os.environ:
         os.environ[key] = value
 
     if env is not None:

@@ -140,6 +140,26 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'cefpython3'
+  data-files:
+    dirs:
+      - 'locales'
+    patterns:
+      - '*.bin'
+      - '*.pak'
+      - '*.dat'
+
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'subprocess'
+        executable: 'yes'
+      when: 'win32'
+    - from_filenames:
+        prefixes:
+          - ''
+      when: 'win32'
+
 - module-name: 'certifi'
   data-files:
     patterns:
@@ -3666,6 +3686,48 @@
       - 'css'
     patterns:
       - 'VERSION'
+
+- module-name: 'webview'
+  data-files:
+    dirs:
+      - 'lib'
+  dlls:
+    - from_filenames:
+        relative_path: 'lib/x86'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'lib/x64'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'lib/arm64'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'Microsoft.'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'WebBrowserInterop.x86'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'WebBrowserInterop.x64'
+      when: 'win32 and arch_amd64'
+
+- module-name: 'webview.platforms.edgechromium'
+  anti-bloat:
+    - description: 'workaround unused platform DLL checks'
+      replacements_plain:
+        "';' + interop_dll_path(platform)": "';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', platform))"
 
 - module-name: 'win32com'
   import-hacks:
