@@ -421,13 +421,17 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def onModuleRecursion(self, module_name, module_filename, module_kind):
+    def onModuleRecursion(
+        self, module_name, module_filename, module_kind, using_module, source_ref
+    ):
         """React to recursion to a module coming up.
 
         Args:
             module_name: full module name
             module_filename: filename
             module_kind: one of "py", "extension" (shared library)
+            using_module: module object that does the usage (None if it is a user choice)
+            source_ref: code making the import (None if it is a user choice)
         Returns:
             None
         """

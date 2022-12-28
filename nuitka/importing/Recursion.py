@@ -55,7 +55,15 @@ def _recurseTo(module_name, module_filename, module_kind):
     return module, is_added
 
 
-def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
+def recurseTo(
+    signal_change,
+    module_name,
+    module_filename,
+    module_kind,
+    using_module,
+    source_ref,
+    reason,
+):
     try:
         module = ImportCache.getImportedModuleByNameAndPath(
             module_name, module_filename
@@ -68,6 +76,8 @@ def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
             module_filename=module_filename,
             module_name=module_name,
             module_kind=module_kind,
+            using_module=using_module,
+            source_ref=source_ref,
         )
 
         module, added_flag = _recurseTo(
@@ -296,6 +306,8 @@ def checkPluginSinglePath(plugin_filename, module_package):
                 module_filename=plugin_filename,
                 module_name=module_name,
                 module_kind=module_kind,
+                using_module=None,
+                source_ref=None,
                 reason=reason,
             )
 
@@ -398,6 +410,8 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
             module_name=parent_package_name,
             module_filename=parent_package_filename,
             module_kind=package_module_kind,
+            using_module=using_module,
+            source_ref=source_ref,
             reason=reason,
         )
 
@@ -453,6 +467,8 @@ def considerUsedModules(module, signal_change):
                     module_name=used_module_name,
                     module_filename=used_module_filename,
                     module_kind=module_kind,
+                    source_ref=source_ref,
+                    using_module=module,
                     reason=reason,
                 )
 

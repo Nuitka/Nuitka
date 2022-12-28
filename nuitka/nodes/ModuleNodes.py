@@ -125,6 +125,8 @@ class PythonModuleBase(NodeBase):
                     module_name=package_name,
                     module_filename=package_filename,
                     module_kind="py",
+                    using_module=self,
+                    source_ref=self.source_ref,
                     reason="Containing package of '%s'." % self.getFullName(),
                 )
 
