@@ -1078,6 +1078,7 @@ except ImportError:
                 {
                     "arch_x86": getArchitecture() == "x86",
                     "arch_amd64": getArchitecture() == "x86_64",
+                    "arch_arm64": getArchitecture() == "arm64",
                 }
             )
 
