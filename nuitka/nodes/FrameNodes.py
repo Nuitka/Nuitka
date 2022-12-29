@@ -101,12 +101,8 @@ class StatementsFrameBase(StatementsSequence):
     def getGuardMode(self):
         provider = self.getParentVariableProvider()
 
-        # TODO: Need to make "once" and "full" code share more stuff, such that the
-        # creation of the frame object is allowed for both. This would be with and
-        # without cache.
-
-        # while provider.isExpressionClassBody():
-        #     provider = provider.getParentVariableProvider()
+        while provider.isExpressionClassBody():
+            provider = provider.getParentVariableProvider()
 
         if provider.isCompiledPythonModule():
             return "once"
