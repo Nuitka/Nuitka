@@ -19,60 +19,69 @@
 
 """
 
-# Frame in a function
-template_frame_guard_full_block = """\
-if (isFrameUnusable(%(frame_cache_identifier)s)) {
-    Py_XDECREF(%(frame_cache_identifier)s);
+template_frame_guard_normal_main_block = """\
+{% if frame_cache_identifier %}
+if (isFrameUnusable({{frame_cache_identifier}})) {
+    Py_XDECREF({{frame_cache_identifier}});
 
 #if _DEBUG_REFCOUNTS
-    if (%(frame_cache_identifier)s == NULL) {
+    if ({{frame_cache_identifier}} == NULL) {
         count_active_frame_cache_instances += 1;
     } else {
         count_released_frame_cache_instances += 1;
     }
     count_allocated_frame_cache_instances += 1;
 #endif
-    %(frame_cache_identifier)s = %(make_frame_code)s
+    {{frame_cache_identifier}} = {{make_frame_code}};
 #if _DEBUG_REFCOUNTS
 } else {
     count_hit_frame_cache_instances += 1;
 #endif
 }
-assert(%(frame_cache_identifier)s->m_type_description == NULL);
-%(frame_identifier)s = %(frame_cache_identifier)s;
-%(frame_init_code)s
+assert({{frame_cache_identifier}}->m_type_description == NULL);
+{{frame_identifier}} = {{frame_cache_identifier}};
+{% else %}
+{{frame_identifier}} = {{make_frame_code}};
+{% endif %}
+{% if frame_init_code %}
+{{frame_init_code}}
+{% endif %}
 
-// Push the new frame as the currently active one.
-pushFrameStack(%(frame_identifier)s);
-
-// Mark the frame object as in use, ref count 1 will be up for reuse.
-assert(Py_REFCNT(%(frame_identifier)s) == 2); // Frame stack
+// Push the new frame as the currently active one, and we should be exclusively
+// owning it.
+pushFrameStack({{frame_identifier}});
+assert(Py_REFCNT({{frame_identifier}}) == 2);
 
 // Framed code:
-%(codes)s
+{{codes}}
 
-#if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
-#endif
+{% if needs_preserve %}
+// Restore frame exception if necessary.
+RESTORE_FRAME_EXCEPTION({{frame_identifier}});
+{% endif %}
 
 // Put the previous frame back on top.
 popFrameStack();
-%(frame_exit_code)s
+{% if frame_exit_code %}
+{{frame_exit_code}}
+{% endif %}
 
-goto %(no_exception_exit)s;
+goto {{no_exception_exit}};
 """
 
-template_frame_guard_full_return_handler = """\
-%(frame_return_exit)s:;
-#if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
-#endif
+template_frame_guard_normal_return_handler = """\
+{{frame_return_exit}}:
+{% if needs_preserve %}
+RESTORE_FRAME_EXCEPTION({{frame_identifier}});
+{% endif %}
 
 // Put the previous frame back on top.
 popFrameStack();
-%(frame_exit_code)s
+{% if frame_exit_code %}
+{{frame_exit_code}}s
+{% endif %}
 
-goto %(return_exit)s;
+goto {{return_exit}};
 """
 
 template_frame_attach_locals = """\
@@ -82,83 +91,46 @@ Nuitka_Frame_AttachLocals(
 );
 """
 
-template_frame_guard_full_exception_handler = """\
-%(frame_exception_exit)s:;
+template_frame_guard_normal_exception_handler = """\
+{{frame_exception_exit}}:
 
-#if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
-#endif
+{% if needs_preserve %}
+RESTORE_FRAME_EXCEPTION({{frame_identifier}});
+{% endif %}
 
-if (%(exception_tb)s == NULL) {
-    %(exception_tb)s = %(tb_making)s;
-} else if (%(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame) {
-    %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
+if ({{exception_tb}} == NULL) {
+    {{exception_tb}} = {{tb_making_code}};
+} else if ({{exception_tb}}->tb_frame != &{{frame_identifier}}->m_frame) {
+    {{exception_tb}} = ADD_TRACEBACK({{exception_tb}}, {{frame_identifier}}, {{exception_lineno}});
 }
 
+{% if attach_locals_code %}
 // Attaches locals to frame if any.
-%(attach_locals)s
+{{attach_locals_code}}
+{% endif %}
 
+{% if frame_cache_identifier %}
 // Release cached frame if used for exception.
-if (%(frame_identifier)s == %(frame_cache_identifier)s) {
+if ({{frame_identifier}} == {{frame_cache_identifier}}) {
 #if _DEBUG_REFCOUNTS
     count_active_frame_cache_instances -= 1;
     count_released_frame_cache_instances += 1;
 #endif
-
-    Py_DECREF(%(frame_cache_identifier)s);
-    %(frame_cache_identifier)s = NULL;
+    Py_DECREF({{frame_cache_identifier}});
+    {{frame_cache_identifier}} = NULL;
 }
+{% endif %}
 
-assertFrameObject(%(frame_identifier)s);
+assertFrameObject({{frame_identifier}});
 
 // Put the previous frame back on top.
 popFrameStack();
-%(frame_exit_code)s
+{% if frame_exit_code %}
+{{frame_exit_code}}
+{% endif %}
 
 // Return the error.
-goto %(parent_exception_exit)s;
-"""
-
-# Frame for a module. TODO: Use it for functions called only once.
-# TODO: The once guard need not take a reference count in its frame class.
-template_frame_guard_once_block = """\
-// Frame without reuse.
-%(frame_identifier)s = MAKE_MODULE_FRAME(%(code_identifier)s, %(module_identifier)s);
-
-// Push the new frame as the currently active one, and we should be exclusively
-// owning it.
-pushFrameStack(%(frame_identifier)s);
-assert(Py_REFCNT(%(frame_identifier)s) == 2);
-
-// Framed code:
-%(codes)s
-
-// Restore frame exception if necessary.
-#if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
-#endif
-popFrameStack();
-
-goto %(no_exception_exit)s;
-"""
-
-template_frame_guard_once_exception_handler = """\
-%(frame_exception_exit)s:;
-#if %(needs_preserve)d
-RESTORE_FRAME_EXCEPTION(%(frame_identifier)s);
-#endif
-
-if (%(exception_tb)s == NULL) {
-    %(exception_tb)s = %(tb_making)s;
-} else if (exception_tb->tb_frame != &%(frame_identifier)s->m_frame) {
-    %(exception_tb)s = ADD_TRACEBACK(%(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s);
-}
-
-// Put the previous frame back on top.
-popFrameStack();
-
-// Return the error.
-goto %(parent_exception_exit)s;
+goto {{parent_exception_exit}};
 """
 
 # Frame in a generator, coroutine or asyncgen.
