@@ -19,6 +19,8 @@
 
 """
 
+from nuitka.PythonVersions import python_version
+
 from .NodeBases import StatementBase, StatementChildHavingBase
 
 
@@ -262,18 +264,25 @@ class StatementPreserveFrameException(StatementBase):
     def getPreserverId(self):
         return self.preserver_id
 
-    def computeStatement(self, trace_collection):
-        # For Python2 generators, it's not necessary to preserve, the frame
-        # decides it. TODO: This check makes only sense once.
+    if python_version < 0x300:
 
-        if self.getParentStatementsFrame().needsExceptionFramePreservation():
+        def computeStatement(self, trace_collection):
+            # For Python2 generators, it's not necessary to preserve, the frame
+            # decides it. TODO: This check makes only sense once.
+
+            if self.getParentStatementsFrame().needsExceptionFramePreservation():
+                return self, None, None
+            else:
+                return (
+                    None,
+                    "new_statements",
+                    "Removed frame preservation for generators.",
+                )
+
+    else:
+
+        def computeStatement(self, trace_collection):
             return self, None, None
-        else:
-            return (
-                None,
-                "new_statements",
-                "Removed frame preservation for generators.",
-            )
 
     @staticmethod
     def mayRaiseException(exception_type):
