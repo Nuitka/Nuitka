@@ -54,13 +54,10 @@ def checkFrameStatements(value):
 class StatementsFrameBase(StatementsSequence):
     checkers = {"statements": checkFrameStatements}
 
-    __slots__ = ("guard_mode", "code_object", "needs_frame_exception_preserve")
+    __slots__ = ("code_object", "needs_frame_exception_preserve")
 
-    def __init__(self, statements, guard_mode, code_object, source_ref):
+    def __init__(self, statements, code_object, source_ref):
         StatementsSequence.__init__(self, statements=statements, source_ref=source_ref)
-
-        # TODO: Why not have multiple classes for this.
-        self.guard_mode = guard_mode
 
         self.code_object = code_object
 
@@ -102,13 +99,25 @@ class StatementsFrameBase(StatementsSequence):
         return cls(code_object=code_object, source_ref=source_ref, **other_args)
 
     def getGuardMode(self):
+        provider = self.getParentVariableProvider()
+
+        # TODO: Need to make "once" and "full" code share more stuff, such that the
+        # creation of the frame object is allowed for both. This would be with and
+        # without cache.
+
+        # while provider.isExpressionClassBody():
+        #     provider = provider.getParentVariableProvider()
+
+        if provider.isCompiledPythonModule():
+            return "once"
+        else:
+            return "full"
+
         return self.guard_mode
 
-    def needsExceptionFramePreservation(self):
-        if python_version < 0x300:
-            return self.guard_mode != "generator"
-        else:
-            return True
+    @staticmethod
+    def needsExceptionFramePreservation():
+        return True
 
     def getVarNames(self):
         return self.code_object.getVarNames()
@@ -274,7 +283,6 @@ class StatementsFrameModule(StatementsFrameBase):
             self,
             statements=statements,
             code_object=code_object,
-            guard_mode="once",
             source_ref=source_ref,
         )
 
@@ -291,7 +299,6 @@ class StatementsFrameFunction(StatementsFrameBase):
             self,
             statements=statements,
             code_object=code_object,
-            guard_mode="full",
             source_ref=source_ref,
         )
 
@@ -310,9 +317,6 @@ class StatementsFrameClass(StatementsFrameBase):
             self,
             statements=statements,
             code_object=code_object,
-            # TODO: Guard mode should be derived from where and how it's used, and
-            # should not be static.
-            guard_mode="full",
             source_ref=source_ref,
         )
 
@@ -326,52 +330,42 @@ class StatementsFrameClass(StatementsFrameBase):
         return self.locals_scope
 
 
-class StatementsFrameGenerator(StatementsFrameBase):
+class StatementsFrameGeneratorBase(StatementsFrameBase):
+    def __init__(self, statements, code_object, source_ref):
+        StatementsFrameBase.__init__(
+            self,
+            statements=statements,
+            code_object=code_object,
+            source_ref=source_ref,
+        )
+
+    @staticmethod
+    def getGuardMode():
+        # TODO: Can the "once" code be made usable for it.
+        return "generator"
+
+    @staticmethod
+    def hasStructureMember():
+        return True
+
+
+class StatementsFrameGenerator(StatementsFrameGeneratorBase):
     kind = "STATEMENTS_FRAME_GENERATOR"
 
-    def __init__(self, statements, code_object, source_ref):
-        StatementsFrameBase.__init__(
-            self,
-            statements=statements,
-            code_object=code_object,
-            guard_mode="generator",
-            source_ref=source_ref,
-        )
+    if python_version < 0x300:
 
-    @staticmethod
-    def hasStructureMember():
-        return True
+        @staticmethod
+        def needsExceptionFramePreservation():
+            return False
 
 
-class StatementsFrameCoroutine(StatementsFrameBase):
+class StatementsFrameCoroutine(StatementsFrameGeneratorBase):
     kind = "STATEMENTS_FRAME_COROUTINE"
 
-    def __init__(self, statements, code_object, source_ref):
-        StatementsFrameBase.__init__(
-            self,
-            statements=statements,
-            code_object=code_object,
-            guard_mode="generator",
-            source_ref=source_ref,
-        )
-
-    @staticmethod
-    def hasStructureMember():
-        return True
+    python_version_spec = ">= 0x350"
 
 
-class StatementsFrameAsyncgen(StatementsFrameBase):
+class StatementsFrameAsyncgen(StatementsFrameGeneratorBase):
     kind = "STATEMENTS_FRAME_ASYNCGEN"
 
-    def __init__(self, statements, code_object, source_ref):
-        StatementsFrameBase.__init__(
-            self,
-            statements=statements,
-            code_object=code_object,
-            guard_mode="generator",
-            source_ref=source_ref,
-        )
-
-    @staticmethod
-    def hasStructureMember():
-        return True
+    python_version_spec = ">= 0x360"
