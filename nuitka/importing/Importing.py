@@ -70,10 +70,18 @@ warned_about = set()
 _main_path = None
 
 
-ModuleUsageAttempt = collections.namedtuple(
-    "ImportScanFinding",
+ModuleUsageAttemptBase = collections.namedtuple(
+    "ModuleUsageAttempt",
     ("module_name", "filename", "finding", "level", "source_ref"),
 )
+
+class ModuleUsageAttempt(ModuleUsageAttemptBase):
+    # Enforce keyword usage.
+    def __init__(self, **args):
+        # Note: May catch problems here
+        # assert args["finding"] != "not-found", args["module_name"]
+
+        ModuleUsageAttemptBase.__init__(self)
 
 
 def setMainScriptDirectory(main_dir):
