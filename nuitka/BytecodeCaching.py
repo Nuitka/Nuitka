@@ -33,7 +33,7 @@ from nuitka.utils.Importing import getAllModuleSuffixes
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.Version import version_string
-
+from nuitka.containers.OrderedSets import OrderedSet
 
 def getBytecodeCacheDir():
     module_cache_dir = os.path.join(getCacheDir(), "module-cache")
@@ -56,8 +56,8 @@ def makeCacheName(module_name, source_code):
     )
 
 
-def hasCachedImportedModulesNames(module_name, source_code):
-    result = getCachedImportedModulesNames(module_name, source_code)
+def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
+    result = getCachedImportedModuleUsageAttempts(module_name=module_name, source_code=source_code, source_ref=source_ref)
 
     return result is not None
 
@@ -66,7 +66,7 @@ def hasCachedImportedModulesNames(module_name, source_code):
 _cache_format_version = 3
 
 
-def getCachedImportedModulesNames(module_name, source_code):
+def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
     cache_name = makeCacheName(module_name, source_code)
     cache_filename = _getCacheFilename(cache_name, "json")
 
@@ -84,14 +84,22 @@ def getCachedImportedModulesNames(module_name, source_code):
     if data["module_name"] != module_name:
         return None
 
-    used_modules = data["modules_used"]
-    for module in used_modules:
-        module["module_name"] = ModuleName(module["module_name"])
-        module["source_ref"] = module["source_ref_line"]
-        del module["source_ref_line"]
+    result = OrderedSet()
 
-    return [ModuleUsageAttempt(**module) for module in used_modules]
+    for module in data["modules_used"]:
+        result.add(
+            ModuleUsageAttempt(
+                module_name=ModuleName(module["module_name"]),
+                filename=module["filename"],
+                finding=module["finding"],
+                # TODO: Level might have to be dropped.
+                level=0,
+                # We store only the line number, so this cheats it to at full one.
+                source_ref=source_ref.atLineNumber(module["source_ref_line"]),
+            )
+        )
 
+    return result
 
 def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     cache_name = makeCacheName(module_name, source_code)

@@ -1009,16 +1009,15 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         level=1,  # Relative import
                     )
 
-                    if name_import_module_filename is not None:
-                        self.used_modules.append(
-                            ModuleUsageAttempt(
-                                module_name=name_import_module_name,
-                                filename=name_import_module_filename,
-                                finding=name_import_finding,
-                                level=1,
-                                source_ref=None,  # it will be set later
-                            )
+                    self.used_modules.append(
+                        ModuleUsageAttempt(
+                            module_name=name_import_module_name,
+                            filename=name_import_module_filename,
+                            finding=name_import_finding,
+                            level=0,
+                            source_ref=self.source_ref
                         )
+                    )
 
             return module_filename
         else:
@@ -1029,15 +1028,6 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 module_name = module_name.getPackageName()
 
                 if module_name is None:
-                    self.used_modules = [
-                        ModuleUsageAttempt(
-                            module_name=backup_module_name,
-                            filename=module_filename,
-                            finding=self.finding,
-                            level=level,
-                            source_ref=None,  # it will be set later
-                        )
-                    ]
                     break
 
                 module_name_found, module_filename, finding = locateModule(

@@ -59,8 +59,8 @@ from nuitka import (
 )
 from nuitka.__past__ import long, unicode
 from nuitka.BytecodeCaching import (
-    getCachedImportedModulesNames,
-    hasCachedImportedModulesNames,
+    getCachedImportedModuleUsageAttempts,
+    hasCachedImportedModuleUsageAttempts,
 )
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import CodeTooComplexCode
@@ -1005,16 +1005,7 @@ def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_
 
     used_modules = OrderedSet()
 
-    for module in getCachedImportedModulesNames(module_name, source_code):
-        used_modules.add(
-            ModuleUsageAttempt(
-                module_name=module.module_name,
-                filename=module.filename,
-                finding=module.finding,
-                level=0,
-                source_ref=source_ref.atLineNumber(module.source_ref),
-            )
-        )
+    used_modules = getCachedImportedModuleUsageAttempts(module_name=module_name, source_code=source_code, source_ref=source_ref)
 
     # assert not is_package, (module_name, used_modules, result, result.getCompileTimeFilename())
 
@@ -1061,7 +1052,7 @@ def _createModule(
             mode == "bytecode"
             and not is_top
             and not Options.shallDisableBytecodeCacheUsage()
-            and hasCachedImportedModulesNames(module_name, source_code)
+            and hasCachedImportedModuleUsageAttempts(module_name=module_name, source_code=source_code, source_ref=source_ref)
         ):
             result = _loadUncompiledModuleFromCache(
                 module_name=module_name,
