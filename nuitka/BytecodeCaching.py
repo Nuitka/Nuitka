@@ -112,7 +112,7 @@ def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     cache_name = makeCacheName(module_name, source_code)
     cache_filename = _getCacheFilename(cache_name, "json")
 
-    used_modules = [module._asdict() for module in used_modules]
+    used_modules = [module.asDict() for module in used_modules]
     for module in used_modules:
         module["source_ref_line"] = module["source_ref"].getLineNumber()
         del module["source_ref"]

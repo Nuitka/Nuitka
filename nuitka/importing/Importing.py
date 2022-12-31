@@ -75,7 +75,11 @@ ModuleUsageAttemptBase = collections.namedtuple(
     ("module_name", "filename", "finding", "level", "source_ref"),
 )
 
+# TODO: Have a namedtuple factory that does these things.
 class ModuleUsageAttempt(ModuleUsageAttemptBase):
+    # Avoids bugs on early Python3.4 and Python3.5 versions.
+    __slots__ = ()
+
     # Enforce keyword usage.
     def __init__(self, **args):
         # Note: May catch problems here
@@ -83,6 +87,8 @@ class ModuleUsageAttempt(ModuleUsageAttemptBase):
 
         ModuleUsageAttemptBase.__init__(self)
 
+    def asDict(self):
+        return self._asdict()
 
 def setMainScriptDirectory(main_dir):
     """Initialize the main script directory.
