@@ -96,7 +96,6 @@ from nuitka.nodes.ExceptionNodes import (
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.ImportNodes import (
-    ModuleUsageAttempt,
     isHardModuleWithoutSideEffect,
     makeExpressionImportModuleFixed,
 )

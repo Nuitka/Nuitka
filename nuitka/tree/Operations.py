@@ -23,7 +23,7 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 """
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.nodes.ImportNodes import ModuleUsageAttempt
+from nuitka.importing.Importing import ModuleUsageAttempt
 from nuitka.Tracing import general
 
 

@@ -23,8 +23,7 @@ such that it allows to restore it directly.
 
 import os
 
-from nuitka.importing.Importing import getPackageSearchPath, isPackageDir
-from nuitka.nodes.ImportNodes import ModuleUsageAttempt
+from nuitka.importing.Importing import getPackageSearchPath, isPackageDir, ModuleUsageAttempt
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, makePath
