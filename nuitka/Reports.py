@@ -95,9 +95,8 @@ def writeCompilationReport(report_filename):
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
-                line=str(used_module.source_ref.getLineNumber())
+                line=str(used_module.source_ref.getLineNumber()),
             )
-
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":

@@ -23,7 +23,12 @@ such that it allows to restore it directly.
 
 import os
 
-from nuitka.importing.Importing import getPackageSearchPath, isPackageDir, ModuleUsageAttempt
+from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.importing.Importing import (
+    ModuleUsageAttempt,
+    getPackageSearchPath,
+    isPackageDir,
+)
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, makePath
@@ -32,7 +37,7 @@ from nuitka.utils.Importing import getAllModuleSuffixes
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.Version import version_string
-from nuitka.containers.OrderedSets import OrderedSet
+
 
 def getBytecodeCacheDir():
     module_cache_dir = os.path.join(getCacheDir(), "module-cache")
@@ -56,7 +61,9 @@ def makeCacheName(module_name, source_code):
 
 
 def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
-    result = getCachedImportedModuleUsageAttempts(module_name=module_name, source_code=source_code, source_ref=source_ref)
+    result = getCachedImportedModuleUsageAttempts(
+        module_name=module_name, source_code=source_code, source_ref=source_ref
+    )
 
     return result is not None
 
@@ -99,6 +106,7 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
         )
 
     return result
+
 
 def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     cache_name = makeCacheName(module_name, source_code)

@@ -1015,7 +1015,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                             filename=name_import_module_filename,
                             finding=name_import_finding,
                             level=0,
-                            source_ref=self.source_ref
+                            source_ref=self.source_ref,
                         )
                     )
 
