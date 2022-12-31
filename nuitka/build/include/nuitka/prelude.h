@@ -309,8 +309,13 @@ typedef long Py_hash_t;
  * function that does it instead.
  *
  * TODO: Make it work for Win32 Python <= 3.7 too.
+ * TODO: The Python 3.7.0 on Linux doesn't work this way either, was a bad
+ * CPython release apparently.
  */
 #if (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#elif PYTHON_VERSION == 0x370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
