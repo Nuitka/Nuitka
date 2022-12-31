@@ -260,8 +260,6 @@ extern _PyRuntimeState _PyRuntime;
 #else
 NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED(void);
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
-    assert(!ERROR_OCCURRED());
-
     return _PyType_Lookup(type, name);
 }
 
