@@ -73,23 +73,17 @@ class DetectUsedModules(VisitorNoopMixin):
 
     def _onEnterNode(self, node):
         if node.isExpressionBuiltinImport():
-
-            for module in node.getUsedModules():
-                self.used_modules.add(
-                    ModuleUsageAttempt(
-                        module_name=module.module_name,
-                        filename=module.filename,
-                        finding=module.finding,
-                        level=module.level,
-                        source_ref=node.source_ref,
-                    )
-                )
+            self.used_modules.update(node.getUsedModules())
         elif (
             node.isExpressionImportModuleHard()
             or node.isExpressionImportModuleNameHard()
             or node.isExpressionImportModuleFixed()
         ):
+            # TODO: should provide ModuleUsageAttempt from the nodes rather than creating them
+            # here, then we can remove the whole type checks and just ask a base class "getUsedModules"
+            # or node specific ones, and this would be automatic.
             used_module_name, used_module_filename, finding = node.getUsedModule()
+
             self.used_modules.add(
                 ModuleUsageAttempt(
                     module_name=used_module_name,
