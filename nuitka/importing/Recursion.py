@@ -469,7 +469,11 @@ def considerUsedModules(module, signal_change):
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
                 "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
-                % (e, module.getFullName().asString(), used_module.source_ref.getAsString())
+                % (
+                    e,
+                    module.getFullName().asString(),
+                    used_module.source_ref.getAsString(),
+                )
             )
 
         addUsedModule(
@@ -479,7 +483,6 @@ def considerUsedModules(module, signal_change):
             reason=reason,
             source_ref=used_module.source_ref,
         )
-
 
     try:
         Plugins.considerImplicitImports(module=module, signal_change=signal_change)

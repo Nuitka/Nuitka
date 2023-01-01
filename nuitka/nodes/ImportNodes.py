@@ -1001,7 +1001,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         continue
 
                     (
-                        _name_import_module_name,
+                        name_import_module_name,
                         name_import_module_filename,
                         name_import_finding,
                     ) = locateModule(
@@ -1012,9 +1012,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                     self.used_modules.append(
                         ModuleUsageAttempt(
-                            module_name=ModuleName.makeModuleNameInPackage(
-                                package_name=module_name, module_name=import_item
-                            ),
+                            module_name=name_import_module_name,
                             filename=name_import_module_filename,
                             finding=name_import_finding,
                             level=1,

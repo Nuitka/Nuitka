@@ -727,6 +727,10 @@ def locateModule(module_name, parent_package, level):
         assert module_kind is not None, (module_filename, finding)
 
         module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
+    elif finding == "not-found" and parent_package is not None:
+        module_name = ModuleName.makeModuleNameInPackage(
+            package_name=parent_package, module_name=module_name
+        )
 
     return module_name, module_filename, finding
 
