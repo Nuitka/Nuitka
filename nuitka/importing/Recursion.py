@@ -384,7 +384,7 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
 
         if parent_package_filename is None:
             recursion_logger.sysexit(
-                "Error, failed to local parent package file for '%s' parent of '%s' (used by %s) module (%s)"
+                "Error, failed to locate parent package file for '%s' parent of '%s' (used by %s) module (%s)"
                 % (
                     parent_package_name.asString(),
                     module_name.asString(),
@@ -425,65 +425,61 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
 
 
 def considerUsedModules(module, signal_change):
-    for (
-        used_module_name,
-        used_module_filename,
-        finding,
-        level,
-        source_ref,
-    ) in module.getUsedModules():
-        if finding == "not-found":
+    for used_module in module.getUsedModules():
+        if used_module.finding == "not-found":
             Importing.warnAbout(
                 importing=module,
-                source_ref=source_ref,
-                module_name=used_module_name,
-                level=level,
+                source_ref=used_module.source_ref,
+                module_name=used_module.used_module_name,
+                level=used_module.level,
             )
+
+        # Nothing was found here
+        if used_module.module_filename is None:
+            continue
+
+        _module_name, module_kind = getModuleNameAndKindFromFilename(
+            used_module.used_module_filename
+        )
 
         try:
-            if used_module_filename is None:
-                continue
-
-            _module_name, module_kind = getModuleNameAndKindFromFilename(
-                used_module_filename
-            )
-
             decision, reason = decideRecursion(
-                module_filename=used_module_filename,
-                module_name=used_module_name,
+                module_filename=used_module.module_filename,
+                module_name=used_module.module_name,
                 module_kind=module_kind,
             )
 
             if decision:
                 _addParentPackageUsages(
                     using_module=module,
-                    module_name=used_module_name,
+                    module_name=used_module.module_name,
                     signal_change=signal_change,
-                    source_ref=source_ref,
+                    source_ref=used_module.source_ref,
                 )
 
                 used_module = recurseTo(
                     signal_change=signal_change,
-                    module_name=used_module_name,
-                    module_filename=used_module_filename,
+                    module_name=used_module.module_name,
+                    module_filename=used_module.module_filename,
                     module_kind=module_kind,
-                    source_ref=source_ref,
+                    source_ref=used_module.source_ref,
                     using_module=module,
                     reason=reason,
-                )
-
-                addUsedModule(
-                    module=used_module,
-                    using_module=module,
-                    usage_tag="import",
-                    reason=reason,
-                    source_ref=source_ref,
                 )
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
                 "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
-                % (e, module.getFullName().asString(), source_ref.getAsString())
+                % (e, module.getFullName().asString(), used_module.source_ref.getAsString())
             )
+
+        addUsedModule(
+            module=used_module,
+            using_module=module,
+            usage_tag="import",
+            reason=reason,
+            source_ref=used_module.source_ref,
+        )
+
 
     try:
         Plugins.considerImplicitImports(module=module, signal_change=signal_change)
