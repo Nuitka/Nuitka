@@ -56,7 +56,7 @@ from nuitka.tools.testing.Common import (
 from nuitka.utils.Importing import getSharedLibrarySuffix
 
 from nuitka.__past__ import iter_modules
-from nuitka.importing.Importing import locateModule, setMainScriptDirectory, decideModuleSourceRef
+from nuitka.importing.Importing import locateModule, addMainScriptDirectory, decideModuleSourceRef
 from nuitka import Options
 
 python_version = setup(suite="python_modules", needs_io_encoding=True)
@@ -67,7 +67,7 @@ from nuitka.tree.SourceHandling import (
     readSourceCodeFromFilenameWithInformation,
 )
 
-setMainScriptDirectory("/doesnotexist")
+addMainScriptDirectory("/doesnotexist")
 Options.is_full_compat = False
 
 def scanModule(name_space, module_iterator):

@@ -1115,11 +1115,9 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
         )
 
 
-def buildMainModuleTree(filename, is_main):
+def buildMainModuleTree(filename, is_main, source_code):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
-
-    Plugins.onBeforeCodeParsing()
 
     if is_main:
         # TODO: Doesn't work for deeply nested packages at all.
@@ -1133,11 +1131,11 @@ def buildMainModuleTree(filename, is_main):
     module, _added = buildModule(
         module_name=module_name,
         module_filename=filename,
-        source_code=None,
+        source_code=source_code,
         is_top=True,
         is_main=is_main,
         is_extension=False,
-        is_fake=False,
+        is_fake=source_code is not None,
         hide_syntax_error=False,
     )
 

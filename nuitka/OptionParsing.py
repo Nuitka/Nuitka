@@ -154,6 +154,14 @@ installation from Windows registry. On Windows Python 3.5 or higher is
 needed. On non-Windows, Python 2.6 or 2.7 will do as well.""",
 )
 
+parser.add_option(
+    "--main",
+    action="append",
+    dest="mains",
+    metavar="PATH",
+    default=[],
+    help=SUPPRESS_HELP,
+)
 
 include_group = parser.add_option_group(
     "Control the inclusion of modules and packages in result"
@@ -1685,7 +1693,6 @@ def parseOptions(logger):
                 continue
 
             if arg[0] != "-":
-                filename_arg = arg[0]
                 break
 
             # Treat "--" as a terminator.
@@ -1697,24 +1704,27 @@ def parseOptions(logger):
             extra_args = sys.argv[count + 1 :]
             sys.argv = sys.argv[0 : count + 1]
 
-    filename_arg = None
+    filename_args = []
+    module_mode = False
 
     for count, arg in enumerate(sys.argv):
         if count == 0:
             continue
 
+        if arg.startswith("--main="):
+            filename_args.append(arg)
+
+        if arg == "--module":
+            module_mode = True
+
         if arg[0] != "-":
-            filename_arg = arg
+            filename_args.append(arg)
             break
 
-    if filename_arg is not None:
+    for filename in filename_args:
         sys.argv = (
             [sys.argv[0]]
-            + list(
-                getNuitkaProjectOptions(
-                    logger, filename_arg, "--module" in sys.argv[1:]
-                )
-            )
+            + list(getNuitkaProjectOptions(logger, filename, module_mode))
             + sys.argv[1:]
         )
 
@@ -1723,12 +1733,16 @@ def parseOptions(logger):
 
     options, positional_args = parser.parse_args()
 
-    if not positional_args and not parser.hasNonCompilingAction(options):
+    if (
+        not positional_args
+        and not options.mains
+        and not parser.hasNonCompilingAction(options)
+    ):
         parser.print_help()
 
         logger.sysexit(
             """
-Error, need positional argument with python module or main program."""
+Error, need filename argument with python module or main program."""
         )
 
     if options.plugin_list:

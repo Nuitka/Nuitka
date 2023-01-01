@@ -858,17 +858,18 @@ notarization capable signature, the default identify 'ad-hoc' is not going \
 to work."""
         )
 
-    filename = getPositionalArgs()[0]
-    if not os.path.exists(filename):
-        Tracing.general.sysexit("Error, file '%s' is not found." % filename)
+    for filename in getMainEntryPointFilenames():
+        if not os.path.exists(filename):
+            Tracing.general.sysexit("Error, file '%s' is not found." % filename)
 
-    if (
-        shallMakeModule()
-        and os.path.normcase(os.path.basename(filename)) == "__init__.py"
-    ):
-        Tracing.general.sysexit(
-            "Error, to compile a package, specify its directory name, not the '__init__.py'."
-        )
+        if (
+            shallMakeModule()
+            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
+        ):
+            Tracing.general.sysexit(
+                """\
+Error, to compile a package, specify its directory but, not the '__init__.py'."""
+            )
 
 
 def isVerbose():
@@ -1134,6 +1135,17 @@ def getPositionalArgs():
 def getMainArgs():
     """*tuple*, arguments following the optional arguments"""
     return tuple(extra_args)
+
+
+def getMainEntryPointFilenames():
+    """*tuple*, main programs, none, one or more"""
+    if options.mains:
+        if len(options.mains) == 1:
+            assert not positional_args
+
+        return tuple(options.mains)
+    else:
+        return [positional_args[0]]
 
 
 def shallOptimizeStringExec():

@@ -50,6 +50,7 @@ from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, recursion_logger
+from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, removeDirectory
 from nuitka.utils.Importing import getSharedLibrarySuffixes
@@ -67,7 +68,7 @@ _debug_module_finding = Options.shallExplainImports()
 warned_about = set()
 
 # Directory where the main script lives. Should attempt to import from there.
-_main_path = None
+_main_paths = OrderedSet()
 
 
 ModuleUsageAttemptBase = collections.namedtuple(
@@ -92,19 +93,16 @@ class ModuleUsageAttempt(ModuleUsageAttemptBase):
         return self._asdict()
 
 
-def setMainScriptDirectory(main_dir):
+def addMainScriptDirectory(main_dir):
     """Initialize the main script directory.
 
     We use this as part of the search path for modules.
     """
-    # We need to set this from the outside, pylint: disable=global-statement
-
-    global _main_path
-    _main_path = main_dir
+    _main_paths.add(main_dir)
 
 
-def getMainScriptDirectory():
-    return _main_path
+def hasMainScriptDirectory():
+    return bool(_main_paths)
 
 
 def isPackageDir(dirname):
@@ -575,12 +573,14 @@ def _unpackPathElement(path_entry):
 
 
 def getPackageSearchPath(package_name):
-    assert _main_path is not None
+    assert _main_paths
 
     if package_name is None:
-        result = [os.getcwd(), _main_path] + [
-            _unpackPathElement(path_element) for path_element in sys.path
-        ]
+        result = (
+            [os.getcwd()]
+            + list(_main_paths)
+            + [_unpackPathElement(path_element) for path_element in sys.path]
+        )
     elif "." in package_name:
         parent_package_name, child_package_name = package_name.splitModuleBasename()
 
@@ -709,6 +709,10 @@ def locateModule(module_name, parent_package, level):
         package containing it, and filename of it which can be a
         directory for packages, and the location method used.
     """
+
+    if module_name.isMultidistModuleName():
+        return locateMultidistModule(module_name)
+
     module_package, module_filename, finding = findModule(
         module_name=module_name,
         parent_package=parent_package,
