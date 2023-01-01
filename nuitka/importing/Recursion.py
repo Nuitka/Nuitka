@@ -435,7 +435,7 @@ def considerUsedModules(module, signal_change):
             )
 
         # Nothing was found here
-        if used_module.module_filename is None:
+        if used_module.filename is None:
             continue
 
         _module_name, module_kind = getModuleNameAndKindFromFilename(
@@ -444,7 +444,7 @@ def considerUsedModules(module, signal_change):
 
         try:
             decision, reason = decideRecursion(
-                module_filename=used_module.module_filename,
+                module_filename=used_module.filename,
                 module_name=used_module.module_name,
                 module_kind=module_kind,
             )
@@ -460,7 +460,7 @@ def considerUsedModules(module, signal_change):
                 used_module = recurseTo(
                     signal_change=signal_change,
                     module_name=used_module.module_name,
-                    module_filename=used_module.module_filename,
+                    module_filename=used_module.filename,
                     module_kind=module_kind,
                     source_ref=used_module.source_ref,
                     using_module=module,
