@@ -29,9 +29,9 @@ import wheel.bdist_wheel  # pylint: disable=I0021,import-error,no-name-in-module
 from nuitka.__past__ import Iterable, unicode
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import (
+    addMainScriptDirectory,
     decideModuleSourceRef,
     locateModule,
-    setMainScriptDirectory,
 )
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
@@ -192,7 +192,7 @@ class build(distutils.command.build.build):
             main_package_dir = os.path.abspath(old_dir)
 
         # Search in the build directory preferably.
-        setMainScriptDirectory(main_package_dir)
+        addMainScriptDirectory(main_package_dir)
 
         for is_package, module_name in self._find_to_build():
             module_name, main_filename, finding = locateModule(

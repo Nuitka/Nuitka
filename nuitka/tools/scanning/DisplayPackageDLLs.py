@@ -23,9 +23,9 @@ from nuitka.freezer.DllDependenciesCommon import (
     getPackageSpecificDLLDirectories,
 )
 from nuitka.importing.Importing import (
-    getMainScriptDirectory,
+    addMainScriptDirectory,
+    hasMainScriptDirectory,
     locateModule,
-    setMainScriptDirectory,
 )
 from nuitka.Tracing import tools_logger
 from nuitka.utils.FileOperations import listDllFilesFromDirectory, relpath
@@ -36,8 +36,8 @@ def displayDLLs(module_name):
     """Display the DLLs for a module name."""
     module_name = ModuleName(module_name)
 
-    if not getMainScriptDirectory():
-        setMainScriptDirectory(os.getcwd())
+    if not hasMainScriptDirectory():
+        addMainScriptDirectory(os.getcwd())
 
     module_name, package_directory, finding = locateModule(
         module_name=module_name, parent_package=None, level=0

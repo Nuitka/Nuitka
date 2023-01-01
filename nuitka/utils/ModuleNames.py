@@ -268,7 +268,7 @@ class ModuleName(str):
 
     # Reject APIs being used. TODO: Maybe make this a decorator for reuse.
     # TODO: Add rsplit and subscript operations too.
-    for _func_name in ("split", "startswith", "endswith"):
+    for _func_name in ("split", "startswith", "endswith", "__mod__"):
         code = """\
 def %(func_name)s(*args, **kwargs):
     from nuitka.Errors import NuitkaCodeDeficit

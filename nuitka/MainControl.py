@@ -71,6 +71,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
+from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
     callProcess,
@@ -116,22 +117,48 @@ from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
 
 
-def _createNodeTree(filename):
+def _setupFromMainFilenames():
+    main_filenames = Options.getMainEntryPointFilenames()
+    for filename in main_filenames:
+        # Inform the importing layer about the main script directory, so it can use
+        # it when attempting to follow imports.
+        Importing.addMainScriptDirectory(
+            main_dir=os.path.dirname(os.path.abspath(filename))
+        )
+
+
+def _createMainModule():
     """Create a node tree.
 
-    Turn that source code into a node tree structure. If recursion into
-    imported modules is available, more trees will be available during
-    optimization, or immediately through recursed directory paths.
+    Turn that source code into a node tree structure. If following into
+    imported modules is allowed, more trees will be available during
+    optimization, or even immediately through forcefully included
+    directory paths.
 
     """
-
     # Many cases to deal with, pylint: disable=too-many-branches
 
+    Plugins.onBeforeCodeParsing()
+
+    main_filenames = Options.getMainEntryPointFilenames()
+
     # First, build the raw node tree from the source code.
-    main_module = buildMainModuleTree(
-        filename=filename,
-        is_main=not Options.shallMakeModule(),
-    )
+    if len(main_filenames) > 1:
+        main_module = buildMainModuleTree(
+            # TODO: Should not be given.
+            filename=main_filenames[0],
+            is_main=True,
+            source_code=createMultidistMainSourceCode(main_filenames),
+        )
+
+    else:
+        main_module = buildMainModuleTree(
+            filename=main_filenames[0],
+            is_main=not Options.shallMakeModule(),
+            source_code=None,
+        )
+
+    OutputDirectories.setMainModule(main_module)
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
@@ -207,6 +234,9 @@ def _createNodeTree(filename):
     Plugins.onModuleInitialSet()
 
     # Then optimize the tree and potentially recursed modules.
+    # TODO: The passed filename is really something that should come from
+    # a command line option, it's a filename for the graph, which might not
+    # need a default at all.
     optimizeModules(main_module.getOutputFilename())
 
     # Freezer may have concerns for some modules.
@@ -899,20 +929,14 @@ def main():
         )
     )
 
-    filename = Options.getPositionalArgs()[0]
-
-    # Inform the importing layer about the main script directory, so it can use
-    # it when attempting to follow imports.
-    Importing.setMainScriptDirectory(
-        main_dir=os.path.dirname(os.path.abspath(filename))
-    )
+    _setupFromMainFilenames()
 
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
 
     # Turn that source code into a node tree structure.
     try:
-        main_module = _createNodeTree(filename=filename)
+        main_module = _createMainModule()
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
