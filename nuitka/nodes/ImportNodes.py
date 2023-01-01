@@ -971,16 +971,17 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             level=level,
         )
 
+        self.used_modules = [
+            ModuleUsageAttempt(
+                module_name=module_name,
+                filename=module_filename,
+                finding=self.finding,
+                level=level,
+                source_ref=self.source_ref,
+            )
+        ]
+
         if self.finding != "not-found":
-            self.used_modules = [
-                ModuleUsageAttempt(
-                    module_name=module_name,
-                    filename=module_filename,
-                    finding=self.finding,
-                    level=level,
-                    source_ref=self.source_ref,
-                )
-            ]
             import_list = self.subnode_fromlist
 
             if import_list is not None:
@@ -1026,28 +1027,29 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             module_name = resolveModuleName(module_name)
 
             while True:
-                backup_module_name = module_name
                 module_name = module_name.getPackageName()
 
                 if module_name is None:
                     break
 
-                module_name_found, module_filename, finding = locateModule(
+                _module_name_found, module_filename, finding = locateModule(
                     module_name=module_name,
                     parent_package=parent_package,
                     level=level,
                 )
 
-                if module_filename is not None:
-                    self.used_modules = [
-                        ModuleUsageAttempt(
-                            module_name=module_name_found,
-                            filename=module_filename,
-                            finding=finding,
-                            level=level,
-                            source_ref=None,  # it will be set later
-                        )
-                    ]
+                self.used_modules.append(
+                    ModuleUsageAttempt(
+                        module_name=module_name,
+                        filename=module_filename,
+                        finding=finding,
+                        level=level,
+                        source_ref=self.source_ref
+                    )
+                )
+
+                if finding != "not-found":
+                    break
 
             return None
 
