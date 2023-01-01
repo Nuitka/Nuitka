@@ -260,6 +260,16 @@ class ExpressionBuiltinSetattr(ChildrenExpressionBuiltinSetattrMixin, Expression
 
         ExpressionBase.__init__(self, source_ref)
 
+    # TODO: Enable this.
+    # auto_compute_handling="wait_constant:attribute,raise"
+
+    def computeExpressionConstantAttribute(self, trace_collection):
+        return ExpressionAttributeLookup(
+            expression=self.subnode_expression,
+            attribute_name=self.subnode_attribute.getCompileTimeConstant(),
+            source_ref=self.source_ref,
+        )
+
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
