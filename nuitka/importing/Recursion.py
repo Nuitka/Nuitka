@@ -430,7 +430,7 @@ def considerUsedModules(module, signal_change):
             Importing.warnAbout(
                 importing=module,
                 source_ref=used_module.source_ref,
-                module_name=used_module.used_module_name,
+                module_name=used_module.module_name,
                 level=used_module.level,
             )
 
