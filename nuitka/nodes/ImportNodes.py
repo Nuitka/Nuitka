@@ -978,7 +978,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                     filename=module_filename,
                     finding=self.finding,
                     level=level,
-                    source_ref=None,  # it will be set later
+                    source_ref=self.source_ref,
                 )
             ]
             import_list = self.subnode_fromlist

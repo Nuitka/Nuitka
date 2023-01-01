@@ -85,6 +85,7 @@ class ModuleUsageAttempt(ModuleUsageAttemptBase):
         # Note: May catch problems here
         # assert args["finding"] != "not-found", args["module_name"]
 
+        assert args["source_ref"] is not None
         ModuleUsageAttemptBase.__init__(self)
 
     def asDict(self):
