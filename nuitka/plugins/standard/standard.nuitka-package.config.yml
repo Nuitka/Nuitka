@@ -742,6 +742,13 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'importlib_metadata'
+  anti-bloat:
+    - description: 'remove useless metadata usage'
+      replacements:
+        '__version__ = version(__name__)': 'repr(version("importlib_metadata"))'
+      when: 'standalone'
+
 - module-name: 'importlib_resources'
   data-files:
     patterns:
