@@ -46,6 +46,8 @@ extern PyObject **global_constants;
 #define const_bytes_empty global_constants[10]
 // '__module__'
 #define const_str_plain___module__ global_constants[11]
+// '__nuitka__'
+#define const_str_plain___nuitka__ global_constants[11]
 // '__class__'
 #define const_str_plain___class__ global_constants[12]
 // '__class_getitem__'

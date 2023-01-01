@@ -260,8 +260,6 @@ extern _PyRuntimeState _PyRuntime;
 #else
 NUITKA_MAY_BE_UNUSED static inline bool ERROR_OCCURRED(void);
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_TypeLookup(PyTypeObject *type, PyObject *name) {
-    assert(!ERROR_OCCURRED());
-
     return _PyType_Lookup(type, name);
 }
 
@@ -309,8 +307,13 @@ typedef long Py_hash_t;
  * function that does it instead.
  *
  * TODO: Make it work for Win32 Python <= 3.7 too.
+ * TODO: The Python 3.7.0 on Linux doesn't work this way either, was a bad
+ * CPython release apparently.
  */
 #if (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#elif PYTHON_VERSION == 0x370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
