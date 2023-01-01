@@ -439,7 +439,7 @@ def considerUsedModules(module, signal_change):
             continue
 
         _module_name, module_kind = getModuleNameAndKindFromFilename(
-            used_module.used_module_filename
+            used_module.filename
         )
 
         try:
@@ -457,7 +457,7 @@ def considerUsedModules(module, signal_change):
                     source_ref=used_module.source_ref,
                 )
 
-                used_module = recurseTo(
+                new_module = recurseTo(
                     signal_change=signal_change,
                     module_name=used_module.module_name,
                     module_filename=used_module.filename,
@@ -465,6 +465,14 @@ def considerUsedModules(module, signal_change):
                     source_ref=used_module.source_ref,
                     using_module=module,
                     reason=reason,
+                )
+
+                addUsedModule(
+                    module=new_module,
+                    using_module=module,
+                    usage_tag="import",
+                    reason=reason,
+                    source_ref=used_module.source_ref,
                 )
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
@@ -475,14 +483,6 @@ def considerUsedModules(module, signal_change):
                     used_module.source_ref.getAsString(),
                 )
             )
-
-        addUsedModule(
-            module=used_module,
-            using_module=module,
-            usage_tag="import",
-            reason=reason,
-            source_ref=used_module.source_ref,
-        )
 
     try:
         Plugins.considerImplicitImports(module=module, signal_change=signal_change)
