@@ -90,6 +90,7 @@ class ModuleUsageAttempt(ModuleUsageAttemptBase):
     def asDict(self):
         return self._asdict()
 
+
 def setMainScriptDirectory(main_dir):
     """Initialize the main script directory.
 
