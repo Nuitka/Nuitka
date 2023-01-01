@@ -70,6 +70,28 @@ warned_about = set()
 _main_path = None
 
 
+ModuleUsageAttemptBase = collections.namedtuple(
+    "ModuleUsageAttempt",
+    ("module_name", "filename", "finding", "level", "source_ref"),
+)
+
+# TODO: Have a namedtuple factory that does these things.
+class ModuleUsageAttempt(ModuleUsageAttemptBase):
+    # Avoids bugs on early Python3.4 and Python3.5 versions.
+    __slots__ = ()
+
+    # Enforce keyword usage.
+    def __init__(self, **args):
+        # Note: May catch problems here
+        # assert args["finding"] != "not-found", args["module_name"]
+
+        assert args["source_ref"] is not None
+        ModuleUsageAttemptBase.__init__(self)
+
+    def asDict(self):
+        return self._asdict()
+
+
 def setMainScriptDirectory(main_dir):
     """Initialize the main script directory.
 
@@ -705,6 +727,16 @@ def locateModule(module_name, parent_package, level):
         assert module_kind is not None, (module_filename, finding)
 
         module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
+    elif finding == "not-found":
+        if parent_package is not None:
+            if not module_name:
+                module_name = parent_package
+            else:
+                module_name = ModuleName.makeModuleNameInPackage(
+                    package_name=parent_package, module_name=module_name
+                )
+        elif level > 0:
+            module_name = ModuleName("")
 
     return module_name, module_filename, finding
 

@@ -45,6 +45,14 @@ def makeTriggerModuleName(module_name, trigger_name):
     return ModuleName(module_name + trigger_name)
 
 
+# Multidist prefix
+_multi_dist_prefix = "multidist-"
+
+
+def makeMultidistModuleName(count, suffix):
+    return ModuleName("%s%d-%s" % (_multi_dist_prefix, count, suffix))
+
+
 class ModuleName(str):
     def __init__(self, value):
         assert checkModuleName(value), value
@@ -254,6 +262,9 @@ class ModuleName(str):
 
     def isFakeModuleName(self):
         return str(self).endswith(trigger_names)
+
+    def isMultidistModuleName(self):
+        return str(self).startswith(_multi_dist_prefix)
 
     # Reject APIs being used. TODO: Maybe make this a decorator for reuse.
     # TODO: Add rsplit and subscript operations too.

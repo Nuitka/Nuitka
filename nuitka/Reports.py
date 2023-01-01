@@ -47,7 +47,8 @@ def writeCompilationReport(report_filename):
     for module in getDoneModules():
         active_module_info = active_modules_infos[module]
 
-        module_xml_node = TreeXML.Element(
+        module_xml_node = TreeXML.appendTreeElement(
+            root,
             "module",
             name=module.getFullName(),
             kind=module.__class__.__name__,
@@ -83,7 +84,19 @@ def writeCompilationReport(report_filename):
 
             module_xml_node.append(timing_xml_node)
 
-        root.append(module_xml_node)
+        used_modules = TreeXML.appendTreeElement(
+            module_xml_node,
+            "module_usages",
+        )
+
+        for used_module in module.getUsedModules():
+            TreeXML.appendTreeElement(
+                used_modules,
+                "module_usage",
+                name=used_module.module_name.asString(),
+                finding=used_module.finding,
+                line=str(used_module.source_ref.getLineNumber()),
+            )
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
