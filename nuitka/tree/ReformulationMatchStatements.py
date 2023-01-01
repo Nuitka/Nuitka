@@ -389,9 +389,14 @@ def _buildMatchOr(provider, pattern, make_against, source_ref):
             source_ref=source_ref,
         )
 
-        or_condition_list.append(
-            makeAndNode(values=or_conditions, source_ref=source_ref)
-        )
+        if or_conditions:
+            or_condition_list.append(
+                makeAndNode(values=or_conditions, source_ref=source_ref)
+            )
+        else:
+            or_condition_list.append(
+                makeConstantRefNode(constant=True, source_ref=source_ref)
+            )
 
         # TODO: Inconsistency somewhere, can return empty.
         or_assignments_list.append(or_assignments or None)

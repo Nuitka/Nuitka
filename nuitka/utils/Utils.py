@@ -219,6 +219,8 @@ def getArchitecture():
     if getOS() == "Windows":
         if "AMD64" in sys.version:
             return "x86_64"
+        elif "ARM64" in sys.version:
+            return "arm64"
         else:
             return "x86"
     else:
