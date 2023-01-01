@@ -32,6 +32,7 @@ import sys
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.importing.Importing import (
+    ModuleUsageAttempt,
     getModuleNameAndKindFromFilename,
     isPackageDir,
     locateModule,
@@ -970,8 +971,17 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             level=level,
         )
 
+        self.used_modules = [
+            ModuleUsageAttempt(
+                module_name=module_name,
+                filename=module_filename,
+                finding=self.finding,
+                level=level,
+                source_ref=self.source_ref,
+            )
+        ]
+
         if self.finding != "not-found":
-            self.used_modules = [(module_name, module_filename, self.finding, level)]
             import_list = self.subnode_fromlist
 
             if import_list is not None:
@@ -1000,15 +1010,15 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         level=1,  # Relative import
                     )
 
-                    if name_import_module_filename is not None:
-                        self.used_modules.append(
-                            (
-                                name_import_module_name,
-                                name_import_module_filename,
-                                name_import_finding,
-                                1,
-                            )
+                    self.used_modules.append(
+                        ModuleUsageAttempt(
+                            module_name=name_import_module_name,
+                            filename=name_import_module_filename,
+                            finding=name_import_finding,
+                            level=1,
+                            source_ref=self.source_ref,
                         )
+                    )
 
             return module_filename
         else:
@@ -1017,19 +1027,27 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             while True:
                 module_name = module_name.getPackageName()
 
-                if module_name is None:
+                if not module_name:
                     break
 
-                module_name_found, module_filename, finding = locateModule(
+                _module_name_found, module_filename, finding = locateModule(
                     module_name=module_name,
                     parent_package=parent_package,
                     level=level,
                 )
 
-                if module_filename is not None:
-                    self.used_modules = [
-                        (module_name_found, module_filename, finding, level)
-                    ]
+                self.used_modules.append(
+                    ModuleUsageAttempt(
+                        module_name=module_name,
+                        filename=module_filename,
+                        finding=finding,
+                        level=level,
+                        source_ref=self.source_ref,
+                    )
+                )
+
+                if finding != "not-found":
+                    break
 
             return None
 
