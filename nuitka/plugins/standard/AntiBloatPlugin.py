@@ -250,6 +250,7 @@ which can and should be a top level package and then one choice, "error",
         context_code = anti_bloat_config.get("context", "")
         if type(context_code) in (tuple, list):
             context_code = "\n".join(context_code)
+        context["version"] = self.getPackageVersion
 
         # We trust the yaml files, pylint: disable=eval-used,exec-used
         context_ready = not bool(context_code)

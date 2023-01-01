@@ -1706,6 +1706,16 @@ static void Nuitka_Loader_tp_dealloc(struct Nuitka_LoaderObject *loader) {
 
 static int Nuitka_Loader_tp_traverse(struct Nuitka_LoaderObject *loader, visitproc visit, void *arg) { return 0; }
 
+static PyObject *Nuitka_Loader_get__module__(struct Nuitka_LoaderObject *loader, void *closure) {
+    PyObject *result = const_str_plain___nuitka__;
+
+    Py_INCREF(result);
+    return result;
+}
+
+static PyGetSetDef Nuitka_Loader_getsets[] = {{(char *)"__module__", (getter)Nuitka_Loader_get__module__, NULL, NULL},
+                                              {NULL}};
+
 PyTypeObject Nuitka_Loader_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "nuitka_module_loader",
     sizeof(struct Nuitka_LoaderObject),      /* tp_basicsize */
@@ -1735,7 +1745,7 @@ PyTypeObject Nuitka_Loader_Type = {
     0,                                       /* tp_iternext */
     Nuitka_Loader_methods,                   /* tp_methods */
     0,                                       /* tp_members */
-    0,                                       /* tp_getset */
+    Nuitka_Loader_getsets,                   /* tp_getset */
 };
 
 /* Used by modules to register child loaders for packages. */

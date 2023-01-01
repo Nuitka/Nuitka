@@ -76,6 +76,7 @@ def getConstantDefaultPopulation():
         "__iter__",
         # Nuitka specific
         "__compiled__",
+        "__nuitka__",
         # Patched module name.
         "inspect",
         # Names of built-ins used in helper code.
