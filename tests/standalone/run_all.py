@@ -169,7 +169,6 @@ def main():
             continue
 
         if filename == "PandasUsing.py":
-            extra_flags.append("plugin_enable:numpy")
             extra_flags.append("plugin_enable:no-qt")
             extra_flags.append("plugin_disable:pylint-warnings")
 
@@ -179,10 +178,6 @@ def main():
         if filename == "OpenGLUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-
-        if filename == "GlfwUsing.py":
-            # For the warnings.
-            extra_flags.append("plugin_enable:numpy")
 
         if filename == "PasslibUsing.py":
             # For the warnings.
