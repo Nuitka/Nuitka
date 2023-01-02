@@ -23,7 +23,6 @@ You can visit a scope, a tree (module), or every scope of a tree (module).
 """
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import ModuleUsageAttempt
 from nuitka.Tracing import general
 
 
@@ -37,16 +36,6 @@ def visitTree(tree, visitor):
         visitTree(visitable, visitor)
 
     visitor.onLeaveNode(tree)
-
-
-def visitFunction(function, visitor):
-    visitor.onEnterNode(function)
-    visitor.onLeaveNode(function)
-
-
-def visitModule(module, visitor):
-    visitor.onEnterNode(module)
-    visitor.onLeaveNode(module)
 
 
 class VisitorNoopMixin(object):
@@ -72,27 +61,8 @@ class DetectUsedModules(VisitorNoopMixin):
             raise
 
     def _onEnterNode(self, node):
-        if node.isExpressionBuiltinImport():
+        if node.isExpression():
             self.used_modules.update(node.getUsedModules())
-        elif (
-            node.isExpressionImportModuleHard()
-            or node.isExpressionImportModuleNameHard()
-            or node.isExpressionImportModuleFixed()
-        ):
-            # TODO: should provide ModuleUsageAttempt from the nodes rather than creating them
-            # here, then we can remove the whole type checks and just ask a base class "getUsedModules"
-            # or node specific ones, and this would be automatic.
-            used_module_name, used_module_filename, finding = node.getUsedModule()
-
-            self.used_modules.add(
-                ModuleUsageAttempt(
-                    module_name=used_module_name,
-                    filename=used_module_filename,
-                    finding=finding,
-                    level=0,
-                    source_ref=node.source_ref,
-                )
-            )
 
     def getUsedModules(self):
         return self.used_modules
