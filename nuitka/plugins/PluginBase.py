@@ -1038,10 +1038,11 @@ except ImportError:
 
         This must be used to invalidate cache results, e.g. when using the
         onFunctionBodyParsing function, and other things, that do not directly
-        affect the source code.
+        affect the source code. By default a plugin being enabled changes the
+        result unless it makes it clear that is not the case.
         """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return ()
+        # Virtual method, pylint: disable=unused-argument
+        return self.plugin_name
 
     @staticmethod
     def getPackageVersion(distribution_name):
