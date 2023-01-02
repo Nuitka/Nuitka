@@ -22,19 +22,14 @@ such that it allows to restore it directly.
 """
 
 import os
+import sys
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import (
-    ModuleUsageAttempt,
-    getPackageSearchPath,
-    isPackageDir,
-    locateModule,
-)
+from nuitka.importing.Importing import ModuleUsageAttempt, locateModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
-from nuitka.utils.FileOperations import listDir, makePath
+from nuitka.utils.FileOperations import makePath
 from nuitka.utils.Hashing import Hash, getStringHash
-from nuitka.utils.Importing import getAllModuleSuffixes
 from nuitka.utils.Json import loadJsonFromFilename, writeJsonToFilename
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.Version import version_string
@@ -50,12 +45,12 @@ def _getCacheFilename(module_name, extension):
 
 
 def makeCacheName(module_name, source_code):
-    module_importables_hash = getModuleImportableFilesHash(module_name)
+    module_config_hash = _getModuleConfigHash(module_name)
 
     return (
         module_name.asString()
         + "@"
-        + module_importables_hash
+        + module_config_hash
         + "@"
         + getStringHash(source_code)
     )
@@ -139,31 +134,14 @@ def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
     writeJsonToFilename(filename=cache_filename, contents=data)
 
 
-def getModuleImportableFilesHash(full_name):
-    """Calculate hash value of packages importable for a module of this name."""
-    package_name = full_name.getPackageName()
-
-    paths = getPackageSearchPath(None)
-
-    if package_name is not None:
-        paths.update(getPackageSearchPath(package_name))
-
-    all_suffixes = getAllModuleSuffixes()
-
+def _getModuleConfigHash(full_name):
+    """Calculate hash value for package packages importable for a module of this name."""
     hash_value = Hash()
-
-    for path in paths:
-        if not os.path.isdir(path):
-            continue
-
-        for fullname, filename in listDir(path):
-            if isPackageDir(fullname) or filename.endswith(all_suffixes):
-                hash_value.updateFromValues(filename, b"\0")
 
     # Plugins may change their influence.
     hash_value.updateFromValues(*Plugins.getCacheContributionValues(full_name))
 
-    # Take Nuitka version into account as well, ought to catch code changes.
-    hash_value.updateFromValues(version_string)
+    # Take Nuitka and Python version into account as well, ought to catch code changes.
+    hash_value.updateFromValues(version_string, sys.version)
 
     return hash_value.asHexDigest()
