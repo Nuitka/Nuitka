@@ -96,7 +96,7 @@ class IncludedDataFile(object):
 
         self.kind = kind
         self.source_path = source_path
-        self.dest_path = dest_path
+        self.dest_path = os.path.normpath(dest_path)
         self.reason = reason
         self.data = data
         self.tags = tags_set
