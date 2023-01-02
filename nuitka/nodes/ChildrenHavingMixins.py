@@ -9393,6 +9393,11 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
 
         self.subnode_level = level
 
+    def setChildName(self, value):
+        value.parent = self
+
+        self.subnode_name = value
+
     def getVisitableNodes(self):
         """The visitable nodes, with tuple values flattened."""
 

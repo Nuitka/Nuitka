@@ -63,10 +63,7 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinImportMixin,
     ChildrenExpressionImportlibImportModuleCallMixin,
 )
-from .ConstantRefNodes import (
-    ExpressionConstantSysVersionInfoRef,
-    makeConstantRefNode,
-)
+from .ConstantRefNodes import ExpressionConstantSysVersionInfoRef
 from .ExpressionBases import ExpressionBase
 from .ImportHardNodes import (
     ExpressionImportHardBase,
@@ -77,6 +74,7 @@ from .ImportHardNodes import (
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpression,
     makeRaiseImportErrorReplacementExpression,
 )
@@ -684,9 +682,9 @@ class ExpressionImportModuleHard(
                     assert hasattr(self.module, attribute_name), self
 
                     return (
-                        makeConstantRefNode(
+                        makeConstantReplacementNode(
                             constant=getattr(self.module, attribute_name),
-                            source_ref=lookup_node.getSourceReference(),
+                            node=lookup_node,
                             user_provided=True,
                         ),
                         "new_constant",
@@ -906,7 +904,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
     named_children = (
-        "name",
+        "name|setter",
         "globals_arg|optional",
         "locals_arg|optional",
         "fromlist|optional",
@@ -958,6 +956,18 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         # TODO: Catch this as a static error maybe.
         if type(level) not in (int, long):
             return None
+
+        module_name_resolved = resolveModuleName(module_name)
+        if module_name_resolved != module_name:
+            module_name = module_name_resolved
+
+            self.setChildName(
+                makeConstantReplacementNode(
+                    constant=module_name.asString(),
+                    node=self.subnode_name,
+                    user_provided=True,
+                )
+            )
 
         module_name, module_filename, self.finding = locateModule(
             module_name=resolveModuleName(module_name),
