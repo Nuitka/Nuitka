@@ -446,8 +446,14 @@ class ExpressionImportModuleFixed(ExpressionBase):
         else:
             return tshape_module
 
-    def getUsedModule(self):
-        return self.found_module_name, self.found_module_filename, self.finding
+    def getUsedModules(self):
+        yield ModuleUsageAttempt(
+            module_name=self.found_module_name,
+            filename=self.found_module_filename,
+            finding=self.finding,
+            level=0,
+            source_ref=self.source_ref,
+        )
 
     def computeExpressionRaw(self, trace_collection):
         if self.mayRaiseException(BaseException):

@@ -901,6 +901,11 @@ class ExpressionBase(NodeBase):
         """Trust that value will not be overwritten from the outside."""
         return False
 
+    @staticmethod
+    def getUsedModules():
+        """Nodes should indicate modules that they (attempted to) use here."""
+        return ()
+
 
 class ExpressionNoSideEffectsMixin(object):
     __slots__ = ()

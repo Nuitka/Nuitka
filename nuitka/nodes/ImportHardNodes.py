@@ -17,7 +17,7 @@
 #
 """ Nodes representing more trusted imports. """
 
-from nuitka.importing.Importing import locateModule
+from nuitka.importing.Importing import ModuleUsageAttempt, locateModule
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ExpressionBases import ExpressionBase
@@ -46,8 +46,14 @@ class ExpressionImportHardBase(ExpressionBase):
         assert self.finding != "not-found", self.module_name
         assert _module_name == self.module_name, _module_name
 
-    def getUsedModule(self):
-        return self.module_name, self.module_filename, self.finding
+    def getUsedModules(self):
+        yield ModuleUsageAttempt(
+            module_name=self.module_name,
+            filename=self.module_filename,
+            finding=self.finding,
+            level=0,
+            source_ref=self.source_ref,
+        )
 
 
 class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):
