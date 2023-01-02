@@ -1050,3 +1050,14 @@ def withDirectoryChange(path, allow_none=False):
 
     if path is not None or not allow_none:
         os.chdir(old_cwd)
+
+
+def containsPathElements(path, elements):
+    """Test if a path contains any unwanted elements."""
+
+    elements = tuple(os.path.normcase(elements))
+    path = os.path.normpath(path)
+
+    parts = os.path.normpath(path).split(os.path.sep)
+
+    return any(element in parts for element in elements)

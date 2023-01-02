@@ -39,6 +39,7 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import getStandaloneDirectoryPath
 from nuitka.Tracing import options_logger
 from nuitka.utils.FileOperations import (
+    containsPathElements,
     copyFileWithPermissions,
     getFileContents,
     getFileList,
@@ -183,7 +184,10 @@ if not isMacOS():
     default_ignored_suffixes += (".DS_Store",)
 default_ignored_suffixes += getSharedLibrarySuffixes()
 
-default_ignored_dirs = ("__pycache__",)
+default_ignored_dirs = (
+    "__pycache__",
+    "site-packages",
+)
 
 
 def makeIncludedDataDirectory(
@@ -226,7 +230,7 @@ def makeIncludedDataDirectory(
             tags=tags,
         )
 
-        included_datafile.tags.add("data_dir_content")
+        included_datafile.tags.add("data-dir-contents")
 
         yield included_datafile
 
@@ -285,45 +289,51 @@ def getIncludedDataFiles():
 
 
 def _addIncludedDataFilesFromFileOptions():
-    for pattern, src, dest, arg in getShallIncludeDataFiles():
+    for pattern, source_path, dest_path, arg in getShallIncludeDataFiles():
         filenames = resolveShellPatternToFilenames(pattern)
 
-        if not filenames:
-            options_logger.warning(
-                "No matching data file to be included for '%s'." % pattern
-            )
-
+        count = 0
         for filename in filenames:
             file_reason = "specified data file '%s' on command line" % arg
 
-            if src is None:
-                rel_path = dest
+            if source_path is None:
+                rel_path = dest_path
 
                 if rel_path.endswith(("/", os.path.sep)):
                     rel_path = os.path.join(rel_path, os.path.basename(filename))
             else:
-                rel_path = os.path.join(dest, relpath(filename, src))
+                rel_path = os.path.join(dest_path, relpath(filename, source_path))
+
+            if containsPathElements(rel_path, default_ignored_dirs):
+                continue
 
             yield makeIncludedDataFile(
                 filename, rel_path, file_reason, tracer=options_logger, tags="user"
             )
 
-    for src, dest in getShallIncludeDataDirs():
-        filenames = getFileList(src)
+            count += 1
 
-        if not filenames:
-            options_logger.warning("No files in directory '%s.'" % src)
-
-        for filename in filenames:
-            relative_filename = relpath(filename, src)
-
-            file_reason = "specified data dir '%s' on command line" % src
-
-            rel_path = os.path.join(dest, relative_filename)
-
-            yield makeIncludedDataFile(
-                filename, rel_path, file_reason, tracer=options_logger, tags="user"
+        if count == 0:
+            options_logger.warning(
+                "No matching data file to be included for '%s'." % pattern
             )
+
+    for source_path, dest_path in getShallIncludeDataDirs():
+        count = 0
+
+        for included_datafile in makeIncludedDataDirectory(
+            source_path=source_path,
+            dest_path=dest_path,
+            reason="specified data dir '%s' on command line" % source_path,
+            tracer=options_logger,
+            tags="user",
+        ):
+            yield included_datafile
+
+            count += 1
+
+        if count == 0:
+            options_logger.warning("No data files in directory '%s.'" % source_path)
 
 
 def addIncludedDataFilesFromFileOptions():
@@ -336,7 +346,7 @@ def addIncludedDataFilesFromFileOptions():
 def scanIncludedPackageDataFiles(package_directory):
     return getFileList(
         package_directory,
-        ignore_dirs=("__pycache__",),
+        ignore_dirs=default_ignored_dirs,
         ignore_suffixes=default_ignored_suffixes,
     )
 
