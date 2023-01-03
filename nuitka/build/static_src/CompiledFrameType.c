@@ -1011,7 +1011,27 @@ void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameType *fr
 #if PYTHON_VERSION < 0x3b0
     PRINT_UNCOMPILED_FRAME(prefix, frame);
 #else
-    assert(false);
+    PRINT_STRING(prefix);
+    PRINT_STRING(" ");
+
+    if (frame) {
+        PRINT_FORMAT("0x%lx ", frame);
+
+        PyObject *code_object_str = PyObject_Repr((PyObject *)frame->f_code);
+        PRINT_ITEM(code_object_str);
+        Py_DECREF(code_object_str);
+    } else {
+        PRINT_STRING("<NULL> no frame");
+    }
+
+    PRINT_NEW_LINE();
 #endif
 }
+
+void PRINT_TOP_FRAME(char const *prefix) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PRINT_INTERPRETER_FRAME(prefix, tstate->cframe->current_frame);
+}
+
 #endif
