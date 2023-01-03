@@ -194,6 +194,9 @@ def main():
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
 
+            if filename != "PySide6":
+                extra_flags.append("ignore_warnings")
+
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename
         )
