@@ -18,6 +18,11 @@
 #ifndef __NUITKA_COMPILED_FRAME_H__
 #define __NUITKA_COMPILED_FRAME_H__
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 // Removed flag in 3.11, but we keep code compatible for now. We do not use old
 // value, but 0 because it might get re-used. TODO: Probably better to #ifdef
 // usages of it away.
@@ -36,9 +41,11 @@ typedef _PyInterpreterFrame Nuitka_ThreadStateFrameType;
 
 // Print a description of given frame objects in frame debug mode
 #if _DEBUG_FRAME
+extern void PRINT_TOP_FRAME(char const *prefix);
 extern void PRINT_COMPILED_FRAME(char const *prefix, struct Nuitka_FrameObject *frame);
 extern void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameType *frame);
 #else
+#define PRINT_TOP_FRAME(prefix)
 #define PRINT_COMPILED_FRAME(prefix, frame)
 #define PRINT_INTERPRETER_FRAME(prefix, frame)
 #endif
@@ -212,6 +219,9 @@ static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
 
 // Put frame at the top of the frame stack and mark as executing.
 NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject *frame_object) {
+    PRINT_TOP_FRAME("Normal push entry top frame:");
+    PRINT_COMPILED_FRAME("Pushing:", frame_object);
+
     // Make sure it's healthy.
     assertFrameObject(frame_object);
 
@@ -228,9 +238,6 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
 #if _DEBUG_FRAME
     if (old) {
         CHECK_CODE_OBJECT(old->f_code);
-
-        printf("Stacking up to frame %s %s\n", Nuitka_String_AsString(PyObject_Str((PyObject *)old)),
-               Nuitka_String_AsString(PyObject_Repr((PyObject *)old->f_code)));
     }
 #endif
 
@@ -250,7 +257,6 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
     Nuitka_Frame_MarkAsExecuting(frame_object);
     Py_INCREF(frame_object);
 
-    PRINT_COMPILED_FRAME("Now at top frame:", frame_object);
 #else
     _PyInterpreterFrame *old = tstate->cframe->current_frame;
     frame_object->m_interpreter_frame.previous = old;
@@ -261,20 +267,18 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
         Py_XINCREF(old->frame_obj);
     }
 
-#if _DEBUG_FRAME
-    if (old) {
-        printf("Stacking up to frame 0x%x %s\n", old, Nuitka_String_AsString(PyObject_Repr((PyObject *)old->f_code)));
-    }
-#endif
-
     Nuitka_Frame_MarkAsExecuting(frame_object);
     Py_INCREF(frame_object);
-
-    PRINT_COMPILED_FRAME("Now at top frame:", frame_object);
 #endif
+
+    PRINT_TOP_FRAME("Normal push exit top frame:");
 }
 
 NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
+#if _DEBUG_FRAME
+    PRINT_TOP_FRAME("Normal pop entry top frame:");
+#endif
+
     PyThreadState *tstate = PyThreadState_GET();
 
 #if PYTHON_VERSION < 0x3b0
@@ -292,12 +296,10 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
 
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
     Py_DECREF(frame_object);
-
-#if _DEBUG_FRAME
-    PRINT_INTERPRETER_FRAME("Now at top frame:", tstate->frame);
-#endif
-
 #else
+    assert(tstate->cframe);
+    assert(tstate->cframe->current_frame);
+
     struct Nuitka_FrameObject *frame_object = (struct Nuitka_FrameObject *)tstate->cframe->current_frame->frame_obj;
     CHECK_OBJECT(frame_object);
 
@@ -310,6 +312,10 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     Py_CLEAR(frame_object->m_frame.f_back);
 
     frame_object->m_interpreter_frame.previous = NULL;
+#endif
+
+#if _DEBUG_FRAME
+    PRINT_TOP_FRAME("Normal pop exit top frame:");
 #endif
 }
 
