@@ -420,6 +420,9 @@ static PyObject *Nuitka_YieldFromGeneratorInitial(struct Nuitka_GeneratorObject 
 
 static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrame(PyThreadState *thread_state,
                                                                Nuitka_ThreadStateFrameType *generator_frame) {
+    PRINT_TOP_FRAME("Generator push entry gives top frame:");
+    PRINT_INTERPRETER_FRAME("Pushing:", generator_frame);
+
     // First take of running frame from the stack, owning a reference.
 #if PYTHON_VERSION < 0x3b0
     PyFrameObject *return_frame = thread_state->frame;
@@ -467,6 +470,8 @@ static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrame(PyThreadState *th
 #endif
     }
 
+    PRINT_TOP_FRAME("Generator push exit gives top frame:");
+
     return return_frame;
 }
 
@@ -494,6 +499,8 @@ static void _Nuitka_GeneratorPopFrame(PyThreadState *thread_state, Nuitka_Thread
         return_frame->previous = NULL;
     }
 #endif
+
+    PRINT_TOP_FRAME("Generator pop exit gives top frame:");
 }
 
 static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator, PyObject *value,
