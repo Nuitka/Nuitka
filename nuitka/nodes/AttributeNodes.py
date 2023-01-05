@@ -42,14 +42,17 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinSetattrMixin,
 )
 from .ExpressionBases import ExpressionBase
-from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeCompileTimeConstantReplacementNode,
     wrapExpressionWithNodeSideEffects,
 )
+from .StatementBasesGenerated import (
+    StatementAssignmentAttributeBase,
+    StatementDelAttributeBase,
+)
 
 
-class StatementAssignmentAttribute(StatementChildrenHavingBase):
+class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
     """Assignment to an attribute.
 
     Typically from code like: source.attribute_name = expression
@@ -65,18 +68,7 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ("source", "expression")
-
-    def __init__(self, expression, attribute_name, source, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "source": source},
-            source_ref=source_ref,
-        )
-
-        self.attribute_name = attribute_name
-
-    def getDetails(self):
-        return {"attribute_name": self.attribute_name}
+    node_attributes = ("attribute_name",)
 
     def getAttributeName(self):
         return self.attribute_name
@@ -101,7 +93,7 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
         return "attribute assignment statement"
 
 
-class StatementDelAttribute(StatementChildHavingBase):
+class StatementDelAttribute(StatementDelAttributeBase):
     """Deletion of an attribute.
 
     Typically from code like: del source.attribute_name
@@ -114,16 +106,7 @@ class StatementDelAttribute(StatementChildHavingBase):
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
     named_child = "expression"
-
-    __slots__ = ("attribute_name",)
-
-    def __init__(self, expression, attribute_name, source_ref):
-        StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
-
-        self.attribute_name = attribute_name
-
-    def getDetails(self):
-        return {"attribute_name": self.attribute_name}
+    node_attributes = ("attribute_name",)
 
     def getAttributeName(self):
         return self.attribute_name
@@ -158,25 +141,6 @@ def makeExpressionAttributeLookup(expression, attribute_name, source_ref):
     else:
         return ExpressionAttributeLookup(
             expression=expression, attribute_name=attribute_name, source_ref=source_ref
-        )
-
-
-class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
-    """Special lookup up an attribute of an object.
-
-    Typically from code like this: with source: pass
-
-    These directly go to slots, and are performed for with statements
-    of Python2.7 or higher.
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"
-
-    def computeExpression(self, trace_collection):
-        return self.subnode_expression.computeExpressionAttributeSpecial(
-            lookup_node=self,
-            attribute_name=self.attribute_name,
-            trace_collection=trace_collection,
         )
 
 
