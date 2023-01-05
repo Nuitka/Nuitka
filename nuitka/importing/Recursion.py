@@ -187,24 +187,8 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
 
 
 def considerFilename(module_filename):
-    module_filename = os.path.normpath(module_filename)
-
-    if os.path.isdir(module_filename):
-        module_filename = os.path.abspath(module_filename)
-
-        module_name = os.path.basename(module_filename)
-
-        return module_filename, module_name
-    elif module_filename.endswith(".py"):
-        module_name = os.path.basename(module_filename)[:-3]
-
-        return module_filename, module_name
-    elif module_filename.endswith(".pyw"):
-        module_name = os.path.basename(module_filename)[:-4]
-
-        return module_filename, module_name
-    else:
-        return None
+    module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
+    return None if module_kind == "extension" else module_filename, module_name
 
 
 def isSameModulePath(path1, path2):
