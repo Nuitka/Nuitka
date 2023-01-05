@@ -18,9 +18,10 @@
 #ifndef __NUITKA_COMPILED_GENERATOR_H__
 #define __NUITKA_COMPILED_GENERATOR_H__
 
-#include "Python.h"
-#include "frameobject.h"
-#include "methodobject.h"
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
 
 // Compiled generator function type.
 
@@ -232,5 +233,32 @@ static inline void RESTORE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *ge
 // yield/yield from/await exits of generator functions.
 extern void Nuitka_PreserveHeap(void *dest, ...);
 extern void Nuitka_RestoreHeap(void *source, ...);
+
+NUITKA_MAY_BE_UNUSED static void STORE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *generator) {
+    PyThreadState *thread_state = PyThreadState_GET();
+
+#if PYTHON_VERSION < 0x3b0
+    EXC_TYPE_F(generator) = EXC_TYPE(thread_state);
+    if (EXC_TYPE_F(generator) == Py_None)
+        EXC_TYPE_F(generator) = NULL;
+    Py_XINCREF(EXC_TYPE_F(generator));
+#endif
+    EXC_VALUE_F(generator) = EXC_VALUE(thread_state);
+    Py_XINCREF(EXC_VALUE_F(generator));
+#if PYTHON_VERSION < 0x3b0
+    ASSIGN_EXC_TRACEBACK_F(generator, EXC_TRACEBACK(thread_state));
+    Py_XINCREF(EXC_TRACEBACK_F(generator));
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED static void DROP_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *generator) {
+#if PYTHON_VERSION < 0x3b0
+    Py_CLEAR(EXC_TYPE_F(generator));
+#endif
+    Py_CLEAR(EXC_VALUE_F(generator));
+#if PYTHON_VERSION < 0x3b0
+    Py_CLEAR(EXC_TRACEBACK_F(generator));
+#endif
+}
 
 #endif

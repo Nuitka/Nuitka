@@ -46,6 +46,9 @@ assert({{frame_cache_identifier}}->m_type_description == NULL);
 {% if frame_init_code %}
 {{frame_init_code}}
 {% endif %}
+{% if context_identifier and is_python34_or_later %}
+Nuitka_SetFrameGenerator({{context_identifier}}->m_frame, (PyObject *){{context_identifier}});
+{% endif %}
 
 // Push the new frame as the currently active one, and we should be exclusively
 // owning it.
@@ -170,24 +173,9 @@ pushFrameStack(%(context_identifier)s->m_frame);
 Py_INCREF(%(context_identifier)s->m_frame->m_frame.f_back);
 
 #if PYTHON_VERSION >= 0x300
-// Accept currently existing exception as the one to publish again when we
+// Store currently existing exception as the one to publish again when we
 // yield or yield from.
-{
-    PyThreadState *thread_state = PyThreadState_GET();
-
-#if PYTHON_VERSION < 0x3b0
-    EXC_TYPE_F(%(context_identifier)s) = EXC_TYPE(thread_state);
-    if (EXC_TYPE_F(%(context_identifier)s) == Py_None) EXC_TYPE_F(%(context_identifier)s) = NULL;
-    Py_XINCREF(EXC_TYPE_F(%(context_identifier)s));
-#endif
-    EXC_VALUE_F(%(context_identifier)s) = EXC_VALUE(thread_state);
-    Py_XINCREF(EXC_VALUE_F(%(context_identifier)s));
-#if PYTHON_VERSION < 0x3b0
-    ASSIGN_EXC_TRACEBACK_F(%(context_identifier)s, EXC_TRACEBACK(thread_state));
-    Py_XINCREF(EXC_TRACEBACK_F(%(context_identifier)s));
-#endif
-}
-
+STORE_%(generator_kind)s_EXCEPTION(%(context_identifier)s);
 #endif
 
 // Framed code:
@@ -196,13 +184,8 @@ Py_INCREF(%(context_identifier)s->m_frame->m_frame.f_back);
 Nuitka_Frame_MarkAsNotExecuting(%(context_identifier)s->m_frame);
 
 #if PYTHON_VERSION >= 0x300
-#if PYTHON_VERSION < 0x3b0
-Py_CLEAR(EXC_TYPE_F(%(context_identifier)s));
-#endif
-Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
-#if PYTHON_VERSION < 0x3b0
-Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
-#endif
+// Release exception attached to the frame
+DROP_%(generator_kind)s_EXCEPTION(%(context_identifier)s);
 #endif
 
 // Allow re-use of the frame again.
@@ -211,7 +194,7 @@ goto %(no_exception_exit)s;
 """
 
 
-# TODO: This cannot happen, can it?
+# Coroutines and asyncgen do this
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
 
