@@ -22,9 +22,10 @@ See AttributeNodes otherwise.
 
 from .ChildrenHavingMixins import ChildHavingExpressionMixin
 from .ExpressionBases import ExpressionBase
+from .ExpressionBasesGenerated import ExpressionAttributeLookupBase
 
 
-class ExpressionAttributeLookup(ChildHavingExpressionMixin, ExpressionBase):
+class ExpressionAttributeLookup(ExpressionAttributeLookupBase):
     """Looking up an attribute of an object.
 
     Typically code like: source.attribute_name
@@ -33,21 +34,10 @@ class ExpressionAttributeLookup(ChildHavingExpressionMixin, ExpressionBase):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
     named_children = ("expression",)
-
-    __slots__ = ("attribute_name",)
-
-    def __init__(self, expression, attribute_name, source_ref):
-        ChildHavingExpressionMixin.__init__(self, expression=expression)
-
-        ExpressionBase.__init__(self, source_ref)
-
-        self.attribute_name = attribute_name
+    node_attributes = ("attribute_name",)
 
     def getAttributeName(self):
         return self.attribute_name
-
-    def getDetails(self):
-        return {"attribute_name": self.attribute_name}
 
     def computeExpression(self, trace_collection):
         return self.subnode_expression.computeExpressionAttribute(
@@ -68,6 +58,25 @@ class ExpressionAttributeLookup(ChildHavingExpressionMixin, ExpressionBase):
         # TODO: Could be known. We would need for computeExpressionAttribute to
         # either return a new node, or a decision maker.
         return None
+
+
+class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
+    """Special lookup up an attribute of an object.
+
+    Typically from code like this: with source: pass
+
+    These directly go to slots, and are performed for with statements
+    of Python2.7 or higher.
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"
+
+    def computeExpression(self, trace_collection):
+        return self.subnode_expression.computeExpressionAttributeSpecial(
+            lookup_node=self,
+            attribute_name=self.attribute_name,
+            trace_collection=trace_collection,
+        )
 
 
 class ExpressionAttributeLookupFixedBase(ChildHavingExpressionMixin, ExpressionBase):

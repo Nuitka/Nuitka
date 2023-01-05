@@ -33,6 +33,8 @@ spell-checker: ignore args chars count default delete encoding end errors fillch
 
 # Loop unrolling over child names, pylint: disable=too-many-branches
 
+from abc import abstractmethod
+
 from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
@@ -46,7 +48,7 @@ class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
     #   ExpressionImportlibMetadataEntryPointValueRef
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
@@ -127,7 +129,7 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_args:
             c.finalize()
@@ -282,7 +284,7 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_args:
             c.finalize()
@@ -404,7 +406,7 @@ class ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_callable_arg.finalize()
         del self.subnode_callable_arg
@@ -512,7 +514,7 @@ class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_elements:
             c.finalize()
@@ -559,6 +561,104 @@ ExpressionImportlibMetadataBackportEntryPointsValueRefBase = (
 ExpressionImportlibMetadataEntryPointsValueRefBase = (
     ChildHavingElementsTupleFinalNoRaiseMixin
 )
+
+
+class ChildHavingExpressionAttributeNameMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionAttributeLookup
+    #   ExpressionAttributeLookupSpecial
+
+    def __init__(self, expression, attribute_name, source_ref):
+        expression.parent = self
+
+        self.subnode_expression = expression
+
+        self.attribute_name = attribute_name
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getDetails(self):
+        return {
+            "attribute_name": self.attribute_name,
+        }
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_expression,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("expression", self.subnode_expression),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_expression
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_expression = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "expression": self.subnode_expression.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_expression.finalize()
+        del self.subnode_expression
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = trace_collection.onExpression(self.subnode_expression)
+
+        if expression.willRaiseAnyException():
+            return (
+                expression,
+                "new_raise",
+                lambda: "For '%s' the child expression '%s' will raise."
+                % (self.getChildNameNice(), expression.getChildNameNice()),
+            )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionAttributeLookupBase = ChildHavingExpressionAttributeNameMixin
+ExpressionAttributeLookupSpecialBase = ChildHavingExpressionAttributeNameMixin
 
 
 class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
@@ -623,7 +723,7 @@ class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_pairs:
             c.finalize()
@@ -726,7 +826,7 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_value.finalize()
         del self.subnode_value

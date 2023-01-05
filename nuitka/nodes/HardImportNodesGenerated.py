@@ -851,7 +851,7 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
         self.attempted = shallMakeModule()
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
     def computeExpressionRaw(self, trace_collection):
         if self.attempted:
@@ -1543,7 +1543,7 @@ class ExpressionOsUnameCallBase(ExpressionBase):
         self.attempted = shallMakeModule()
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
     def computeExpressionRaw(self, trace_collection):
         if self.attempted:
