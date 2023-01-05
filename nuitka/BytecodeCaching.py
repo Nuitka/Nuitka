@@ -25,7 +25,7 @@ import os
 import sys
 
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import ModuleUsageAttempt, locateModule
+from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.plugins.Plugins import Plugins
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import makePath
@@ -100,7 +100,7 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
             return None
 
         result.add(
-            ModuleUsageAttempt(
+            makeModuleUsageAttempt(
                 module_name=module_name,
                 filename=filename,
                 finding=module["finding"],

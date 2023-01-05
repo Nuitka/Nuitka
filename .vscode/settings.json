@@ -204,6 +204,7 @@
         "Mult",
         "multidist",
         "Namify",
+        "namedtuples",
         "NBOOL",
         "no_docstrings",
         "noelf",
