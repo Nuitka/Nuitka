@@ -134,28 +134,20 @@ def getModuleNameAndKindFromFilename(module_filename):
         by the using code. It cannot be decided from the filename at all.
     """
 
-    # TODO: This does not handle ".pyw" files it seems.
     if module_filename.endswith(".py"):
-        module_name = ModuleName(os.path.basename(module_filename)[:-3])
-        module_kind = "py"
+        return ModuleName(os.path.basename(module_filename)[:-3]), "py"
 
-    elif os.path.isdir(module_filename):
-        module_name = ModuleName(os.path.basename(module_filename))
-        module_kind = "py"
-    else:
-        for suffix in getSharedLibrarySuffixes():
-            if module_filename.endswith(suffix):
-                module_name = ModuleName(
-                    os.path.basename(module_filename)[: -len(suffix)]
-                )
-                module_kind = "extension"
+    for suffix in getSharedLibrarySuffixes():
+        if module_filename.endswith(suffix):
+            return (
+                ModuleName(os.path.basename(module_filename)[: -len(suffix)]),
+                "extension",
+            )
 
-                break
-        else:
-            module_kind = None
-            module_name = None
+    if os.path.isdir(module_filename):
+        return ModuleName(os.path.basename(module_filename)), "py"
 
-    return module_name, module_kind
+    return None, None
 
 
 def isIgnoreListedImportMaker(source_ref):
