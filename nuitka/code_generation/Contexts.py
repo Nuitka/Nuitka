@@ -845,6 +845,10 @@ class PythonModuleContext(
         del self.function_table_entries
         return result
 
+    @staticmethod
+    def getContextObjectName():
+        return None
+
 
 class PythonFunctionContext(
     FrameDeclarationsMixin,
@@ -898,6 +902,10 @@ class PythonFunctionContext(
 
 
 class PythonFunctionDirectContext(PythonFunctionContext):
+    @staticmethod
+    def getContextObjectName():
+        return None
+
     def isForDirectCall(self):
         return True
 
@@ -915,7 +923,8 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForCreatedFunction(self):
         return False
 
-    def getContextObjectName(self):
+    @staticmethod
+    def getContextObjectName():
         return "generator"
 
     def getGeneratorReturnValueName(self):
@@ -926,16 +935,22 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
 
 
 class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
-    def getContextObjectName(self):
+    @staticmethod
+    def getContextObjectName():
         return "coroutine"
 
 
 class PythonAsyncgenObjectContext(PythonGeneratorObjectContext):
-    def getContextObjectName(self):
+    @staticmethod
+    def getContextObjectName():
         return "asyncgen"
 
 
 class PythonFunctionCreatedContext(PythonFunctionContext):
+    @staticmethod
+    def getContextObjectName():
+        return None
+
     def isForDirectCall(self):
         return False
 
