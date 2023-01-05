@@ -90,7 +90,7 @@ class ChildHavingAsyncgenRefMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_asyncgen_ref.finalize()
         del self.subnode_asyncgen_ref
@@ -199,7 +199,7 @@ class ChildHavingBodyOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         if self.subnode_body is not None:
             self.subnode_body.finalize()
@@ -322,7 +322,7 @@ class ChildHavingBytesArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -455,7 +455,7 @@ class ChildrenHavingBytesArgCharsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -575,7 +575,7 @@ class ChildrenHavingBytesArgEncodingMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -709,7 +709,7 @@ class ChildrenHavingBytesArgEncodingErrorsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -829,7 +829,7 @@ class ChildrenHavingBytesArgIterableMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -947,7 +947,7 @@ class ChildrenHavingBytesArgKeependsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -1081,7 +1081,7 @@ class ChildrenHavingBytesArgOldNewMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -1233,7 +1233,7 @@ class ChildrenHavingBytesArgOldNewCountMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -1355,7 +1355,7 @@ class ChildrenHavingBytesArgPrefixMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -1489,7 +1489,7 @@ class ChildrenHavingBytesArgPrefixStartMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -1643,7 +1643,7 @@ class ChildrenHavingBytesArgPrefixStartEndMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -1770,7 +1770,7 @@ class ChildrenHavingBytesArgSepMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -1908,7 +1908,7 @@ class ChildrenHavingBytesArgSepMaxsplitMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -2033,7 +2033,7 @@ class ChildrenHavingBytesArgSubMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -2175,7 +2175,7 @@ class ChildrenHavingBytesArgSubStartMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -2335,7 +2335,7 @@ class ChildrenHavingBytesArgSubStartEndMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -2461,7 +2461,7 @@ class ChildrenHavingBytesArgSuffixMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -2595,7 +2595,7 @@ class ChildrenHavingBytesArgSuffixStartMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -2747,7 +2747,7 @@ class ChildrenHavingBytesArgSuffixStartEndMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -2871,7 +2871,7 @@ class ChildrenHavingBytesArgTableMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -3005,7 +3005,7 @@ class ChildrenHavingBytesArgTableDeleteMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -3125,7 +3125,7 @@ class ChildrenHavingBytesArgTabsizeMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -3246,7 +3246,7 @@ class ChildrenHavingBytesArgWidthMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -3385,7 +3385,7 @@ class ChildrenHavingBytesArgWidthFillcharMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_bytes_arg.finalize()
         del self.subnode_bytes_arg
@@ -3492,7 +3492,7 @@ class ChildHavingCalledMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_called.finalize()
         del self.subnode_called
@@ -3603,7 +3603,7 @@ class ChildrenHavingCalledArgsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_called.finalize()
         del self.subnode_called
@@ -3742,7 +3742,7 @@ class ChildrenHavingCalledArgsKwargsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_called.finalize()
         del self.subnode_called
@@ -3867,7 +3867,7 @@ class ChildrenHavingCalledKwargsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_called.finalize()
         del self.subnode_called
@@ -3965,7 +3965,7 @@ class ChildHavingClsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_cls.finalize()
         del self.subnode_cls
@@ -4071,7 +4071,7 @@ class ChildrenHavingClsClassesMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_cls.finalize()
         del self.subnode_cls
@@ -4205,7 +4205,7 @@ class ChildrenHavingConditionExpressionYesExpressionNoMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_condition.finalize()
         del self.subnode_condition
@@ -4307,7 +4307,7 @@ class ChildHavingCoroutineRefMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_coroutine_ref.finalize()
         del self.subnode_coroutine_ref
@@ -4473,7 +4473,7 @@ class ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRe
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_defaults:
             c.finalize()
@@ -4600,7 +4600,7 @@ class ChildHavingDictArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_dict_arg.finalize()
         del self.subnode_dict_arg
@@ -4726,7 +4726,7 @@ class ChildrenHavingDictArgIterableMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_dict_arg.finalize()
         del self.subnode_dict_arg
@@ -4868,7 +4868,7 @@ class ChildrenHavingDictArgIterablePairsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_dict_arg.finalize()
         del self.subnode_dict_arg
@@ -4995,7 +4995,7 @@ class ChildrenHavingDictArgKeyMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_dict_arg.finalize()
         del self.subnode_dict_arg
@@ -5135,7 +5135,7 @@ class ChildrenHavingDictArgKeyDefaultMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_dict_arg.finalize()
         del self.subnode_dict_arg
@@ -5265,7 +5265,7 @@ class ChildrenHavingDictArgPairsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_dict_arg.finalize()
         del self.subnode_dict_arg
@@ -5365,7 +5365,7 @@ class ChildHavingDistMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_dist.finalize()
         del self.subnode_dist
@@ -5461,7 +5461,7 @@ class ChildHavingDistributionNameMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_distribution_name.finalize()
         del self.subnode_distribution_name
@@ -5581,7 +5581,7 @@ class ChildHavingElementsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_elements:
             c.finalize()
@@ -5703,7 +5703,7 @@ class ChildrenHavingExceptionTypeExceptionValueMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_exception_type.finalize()
         del self.subnode_exception_type
@@ -5756,7 +5756,6 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAsyncWaitEnter
     #   ExpressionAsyncWaitExit
     #   ExpressionAttributeCheck
-    #   ExpressionAttributeLookup
     #   ExpressionAttributeLookupBytesCapitalize
     #   ExpressionAttributeLookupBytesCenter
     #   ExpressionAttributeLookupBytesCount
@@ -5873,7 +5872,6 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupFixedViewkeys
     #   ExpressionAttributeLookupFixedViewvalues
     #   ExpressionAttributeLookupFixedZfill
-    #   ExpressionAttributeLookupSpecial
     #   ExpressionAttributeLookupStrCapitalize
     #   ExpressionAttributeLookupStrCasefold
     #   ExpressionAttributeLookupStrCenter
@@ -5972,7 +5970,7 @@ class ChildHavingExpressionMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_expression.finalize()
         del self.subnode_expression
@@ -6005,7 +6003,6 @@ ChildrenExpressionAsyncWaitMixin = ChildHavingExpressionMixin
 ChildrenExpressionAsyncWaitEnterMixin = ChildHavingExpressionMixin
 ChildrenExpressionAsyncWaitExitMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeCheckMixin = ChildHavingExpressionMixin
-ChildrenExpressionAttributeLookupMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupBytesCapitalizeMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupBytesCenterMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupBytesCountMixin = ChildHavingExpressionMixin
@@ -6122,7 +6119,6 @@ ChildrenExpressionAttributeLookupFixedViewitemsMixin = ChildHavingExpressionMixi
 ChildrenExpressionAttributeLookupFixedViewkeysMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedViewvaluesMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedZfillMixin = ChildHavingExpressionMixin
-ChildrenExpressionAttributeLookupSpecialMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupStrCapitalizeMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupStrCasefoldMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupStrCenterMixin = ChildHavingExpressionMixin
@@ -6249,7 +6245,7 @@ class ChildrenHavingExpressionAttributeMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_expression.finalize()
         del self.subnode_expression
@@ -6383,7 +6379,7 @@ class ChildrenHavingExpressionAttributeValueMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_expression.finalize()
         del self.subnode_expression
@@ -6539,7 +6535,7 @@ class ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_expression.finalize()
         del self.subnode_expression
@@ -6687,7 +6683,7 @@ class ChildrenHavingExpressionNameDefaultOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_expression.finalize()
         del self.subnode_expression
@@ -6810,7 +6806,7 @@ class ChildrenHavingExpressionSubscriptMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_expression.finalize()
         del self.subnode_expression
@@ -6911,7 +6907,7 @@ class ChildHavingFallbackMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_fallback.finalize()
         del self.subnode_fallback
@@ -7050,7 +7046,7 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_filename.finalize()
         del self.subnode_filename
@@ -7328,7 +7324,7 @@ class ChildrenHavingFilenameModeOptionalBufferingOptionalEncodingOptionalErrorsO
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_filename.finalize()
         del self.subnode_filename
@@ -7473,7 +7469,7 @@ class ChildrenHavingFunctionValuesTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_function.finalize()
         del self.subnode_function
@@ -7572,7 +7568,7 @@ class ChildHavingGeneratorRefMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_generator_ref.finalize()
         del self.subnode_generator_ref
@@ -7687,7 +7683,7 @@ class ChildrenHavingGroupNameOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_group.finalize()
         del self.subnode_group
@@ -7811,7 +7807,7 @@ class ChildrenHavingInstanceClassesMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_instance.finalize()
         del self.subnode_instance
@@ -7929,7 +7925,7 @@ class ChildrenHavingIteratorDefaultMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_iterator.finalize()
         del self.subnode_iterator
@@ -8048,7 +8044,7 @@ class ChildrenHavingKeyDictArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_key.finalize()
         del self.subnode_key
@@ -8167,7 +8163,7 @@ class ChildrenHavingKeyValueMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_key.finalize()
         del self.subnode_key
@@ -8345,7 +8341,7 @@ class ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRe
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         if self.subnode_kw_defaults is not None:
             self.subnode_kw_defaults.finalize()
@@ -8512,7 +8508,7 @@ class ChildrenHavingLeftRightMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_left.finalize()
         del self.subnode_left
@@ -8650,7 +8646,7 @@ class ChildHavingListArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_list_arg.finalize()
         del self.subnode_list_arg
@@ -8757,7 +8753,7 @@ class ChildrenHavingListArgValueMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_list_arg.finalize()
         del self.subnode_list_arg
@@ -8857,7 +8853,7 @@ class ChildHavingLowMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_low.finalize()
         del self.subnode_low
@@ -8965,7 +8961,7 @@ class ChildrenHavingLowHighMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_low.finalize()
         del self.subnode_low
@@ -9101,7 +9097,7 @@ class ChildrenHavingLowHighStepMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_low.finalize()
         del self.subnode_low
@@ -9222,7 +9218,7 @@ class ChildrenHavingMetaclassBasesMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_metaclass.finalize()
         del self.subnode_metaclass
@@ -9320,7 +9316,7 @@ class ChildHavingModuleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_module.finalize()
         del self.subnode_module
@@ -9513,7 +9509,7 @@ class ChildrenHavingNameGlobalsArgOptionalLocalsArgOptionalFromlistOptionalLevel
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_name.finalize()
         del self.subnode_name
@@ -9723,7 +9719,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_name.finalize()
         del self.subnode_name
@@ -9957,7 +9953,7 @@ class ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOp
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_name.finalize()
         del self.subnode_name
@@ -10096,7 +10092,7 @@ class ChildrenHavingNamePackageOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_name.finalize()
         del self.subnode_name
@@ -10202,7 +10198,7 @@ class ChildHavingOperandMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_operand.finalize()
         del self.subnode_operand
@@ -10316,7 +10312,7 @@ class ChildrenHavingPackageResourceMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_package.finalize()
         del self.subnode_package
@@ -10488,7 +10484,7 @@ class ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_package.finalize()
         del self.subnode_package
@@ -10620,7 +10616,7 @@ class ChildrenHavingPackageOrRequirementResourceNameMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_package_or_requirement.finalize()
         del self.subnode_package_or_requirement
@@ -10737,7 +10733,7 @@ class ChildHavingPairsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_pairs:
             c.finalize()
@@ -10847,7 +10843,7 @@ class ChildHavingParamsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_params:
             c.finalize()
@@ -10957,7 +10953,7 @@ class ChildHavingPathMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_path.finalize()
         del self.subnode_path
@@ -11081,7 +11077,7 @@ class ChildrenHavingPosArgOptionalPairsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         if self.subnode_pos_arg is not None:
             self.subnode_pos_arg.finalize()
@@ -11209,7 +11205,7 @@ class ChildrenHavingRealOptionalImagMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         if self.subnode_real is not None:
             self.subnode_real.finalize()
@@ -11319,7 +11315,7 @@ class ChildHavingRequirementsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_requirements:
             c.finalize()
@@ -11419,7 +11415,7 @@ class ChildHavingSequenceMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_sequence.finalize()
         del self.subnode_sequence
@@ -11525,7 +11521,7 @@ class ChildrenHavingSequenceStartMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_sequence.finalize()
         del self.subnode_sequence
@@ -11643,7 +11639,7 @@ class ChildrenHavingSetArgValueMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_set_arg.finalize()
         del self.subnode_set_arg
@@ -11784,7 +11780,7 @@ class ChildrenHavingSideEffectsTupleExpressionMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_side_effects:
             c.finalize()
@@ -11883,7 +11879,7 @@ class ChildHavingSourceMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_source.finalize()
         del self.subnode_source
@@ -12079,7 +12075,7 @@ class ChildrenHavingSourceFilenameModeFlagsOptionalDontInheritOptionalOptimizeOp
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_source.finalize()
         del self.subnode_source
@@ -12226,7 +12222,7 @@ class ChildrenHavingSourceCodeGlobalsArgLocalsArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_source_code.finalize()
         del self.subnode_source_code
@@ -12350,7 +12346,7 @@ class ChildrenHavingStartStopMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_start.finalize()
         del self.subnode_start
@@ -12484,7 +12480,7 @@ class ChildrenHavingStartStopStepMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_start.finalize()
         del self.subnode_start
@@ -12584,7 +12580,7 @@ class ChildHavingStopMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_stop.finalize()
         del self.subnode_stop
@@ -12704,7 +12700,7 @@ class ChildHavingStrArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -12876,7 +12872,7 @@ class ChildrenHavingStrArgArgsTuplePairsTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13000,7 +12996,7 @@ class ChildrenHavingStrArgCharsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13121,7 +13117,7 @@ class ChildrenHavingStrArgEncodingMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13257,7 +13253,7 @@ class ChildrenHavingStrArgEncodingErrorsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13378,7 +13374,7 @@ class ChildrenHavingStrArgIterableMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13496,7 +13492,7 @@ class ChildrenHavingStrArgKeependsMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13630,7 +13626,7 @@ class ChildrenHavingStrArgOldNewMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13782,7 +13778,7 @@ class ChildrenHavingStrArgOldNewCountMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -13904,7 +13900,7 @@ class ChildrenHavingStrArgPrefixMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -14038,7 +14034,7 @@ class ChildrenHavingStrArgPrefixStartMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -14190,7 +14186,7 @@ class ChildrenHavingStrArgPrefixStartEndMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -14315,7 +14311,7 @@ class ChildrenHavingStrArgSepMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -14453,7 +14449,7 @@ class ChildrenHavingStrArgSepMaxsplitMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -14578,7 +14574,7 @@ class ChildrenHavingStrArgSubMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -14720,7 +14716,7 @@ class ChildrenHavingStrArgSubStartMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -14880,7 +14876,7 @@ class ChildrenHavingStrArgSubStartEndMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15006,7 +15002,7 @@ class ChildrenHavingStrArgSuffixMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15140,7 +15136,7 @@ class ChildrenHavingStrArgSuffixStartMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15292,7 +15288,7 @@ class ChildrenHavingStrArgSuffixStartEndMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15415,7 +15411,7 @@ class ChildrenHavingStrArgTableMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15534,7 +15530,7 @@ class ChildrenHavingStrArgTabsizeMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15655,7 +15651,7 @@ class ChildrenHavingStrArgWidthMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15794,7 +15790,7 @@ class ChildrenHavingStrArgWidthFillcharMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_str_arg.finalize()
         del self.subnode_str_arg
@@ -15948,7 +15944,7 @@ class ChildrenHavingStringEncodingOptionalErrorsOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_string.finalize()
         del self.subnode_string
@@ -16052,7 +16048,7 @@ class ChildHavingTypeArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_type_arg.finalize()
         del self.subnode_type_arg
@@ -16159,7 +16155,7 @@ class ChildrenHavingTypeArgObjectArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_type_arg.finalize()
         del self.subnode_type_arg
@@ -16294,7 +16290,7 @@ class ChildrenHavingTypeNameBasesDictArgMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_type_name.finalize()
         del self.subnode_type_name
@@ -16428,7 +16424,7 @@ class ChildHavingValueMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_value.finalize()
         del self.subnode_value
@@ -16577,7 +16573,7 @@ class ChildrenHavingValueOptionalBaseMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         if self.subnode_value is not None:
             self.subnode_value.finalize()
@@ -16739,7 +16735,7 @@ class ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         if self.subnode_value is not None:
             self.subnode_value.finalize()
@@ -16880,7 +16876,7 @@ class ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_value.finalize()
         del self.subnode_value
@@ -17001,7 +16997,7 @@ class ChildrenHavingValueKeyMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         self.subnode_value.finalize()
         del self.subnode_value
@@ -17115,7 +17111,7 @@ class ChildHavingValuesTupleMixin(object):
         return values
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for c in self.subnode_values:
             c.finalize()

@@ -81,7 +81,7 @@ class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
 
 {% if not mixin_name %}
     def finalize(self):
-        self.parent = None
+        del self.parent
 {% endif %}
 
 {% if mixin_name %}

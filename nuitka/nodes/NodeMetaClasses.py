@@ -59,6 +59,7 @@ class NodeCheckMetaClass(ABCMeta):
         if "__slots__" not in dictionary:
             dictionary["__slots__"] = ()
 
+        # TODO: This should become obsolete once statements have children mixins too.
         if "named_child" in dictionary:
             named_child = dictionary["named_child"]
             if type(named_child) is not str:
@@ -68,7 +69,9 @@ class NodeCheckMetaClass(ABCMeta):
                     type(named_child),
                 )
 
-            dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
+            assert "named_children" not in dictionary
+
+            dictionary["named_children"] = (named_child,)
 
         if "named_children" in dictionary:
             assert type(dictionary["named_children"]) is tuple
@@ -77,6 +80,9 @@ class NodeCheckMetaClass(ABCMeta):
                 intern("subnode_" + named_child.split("|", 1)[0])
                 for named_child in dictionary["named_children"]
             )
+
+        if "node_attributes" in dictionary:
+            dictionary["__slots__"] += dictionary["node_attributes"]
 
         if "python_version_spec" in dictionary:
             condition = "%s %s" % (python_version, dictionary["python_version_spec"])

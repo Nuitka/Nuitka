@@ -55,7 +55,7 @@ class StatementsSequence(StatementChildHavingBase):
         )
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
         for s in self.subnode_statements:
             s.finalize()

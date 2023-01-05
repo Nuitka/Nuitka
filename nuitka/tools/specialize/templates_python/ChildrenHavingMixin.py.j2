@@ -37,13 +37,18 @@
     self.subnode_{{named_child}} = {{value}}
 {% endmacro %}
 
-from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithSideEffects
-
-{% if is_compute_final %}
+{% if not is_expression %}
+{% set base_class = "StatementBase" %}
+from nuitka.nodes.NodeBases import StatementBase
+{% elif is_compute_final or node_attributes %}
 {% set base_class = "ExpressionBase" %}
 from nuitka.nodes.ExpressionBases import ExpressionBase
 {% else %}
 {% set base_class = "object" %}
+{% endif %}
+
+{% if named_children and is_expression %}
+from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithSideEffects
 {% endif %}
 
 {% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
@@ -64,9 +69,12 @@ class {{mixin_name}}({{base_class}}):
 {% for named_child in named_children %}
                  {{named_child}},
 {% endfor %}
-{% if base_class == "ExpressionBase" %}
+{% for node_attribute in node_attributes %}
+                 {{node_attribute}},
+{% endfor %}
+{% if base_class in ("ExpressionBase", "StatementBase") %}
                  source_ref
-{% endif%}
+{% endif %}
     ):
 {% for named_child in named_children %}
 {% if named_child in named_children_checkers %}
@@ -87,9 +95,22 @@ class {{mixin_name}}({{base_class}}):
         self.subnode_{{named_child}} = {{named_child}}
 
 {% endfor %}
-{% if base_class == "ExpressionBase" %}
-        ExpressionBase.__init__(self, source_ref)
-{% endif%}
+{% for node_attribute in node_attributes %}
+        self.{{node_attribute}} = {{node_attribute}}
+{% endfor %}
+
+{% if base_class != "object" %}
+        {{base_class}}.__init__(self, source_ref)
+{% endif %}
+
+{% if node_attributes %}
+    def getDetails(self):
+        return {
+{% for node_attribute in node_attributes %}
+            "{{node_attribute}}" : self.{{node_attribute}},
+{% endfor %}
+        }
+{% endif %}
 
 {% for named_child in children_mixing_setters_needed %}
     def setChild{{named_child.title().replace("_", "")}}(self, value):
@@ -208,7 +229,7 @@ class {{mixin_name}}({{base_class}}):
 {% endif %}
 
     def finalize(self):
-        self.parent = None
+        del self.parent
 
 {% for named_child in named_children %}
 {% if named_children_types.get(named_child) == "optional" %}
@@ -223,6 +244,7 @@ class {{mixin_name}}({{base_class}}):
         del self.subnode_{{named_child}}
 {% endfor %}
 
+{% if is_expression %}
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
 
@@ -325,9 +347,10 @@ class {{mixin_name}}({{base_class}}):
         """Must be overloaded for non-final node."""
 {% endif %}
 
+{% endif %}
 # Assign the names that are easier to import with a stable name.
 {% for node_class_name in intended_for %}
-{% if base_class == "ExpressionBase" %}
+{% if base_class in ("ExpressionBase", "StatementBase") %}
 {{node_class_name}}Base = {{mixin_name}}
 {% else %}
 Children{{node_class_name}}Mixin = {{mixin_name}}
