@@ -139,11 +139,12 @@ def getModuleNameAndKindFromFilename(module_filename):
     """
 
     # TODO: This does not handle ".pyw" files it seems.
-    if os.path.isdir(module_filename):
-        module_name = ModuleName(os.path.basename(module_filename))
-        module_kind = "py"
-    elif module_filename.endswith(".py"):
+    if module_filename.endswith(".py"):
         module_name = ModuleName(os.path.basename(module_filename)[:-3])
+        module_kind = "py"
+
+    elif os.path.isdir(module_filename):
+        module_name = ModuleName(os.path.basename(module_filename))
         module_kind = "py"
     else:
         for suffix in getSharedLibrarySuffixes():
