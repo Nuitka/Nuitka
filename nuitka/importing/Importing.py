@@ -45,6 +45,7 @@ import zipfile
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import iter_modules
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
@@ -71,26 +72,21 @@ warned_about = set()
 _main_paths = OrderedSet()
 
 
-ModuleUsageAttemptBase = collections.namedtuple(
-    "ModuleUsageAttempt",
-    ("module_name", "filename", "finding", "level", "source_ref"),
+ModuleUsageAttempt = makeNamedtupleClass(
+    "ModuleUsageAttempt", ("module_name", "filename", "finding", "level", "source_ref")
 )
 
-# TODO: Have a namedtuple factory that does these things.
-class ModuleUsageAttempt(ModuleUsageAttemptBase):
-    # Avoids bugs on early Python3.4 and Python3.5 versions.
-    __slots__ = ()
 
-    # Enforce keyword usage.
-    def __init__(self, **args):
-        # Note: May catch problems here
-        # assert args["finding"] != "not-found", args["module_name"]
+def makeModuleUsageAttempt(module_name, filename, finding, level, source_ref):
+    assert source_ref is not None
 
-        assert args["source_ref"] is not None
-        ModuleUsageAttemptBase.__init__(self)
-
-    def asDict(self):
-        return self._asdict()
+    return ModuleUsageAttempt(
+        module_name=module_name,
+        filename=filename,
+        finding=finding,
+        level=level,
+        source_ref=source_ref,
+    )
 
 
 def addMainScriptDirectory(main_dir):
@@ -138,6 +134,7 @@ def getModuleNameAndKindFromFilename(module_filename):
         by the using code. It cannot be decided from the filename at all.
     """
 
+    # TODO: This does not handle ".pyw" files it seems.
     if module_filename.endswith(".py"):
         module_name = ModuleName(os.path.basename(module_filename)[:-3])
         module_kind = "py"
@@ -145,7 +142,6 @@ def getModuleNameAndKindFromFilename(module_filename):
     elif os.path.isdir(module_filename):
         module_name = ModuleName(os.path.basename(module_filename))
         module_kind = "py"
-
     else:
         for suffix in getSharedLibrarySuffixes():
             if module_filename.endswith(suffix):

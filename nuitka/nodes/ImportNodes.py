@@ -32,10 +32,10 @@ import sys
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.importing.Importing import (
-    ModuleUsageAttempt,
     getModuleNameAndKindFromFilename,
     isPackageDir,
     locateModule,
+    makeModuleUsageAttempt,
 )
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
@@ -445,7 +445,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
             return tshape_module
 
     def getUsedModules(self):
-        yield ModuleUsageAttempt(
+        yield makeModuleUsageAttempt(
             module_name=self.found_module_name,
             filename=self.found_module_filename,
             finding=self.finding,
@@ -976,7 +976,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         )
 
         self.used_modules = [
-            ModuleUsageAttempt(
+            makeModuleUsageAttempt(
                 module_name=module_name,
                 filename=module_filename,
                 finding=self.finding,
@@ -1015,7 +1015,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                     )
 
                     self.used_modules.append(
-                        ModuleUsageAttempt(
+                        makeModuleUsageAttempt(
                             module_name=name_import_module_name,
                             filename=name_import_module_filename,
                             finding=name_import_finding,
@@ -1041,7 +1041,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 )
 
                 self.used_modules.append(
-                    ModuleUsageAttempt(
+                    makeModuleUsageAttempt(
                         module_name=module_name,
                         filename=module_filename,
                         finding=finding,
