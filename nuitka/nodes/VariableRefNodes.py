@@ -259,6 +259,8 @@ Subscript assignment to dictionary lowered to dictionary assignment."""
 
         trace_collection.removeKnowledge(self)
 
+        trace_collection.removeKnowledge(value_node)
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
