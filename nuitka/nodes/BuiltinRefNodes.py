@@ -82,7 +82,7 @@ def makeExpressionBuiltinTypeRef(builtin_name, source_ref):
     )
 
 
-quick_names = {"None": None, "True": True, "False": False, "Ellipsis": Ellipsis}
+quick_names = {"None": None, "True": True, "False": False}
 
 
 def makeExpressionBuiltinRef(builtin_name, locals_scope, source_ref):

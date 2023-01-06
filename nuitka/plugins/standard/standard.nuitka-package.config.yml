@@ -1783,6 +1783,11 @@
         - 'pyglet.text'
         - 'pyglet.window'
 
+- module-name: 'pygments.styles'
+  implicit-imports:
+    - depends:
+        - '.*'
+
 - module-name: 'pygsheets'
   data-files:
     dirs:

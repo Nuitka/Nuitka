@@ -147,6 +147,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
             elif full_name == crypto_module_name + ".Cipher.AES":
                 yield crypto_module_name + ".Cipher._raw_aes"
                 yield crypto_module_name + ".Cipher._raw_aesni"
+                yield crypto_module_name + ".Util._cpuid"
 
             elif full_name == crypto_module_name + ".Cipher._mode_cfb":
                 yield crypto_module_name + ".Cipher._raw_cfb"
@@ -224,6 +225,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
             elif full_name == crypto_module_name + ".Cipher._mode_gcm":
                 yield crypto_module_name + ".Hash._ghash_clmul"
                 yield crypto_module_name + ".Hash._ghash_portable"
+                yield crypto_module_name + ".Util._galois"
 
             elif full_name == crypto_module_name + ".Cipher.Salsa20":
                 yield crypto_module_name + ".Cipher._Salsa20"
