@@ -36,7 +36,7 @@ def displayPackageData(module_name):
     if not hasMainScriptDirectory():
         addMainScriptDirectory(os.getcwd())
 
-    module_name, package_directory, finding = locateModule(
+    module_name, package_directory, _module_kind, finding = locateModule(
         module_name=module_name, parent_package=None, level=0
     )
 

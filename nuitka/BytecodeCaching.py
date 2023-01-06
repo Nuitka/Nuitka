@@ -65,7 +65,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 3
+_cache_format_version = 4
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -92,11 +92,11 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
         module_name = ModuleName(module["module_name"])
 
         # Retry the module scan.
-        _module_name, filename, finding = locateModule(
+        _module_name, filename, module_kind, finding = locateModule(
             module_name=module_name, parent_package=None, level=0
         )
 
-        if finding != module["finding"]:
+        if finding != module["finding"] or module_kind != module["module_kind"]:
             return None
 
         result.add(
@@ -104,6 +104,7 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
                 module_name=module_name,
                 filename=filename,
                 finding=module["finding"],
+                module_kind=module["module_kind"],
                 # TODO: Level might have to be dropped.
                 level=0,
                 # We store only the line number, so this cheats it to at full one.

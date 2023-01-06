@@ -92,7 +92,21 @@ def recurseTo(
     return module
 
 
+_recursion_decision_cache = {}
+
+
 def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
+    key = module_filename, module_name, module_kind, extra_recursion
+
+    if key not in _recursion_decision_cache:
+        _recursion_decision_cache[key] = _decideRecursion(
+            module_filename, module_name, module_kind, extra_recursion
+        )
+
+    return _recursion_decision_cache[key]
+
+
+def _decideRecursion(module_filename, module_name, module_kind, extra_recursion):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
@@ -362,13 +376,16 @@ def checkPluginFilenamePattern(pattern):
 
 def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):
     for parent_package_name in module_name.getParentPackageNames():
-        _parent_package_name, parent_package_filename, finding = locateModule(
-            module_name=parent_package_name, parent_package=None, level=0
-        )
+        (
+            _parent_package_name,
+            parent_package_filename,
+            package_module_kind,
+            finding,
+        ) = locateModule(module_name=parent_package_name, parent_package=None, level=0)
 
         if parent_package_filename is None:
             recursion_logger.sysexit(
-                "Error, failed to locate parent package file for '%s' parent of '%s' (used by %s) module (%s)"
+                "Error, failed to locate parent package file for '%s' parent of '%s' (used by '%s') module (%s)"
                 % (
                     parent_package_name.asString(),
                     module_name.asString(),
@@ -378,10 +395,6 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
             )
 
         assert _parent_package_name == parent_package_name
-
-        _parent_package_name, package_module_kind = getModuleNameAndKindFromFilename(
-            parent_package_filename
-        )
 
         _decision, reason = decideRecursion(
             module_filename=parent_package_filename,
@@ -422,15 +435,11 @@ def considerUsedModules(module, signal_change):
         if used_module.filename is None:
             continue
 
-        _module_name, module_kind = getModuleNameAndKindFromFilename(
-            used_module.filename
-        )
-
         try:
             decision, reason = decideRecursion(
                 module_filename=used_module.filename,
                 module_name=used_module.module_name,
-                module_kind=module_kind,
+                module_kind=used_module.module_kind,
             )
 
             if decision:
@@ -445,7 +454,7 @@ def considerUsedModules(module, signal_change):
                     signal_change=signal_change,
                     module_name=used_module.module_name,
                     module_filename=used_module.filename,
-                    module_kind=module_kind,
+                    module_kind=used_module.module_kind,
                     source_ref=used_module.source_ref,
                     using_module=module,
                     reason=reason,

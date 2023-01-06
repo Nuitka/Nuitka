@@ -25,10 +25,7 @@ import os
 
 from nuitka import Options, Variables
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import (
-    getModuleNameAndKindFromFilename,
-    locateModule,
-)
+from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
@@ -90,7 +87,12 @@ class PythonModuleBase(NodeBase):
         package = getModuleByName(package_name)
 
         if package_name is not None and package is None:
-            _package_name, package_filename, finding = locateModule(
+            (
+                _package_name,
+                package_filename,
+                package_module_kind,
+                finding,
+            ) = locateModule(
                 module_name=package_name,
                 parent_package=None,
                 level=0,
@@ -106,15 +108,12 @@ class PythonModuleBase(NodeBase):
 
             assert package_filename is not None, (package_name, finding)
 
-            _package_name, package_kind = getModuleNameAndKindFromFilename(
-                package_filename
-            )
             # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
 
             decision, _reason = decideRecursion(
                 module_filename=package_filename,
                 module_name=package_name,
-                module_kind=package_kind,
+                module_kind=package_module_kind,
             )
 
             if decision is not None:
@@ -124,7 +123,7 @@ class PythonModuleBase(NodeBase):
                     else None,
                     module_name=package_name,
                     module_filename=package_filename,
-                    module_kind="py",
+                    module_kind=package_module_kind,
                     using_module=self,
                     source_ref=self.source_ref,
                     reason="Containing package of '%s'." % self.getFullName(),
