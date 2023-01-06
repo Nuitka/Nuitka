@@ -351,7 +351,7 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         needs_visit = owning_module.addUsedFunction(function_body)
 
-        if needs_visit:
+        if needs_visit or function_body.isExpressionFunctionPureBody():
             function_body.computeFunctionRaw(self)
 
 
