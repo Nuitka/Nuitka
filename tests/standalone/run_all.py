@@ -163,9 +163,13 @@ def main():
             # For the plugin warnings.
             extra_flags.append("ignore_warnings")
 
-        if filename == "NumpyUsing.py":
+        if filename == "MetadataPackagesUsing.py":
             # TODO: Disabled for now.
-            reportSkip("numpy.test not fully working yet", ".", filename)
+            reportSkip(
+                "MetadataPackagesUsing is environment dependent somehow, not fully working yet",
+                ".",
+                filename,
+            )
             continue
 
         if filename == "PandasUsing.py":

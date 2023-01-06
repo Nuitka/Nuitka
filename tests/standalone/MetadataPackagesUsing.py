@@ -35,6 +35,7 @@ else:
     print("Type of importlib.metadata.entry_points", type(entry_points()))
     try:
         print("Type of importlib.metadata.entry_points subscript", type(entry_points()["console_scripts"]))
+        print("There are %d entry points" % len(entry_points()["console_scripts"]))
         print("Example entry point", sorted(entry_points()["console_scripts"], key=lambda e: e.name)[0])
     except KeyError:
         pass
@@ -47,6 +48,7 @@ else:
     print("Type of importlib_metadata.entry_points", type(entry_points()))
     try:
         print("Type of importlib_metadata.entry_points subscript", type(entry_points()["console_scripts"]))
+        print("There are %d entry points" % len(entry_points()["console_scripts"]))
         print("Example entry point", sorted(entry_points()["console_scripts"], key=lambda e: e.name)[0])
     except KeyError:
         pass
