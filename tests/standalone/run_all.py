@@ -169,7 +169,6 @@ def main():
             continue
 
         if filename == "PandasUsing.py":
-            extra_flags.append("plugin_enable:numpy")
             extra_flags.append("plugin_enable:no-qt")
             extra_flags.append("plugin_disable:pylint-warnings")
 
@@ -179,10 +178,6 @@ def main():
         if filename == "OpenGLUsing.py":
             # For the warnings.
             extra_flags.append("ignore_warnings")
-
-        if filename == "GlfwUsing.py":
-            # For the warnings.
-            extra_flags.append("plugin_enable:numpy")
 
         if filename == "PasslibUsing.py":
             # For the warnings.
@@ -198,6 +193,9 @@ def main():
             if python_version < (2, 7) or ((3,) <= python_version < (3, 7)):
                 reportSkip("irrelevant Python version", ".", filename)
                 continue
+
+            if filename != "PySide6":
+                extra_flags.append("ignore_warnings")
 
         test_logger.info(
             "Consider output of standalone mode compiled program: %s" % filename
