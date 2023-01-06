@@ -394,7 +394,7 @@ def addIncludedDataFilesFromPackageOptions():
     # TODO: Should provide ModuleName objects directly.
 
     for package_name, filename_pattern in getShallIncludePackageData():
-        package_name, package_directory, _kind = locateModule(
+        package_name, package_directory, _module_kind, _finding = locateModule(
             module_name=ModuleName(package_name),
             parent_package=None,
             level=0,

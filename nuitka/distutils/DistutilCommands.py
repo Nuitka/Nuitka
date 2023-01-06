@@ -195,7 +195,7 @@ class build(distutils.command.build.build):
         addMainScriptDirectory(main_package_dir)
 
         for is_package, module_name in self._find_to_build():
-            module_name, main_filename, finding = locateModule(
+            module_name, main_filename, _module_kind, finding = locateModule(
                 module_name=module_name,
                 parent_package=None,
                 level=0,

@@ -307,8 +307,6 @@ class Plugins(object):
 
     @staticmethod
     def _considerImplicitImports(plugin, module):
-        from nuitka.importing import Importing
-
         result = []
 
         def iterateModuleNames(value):
@@ -346,11 +344,7 @@ class Plugins(object):
                 continue
 
             try:
-                _module_name, module_filename, _finding = Importing.locateModule(
-                    module_name=full_name,
-                    parent_package=None,
-                    level=0,
-                )
+                module_filename = plugin.locateModule(full_name)
             except Exception:
                 plugin.warning(
                     "Problem locating '%s' for implicit imports of '%s'."
@@ -383,6 +377,8 @@ class Plugins(object):
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
         for full_name, module_filename in implicit_imports:
+
+            # TODO: The module_kind should be forwarded from previous in the class using locateModule code.
             _module_name2, module_kind = getModuleNameAndKindFromFilename(
                 module_filename
             )

@@ -505,7 +505,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
         from nuitka.importing.Importing import locateModule
 
-        _module_name, module_filename, _finding = locateModule(
+        _module_name, module_filename, _module_kind, _finding = locateModule(
             module_name=ModuleName(module_name), parent_package=None, level=0
         )
 

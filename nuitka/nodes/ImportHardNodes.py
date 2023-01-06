@@ -26,7 +26,7 @@ from .ExpressionBases import ExpressionBase
 class ExpressionImportHardBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
     #
-    __slots__ = ("module_name", "finding", "module_filename")
+    __slots__ = ("module_name", "finding", "module_kind", "module_filename")
 
     def __init__(self, module_name, source_ref):
         ExpressionBase.__init__(self, source_ref)
@@ -36,7 +36,12 @@ class ExpressionImportHardBase(ExpressionBase):
         self.finding = None
         self.module_filename = None
 
-        _module_name, self.module_filename, self.finding = locateModule(
+        (
+            _module_name,
+            self.module_filename,
+            self.module_kind,
+            self.finding,
+        ) = locateModule(
             module_name=self.module_name,
             parent_package=None,
             level=0,
@@ -50,6 +55,7 @@ class ExpressionImportHardBase(ExpressionBase):
         yield makeModuleUsageAttempt(
             module_name=self.module_name,
             filename=self.module_filename,
+            module_kind=self.module_kind,
             finding=self.finding,
             level=0,
             source_ref=self.source_ref,
