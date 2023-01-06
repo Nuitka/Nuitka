@@ -219,11 +219,15 @@ class StatementsFrameBase(StatementsSequence):
 
             return None
 
+        # TODO: It might be worth to do the step that is done when nothing
+        # changes in one go, avoiding the 2 micro passes here.
+
         # If our statements changed just now, they are not immediately usable,
         # so do this in two steps. Next time we can reduce the frame scope just
         # as well.
-        if statements != tuple(new_statements):
-            self.setChild("statements", new_statements)
+        new_statements_tuple = tuple(new_statements)
+        if statements != new_statements_tuple:
+            self.setChildStatements(new_statements_tuple)
             return self
 
         # Determine statements inside the frame, that need not be in a frame,
@@ -244,7 +248,7 @@ class StatementsFrameBase(StatementsSequence):
             )
 
             if new_statements:
-                self.setChild("statements", new_statements)
+                self.setChildStatements(tuple(new_statements))
 
                 return makeStatementsSequenceReplacementNode(
                     statements=outside_pre + [self] + outside_post, node=self
@@ -262,7 +266,7 @@ class StatementsFrameBase(StatementsSequence):
                 )
         else:
             if statements != new_statements:
-                self.setChild("statements", new_statements)
+                self.setChildStatements(tuple(new_statements))
 
             return self
 

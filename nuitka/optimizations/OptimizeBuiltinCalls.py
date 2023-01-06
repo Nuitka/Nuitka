@@ -884,14 +884,13 @@ def eval_extractor(node):
             temp_scope=None, name="source"
         )
 
-        final.setChild(
-            "statements",
+        final.setChildStatements(
             final.subnode_statements
             + (
                 makeStatementDelVariable(
                     variable=source_variable, tolerant=True, source_ref=source_ref
                 ),
-            ),
+            )
         )
 
         strip_choice = makeConstantRefNode(constant=(" \t",), source_ref=source_ref)

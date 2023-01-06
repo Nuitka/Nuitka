@@ -233,6 +233,7 @@ from .LocalsDictCodes import (
     generateLocalsDictVariableRefOrFallbackCode,
     generateReleaseLocalsDictCode,
     generateSetLocalsDictCode,
+    generateSetLocalsMappingCode,
 )
 from .LoopCodes import (
     generateLoopBreakCode,
@@ -959,7 +960,7 @@ setStatementDispatchDict(
         "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED": generateUnpackCheckFromIteratedCode,
         "STATEMENT_EXEC": generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC": generateLocalsDictSyncCode,
-        "STATEMENT_SET_LOCALS": generateSetLocalsDictCode,
+        "STATEMENT_SET_LOCALS": generateSetLocalsMappingCode,
         "STATEMENT_SET_LOCALS_DICTIONARY": generateSetLocalsDictCode,
         "STATEMENT_RELEASE_LOCALS": generateReleaseLocalsDictCode,
         "STATEMENT_PRESERVE_FRAME_EXCEPTION": generateFramePreserveExceptionCode,

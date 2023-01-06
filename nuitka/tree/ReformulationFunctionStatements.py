@@ -89,9 +89,8 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
             statement=return_statement
         )
     elif not function_statements_body.isStatementAborting():
-        function_statements_body.setChild(
-            "statements",
-            function_statements_body.subnode_statements + (return_statement,),
+        function_statements_body.setChildStatements(
+            function_statements_body.subnode_statements + (return_statement,)
         )
 
     return function_statements_body
@@ -107,9 +106,8 @@ def _insertInitialSetLocalsDictStatement(function_body, function_statements_body
             statement=locals_statement
         )
     else:
-        function_statements_body.setChild(
-            "statements",
-            (locals_statement,) + function_statements_body.subnode_statements,
+        function_statements_body.setChildStatements(
+            (locals_statement,) + function_statements_body.subnode_statements
         )
 
     return function_statements_body

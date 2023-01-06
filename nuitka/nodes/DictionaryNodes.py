@@ -64,10 +64,7 @@ from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
     ExpressionDictShapeExactMixin,
 )
-from .NodeBases import (
-    SideEffectsFromChildrenMixin,
-    StatementChildrenHavingBase,
-)
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionExpressionFromTemplate,
@@ -76,6 +73,12 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_iterator
+from .StatementBasesGenerated import (
+    StatementDictOperationRemoveBase,
+    StatementDictOperationSetBase,
+    StatementDictOperationSetKeyValueBase,
+    StatementDictOperationUpdateBase,
+)
 
 
 def makeExpressionMakeDict(pairs, source_ref):
@@ -291,31 +294,8 @@ Created dictionary found to be constant.""",
         return True
 
 
-class StatementDictOperationSet(StatementChildrenHavingBase):
-    kind = "STATEMENT_DICT_OPERATION_SET"
-
-    named_children = ("value", "dict_arg", "key")
-
-    def __init__(self, dict_arg, key, value, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-        assert value is not None
-
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"dict_arg": dict_arg, "key": key, "value": value},
-            source_ref=source_ref,
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self.computeStatementOperation(trace_collection)
+class StatementDictOperationSetMixin(object):
+    __slots__ = ()
 
     def computeStatementOperation(self, trace_collection):
         key = self.subnode_key
@@ -349,34 +329,29 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         return not self.subnode_key.isKnownToBeHashable()
 
 
-class StatementDictOperationSetKeyValue(StatementDictOperationSet):
+class StatementDictOperationSet(
+    StatementDictOperationSetMixin, StatementDictOperationSetBase
+):
+    kind = "STATEMENT_DICT_OPERATION_SET"
+
+    named_children = ("value", "dict_arg", "key")
+    auto_compute_handling = "operation"
+
+
+class StatementDictOperationSetKeyValue(
+    StatementDictOperationSetMixin, StatementDictOperationSetKeyValueBase
+):
     kind = "STATEMENT_DICT_OPERATION_SET_KEY_VALUE"
 
-    named_children = ("key", "value", "dict_arg")
+    named_children = ("value", "dict_arg", "key")
+    auto_compute_handling = "operation"
 
 
-class StatementDictOperationRemove(StatementChildrenHavingBase):
+class StatementDictOperationRemove(StatementDictOperationRemoveBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
     named_children = ("dict_arg", "key")
-
-    def __init__(self, dict_arg, key, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        StatementChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self.computeStatementOperation(trace_collection)
+    auto_compute_handling = "operation"
 
     def computeStatementOperation(self, trace_collection):
         # Any exception may be raised, we don't know if the key is present.
@@ -1150,7 +1125,7 @@ class ExpressionDictOperationUpdate2(ExpressionDictOperationUpdate2Base):
         # TODO: Using it might change it, unfortunately
         trace_collection.removeKnowledge(self.subnode_iterable)
 
-        # TODO: Until we can know KeyError won't happen, but then we should change into
+        # TODO: Until we can know iteration error won't happen, but then we should change into
         # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -1203,7 +1178,7 @@ class ExpressionDictOperationUpdate3(ExpressionDictOperationUpdate3Base):
         for pair in self.subnode_pairs:
             trace_collection.removeKnowledge(pair)
 
-        # TODO: Until we can know KeyError won't happen, but then we should change into
+        # TODO: Until we can know iteration error won't happen, but then we should change into
         # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -1256,7 +1231,7 @@ class ExpressionDictOperationUpdatePairs(
         return True
 
 
-class StatementDictOperationUpdate(StatementChildrenHavingBase):
+class StatementDictOperationUpdate(StatementDictOperationUpdateBase):
     """Update dict value.
 
     This is mainly used for re-formulations, where a dictionary
@@ -1267,25 +1242,19 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_UPDATE"
 
     named_children = ("dict_arg", "value")
+    auto_compute_handling = "operation"
 
-    def __init__(self, dict_arg, value, source_ref):
-        assert dict_arg is not None
-        assert value is not None
+    def computeStatementOperation(self, trace_collection):
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        # TODO: Using it might change it, unfortunately
+        trace_collection.removeKnowledge(self.subnode_value)
 
-        StatementChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "value": value}, source_ref=source_ref
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+        # TODO: Until we can know iteration error won't happen, but then we should change into
+        # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        # TODO: Check empty, and remove itself if that's the case.
         return self, None, None
 
 

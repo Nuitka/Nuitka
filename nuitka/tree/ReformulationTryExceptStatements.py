@@ -348,8 +348,7 @@ def buildTryExceptionNode(provider, node, source_ref):
             )
     else:
         if python_version < 0x300:
-            exception_handling.setChild(
-                "statements",
+            exception_handling.setChildStatements(
                 (
                     StatementPreserveFrameException(
                         preserver_id=0,  # unused with Python2

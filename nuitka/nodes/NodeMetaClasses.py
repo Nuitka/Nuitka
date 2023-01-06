@@ -59,20 +59,6 @@ class NodeCheckMetaClass(ABCMeta):
         if "__slots__" not in dictionary:
             dictionary["__slots__"] = ()
 
-        # TODO: This should become obsolete once statements have children mixins too.
-        if "named_child" in dictionary:
-            named_child = dictionary["named_child"]
-            if type(named_child) is not str:
-                raise NuitkaNodeDesignError(
-                    name,
-                    "Class named_child attribute must be string not",
-                    type(named_child),
-                )
-
-            assert "named_children" not in dictionary
-
-            dictionary["named_children"] = (named_child,)
-
         if "named_children" in dictionary:
             assert type(dictionary["named_children"]) is tuple
 
@@ -81,8 +67,23 @@ class NodeCheckMetaClass(ABCMeta):
                 for named_child in dictionary["named_children"]
             )
 
+        if "nice_children" in dictionary:
+            assert type(dictionary["nice_children"]) is tuple
+            assert len(dictionary["nice_children"]) == len(dictionary["named_children"])
+
+            dictionary["nice_children_dict"] = dict(
+                (intern(named_child.split("|", 1)[0]), nice_name)
+                for (named_child, nice_name) in zip(
+                    dictionary["named_children"], dictionary["nice_children"]
+                )
+            )
+
         if "node_attributes" in dictionary:
             dictionary["__slots__"] += dictionary["node_attributes"]
+
+        assert len(dictionary["__slots__"]) == len(
+            set(dictionary["__slots__"])
+        ), dictionary["__slots__"]
 
         if "python_version_spec" in dictionary:
             condition = "%s %s" % (python_version, dictionary["python_version_spec"])

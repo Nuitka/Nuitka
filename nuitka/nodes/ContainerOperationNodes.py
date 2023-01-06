@@ -25,34 +25,28 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionSetOperationUpdateMixin,
 )
 from .ExpressionBases import ExpressionBase
-from .NodeBases import StatementChildrenHavingBase
+from .StatementBasesGenerated import (
+    StatementListOperationAppendBase,
+    StatementSetOperationAddBase,
+)
 
 
-class StatementListOperationAppend(StatementChildrenHavingBase):
+class StatementListOperationAppend(StatementListOperationAppendBase):
     kind = "STATEMENT_LIST_OPERATION_APPEND"
 
     named_children = ("list_arg", "value")
+    auto_compute_handling = "operation"
 
-    def __init__(self, list_arg, value, source_ref):
-        assert list_arg is not None
-        assert value is not None
-
-        StatementChildrenHavingBase.__init__(
-            self, values={"list_arg": list_arg, "value": value}, source_ref=source_ref
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
         # TODO: Until we have proper list tracing.
         trace_collection.removeKnowledge(self.subnode_list_arg)
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_list_arg.mayRaiseException(
+            exception_type
+        ) or self.subnode_value.mayRaiseException(exception_type)
 
 
 class ExpressionListOperationExtend(
@@ -104,30 +98,22 @@ class ExpressionListOperationPop(
         return self, None, None
 
 
-class StatementSetOperationAdd(StatementChildrenHavingBase):
+class StatementSetOperationAdd(StatementSetOperationAddBase):
     kind = "STATEMENT_SET_OPERATION_ADD"
 
     named_children = ("set_arg", "value")
+    auto_compute_handling = "operation"
 
-    def __init__(self, set_arg, value, source_ref):
-        assert set_arg is not None
-        assert value is not None
-
-        StatementChildrenHavingBase.__init__(
-            self, values={"set_arg": set_arg, "value": value}, source_ref=source_ref
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
+        # TODO: Until we have proper set tracing.
         trace_collection.removeKnowledge(self.subnode_set_arg)
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_set_arg.mayRaiseException(
+            exception_type
+        ) or self.subnode_value.mayRaiseException(exception_type)
 
 
 class ExpressionSetOperationUpdate(

@@ -71,13 +71,13 @@ from .ImportHardNodes import (
     ExpressionImportModuleNameHardMaybeExists,
 )
 from .LocalsScopes import GlobalsDictHandle
-from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpression,
     makeRaiseImportErrorReplacementExpression,
 )
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
+from .StatementBasesGenerated import StatementImportStarBase
 
 # These module are supported in code generation to be imported the hard way.
 hard_modules = frozenset(
@@ -1210,30 +1210,22 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         return self.type_shape
 
 
-class StatementImportStar(StatementChildHavingBase):
+class StatementImportStar(StatementImportStarBase):
     kind = "STATEMENT_IMPORT_STAR"
 
-    named_child = "module"
+    named_children = ("module",)
+    node_attributes = ("target_scope",)
+    auto_compute_handling = "post_init,operation"
 
-    __slots__ = ("target_scope",)
-
-    def __init__(self, target_scope, module_import, source_ref):
-        StatementChildHavingBase.__init__(
-            self, value=module_import, source_ref=source_ref
-        )
-
-        self.target_scope = target_scope
-
-        # TODO: Abstract these things.
+    def postInitNode(self):
+        # TODO: Abstract these things in some better way, and do not make it permanent.
         if type(self.target_scope) is GlobalsDictHandle:
             self.target_scope.markAsEscaped()
 
     def getTargetDictScope(self):
         return self.target_scope
 
-    def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.subnode_module)
-
+    def computeStatementOperation(self, trace_collection):
         trace_collection.onLocalsDictEscaped(self.target_scope)
 
         # Need to invalidate everything, and everything could be assigned to

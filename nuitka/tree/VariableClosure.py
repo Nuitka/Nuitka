@@ -191,7 +191,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                                     StatementLocalsDictOperationSet(
                                         locals_scope=provider.getLocalsScope(),
                                         variable_name=variable_name,
-                                        value=ExpressionTempVariableRef(
+                                        source=ExpressionTempVariableRef(
                                             variable=tmp_variable,
                                             source_ref=node.source_ref,
                                         ),
@@ -212,7 +212,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     new_node = StatementLocalsDictOperationSet(
                         locals_scope=provider.getLocalsScope(),
                         variable_name=variable_name,
-                        value=node.subnode_source,
+                        source=node.subnode_source,
                         source_ref=node.source_ref,
                     )
 

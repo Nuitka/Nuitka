@@ -443,7 +443,7 @@ def makeModuleFrame(module, statements, source_ref):
             code_name = "<module %s>" % module.getFullName()
 
     return StatementsFrameModule(
-        statements=statements,
+        statements=tuple(statements),
         code_object=CodeObjectSpec(
             co_name=code_name,
             co_qualname=code_name,

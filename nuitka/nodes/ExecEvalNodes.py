@@ -22,7 +22,6 @@ to eliminate or limit their impact as much as possible, but it's difficult
 to do.
 """
 
-from .Checkers import convertNoneConstantToNone
 from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinCompileMixin,
     ChildrenExpressionBuiltinEvalMixin,
@@ -30,8 +29,10 @@ from .ChildrenHavingMixins import (
     ChildrenExpressionBuiltinExecMixin,
 )
 from .ExpressionBases import ExpressionBase
-from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
-from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+from .StatementBasesGenerated import (
+    StatementExecBase,
+    StatementLocalsDictSyncBase,
+)
 
 
 class ExpressionBuiltinEval(ChildrenExpressionBuiltinEvalMixin, ExpressionBase):
@@ -160,126 +161,44 @@ Changed 'execfile' with unused result to 'exec' on class level.""",
             return statement, None, None
 
 
-class StatementExec(StatementChildrenHavingBase):
+class StatementExec(StatementExecBase):
     kind = "STATEMENT_EXEC"
 
-    named_children = ("source", "globals_arg", "locals_arg")
+    named_children = ("source_code", "globals_arg|auto_none", "locals_arg|auto_none")
+    auto_compute_handling = "operation"
 
-    checkers = {
-        "globals_arg": convertNoneConstantToNone,
-        "locals_arg": convertNoneConstantToNone,
-    }
+    python_version_spec = "< 0x300"
 
-    def __init__(self, source_code, globals_arg, locals_arg, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={
-                "globals_arg": globals_arg,
-                "locals_arg": locals_arg,
-                "source": source_code,
-            },
-            source_ref=source_ref,
-        )
-
-    def computeStatement(self, trace_collection):
-        source_code = trace_collection.onExpression(self.subnode_source)
-
-        if source_code.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if source_code.willRaiseAnyException():
-            result = source_code
-
-            return (
-                result,
-                "new_raise",
-                """\
-Exec statement raises implicitly when determining source code argument.""",
-            )
-
-        globals_arg = trace_collection.onExpression(
-            expression=self.subnode_globals_arg, allow_none=True
-        )
-
-        if globals_arg is not None and globals_arg.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if globals_arg is not None and globals_arg.willRaiseAnyException():
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions=(source_code, globals_arg)
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Exec statement raises implicitly when determining globals argument.""",
-            )
-
-        locals_arg = trace_collection.onExpression(
-            expression=self.subnode_locals_arg, allow_none=True
-        )
-
-        if locals_arg is not None and locals_arg.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if locals_arg is not None and locals_arg.willRaiseAnyException():
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions=(source_code, globals_arg, locals_arg)
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Exec statement raises implicitly when determining locals argument.""",
-            )
-
+    def computeStatementOperation(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        str_value = self.subnode_source.getStrValue()
-
-        if str_value is not None:
-            # TODO: This needs to be re-done.
-            # TODO: Don't forget to consider side effects of source code,
-            # locals_arg, and globals_arg.
-            return self, None, None
-
-            # exec_body = ...
-            # return (exec_body, "new_statements", "In-lined constant exec statement.")
+        # TODO: Optimize strings for exec expression and statement again.
+        # str_value = self.subnode_source_code.getStrValue()
 
         return self, None, None
 
 
-class StatementLocalsDictSync(StatementChildHavingBase):
+class StatementLocalsDictSync(StatementLocalsDictSyncBase):
     kind = "STATEMENT_LOCALS_DICT_SYNC"
 
-    named_child = "locals_arg"
+    named_children = ("locals_arg",)
+    node_attributes = ("locals_scope",)
+    auto_compute_handling = "operation,post_init"
 
-    __slots__ = ("locals_scope", "previous_traces", "variable_traces")
+    __slots__ = ("previous_traces", "variable_traces")
 
-    def __init__(self, locals_scope, locals_arg, source_ref):
-        StatementChildHavingBase.__init__(self, value=locals_arg, source_ref=source_ref)
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
+    def postInitNode(self):
         self.previous_traces = None
         self.variable_traces = None
-
-        self.locals_scope = locals_scope
-
-    def getDetails(self):
-        return {"locals_scope": self.locals_scope}
 
     def getPreviousVariablesTraces(self):
         return self.previous_traces
 
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
+        # TODO: Derive this from the locals scope instead, otherwise this is
+        # costly and a potentially wrong decision.
         provider = self.getParentVariableProvider()
         if provider.isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."

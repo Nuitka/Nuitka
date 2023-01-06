@@ -29,13 +29,16 @@ from nuitka.PythonVersions import python_version
 from .BuiltinLenNodes import ExpressionBuiltinLen
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
-from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_iterator
+from .StatementBasesGenerated import (
+    StatementSpecialUnpackCheckBase,
+    StatementSpecialUnpackCheckFromIteratedBase,
+)
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -188,25 +191,20 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
             )
 
 
-class StatementSpecialUnpackCheckFromIterated(StatementChildHavingBase):
+class StatementSpecialUnpackCheckFromIterated(
+    StatementSpecialUnpackCheckFromIteratedBase
+):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED"
 
-    named_child = "iterated_length"
+    named_children = ("iterated_length",)
+    node_attributes = ("count",)
+    auto_compute_handling = "operation"
 
-    __slots__ = ("count",)
-
-    def __init__(self, iterated_length, count, source_ref):
-        StatementChildHavingBase.__init__(
-            self, value=iterated_length, source_ref=source_ref
-        )
-
-        self.count = int(count)
-
-    def computeStatement(self, trace_collection):
-        iterated_length = trace_collection.onExpression(self.subnode_iterated_length)
-
-        if iterated_length.isCompileTimeConstant():
-            iterated_length_value = iterated_length.getCompileTimeConstant()
+    def computeStatementOperation(self, trace_collection):
+        if self.subnode_iterated_length.isCompileTimeConstant():
+            iterated_length_value = (
+                self.subnode_iterated_length.getCompileTimeConstant()
+            )
 
             if iterated_length_value <= self.count:
                 return (
@@ -253,45 +251,18 @@ def makeStatementSpecialUnpackCheckFromIterated(
     )
 
 
-class StatementSpecialUnpackCheck(StatementChildHavingBase):
+class StatementSpecialUnpackCheck(StatementSpecialUnpackCheckBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
-    named_child = "iterator"
-
-    __slots__ = ("count",)
-
-    def __init__(self, iterator, count, source_ref):
-        StatementChildHavingBase.__init__(self, value=iterator, source_ref=source_ref)
-
-        self.count = int(count)
-
-    def getDetails(self):
-        return {"count": self.getCount()}
+    named_children = ("iterator",)
+    node_attributes = ("count",)
+    auto_compute_handling = "operation"
 
     def getCount(self):
         return self.count
 
-    def computeStatement(self, trace_collection):
-        iterator = trace_collection.onExpression(self.subnode_iterator)
-
-        if iterator.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if iterator.willRaiseAnyException():
-            from .NodeMakingHelpers import (
-                makeStatementExpressionOnlyReplacementNode,
-            )
-
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression=iterator, node=self
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Explicit raise already raises implicitly building exception type.""",
-            )
+    def computeStatementOperation(self, trace_collection):
+        iterator = self.subnode_iterator
 
         if iterator.isExpressionTempVariableRef():
             iteration_source_node = iterator.variable_trace.getIterationSourceNode()
