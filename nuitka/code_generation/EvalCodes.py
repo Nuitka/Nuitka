@@ -237,7 +237,7 @@ def getBuiltinEvalCode(
 
 
 def generateExecCode(statement, emit, context):
-    source_arg = statement.subnode_source
+    source_arg = statement.subnode_source_code
     globals_arg = statement.subnode_globals_arg
     locals_arg = statement.subnode_locals_arg
 

@@ -473,6 +473,10 @@ def makeMixinName(
                 return "_auto_none"
             if named_children_checkers[name] == "convertEmptyStrConstantToNone":
                 return "_auto_none_empty_str"
+            if named_children_checkers[name] == "checkStatementsSequenceOrNone":
+                return "_statements_or_none"
+            if named_children_checkers[name] == "checkStatementsSequence":
+                return "_statements"
             else:
                 assert False, named_children_checkers[name]
         else:
@@ -574,6 +578,13 @@ def _parseNamedChildrenSpec(named_children):
                     named_children_checkers[
                         named_child
                     ] = "convertEmptyStrConstantToNone"
+                elif named_child_property == "statements_or_none":
+                    named_children_types[named_child] = "optional"
+                    named_children_checkers[
+                        named_child
+                    ] = "checkStatementsSequenceOrNone"
+                elif named_child_property == "statements":
+                    named_children_checkers[named_child] = "checkStatementsSequence"
                 elif named_child_property == "optional":
                     named_children_types[named_child] = "optional"
                 else:
@@ -653,9 +664,12 @@ def addFromNodes():
                 "make" + node_class.__name__
             )
 
-        if "ATTRIBUTE" not in kind:
-            if "EXPRESSION" not in kind or "STATEMENT" in kind:
-                continue
+        if (
+            "EXPRESSION" not in kind
+            and "STATEMENT_" not in kind
+            and "STATEMENTS_" not in kind
+        ):
+            continue
 
         _addFromNode(node_class)
 
@@ -712,10 +726,16 @@ def makeChildrenHavingMixinNodes():
         emitGenerationWarning(emit2, "Children having expression bases", template.name)
         emitGenerationWarning(emit3, "Children having statement bases", template.name)
 
-        emit("""# Loop unrolling over child names, pylint: disable=too-many-branches""")
+        emit("# Loop unrolling over child names, pylint: disable=too-many-branches")
 
         emit1(
-            """from nuitka.nodes.Checkers import convertNoneConstantToNone, convertEmptyStrConstantToNone"""
+            "from nuitka.nodes.Checkers import convertNoneConstantToNone, convertEmptyStrConstantToNone"
+        )
+
+        emit3(
+            """
+from nuitka.nodes.Checkers import checkStatementsSequenceOrNone, \
+    checkStatementsSequence, convertNoneConstantToNone"""
         )
 
         for (
@@ -751,6 +771,22 @@ def makeChildrenHavingMixinNodes():
             ]
             intended_for.sort()
 
+            auto_compute_handling_set = set(auto_compute_handling)
+
+            def pop(name):
+                # only used inside of the loop, pylint: disable=cell-var-from-loop
+                result = name in auto_compute_handling_set
+                auto_compute_handling_set.discard(name)
+
+                return result
+
+            is_compute_final = pop("final")
+            is_compute_no_raise = pop("no_raise")
+            is_compute_statement = pop("operation")
+            has_post_node_init = pop("post_init")
+
+            assert not auto_compute_handling_set, auto_compute_handling_set
+
             code = template.render(
                 name=template.name,
                 is_expression=is_expression,
@@ -762,8 +798,10 @@ def makeChildrenHavingMixinNodes():
                     tuple(children_mixing_setters_needed.get(mixin_name, ()))
                 ),
                 intended_for=intended_for,
-                is_compute_final="final" in auto_compute_handling,
-                is_compute_no_raise="no_raise" in auto_compute_handling,
+                is_compute_final=is_compute_final,
+                is_compute_no_raise=is_compute_no_raise,
+                is_compute_statement=is_compute_statement,
+                has_post_node_init=has_post_node_init,
                 node_attributes=node_attributes,
                 len=len,
             )

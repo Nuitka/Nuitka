@@ -27,8 +27,8 @@ from .ExpressionBasesGenerated import (
     ExpressionBuiltinMakeExceptionBase,
     ExpressionBuiltinMakeExceptionImportErrorBase,
 )
-from .NodeBases import StatementBase, StatementChildrenHavingBase
-from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+from .NodeBases import StatementBase
+from .StatementBasesGenerated import StatementRaiseExceptionBase
 
 
 class StatementRaiseExceptionMixin(object):
@@ -49,119 +49,26 @@ class StatementRaiseExceptionMixin(object):
 
 
 class StatementRaiseException(
-    StatementRaiseExceptionMixin, StatementChildrenHavingBase
+    StatementRaiseExceptionMixin, StatementRaiseExceptionBase
 ):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
     named_children = (
         "exception_type",
-        "exception_value",
-        "exception_trace",
-        "exception_cause",
+        "exception_value|optional",
+        "exception_trace|optional",
+        "exception_cause|optional",
     )
+    auto_compute_handling = "post_init,operation"
 
     __slots__ = ("reraise_finally",)
 
-    def __init__(
-        self,
-        exception_type,
-        exception_value,
-        exception_trace,
-        exception_cause,
-        source_ref,
-    ):
-        assert exception_type is not None
-
-        if exception_type is None:
-            assert exception_value is None
-
-        if exception_value is None:
-            assert exception_trace is None
-
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={
-                "exception_type": exception_type,
-                "exception_value": exception_value,
-                "exception_trace": exception_trace,
-                "exception_cause": exception_cause,
-            },
-            source_ref=source_ref,
-        )
-
+    def postInitNode(self):
         self.reraise_finally = False
 
-    def computeStatement(self, trace_collection):
-        exception_type = trace_collection.onExpression(
-            expression=self.subnode_exception_type, allow_none=True
-        )
-
-        # TODO: Limit by type.
+    def computeStatementOperation(self, trace_collection):
+        # TODO: Limit by known type.
         trace_collection.onExceptionRaiseExit(BaseException)
-
-        if exception_type is not None and exception_type.willRaiseAnyException():
-            from .NodeMakingHelpers import (
-                makeStatementExpressionOnlyReplacementNode,
-            )
-
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression=exception_type, node=self
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Explicit raise already raises implicitly building exception type.""",
-            )
-
-        exception_value = trace_collection.onExpression(
-            expression=self.subnode_exception_value, allow_none=True
-        )
-
-        if exception_value is not None and exception_value.willRaiseAnyException():
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions=(exception_type, exception_value)
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Explicit raise already raises implicitly building exception value.""",
-            )
-
-        exception_trace = trace_collection.onExpression(
-            expression=self.subnode_exception_trace, allow_none=True
-        )
-
-        if exception_trace is not None and exception_trace.willRaiseAnyException():
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions=(exception_type, exception_value, exception_trace)
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Explicit raise already raises implicitly building exception traceback.""",
-            )
-
-        exception_cause = trace_collection.onExpression(
-            expression=self.subnode_exception_cause, allow_none=True
-        )
-
-        if exception_cause is not None and exception_cause.willRaiseAnyException():
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions=(exception_type, exception_cause)
-            )
-
-            return (
-                result,
-                "new_raise",
-                """
-Explicit raise already raises implicitly building exception cause.""",
-            )
 
         return self, None, None
 

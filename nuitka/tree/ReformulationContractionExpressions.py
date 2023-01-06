@@ -157,18 +157,16 @@ def _buildPython2ListContraction(provider, node, source_ref):
         source_ref=source_ref,
     )
 
-    statements.append(
-        StatementReturn(
-            expression=ExpressionTempVariableRef(
-                variable=container_tmp, source_ref=source_ref
-            ),
-            source_ref=source_ref,
-        )
+    return_statement = StatementReturn(
+        expression=ExpressionTempVariableRef(
+            variable=container_tmp, source_ref=source_ref
+        ),
+        source_ref=source_ref,
     )
 
     statement = makeTryFinallyStatement(
         provider=function_body,
-        tried=statements,
+        tried=mergeStatements((statements, return_statement)),
         final=release_statements,
         source_ref=source_ref.atInternal(),
     )
@@ -330,7 +328,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     )
 
     if is_async:
-        statements.append(StatementGeneratorReturnNone(source_ref=source_ref))
+        statements += (StatementGeneratorReturnNone(source_ref=source_ref),)
 
     statements = (
         makeTryFinallyStatement(
@@ -576,10 +574,10 @@ def _buildContractionBodyNode(
     statements.append(current_body)
     statements = mergeStatements(statements)
 
-    release_statements = [
+    release_statements = tuple(
         makeStatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
         for tmp_variable in tmp_variables
-    ]
+    )
 
     return statements, release_statements
 
@@ -587,7 +585,7 @@ def _buildContractionBodyNode(
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the Developer Manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names.
+    # nested blocks, etc. and so a lot of variable names, pylint:disable=too-many-locals
 
     function_body = ExpressionOutlineFunction(
         provider=provider, name=intern(name[1:-1]), source_ref=source_ref
@@ -624,19 +622,17 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         source_ref=source_ref,
     )
 
-    statements.append(
-        StatementReturn(
-            expression=ExpressionTempVariableRef(
-                variable=container_tmp, source_ref=source_ref
-            ),
-            source_ref=source_ref,
-        )
+    return_statement = StatementReturn(
+        expression=ExpressionTempVariableRef(
+            variable=container_tmp, source_ref=source_ref
+        ),
+        source_ref=source_ref,
     )
 
     statements = (
         makeTryFinallyStatement(
             provider=function_body,
-            tried=statements,
+            tried=mergeStatements((statements, return_statement)),
             final=release_statements,
             source_ref=source_ref.atInternal(),
         ),

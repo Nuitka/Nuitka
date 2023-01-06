@@ -31,7 +31,6 @@ from .ChildrenHavingMixins import (
     ChildrenHavingLeftRightMixin,
 )
 from .ExpressionBases import ExpressionBase
-from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeStatementExpressionOnlyReplacementNode,
@@ -41,6 +40,7 @@ from .NodeMakingHelpers import (
 )
 from .OperatorNodesUnary import ExpressionOperationNot
 from .shapes.BuiltinTypeShapes import tshape_bool, tshape_unknown
+from .StatementBasesGenerated import StatementConditionalBase
 from .StatementNodes import StatementsSequence
 
 
@@ -501,26 +501,19 @@ Convert conditional 'and' expression with unused result into conditional stateme
         )
 
 
-class StatementConditional(ConditionalValueComputeMixin, StatementChildrenHavingBase):
+class StatementConditional(ConditionalValueComputeMixin, StatementConditionalBase):
     kind = "STATEMENT_CONDITIONAL"
 
-    named_children = ("condition", "yes_branch", "no_branch")
+    named_children = (
+        "condition",
+        "yes_branch|statements_or_none+setter",
+        "no_branch|statements_or_none+setter",
+    )
 
     checkers = {
         "yes_branch": checkStatementsSequenceOrNone,
         "no_branch": checkStatementsSequenceOrNone,
     }
-
-    def __init__(self, condition, yes_branch, no_branch, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={
-                "condition": condition,
-                "yes_branch": yes_branch,
-                "no_branch": no_branch,
-            },
-            source_ref=source_ref,
-        )
 
     def isStatementAborting(self):
         yes_branch = self.subnode_yes_branch
@@ -619,14 +612,14 @@ branches.""",
                 yes_branch.finalize()
                 yes_branch = None
 
-                self.clearChild("yes_branch")
+                self.setChildYesBranch(None)
 
         if no_branch is not None:
             if not no_branch.subnode_statements:
                 no_branch.finalize()
                 no_branch = None
 
-                self.clearChild("no_branch")
+                self.setChildNoBranch(None)
 
         # Consider to not remove branches that we know won't be taken.
         if yes_branch is not None and truth_value is False:
@@ -637,8 +630,9 @@ branches.""",
             )
 
             yes_branch.finalize()
-            self.clearChild("yes_branch")
             yes_branch = None
+
+            self.setChildYesBranch(None)
 
         if no_branch is not None and truth_value is True:
             trace_collection.signalChange(
@@ -648,8 +642,9 @@ branches.""",
             )
 
             no_branch.finalize()
-            self.clearChild("no_branch")
             no_branch = None
+
+            self.setChildNoBranch(None)
 
         # Do we need to merge branches
         needs_merge = True

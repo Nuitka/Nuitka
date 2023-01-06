@@ -25,103 +25,57 @@ Predicting the behavior of 'print' is not trivial at all, due to many special
 cases.
 """
 
-from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
-    wrapStatementWithSideEffects,
+)
+from .StatementBasesGenerated import (
+    StatementPrintNewlineBase,
+    StatementPrintValueBase,
 )
 
 
-class StatementPrintValue(StatementChildrenHavingBase):
+class StatementPrintValue(StatementPrintValueBase):
     kind = "STATEMENT_PRINT_VALUE"
 
-    named_children = ("dest", "value")
+    named_children = ("dest|optional", "value|setter")
+    auto_compute_handling = "operation"
 
-    def __init__(self, dest, value, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self, values={"value": value, "dest": dest}, source_ref=source_ref
-        )
+    python_version_spec = "< 0x300"
 
-        assert value is not None
-
-    def computeStatement(self, trace_collection):
-        dest = trace_collection.onExpression(
-            expression=self.subnode_dest, allow_none=True
-        )
-
-        if dest is not None and dest.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if dest is not None and dest.willRaiseAnyException():
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression=dest, node=self
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Exception raise in 'print' statement destination converted to explicit raise.""",
-            )
-
-        value = trace_collection.onExpression(self.subnode_value)
-
-        if value.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if value.willRaiseAnyException():
-            if dest is not None:
-                result = wrapStatementWithSideEffects(
-                    new_node=makeStatementExpressionOnlyReplacementNode(
-                        expression=value, node=self
-                    ),
-                    old_node=dest,
-                )
-            else:
-                result = makeStatementExpressionOnlyReplacementNode(
-                    expression=value, node=self
-                )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Exception raise in 'print' statement arguments converted to explicit raise.""",
-            )
-
+    def computeStatementOperation(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        if dest is None:
-            if value.isExpressionSideEffects():
-                self.setChild("value", value.subnode_expression)
+        if self.subnode_dest is None and self.subnode_value.isExpressionSideEffects():
+            self.setChildValue(self.subnode_value.value.subnode_expression)
 
-                statements = [
-                    makeStatementExpressionOnlyReplacementNode(side_effect, self)
-                    for side_effect in value.subnode_side_effects
-                ]
+            statements = [
+                makeStatementExpressionOnlyReplacementNode(side_effect, self)
+                for side_effect in self.subnode_value.value.subnode_side_effects
+            ]
 
-                statements.append(self)
+            statements.append(self)
 
-                result = makeStatementsSequenceReplacementNode(
-                    statements=statements, node=self
-                )
+            result = makeStatementsSequenceReplacementNode(
+                statements=statements, node=self
+            )
 
-                return (
-                    result,
-                    "new_statements",
-                    """\
+            return (
+                result,
+                "new_statements",
+                """\
 Side effects printed item promoted to statements.""",
-                )
+            )
 
-        if value.isCompileTimeConstant():
+        if (
+            self.subnode_value.isCompileTimeConstant()
+            and not self.subnode_value.hasShapeStrOrUnicodeExact()
+        ):
             # Avoid unicode encoding issues.
-            if not value.isExpressionConstantUnicodeRef():
-                new_value = value.getStrValue()
-                assert new_value is not None, value
+            new_value = self.subnode_value.getStrValue()
+            assert new_value is not None, self.subnode_value
 
-                if value is not new_value:
-                    self.setChild("value", new_value)
+            self.setChildValue(new_value)
 
         return self, None, None
 
@@ -131,34 +85,14 @@ Side effects printed item promoted to statements.""",
         return True
 
 
-class StatementPrintNewline(StatementChildHavingBase):
+class StatementPrintNewline(StatementPrintNewlineBase):
     kind = "STATEMENT_PRINT_NEWLINE"
 
-    named_child = "dest"
+    named_children = ("dest|optional",)
+    python_version_spec = "< 0x300"
+    auto_compute_handling = "operation"
 
-    def __init__(self, dest, source_ref):
-        StatementChildHavingBase.__init__(self, value=dest, source_ref=source_ref)
-
-    def computeStatement(self, trace_collection):
-        dest = trace_collection.onExpression(
-            expression=self.subnode_dest, allow_none=True
-        )
-
-        if dest is not None and dest.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if dest is not None and dest.willRaiseAnyException():
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression=dest, node=self
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Exception raise in 'print' statement destination converted to explicit raise.""",
-            )
-
+    def computeStatementOperation(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

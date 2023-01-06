@@ -63,8 +63,6 @@ class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
     and what value it will be.
     """
 
-    __slots__ = ("attribute_name",)
-
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ("source", "expression")
@@ -105,7 +103,7 @@ class StatementDelAttribute(StatementDelAttributeBase):
 
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
-    named_child = "expression"
+    named_children = ("expression",)
     node_attributes = ("attribute_name",)
 
     def getAttributeName(self):

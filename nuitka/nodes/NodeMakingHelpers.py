@@ -320,7 +320,7 @@ def mergeStatements(statements, allow_none=False):
         else:
             assert False, statement
 
-    return merged_statements
+    return tuple(merged_statements)
 
 
 def makeStatementsSequenceReplacementNode(statements, node):

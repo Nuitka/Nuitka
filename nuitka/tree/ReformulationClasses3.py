@@ -242,7 +242,7 @@ def buildClassNode3(provider, node, source_ref):
         StatementLocalsDictOperationSet(
             locals_scope=locals_scope,
             variable_name="__qualname__",
-            value=qualname_ref,
+            source=qualname_ref,
             source_ref=source_ref,
         )
     )
@@ -255,7 +255,7 @@ def buildClassNode3(provider, node, source_ref):
             StatementLocalsDictOperationSet(
                 locals_scope=locals_scope,
                 variable_name="__annotations__",
-                value=makeConstantRefNode(
+                source=makeConstantRefNode(
                     constant={}, source_ref=source_ref, user_provided=True
                 ),
                 source_ref=source_ref,
@@ -296,7 +296,7 @@ def buildClassNode3(provider, node, source_ref):
                 yes_branch=StatementLocalsDictOperationSet(
                     locals_scope=locals_scope,
                     variable_name="__orig_bases__",
-                    value=ExpressionTempVariableRef(
+                    source=ExpressionTempVariableRef(
                         variable=tmp_bases_orig, source_ref=source_ref
                     ),
                     source_ref=source_ref,

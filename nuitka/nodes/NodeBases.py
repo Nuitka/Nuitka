@@ -169,12 +169,8 @@ class NodeBase(NodeMetaClassBase):
     def getChildNameNice(self):
         child_name = self.getChildName()
 
-        if hasattr(self.parent, "nice_children"):
-            return self.parent.nice_children[
-                self.parent.named_children.index(child_name)
-            ]
-        elif hasattr(self.parent, "nice_child"):
-            return self.parent.nice_child
+        if hasattr(self.parent, "nice_children_dict"):
+            return self.parent.nice_children_dict[child_name]
         else:
             return child_name
 
@@ -908,7 +904,7 @@ class StatementBase(NodeBase):
     # @abstractmethod
     @staticmethod
     def getStatementNiceName():
-        return "undescribed statement"
+        return "un-described statement"
 
     def computeStatementSubExpressions(self, trace_collection):
         """Compute a statement.
@@ -939,170 +935,6 @@ class StatementBase(NodeBase):
                 )
 
         return self, None, None
-
-
-class StatementChildrenHavingBase(ChildrenHavingMixin, StatementBase):
-    def __init__(self, values, source_ref):
-        StatementBase.__init__(self, source_ref=source_ref)
-
-        ChildrenHavingMixin.__init__(self, values=values)
-
-
-class StatementChildHavingBase(StatementBase):
-    named_child = ""
-
-    checker = None
-
-    def __init__(self, value, source_ref):
-        StatementBase.__init__(self, source_ref=source_ref)
-
-        if self.checker is not None:
-            value = self.checker(value)  # False alarm, pylint: disable=not-callable
-
-        assert type(value) is not list, self.named_child
-
-        if type(value) is tuple:
-            assert None not in value, self.named_child
-
-            for val in value:
-                val.parent = self
-        elif value is not None:
-            value.parent = self
-        elif value is None:
-            pass
-        else:
-            assert False, type(value)
-
-        attr_name = "subnode_" + self.named_child
-        setattr(self, attr_name, value)
-
-    def setChild(self, name, value):
-        """Set a child value.
-
-        Do not overload, provider self.checkers instead.
-        """
-        # Only accept legal child names
-        assert name == self.named_child, name
-
-        # Lists as inputs are OK, but turn them into tuples.
-        if type(value) is list:
-            value = tuple(value)
-
-        if self.checker is not None:
-            value = self.checker(value)  # False alarm, pylint: disable=not-callable
-
-        # Re-parent value to us.
-        if type(value) is tuple:
-            for val in value:
-                val.parent = self
-        elif value is not None:
-            value.parent = self
-
-        attr_name = "subnode_" + name
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-
-        assert old_value is not value, value
-
-        setattr(self, attr_name, value)
-
-    def getChild(self, name):
-        # Only accept legal child names
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
-
-    def getVisitableNodes(self):
-        # TODO: Consider if a generator would be faster.
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        if value is None:
-            return ()
-        elif type(value) is tuple:
-            return value
-        elif isinstance(value, NodeBase):
-            return (value,)
-        else:
-            raise AssertionError(self, "has illegal child", value, value.__class__)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in debugging and XML output.
-        """
-        attr_name = "subnode_" + self.named_child
-        value = getattr(self, attr_name)
-
-        yield self.named_child, value
-
-    def replaceChild(self, old_node, new_node):
-        if new_node is not None and not isinstance(new_node, NodeBase):
-            raise AssertionError(
-                "Cannot replace with", new_node, "old", old_node, "in", self
-            )
-
-        # Find the replaced node, as an added difficulty, what might be
-        # happening, is that the old node is an element of a tuple, in which we
-        # may also remove that element, by setting it to None.
-        key = self.named_child
-        value = self.getChild(key)
-
-        if value is None:
-            pass
-        elif type(value) is tuple:
-            if old_node in value:
-                if new_node is not None:
-                    self.setChild(
-                        key,
-                        tuple(
-                            (val if val is not old_node else new_node) for val in value
-                        ),
-                    )
-                else:
-                    self.setChild(
-                        key, tuple(val for val in value if val is not old_node)
-                    )
-
-                return key
-        elif isinstance(value, NodeBase):
-            if old_node is value:
-                self.setChild(key, new_node)
-
-                return key
-        else:
-            assert False, (key, value, value.__class__)
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        # Make clones of child nodes too.
-        values = {}
-        key = self.named_child
-
-        value = self.getChild(key)
-
-        assert type(value) is not list, key
-
-        if value is None:
-            values[key] = None
-        elif type(value) is tuple:
-            values[key] = tuple(v.makeClone() for v in value)
-        else:
-            values[key] = value.makeClone()
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        attr_name = "subnode_" + self.named_child
-        child = getattr(self, attr_name)
-        if child is not None:
-            child.finalize()
-        delattr(self, attr_name)
 
 
 class SideEffectsFromChildrenMixin(object):

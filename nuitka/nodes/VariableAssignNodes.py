@@ -36,7 +36,6 @@ from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.Options import isExperimental
 
 from .ConstantRefNodes import makeConstantRefNode
-from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
@@ -47,11 +46,20 @@ from .shapes.ControlFlowDescriptions import (
     ControlFlowDescriptionNoEscape,
 )
 from .shapes.StandardShapes import tshape_iterator, tshape_unknown
+from .StatementBasesGenerated import (
+    StatementAssignmentVariableConstantImmutableBase,
+    StatementAssignmentVariableConstantMutableBase,
+    StatementAssignmentVariableFromTempVariableBase,
+    StatementAssignmentVariableFromVariableBase,
+    StatementAssignmentVariableGenericBase,
+    StatementAssignmentVariableHardValueBase,
+    StatementAssignmentVariableIteratorBase,
+)
 from .VariableDelNodes import makeStatementDelVariable
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
-class StatementAssignmentVariableBase(StatementChildHavingBase):
+class StatementAssignmentVariableMixin(object):
     """Assignment to a variable from an expression.
 
     All assignment forms that are not to attributes, slices, subscripts
@@ -65,27 +73,8 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
     it can be determined.
     """
 
-    named_child = "source"
-    nice_child = "assignment source"
-
-    __slots__ = (
-        "subnode_source",
-        "variable",
-        "variable_version",
-        "variable_trace",
-        "inplace_suspect",
-    )
-
-    def __init__(self, source, variable, version, source_ref):
-        assert version is not None, source_ref
-
-        self.variable = variable
-        self.variable_version = version
-
-        StatementChildHavingBase.__init__(self, value=source, source_ref=source_ref)
-
-        self.variable_trace = None
-        self.inplace_suspect = None
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     @staticmethod
     def isStatementAssignmentVariable():
@@ -97,9 +86,6 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
         self.subnode_source.finalize()
         del self.subnode_source
 
-    def getDetails(self):
-        return {"variable": self.variable}
-
     def getDetailsForDisplay(self):
         return {
             "variable_name": self.getVariableName(),
@@ -110,6 +96,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
+        # Virtual method overload, pylint: disable=unused-argument
         owner = getOwnerFromCodeName(args["owner"])
 
         if args["is_temp"] == "True":
@@ -133,7 +120,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
         return self.__class__(
             source=self.subnode_source.makeClone(),
             variable=self.variable,
-            version=version,
+            variable_version=version,
             source_ref=self.source_ref,
         )
 
@@ -209,7 +196,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
             result = makeStatementAssignmentVariableConstant(
                 source=source,
                 variable=self.variable,
-                version=self.variable_version,
+                variable_version=self.variable_version,
                 very_trusted=old_source.isExpressionImportName(),
                 source_ref=self.source_ref,
             )
@@ -227,7 +214,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
             result = StatementAssignmentVariableFromVariable(
                 source=source,
                 variable=self.variable,
-                version=self.variable_version,
+                variable_version=self.variable_version,
                 source_ref=self.source_ref,
             )
 
@@ -243,7 +230,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
             result = StatementAssignmentVariableFromTempVariable(
                 source=source,
                 variable=self.variable,
-                version=self.variable_version,
+                variable_version=self.variable_version,
                 source_ref=self.source_ref,
             )
 
@@ -259,7 +246,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
             result = StatementAssignmentVariableIterator(
                 source=source,
                 variable=self.variable,
-                version=self.variable_version,
+                variable_version=self.variable_version,
                 source_ref=self.source_ref,
             )
 
@@ -275,7 +262,7 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
             result = StatementAssignmentVariableHardValue(
                 source=source,
                 variable=self.variable,
-                version=self.variable_version,
+                variable_version=self.variable_version,
                 source_ref=self.source_ref,
             )
 
@@ -294,8 +281,28 @@ class StatementAssignmentVariableBase(StatementChildHavingBase):
         """Does this assignment node have a very trusted value."""
 
 
-class StatementAssignmentVariableGeneric(StatementAssignmentVariableBase):
+class StatementAssignmentVariableGeneric(
+    StatementAssignmentVariableMixin, StatementAssignmentVariableGenericBase
+):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_GENERIC"
+
+    named_children = ("source|setter",)
+    nice_children = ("assignment source",)
+    node_attributes = ("variable", "variable_version")
+    auto_compute_handling = "post_init"
+
+    __slots__ = (
+        "variable_trace",
+        # TODO: Does every variant have to care here
+        "inplace_suspect",
+    )
+
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+
+    # TODO: Add parsing of node_attributes for init values, so we can avoid these too
+    def postInitNode(self):
+        self.variable_trace = None
+        self.inplace_suspect = None
 
     @staticmethod
     def getReleaseEscape():
@@ -322,7 +329,7 @@ class StatementAssignmentVariableGeneric(StatementAssignmentVariableBase):
 
             # Need to update ourselves to no longer reference the side effects,
             # but go to the wrapped thing.
-            self.setChild("source", old_source.subnode_expression)
+            self.setChildSource(old_source.subnode_expression)
 
             result = makeStatementsSequenceReplacementNode(
                 statements=statements, node=self
@@ -409,12 +416,25 @@ Removed assignment of %s from itself which is known to be defined."""
         return self.subnode_source.hasVeryTrustedValue()
 
 
-class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
+class StatementAssignmentVariableIterator(
+    StatementAssignmentVariableMixin, StatementAssignmentVariableIteratorBase
+):
     # Carries state for propagating iterators potentially.
+
+    # TODO: Maybe have a namedtuple with these intended for index replacement,
+    # they form once set of things pylint: disable=too-many-instance-attributes
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_ITERATOR"
 
+    named_children = ("source",)
+    nice_children = ("assignment source",)
+    node_attributes = ("variable", "variable_version")
+    auto_compute_handling = "post_init"
+
     __slots__ = (
+        "variable_trace",
+        # TODO: Does every variant have to care here
+        "inplace_suspect",
         "type_shape",
         "temp_scope",
         "tmp_iterated_variable",
@@ -423,17 +443,17 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
         "is_indexable",
     )
 
-    def __init__(self, source, variable, version, source_ref):
-        StatementAssignmentVariableBase.__init__(
-            self,
-            source=source,
-            variable=variable,
-            version=version,
-            source_ref=source_ref,
-        )
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
+    # TODO: Add parsing of node_attributes for init values, so we can avoid these too
+    def postInitNode(self):
+        self.variable_trace = None
+        self.inplace_suspect = None
+
+        # Have a valid start value, later this will become more specific.
         self.type_shape = tshape_iterator
 
+        # For replacing with indexing potentially.
         self.temp_scope = None
         self.tmp_iterated_variable = None
         self.tmp_iteration_count_variable = None
@@ -476,7 +496,7 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
         assign_iterated = makeStatementAssignmentVariable(
             source=iterated_value,
             variable=self.tmp_iterated_variable,
-            version=None,
+            variable_version=None,
             source_ref=iterated_value.source_ref,
         )
 
@@ -487,7 +507,7 @@ class StatementAssignmentVariableIterator(StatementAssignmentVariableBase):
         assign_iteration_count = makeStatementAssignmentVariable(
             source=makeConstantRefNode(constant=0, source_ref=self.source_ref),
             variable=self.tmp_iteration_count_variable,
-            version=None,
+            variable_version=None,
             source_ref=iterated_value.source_ref,
         )
 
@@ -584,8 +604,28 @@ Assignment raises exception in assigned value, removed assignment.""",
         return False
 
 
-class StatementAssignmentVariableConstantMutable(StatementAssignmentVariableBase):
+class StatementAssignmentVariableConstantMutable(
+    StatementAssignmentVariableMixin, StatementAssignmentVariableConstantMutableBase
+):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_MUTABLE"
+
+    named_children = ("source",)
+    nice_children = ("assignment source",)
+    node_attributes = ("variable", "variable_version")
+    auto_compute_handling = "post_init"
+
+    __slots__ = (
+        "variable_trace",
+        # TODO: Does every variant have to care here
+        "inplace_suspect",
+    )
+
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+
+    # TODO: Add parsing of node_attributes for init values, so we can avoid these too
+    def postInitNode(self):
+        self.variable_trace = None
+        self.inplace_suspect = None
 
     @staticmethod
     def mayRaiseException(exception_type):
@@ -646,8 +686,28 @@ class StatementAssignmentVariableConstantMutable(StatementAssignmentVariableBase
         return False
 
 
-class StatementAssignmentVariableConstantImmutable(StatementAssignmentVariableBase):
+class StatementAssignmentVariableConstantImmutable(
+    StatementAssignmentVariableMixin, StatementAssignmentVariableConstantImmutableBase
+):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_CONSTANT_IMMUTABLE"
+
+    named_children = ("source",)
+    nice_children = ("assignment source",)
+    node_attributes = ("variable", "variable_version")
+    auto_compute_handling = "post_init"
+
+    __slots__ = (
+        "variable_trace",
+        # TODO: Does every variant have to care here
+        "inplace_suspect",
+    )
+
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+
+    # TODO: Add parsing of node_attributes for init values, so we can avoid these too
+    def postInitNode(self):
+        self.variable_trace = None
+        self.inplace_suspect = None
 
     @staticmethod
     def mayRaiseException(exception_type):
@@ -755,8 +815,28 @@ class StatementAssignmentVariableConstantImmutableTrusted(
         return True
 
 
-class StatementAssignmentVariableHardValue(StatementAssignmentVariableBase):
+class StatementAssignmentVariableHardValue(
+    StatementAssignmentVariableMixin, StatementAssignmentVariableHardValueBase
+):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_HARD_VALUE"
+
+    named_children = ("source",)
+    nice_children = ("assignment source",)
+    node_attributes = ("variable", "variable_version")
+    auto_compute_handling = "post_init"
+
+    __slots__ = (
+        "variable_trace",
+        # TODO: Does every variant have to care here
+        "inplace_suspect",
+    )
+
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+
+    # TODO: Add parsing of node_attributes for init values, so we can avoid these too
+    def postInitNode(self):
+        self.variable_trace = None
+        self.inplace_suspect = None
 
     @staticmethod
     def getReleaseEscape():
@@ -798,8 +878,28 @@ Assignment raises exception in assigned value, removed assignment.""",
         return True
 
 
-class StatementAssignmentVariableFromVariable(StatementAssignmentVariableBase):
+class StatementAssignmentVariableFromVariable(
+    StatementAssignmentVariableMixin, StatementAssignmentVariableFromVariableBase
+):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_VARIABLE"
+
+    named_children = ("source",)
+    nice_children = ("assignment source",)
+    node_attributes = ("variable", "variable_version")
+    auto_compute_handling = "post_init"
+
+    __slots__ = (
+        "variable_trace",
+        # TODO: Does every variant have to care here
+        "inplace_suspect",
+    )
+
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+
+    # TODO: Add parsing of node_attributes for init values, so we can avoid these too
+    def postInitNode(self):
+        self.variable_trace = None
+        self.inplace_suspect = None
 
     @staticmethod
     def getReleaseEscape():
@@ -861,8 +961,28 @@ Removed assignment of %s from itself which is known to be defined."""
         return False
 
 
-class StatementAssignmentVariableFromTempVariable(StatementAssignmentVariableBase):
+class StatementAssignmentVariableFromTempVariable(
+    StatementAssignmentVariableMixin, StatementAssignmentVariableFromTempVariableBase
+):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_FROM_TEMP_VARIABLE"
+
+    named_children = ("source",)
+    nice_children = ("assignment source",)
+    node_attributes = ("variable", "variable_version")
+    auto_compute_handling = "post_init"
+
+    __slots__ = (
+        "variable_trace",
+        # TODO: Does every variant have to care here
+        "inplace_suspect",
+    )
+
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+
+    # TODO: Add parsing of node_attributes for init values, so we can avoid these too
+    def postInitNode(self):
+        self.variable_trace = None
+        self.inplace_suspect = None
 
     @staticmethod
     def getReleaseEscape():
@@ -908,59 +1028,88 @@ Removed assignment of %s from itself which is known to be defined."""
 
 
 def makeStatementAssignmentVariableConstant(
-    source, variable, version, very_trusted, source_ref
+    source, variable, variable_version, very_trusted, source_ref
 ):
     if source.isMutable():
         if very_trusted:
             return StatementAssignmentVariableConstantMutableTrusted(
-                source=source, variable=variable, source_ref=source_ref, version=version
+                source=source,
+                variable=variable,
+                source_ref=source_ref,
+                variable_version=variable_version,
             )
         else:
             return StatementAssignmentVariableConstantMutable(
-                source=source, variable=variable, source_ref=source_ref, version=version
+                source=source,
+                variable=variable,
+                source_ref=source_ref,
+                variable_version=variable_version,
             )
     else:
         if very_trusted:
             return StatementAssignmentVariableConstantImmutableTrusted(
-                source=source, variable=variable, source_ref=source_ref, version=version
+                source=source,
+                variable=variable,
+                source_ref=source_ref,
+                variable_version=variable_version,
             )
         else:
             return StatementAssignmentVariableConstantImmutable(
-                source=source, variable=variable, source_ref=source_ref, version=version
+                source=source,
+                variable=variable,
+                source_ref=source_ref,
+                variable_version=variable_version,
             )
 
 
-def makeStatementAssignmentVariable(source, variable, source_ref, version=None):
+def makeStatementAssignmentVariable(
+    source, variable, source_ref, variable_version=None
+):
     assert source is not None, source_ref
 
-    if version is None:
-        version = variable.allocateTargetNumber()
+    if variable_version is None:
+        variable_version = variable.allocateTargetNumber()
 
     if source.isCompileTimeConstant():
         return makeStatementAssignmentVariableConstant(
             source=source,
             variable=variable,
-            version=version,
+            variable_version=variable_version,
             very_trusted=False,
             source_ref=source_ref,
         )
     elif source.isExpressionVariableRef():
         return StatementAssignmentVariableFromVariable(
-            source=source, variable=variable, version=version, source_ref=source_ref
+            source=source,
+            variable=variable,
+            variable_version=variable_version,
+            source_ref=source_ref,
         )
     elif source.isExpressionTempVariableRef():
         return StatementAssignmentVariableFromTempVariable(
-            source=source, variable=variable, version=version, source_ref=source_ref
+            source=source,
+            variable=variable,
+            variable_version=variable_version,
+            source_ref=source_ref,
         )
     elif source.getTypeShape().isShapeIterator():
         return StatementAssignmentVariableIterator(
-            source=source, variable=variable, version=version, source_ref=source_ref
+            source=source,
+            variable=variable,
+            variable_version=variable_version,
+            source_ref=source_ref,
         )
     elif source.hasVeryTrustedValue():
         return StatementAssignmentVariableHardValue(
-            source=source, variable=variable, version=version, source_ref=source_ref
+            source=source,
+            variable=variable,
+            variable_version=variable_version,
+            source_ref=source_ref,
         )
     else:
         return StatementAssignmentVariableGeneric(
-            source=source, variable=variable, source_ref=source_ref, version=version
+            source=source,
+            variable=variable,
+            variable_version=variable_version,
+            source_ref=source_ref,
         )

@@ -28,9 +28,13 @@ from nuitka.tree.TreeHelpers import makeStatementsSequence
 
 from .ChildrenHavingMixins import ChildHavingFallbackMixin
 from .ConditionalNodes import ExpressionConditional
-from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase
-from .NodeBases import StatementBase, StatementChildHavingBase
+from .NodeBases import StatementBase
+from .StatementBasesGenerated import (
+    StatementLocalsDictOperationSetBase,
+    StatementSetLocalsBase,
+    StatementSetLocalsDictionaryBase,
+)
 from .VariableAssignNodes import makeStatementAssignmentVariable
 from .VariableDelNodes import makeStatementDelVariable
 from .VariableRefNodes import ExpressionTempVariableRef
@@ -342,30 +346,26 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
         return self, None, None
 
 
-class StatementLocalsDictOperationSet(StatementChildHavingBase):
+class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     kind = "STATEMENT_LOCALS_DICT_OPERATION_SET"
 
-    named_child = "source"
+    named_children = ("source",)
+    node_attributes = ("locals_scope", "variable_name")
+    auto_compute_handling = "post_init"
 
-    __slots__ = ("variable", "variable_version", "variable_trace", "locals_scope")
+    __slots__ = ("variable", "variable_version", "variable_trace")
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
     may_raise_set = python_version >= 0x300
 
-    def __init__(self, locals_scope, variable_name, value, source_ref):
-        assert type(variable_name) is str
-        assert value is not None
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
-        StatementChildHavingBase.__init__(self, value=value, source_ref=source_ref)
-
-        assert locals_scope is not None
-
-        self.variable = locals_scope.getLocalsDictVariable(variable_name=variable_name)
-
+    def postInitNode(self):
+        self.variable = self.locals_scope.getLocalsDictVariable(
+            variable_name=self.variable_name
+        )
         self.variable_version = self.variable.allocateTargetNumber()
         self.variable_trace = None
-
-        self.locals_scope = locals_scope
 
     def finalize(self):
         del self.parent
@@ -389,10 +389,8 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
 
     def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
-            variable_name = self.getVariableName()
-
             variable = self.locals_scope.allocateTempReplacementVariable(
-                trace_collection=trace_collection, variable_name=variable_name
+                trace_collection=trace_collection, variable_name=self.variable_name
             )
 
             result = makeStatementAssignmentVariable(
@@ -542,28 +540,27 @@ class StatementLocalsDictOperationDel(StatementBase):
         return "locals dictionary value del statement"
 
 
-class StatementSetLocals(StatementChildHavingBase):
-    kind = "STATEMENT_SET_LOCALS"
-
-    named_child = "new_locals"
-
-    __slots__ = ("locals_scope",)
-
-    def __init__(self, locals_scope, new_locals, source_ref):
-        StatementChildHavingBase.__init__(self, value=new_locals, source_ref=source_ref)
-
-        self.locals_scope = locals_scope
-
-    def finalize(self):
-        del self.parent
-        del self.locals_scope
-        del self.subnode_new_locals
+class StatementSetLocalsMixin(object):
+    __slots__ = ()
 
     def getDetailsForDisplay(self):
         return {"locals_scope": self.locals_scope.getCodeName()}
 
-    def getDetails(self):
-        return {"locals_scope": self.locals_scope}
+    def getLocalsScope(self):
+        return self.locals_scope
+
+
+class StatementSetLocals(StatementSetLocalsMixin, StatementSetLocalsBase):
+    kind = "STATEMENT_SET_LOCALS"
+
+    named_children = ("new_locals",)
+    node_attributes = ("locals_scope",)
+    auto_compute_handling = "operation"
+
+    # TODO: Convert to StatementSetLocals if known to be constant dictionary.
+
+    def getDetailsForDisplay(self):
+        return {"locals_scope": self.locals_scope.getCodeName()}
 
     def getLocalsScope(self):
         return self.locals_scope
@@ -571,25 +568,35 @@ class StatementSetLocals(StatementChildHavingBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_new_locals.mayRaiseException(exception_type)
 
-    def computeStatement(self, trace_collection):
-        new_locals = trace_collection.onExpression(self.subnode_new_locals)
-
-        if new_locals.willRaiseAnyException():
-            from .NodeMakingHelpers import (
-                makeStatementExpressionOnlyReplacementNode,
-            )
-
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression=new_locals, node=self
-            )
+    def computeStatementOperation(self, trace_collection):
+        if self.locals_scope.isMarkedForPropagation():
+            self.finalize()
 
             return (
-                result,
-                "new_raise",
+                None,
+                "new_statements",
                 """\
-Setting locals already raises implicitly building new locals.""",
+Forward propagating locals.""",
             )
 
+        if self.subnode_new_locals.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    @staticmethod
+    def getStatementNiceName():
+        return "locals mapping init statement"
+
+
+class StatementSetLocalsDictionary(
+    StatementSetLocalsMixin, StatementSetLocalsDictionaryBase
+):
+    kind = "STATEMENT_SET_LOCALS_DICTIONARY"
+
+    node_attributes = ("locals_scope",)
+
+    def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             self.finalize()
 
@@ -601,24 +608,6 @@ Forward propagating locals.""",
             )
 
         return self, None, None
-
-    @staticmethod
-    def getStatementNiceName():
-        return "locals mapping init statement"
-
-
-class StatementSetLocalsDictionary(StatementSetLocals):
-    kind = "STATEMENT_SET_LOCALS_DICTIONARY"
-
-    def __init__(self, locals_scope, source_ref):
-        StatementSetLocals.__init__(
-            self,
-            locals_scope=locals_scope,
-            new_locals=ExpressionConstantDictEmptyRef(
-                source_ref=source_ref, user_provided=True
-            ),
-            source_ref=source_ref,
-        )
 
     @staticmethod
     def mayRaiseException(exception_type):

@@ -24,7 +24,11 @@ types only.
 
 
 def checkStatementsSequenceOrNone(value):
-    assert value is None or value.kind == "STATEMENTS_SEQUENCE", value
+    if value is not None:
+        assert value.kind == "STATEMENTS_SEQUENCE", value
+
+        if not value.subnode_statements:
+            return None
 
     return value
 

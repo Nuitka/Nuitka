@@ -37,35 +37,24 @@ from .ExpressionBases import (
     ExpressionSpecBasedComputationNoRaiseMixin,
 )
 from .ExpressionShapeMixins import ExpressionSliceShapeExactMixin
-from .NodeBases import (
-    SideEffectsFromChildrenMixin,
-    StatementChildrenHavingBase,
-)
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
+from .StatementBasesGenerated import (
+    StatementAssignmentSliceBase,
+    StatementDelSliceBase,
+)
 
 
-class StatementAssignmentSlice(StatementChildrenHavingBase):
+class StatementAssignmentSlice(StatementAssignmentSliceBase):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
-    named_children = ("source", "expression", "lower", "upper")
+    named_children = ("source", "expression", "lower|optional", "upper|optional")
 
     python_version_spec = "< 0x300"
-
-    def __init__(self, expression, lower, upper, source, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={
-                "source": source,
-                "expression": expression,
-                "lower": lower,
-                "upper": upper,
-            },
-            source_ref=source_ref,
-        )
 
     def computeStatement(self, trace_collection):
         source = trace_collection.onExpression(self.subnode_source)
@@ -137,17 +126,10 @@ assignment.""",
         )
 
 
-class StatementDelSlice(StatementChildrenHavingBase):
+class StatementDelSlice(StatementDelSliceBase):
     kind = "STATEMENT_DEL_SLICE"
 
-    named_children = ("expression", "lower", "upper")
-
-    def __init__(self, expression, lower, upper, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "lower": lower, "upper": upper},
-            source_ref=source_ref,
-        )
+    named_children = ("expression", "lower|optional", "upper|optional")
 
     def computeStatement(self, trace_collection):
         lookup_source = trace_collection.onExpression(self.subnode_expression)

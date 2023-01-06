@@ -22,18 +22,16 @@ This one exits functions. The only other exit is the default exit of functions w
 
 from abc import abstractmethod
 
-from .NodeBases import StatementBase, StatementChildHavingBase
+from .NodeBases import StatementBase
+from .StatementBasesGenerated import StatementReturnBase
 
 
-class StatementReturn(StatementChildHavingBase):
-    kind = "STATEMENT_RETURN"
+class StatementReturnMixin(object):
+    __slots__ = ()
 
-    named_child = "expression"
-    nice_child = "return value"
-
-    def __init__(self, expression, source_ref):
-        assert expression
-        StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
+    @staticmethod
+    def isStatementReturn():
+        return True
 
     @staticmethod
     def mayReturn():
@@ -43,10 +41,19 @@ class StatementReturn(StatementChildHavingBase):
     def isStatementAborting():
         return True
 
+
+class StatementReturn(StatementReturnMixin, StatementReturnBase):
+    kind = "STATEMENT_RETURN"
+
+    named_children = ("expression",)
+    nice_children = ("return value",)
+
     def mayRaiseException(self, exception_type):
         return self.subnode_expression.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
+        # This happens so many times, until we also do "trace_collection.onFunctionReturn()" injection, and
+        # can wait for constant values from "operation", we do not use it yet.
         expression = trace_collection.onExpression(self.subnode_expression)
 
         if expression.mayRaiseException(BaseException):
@@ -87,26 +94,14 @@ Return value is constant.""",
         return self, None, None
 
 
-class StatementReturnConstantBase(StatementBase):
+class StatementReturnConstantBase(StatementReturnMixin, StatementBase):
     __slots__ = ()
 
     def __init__(self, source_ref):
         StatementBase.__init__(self, source_ref=source_ref)
 
     @staticmethod
-    def isStatementReturn():
-        return True
-
-    @staticmethod
     def isStatementReturnConstant():
-        return True
-
-    @staticmethod
-    def isStatementAborting():
-        return True
-
-    @staticmethod
-    def mayReturn():
         return True
 
     @staticmethod

@@ -50,8 +50,10 @@ from nuitka.nodes.ExpressionBases import ExpressionBase
 {% if named_children and is_expression %}
 from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithSideEffects
 {% endif %}
-
 {% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
+from abc import abstractmethod
+{% endif %}
+{% if is_compute_statement %}
 from abc import abstractmethod
 {% endif %}
 
@@ -64,7 +66,7 @@ class {{mixin_name}}({{base_class}}):
     #   {{node_class_name}}
 {% endfor %}
 
-{% if named_children %}
+{% if named_children or node_attributes %}
     def __init__(self,
 {% for named_child in named_children %}
                  {{named_child}},
@@ -101,6 +103,16 @@ class {{mixin_name}}({{base_class}}):
 
 {% if base_class != "object" %}
         {{base_class}}.__init__(self, source_ref)
+{% endif %}
+
+{% if has_post_node_init %}
+        self.postInitNode()
+{% endif %}
+
+{% if has_post_node_init %}
+    @abstractmethod
+    def postInitNode(self):
+        """For overload"""
 {% endif %}
 
 {% if node_attributes %}
@@ -244,6 +256,13 @@ class {{mixin_name}}({{base_class}}):
         del self.subnode_{{named_child}}
 {% endfor %}
 
+{% for node_attribute in node_attributes %}
+{% if node_attribute in ("locals_scope", "target_scope", "variable") %}
+        del self.{{node_attribute}}
+{% endif %}
+{% endfor %}
+
+
 {% if is_expression %}
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
@@ -348,6 +367,24 @@ class {{mixin_name}}({{base_class}}):
 {% endif %}
 
 {% endif %}
+
+{% if is_compute_statement %}
+    def computeStatement(self, trace_collection):
+        {# TODO: Role this out for better performance and eliminate computeStatementSubExpressions globally #}
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+{% endif %}
+
 # Assign the names that are easier to import with a stable name.
 {% for node_class_name in intended_for %}
 {% if base_class in ("ExpressionBase", "StatementBase") %}
