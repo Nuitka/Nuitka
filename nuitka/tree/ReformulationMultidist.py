@@ -68,4 +68,9 @@ sys.exit("Error, failed to detect what to do for filename derived name '%s'." % 
 def locateMultidistModule(module_name):
     multidist_index = int(str(module_name).split("-")[1])
 
-    return module_name, getMainEntryPointFilenames()[multidist_index - 1], "absolute"
+    return (
+        module_name,
+        getMainEntryPointFilenames()[multidist_index - 1],
+        "py",
+        "absolute",
+    )

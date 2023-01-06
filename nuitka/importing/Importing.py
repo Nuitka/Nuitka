@@ -73,16 +73,20 @@ _main_paths = OrderedSet()
 
 
 ModuleUsageAttempt = makeNamedtupleClass(
-    "ModuleUsageAttempt", ("module_name", "filename", "finding", "level", "source_ref")
+    "ModuleUsageAttempt",
+    ("module_name", "filename", "module_kind", "finding", "level", "source_ref"),
 )
 
 
-def makeModuleUsageAttempt(module_name, filename, finding, level, source_ref):
+def makeModuleUsageAttempt(
+    module_name, filename, module_kind, finding, level, source_ref
+):
     assert source_ref is not None
 
     return ModuleUsageAttempt(
         module_name=module_name,
         filename=filename,
+        module_kind=module_kind,
         finding=finding,
         level=level,
         source_ref=source_ref,
@@ -245,7 +249,7 @@ def findModule(module_name, parent_package, level):
         if parent_package is not None:
             parent_package = parent_package.getRelativePackageName(level)
         else:
-            return None, None, "not-found"
+            return None, None, None, "not-found"
 
     # Try relative imports first if we have a parent package.
     if level != 0 and parent_package is not None:
@@ -265,10 +269,10 @@ def findModule(module_name, parent_package, level):
             else:
                 module_filename = None
 
-            return full_name.getPackageName(), module_filename, "pth"
+            return full_name.getPackageName(), module_filename, "py", "pth"
 
         try:
-            module_filename = _findModule(module_name=full_name)
+            module_filename, module_kind = _findModule(module_name=full_name)
         except ImportError:
             # For relative import, that is OK, we will still try absolute.
             pass
@@ -279,7 +283,7 @@ def findModule(module_name, parent_package, level):
                     % (module_name, full_name, module_filename)
                 )
 
-            return full_name.getPackageName(), module_filename, "relative"
+            return full_name.getPackageName(), module_filename, module_kind, "relative"
 
     if level < 1 and module_name != "":
         module_name = normalizePackageName(module_name)
@@ -293,7 +297,7 @@ def findModule(module_name, parent_package, level):
                     "findModule: Absolute imported module '%s' in as built-in':"
                     % (module_name,)
                 )
-            return package_name, None, "built-in"
+            return package_name, None, None, "built-in"
 
         # Frozen module names are similar to built-in, but there is no list of
         # them, therefore check loader name. Not useful at this time
@@ -310,7 +314,7 @@ def findModule(module_name, parent_package, level):
                         "findModule: Absolute imported module '%s' in as frozen':"
                         % (module_name,)
                     )
-                return package_name, None, "built-in"
+                return package_name, None, None, "built-in"
 
         preloaded_path = getPreloadedPackagePath(module_name)
 
@@ -321,10 +325,10 @@ def findModule(module_name, parent_package, level):
             else:
                 module_filename = None
 
-            return package_name, module_filename, "pth"
+            return package_name, module_filename, "py", "pth"
 
         try:
-            module_filename = _findModule(module_name=module_name)
+            module_filename, module_kind = _findModule(module_name=module_name)
         except ImportError:
             # For relative import, that is OK, we will still try absolute.
             pass
@@ -335,9 +339,9 @@ def findModule(module_name, parent_package, level):
                     % (module_name, module_filename)
                 )
 
-            return package_name, module_filename, "absolute"
+            return package_name, module_filename, module_kind, "absolute"
 
-    return None, None, "not-found"
+    return None, None, None, "not-found"
 
 
 # Some platforms are case insensitive.
@@ -527,7 +531,10 @@ def _findModuleInPath2(package_name, module_name, search_path):
         candidates=candidates,
     )
 
-    return found_candidate.full_path
+    return (
+        found_candidate.full_path,
+        "extension" if found_candidate.module_type == imp.C_EXTENSION else "py",
+    )
 
 
 _egg_files = {}
@@ -621,7 +628,7 @@ def _findModuleInPath(module_name):
         candidate = os.environ.get("NUITKA_SITE_FILENAME", "")
 
         if candidate:
-            return candidate
+            return candidate, "py"
 
     # Free pass for built-in modules, the need not exist.
     if package_name is None and imp.is_builtin(module_name):
@@ -635,7 +642,7 @@ def _findModuleInPath(module_name):
         )
 
     try:
-        module_filename = _findModuleInPath2(
+        module_filename, module_kind = _findModuleInPath2(
             package_name=package_name, module_name=module_name, search_path=search_path
         )
     except SyntaxError:
@@ -650,7 +657,7 @@ def _findModuleInPath(module_name):
     if _debug_module_finding:
         my_print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
 
-    return module_filename
+    return module_filename, module_kind
 
 
 module_search_cache = {}
@@ -702,11 +709,17 @@ def locateModule(module_name, parent_package, level):
     if module_name.isMultidistModuleName():
         return locateMultidistModule(module_name)
 
-    module_package, module_filename, finding = findModule(
+    module_package, module_filename, module_kind, finding = findModule(
         module_name=module_name,
         parent_package=parent_package,
         level=level,
     )
+
+    # Allowing ourselves to be lazy.
+    if module_filename is None:
+        module_kind = None
+    else:
+        assert module_kind is not None, module_filename
 
     assert module_package is None or (
         type(module_package) is ModuleName and module_package != ""
@@ -716,9 +729,6 @@ def locateModule(module_name, parent_package, level):
         module_filename = os.path.normpath(module_filename)
 
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
-
-        assert module_kind is not None, (module_filename, finding)
-
         module_name = ModuleName.makeModuleNameInPackage(module_name, module_package)
     elif finding == "not-found":
         if parent_package is not None:
@@ -731,7 +741,7 @@ def locateModule(module_name, parent_package, level):
         elif level > 0:
             module_name = ModuleName("")
 
-    return module_name, module_filename, finding
+    return module_name, module_filename, module_kind, finding
 
 
 def locateModules(package_name):

@@ -196,13 +196,13 @@ def _createMainModule():
         Recursion.checkPluginFilenamePattern(pattern=pattern)
 
     for package_name in Options.getMustIncludePackages():
-        package_name, package_directory, kind = Importing.locateModule(
+        package_name, package_directory, _module_kind, finding = Importing.locateModule(
             module_name=ModuleName(package_name),
             parent_package=None,
             level=0,
         )
 
-        if kind != "absolute":
+        if finding != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate package '%s' you asked to include."
                 % package_name
@@ -214,13 +214,13 @@ def _createMainModule():
         )
 
     for module_name in Options.getMustIncludeModules():
-        module_name, module_filename, kind = Importing.locateModule(
+        module_name, module_filename, _module_kind, finding = Importing.locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
         )
 
-        if kind != "absolute":
+        if finding != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate module '%s' you asked to include."
                 % module_name.asString()

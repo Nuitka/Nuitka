@@ -32,7 +32,6 @@ import sys
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.importing.Importing import (
-    getModuleNameAndKindFromFilename,
     isPackageDir,
     locateModule,
     makeModuleUsageAttempt,
@@ -347,14 +346,10 @@ class ExpressionImportAllowanceMixin(object):
         elif self.finding == "built-in":
             self.allowed = True
         else:
-            _module_name, module_kind = getModuleNameAndKindFromFilename(
-                self.module_filename
-            )
-
             self.allowed, _reason = decideRecursion(
                 module_filename=self.module_filename,
                 module_name=self.module_name,
-                module_kind=module_kind,
+                module_kind=self.module_kind,
             )
 
             # In case of hard imports, that are not forbidden explicitly, allow their use
@@ -376,6 +371,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
         "module_name",
         "found_module_name",
         "found_module_filename",
+        "module_kind",
         "finding",
         "allowance",
     )
@@ -391,11 +387,13 @@ class ExpressionImportModuleFixed(ExpressionBase):
         (
             self.found_module_name,
             self.found_module_filename,
+            self.module_kind,
             self.finding,
         ) = self._attemptFollow()
 
+    # TODO: This is called in constructor only, is it, then inline it.
     def _attemptFollow(self):
-        found_module_name, found_module_filename, finding = locateModule(
+        found_module_name, found_module_filename, module_kind, finding = locateModule(
             module_name=self.module_name,
             parent_package=None,
             level=0,
@@ -408,7 +406,12 @@ class ExpressionImportModuleFixed(ExpressionBase):
                 if module_name is None:
                     break
 
-                found_module_name, found_module_filename, finding = locateModule(
+                (
+                    found_module_name,
+                    found_module_filename,
+                    module_kind,
+                    finding,
+                ) = locateModule(
                     module_name=module_name,
                     parent_package=None,
                     level=0,
@@ -417,7 +420,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
                 if self.finding != "not-found":
                     break
 
-        return found_module_name, found_module_filename, finding
+        return found_module_name, found_module_filename, module_kind, finding
 
     def finalize(self):
         del self.parent
@@ -449,6 +452,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
             module_name=self.found_module_name,
             filename=self.found_module_filename,
             finding=self.finding,
+            module_kind=self.module_kind,
             level=0,
             source_ref=self.source_ref,
         )
@@ -936,7 +940,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
         self.finding = None
 
     def _attemptFollow(self, module_name):
-        # Complex stuff, pylint: disable=too-many-branches
+        # Complex stuff, pylint: disable=too-many-branches,too-many-locals
 
         parent_module = self.getParentModule()
 
@@ -969,7 +973,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 )
             )
 
-        module_name, module_filename, self.finding = locateModule(
+        module_name, module_filename, module_kind, self.finding = locateModule(
             module_name=resolveModuleName(module_name),
             parent_package=parent_package,
             level=level,
@@ -979,6 +983,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             makeModuleUsageAttempt(
                 module_name=module_name,
                 filename=module_filename,
+                module_kind=module_kind,
                 finding=self.finding,
                 level=level,
                 source_ref=self.source_ref,
@@ -1007,6 +1012,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                     (
                         name_import_module_name,
                         name_import_module_filename,
+                        name_import_module_kind,
                         name_import_finding,
                     ) = locateModule(
                         module_name=ModuleName(import_item),
@@ -1018,6 +1024,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         makeModuleUsageAttempt(
                             module_name=name_import_module_name,
                             filename=name_import_module_filename,
+                            module_kind=name_import_module_kind,
                             finding=name_import_finding,
                             level=1,
                             source_ref=self.source_ref,
@@ -1034,7 +1041,12 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 if not module_name:
                     break
 
-                _module_name_found, module_filename, finding = locateModule(
+                (
+                    _module_name_found,
+                    module_filename,
+                    module_kind,
+                    finding,
+                ) = locateModule(
                     module_name=module_name,
                     parent_package=parent_package,
                     level=level,
@@ -1044,6 +1056,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                     makeModuleUsageAttempt(
                         module_name=module_name,
                         filename=module_filename,
+                        module_kind=module_kind,
                         finding=finding,
                         level=level,
                         source_ref=self.source_ref,
