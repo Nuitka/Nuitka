@@ -370,7 +370,7 @@ static PyObject *getExtensionModuleSuffixesByPriority(void) {
 static PyObject *installed_extension_modules = NULL;
 
 static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_module_name) {
-    PyObject *sys_modules = PyImport_GetModuleDict();
+    PyObject *sys_modules = Nuitka_GetSysModules();
 
     PyObject *parent_module = PyDict_GetItemString(sys_modules, parent_module_name);
     CHECK_OBJECT(parent_module);
@@ -910,7 +910,7 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
     int res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
 #if PYTHON_VERSION >= 0x370
                                              ,
-                                             PyImport_GetModuleDict()
+                                             Nuitka_GetSysModules()
 #endif
 
     );
@@ -1843,7 +1843,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
-    PyObject *sys_modules = PyImport_GetModuleDict();
+    PyObject *sys_modules = Nuitka_GetSysModules();
     Py_ssize_t pos = 0;
     PyObject *key, *value;
 

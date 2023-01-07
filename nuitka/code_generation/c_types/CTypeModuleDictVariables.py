@@ -89,7 +89,6 @@ class CTypeModuleDictVariable(CTypeBase):
                 template_del_global_known
                 % {
                     "module_identifier": context.getModuleCodeName(),
-                    "res_name": context.getIntResName(),
                     "var_name": context.getConstantCode(constant=value_name.code_name),
                 }
             )
@@ -98,7 +97,6 @@ class CTypeModuleDictVariable(CTypeBase):
                 template_del_global_unclear
                 % {
                     "module_identifier": context.getModuleCodeName(),
-                    "res_name": context.getIntResName(),
                     "result": to_name,
                     "var_name": context.getConstantCode(constant=value_name.code_name),
                 }
