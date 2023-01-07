@@ -68,3 +68,64 @@ Py_ssize_t Nuitka_PyObject_Size(PyObject *sequence) {
 
     return PyMapping_Size(sequence);
 }
+
+PyObject *Nuitka_Number_Index(PyObject *item) {
+    CHECK_OBJECT(item);
+
+#if PYTHON_VERSION < 0x300
+    if (PyInt_Check(item) || PyLong_Check(item))
+#else
+    if (PyLong_Check(item))
+#endif
+    {
+        Py_INCREF(item);
+        return item;
+    }
+
+    if (unlikely(!Nuitka_Index_Check(item))) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object cannot be interpreted as an integer", item);
+        return NULL;
+    }
+
+    PyObject *result = Py_TYPE(item)->tp_as_number->nb_index(item);
+
+#if PYTHON_VERSION < 0x300
+    if (result == NULL || PyInt_CheckExact(result) || PyLong_CheckExact(result)) {
+        return result;
+    }
+#else
+    if (result == NULL || PyLong_CheckExact(result)) {
+        return result;
+    }
+#endif
+
+#if PYTHON_VERSION < 0x300
+    if (!PyInt_Check(result) && !PyLong_Check(result))
+#else
+    if (!PyLong_Check(result))
+#endif
+    {
+#if PYTHON_VERSION < 0x300
+        char const *message = "__index__ returned non-(int,long) (type %s)";
+#else
+        char const *message = "__index__ returned non-int (type %s)";
+#endif
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(message, result);
+
+        Py_DECREF(result);
+        return NULL;
+    }
+
+    return result;
+}
+
+#if PYTHON_VERSION >= 0x3a0
+PyObject *Nuitka_Number_IndexAsLong(PyObject *item) {
+    PyObject *result = Nuitka_Number_Index(item);
+
+    PyObject *converted_long = _PyLong_Copy((PyLongObject *)result);
+    Py_DECREF(result);
+
+    return converted_long;
+}
+#endif

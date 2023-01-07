@@ -267,7 +267,7 @@ class TypeDescBase(getMetaClassBase("Type")):
         if self.hasSlot("nb_index"):
             return "1"
         elif self.type_name == "object":
-            return "PyIndex_Check(%s)" % operand
+            return "Nuitka_Index_Check(%s)" % operand
         else:
             return "0"
 
@@ -1415,7 +1415,7 @@ class ObjectDesc(TypeDescBase):
         assert False
 
     def getIndexCheckExpression(self, operand):
-        return "PyIndex_Check(%s)" % operand
+        return "Nuitka_Index_Check(%s)" % operand
 
     def getNewStyleNumberTypeCheckExpression(self, operand):
         return "NEW_STYLE_NUMBER_TYPE(%s)" % operand

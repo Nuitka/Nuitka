@@ -3908,14 +3908,14 @@ static inline bool _INPLACE_OPERATION_MULT_STR_OBJECT(PyObject **operand1, PyObj
         }
 #endif
 
-        if (unlikely(!PyIndex_Check(operand2))) {
+        if (unlikely(!Nuitka_Index_Check(operand2))) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
 
         {
-            PyObject *index_value = PyNumber_Index(operand2);
+            PyObject *index_value = Nuitka_Number_Index(operand2);
 
             if (unlikely(index_value == NULL)) {
                 goto exit_inplace_exception;
@@ -4058,14 +4058,14 @@ static inline bool _INPLACE_OPERATION_MULT_UNICODE_OBJECT(PyObject **operand1, P
         }
 #endif
 
-        if (unlikely(!PyIndex_Check(operand2))) {
+        if (unlikely(!Nuitka_Index_Check(operand2))) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
 
         {
-            PyObject *index_value = PyNumber_Index(operand2);
+            PyObject *index_value = Nuitka_Number_Index(operand2);
 
             if (unlikely(index_value == NULL)) {
                 goto exit_inplace_exception;
@@ -4208,14 +4208,14 @@ static inline bool _INPLACE_OPERATION_MULT_BYTES_OBJECT(PyObject **operand1, PyO
         }
 #endif
 
-        if (unlikely(!PyIndex_Check(operand2))) {
+        if (unlikely(!Nuitka_Index_Check(operand2))) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
 
         {
-            PyObject *index_value = PyNumber_Index(operand2);
+            PyObject *index_value = Nuitka_Number_Index(operand2);
 
             if (unlikely(index_value == NULL)) {
                 goto exit_inplace_exception;
@@ -4358,14 +4358,14 @@ static inline bool _INPLACE_OPERATION_MULT_TUPLE_OBJECT(PyObject **operand1, PyO
         }
 #endif
 
-        if (unlikely(!PyIndex_Check(operand2))) {
+        if (unlikely(!Nuitka_Index_Check(operand2))) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
 
         {
-            PyObject *index_value = PyNumber_Index(operand2);
+            PyObject *index_value = Nuitka_Number_Index(operand2);
 
             if (unlikely(index_value == NULL)) {
                 goto exit_inplace_exception;
@@ -4507,14 +4507,14 @@ static inline bool _INPLACE_OPERATION_MULT_LIST_OBJECT(PyObject **operand1, PyOb
         }
 #endif
 
-        if (unlikely(!PyIndex_Check(operand2))) {
+        if (unlikely(!Nuitka_Index_Check(operand2))) {
             SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
             goto exit_inplace_exception;
         }
 
         {
-            PyObject *index_value = PyNumber_Index(operand2);
+            PyObject *index_value = Nuitka_Number_Index(operand2);
 
             if (unlikely(index_value == NULL)) {
                 goto exit_inplace_exception;
