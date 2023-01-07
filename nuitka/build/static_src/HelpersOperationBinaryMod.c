@@ -358,7 +358,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_INT_OBJECT(Py
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyInt_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -906,7 +906,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_INT_OBJECT(P
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyInt_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -1380,7 +1380,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_LONG_OBJECT(P
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyLong_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -1824,7 +1824,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_LONG_OBJECT(
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyLong_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -2301,7 +2301,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_FLOAT_OBJECT(
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyFloat_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -2792,7 +2792,7 @@ static HEDLEY_NEVER_INLINE nuitka_bool __BINARY_OPERATION_MOD_NBOOL_FLOAT_OBJECT
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyFloat_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -4704,7 +4704,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_STR_OBJECT(Py
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyString_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -5381,7 +5381,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_UNICODE_OBJEC
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyUnicode_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -5921,7 +5921,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_MOD_OBJECT_BYTES_OBJECT(
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyBytes_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -6154,7 +6154,7 @@ static PyObject *_BINARY_OPERATION_MOD_OBJECT_OBJECT_OBJECT(PyObject *operand1, 
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (Nuitka_Type_IsSubtype(type2, type1)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -6385,7 +6385,7 @@ static nuitka_bool _BINARY_OPERATION_MOD_NBOOL_OBJECT_OBJECT(PyObject *operand1,
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (Nuitka_Type_IsSubtype(type2, type1)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {

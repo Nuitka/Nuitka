@@ -155,7 +155,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -288,7 +288,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -467,7 +467,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -624,7 +624,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(PyObject *operand1, PyObject *op
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != type2 && PyType_IsSubtype(type2, type1)) {
+    if (type1 != type2 && Nuitka_Type_IsSubtype(type2, type1)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -989,7 +989,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_STR(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyString_Type && PyType_IsSubtype(&PyString_Type, type1)) {
+    if (type1 != &PyString_Type && Nuitka_Type_IsSubtype(&PyString_Type, type1)) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -1150,7 +1150,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
+    if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -1283,7 +1283,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_STR_OBJECT(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
+    if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -1672,7 +1672,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_STR(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyString_Type && PyType_IsSubtype(&PyString_Type, type1)) {
+    if (type1 != &PyString_Type && Nuitka_Type_IsSubtype(&PyString_Type, type1)) {
         f = PyString_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -1865,7 +1865,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
+    if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -2022,7 +2022,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_STR_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyString_Type != type2 && PyType_IsSubtype(type2, &PyString_Type)) {
+    if (&PyString_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyString_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -2414,7 +2414,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_UNICODE(PyObject *operand1, PyObject *op
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyUnicode_Type && PyType_IsSubtype(&PyUnicode_Type, type1)) {
+    if (type1 != &PyUnicode_Type && Nuitka_Type_IsSubtype(&PyUnicode_Type, type1)) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -2575,7 +2575,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
+    if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -2708,7 +2708,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_UNICODE_OBJECT(PyObject *operand1, PyObject *op
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
+    if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -3123,7 +3123,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_UNICODE(PyObject *operand1, PyObject *o
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyUnicode_Type && PyType_IsSubtype(&PyUnicode_Type, type1)) {
+    if (type1 != &PyUnicode_Type && Nuitka_Type_IsSubtype(&PyUnicode_Type, type1)) {
         f = PyUnicode_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -3316,7 +3316,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
+    if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -3473,7 +3473,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_UNICODE_OBJECT(PyObject *operand1, PyObject *o
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyUnicode_Type != type2 && PyType_IsSubtype(type2, &PyUnicode_Type)) {
+    if (&PyUnicode_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyUnicode_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -3839,7 +3839,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_BYTES(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyBytes_Type && PyType_IsSubtype(&PyBytes_Type, type1)) {
+    if (type1 != &PyBytes_Type && Nuitka_Type_IsSubtype(&PyBytes_Type, type1)) {
         f = PyBytes_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -4000,7 +4000,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
+    if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -4133,7 +4133,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_BYTES_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
+    if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -4522,7 +4522,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_BYTES(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyBytes_Type && PyType_IsSubtype(&PyBytes_Type, type1)) {
+    if (type1 != &PyBytes_Type && Nuitka_Type_IsSubtype(&PyBytes_Type, type1)) {
         f = PyBytes_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -4715,7 +4715,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
+    if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -4872,7 +4872,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_BYTES_OBJECT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyBytes_Type != type2 && PyType_IsSubtype(type2, &PyBytes_Type)) {
+    if (&PyBytes_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyBytes_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -5190,7 +5190,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_INT(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyInt_Type && PyType_IsSubtype(&PyInt_Type, type1)) {
+    if (type1 != &PyInt_Type && Nuitka_Type_IsSubtype(&PyInt_Type, type1)) {
         f = NULL;
 
         if (f != NULL) {
@@ -5351,7 +5351,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
+    if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -5484,7 +5484,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT_OBJECT(PyObject *operand1, PyObject *operan
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
+    if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -5826,7 +5826,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_INT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyInt_Type && PyType_IsSubtype(&PyInt_Type, type1)) {
+    if (type1 != &PyInt_Type && Nuitka_Type_IsSubtype(&PyInt_Type, type1)) {
         f = NULL;
 
         if (f != NULL) {
@@ -6019,7 +6019,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
+    if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6176,7 +6176,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_INT_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyInt_Type != type2 && PyType_IsSubtype(type2, &PyInt_Type)) {
+    if (&PyInt_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6526,7 +6526,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LONG(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyLong_Type && PyType_IsSubtype(&PyLong_Type, type1)) {
+    if (type1 != &PyLong_Type && Nuitka_Type_IsSubtype(&PyLong_Type, type1)) {
         f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
@@ -6687,7 +6687,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
+    if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -6820,7 +6820,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LONG_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
+    if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -7191,7 +7191,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LONG(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyLong_Type && PyType_IsSubtype(&PyLong_Type, type1)) {
+    if (type1 != &PyLong_Type && Nuitka_Type_IsSubtype(&PyLong_Type, type1)) {
         f = (PYTHON_VERSION < 0x300 ? NULL : PyLong_Type.tp_richcompare);
 
         if (f != NULL) {
@@ -7384,7 +7384,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
+    if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -7541,7 +7541,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LONG_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyLong_Type != type2 && PyType_IsSubtype(type2, &PyLong_Type)) {
+    if (&PyLong_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -7875,7 +7875,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_FLOAT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyFloat_Type && PyType_IsSubtype(&PyFloat_Type, type1)) {
+    if (type1 != &PyFloat_Type && Nuitka_Type_IsSubtype(&PyFloat_Type, type1)) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -8034,7 +8034,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
+    if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -8167,7 +8167,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_FLOAT_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
+    if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -8519,7 +8519,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_FLOAT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyFloat_Type && PyType_IsSubtype(&PyFloat_Type, type1)) {
+    if (type1 != &PyFloat_Type && Nuitka_Type_IsSubtype(&PyFloat_Type, type1)) {
         f = PyFloat_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -8710,7 +8710,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
+    if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -8867,7 +8867,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_FLOAT_OBJECT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyFloat_Type != type2 && PyType_IsSubtype(type2, &PyFloat_Type)) {
+    if (&PyFloat_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -9233,7 +9233,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_TUPLE(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyTuple_Type && PyType_IsSubtype(&PyTuple_Type, type1)) {
+    if (type1 != &PyTuple_Type && Nuitka_Type_IsSubtype(&PyTuple_Type, type1)) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -9392,7 +9392,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
+    if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -9525,7 +9525,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_TUPLE_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
+    if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -9905,7 +9905,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_TUPLE(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyTuple_Type && PyType_IsSubtype(&PyTuple_Type, type1)) {
+    if (type1 != &PyTuple_Type && Nuitka_Type_IsSubtype(&PyTuple_Type, type1)) {
         f = PyTuple_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -10096,7 +10096,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
+    if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -10253,7 +10253,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_TUPLE_OBJECT(PyObject *operand1, PyObject *ope
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyTuple_Type != type2 && PyType_IsSubtype(type2, &PyTuple_Type)) {
+    if (&PyTuple_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyTuple_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -10625,7 +10625,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_LIST(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyList_Type && PyType_IsSubtype(&PyList_Type, type1)) {
+    if (type1 != &PyList_Type && Nuitka_Type_IsSubtype(&PyList_Type, type1)) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -10784,7 +10784,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
+    if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -10917,7 +10917,7 @@ PyObject *RICH_COMPARE_EQ_OBJECT_LIST_OBJECT(PyObject *operand1, PyObject *opera
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
+    if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -11297,7 +11297,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_OBJECT_LIST(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (type1 != &PyList_Type && PyType_IsSubtype(&PyList_Type, type1)) {
+    if (type1 != &PyList_Type && Nuitka_Type_IsSubtype(&PyList_Type, type1)) {
         f = PyList_Type.tp_richcompare;
 
         if (f != NULL) {
@@ -11488,7 +11488,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     // Fast path was not successful or not taken
     richcmpfunc f;
 
-    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
+    if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
@@ -11645,7 +11645,7 @@ nuitka_bool RICH_COMPARE_EQ_NBOOL_LIST_OBJECT(PyObject *operand1, PyObject *oper
     bool checked_reverse_op = false;
     richcmpfunc f;
 
-    if (&PyList_Type != type2 && PyType_IsSubtype(type2, &PyList_Type)) {
+    if (&PyList_Type != type2 && Nuitka_Type_IsSubtype(type2, &PyList_Type)) {
         f = RICHCOMPARE(type2);
 
         if (f != NULL) {
