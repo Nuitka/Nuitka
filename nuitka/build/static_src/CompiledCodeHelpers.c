@@ -2046,10 +2046,8 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 }
 #endif
 
-#include "HelpersDeepcopy.c"
-
 #include "HelpersAttributes.c"
-
+#include "HelpersDeepcopy.c"
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryBitand.c"
 #include "HelpersOperationBinaryBitor.c"
@@ -2063,6 +2061,7 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersOperationBinaryRshift.c"
 #include "HelpersOperationBinarySub.c"
 #include "HelpersOperationBinaryTruediv.c"
+#include "HelpersTypes.c"
 #if PYTHON_VERSION < 0x300
 #include "HelpersOperationBinaryOlddiv.c"
 #endif

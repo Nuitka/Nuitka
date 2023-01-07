@@ -207,7 +207,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -576,7 +576,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -952,7 +952,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -1307,7 +1307,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -1666,7 +1666,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -2020,7 +2020,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -2379,7 +2379,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -2733,7 +2733,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -3092,7 +3092,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -3446,7 +3446,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -3805,7 +3805,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -4159,7 +4159,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -4518,7 +4518,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -4872,7 +4872,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -5231,7 +5231,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -5585,7 +5585,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -5944,7 +5944,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -6298,7 +6298,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -6657,7 +6657,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
@@ -7011,7 +7011,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     Py_DECREF(pos_args);
                     return obj;
                 }
@@ -7370,7 +7370,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
                     return obj;
                 }
 
