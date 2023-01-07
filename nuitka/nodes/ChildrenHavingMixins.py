@@ -32,8 +32,142 @@ spell-checker: ignore args chars count default delete encoding end errors fillch
 
 
 # Loop unrolling over child names, pylint: disable=too-many-branches
-from .Checkers import convertEmptyStrConstantToNone, convertNoneConstantToNone
+
+from .Checkers import (
+    checkStatementsSequenceOrNone,
+    convertEmptyStrConstantToNone,
+    convertNoneConstantToNone,
+)
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+
+class ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   CompiledPythonModule
+    #   PythonMainModule
+
+    def __init__(
+        self,
+        body,
+        functions,
+    ):
+        body = checkStatementsSequenceOrNone(body)
+        if body is not None:
+            body.parent = self
+
+        self.subnode_body = body
+
+        assert type(functions) is tuple
+
+        for val in functions:
+            val.parent = self
+
+        self.subnode_functions = functions
+
+    def setChildBody(self, value):
+        value = checkStatementsSequenceOrNone(value)
+        if value is not None:
+            value.parent = self
+
+        self.subnode_body = value
+
+    def setChildFunctions(self, value):
+        assert type(value) is tuple, type(value)
+
+        for val in value:
+            val.parent = self
+
+        self.subnode_functions = value
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        result = []
+        value = self.subnode_body
+        if value is None:
+            pass
+        else:
+            result.append(value)
+        result.extend(self.subnode_functions)
+        return tuple(result)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("body", self.subnode_body),
+            ("functions", self.subnode_functions),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_body
+        if old_node is value:
+            new_node = checkStatementsSequenceOrNone(new_node)
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_body = new_node
+
+            return
+
+        value = self.subnode_functions
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
+
+                self.subnode_functions = tuple(
+                    (val if val is not old_node else new_node) for val in value
+                )
+            else:
+                self.subnode_functions = tuple(
+                    val for val in value if val is not old_node
+                )
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "body": self.subnode_body.makeClone()
+            if self.subnode_body is not None
+            else None,
+            "functions": tuple(v.makeClone() for v in self.subnode_functions),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_body is not None:
+            self.subnode_body.finalize()
+        del self.subnode_body
+        for c in self.subnode_functions:
+            c.finalize()
+        del self.subnode_functions
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenCompiledPythonModuleMixin = (
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin
+)
+ChildrenPythonMainModuleMixin = (
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin
+)
 
 
 class ChildHavingAsyncgenRefMixin(object):

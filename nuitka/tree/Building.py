@@ -1102,7 +1102,7 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(statement=module_body)
 
-    module.setChild("body", module_body)
+    module.setChildBody(module_body)
 
     completeVariableClosures(module)
 
@@ -1182,7 +1182,7 @@ Cannot follow import to module '%s' because of '%s'."""
     )
 
     module_body = makeStatementsSequenceFromStatement(statement=module_body)
-    module.setChild("body", module_body)
+    module.setChildBody(module_body)
 
     return module
 

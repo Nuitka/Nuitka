@@ -59,10 +59,6 @@ class ExpressionBase(NodeBase):
         return False
 
     @staticmethod
-    def isStatementsSequence():
-        return False
-
-    @staticmethod
     def getTypeShape():
         return tshape_unknown
 

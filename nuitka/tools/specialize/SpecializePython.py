@@ -449,6 +449,7 @@ def translateNodeClassName(node_class_name):
 
 def makeMixinName(
     is_expression,
+    is_statement,
     named_children,
     named_children_types,
     named_children_checkers,
@@ -498,8 +499,12 @@ def makeMixinName(
     else:
         mixin_name = "ChildrenHaving" + mixin_name + "Mixin"
 
-    if not is_expression:
+    if is_statement:
         mixin_name = "Statement" + mixin_name
+    elif is_expression:
+        pass
+    else:
+        mixin_name = "Module" + mixin_name
 
     return mixin_name
 
@@ -513,6 +518,7 @@ children_mixing_setters_needed = {}
 
 def addChildrenMixin(
     is_expression,
+    is_statement,
     intended_for,
     named_children,
     named_children_types,
@@ -520,9 +526,12 @@ def addChildrenMixin(
     auto_compute_handling=(),
     node_attributes=(),
 ):
+    assert type(is_statement) is bool
+
     children_mixins.append(
         (
             is_expression,
+            is_statement,
             named_children,
             named_children_types,
             named_children_checkers,
@@ -533,6 +542,7 @@ def addChildrenMixin(
 
     mixin_name = makeMixinName(
         is_expression,
+        is_statement,
         named_children,
         named_children_types,
         named_children_checkers,
@@ -627,6 +637,7 @@ def _addFromNode(node_class):
 
     mixin_name = makeMixinName(
         node_class.isExpression(),
+        node_class.isStatement() or node_class.isStatementsSequence(),
         tuple(new_named_children),
         named_children_types,
         named_children_checkers,
@@ -647,6 +658,7 @@ def _addFromNode(node_class):
 
     addChildrenMixin(
         node_class.isExpression(),
+        node_class.isStatement() or node_class.isStatementsSequence(),
         node_class.__name__,
         tuple(new_named_children),
         named_children_types,
@@ -668,6 +680,7 @@ def addFromNodes():
             "EXPRESSION" not in kind
             and "STATEMENT_" not in kind
             and "STATEMENTS_" not in kind
+            and "MODULE" not in kind
         ):
             continue
 
@@ -729,27 +742,40 @@ def makeChildrenHavingMixinNodes():
         emit("# Loop unrolling over child names, pylint: disable=too-many-branches")
 
         emit1(
-            "from nuitka.nodes.Checkers import convertNoneConstantToNone, convertEmptyStrConstantToNone"
+            """
+from nuitka.nodes.Checkers import (
+    checkStatementsSequenceOrNone,
+    convertNoneConstantToNone,
+    convertEmptyStrConstantToNone
+)
+"""
         )
 
         emit3(
             """
-from nuitka.nodes.Checkers import checkStatementsSequenceOrNone, \
-    checkStatementsSequence, convertNoneConstantToNone"""
+from nuitka.nodes.Checkers import (
+    checkStatementsSequenceOrNone, \
+    checkStatementsSequence,
+    convertNoneConstantToNone
+)
+"""
         )
 
         for (
             is_expression,
+            is_statement,
             named_children,
             named_children_types,
             named_children_checkers,
             auto_compute_handling,
             node_attributes,
         ) in sorted(
-            children_mixins, key=lambda x: (x[0], x[1], x[2].items(), x[3].items())
+            children_mixins,
+            key=lambda x: (x[0], x[1], x[2], x[3].items(), x[4].items()),
         ):
             mixin_name = makeMixinName(
                 is_expression,
+                is_statement,
                 named_children,
                 named_children_types,
                 named_children_checkers,
@@ -790,6 +816,7 @@ from nuitka.nodes.Checkers import checkStatementsSequenceOrNone, \
             code = template.render(
                 name=template.name,
                 is_expression=is_expression,
+                is_statement=is_statement,
                 mixin_name=mixin_name,
                 named_children=named_children,
                 named_children_types=named_children_types,
@@ -806,7 +833,7 @@ from nuitka.nodes.Checkers import checkStatementsSequenceOrNone, \
                 len=len,
             )
 
-            if not is_expression:
+            if is_statement:
                 emit3(code)
             elif auto_compute_handling or node_attributes:
                 emit2(code)
@@ -940,6 +967,7 @@ hard_import_node_classes = {}
                 if parameter_names:
                     mixin_name = addChildrenMixin(
                         True,
+                        False,
                         node_class_name,
                         parameter_names,
                         named_children_types,

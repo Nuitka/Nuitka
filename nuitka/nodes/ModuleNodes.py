@@ -37,12 +37,13 @@ from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 
-from .Checkers import checkStatementsSequenceOrNone
+from .ChildrenHavingMixins import (
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
+)
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
-    ChildrenHavingMixin,
     ClosureGiverNodeMixin,
     NodeBase,
     extractKindAndArgsFromXML,
@@ -211,7 +212,7 @@ class PythonModuleBase(NodeBase):
 
 
 class CompiledPythonModule(
-    ChildrenHavingMixin,
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
     ClosureGiverNodeMixin,
     MarkNeedsAnnotationsMixin,
     EntryPointMixin,
@@ -246,9 +247,7 @@ class CompiledPythonModule(
         "locals_scope",
     )
 
-    named_children = ("body", "functions")
-
-    checkers = {"body": checkStatementsSequenceOrNone}
+    named_children = ("body|statements_or_none+setter", "functions|tuple+setter")
 
     def __init__(self, module_name, is_top, mode, future_spec, source_ref):
         PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
@@ -257,8 +256,10 @@ class CompiledPythonModule(
             self, name=module_name.getBasename(), code_prefix="module"
         )
 
-        ChildrenHavingMixin.__init__(
-            self, values={"body": None, "functions": ()}  # delayed
+        ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin.__init__(
+            self,
+            body=None,  # delayed
+            functions=(),
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
@@ -463,7 +464,7 @@ class CompiledPythonModule(
         functions = self.subnode_functions
         assert function_body not in functions
         functions += (function_body,)
-        self.setChild("functions", functions)
+        self.setChildFunctions(functions)
 
     def startTraversal(self):
         self.used_modules = None
@@ -553,7 +554,7 @@ class CompiledPythonModule(
             )
 
             if result is not module_body:
-                self.setChild("body", result)
+                self.setChildBody(result)
 
         self.attemptRecursion()
 
@@ -880,8 +881,8 @@ class PythonMainModule(CompiledPythonModule):
                 )
             )
 
-        result.setChild(
-            "body", fromXML(provider=result, xml=args["body"][0], source_ref=source_ref)
+        result.setChildBody(
+            fromXML(provider=result, xml=args["body"][0], source_ref=source_ref)
         )
 
         return result

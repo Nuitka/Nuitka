@@ -30,7 +30,7 @@ from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
-from nuitka.Errors import NuitkaNodeDesignError, NuitkaNodeError
+from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import (
@@ -320,6 +320,10 @@ class NodeBase(NodeMetaClassBase):
         Tracing.printSeparator(level)
 
     @staticmethod
+    def isStatementsSequence():
+        return False
+
+    @staticmethod
     def isStatementsFrame():
         return False
 
@@ -529,198 +533,6 @@ class CodeNodeMixin(object):
         self.uids[node.kind] += 1
 
         return self.uids[node.kind]
-
-
-class ChildrenHavingMixin(object):
-    # Mixins are not allowed to specify slots.
-    __slots__ = ()
-
-    named_children = ()
-
-    checkers = {}
-
-    def __init__(self, values):
-        assert (
-            type(self.named_children) is tuple and self.named_children
-        ), self.named_children
-
-        # TODO: Make this true.
-        # assert len(self.named_children) > 1, self.kind
-
-        # Check for completeness of given values, everything should be there
-        # but of course, might be put to None.
-        if set(values.keys()) != set(self.named_children):
-            raise NuitkaNodeDesignError(
-                "Must pass named children in value dictionary",
-                set(values.keys()),
-                set(self.named_children),
-            )
-
-        for name, value in values.items():
-            if name in self.checkers:
-                value = self.checkers[name](value)
-
-            if type(value) is tuple:
-                assert None not in value, name
-
-                for val in value:
-                    val.parent = self
-            elif value is None:
-                pass
-            else:
-                value.parent = self
-
-            attr_name = "subnode_" + name
-            setattr(self, attr_name, value)
-
-    def setChild(self, name, value):
-        """Set a child value.
-
-        Do not overload, provider self.checkers instead.
-        """
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        # Lists as inputs are OK, but turn them into tuples.
-        if type(value) is list:
-            value = tuple(value)
-
-        if name in self.checkers:
-            value = self.checkers[name](value)
-
-        # Re-parent value to us.
-        if type(value) is tuple:
-            for val in value:
-                val.parent = self
-        elif value is not None:
-            value.parent = self
-
-        attr_name = "subnode_" + name
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-
-        assert old_value is not value, value
-
-        setattr(self, attr_name, value)
-
-    def clearChild(self, name):
-        # Only accept legal child names
-        assert name in self.named_children, name
-
-        if name in self.checkers:
-            self.checkers[name](None)
-
-        attr_name = "subnode_" + name
-
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-
-        assert old_value is not None
-
-        setattr(self, attr_name, None)
-
-    def getChild(self, name):
-        attr_name = "subnode_" + name
-        return getattr(self, attr_name)
-
-    def getVisitableNodes(self):
-        # TODO: Consider if a generator would be faster.
-        result = []
-
-        for name in self.named_children:
-            attr_name = "subnode_" + name
-
-            value = getattr(self, attr_name)
-
-            if value is None:
-                pass
-            elif type(value) is tuple:
-                result += list(value)
-            elif isinstance(value, NodeBase):
-                result.append(value)
-            else:
-                raise AssertionError(
-                    self, "has illegal child", name, value, value.__class__
-                )
-
-        return tuple(result)
-
-    def getVisitableNodesNamed(self):
-        """Named children dictionary.
-
-        For use in debugging and XML output.
-        """
-        for name in self.named_children:
-            attr_name = "subnode_" + name
-            value = getattr(self, attr_name)
-
-            yield name, value
-
-    def replaceChild(self, old_node, new_node):
-        if new_node is not None and not isinstance(new_node, NodeBase):
-            raise AssertionError(
-                "Cannot replace with", new_node, "old", old_node, "in", self
-            )
-
-        # Find the replaced node, as an added difficulty, what might be
-        # happening, is that the old node is an element of a tuple, in which we
-        # may also remove that element, by setting it to None.
-        for key in self.named_children:
-            value = self.getChild(key)
-
-            if value is None:
-                pass
-            elif type(value) is tuple:
-                if old_node in value:
-                    if new_node is not None:
-                        self.setChild(
-                            key,
-                            tuple(
-                                (val if val is not old_node else new_node)
-                                for val in value
-                            ),
-                        )
-                    else:
-                        self.setChild(
-                            key, tuple(val for val in value if val is not old_node)
-                        )
-
-                    return key
-            elif isinstance(value, NodeBase):
-                if old_node is value:
-                    self.setChild(key, new_node)
-
-                    return key
-            else:
-                assert False, (key, value, value.__class__)
-
-        raise AssertionError("Didn't find child", old_node, "in", self)
-
-    def getCloneArgs(self):
-        values = {}
-
-        for key in self.named_children:
-            value = self.getChild(key)
-
-            assert type(value) is not list, key
-
-            if value is None:
-                values[key] = None
-            elif type(value) is tuple:
-                values[key] = tuple(v.makeClone() for v in value)
-            else:
-                values[key] = value.makeClone()
-
-        values.update(self.getDetails())
-
-        return values
-
-    def finalize(self):
-        del self.parent
-
-        for c in self.getVisitableNodes():
-            c.finalize()
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):

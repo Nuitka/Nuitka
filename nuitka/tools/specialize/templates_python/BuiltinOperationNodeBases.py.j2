@@ -17,7 +17,7 @@
 {#                                                                              #}
 {% macro make_bytes_class(class_name, arg_names) %}
 {% set bytes_operation_arg_types = {} %}
-{% set bytes_operation_mixin_name = addChildrenMixin(True, class_name, ("bytes_arg",) + arg_names, bytes_operation_arg_types, {}) %}
+{% set bytes_operation_mixin_name = addChildrenMixin(True, False, class_name, ("bytes_arg",) + arg_names, bytes_operation_arg_types, {}) %}
 from .ChildrenHavingMixins import {{bytes_operation_mixin_name}}
 
 class {{class_name}}(
@@ -98,7 +98,7 @@ class {{class_name}}(
 {% else %}
 {% set str_operation_arg_types = {} %}
 {% endif %}
-{% set str_operation_mixin_name = addChildrenMixin(True, class_name, ("str_arg",) + arg_names, str_operation_arg_types, {}) %}
+{% set str_operation_mixin_name = addChildrenMixin(True, False, class_name, ("str_arg",) + arg_names, str_operation_arg_types, {}) %}
 from .ChildrenHavingMixins import {{str_operation_mixin_name}}
 
 class {{class_name}}(
@@ -180,7 +180,7 @@ class {{class_name}}(
 {% else %}
 {% set dict_operation_arg_types = {} %}
 {% endif %}
-{% set dict_operation_mixin_name = addChildrenMixin(True, class_name, ("dict_arg",) + arg_names, dict_operation_arg_types, {}) %}
+{% set dict_operation_mixin_name = addChildrenMixin(True, False, class_name, ("dict_arg",) + arg_names, dict_operation_arg_types, {}) %}
 from .ChildrenHavingMixins import {{dict_operation_mixin_name}}
 
 class {{class_name}}(
