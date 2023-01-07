@@ -3443,6 +3443,15 @@
           - 'libextrafont'
       when: 'win32'
 
+- module-name: 'tls_client.cffi'
+  dlls:
+    - from_filenames:
+        relative_path: 'dependencies'
+        # TODO: We might want to match OS and arches here closely, so we do not pick up
+        # unnecessary arches.
+        prefixes:
+          - 'tls-client'
+
 - module-name: 'torch'
   data-files:
     dirs:
