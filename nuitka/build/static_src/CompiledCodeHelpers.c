@@ -413,15 +413,15 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
 }
 
 static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
-    start = PyNumber_Index(start);
+    start = Nuitka_Number_IndexAsLong(start);
     if (unlikely(start == NULL)) {
         return NULL;
     }
-    stop = PyNumber_Index(stop);
+    stop = Nuitka_Number_IndexAsLong(stop);
     if (unlikely(stop == NULL)) {
         return NULL;
     }
-    step = PyNumber_Index(step);
+    step = Nuitka_Number_IndexAsLong(step);
     if (unlikely(step == NULL)) {
         return NULL;
     }
@@ -460,7 +460,7 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
 
     return MAKE_XRANGE(0, int_high, 1);
 #else
-    PyObject *stop = PyNumber_Index(high);
+    PyObject *stop = Nuitka_Number_IndexAsLong(high);
 
     if (unlikely(stop == NULL)) {
         return NULL;

@@ -48,7 +48,7 @@ static inline bool IS_INDEXABLE(PyObject *value) {
 #if PYTHON_VERSION < 0x300
            PyInt_Check(value) ||
 #endif
-           PyLong_Check(value) || PyIndex_Check(value);
+           PyLong_Check(value) || Nuitka_Index_Check(value);
 }
 
 static Py_ssize_t CONVERT_TO_INDEX(PyObject *value) {
@@ -56,7 +56,7 @@ static Py_ssize_t CONVERT_TO_INDEX(PyObject *value) {
 
     if (PyInt_Check(value)) {
         return PyInt_AS_LONG(value);
-    } else if (PyIndex_Check(value)) {
+    } else if (Nuitka_Index_Check(value)) {
         return PyNumber_AsSsize_t(value, NULL);
     } else {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,

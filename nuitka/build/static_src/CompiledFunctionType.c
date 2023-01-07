@@ -2671,4 +2671,8 @@ static PyObject *Nuitka_Function_tp_vectorcall(struct Nuitka_FunctionObject *fun
 
 #include "CompiledGeneratorType.c"
 
+#include "CompiledCellType.c"
+
 #include "CompiledCodeHelpers.c"
+
+#include "InspectPatcher.c"
