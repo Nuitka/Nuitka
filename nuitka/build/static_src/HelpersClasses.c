@@ -49,10 +49,10 @@ PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
 
             PyTypeObject *base_type = Py_TYPE(base);
 
-            if (PyType_IsSubtype(winner, base_type)) {
+            if (Nuitka_Type_IsSubtype(winner, base_type)) {
                 // Ignore if current winner is already a subtype.
                 continue;
-            } else if (PyType_IsSubtype(base_type, winner)) {
+            } else if (Nuitka_Type_IsSubtype(base_type, winner)) {
                 // Use if, if it's a subtype of the current winner.
                 winner = base_type;
                 continue;

@@ -575,7 +575,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, &PyFloat_Type)) {
+                if (Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
                     PyObject *x = slot2(*operand1, operand2, Py_None);
 
                     if (x != Py_NotImplemented) {
@@ -1191,7 +1191,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_LONG_OBJECT(PyObject **o
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, &PyLong_Type)) {
+                if (Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
                     PyObject *x = slot2(*operand1, operand2, Py_None);
 
                     if (x != Py_NotImplemented) {
@@ -1841,7 +1841,7 @@ static HEDLEY_NEVER_INLINE bool __INPLACE_OPERATION_POW_INT_OBJECT(PyObject **op
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, &PyInt_Type)) {
+                if (Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
                     PyObject *x = slot2(*operand1, operand2, Py_None);
 
                     if (x != Py_NotImplemented) {
@@ -2735,7 +2735,7 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
 
         if (slot1 != NULL) {
             if (slot2 != NULL) {
-                if (PyType_IsSubtype(type2, type1)) {
+                if (Nuitka_Type_IsSubtype(type2, type1)) {
                     PyObject *x = slot2(*operand1, operand2, Py_None);
 
                     if (x != Py_NotImplemented) {

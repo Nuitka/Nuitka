@@ -311,7 +311,7 @@ class TypeDescBase(getMetaClassBase("Type")):
             return "1"
 
     def getTypeSubTypeCheckExpression(self, other, type2, type1):
-        return "PyType_IsSubtype(%s, %s)" % (
+        return "Nuitka_Type_IsSubtype(%s, %s)" % (
             other.getTypeValueExpression(None) if other is not object_desc else type2,
             self.getTypeValueExpression(None) if self is not object_desc else type1,
         )
@@ -319,7 +319,7 @@ class TypeDescBase(getMetaClassBase("Type")):
     def getRealSubTypeCheckCode(self, other, type2, type1):
         # Our concrete types, cannot be subtypes of any other type.
         if other is object_desc:
-            return "PyType_IsSubtype(%s, %s)" % (
+            return "Nuitka_Type_IsSubtype(%s, %s)" % (
                 type2,
                 self.getTypeValueExpression(None) if self is not object_desc else type1,
             )

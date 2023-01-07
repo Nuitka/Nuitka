@@ -664,11 +664,32 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_BOOL_SINGLE(PyObject *exception
     return false;
 }
 
+NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyObject *exception_value, PyObject *exception_checked) {
+    CHECK_OBJECT(exception_value);
+    CHECK_OBJECT(exception_checked);
+
+    // Reduce to exception class actually. TODO: Can this not be an instance from called code?!
+    PyObject *exception_class;
+    if (PyExceptionInstance_Check(exception_value)) {
+        exception_class = PyExceptionInstance_Class(exception_value);
+    } else {
+        exception_class = exception_value;
+    }
+
+#if PYTHON_VERSION < 0x300
+    if (PyExceptionClass_Check(exception_checked)) {
+        return Nuitka_Type_IsSubtype((PyTypeObject *)exception_class, (PyTypeObject *)exception_checked);
+    } else {
+        return exception_class == exception_checked;
+    }
+#else
+    return Nuitka_Type_IsSubtype((PyTypeObject *)exception_class, (PyTypeObject *)exception_checked);
+#endif
+}
+
 // This is for the actual comparison operation that is being done in the
 // node tree, no other code should use it. TODO: Then it's probably not
-// properly located here, and it could still in-line the code of
-// "PyErr_GivenExceptionMatches" to save on Python3 doing two tuple checks
-// and iterations.
+// properly located here.
 NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_value, PyObject *exception_checked) {
     CHECK_OBJECT(exception_value);
     CHECK_OBJECT(exception_checked);
@@ -695,7 +716,23 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL(PyObject *exception_
     }
 #endif
 
-    return PyErr_GivenExceptionMatches(exception_value, exception_checked);
+    if (PyTuple_Check(exception_checked)) {
+        Py_ssize_t length = PyTuple_GET_SIZE(exception_checked);
+
+        for (Py_ssize_t i = 0; i < length; i += 1) {
+            PyObject *element = PyTuple_GET_ITEM(exception_checked, i);
+
+            int res = EXCEPTION_MATCH_BOOL(exception_value, element);
+
+            if (res != 0) {
+                return res;
+            }
+        }
+
+        return 0;
+    } else {
+        return _EXCEPTION_MATCH_BOOL(exception_value, exception_checked);
+    }
 }
 
 #if PYTHON_VERSION >= 0x300

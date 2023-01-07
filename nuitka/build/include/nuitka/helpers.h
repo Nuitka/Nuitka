@@ -196,8 +196,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
 
 #include "nuitka/builtins.h"
 
-#include "nuitka/allocator.h"
-
 #include "helper/operations.h"
 
 // Compile source code given, pretending the file name was given.

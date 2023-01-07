@@ -321,6 +321,9 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
+// Our replacement for "PyType_IsSubtype"
+extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
+
 #include "nuitka/allocator.h"
 
 #if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x370
