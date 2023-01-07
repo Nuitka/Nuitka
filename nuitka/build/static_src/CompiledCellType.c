@@ -15,10 +15,21 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+/** Compiled cells.
+ *
+ * We have our own cell type, so we can use a freelist for them, to speed up our
+ * interactions with allocating them.
+ *
+ * It strives to be full replacement for normal cells. It does not yet inherit
+ * from the cell type like functions, generators, etc. do but could be made so
+ * if that becomes necessary by some C extension code.
+ *
+ */
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-
-#include "nuitka/freelists.h"
+#endif
 
 #define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list_cells = NULL;
