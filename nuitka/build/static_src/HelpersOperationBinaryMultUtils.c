@@ -90,13 +90,13 @@ static Py_ssize_t CONVERT_TO_REPEAT_FACTOR(PyObject *value) {
 }
 
 static PyObject *SEQUENCE_REPEAT(ssizeargfunc repeatfunc, PyObject *seq, PyObject *n) {
-    if (unlikely(!PyIndex_Check(n))) {
+    if (unlikely(!Nuitka_Index_Check(n))) {
         PyErr_Format(PyExc_TypeError, "can't multiply sequence by non-int of type '%s'", Py_TYPE(n)->tp_name);
 
         return NULL;
     }
 
-    PyObject *index_value = PyNumber_Index(n);
+    PyObject *index_value = Nuitka_Number_Index(n);
 
     if (unlikely(index_value == NULL)) {
         return NULL;

@@ -4724,14 +4724,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_STR(PyObject *operand1, Py
             goto exit_binary_result_object;
         }
     }
-    if (unlikely(!PyIndex_Check(operand1))) {
+    if (unlikely(!Nuitka_Index_Check(operand1))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand1);
+        PyObject *index_value = Nuitka_Number_Index(operand1);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -4849,14 +4849,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_STR_OBJECT(PyObject *operand1, Py
     }
 #endif
 
-    if (unlikely(!PyIndex_Check(operand2))) {
+    if (unlikely(!Nuitka_Index_Check(operand2))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand2);
+        PyObject *index_value = Nuitka_Number_Index(operand2);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -4979,14 +4979,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_UNICODE(PyObject *operand1
             goto exit_binary_result_object;
         }
     }
-    if (unlikely(!PyIndex_Check(operand1))) {
+    if (unlikely(!Nuitka_Index_Check(operand1))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand1);
+        PyObject *index_value = Nuitka_Number_Index(operand1);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -5102,14 +5102,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_UNICODE_OBJECT(PyObject *operand1
     }
 #endif
 
-    if (unlikely(!PyIndex_Check(operand2))) {
+    if (unlikely(!Nuitka_Index_Check(operand2))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand2);
+        PyObject *index_value = Nuitka_Number_Index(operand2);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -5232,14 +5232,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_BYTES(PyObject *operand1, 
             goto exit_binary_result_object;
         }
     }
-    if (unlikely(!PyIndex_Check(operand1))) {
+    if (unlikely(!Nuitka_Index_Check(operand1))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand1);
+        PyObject *index_value = Nuitka_Number_Index(operand1);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -5357,14 +5357,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_BYTES_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    if (unlikely(!PyIndex_Check(operand2))) {
+    if (unlikely(!Nuitka_Index_Check(operand2))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand2);
+        PyObject *index_value = Nuitka_Number_Index(operand2);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -5487,14 +5487,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_TUPLE(PyObject *operand1, 
             goto exit_binary_result_object;
         }
     }
-    if (unlikely(!PyIndex_Check(operand1))) {
+    if (unlikely(!Nuitka_Index_Check(operand1))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand1);
+        PyObject *index_value = Nuitka_Number_Index(operand1);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -5610,14 +5610,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_TUPLE_OBJECT(PyObject *operand1, 
     }
 #endif
 
-    if (unlikely(!PyIndex_Check(operand2))) {
+    if (unlikely(!Nuitka_Index_Check(operand2))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand2);
+        PyObject *index_value = Nuitka_Number_Index(operand2);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -5739,14 +5739,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_OBJECT_LIST(PyObject *operand1, P
             goto exit_binary_result_object;
         }
     }
-    if (unlikely(!PyIndex_Check(operand1))) {
+    if (unlikely(!Nuitka_Index_Check(operand1))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand1);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand1);
+        PyObject *index_value = Nuitka_Number_Index(operand1);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
@@ -5862,14 +5862,14 @@ static PyObject *_BINARY_OPERATION_MULT_OBJECT_LIST_OBJECT(PyObject *operand1, P
     }
 #endif
 
-    if (unlikely(!PyIndex_Check(operand2))) {
+    if (unlikely(!Nuitka_Index_Check(operand2))) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("can't multiply sequence by non-int of type '%s'", operand2);
 
         goto exit_binary_exception;
     }
 
     {
-        PyObject *index_value = PyNumber_Index(operand2);
+        PyObject *index_value = Nuitka_Number_Index(operand2);
 
         if (unlikely(index_value == NULL)) {
             goto exit_binary_exception;
