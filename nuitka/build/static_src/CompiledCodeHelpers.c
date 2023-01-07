@@ -328,16 +328,16 @@ PyObject *MAKE_XRANGE(long start, long stop, long step) {
 
 /* Same as CPython3: */
 static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *step) {
-    int res = PyObject_RichCompareBool(step, const_int_0, Py_GT);
+    nuitka_bool nbool_res = RICH_COMPARE_GT_NBOOL_OBJECT_LONG(step, const_int_0);
 
-    if (unlikely(res == -1)) {
+    if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
         return NULL;
     }
 
     PyObject *lo, *hi;
 
     // Make sure we use step as a positive number.
-    if (res == 1) {
+    if (nbool_res == NUITKA_BOOL_TRUE) {
         lo = start;
         hi = stop;
 
@@ -352,13 +352,13 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
             return NULL;
         }
 
-        res = PyObject_RichCompareBool(step, const_int_0, Py_EQ);
+        nbool_res = RICH_COMPARE_EQ_NBOOL_OBJECT_LONG(step, const_int_0);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
             return NULL;
         }
 
-        if (res == 1) {
+        if (unlikely(nbool_res == NUITKA_BOOL_TRUE)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() arg 3 must not be zero");
 
             return NULL;
@@ -366,12 +366,13 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
     }
 
     // Negative difference, we got zero length.
-    res = PyObject_RichCompareBool(lo, hi, Py_GE);
+    nbool_res = RICH_COMPARE_GE_NBOOL_OBJECT_OBJECT(lo, hi);
 
-    if (res != 0) {
+    // No distance means we do not have any length to go.
+    if (nbool_res != NUITKA_BOOL_FALSE) {
         Py_XDECREF(step);
 
-        if (res < 0) {
+        if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
             return NULL;
         }
 
@@ -379,6 +380,7 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
         return const_int_0;
     }
 
+    // TODO: Use binary operations here, for now we only eliminated rich comparison API
     PyObject *tmp1 = PyNumber_Subtract(hi, lo);
 
     if (unlikely(tmp1 == NULL)) {

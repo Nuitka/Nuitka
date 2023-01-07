@@ -62,12 +62,29 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
         return result;
     }
 
-    /* Now just dereference, and compare from there by contents. */
+    // Now just dereference cell value, and compare from there by contents, which can
+    // be NULL however.
     a = ((struct Nuitka_CellObject *)a)->ob_ref;
     b = ((struct Nuitka_CellObject *)b)->ob_ref;
 
     if (a != NULL && b != NULL) {
-        return PyObject_RichCompare(a, b, op);
+        switch (op) {
+        case Py_EQ:
+            return RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_NE:
+            return RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_LE:
+            return RICH_COMPARE_LE_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_GE:
+            return RICH_COMPARE_GE_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_LT:
+            return RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_GT:
+            return RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(a, b);
+        default:
+            PyErr_BadArgument();
+            return NULL;
+        }
     }
 
     int res = (b == NULL) - (a == NULL);
