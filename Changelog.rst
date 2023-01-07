@@ -10,6 +10,82 @@ Nuitka blog.
  Nuitka Release 1.4 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Standalone: Added implicit dependencies for ``dependency_injector``
+   package. Fixed in 1.3.1 already.
+
+-  Fix, the generated metadata nodes for distribution queries had an
+   error in their generated children handling that could cause crashes
+   at compile time. Fixed in 1.3.2 already.
+
+-  Standalone: Added implicit dependencies for ``passlib.apache``
+   package. Fixed in 1.3.2 already.
+
+-  Windows: Fix, our shortcut to find DLLs by analyzing loaded DLLs
+   stumbled in a case of a DLL loaded into the compiling Python that had
+   no filename associated, while strange, we need to handle this as
+   well. Fixed in 1.3.3 already.
+
+-  Standalone: Also need to workaround more decorator tricks for
+   ``networkx``. Fixed in 1.3.3 already.
+
+-  Scons: Fix, was not updating ``PATH`` environment variable anymore,
+   which could lead to externally provided compilers and internal
+   winlibs gcc clashing on Windows, but should be a general problem.
+   Fixed in 1.3.4 already.
+
+-  Standalone: Added support for ``cefpython3`` package. Fixed in 1.3.4
+   already.
+
+-  Standalone: Added support for newer ``webview`` package versions.
+   Fixed in 1.3.4 already.
+
+-  Standalone: Fix, some extension modules set their ``__file__`` to
+   ``None`` during multi phase imports, which we then didn't update
+   anymore, however that is necessary. Fixed in 1.3.4 already.
+
+-  Python3.10+: Fix, was not supporting ``match`` cases where an
+   alternative had no condition associated. Fixed in 1.3.5 already.
+
+-  Windows: Identify ARM64 architecture Python properly. We do not yet
+   support it, but we should report it properly and some package
+   configurations are already taking it already into account. Fixed in
+   1.3.5 already.
+
+-  Fix, the Nuitka meta path based loader, needs to expose a
+   ``__module__`` attribute because there is code out there, that
+   identifies standard loaders through looking at this value, but
+   crashes without it. Fixed in 1.3.5 already.
+
+-  Fix, very old versions of the ``importlib_metadata`` backport were
+   using themselves to load their ``__version__`` attribute. Added a
+   workaround for it, since in Nuitka it doesn't work until after
+   loading the module.
+
+Optimization
+============
+
+-  Anti-Bloat: Avoid using ``sparse`` and through that Numba in the
+   ``scipy`` package, reducing its distribution footprint. Part of 1.3.3
+   already.
+
+-  Anti-Bloat: Avoid IPython and Numba in ``trimesh`` package. Part of
+   1.3.3 already.
+
+Organisational
+==============
+
+-  Debugging: When plugins evaluate ``when`` conditions that raise,
+   output which it was exactly. Part of 1.3.3 already.
+
+Cleanups
+========
+
+-  Plugins: Moved parts of the ``pywebview`` plugin that pertain to the
+   DLLs and data files to package configuration.
+
 This release is not done yet.
 
 ********************
