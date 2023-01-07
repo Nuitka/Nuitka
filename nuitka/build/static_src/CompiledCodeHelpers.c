@@ -1106,7 +1106,7 @@ static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObj
     }
 
     if (value == NULL) {
-        int status = PyDict_DelItem(klass->cl_dict, attr_name);
+        int status = DICT_REMOVE_ITEM(klass->cl_dict, attr_name);
 
         if (status < 0) {
             PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'", PyString_AS_STRING(klass->cl_name),
