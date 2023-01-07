@@ -1531,7 +1531,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict(struct Nuitka_FunctionObject con
 
             python_pars[i] = kw_arg_value;
 
-            PyDict_DelItem(python_pars[star_dict_index], arg_name);
+            DICT_REMOVE_ITEM(python_pars[star_dict_index], arg_name);
 
             kw_found += 1;
 
@@ -1595,7 +1595,7 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(struct Nuitka_FunctionObjec
 
             python_pars[i] = kw_arg_value;
 
-            PyDict_DelItem(python_pars[star_dict_index], arg_name);
+            DICT_REMOVE_ITEM(python_pars[star_dict_index], arg_name);
 
             kw_found += 1;
 
@@ -2493,7 +2493,7 @@ static Py_ssize_t handleVectorcallKeywordArgsWithStarDict(struct Nuitka_Function
 
             python_pars[i] = kw_arg_value;
 
-            PyDict_DelItem(python_pars[star_dict_index], arg_name);
+            DICT_REMOVE_ITEM(python_pars[star_dict_index], arg_name);
 
             kw_found += 1;
 
