@@ -18,9 +18,65 @@
 #ifndef __NUITKA_ALLOCATOR_H__
 #define __NUITKA_ALLOCATOR_H__
 
-#include "nuitka/exceptions.h"
+#if PYTHON_VERSION >= 0x380
+// Need to make Py_DECREF a macro again that doesn't call an API
+static inline void _Nuitka_Py_DECREF(PyObject *ob) {
+    assert(ob != NULL && ob->ob_refcnt >= 0);
 
-// Macro introduced with Python3.9 or higher.
+    // Non-limited C API and limited C API for Python 3.9 and older access
+    // directly PyObject.ob_refcnt.
+#ifdef Py_REF_DEBUG
+    _Py_RefTotal--;
+#endif
+    if (--ob->ob_refcnt == 0) {
+        destructor dealloc = Py_TYPE(ob)->tp_dealloc;
+#ifdef Py_TRACE_REFS
+        _Py_ForgetReference(ob);
+#endif
+        (*dealloc)(ob);
+    }
+}
+
+#undef Py_DECREF
+#define Py_DECREF(ob) _Nuitka_Py_DECREF((PyObject *)(ob))
+
+// Need to make Py_XDECREF a macro again that doesn't call an API
+static inline void _Nuitka_Py_XDECREF(PyObject *ob) {
+    if (ob != NULL) {
+        assert(ob->ob_refcnt >= 0);
+
+        // Non-limited C API and limited C API for Python 3.9 and older access
+        // directly PyObject.ob_refcnt.
+#ifdef Py_REF_DEBUG
+        _Py_RefTotal--;
+#endif
+        if (--ob->ob_refcnt == 0) {
+            destructor dealloc = Py_TYPE(ob)->tp_dealloc;
+#ifdef Py_TRACE_REFS
+            _Py_ForgetReference(ob);
+#endif
+            (*dealloc)(ob);
+        }
+    }
+}
+
+#undef Py_XDECREF
+#define Py_XDECREF(ob) _Nuitka_Py_XDECREF((PyObject *)(ob))
+
+// Need to make Py_XDECREF a macro again that uses our Py_DECREF
+#undef Py_CLEAR
+#define Py_CLEAR(op)                                                                                                   \
+    do {                                                                                                               \
+        PyObject *_py_tmp = (PyObject *)(op);                                                                          \
+        if (_py_tmp != NULL) {                                                                                         \
+            (op) = NULL;                                                                                               \
+            Py_DECREF(_py_tmp);                                                                                        \
+        }                                                                                                              \
+    } while (0)
+
+#endif
+
+// Macro introduced with Python3.9 or higher, make it generally available.
 #ifndef Py_SET_TYPE
 static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) { ob->ob_type = type; }
 #define Py_SET_TYPE(ob, type) _Py_SET_TYPE((PyObject *)(ob), type)
