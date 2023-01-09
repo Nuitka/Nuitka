@@ -623,3 +623,174 @@ PyObject *NuitkaUnicode_FromWideChar(const wchar_t *str, Py_ssize_t size) {
 
     return PyUnicode_FromWideChar(str, size);
 }
+
+PyObject *BUILTIN_UNICODE1(PyObject *value) {
+#if PYTHON_VERSION >= 0x300
+    if (PyUnicode_CheckExact(value)) {
+#if !defined(Py_DEBUG) && PYTHON_VERSION >= 0x300
+        if (PyUnicode_READY(value) < 0) {
+            return NULL;
+        }
+#endif
+
+        Py_INCREF(value);
+        return value;
+    }
+
+    if (Py_TYPE(value)->tp_str == NULL) {
+        return PyObject_Repr(value);
+    }
+
+    /* It is possible for a type to have a tp_str representation that loops
+       infinitely. */
+    if (Py_EnterRecursiveCall(" while getting the str of an object")) {
+        return NULL;
+    }
+
+    PyObject *result = (*Py_TYPE(value)->tp_str)(value);
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    if (unlikely(!PyUnicode_Check(result))) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__str__ returned non-string (type %s)", result);
+
+        Py_DECREF(result);
+        return NULL;
+    }
+
+#if !defined(Py_DEBUG) && PYTHON_VERSION >= 0x300
+    if (PyUnicode_READY(result) < 0) {
+        return NULL;
+    }
+#endif
+
+    return result;
+#else
+    // TODO: Inline this occasionally, however this is not too performance
+    // relevant in most cases.
+    return PyObject_Unicode(value);
+#endif
+}
+
+PyObject *BUILTIN_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
+    CHECK_OBJECT(value);
+    CHECK_OBJECT_X(encoding);
+    CHECK_OBJECT_X(errors);
+
+    char const *encoding_str;
+
+    if (encoding == NULL) {
+        encoding_str = NULL;
+    } else if (Nuitka_String_Check(encoding)) {
+        encoding_str = Nuitka_String_AsString_Unchecked(encoding);
+    }
+#if PYTHON_VERSION < 0x300
+    else if (PyUnicode_Check(encoding)) {
+        PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString(encoding, NULL);
+        CHECK_OBJECT(uarg2);
+
+        encoding_str = Nuitka_String_AsString_Unchecked(uarg2);
+    }
+#endif
+    else {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 2 must be string, not %s", encoding);
+        return NULL;
+    }
+
+    char const *errors_str;
+
+    if (errors == NULL) {
+        errors_str = NULL;
+    } else if (Nuitka_String_Check(errors)) {
+        errors_str = Nuitka_String_AsString_Unchecked(errors);
+    }
+#if PYTHON_VERSION < 0x300
+    else if (PyUnicode_Check(errors)) {
+        PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString(errors, NULL);
+        CHECK_OBJECT(uarg3);
+
+        errors_str = Nuitka_String_AsString_Unchecked(uarg3);
+    }
+#endif
+    else {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 3 must be string, not %s", errors);
+        return NULL;
+    }
+
+    PyObject *result = PyUnicode_FromEncodedObject(value, encoding_str, errors_str);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    assert(PyUnicode_Check(result));
+
+    return result;
+}
+
+#if PYTHON_VERSION < 0x300
+PyObject *_BUILTIN_STR(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    if (PyString_CheckExact(value) || PyUnicode_CheckExact(value)) {
+        Py_INCREF(value);
+        return value;
+    }
+
+    if (Py_EnterRecursiveCall(" while getting the str of an object")) {
+        return NULL;
+    }
+
+    PyObject *result;
+
+    if (Py_TYPE(value)->tp_str == NULL) {
+        result = PyObject_Repr(value);
+    } else {
+        result = (*Py_TYPE(value)->tp_str)(value);
+    }
+
+    Py_LeaveRecursiveCall();
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    if (unlikely(!PyString_Check(result) && !PyUnicode_Check(result))) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__str__ returned non-string (type %s)", result);
+        Py_DECREF(result);
+        return NULL;
+    }
+
+    if (PyUnicode_Check(result)) {
+        PyObject *str = PyUnicode_AsEncodedString(result, NULL, NULL);
+        Py_DECREF(result);
+
+        if (likely(str != NULL)) {
+            result = str;
+        } else {
+            return NULL;
+        }
+    }
+
+    assert(PyString_Check(result));
+    return result;
+}
+
+PyObject *BUILTIN_STR(PyObject *value) {
+    PyObject *result = _BUILTIN_STR(value);
+
+    if (result != NULL && PyUnicode_CheckExact(result)) {
+        PyObject *converted = PyUnicode_AsEncodedString(value, NULL, NULL);
+
+        Py_DECREF(result);
+        result = converted;
+    }
+
+    return result;
+}
+
+#endif
