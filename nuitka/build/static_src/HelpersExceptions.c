@@ -99,3 +99,108 @@ void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exceptio
                                                 Nuitka_String_AsString_Unchecked(variable_name));
     CHECK_OBJECT(*exception_value);
 }
+
+static PyObject *_Nuitka_Err_CreateException(PyObject *exception_type, PyObject *value) {
+    PyObject *exc;
+
+    if (value == NULL || value == Py_None) {
+        exc = CALL_FUNCTION_NO_ARGS(exception_type);
+    } else if (PyTuple_Check(value)) {
+        exc = CALL_FUNCTION_WITH_POSARGS(exception_type, value);
+    } else {
+        exc = CALL_FUNCTION_WITH_SINGLE_ARG(exception_type, value);
+    }
+
+    if (exc != NULL && !PyExceptionInstance_Check(exc)) {
+        PyErr_Format(PyExc_TypeError,
+                     "calling %s should have returned an instance of "
+                     "BaseException, not %s",
+                     GET_CALLABLE_NAME(exception_type), Py_TYPE(exc)->tp_name);
+        Py_DECREF(exc);
+
+        return NULL;
+    }
+
+    return exc;
+}
+
+// Our replacement for PyErr_NormalizeException, that however does not attempt
+// to deal with recursion, i.e. exception during normalization, we just avoid
+// the API call overhead in the normal case.
+void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val, PyTracebackObject **tb) {
+    PyObject *type = *exc;
+
+    // Dealt with in NORMALIZE_EXCEPTION
+    assert(type != NULL && type != Py_None);
+
+    PyObject *value = *val;
+
+    // Allow setting the value to NULL for time savings with quick type only errors
+    if (value == NULL) {
+        value = Py_None;
+        Py_INCREF(value);
+    }
+
+    // Normalize the exception from class to instance
+    if (PyExceptionClass_Check(type)) {
+        PyObject *inclass = NULL;
+
+        int is_subclass = 0;
+
+        if (PyExceptionInstance_Check(value)) {
+            inclass = PyExceptionInstance_Class(value);
+
+            is_subclass = PyObject_IsSubclass(inclass, type);
+
+            if (is_subclass < 0) {
+                goto error;
+            }
+        }
+
+        // If the value was not an instance, or is not an instance of derived
+        // type, then call it
+        if (!is_subclass) {
+            PyObject *fixed_value = _Nuitka_Err_CreateException(type, value);
+
+            if (unlikely(fixed_value == NULL)) {
+                goto error;
+            }
+
+            Py_DECREF(value);
+            value = fixed_value;
+        } else if (inclass != type) {
+            // Switch to given type then
+            Py_INCREF(inclass);
+            Py_DECREF(type);
+
+            type = inclass;
+        }
+    }
+
+    *exc = type;
+    *val = value;
+
+    return;
+
+error:
+
+    Py_DECREF(type);
+    Py_DECREF(value);
+    PyTracebackObject *initial_tb = *tb;
+
+    FETCH_ERROR_OCCURRED_TSTATE(tstate, exc, val, tb);
+
+    if (initial_tb != NULL) {
+        if (*tb == NULL) {
+            *tb = initial_tb;
+        } else {
+            Py_DECREF(initial_tb);
+        }
+    }
+
+#if PYTHON_VERSION >= 0x380
+    _PyErr_NormalizeException(tstate, exc, val, (PyObject **)tb);
+#else
+    PyErr_NormalizeException(exc, val, (PyObject **)tb);
+#endif
+}
