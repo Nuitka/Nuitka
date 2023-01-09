@@ -85,10 +85,9 @@ NUITKA_MAY_BE_UNUSED static inline bool DROP_ERROR_OCCURRED(void) {
 }
 
 // Fetch the current error into object variables.
-NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED(PyObject **exception_type, PyObject **exception_value,
-                                                      PyTracebackObject **exception_traceback) {
-    PyThreadState *tstate = PyThreadState_GET();
-
+NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED_TSTATE(PyThreadState *tstate, PyObject **exception_type,
+                                                             PyObject **exception_value,
+                                                             PyTracebackObject **exception_traceback) {
     *exception_type = tstate->curexc_type;
     *exception_value = tstate->curexc_value;
     *exception_traceback = (PyTracebackObject *)tstate->curexc_traceback;
@@ -101,6 +100,14 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED(PyObject **exception_type,
     tstate->curexc_type = NULL;
     tstate->curexc_value = NULL;
     tstate->curexc_traceback = NULL;
+}
+
+// Fetch the current error into object variables.
+NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED(PyObject **exception_type, PyObject **exception_value,
+                                                      PyTracebackObject **exception_traceback) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return FETCH_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, exception_traceback);
 }
 
 // Fetch the current error into object variables.
@@ -527,9 +534,13 @@ NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *GET_EXCEPTION_TRACEBACK(Py
 }
 #endif
 
+extern void Nuitka_Err_NormalizeException(PyThreadState *tstate, PyObject **exc, PyObject **val,
+                                          PyTracebackObject **tb);
+
 // Normalize an exception.
-NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception_type, PyObject **exception_value,
-                                                            PyTracebackObject **exception_tb) {
+NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION_TSTATE(PyThreadState *tstate, PyObject **exception_type,
+                                                                   PyObject **exception_value,
+                                                                   PyTracebackObject **exception_tb) {
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("NORMALIZE_EXCEPTION: Enter\n");
     PRINT_EXCEPTION(*exception_type, *exception_value, *exception_tb);
@@ -542,14 +553,21 @@ NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception
 
     // TODO: Often we already know this to be true.
     if (*exception_type != Py_None && *exception_type != NULL) {
-        // TODO: Inline for performance.
-        PyErr_NormalizeException(exception_type, exception_value, (PyObject **)exception_tb);
+        Nuitka_Err_NormalizeException(tstate, exception_type, exception_value, exception_tb);
     }
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("NORMALIZE_EXCEPTION: Leave\n");
     PRINT_EXCEPTION(*exception_type, *exception_value, exception_tb ? *exception_tb : NULL);
 #endif
+}
+
+// TODO: Eliminate usage of this
+NUITKA_MAY_BE_UNUSED static inline void NORMALIZE_EXCEPTION(PyObject **exception_type, PyObject **exception_value,
+                                                            PyTracebackObject **exception_tb) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    NORMALIZE_EXCEPTION_TSTATE(tstate, exception_type, exception_value, exception_tb);
 }
 
 // Publish an exception, erasing the values of the variables.
@@ -611,8 +629,9 @@ NUITKA_MAY_BE_UNUSED static bool EXCEPTION_MATCH_GENERATOR(PyObject *exception_v
             PyErr_WriteUnraisable(exception_value);
         }
 
-        if (res == 1)
+        if (res == 1) {
             return true;
+        }
 
         res = PyObject_IsSubclass(exception_value, PyExc_StopIteration);
 
@@ -677,13 +696,40 @@ NUITKA_MAY_BE_UNUSED static inline int _EXCEPTION_MATCH_BOOL(PyObject *exception
     }
 
 #if PYTHON_VERSION < 0x300
-    if (PyExceptionClass_Check(exception_checked)) {
-        return Nuitka_Type_IsSubtype((PyTypeObject *)exception_class, (PyTypeObject *)exception_checked);
+    if (PyExceptionClass_Check(exception_class) && PyExceptionClass_Check(exception_checked)) {
+        // Save the current exception, if any, we must preserve it.
+        PyObject *save_exception_type, *save_exception_value;
+        PyTracebackObject *save_exception_tb;
+        FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
+
+        // Avoid recursion limit being exceeded just then
+        int recursion_limit = Py_GetRecursionLimit();
+        if (recursion_limit < (1 << 30)) {
+            Py_SetRecursionLimit(recursion_limit + 5);
+        }
+
+        int res = PyObject_IsSubclass(exception_class, exception_checked);
+
+        Py_SetRecursionLimit(recursion_limit);
+
+        // This function must not fail, so print the error here */
+        if (unlikely(res == -1)) {
+            PyErr_WriteUnraisable(exception_value);
+            res = 0;
+        }
+
+        RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
+
+        return res;
     } else {
         return exception_class == exception_checked;
     }
 #else
-    return Nuitka_Type_IsSubtype((PyTypeObject *)exception_class, (PyTypeObject *)exception_checked);
+    if (PyExceptionClass_Check(exception_class) && PyExceptionClass_Check(exception_checked)) {
+        return Nuitka_Type_IsSubtype((PyTypeObject *)exception_class, (PyTypeObject *)exception_checked);
+    } else {
+        return exception_class == exception_checked;
+    }
 #endif
 }
 
