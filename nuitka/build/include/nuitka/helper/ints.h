@@ -73,11 +73,16 @@ NUITKA_MAY_BE_UNUSED static void ENFORCE_ILONG_OBJECT_VALUE(nuitka_ilong *value)
 
 #endif
 
+// TODO: Use this from header files, although they have changed.
 #define NUITKA_STATIC_SMALLINT_VALUE_MIN -5
 #define NUITKA_STATIC_SMALLINT_VALUE_MAX 257
 
 #define NUITKA_TO_SMALL_VALUE_OFFSET(value) (value - NUITKA_STATIC_SMALLINT_VALUE_MIN)
 
+#if PYTHON_VERSION >= 0x390
+extern PyObject **Nuitka_Long_SmallValues;
+#elif PYTHON_VERSION >= 0x300
 extern PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STATIC_SMALLINT_VALUE_MIN + 1];
+#endif
 
 #endif

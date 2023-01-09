@@ -111,6 +111,7 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x3a0
+#include <internal/pycore_long.h>
 #include <internal/pycore_unionobject.h>
 #endif
 
