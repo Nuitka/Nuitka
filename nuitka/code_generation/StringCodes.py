@@ -74,7 +74,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
     if encoding is None and errors is None:
         generateCAPIObjectCode(
             to_name=to_name,
-            capi="PyObject_Unicode",
+            capi="BUILTIN_UNICODE1",
             arg_desc=(
                 (
                     "str_arg" if python_version < 0x300 else "unicode_arg",
@@ -90,7 +90,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
     else:
         generateCAPIObjectCode(
             to_name=to_name,
-            capi="TO_UNICODE3",
+            capi="BUILTIN_UNICODE3",
             arg_desc=(
                 ("unicode_arg", expression.subnode_value),
                 ("unicode_encoding", encoding),
@@ -109,7 +109,7 @@ def generateBuiltinStrCode(to_name, expression, emit, context):
     if python_version < 0x300:
         generateCAPIObjectCode(
             to_name=to_name,
-            capi="PyObject_Str",
+            capi="BUILTIN_STR",
             arg_desc=(("str_arg", expression.subnode_value),),
             may_raise=expression.mayRaiseException(BaseException),
             conversion_check=decideConversionCheckNeeded(to_name, expression),
