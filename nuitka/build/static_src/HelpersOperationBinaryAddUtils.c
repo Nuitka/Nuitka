@@ -100,7 +100,7 @@ static PyObject *Nuitka_LongFromCLong(long ival) {
         return (PyObject *)result;
     }
 #else
-    if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival <= NUITKA_STATIC_SMALLINT_VALUE_MAX) {
+    if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival < NUITKA_STATIC_SMALLINT_VALUE_MAX) {
         PyObject *result = Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(ival)];
         Py_INCREF(result);
 
@@ -192,7 +192,7 @@ static void Nuitka_LongUpdateFromCLong(PyObject **value, long ival) {
         return;
     }
 #else
-    if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival <= NUITKA_STATIC_SMALLINT_VALUE_MAX) {
+    if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival < NUITKA_STATIC_SMALLINT_VALUE_MAX) {
         Py_DECREF(*value);
 
         *value = Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(ival)];
@@ -528,7 +528,7 @@ static PyLongObject *_Nuitka_LongSubDigits(digit const *a, Py_ssize_t size_a, di
     if (i <= 1) {
         long ival = MEDIUM_VALUE(result);
 
-        if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival <= NUITKA_STATIC_SMALLINT_VALUE_MAX) {
+        if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival < NUITKA_STATIC_SMALLINT_VALUE_MAX) {
             Py_DECREF(result);
 
             result = (PyLongObject *)Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(ival)];
@@ -640,7 +640,7 @@ static PyObject *_Nuitka_LongSubInplaceDigits(PyObject *left, digit const *b, Py
     if (i <= 1) {
         long ival = MEDIUM_VALUE(left);
 
-        if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival <= NUITKA_STATIC_SMALLINT_VALUE_MAX) {
+        if (ival >= NUITKA_STATIC_SMALLINT_VALUE_MIN && ival < NUITKA_STATIC_SMALLINT_VALUE_MAX) {
             Py_DECREF(left);
 
             left = Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(ival)];

@@ -287,8 +287,10 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
     return result;
 }
 
-#if PYTHON_VERSION >= 0x300
 // For creation of small long singleton long values as required by Python3.
+#if PYTHON_VERSION >= 0x390
+PyObject **Nuitka_Long_SmallValues;
+#elif PYTHON_VERSION >= 0x300
 PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STATIC_SMALLINT_VALUE_MIN + 1];
 #endif
 
@@ -324,14 +326,15 @@ static void initCaches(void) {
 
     frozenset_cache = PyDict_New();
 
-    for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i <= NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION >= 0x390
+    // On Python3.9+ these are exposed in the interpreter.
+    Nuitka_Long_SmallValues = (PyObject **)_PyInterpreterState_GET()->small_ints;
+#elif PYTHON_VERSION >= 0x300
+    for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i < NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
         PyObject *value = PyLong_FromLong(i);
-        Py_INCREF(value);
-
         Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
-#endif
     }
+#endif
 
     init_done = true;
 }
@@ -636,12 +639,18 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
 #endif
         case 'l': {
-            // TODO: Use fixed sizes for small values, e.g. byte sized.
+            // TODO: Use fixed sizes for small values, e.g. byte, word sized.
             long value = unpackValueLong(&data);
 
-            PyObject *l = PyLong_FromLong(value);
+            PyObject *l = Nuitka_LongFromCLong(value);
 
-            insertToDictCache(long_cache, &l);
+            // Avoid the long cache, won't do anything useful for small ints
+#if PYTHON_VERSION >= 0x300
+            if (value < NUITKA_STATIC_SMALLINT_VALUE_MIN || value >= NUITKA_STATIC_SMALLINT_VALUE_MAX)
+#endif
+            {
+                insertToDictCache(long_cache, &l);
+            }
 
             *output = l;
             is_object = true;
