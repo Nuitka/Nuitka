@@ -52,3 +52,89 @@ bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b) {
         return PyType_IsSubtype(a, b) != 0;
     }
 }
+
+// TODO: We cannot really do this, until Nuitka_TypeLookup (_PyType_Lookup) is
+// not also a call to an API, we just become wasteful here. What will make sense
+// is to make specialized variants for not sub class checks, like
+// PyExc_GeneratorExit and PyExc_StopIteration by caching the descriptor
+// "checker" for them and then calling the "func" behind them more or less
+// directly. These could be created during startup and be very fast to use.
+
+#if 0
+int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject *cls)
+{
+    // TODO: Checking for a type is nothing the core does, could have a second variant
+    if (PyType_CheckExact(cls)) {
+        // Only a quick test for an exact match, but then give up.
+        if (derived == cls) {
+            return 1;
+        }
+
+        // Too hard for us.
+        return PyObject_IsSubclass(derived, cls);
+    }
+
+    // TODO: Checking for a tuple is nothing the core does, could have a second variant
+    if (PyTuple_Check(cls)) {
+        if (Py_EnterRecursiveCall(" in __subclasscheck__")) {
+            return -1;
+        }
+
+        Py_ssize_t n = PyTuple_GET_SIZE(cls);
+        int r = 0;
+
+        for (Py_ssize_t i = 0; i < n; ++i) {
+            PyObject *item = PyTuple_GET_ITEM(cls, i);
+
+            r = Nuitka_Object_IsSubclass(tstate, derived, item);
+
+            if (r != 0) {
+                break;
+            }
+        }
+
+        Py_LeaveRecursiveCall();
+
+        return r;
+    }
+
+    // TODO: For many of our uses, we know it.
+    PyObject *checker = Nuitka_TypeLookup((PyTypeObject *)cls, const_str_plain___subclasscheck__);
+
+    if (checker != NULL) {
+        descrgetfunc f = Py_TYPE(checker)->tp_descr_get;
+
+        if (f == NULL) {
+            Py_INCREF(checker);
+        } else {
+            checker = f(checker, cls, (PyObject *)(Py_TYPE(cls)));
+        }
+    }
+
+    if (checker != NULL) {
+        int ok = -1;
+
+        if (Py_EnterRecursiveCall(" in __subclasscheck__")) {
+            Py_DECREF(checker);
+            return ok;
+        }
+
+        PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG(checker, derived);
+
+        Py_LeaveRecursiveCall();
+
+        Py_DECREF(checker);
+
+        if (res != NULL) {
+            ok = CHECK_IF_TRUE(res);
+            Py_DECREF(res);
+        }
+        return ok;
+    } else if (HAS_ERROR_OCCURRED(tstate)) {
+        return -1;
+    }
+
+    // Too hard for us.
+    return PyObject_IsSubclass(derived, cls);
+}
+#endif

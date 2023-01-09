@@ -264,6 +264,7 @@
         "Scons",
         "setattrofunc",
         "Setuptools",
+        "subclasscheck",
         "sourcery",
         "ssizeargfunc",
         "startswith",
