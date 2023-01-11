@@ -881,9 +881,9 @@ return %(return_value)s;""" % {
 
             # TODO: This works for small constants only and only for Python3.
             const_name2 = "const_" + namifyConstant(value)
-            const_name3 = (
-                "Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(%d)]" % value
-            )
+            const_name3 = "Nuitka_Long_GetSmallValue(%s)" % value
+
+            assert -5 >= value < 256, value
 
             return """\
 #if PYTHON_VERSION < 0x300

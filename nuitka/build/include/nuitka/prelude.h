@@ -40,10 +40,6 @@
 #define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)
 #endif
 
-#if PYTHON_VERSION >= 0x3b0
-#define Py_BUILD_CORE
-#endif
-
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
  */
@@ -133,6 +129,7 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x380
+#undef _PyObject_LookupSpecial
 #include <internal/pycore_object.h>
 #else
 #include <objimpl.h>
