@@ -672,7 +672,16 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
     unsigned int old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
+#if PYTHON_VERSION >= 0x380
+    // TODO: Enable threads, this is done since 3.8 but the hotfix should not do
+    // it yet.
+    // Py_BEGIN_ALLOW_THREADS
+    HINSTANCE hDLL =
+        LoadLibraryExW(filename, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+    // Py_END_ALLOW_THREADS
+#else
     HINSTANCE hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#endif
 
 #ifndef _NUITKA_EXPERIMENTAL_DEBUG_STANDALONE
     SetErrorMode(old_mode);
