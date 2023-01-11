@@ -288,10 +288,12 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
 }
 
 // For creation of small long singleton long values as required by Python3.
+#if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
 PyObject **Nuitka_Long_SmallValues;
 #elif PYTHON_VERSION >= 0x300
 PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STATIC_SMALLINT_VALUE_MIN + 1];
+#endif
 #endif
 
 static void initCaches(void) {
@@ -326,6 +328,7 @@ static void initCaches(void) {
 
     frozenset_cache = PyDict_New();
 
+#if PYTHON_VERSION < 0x3b0
 #if PYTHON_VERSION >= 0x390
     // On Python3.9+ these are exposed in the interpreter.
     Nuitka_Long_SmallValues = (PyObject **)_PyInterpreterState_GET()->small_ints;
@@ -334,6 +337,7 @@ static void initCaches(void) {
         PyObject *value = PyLong_FromLong(i);
         Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
     }
+#endif
 #endif
 
     init_done = true;

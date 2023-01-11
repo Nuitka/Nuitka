@@ -106,6 +106,8 @@ typedef struct _gc_runtime_state GCState;
 
 #define AS_GC(o) ((PyGC_Head *)(((char *)(o)) - sizeof(PyGC_Head)))
 
+static inline bool HAS_ERROR_OCCURRED(PyThreadState *tstate);
+
 static void Nuitka_PyObject_GC_Link(PyObject *op) {
     PyGC_Head *g = AS_GC(op);
     assert(((uintptr_t)g & (sizeof(uintptr_t) - 1)) == 0); // g must be correctly aligned
