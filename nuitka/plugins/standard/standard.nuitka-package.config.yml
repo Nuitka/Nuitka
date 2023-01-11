@@ -2784,7 +2784,7 @@
   implicit-imports:
     - depends:
         - '.dialects.*'
-        
+
 - module-name: 'sqlalchemy.sql'
   implicit-imports:
     - depends:
