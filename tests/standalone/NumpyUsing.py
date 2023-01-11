@@ -37,7 +37,11 @@ a = numpy.arange(15).reshape(3, 5)
 
 print("An array", a)
 
-import numpy.random._bounded_integers
+try:
+    import numpy.random._bounded_integers
+except ImportError:
+    print("didn't load numpy.random._bounded_integers")
+    pass
 
 import numpy.lib.recfunctions
 
