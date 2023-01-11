@@ -2843,6 +2843,16 @@
     - depends:
         - '.dialects.*'
 
+- module-name: 'sqlalchemy.dialects.mssql'
+  implicit-imports:
+    - depends:
+        - 'sqlalchemy.dialects.mssql.pyodbc'
+
+- module-name: 'sqlalchemy.sql'
+  implicit-imports:
+    - depends:
+        - 'sqlalchemy.sql.default_comparator'
+
 - module-name: 'srsly.msgpack._packer'
   implicit-imports:
     - depends:
