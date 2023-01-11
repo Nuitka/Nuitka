@@ -378,7 +378,7 @@ def checkCachingSuccess(source_dir):
                 counts[result] += 1
 
             scons_logger.info("Compiled %d C files using ccache." % len(stats))
-            for result, count in counts.items():
+            for result, count in sorted(counts.items()):
                 scons_logger.info(
                     "Cached C files (using ccache) with result '%s': %d"
                     % (result, count)
