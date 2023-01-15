@@ -315,6 +315,19 @@ and being non-static it's removed. Use e.g. a string like
 static cache path, this will then not be removed.""",
 )
 
+onefile_group.add_option(
+    "--onefile-child-grace-time",
+    action="store",
+    dest="onefile_child_grace_time",
+    metavar="GRACE_TIME_MS",
+    default="5000",
+    help="""\
+When stopping the child, e.g. due to CTRL-C or shutdown, etc. the
+Python code gets a "KeyboardInterrupt", that it may handle e.g. to
+flush data. This is the amount of time in ms, before the child it
+killed in the hard way. Unit is ms, and default 5000.""",
+)
+
 del onefile_group
 
 data_group = parser.add_option_group("Data files")

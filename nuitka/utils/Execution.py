@@ -35,7 +35,7 @@ from .Utils import getArchitecture, isWin32OrPosixWindows, isWin32Windows
 # Cache, so we avoid repeated command lookups.
 _executable_command_cache = {}
 
-# We emulate APIs of stdlib, spell-checker: ignore popenargs
+# We emulate and use APIs of stdlib, spell-checker: ignore popenargs,creationflags,preexec_fn,setsid
 
 
 def _getExecutablePath(filename, search_path):
@@ -366,9 +366,17 @@ def createProcess(
     stderr=None,
     shell=False,
     external_cwd=False,
+    new_group=False,
 ):
     if not env:
         env = os.environ
+
+    kw_args = {}
+    if new_group:
+        if isWin32Windows():
+            kw_args["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            kw_args["preexec_fn"] = os.setsid
 
     process = subprocess.Popen(
         command,
@@ -378,11 +386,12 @@ def createProcess(
         stdout=subprocess.PIPE if stdout is None else stdout,
         stderr=subprocess.PIPE if stderr is None else stderr,
         shell=shell,
-        # On Windows, closing file descriptions is now working with capturing outputs.
+        # On Windows, closing file descriptions is not working with capturing outputs.
         close_fds=not isWin32Windows(),
         env=env,
         # For tools that want short paths to work.
         cwd=getExternalUsePath(os.getcwd()) if external_cwd else None,
+        **kw_args
     )
 
     return process

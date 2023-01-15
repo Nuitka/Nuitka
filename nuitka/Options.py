@@ -1497,6 +1497,11 @@ def getOnefileTempDirSpec():
     return os.path.normpath(result)
 
 
+def getOnefileChildGraceTime():
+    """*int* = ``--onefile-child-grace-time``"""
+    return int(options.onefile_child_grace_time)
+
+
 def getIconPaths():
     """*list of str*, values of ``--windows-icon-from-ico`` and ``--linux-onefile-icon``"""
 
