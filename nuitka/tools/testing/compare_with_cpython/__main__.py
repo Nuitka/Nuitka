@@ -25,7 +25,6 @@ import hashlib
 import os
 import pickle
 import re
-import subprocess
 import sys
 import time
 
@@ -37,7 +36,7 @@ from nuitka.tools.testing.Common import (
     getDebugPython,
     getTempDir,
     getTestingCPythonOutputsCacheDir,
-    killProcess,
+    killProcessGroup,
     test_logger,
     withPythonPathChange,
 )
@@ -46,6 +45,7 @@ from nuitka.Tracing import my_print
 from nuitka.utils.Execution import (
     callProcess,
     check_output,
+    createProcess,
     executeProcess,
     wrapCommandForDebuggerForSubprocess,
 )
@@ -97,17 +97,14 @@ def _getCPythonResults(cpython_cmd, send_kill):
         stop_watch.start()
 
         with withPythonPathChange(os.getcwd()):
-            # want fine grained control, pylint: disable=consider-using-with
-            process = subprocess.Popen(
-                args=cpython_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
+            process = createProcess(command=cpython_cmd, new_group=send_kill)
 
         if send_kill:
             # Doing it per loop iteration hopefully, pylint: disable=cell-var-from-loop
             executeAfterTimePassed(
-                message="Scheduling process kill %f",
+                message="Scheduling process kill in %.02fs",
                 timeout=2.0,
-                func=lambda: killProcess("Uncompiled Python program", process.pid),
+                func=lambda: killProcessGroup("Uncompiled Python program", process.pid),
             )
 
         stdout_cpython, stderr_cpython = process.communicate()
@@ -629,9 +626,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         # be transient.
         for _i in range(5):
             with withPythonPathChange(nuitka_package_dir):
-                process = subprocess.Popen(
-                    args=nuitka_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
+                process = createProcess(command=nuitka_cmd)
 
             stdout_nuitka, stderr_nuitka = process.communicate()
             exit_nuitka = process.returncode
@@ -685,18 +680,15 @@ Stderr was:
                     if trace_command:
                         my_print("Nuitka command 2:", nuitka_cmd2)
 
-                    # Need full manual control, and not all Python versions allow using
-                    # context manager here, pylint: disable=consider-using-with
-                    process = subprocess.Popen(
-                        args=nuitka_cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                    )
+                    # Need full manual control
+                    process = createProcess(command=nuitka_cmd2, new_group=send_kill)
 
                     if send_kill:
                         # Lambda is used immediately in same loop, pylint: disable=cell-var-from-loop
                         executeAfterTimePassed(
-                            message="Scheduling process kill %f",
+                            message="Scheduling process kill in %.02fs",
                             timeout=2.0,
-                            func=lambda: killProcess(
+                            func=lambda: killProcessGroup(
                                 "Nuitka compiled program", process.pid
                             ),
                         )

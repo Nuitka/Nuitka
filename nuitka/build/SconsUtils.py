@@ -578,7 +578,10 @@ def createDefinitionsFile(source_dir, filename, definitions):
 
     with openTextFile(build_definitions_filename, "w", encoding="utf8") as f:
         for key, value in sorted(definitions.items()):
-            if type(value) is int or key.endswith("_BOOL"):
+            if key == "_NUITKA_BUILD_DEFINITIONS_CATALOG":
+                continue
+
+            if type(value) is int or key.endswith(("_BOOL", "_INT")):
                 f.write("#define %s %s\n" % (key, value))
             else:
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))
