@@ -98,6 +98,10 @@ extern PyObject **global_constants;
 #define const_str_plain_rb global_constants[29]
 // 'open'
 #define const_str_plain_open global_constants[30]
+// 'as_file'
+#define const_str_plain_as_file global_constants[30]
+// 'register'
+#define const_str_plain_register global_constants[30]
 // 'close'
 #define const_str_plain_close global_constants[30]
 // 'throw'

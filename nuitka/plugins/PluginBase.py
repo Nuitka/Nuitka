@@ -114,16 +114,7 @@ def _getPackageVersion(distribution_name):
                     get_distribution,
                 )
             except ImportError:
-                # Fallback if nothing is available, which may happen if no package is installed,
-                # but only source code is found.
-                try:
-                    result = _convertVersionToTuple(
-                        __import__(
-                            _getPackageNameFromDistributionName(distribution_name)
-                        ).__version__
-                    )
-                except ImportError:
-                    result = None
+                result = None
             else:
                 try:
                     result = _convertVersionToTuple(
@@ -131,6 +122,18 @@ def _getPackageVersion(distribution_name):
                     )
                 except DistributionNotFound:
                     result = None
+
+        if result is None:
+            # Fallback if nothing is available, which may happen if no package is installed,
+            # but only source code is found.
+            try:
+                result = _convertVersionToTuple(
+                    __import__(
+                        _getPackageNameFromDistributionName(distribution_name)
+                    ).__version__
+                )
+            except ImportError:
+                result = None
 
         _package_versions[distribution_name] = result
 
