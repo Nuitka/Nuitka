@@ -179,6 +179,11 @@ def getConstantDefaultPopulation():
     if not Options.shallMakeModule():
         result.append("__main__")
 
+    # Resource reader files interface
+    if python_version >= 0x390:
+        result.append("as_file")
+        result.append("register")
+
     if python_version >= 0x370:
         result.append("__class_getitem__")
 
