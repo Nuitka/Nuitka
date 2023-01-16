@@ -129,13 +129,13 @@ static PyObject *Nuitka_ResourceReaderFiles_tp_iternext(struct Nuitka_ResourceRe
 
 static PyObject *Nuitka_ResourceReaderFiles_read_bytes(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                        PyObject *kwds) {
-    PyObject *filename = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
 
-    if (unlikely(filename == NULL)) {
+    if (unlikely(file_name == NULL)) {
         return NULL;
     }
 
-    return GET_FILE_BYTES(filename);
+    return GET_FILE_BYTES(file_name);
 }
 
 //    def read_text(self, encoding=None):
@@ -158,15 +158,15 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
         return NULL;
     }
 
-    PyObject *filename = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
 
-    if (unlikely(filename == NULL)) {
+    if (unlikely(file_name == NULL)) {
         return NULL;
     }
 
-    PyObject *file_object = BUILTIN_OPEN_SIMPLE(filename, "r", true, encoding);
+    PyObject *file_object = BUILTIN_OPEN_SIMPLE(file_name, "r", true, encoding);
 
-    Py_DECREF(filename);
+    Py_DECREF(file_name);
 
     if (unlikely(file_object == NULL)) {
         return NULL;
@@ -194,9 +194,9 @@ static PyObject *Nuitka_ResourceReaderFiles_read_text(struct Nuitka_ResourceRead
 static PyObject *Nuitka_ResourceReaderFiles_is_dir(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                    PyObject *kwds) {
 
-    PyObject *filename = _Nuitka_ResourceReaderFiles_GetPath(files);
-    PyObject *result = OS_PATH_FILE_ISDIR(filename);
-    Py_DECREF(filename);
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyObject *result = OS_PATH_FILE_ISDIR(file_name);
+    Py_DECREF(file_name);
     return result;
 }
 //    @abc.abstractmethod
@@ -208,9 +208,9 @@ static PyObject *Nuitka_ResourceReaderFiles_is_dir(struct Nuitka_ResourceReaderF
 static PyObject *Nuitka_ResourceReaderFiles_is_file(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                     PyObject *kwds) {
 
-    PyObject *filename = _Nuitka_ResourceReaderFiles_GetPath(files);
-    PyObject *result = OS_PATH_FILE_ISFILE(filename);
-    Py_DECREF(filename);
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyObject *result = OS_PATH_FILE_ISFILE(file_name);
+    Py_DECREF(file_name);
     return result;
 }
 
@@ -277,21 +277,25 @@ static PyObject *Nuitka_ResourceReaderFiles_open(struct Nuitka_ResourceReaderFil
     return BUILTIN_OPEN(file_name, mode, buffering, encoding, errors, newline, NULL, NULL);
 }
 
-//    @abc.abstractproperty
-//    def name(self) -> str:
-//        """
-//        The base name of this object without any parent references.
-//        """
+static PyObject *Nuitka_ResourceReaderFiles_as_file(PyObject *self) {
+    CHECK_OBJECT(self);
 
-static PyObject *Nuitka_ResourceReaderFiles_get_name(struct Nuitka_ResourceReaderFilesObject *files) {
-    PyObject *filename = _Nuitka_ResourceReaderFiles_GetPath(files);
-    return filename;
+    Py_INCREF(self);
+    return self;
 }
 
-static int Nuitka_ResourceReaderFiles_set_name(struct Nuitka_FunctionObject *object, PyObject *value) {
-    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError, "readonly attribute");
+static PyObject *Nuitka_ResourceReaderFiles_enter(PyObject *self) {
+    CHECK_OBJECT(self);
 
-    return -1;
+    Py_INCREF(self);
+    return self;
+}
+
+static PyObject *Nuitka_ResourceReaderFiles_exit(PyObject *self) {
+    CHECK_OBJECT(self);
+
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
@@ -303,7 +307,30 @@ static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
     {"joinpath", (PyCFunction)Nuitka_ResourceReaderFiles_joinpath, METH_VARARGS | METH_KEYWORDS, NULL},
     {"__truediv__", (PyCFunction)Nuitka_ResourceReaderFiles_joinpath, METH_VARARGS | METH_KEYWORDS, NULL},
     {"open", (PyCFunction)Nuitka_ResourceReaderFiles_open, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__enter__", (PyCFunction)Nuitka_ResourceReaderFiles_enter, METH_NOARGS, NULL},
+    {"__exit__", (PyCFunction)Nuitka_ResourceReaderFiles_exit, METH_VARARGS, NULL},
+
+    // Nuitka specific, for "importlib.resource.as_file" overload.
+    {"as_file", (PyCFunction)Nuitka_ResourceReaderFiles_as_file, METH_NOARGS, NULL},
+
     {NULL}};
+
+//    @abc.abstractproperty
+//    def name(self) -> str:
+//        """
+//        The base name of this object without any parent references.
+//        """
+
+static PyObject *Nuitka_ResourceReaderFiles_get_name(struct Nuitka_ResourceReaderFilesObject *files) {
+    PyObject *file_name = _Nuitka_ResourceReaderFiles_GetPath(files);
+    return file_name;
+}
+
+static int Nuitka_ResourceReaderFiles_set_name(struct Nuitka_FunctionObject *object, PyObject *value) {
+    SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError, "readonly attribute");
+
+    return -1;
+}
 
 static PyGetSetDef Nuitka_ResourceReaderFiles_getset[] = {
     {(char *)"name", (getter)Nuitka_ResourceReaderFiles_get_name, (setter)Nuitka_ResourceReaderFiles_set_name, NULL},
@@ -347,6 +374,18 @@ static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoade
     static bool init_done = false;
     if (init_done == false) {
         PyType_Ready(&Nuitka_ResourceReaderFiles_Type);
+
+        // Also register our open, which can avoid a temporary file being created.
+        PyObject *importlib_resources_module = IMPORT_HARD_IMPORTLIB__RESOURCES();
+
+        PyObject *as_file = LOOKUP_ATTRIBUTE(importlib_resources_module, const_str_plain_as_file);
+        CHECK_OBJECT(as_file);
+
+        PyObject *args[2] = {(PyObject *)&Nuitka_ResourceReaderFiles_Type,
+                             LOOKUP_ATTRIBUTE((PyObject *)&Nuitka_ResourceReaderFiles_Type, const_str_plain_as_file)};
+
+        CALL_METHOD_WITH_ARGS2(as_file, const_str_plain_register, args);
+
         init_done = true;
     }
 

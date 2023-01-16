@@ -2337,6 +2337,64 @@
       change_function:
         'test': "'(lambda: None)'"
 
+- module-name: 'shap.explainers._exact'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'from numba import jit': ''
+        '@jit': ''
+      when: 'not use_numba and standalone'
+
+- module-name: 'shap.explainers._partition'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'from numba import jit': ''
+        '@jit': ''
+      when: 'not use_numba and standalone'
+
+- module-name: 'shap.links'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'import numba': ''
+        '@numba.jit': ''
+      when: 'not use_numba and standalone'
+
+- module-name: 'shap.maskers._image'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'from numba import jit': ''
+        '@jit': ''
+        "warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)": ''
+        'from numba.core.errors import NumbaPendingDeprecationWarning': ''
+      when: 'not use_numba and standalone'
+
+- module-name: 'shap.maskers._tabular'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'from numba import jit': ''
+        '@jit': ''
+      when: 'not use_numba and standalone'
+
+- module-name: 'shap.utils._clustering'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'from numba import jit': ''
+        '@jit': ''
+      when: 'not use_numba and standalone'
+
+- module-name: 'shap.utils._masked_model'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'from numba import jit': ''
+        '@jit': ''
+      when: 'not use_numba and standalone'
+
 - module-name: 'shapely.geometry.base'
   anti-bloat:
     - description: 'remove doctest usage'
@@ -2784,6 +2842,16 @@
   implicit-imports:
     - depends:
         - '.dialects.*'
+
+- module-name: 'sqlalchemy.dialects.mssql'
+  implicit-imports:
+    - depends:
+        - 'sqlalchemy.dialects.mssql.pyodbc'
+
+- module-name: 'sqlalchemy.sql'
+  implicit-imports:
+    - depends:
+        - 'sqlalchemy.sql.default_comparator'
 
 - module-name: 'srsly.msgpack._packer'
   implicit-imports:
@@ -3374,6 +3442,15 @@
         prefixes:
           - 'libextrafont'
       when: 'win32'
+
+- module-name: 'tls_client.cffi'
+  dlls:
+    - from_filenames:
+        relative_path: 'dependencies'
+        # TODO: We might want to match OS and arches here closely, so we do not pick up
+        # unnecessary arches.
+        prefixes:
+          - 'tls-client'
 
 - module-name: 'torch'
   data-files:
