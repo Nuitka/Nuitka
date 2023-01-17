@@ -18,6 +18,7 @@
 """Code generation for package resources access."""
 
 from nuitka.Options import shallMakeModule
+from nuitka.utils.Distributions import getDistributionTopLevelPackageNames
 
 from .CallCodes import (
     getCallCodeKwPairs,
@@ -175,10 +176,11 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
     ) as value_name:
 
         emit(
-            """%(to_name)s = Nuitka_Distribution_New("%(name)s", %(metadata)s);"""
+            """%(to_name)s = Nuitka_Distribution_New("%(name)s", "%(package_name)s", %(metadata)s);"""
             % {
                 "to_name": value_name,
                 "name": original_name,
+                "package_name": getDistributionTopLevelPackageNames(distribution)[0],
                 "metadata": context.getConstantCode(constant=metadata),
             }
         )
