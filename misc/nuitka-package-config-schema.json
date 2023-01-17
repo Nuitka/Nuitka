@@ -278,6 +278,12 @@
                                 "type": "string"
                             }
                         },
+                        "global-sys-path": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "when": {
                             "type": "string"
                         }

@@ -26,6 +26,7 @@ make others possible.
 import inspect
 
 from nuitka import ModuleRegistry, Options, Variables
+from nuitka.importing.Importing import addExtraSysPaths
 from nuitka.importing.Recursion import considerUsedModules
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Progress import (
@@ -180,6 +181,8 @@ def optimizeModule(module):
     # pylint: disable=global-statement
     global tag_set
     tag_set = TagSet()
+
+    addExtraSysPaths(Plugins.getModuleSysPathAdditions(module.getFullName()))
 
     if module.isPythonExtensionModule():
         optimizeExtensionModule(module)

@@ -560,6 +560,27 @@ class Plugins(object):
 
         return result
 
+    sys_path_additions_cache = {}
+
+    @classmethod
+    def getModuleSysPathAdditions(cls, module_name):
+        """Provide a list of directories, that should be considered in 'PYTHONPATH' when this module is used.
+
+        Args:
+            module_name: name of a package or module
+        Returns:
+            iterable of paths
+        """
+
+        if module_name not in cls.sys_path_additions_cache:
+            cls.sys_path_additions_cache[module_name] = OrderedSet()
+
+            for plugin in getActivePlugins():
+                for dll_path in plugin.getModuleSysPathAdditions(module_name):
+                    cls.sys_path_additions_cache[module_name].add(dll_path)
+
+        return cls.sys_path_additions_cache[module_name]
+
     @staticmethod
     def removeDllDependencies(dll_filename, dll_filenames):
         """Create list of removable shared libraries by scanning through the plugins.

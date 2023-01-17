@@ -321,12 +321,34 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 else:
                     yield module_filename
 
+    def _getModuleSysPathAdditions(self, module_name, config):
+        module_filename = self.locateModule(module_name)
+
+        if os.path.isfile(module_filename):
+            module_filename = yield os.path.dirname(module_filename)
+
+        for relative_path in config.get("global-sys-path", ()):
+            candidate = os.path.abspath(os.path.join(module_filename, relative_path))
+
+            if os.path.isdir(candidate):
+                yield candidate
+
     def getModuleSpecificDllPaths(self, module_name):
         for entry in self.config.get(module_name, section="import-hacks"):
             if self.evaluateCondition(
                 full_name=module_name, condition=entry.get("when", "True")
             ):
                 for item in self._getModuleSpecificDllPaths(config=entry):
+                    yield item
+
+    def getModuleSysPathAdditions(self, module_name):
+        for entry in self.config.get(module_name, section="import-hacks"):
+            if self.evaluateCondition(
+                full_name=module_name, condition=entry.get("when", "True")
+            ):
+                for item in self._getModuleSysPathAdditions(
+                    module_name=module_name, config=entry
+                ):
                     yield item
 
     def onModuleSourceCode(self, module_name, source_code):
