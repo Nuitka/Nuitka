@@ -90,7 +90,7 @@ def _convertVersionToTuple(version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
-    if distribution_name == "opencv-python":
+    if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"
     elif distribution_name == "pyobjc":
         return "objc"
