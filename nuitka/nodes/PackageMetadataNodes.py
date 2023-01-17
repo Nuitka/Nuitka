@@ -88,7 +88,7 @@ class ExpressionPkgResourcesRequireCall(ExpressionPkgResourcesRequireCallBase):
             distributions = require(*args)
         except ResolutionError:
             inclusion_logger.warning(
-                "Cannot find requirement %s at '%s', expect potential run time problem, unless this unused code."
+                "Cannot find requirement %s at '%s', expect potential run time problem, unless this is unused code."
                 % (",".join(repr(s) for s in args), self.source_ref.getAsString())
             )
 
@@ -143,7 +143,7 @@ class ExpressionPkgResourcesGetDistributionCall(
             distribution = get_distribution(arg)
         except DistributionNotFound:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (arg, self.source_ref.getAsString())
             )
 
@@ -183,7 +183,7 @@ class ImportlibMetadataVersionCallMixin(object):
             distribution = version(arg)
         except PackageNotFoundError:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (arg, self.source_ref.getAsString())
             )
 
@@ -216,17 +216,6 @@ class ExpressionImportlibMetadataVersionCall(
     kind = "EXPRESSION_IMPORTLIB_METADATA_VERSION_CALL"
     python_version_spec = ">= 0x380"
     importlib_metadata_name = "importlib.metadata"
-
-
-def _getImportlibMetadataBackportModule():
-    """Helper for importing importlib_metadata from installation at compile time.
-
-    This is not for using the inline copy, but the one from the actual
-    installation of the user. It suppresses warnings and caches the value
-    avoid making more __import__ calls that necessary.
-    """
-
-    return importFromCompileTime("importlib_metadata", must_exist=True)
 
 
 class ExpressionImportlibMetadataBackportVersionCall(
@@ -379,7 +368,7 @@ class ExpressionPkgResourcesIterEntryPointsCall(
             entry_points = tuple(iter_entry_points(group=group, name=name))
         except DistributionNotFound:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (group, self.source_ref.getAsString())
             )
 
@@ -494,7 +483,7 @@ class ImportlibMetadataDistributionCallMixin(object):
             distribution = distribution_func(arg)
         except PackageNotFoundError:
             inclusion_logger.warning(
-                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this unused code."
+                "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (arg, self.source_ref.getAsString())
             )
 

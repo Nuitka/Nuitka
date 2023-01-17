@@ -168,6 +168,8 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
         distribution.read_text("METADATA") or distribution.read_text("METADATA") or ""
     )
 
+    metadata = str(metadata)
+
     with withObjectCodeTemporaryAssignment(
         to_name, "distribution_value", expression, emit, context
     ) as value_name:
@@ -177,7 +179,7 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
             % {
                 "to_name": value_name,
                 "name": original_name,
-                "metadata": context.getConstantCode(constant=str(metadata)),
+                "metadata": context.getConstantCode(constant=metadata),
             }
         )
 
