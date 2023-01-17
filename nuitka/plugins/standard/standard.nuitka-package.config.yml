@@ -3443,6 +3443,33 @@
           - 'libextrafont'
       when: 'win32'
 
+- module-name: 'tkinterweb'
+  data-files:
+    dirs:
+      - 'tkhtml'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'tkhtml/Windows/32-bit'
+        prefixes:
+          - 'Tkhtml'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'tkhtml/Windows/64-bit'
+        prefixes:
+          - 'Tkhtml'
+      when: 'win32 and arch_amd64'
+
+  anti-bloat:
+    - description: 'remove "sys.path" hack'
+      replacements_plain:
+        'sys.path.append': ''
+  import-hacks:
+    - global-sys-path:
+        # This package forces itself into "sys.path" and expects absolute
+        # imports to be available.
+        - ''
+
 - module-name: 'tls_client.cffi'
   dlls:
     - from_filenames:
