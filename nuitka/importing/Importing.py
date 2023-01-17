@@ -71,6 +71,8 @@ warned_about = set()
 # Directory where the main script lives. Should attempt to import from there.
 _main_paths = OrderedSet()
 
+# Additions to sys.paths from plugins.
+_extra_paths = OrderedSet()
 
 ModuleUsageAttempt = makeNamedtupleClass(
     "ModuleUsageAttempt",
@@ -99,6 +101,13 @@ def addMainScriptDirectory(main_dir):
     We use this as part of the search path for modules.
     """
     _main_paths.add(main_dir)
+
+
+def addExtraSysPaths(directories):
+    for directory in directories:
+        assert os.path.isdir(directory), directory
+
+        _extra_paths.add(directory)
 
 
 def hasMainScriptDirectory():
@@ -576,6 +585,7 @@ def getPackageSearchPath(package_name):
             [os.getcwd()]
             + list(_main_paths)
             + [_unpackPathElement(path_element) for path_element in sys.path]
+            + list(_extra_paths)
         )
     elif "." in package_name:
         parent_package_name, child_package_name = package_name.splitModuleBasename()

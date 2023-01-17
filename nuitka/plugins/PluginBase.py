@@ -611,6 +611,17 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def getModuleSysPathAdditions(self, module_name):
+        """Provide a list of directories, that should be considered in 'PYTHONPATH' when this module is used.
+
+        Args:
+            module_name: name of a package or module
+        Returns:
+            iterable of paths
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def removeDllDependencies(self, dll_filename, dll_filenames):
         """Yield any DLLs / shared libraries not to be included in distribution.
 
