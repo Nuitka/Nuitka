@@ -103,6 +103,47 @@ Bug Fixes
 
 -  Standalone: Added DLLs needed for ``tls_client`` package.
 
+-  Fix, imports of resolved names should be modified for runtime too.
+   Where Nuitka recognizes aliases, as e.g. the ``requests`` module
+   does, it only adding a dependency on the resolved name, but not
+   ``requests`` itself. The import however was still done at runtime on
+   ``requests`` which then didn't work. This was only visible if only
+   these aliases to other modules were used.
+
+New Features
+============
+
+-  UI: Added new option to listing package data files. This is for use
+   with analyzing standalone issues. And will output all files that are
+   data files for a given package name.
+
+   .. code:: shell
+
+      python -m nuitka --list-package-data=tkinterweb
+
+-  UI: Added new option to listing package DLL files. This is also for
+   use with analyzing standalone issues.
+
+   .. code:: shell
+
+      python -m nuitka --list-package-dlls=tkinterweb
+
+-  Reports: The usages of modules, successful or not, are now included
+   in the compilation report. Checking out which ones are ``not-found``
+   might help recognition of issues.
+
+-  Multidist: You can now experimentally create binaries with multiple
+   entry points. At runtime one of multiple ``__main__`` will be
+   executed. The option to use is multiple ``--main=some_main.py``
+   arguments. If then the binary name is changed, on execution you get a
+   different variant being executed.
+
+   ..
+      note:
+
+      Using it with only one replaces the previous use of the positional
+      argument given.
+
 Optimization
 ============
 
@@ -115,6 +156,127 @@ Optimization
 
 -  Anti-Bloat: Avoid Numba in ``shap`` package. Part of 1.3.8 already.
 
+-  For guided deep copy ``frozenset`` and empty ``tuple`` need no copies
+
+   This also speeds up copies of non-empty tuples by avoiding that size
+   checking branch in construction with Python 3.10 or higher.
+
+-  For node construction, avoid keyword argument style calls of the base
+   class, where there is only a single argument. They don't really help
+   readability, but cost compile time.
+
+-  Determine guard mode of frames dynamically and avoid frame
+   preservation checks where they are not needed.
+
+   For Python2 this is necessary, but not for Python3, so make the
+   function avoid finding the parent frame for that version entirely,
+   which should speed up compilation as well.
+
+   By not hard coding frame guard mode at creation time, and instead
+   determine it at compile time, after optimization, so this now allows
+   to use the "once" mode more often. This affects contractions and also
+   classes on the module level right now. They do not need a cached
+   frame, since their code is only executed once.
+
+   By avoiding that useless code, the C compiler also has a slightly
+   better scalability, since the classes are all created in one function
+   that then has less code.
+
+-  The bytecode cache is now checking if the used modules or attempted
+   to be used modules are available or not in just the same way.
+   Previously it was very dependent on the file system to contain the
+   same things, which was not giving cache hits even after only creating
+   a new folder near a binary, since that affected importable modules.
+   With the new check it should be much more directly hitting even
+   across different virtual environments, but with same code.
+
+-  Generate base classes or mixins for all kinds of expression,
+   statements and statement sequences. The previous code had a dedicated
+   variant for single child, to allow faster operation in a common case,
+   but still a lot of ``hasattr/getattr/setattr`` on dynamic attribute
+   names were done. This was making the tree traversal during
+   optimization slower than necessary.
+
+   Another shortcoming was that for some nodes, some values are
+   optional, where for others, they are not. Some values are a ``tuple``
+   actually, while most are nodes only. However, dealing with this
+   generically was also slower than necessary.
+
+   The new code now enforces children types during creation and updated,
+   it rejects unexpected ``None`` values for non-optional children, and
+   it provides generated code to do this in the fastest way possible,
+   although surely some more improvements will come here.
+
+   Also when abstract executing the tree, rather than generically
+   visiting all children, this now just unrolls this, and there are even
+   some modes added, where a node can indicate properties, e.g.
+   ``auto_compute_handling = "final,no_raise"`` will tell the code
+   generator that this expression never raises in the computation, and
+   is final, i.e. doesn't have any code to evaluate, because it cannot
+   be optimized any further.
+
+   Also the way ``checkers`` previously worked, for every node creation,
+   for every child update, a dictionary lookup had to be done. This is
+   now hard coded for the few nodes that actually want to convert values
+   on the fly and we might make a difference in the future for optional
+   checkers, such that these are only run in debug mode.
+
+   These changes brought about much faster compilation, however the big
+   elephant in the room will still be merging value traces, and
+   scalability problems remain there.
+
+-  Attribute node generation for method specs like ``dict.update``, etc.
+   now provide type shapes. From these type shapes, mixins for the
+   result value type are picked automatically. Previously these shapes
+   were added manually. In some cases, they were even missing. In a few
+   cases, where the type is dependent on the Python version, we do not
+   currently do this though, so this needs more work, but expanding the
+   coverage got easier in this way.
+
+-  Determining the used modules of a module requires a tree visit
+   operations, that then asked for node types and used different APIs.
+   This has been unified to be able to call a virtual method instead,
+   which saves some compile time.
+
+-  After scanning for a module, we then determined the module kind even
+   after we previously knew it during the scan. Also, this was checking
+   ``os.path.isdir`` which was making it relatively slow and wasting 5%
+   compile time on the IO being done. The check got enhanced and most
+   often replaced with using the knowledge from the original import scan
+   eliminating this time.
+
+-  Already most helper code of Nuitka was included from ``.c`` files,
+   but compiled generators and compiled cells codes were not yet done
+   like this, making life unnecessarily harder for the compiler and
+   linker. This should also allow more optimization for some codes.
+
+-  Cache the plugin decisions about recursion for a module name. When a
+   module is imported multiple times plugins were each asked again and
+   again, which is not a good thing to do.
+
+-  Avoid usage of ``PyObject_RichCompareBool`` API, as we have our own
+   comparison functions that are faster and faster to call without
+   crossing of DLL barrier.
+
+-  Python3.8+: Avoid usage of ``PyIndex_Check`` which has become an API
+   in 3.8, and was as a result not inlined anymore with a DLL barrier
+   was to be crossed, making all kinds of multiplication and
+   subscript/index operations slower.
+
+-  Replace ``PyNumber_Index`` API with our own code. As of 3.10 it
+   enforces a conversion to ``long`` that for Nuitka is not a good thing
+   to do in all places. But also due to DLL barrier it was potentially
+   slow to call, and is used a lot, and we can drop the checks that are
+   useless for Nuitka.
+
+-  Python3.7+: Avoid the use of ``PyImport_GetModule`` for looking up
+   imported modules from ``sys.modules``, rather look it up from
+   interpreter internals, also this was using subscript functions, when
+   this is always a dictionary.
+
+-  Avoid using ``PyImport_GetModuleDict`` and instead have our own API
+   to get this quicker.
+
 Organisational
 ==============
 
@@ -125,6 +287,12 @@ Organisational
 -  Debugging: When plugins evaluate ``when`` conditions that raise,
    output which it was exactly. Part of 1.3.3 already.
 
+-  Anti-Bloat: Added a mnemonic and more clear message for the case of
+   unwanted imports being encountered. Also do not warn about IPython
+   itself using IPython packages, that must of course be considered
+   normal. Now it also lists the module that does the unwanted usage
+   immediately. Previously this was not as clear.
+
 -  UI: Make sure data files have normalized paths. Specifically on
    Windows, otherwise a mix of slashes could appear. Part of 1.3.6
    release already.
@@ -132,11 +300,39 @@ Organisational
 -  UI: The ordering of scons ``ccache`` report was not enforced. Part of
    1.3.7 release already.
 
+-  Quality: Use proper temporary filename during autoformat, so as to
+   avoid flicker in Visual Code, e.g. search results.
+
+-  User Manual: Was still using old option name for
+   ``--onefile-tempdir-spec`` that has since been made not OS specific,
+   with even the OS specific name being removed.
+
+-  Standalone: Do not include data files scanned with ``site-packages``
+   or ``__pycache__`` folders. This should make it easier to use
+   ``--include-data-file=./**.qml:.`` when you have a virtualenv living
+   in the same folder.
+
 Cleanups
 ========
 
 -  Plugins: Moved parts of the ``pywebview`` plugin that pertain to the
    DLLs and data files to package configuration.
+
+-  Made the user query code a dedicated function, so it can be reused
+   and more consistent across its uses in Nuitka. With a default that is
+   proposed to a user, and a default that applies if used
+   non-interactively. We will switch all prompts to using this.
+
+-  Code generation for module, class and function frames is now unified,
+   removing duplication while also becoming more flexible. For
+   generators this work has been started, but is not yet completed.
+
+-  Nodes exposing used modules now implement the same virtual method
+   providing a list of them.
+
+-  Make sure to pass ``tuple`` values rather than ``list`` values from
+   the tree building stage and node optimization creating new nodes.
+   This allows us to drop conversions previously done inside of nodes.
 
 Tests
 =====
