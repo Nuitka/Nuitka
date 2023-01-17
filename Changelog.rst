@@ -64,6 +64,45 @@ Bug Fixes
    workaround for it, since in Nuitka it doesn't work until after
    loading the module.
 
+-  Fix, value escapes for attribute and subscript assignments sources
+   were not properly annotated. This could cause incorrect code
+   execution. Fixed in 1.3.6 already.
+
+-  Fix, "pure" functions, which are currently only our complex call
+   helper functions, were not visited in all cases. This lead to a crash
+   in code generation after modules using them got demoted to bytecode.
+   After use from cache, this didn't happen again. Fixed in 1.3.6
+   already.
+
+-  Standalone: Added more implicit dependencies of crypto packages.
+   Fixed in 1.3.6 already.
+
+-  Standalone: Added implicit dependencies of ``pygments.styles``
+   module. Fixed in 1.3.6 already.
+
+-  Fix, was falsely encoding ``Ellipsis`` too soon during tree building.
+   It is not quite like ``True`` and ``False``. Fixed in 1.3.6 already.
+
+-  Standalone: Fix, ``numpy`` on macOS didn't work inside an application
+   bundle anymore. Fixed in 1.3.7 already.
+
+-  Python3.8+: Fix, need to follow change for extension module handling,
+   otherwise some uses of ``os.add_dll_directory`` fail to work. Fixed
+   in 1.3.8 already.
+
+-  Standalone: Added missing implicit dependencies of ``sqlalchemy``.
+   Fixed in 1.3.8 already.
+
+-  Python3.9+: Fix, resource reader files was not fully compatible and
+   needed to register with ``importlib.resources.as_file`` to work well
+   with it. Fixed in 1.3.8 already.
+
+-  Fix, the version check for ``cv2`` was not working with the
+   ``opencv-python-headless`` variant. Package name and distribution
+   name is not a 1:1 mapping for all things. Fixed in 1.3.8 already.
+
+-  Standalone: Added DLLs needed for ``tls_client`` package.
+
 Optimization
 ============
 
@@ -74,17 +113,39 @@ Optimization
 -  Anti-Bloat: Avoid IPython and Numba in ``trimesh`` package. Part of
    1.3.3 already.
 
+-  Anti-Bloat: Avoid Numba in ``shap`` package. Part of 1.3.8 already.
+
 Organisational
 ==============
 
+-  Release: Make clear we require ``wheel`` and ``setuptools`` to
+   install by adding a ``pyproject.toml`` that addresses a warning of
+   ``pip``. Part of 1.3.6 release already.
+
 -  Debugging: When plugins evaluate ``when`` conditions that raise,
    output which it was exactly. Part of 1.3.3 already.
+
+-  UI: Make sure data files have normalized paths. Specifically on
+   Windows, otherwise a mix of slashes could appear. Part of 1.3.6
+   release already.
+
+-  UI: The ordering of scons ``ccache`` report was not enforced. Part of
+   1.3.7 release already.
 
 Cleanups
 ========
 
 -  Plugins: Moved parts of the ``pywebview`` plugin that pertain to the
    DLLs and data files to package configuration.
+
+Tests
+=====
+
+-  Do not enable deprecated plugins, the warnings about them break
+   tests.
+
+-  Ignore Qt binding warnings in tests, some are less supported than
+   ``PySide6`` or commercial ``PySide2``.
 
 This release is not done yet.
 
@@ -2099,7 +2160,7 @@ Optimization
    constant keys, and values, these avoid full constant value nodes, and
    therefore save memory and compile time for a lot of code.
 
--  Anti-bloat: Added more scalability work to avoid including modules
+-  Anti-Bloat: Added more scalability work to avoid including modules
    that make compilation unnecessarily big.
 
 -  Python3.9+: Faster calls in case of mixed code, i.e. compiled code
@@ -2115,7 +2176,7 @@ Optimization
 -  Hard imported names should also be considered very trusted
    themselves, so they are e.g. also optimized in calls.
 
--  Anti-bloat: Avoid more useless imports in Pandas, Numba, Plotly, and
+-  Anti-Bloat: Avoid more useless imports in Pandas, Numba, Plotly, and
    other packages, improving the scalability some more.
 
 -  Added dedicated nodes for ``pkg_resources.require``,
@@ -2479,7 +2540,7 @@ New Features
    fails to load, it then outputs a more helpful error. This ought to be
    done for all plugins, where it's not clear if they are needed.
 
--  Anti-bloat: Added support for plain replacements in the
+-  Anti-Bloat: Added support for plain replacements in the
    ``anti-bloat.yml`` file. Before with ``replacement```, the new value
    had to be produced by an ``eval``, which makes for less readable
    values due to extra quoting. for plain values.
