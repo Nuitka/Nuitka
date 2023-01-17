@@ -169,7 +169,7 @@ def makeIncludedDataFile(source_path, dest_path, reason, tracer, tags):
     )
 
 
-# By default ignore all things that close to code.
+# By default ignore all things that are code.
 default_ignored_suffixes = (
     ".py",
     ".pyw",
@@ -179,6 +179,7 @@ default_ignored_suffixes = (
     ".so",
     ".pyd",
     ".dll",
+    ".dylib",
 )
 if not isMacOS():
     default_ignored_suffixes += (".DS_Store",)
