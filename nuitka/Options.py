@@ -629,15 +629,22 @@ def commentArgs():
         # that environment variable.
         if "PYTHON" not in os.environ:
             Tracing.general.warning(
-                "The version '%s' is not currently supported. Expect problems."
+                """\
+The Python version '%s' is not currently supported. Expect problems."""
                 % python_version_str,
             )
 
     if python_version_str in getNotYetSupportedPythonVersions():
         if not isExperimental("python" + python_version_str):
             Tracing.general.sysexit(
-                "The Python version '%s' is not supported by '%s', but an upcoming release will add it."
-                % (python_version_str, getNuitkaVersion())
+                """\
+The Python version '%s' is not supported by Nuitka '%s', but an upcoming \
+release will add it. In the mean time use '%s' instead."""
+                % (
+                    python_version_str,
+                    getNuitkaVersion(),
+                    getSupportedPythonVersions()[-1],
+                )
             )
 
     default_reference_mode = (
