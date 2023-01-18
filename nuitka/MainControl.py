@@ -103,7 +103,10 @@ from .build.SconsInterface import (
 )
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
-from .freezer.Onefile import packDistFolderToOnefile
+from .freezer.Onefile import (
+    getCompressorPython,
+    packDistFolderToOnefile,
+)
 from .freezer.Standalone import (
     checkFreezingModuleSet,
     copyDllsUsed,
@@ -187,6 +190,7 @@ def _createMainModule():
         deleteFile(
             path=OutputDirectories.getResultFullpath(onefile=True), must_exist=False
         )
+        getCompressorPython()
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
