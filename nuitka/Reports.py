@@ -36,13 +36,14 @@ from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.Tracing import general
 from nuitka.utils.FileOperations import putTextFileContents
 
+from .utils.Distributions import getDistributionsFromModuleName
 
-def writeCompilationReport(report_filename):
-    # Many details to work with, pylint: disable=too-many-branches,too-many-locals
 
+def _addModulesToReport(root):
+    # Many details to work with, pylint: disable=too-many-locals
+
+    all_distributions = set()
     active_modules_infos = getModuleInclusionInfos()
-
-    root = TreeXML.Element("nuitka-compilation-report")
 
     for module in getDoneModules():
         active_module_info = active_modules_infos[module]
@@ -84,39 +85,64 @@ def writeCompilationReport(report_filename):
 
             module_xml_node.append(timing_xml_node)
 
-        used_modules = TreeXML.appendTreeElement(
+        distributions = getDistributionsFromModuleName(module.getFullName())
+
+        if distributions:
+            all_distributions.update(distributions)
+
+            distributions_xml_node = TreeXML.appendTreeElement(
+                module_xml_node,
+                "distributions",
+            )
+
+            for distribution in distributions:
+                TreeXML.appendTreeElement(
+                    distributions_xml_node,
+                    "distribution",
+                    name=distribution.metadata["Name"],
+                )
+
+        used_modules_xml_node = TreeXML.appendTreeElement(
             module_xml_node,
             "module_usages",
         )
 
         for used_module in module.getUsedModules():
             TreeXML.appendTreeElement(
-                used_modules,
+                used_modules_xml_node,
                 "module_usage",
                 name=used_module.module_name.asString(),
                 finding=used_module.finding,
                 line=str(used_module.source_ref.getLineNumber()),
             )
 
+    return all_distributions
+
+
+def writeCompilationReport(report_filename):
+    """Write the compilation report in XML format."""
+
+    root = TreeXML.Element("nuitka-compilation-report")
+
+    all_distributions = _addModulesToReport(root)
+
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
-            root.append(
-                TreeXML.Element(
-                    "data_file",
-                    name=included_datafile.dest_path,
-                    source=included_datafile.source_path,
-                    reason=included_datafile.reason,
-                    tags=",".join(included_datafile.tags),
-                )
+            TreeXML.appendTreeElement(
+                root,
+                "data_file",
+                name=included_datafile.dest_path,
+                source=included_datafile.source_path,
+                reason=included_datafile.reason,
+                tags=",".join(included_datafile.tags),
             )
         elif included_datafile.kind == "data_blob":
-            root.append(
-                TreeXML.Element(
-                    "data_blob",
-                    name=included_datafile.dest_path,
-                    reason=included_datafile.reason,
-                    tags=",".join(included_datafile.tags),
-                )
+            TreeXML.appendTreeElement(
+                root,
+                "data_blob",
+                name=included_datafile.dest_path,
+                reason=included_datafile.reason,
+                tags=",".join(included_datafile.tags),
             )
 
     for standalone_entry_point in getStandaloneEntryPoints():
@@ -131,36 +157,35 @@ def writeCompilationReport(report_filename):
         else:
             ignored = False
 
-        root.append(
-            TreeXML.Element(
-                "included_" + kind,
-                name=os.path.basename(standalone_entry_point.dest_path),
-                dest_path=standalone_entry_point.dest_path,
-                source_path=standalone_entry_point.source_path,
-                package=standalone_entry_point.package_name or "",
-                ignored="yes" if ignored else "no",
-                reason=standalone_entry_point.reason
-                # TODO: No reason yet.
-            )
+        TreeXML.appendTreeElement(
+            root,
+            "included_" + kind,
+            name=os.path.basename(standalone_entry_point.dest_path),
+            dest_path=standalone_entry_point.dest_path,
+            source_path=standalone_entry_point.source_path,
+            package=standalone_entry_point.package_name or "",
+            ignored="yes" if ignored else "no",
+            reason=standalone_entry_point.reason
+            # TODO: No reason yet.
         )
 
-    search_path_element = TreeXML.appendTreeElement(
+    search_path_xml_node = TreeXML.appendTreeElement(
         root,
         "search_path",
     )
 
     for search_path in getPackageSearchPath(None):
-        search_path_element.append(TreeXML.Element("path", value=search_path))
+        TreeXML.appendTreeElement(search_path_xml_node, "path", value=search_path)
 
-    options_element = TreeXML.appendTreeElement(
+    options_xml_node = TreeXML.appendTreeElement(
         root,
         "command_line",
     )
 
     for arg in sys.argv[1:]:
-        options_element.append(TreeXML.Element("option", value=arg))
+        TreeXML.appendTreeElement(options_xml_node, "option", value=arg)
 
-    active_plugins_element = TreeXML.appendTreeElement(
+    active_plugins_xml_node = TreeXML.appendTreeElement(
         root,
         "plugins",
     )
@@ -169,12 +194,26 @@ def writeCompilationReport(report_filename):
         if plugin.isDetector():
             continue
 
-        active_plugins_element.append(
-            TreeXML.Element(
-                "plugin",
-                name=plugin.plugin_name,
-                user_enabled="no" if plugin.isAlwaysEnabled() else "yes",
-            )
+        TreeXML.appendTreeElement(
+            active_plugins_xml_node,
+            "plugin",
+            name=plugin.plugin_name,
+            user_enabled="no" if plugin.isAlwaysEnabled() else "yes",
+        )
+
+    distributions_xml_node = TreeXML.appendTreeElement(
+        root,
+        "distributions",
+    )
+
+    for distribution in sorted(
+        all_distributions, key=lambda dist: dist.metadata["Name"]
+    ):
+        TreeXML.appendTreeElement(
+            distributions_xml_node,
+            "distribution",
+            name=distribution.metadata["Name"],
+            version=distribution.metadata["Version"],
         )
 
     putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
