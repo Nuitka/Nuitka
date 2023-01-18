@@ -263,8 +263,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         # TODO: This code absolutely doesn't belong here.
         # Read the .pyi file, and provide as implicit dependency.
         if module.isPythonExtensionModule():
-            for used_module in module.getUsedModules():
-                yield used_module[0]
+            for used_module_name in module.getPyIModuleImportedNames():
+                yield used_module_name
 
         if full_name == "pkg_resources.extern":
             # TODO: A package specific lookup of compile time "pkg_resources.extern" could

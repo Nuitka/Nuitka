@@ -973,7 +973,7 @@ class PythonExtensionModule(PythonModuleBase):
 
         return os.path.join(dirname, filename.split(".")[0]) + ".pyi"
 
-    def _readPyPIFile(self):
+    def _readPyIFile(self):
         """Read the .pyi file if present and scan for dependencies."""
 
         # Complex stuff, pylint: disable=too-many-branches,too-many-statements
@@ -1075,16 +1075,22 @@ class PythonExtensionModule(PythonModuleBase):
                 if self.getFullName().getPackageName() in pyi_deps:
                     pyi_deps.discard(self.getFullName().getPackageName())
 
-                self.used_modules = tuple((pyi_dep, None) for pyi_dep in pyi_deps)
+                self.used_modules = tuple(pyi_deps)
             else:
                 self.used_modules = ()
 
-    def getUsedModules(self):
-        self._readPyPIFile()
+    def getPyIModuleImportedNames(self):
+        self._readPyIFile()
 
         assert "." not in self.used_modules, self
 
         return self.used_modules
+
+    @staticmethod
+    def getUsedModules():
+        # The PyI contents is currently delivered via implicit imports
+        # plugin.
+        return ()
 
     def getParentModule(self):
         return self
