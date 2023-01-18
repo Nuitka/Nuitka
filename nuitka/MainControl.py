@@ -103,10 +103,7 @@ from .build.SconsInterface import (
 )
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
-from .freezer.Onefile import (
-    getCompressorPython,
-    packDistFolderToOnefile,
-)
+from .freezer.Onefile import getCompressorPython, packDistFolderToOnefile
 from .freezer.Standalone import (
     checkFreezingModuleSet,
     copyDllsUsed,
