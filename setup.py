@@ -387,6 +387,7 @@ setup(
         "Operating System :: POSIX :: BSD :: NetBSD",
         "Operating System :: POSIX :: BSD :: OpenBSD",
         "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS",
         # License
         "License :: OSI Approved :: Apache Software License",
     ],
