@@ -187,6 +187,8 @@ def _createMainModule():
         deleteFile(
             path=OutputDirectories.getResultFullpath(onefile=True), must_exist=False
         )
+
+        # Also make sure we inform the user in case the compression is not possible.
         getCompressorPython()
 
     # Second, do it for the directories given.
