@@ -8,6 +8,11 @@
     - depends:
         - '_dbus_bindings'
 
+- module-name: '_mplcairo'
+  implicit-imports:
+    - depends:
+        - 'pydoc'
+
 - module-name: '_mysql'
   implicit-imports:
     - depends:
