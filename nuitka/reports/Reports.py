@@ -15,7 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Collection of information for Report and their writing.
+""" Collection of information for reports and their writing.
+
+These reports are in XML form, and with Jinja2 templates in any form you like.
 
 """
 
@@ -28,35 +30,87 @@ from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
 from nuitka.ModuleRegistry import (
     getDoneModules,
-    getModuleInclusionInfos,
+    getModuleInclusionInfoByName,
     getModuleInfluences,
     getModuleOptimizationTimingInfos,
 )
+from nuitka.Options import (
+    getCompilationReportFilename,
+    getCompilationReportTemplates,
+)
 from nuitka.plugins.Plugins import getActivePlugins
-from nuitka.Tracing import general
+from nuitka.Tracing import reports_logger
+from nuitka.utils.Distributions import getDistributionsFromModuleName
 from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.utils.Jinja2 import getTemplate
 
-from .utils.Distributions import getDistributionsFromModuleName
+
+def _getReportInputData():
+    """Collect all information for reporting into a dictionary."""
+
+    # pylint: used with locals for laziness, disable=possibly-unused-variable
+
+    module_names = tuple(module.getFullName() for module in getDoneModules())
+
+    module_kinds = dict(
+        (module.getFullName(), module.__class__.__name__) for module in getDoneModules()
+    )
+
+    module_inclusion_infos = dict(
+        (module.getFullName(), getModuleInclusionInfoByName(module.getFullName()))
+        for module in getDoneModules()
+    )
+
+    module_plugin_influences = dict(
+        (module.getFullName(), getModuleInfluences(module.getFullName()))
+        for module in getDoneModules()
+    )
+
+    module_timing_infos = dict(
+        (module.getFullName(), getModuleOptimizationTimingInfos(module.getFullName()))
+        for module in getDoneModules()
+    )
+
+    module_distributions = dict(
+        (module.getFullName(), getDistributionsFromModuleName(module.getFullName()))
+        for module in getDoneModules()
+    )
+
+    module_usages = dict(
+        (module.getFullName(), module.getUsedModules()) for module in getDoneModules()
+    )
+
+    all_distributions = tuple(
+        sorted(
+            set(sum(module_distributions.values(), ())),
+            key=lambda dist: dist.metadata["Name"],
+        )
+    )
+
+    return dict(
+        (var_name, var_value)
+        for var_name, var_value in locals().items()
+        if not var_name.startswith("_")
+    )
 
 
-def _addModulesToReport(root):
+def _addModulesToReport(root, report_input_data):
     # Many details to work with, pylint: disable=too-many-locals
 
-    all_distributions = set()
-    active_modules_infos = getModuleInclusionInfos()
-
-    for module in getDoneModules():
-        active_module_info = active_modules_infos[module]
+    for module_name in report_input_data["module_names"]:
+        active_module_info = report_input_data["module_inclusion_infos"][module_name]
 
         module_xml_node = TreeXML.appendTreeElement(
             root,
             "module",
-            name=module.getFullName(),
-            kind=module.__class__.__name__,
+            name=module_name,
+            kind=report_input_data["module_kinds"][module_name],
             reason=active_module_info.reason,
         )
 
-        for plugin_name, influence, detail in getModuleInfluences(module.getFullName()):
+        for plugin_name, influence, detail in report_input_data[
+            "module_plugin_influences"
+        ][module_name]:
             influence_xml_node = TreeXML.Element(
                 "plugin-influence", name=plugin_name, influence=influence
             )
@@ -72,9 +126,7 @@ def _addModulesToReport(root):
 
             module_xml_node.append(influence_xml_node)
 
-        for timing_info in sorted(
-            getModuleOptimizationTimingInfos(module.getFullName())
-        ):
+        for timing_info in report_input_data["module_timing_infos"][module_name]:
             timing_xml_node = TreeXML.Element(
                 "optimization-time",
             )
@@ -85,11 +137,9 @@ def _addModulesToReport(root):
 
             module_xml_node.append(timing_xml_node)
 
-        distributions = getDistributionsFromModuleName(module.getFullName())
+        distributions = report_input_data["module_distributions"][module_name]
 
         if distributions:
-            all_distributions.update(distributions)
-
             distributions_xml_node = TreeXML.appendTreeElement(
                 module_xml_node,
                 "distributions",
@@ -107,7 +157,7 @@ def _addModulesToReport(root):
             "module_usages",
         )
 
-        for used_module in module.getUsedModules():
+        for used_module in report_input_data["module_usages"][module_name]:
             TreeXML.appendTreeElement(
                 used_modules_xml_node,
                 "module_usage",
@@ -116,15 +166,14 @@ def _addModulesToReport(root):
                 line=str(used_module.source_ref.getLineNumber()),
             )
 
-    return all_distributions
 
-
-def writeCompilationReport(report_filename):
+def writeCompilationReport(report_filename, report_input_data):
     """Write the compilation report in XML format."""
+    # Many details, pylint: disable=too-many-branches,too-many-locals
 
     root = TreeXML.Element("nuitka-compilation-report")
 
-    all_distributions = _addModulesToReport(root)
+    _addModulesToReport(root, report_input_data)
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
@@ -206,9 +255,7 @@ def writeCompilationReport(report_filename):
         "distributions",
     )
 
-    for distribution in sorted(
-        all_distributions, key=lambda dist: dist.metadata["Name"]
-    ):
+    for distribution in report_input_data["all_distributions"]:
         TreeXML.appendTreeElement(
             distributions_xml_node,
             "distribution",
@@ -216,6 +263,78 @@ def writeCompilationReport(report_filename):
             version=distribution.metadata["Version"],
         )
 
-    putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
+    try:
+        putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
+    except OSError as e:
+        reports_logger.warning(
+            "Compilation report write to file '%s' failed due to: %s."
+            % (report_filename, e)
+        )
+    else:
+        reports_logger.info(
+            "Compilation report written to file '%s'." % report_filename
+        )
 
-    general.info("Compilation report in file '%s'." % report_filename)
+
+def writeCompilationReportFromTemplate(
+    template_filename, report_filename, report_input_data
+):
+    template = getTemplate(
+        package_name=None,
+        template_subdir=os.path.dirname(template_filename) or ".",
+        template_name=os.path.basename(template_filename),
+        extensions=("jinja2.ext.do",),
+    )
+
+    report_text = template.render(**report_input_data)
+
+    try:
+        putTextFileContents(filename=report_filename, contents=report_text)
+    except OSError as e:
+        reports_logger.warning(
+            "Compilation report from template failed write file '%s' due to: %s."
+            % (report_filename, e)
+        )
+    else:
+        reports_logger.info(
+            "Compilation report from template written to file '%s'." % report_filename
+        )
+
+
+def writeCompilationReports():
+    report_filename = getCompilationReportFilename()
+    template_specs = getCompilationReportTemplates()
+
+    if report_filename or template_specs:
+        report_input_data = _getReportInputData()
+
+        if report_filename:
+            writeCompilationReport(
+                report_filename=report_filename, report_input_data=report_input_data
+            )
+
+        for template_filename, report_filename in template_specs:
+            if (
+                not os.path.exists(template_filename)
+                and os.path.sep not in template_filename
+            ):
+                candidate = os.path.join(os.path.dirname(__file__), template_filename)
+
+                if not candidate.endswith(".rst.j2"):
+                    candidate += ".rst.j2"
+
+                if os.path.exists(candidate):
+                    template_filename = candidate
+
+            if not os.path.exists(template_filename):
+                reports_logger.warning(
+                    "Cannot find report template '%s' ignoring report request."
+                    % template_filename
+                )
+                continue
+
+            writeCompilationReportFromTemplate(
+                template_filename=template_filename,
+                report_filename=report_filename,
+                report_input_data=report_input_data,
+            )

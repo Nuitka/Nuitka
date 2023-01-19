@@ -172,6 +172,7 @@ package_data = {
     ]
     + inline_copy_files,
     "nuitka.code_generation": ["templates_c/*.j2"],
+    "nuitka.reports": ["*.j2"],
 }
 
 

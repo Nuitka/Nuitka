@@ -111,7 +111,7 @@ from .freezer.Standalone import (
 )
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
-from .Reports import writeCompilationReport
+from .reports.Reports import writeCompilationReports
 from .tree.Building import buildMainModuleTree
 from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
@@ -1047,10 +1047,7 @@ not use compiled code while it exists."""
 
     general.info("Successfully created '%s'." % final_filename)
 
-    report_filename = Options.getCompilationReportFilename()
-
-    if report_filename:
-        writeCompilationReport(report_filename)
+    writeCompilationReports()
 
     run_filename = OutputDirectories.getResultRunFilename(
         onefile=Options.isOnefileMode()

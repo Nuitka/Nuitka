@@ -84,6 +84,7 @@ PACKAGE_LIST = [
     "nuitka/plugins",
     "nuitka/plugins/standard",
     "nuitka/plugins/commercial",
+    "nuitka/reports",
     "nuitka/pgo",
     "nuitka/constants",
     "nuitka/containers",

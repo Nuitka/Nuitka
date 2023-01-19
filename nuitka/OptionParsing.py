@@ -1011,6 +1011,18 @@ super useful for issue reporting. Default is off.""",
 )
 
 tracing_group.add_option(
+    "--report-template",
+    action="append",
+    dest="compilation_report_templates",
+    metavar="REPORT_DESC",
+    default=[],
+    help="""\
+Report via template. Provide template and output filename "template.rst.j2:output.rst". For
+built-in templates, check the User Manual for what these are. Can be given multiple times.
+Default is empty.""",
+)
+
+tracing_group.add_option(
     "--quiet",
     action="store_true",
     dest="quiet",

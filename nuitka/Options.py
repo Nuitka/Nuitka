@@ -1925,6 +1925,15 @@ def getCompilationReportFilename():
     return options.compilation_report_filename
 
 
+def getCompilationReportTemplates():
+    """*tuple of str,str* template and output filenames to write reports to"""
+    result = []
+    for value in options.compilation_report_templates:
+        result.append(value.split(":", 1))
+
+    return tuple(result)
+
+
 def getUserProvidedYamlFiles():
     """*list* files with user provided Yaml files"""
     return options.user_yaml_files
