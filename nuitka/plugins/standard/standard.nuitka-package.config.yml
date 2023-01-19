@@ -3994,7 +3994,7 @@
   anti-bloat:
     - description: 'remove docstring dependency'
       replacements_plain:
-        'fit.__doc__ = XGBModel.fit.__doc__.replace(' : 'fit.__doc__ = "Fit gradient boosting model".replace('
+        'fit.__doc__ = XGBModel.fit.__doc__.replace(': 'fit.__doc__ = "Fit gradient boosting model".replace('
       when: 'no_docstrings and no_asserts'
 
 - module-name: 'Xlib.display'
