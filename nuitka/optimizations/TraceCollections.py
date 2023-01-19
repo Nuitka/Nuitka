@@ -32,7 +32,6 @@ from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
-from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_uninitialized
 from nuitka.tree.SourceHandling import readSourceLine
 from nuitka.utils.InstanceCounters import (
@@ -235,28 +234,28 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
 
         return trace
 
-    def _initVariableInit(self, variable):
+    def initVariableInit(self, variable):
         trace = ValueTraceInit(self.owner)
 
         self.addVariableTrace(variable, 0, trace)
 
         return trace
 
-    def _initVariableInitStarArgs(self, variable):
+    def initVariableInitStarArgs(self, variable):
         trace = ValueTraceInitStarArgs(self.owner)
 
         self.addVariableTrace(variable, 0, trace)
 
         return trace
 
-    def _initVariableInitStarDict(self, variable):
+    def initVariableInitStarDict(self, variable):
         trace = ValueTraceInitStarDict(self.owner)
 
         self.addVariableTrace(variable, 0, trace)
 
         return trace
 
-    def _initVariableUninitialized(self, variable):
+    def initVariableUninitialized(self, variable):
         trace = ValueTraceUninitialized(owner=self.owner, previous=None)
 
         self.addVariableTrace(variable, 0, trace)
@@ -295,24 +294,7 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
             self.exception_collections = old_exception_collections
 
     def initVariable(self, variable):
-        if variable.isParameterVariable():
-            # TODO: That's not happening, maybe just assert against it.
-            result = self._initVariableInit(variable)
-        elif variable.isLocalVariable():
-            result = self._initVariableUninitialized(variable)
-        elif variable.isModuleVariable():
-            result = self.initVariableModule(variable)
-        elif variable.isTempVariable():
-            result = self._initVariableUninitialized(variable)
-        elif variable.isLocalsDictVariable():
-            if variable.getOwner().getTypeShape() is tshape_dict:
-                result = self._initVariableUninitialized(variable)
-            else:
-                result = self.initVariableUnknown(variable)
-        else:
-            assert False, variable
-
-        return result
+        return variable.initVariable(self)
 
     def addOutlineFunction(self, outline):
         if self.outline_functions is None:
@@ -328,8 +310,12 @@ class CollectionStartPointMixin(CollectionUpdateMixin):
             for variable in locals_scope.variables.values():
                 self.markActiveVariableAsEscaped(variable)
 
+        # TODO: The above condition seems unnecessary.
+        assert locals_scope is not None, self
+
         # TODO: Limit to the scope.
-        for variable in self.getActiveVariables():
+        # TODO: Does the above code not do that already?
+        for variable in self.variable_actives:
             if variable.isTempVariable() or variable.isModuleVariable():
                 continue
 
@@ -418,9 +404,6 @@ class TraceCollectionBase(object):
 
             return self.variable_actives[variable]
 
-    def getActiveVariables(self):
-        return self.variable_actives.keys()
-
     def markActiveVariableAsEscaped(self, variable):
         current = self.getVariableCurrentTrace(variable)
 
@@ -485,20 +468,6 @@ class TraceCollectionBase(object):
 
         return result
 
-    def markActiveVariablesAsEscaped(self):
-        for variable in self.getActiveVariables():
-            if variable.isTempVariable():
-                continue
-
-            self.markActiveVariableAsEscaped(variable)
-
-    def markActiveVariablesAsUnknown(self):
-        for variable in self.getActiveVariables():
-            if variable.isTempVariable():
-                continue
-
-            self.markActiveVariableAsUnknown(variable)
-
     @staticmethod
     def signalChange(tags, source_ref, message):
         # This is monkey patched from another module. pylint: disable=I0021,not-callable
@@ -524,38 +493,20 @@ class TraceCollectionBase(object):
         # TODO: One day, we should trace which nodes exactly cause a variable
         # to be considered escaped, pylint: disable=unused-argument
 
-        for variable in self.getActiveVariables():
-            # TODO: Move this to the variable, and prepare and cache it better for
-            # compile time savings.
-            if variable.isModuleVariable():
-                self.markActiveVariableAsUnknown(variable)
-
-            elif variable.isLocalVariable():
-                if (
-                    str is not bytes
-                    and variable.hasWritersOutsideOf(self.owner) is not False
-                ):
-                    self.markClosureVariableAsUnknown(variable)
-                elif variable.hasAccessesOutsideOf(self.owner) is not False:
-                    self.markActiveVariableAsEscaped(variable)
+        for variable in self.variable_actives:
+            variable.onControlFlowEscape(self)
 
     def removeKnowledge(self, node):
         if node.isExpressionVariableRef():
-            if node.variable.isModuleVariable():
-                self.markActiveVariableAsUnknown(node.variable)
-            else:
-                self.markActiveVariableAsEscaped(node.variable)
+            node.variable.removeKnowledge(self)
 
     def onValueEscapeStr(self, node):
         # TODO: We can ignore these for now.
         pass
 
     def removeAllKnowledge(self):
-        for variable in self.getActiveVariables():
-            if variable.isTempVariable():
-                continue
-
-            self.markActiveVariableAsUnknown(variable)
+        for variable in self.variable_actives:
+            variable.removeAllKnowledge(self)
 
     def onVariableSet(self, variable, version, assign_node):
         variable_trace = ValueTraceAssign(
@@ -642,7 +593,7 @@ class TraceCollectionBase(object):
 
         scope_locals_variables = locals_scope.getLocalsRelevantVariables()
 
-        for variable in self.getActiveVariables():
+        for variable in self.variable_actives:
             if variable.isLocalVariable() and variable in scope_locals_variables:
                 variable_trace = self.getVariableCurrentTrace(variable)
 
@@ -1059,17 +1010,17 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
             parameters = function_body.getParameters()
 
             for parameter_variable in parameters.getTopLevelVariables():
-                self._initVariableInit(parameter_variable)
+                self.initVariableInit(parameter_variable)
                 self.variable_actives[parameter_variable] = 0
 
             list_star_variable = parameters.getListStarArgVariable()
             if list_star_variable is not None:
-                self._initVariableInitStarArgs(list_star_variable)
+                self.initVariableInitStarArgs(list_star_variable)
                 self.variable_actives[list_star_variable] = 0
 
             dict_star_variable = parameters.getDictStarArgVariable()
             if dict_star_variable is not None:
-                self._initVariableInitStarDict(dict_star_variable)
+                self.initVariableInitStarDict(dict_star_variable)
                 self.variable_actives[dict_star_variable] = 0
 
         for closure_variable in function_body.getClosureVariables():
@@ -1082,7 +1033,7 @@ class TraceCollectionFunction(CollectionStartPointMixin, TraceCollectionBase):
         if locals_scope is not None:
             if not locals_scope.isMarkedForPropagation():
                 for locals_dict_variable in locals_scope.variables.values():
-                    self._initVariableUninitialized(locals_dict_variable)
+                    self.initVariableUninitialized(locals_dict_variable)
             else:
                 function_body.locals_scope = None
 
