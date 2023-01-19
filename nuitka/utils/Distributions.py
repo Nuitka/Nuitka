@@ -29,6 +29,7 @@ def getDistributionTopLevelPackageNames(distribution):
 
     if top_level_txt:
         result = top_level_txt.split()
+        result = [dirname.replace("/", ".") for dirname in result]
     else:
         result = OrderedSet()
 
