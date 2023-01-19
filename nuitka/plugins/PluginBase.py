@@ -52,6 +52,9 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
 )
 from nuitka.Options import (
+    hasPythonFlagNoAnnotations,
+    hasPythonFlagNoAsserts,
+    hasPythonFlagNoDocStrings,
     isStandaloneMode,
     shallCreateAppBundle,
     shallMakeModule,
@@ -1089,6 +1092,9 @@ except ImportError:
                 # Querying package versions.
                 "version": _getPackageVersion,
                 "plugin": _isPluginActive,
+                "no_asserts": hasPythonFlagNoAsserts(),
+                "no_docstrings": hasPythonFlagNoDocStrings(),
+                "no_annotations": hasPythonFlagNoAnnotations(),
             }
         )
 

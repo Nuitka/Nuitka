@@ -73,7 +73,7 @@ def extractDocFromBody(node):
                 doc = body[0].value.value
             body = body[1:]
 
-        if Options.hasPythonFlagNoDocstrings():
+        if Options.hasPythonFlagNoDocStrings():
             doc = None
 
     return body, doc

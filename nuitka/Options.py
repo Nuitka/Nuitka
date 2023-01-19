@@ -1744,14 +1744,14 @@ def hasPythonFlagNoAsserts():
     return "no_asserts" in _getPythonFlags()
 
 
-def hasPythonFlagNoDocstrings():
+def hasPythonFlagNoDocStrings():
     """*bool* = "no_docstrings" in python flags given"""
 
     return "no_docstrings" in _getPythonFlags()
 
 
 def hasPythonFlagNoWarnings():
-    """*bool* = "no_docstrings" in python flags given"""
+    """*bool* = "no_warnings" in python flags given"""
 
     return "no_warnings" in _getPythonFlags()
 
