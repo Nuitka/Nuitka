@@ -643,7 +643,7 @@ PyObject *BUILTIN_UNICODE1(PyObject *value) {
 
     /* It is possible for a type to have a tp_str representation that loops
        infinitely. */
-    if (Py_EnterRecursiveCall(" while getting the str of an object")) {
+    if (Py_EnterRecursiveCall((char *)" while getting the str of an object")) {
         return NULL;
     }
 
@@ -741,7 +741,7 @@ PyObject *_BUILTIN_STR(PyObject *value) {
         return value;
     }
 
-    if (Py_EnterRecursiveCall(" while getting the str of an object")) {
+    if (Py_EnterRecursiveCall((char *)" while getting the str of an object")) {
         return NULL;
     }
 
