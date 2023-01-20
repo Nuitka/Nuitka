@@ -33,7 +33,7 @@ def getDistributionTopLevelPackageNames(distribution):
     else:
         result = OrderedSet()
 
-        for filename in distribution.files:
+        for filename in distribution.files or ():
             filename = filename.as_posix()
 
             if not filename.endswith(".py"):
