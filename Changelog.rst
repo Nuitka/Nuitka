@@ -110,6 +110,22 @@ Bug Fixes
    ``requests`` which then didn't work. This was only visible if only
    these aliases to other modules were used.
 
+-  Onefile: Fix, do not send duplicate CTRL-C to child process. Our test
+   only send it to the bootstrap process, rather than the process group,
+   as it normally is working, therefore misleading us into sending it to
+   the child even if not needed.
+
+-  Onefile: When not using cached mode, on Windows the temporary folder
+   used sometimes failed to delete after the executable stopped with
+   CTRL-C. This is due to races in releasing of locks and process
+   termination and AV tools, so we now retry for some time, to make sure
+   it is always deleted.
+
+-  Standalone: Fix, was not ignoring ``.dylib`` when scanning for data
+   files unlike all other DLL suffixes.
+
+-  Standalone: Added missing implicit dependency of ``mplcairo``.
+
 New Features
 ============
 
@@ -138,11 +154,56 @@ New Features
    arguments. If then the binary name is changed, on execution you get a
    different variant being executed.
 
-   ..
-      note:
+   .. note::
 
       Using it with only one replaces the previous use of the positional
-      argument given.
+      argument given and is not using multidist at all.
+
+   .. note::
+
+      Multidist is compatible with onefile, standalone, and mere
+      acceleration. It cannot be used for module mode obviously.
+
+   For deployment this can solve duplication.
+
+   .. note::
+
+      For wheels, we will probably change those with multiple entry
+      points to compiling multidist executables, so we do avoid Python
+      script entry points there. But this has not yet been done.
+
+-  Onefile: Kill non-cooperating child processes on CTRL-C after a grace
+   period, that can be controlled at compile time with
+   ``--onefile-child-grace-time`` the hard way. This avoids hangs of
+   processes that fail to properly shutdown.
+
+-  Plugins: Add support for extra global search paths to mimic
+   ``sys.path`` manipulations in the Yaml configuration with new
+   ``global-sys-path`` import hack.
+
+-  Standalone: Added support for ``tkinterweb`` on Windows. Other
+   platforms will need work to be done later.
+
+-  Fix, for package metadata as from ``importlib.metadata.metadata`` for
+   use at runtime we need to use both package name and distribution name
+   to create it, or else it failed to work. Packages like
+   ``opencv-python-headless`` can now with this too.
+
+-  Reports: Include used distributions of compiled packages and their
+   versions.
+
+-  Reports: Added ability to generate custom reports with
+   ``--report-template`` where the user can provide a Jinja2 template to
+   make his own reports.
+
+-  Anti-Bloat: Added support for checking python flags. There are
+   ``no_asserts``, ``no_docstrings`` and ``no_annotations`` now. These
+   can be used to limit rules to be only applied when these optional
+   modes are active.
+
+   Not all packages will work in these modes, but often can be enhanced
+   to work with relatively little patching. This allows to limit these
+   patches to only where they are necessary.
 
 Optimization
 ============
@@ -155,6 +216,9 @@ Optimization
    1.3.3 already.
 
 -  Anti-Bloat: Avoid Numba in ``shap`` package. Part of 1.3.8 already.
+
+-  Anti-bloat: Removed ``xgboost`` docstring dependencies, such that
+   ``--python-flag=no_docstrings`` can be used with this package.
 
 -  For guided deep copy ``frozenset`` and empty ``tuple`` need no copies
 
@@ -277,6 +341,63 @@ Optimization
 -  Avoid using ``PyImport_GetModuleDict`` and instead have our own API
    to get this quicker.
 
+-  Faster exception match checks and sub type checks.
+
+   This solves a ``TODO`` about inlining the API function used, so we
+   can be faster in a relatively common operation. For every exception
+   handler, we had to do one API call there.
+
+-  Faster subtype checks.
+
+   These are common in binary operations on non-identical types, but
+   also needed for the exception checks, and object creation through
+   class type calls. With our own ``PyType_IsSubType`` replacement these
+   faster to use and avoid the API call.
+
+-  Faster Python3 ``int`` value startup initialization.
+
+   On Python 3.9 or higher we can get small int values directly from the
+   interpreter, and with 3.11 they are accessible as global values.
+
+   Also we no longer de-duplicate small int values through our cache,
+   since there is no use in this, saving a bunch of startup time. And we
+   can create the values with our own API replacement, that will work
+   during startup already and save API calls as these can be relatively
+   slow. And esp. for the small values, this benefits from not having to
+   create them.
+
+-  Faster ``str`` built-in with API calls
+
+   For common cases, this avoids API calls. We mostly have this such
+   that ``print`` style tests do not have this as API calls where we
+   strive to remove all API calls for given programs.
+
+-  Faster exception normalization.
+
+   For the common case, we have our own variable of
+   ``PyErr_NormalizeException`` that will avoid the API call. It may
+   still call the ``PyObject_IsSubclass`` API, for which we only have
+   started replacement work, but this is already a step ahead in the
+   right direction.
+
+-  Faster object releases
+
+   For Python3.8 or higher when our code released objects, it was doing
+   that with an API call, due to a macro change in Python headers. We
+   revert that and do it still on our own which avoids the performance
+   penalty.
+
+-  Enable Python threading during extension module DLL loading
+
+   We now release the GIL for Python3.8 or higher when loading the DLL,
+   following a change in that version.
+
+-  Faster variable handling in trace collection. The code was doing
+   checks for variable types, to decide what to do e.g. when control
+   flow escapes for a variable. However, this is faster if solved with a
+   virtual method in those variable classes, shifting the responsibility
+   to inside there.
+
 Organisational
 ==============
 
@@ -293,9 +414,18 @@ Organisational
    normal. Now it also lists the module that does the unwanted usage
    immediately. Previously this was not as clear.
 
+-  UI: More clear output for not yet supported Python version. Make it
+   more clear in the message, what is the highest supported version, and
+   what version is Nuitka and what is Python in this.
+
 -  UI: Make sure data files have normalized paths. Specifically on
    Windows, otherwise a mix of slashes could appear. Part of 1.3.6
    release already.
+
+-  UI: Make it clear that disabling the console harms your debugging
+   when we suggest the ``--disable-console`` for GUI packages. Otherwise
+   using that, they just deprive themselves of ways to get error
+   information.
 
 -  UI: The ordering of scons ``ccache`` report was not enforced. Part of
    1.3.7 release already.
@@ -311,6 +441,20 @@ Organisational
    or ``__pycache__`` folders. This should make it easier to use
    ``--include-data-file=./**.qml:.`` when you have a virtualenv living
    in the same folder.
+
+-  Onefile: Added check for compression ability before starting the
+   compilation to inform the user immediately.
+
+-  Release: Mark macOS as supported in PyPI categories. This is of
+   course true for a long time already.
+
+-  User Manual: Added section pointing to and explaining compilation
+   reports. This has become extremely useful even if still somewhat work
+   in progress.
+
+-  User Manual: Added table with included custom reports, at this time
+   only the license reports, which is very rough shape and needs
+   contributors for good looks and content.
 
 Cleanups
 ========
@@ -7139,7 +7283,7 @@ Bug Fixes
    message when missing.
 
 -  Windows: Find ``win32com`` DLLs too, even if they live in sub folders
-   of site-packages, and otherwise not found. They are used by other
+   of ``site-packages``, and otherwise not found. They are used by other
    DLLs that are found.
 
 -  Standalone: Fixup for problem with standard library module in most
