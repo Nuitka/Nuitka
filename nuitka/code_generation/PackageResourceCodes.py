@@ -63,7 +63,6 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
             called_name=get_data_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -97,6 +96,7 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
             called_name=distribution_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -218,6 +218,7 @@ def generatePkgResourcesEntryPointValueCode(to_name, expression, emit, context):
             called_name=entry_point_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -251,6 +252,7 @@ def generateImportlibMetadataEntryPointValueCode(to_name, expression, emit, cont
             called_name=entry_point_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -286,6 +288,7 @@ def generateImportlibMetadataBackportEntryPointValueCode(
             called_name=entry_point_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -324,7 +327,6 @@ def generateImportlibMetadataSelectableGroupsValueCode(
             called_name=selectable_group_class_name,
             expression=expression,
             arg_names=(selectable_group_dict,),
-            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -363,7 +365,6 @@ def generateImportlibMetadataBackportSelectableGroupsValueCode(
             called_name=selectable_group_class_name,
             expression=expression,
             arg_names=(selectable_group_dict,),
-            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -400,7 +401,6 @@ def generateImportlibMetadataEntryPointsValueCode(to_name, expression, emit, con
             called_name=entry_points_class_name,
             expression=expression,
             arg_names=(selectable_group_tuple,),
-            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -439,7 +439,6 @@ def generateImportlibMetadataBackportEntryPointsValueCode(
             called_name=entry_points_class_name,
             expression=expression,
             arg_names=(selectable_group_tuple,),
-            needs_check=False,
             emit=emit,
             context=context,
         )
@@ -471,7 +470,6 @@ def generatePkgResourcesRequireCallCode(to_name, expression, emit, context):
             called_name=require_function_name,
             expression=expression,
             arg_names=requirement_arg_names,
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -503,7 +501,6 @@ def generatePkgResourcesGetDistributionCallCode(to_name, expression, emit, conte
             called_name=get_distribution_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -540,7 +537,6 @@ def generatePkgResourcesIterEntryPointsCallCode(to_name, expression, emit, conte
             )
             if name_arg_name is not None
             else (group_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -572,7 +568,6 @@ def generateImportlibMetadataVersionCallCode(to_name, expression, emit, context)
             called_name=version_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -606,7 +601,6 @@ def generateImportlibMetadataBackportVersionCallCode(
             called_name=version_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -638,7 +632,6 @@ def generateImportlibMetadataDistributionCallCode(to_name, expression, emit, con
             called_name=get_distribution_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -670,7 +663,6 @@ def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, contex
             called_name=resource_string_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -702,7 +694,6 @@ def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, cont
             called_name=read_binary_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -735,7 +726,6 @@ def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, contex
             called_name=read_text_function,
             expression=expression,
             arg_names=(package_name, resource_name, encoding_name, errors_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -767,7 +757,6 @@ def generatePkgResourcesResourceStreamCallCode(to_name, expression, emit, contex
             called_name=resource_stream_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -792,7 +781,6 @@ def generateOsUnameCallCode(to_name, expression, emit, context):
             to_name=result_name,
             called_name=os_uname_function,
             expression=expression,
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )

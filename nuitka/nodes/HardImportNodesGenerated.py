@@ -205,6 +205,10 @@ class ExpressionCtypesCdllSince38CallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionCtypesCdllBefore38CallBase(
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin,
@@ -267,6 +271,10 @@ class ExpressionCtypesCdllBefore38CallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionImportlibMetadataBackportDistributionRef(
@@ -358,6 +366,10 @@ class ExpressionImportlibMetadataBackportDistributionCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionImportlibMetadataBackportEntryPointsRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -447,6 +459,10 @@ class ExpressionImportlibMetadataBackportEntryPointsCallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionImportlibMetadataBackportMetadataRef(
@@ -538,6 +554,10 @@ class ExpressionImportlibMetadataBackportMetadataCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionImportlibMetadataBackportVersionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -628,6 +648,10 @@ class ExpressionImportlibMetadataBackportVersionCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionImportlibMetadataDistributionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -717,6 +741,10 @@ class ExpressionImportlibMetadataDistributionCallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionImportlibMetadataEntryPointsRef(
@@ -828,6 +856,10 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     ExpressionDictShapeExactMixin, ExpressionBase
@@ -867,6 +899,10 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionImportlibMetadataMetadataRef(
@@ -958,6 +994,10 @@ class ExpressionImportlibMetadataMetadataCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionImportlibMetadataVersionRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -1047,6 +1087,10 @@ class ExpressionImportlibMetadataVersionCallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionImportlibResourcesReadBinaryRef(
@@ -1144,6 +1188,10 @@ class ExpressionImportlibResourcesReadBinaryCallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionImportlibResourcesReadTextRef(
@@ -1250,6 +1298,10 @@ class ExpressionImportlibResourcesReadTextCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionOsPathExistsRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference os.path.exists"""
@@ -1328,6 +1380,10 @@ class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionOsPathIsdirRef(ExpressionImportModuleNameHardExistsSpecificBase):
@@ -1408,6 +1464,10 @@ class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionOsPathIsfileRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference os.path.isfile"""
@@ -1487,6 +1547,10 @@ class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionOsUnameRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference os.uname"""
@@ -1559,6 +1623,10 @@ class ExpressionOsUnameCallBase(ExpressionBase):
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionPkgResourcesGetDistributionRef(
@@ -1649,6 +1717,10 @@ class ExpressionPkgResourcesGetDistributionCallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionPkgResourcesIterEntryPointsRef(
@@ -1747,6 +1819,10 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionPkgResourcesRequireRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -1829,6 +1905,10 @@ class ExpressionPkgResourcesRequireCallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionPkgResourcesResourceStreamRef(
@@ -1927,6 +2007,10 @@ class ExpressionPkgResourcesResourceStreamCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionPkgResourcesResourceStringRef(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -2024,6 +2108,10 @@ class ExpressionPkgResourcesResourceStringCallBase(
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
 
 class ExpressionPkgutilGetDataRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference pkgutil.get_data"""
@@ -2111,3 +2199,7 @@ class ExpressionPkgutilGetDataCallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True

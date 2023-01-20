@@ -196,6 +196,10 @@ class ExpressionBuiltinMakeException(ExpressionBuiltinMakeExceptionBase):
 
         return False
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
 
 class ExpressionBuiltinMakeExceptionImportError(
     ExpressionBuiltinMakeExceptionImportErrorBase
@@ -223,6 +227,10 @@ class ExpressionBuiltinMakeExceptionImportError(
             if arg.mayRaiseException(exception_type):
                 return True
 
+        return False
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
         return False
 
 

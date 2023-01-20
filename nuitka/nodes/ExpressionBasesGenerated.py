@@ -60,6 +60,10 @@ class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
@@ -167,6 +171,10 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
                 )
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 # Assign the names that are easier to import with a stable name.
@@ -326,6 +334,10 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
                 )
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 # Assign the names that are easier to import with a stable name.
@@ -553,6 +565,10 @@ class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointsValueRefBase = (
@@ -762,6 +778,10 @@ class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
 
         return self, None, None
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase = (
@@ -851,6 +871,10 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
             )
 
         return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
 
 
 # Assign the names that are easier to import with a stable name.

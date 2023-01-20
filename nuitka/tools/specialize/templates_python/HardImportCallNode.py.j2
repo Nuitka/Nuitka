@@ -119,3 +119,8 @@ class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
     @abstractmethod
     def replaceWithCompileTimeValue(self, trace_collection):
         pass
+
+    {# TODO: Know this from the spec too, some things won't raise during call. #}
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True

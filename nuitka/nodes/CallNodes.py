@@ -34,7 +34,20 @@ from .ChildrenHavingMixins import (
 from .ExpressionBases import ExpressionBase
 
 
-class ExpressionCall(ChildrenExpressionCallMixin, ExpressionBase):
+class ExpressionCallMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def isExpressionCall():
+        return True
+
+    # TODO: Depending on the called, and arguments we might know better.
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionCall(ExpressionCallMixin, ChildrenExpressionCallMixin, ExpressionBase):
     kind = "EXPRESSION_CALL"
 
     named_children = ("called|setter", "args", "kwargs")
@@ -48,10 +61,6 @@ class ExpressionCall(ChildrenExpressionCallMixin, ExpressionBase):
         )
 
         ExpressionBase.__init__(self, source_ref)
-
-    @staticmethod
-    def isExpressionCall():
-        return True
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called
@@ -70,7 +79,9 @@ class ExpressionCall(ChildrenExpressionCallMixin, ExpressionBase):
         return args.extractSideEffects() + kwargs.extractSideEffects()
 
 
-class ExpressionCallNoKeywords(ChildrenExpressionCallNoKeywordsMixin, ExpressionBase):
+class ExpressionCallNoKeywords(
+    ExpressionCallMixin, ChildrenExpressionCallNoKeywordsMixin, ExpressionBase
+):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
     named_children = ("called|setter", "args")
@@ -96,10 +107,6 @@ class ExpressionCallNoKeywords(ChildrenExpressionCallNoKeywordsMixin, Expression
             trace_collection=trace_collection,
         )
 
-    @staticmethod
-    def isExpressionCall():
-        return True
-
     def extractSideEffectsPreCall(self):
         args = self.subnode_args
 
@@ -107,7 +114,7 @@ class ExpressionCallNoKeywords(ChildrenExpressionCallNoKeywordsMixin, Expression
 
 
 class ExpressionCallKeywordsOnly(
-    ChildrenExpressionCallKeywordsOnlyMixin, ExpressionBase
+    ExpressionCallMixin, ChildrenExpressionCallKeywordsOnlyMixin, ExpressionBase
 ):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
@@ -134,17 +141,15 @@ class ExpressionCallKeywordsOnly(
             trace_collection=trace_collection,
         )
 
-    @staticmethod
-    def isExpressionCall():
-        return True
-
     def extractSideEffectsPreCall(self):
         kwargs = self.subnode_kwargs
 
         return kwargs.extractSideEffects()
 
 
-class ExpressionCallEmpty(ChildrenExpressionCallEmptyMixin, ExpressionBase):
+class ExpressionCallEmpty(
+    ExpressionCallMixin, ChildrenExpressionCallEmptyMixin, ExpressionBase
+):
     kind = "EXPRESSION_CALL_EMPTY"
 
     named_children = ("called|setter",)
@@ -166,10 +171,6 @@ class ExpressionCallEmpty(ChildrenExpressionCallEmptyMixin, ExpressionBase):
             call_kw=None,
             trace_collection=trace_collection,
         )
-
-    @staticmethod
-    def isExpressionCall():
-        return True
 
     @staticmethod
     def extractSideEffectsPreCall():

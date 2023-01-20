@@ -35,6 +35,10 @@ class ExpressionOsUnameCall(
 ):
     kind = "EXPRESSION_OS_UNAME_CALL"
 
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
     def replaceWithCompileTimeValue(self, trace_collection):
         # TODO: The value should be its own runtime constant value type which
         # supports indexing.

@@ -82,7 +82,6 @@ def _generateCallCodePosOnly(
                     called_name=called_name,
                     arg_names=call_arg_names,
                     expression=expression,
-                    needs_check=expression.mayRaiseException(BaseException),
                     emit=emit,
                     context=context,
                 )
@@ -93,7 +92,6 @@ def _generateCallCodePosOnly(
                     called_attribute_name=called_attribute_name,
                     expression=expression,
                     arg_names=call_arg_names,
-                    needs_check=expression.mayRaiseException(BaseException),
                     emit=emit,
                     context=context,
                 )
@@ -104,7 +102,6 @@ def _generateCallCodePosOnly(
                     called_name=called_name,
                     expression=expression,
                     args_value=call_args_value,
-                    needs_check=expression.mayRaiseException(BaseException),
                     emit=emit,
                     context=context,
                 )
@@ -116,7 +113,6 @@ def _generateCallCodePosOnly(
                     expression=expression,
                     arg_tuple=context.getConstantCode(constant=call_args_value),
                     arg_size=len(call_args_value),
-                    needs_check=expression.mayRaiseException(BaseException),
                     emit=emit,
                     context=context,
                 )
@@ -126,7 +122,6 @@ def _generateCallCodePosOnly(
                     to_name=to_name,
                     called_name=called_name,
                     expression=expression,
-                    needs_check=expression.mayRaiseException(BaseException),
                     emit=emit,
                     context=context,
                 )
@@ -136,7 +131,6 @@ def _generateCallCodePosOnly(
                     called_name=called_name,
                     called_attribute_name=called_attribute_name,
                     expression=expression,
-                    needs_check=expression.mayRaiseException(BaseException),
                     emit=emit,
                     context=context,
                 )
@@ -159,7 +153,6 @@ def _generateCallCodePosOnly(
                 called_name=called_name,
                 expression=expression,
                 arg_names=call_arg_names,
-                needs_check=expression.mayRaiseException(BaseException),
                 emit=emit,
                 context=context,
             )
@@ -170,7 +163,6 @@ def _generateCallCodePosOnly(
                 called_attribute_name=called_attribute_name,
                 expression=expression,
                 arg_names=call_arg_names,
-                needs_check=expression.mayRaiseException(BaseException),
                 emit=emit,
                 context=context,
             )
@@ -187,7 +179,6 @@ def _generateCallCodePosOnly(
                 called_name=called_name,
                 expression=expression,
                 args_name=args_name,
-                needs_check=expression.mayRaiseException(BaseException),
                 emit=emit,
                 context=context,
             )
@@ -198,7 +189,6 @@ def _generateCallCodePosOnly(
                 called_attribute_name=called_attribute_name,
                 expression=expression,
                 args_name=args_name,
-                needs_check=expression.mayRaiseException(BaseException),
                 emit=emit,
                 context=context,
             )
@@ -246,6 +236,7 @@ def _getCallCodeKwSplitFromConstant(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, split_name),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -253,7 +244,9 @@ def _getCallCodeKwSplitFromConstant(
     context.addCleanupTempName(to_name)
 
 
-def getCallCodeKwSplit(to_name, called_name, kw_names, dict_value_names, emit, context):
+def getCallCodeKwSplit(
+    to_name, called_name, kw_names, dict_value_names, needs_check, emit, context
+):
     emit(
         """\
 {
@@ -276,6 +269,7 @@ def getCallCodeKwSplit(to_name, called_name, kw_names, dict_value_names, emit, c
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name,) + tuple(dict_value_names),
+        needs_check=needs_check,
         emit=emit,
         context=context,
     )
@@ -284,7 +278,13 @@ def getCallCodeKwSplit(to_name, called_name, kw_names, dict_value_names, emit, c
 
 
 def getCallCodeKwPairs(
-    to_name, expression, pairs, called_name, called_attribute_name, emit, context
+    to_name,
+    expression,
+    pairs,
+    called_name,
+    called_attribute_name,
+    emit,
+    context,
 ):
     assert called_name is not None
     # TODO: Not yet specialized for method calls.
@@ -323,6 +323,7 @@ def getCallCodeKwPairs(
             called_name=called_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            needs_check=expression.mayRaiseExceptionOperation(),
             emit=emit,
             context=context,
         )
@@ -332,7 +333,6 @@ def getCallCodeKwPairs(
             to_name=to_name,
             called_name=called_name,
             expression=expression,
-            needs_check=True,
             emit=emit,
             context=context,
         )
@@ -373,6 +373,7 @@ def _generateCallCodeKwDict(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, kw_dict_name),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -515,7 +516,6 @@ def generateCallCode(to_name, expression, emit, context):
                         called_name=called_name,
                         call_args=call_args.subnode_elements,
                         pairs=call_kw.subnode_pairs,
-                        needs_check=expression.mayRaiseException(BaseException),
                         emit=emit,
                         context=context,
                     )
@@ -545,7 +545,7 @@ def generateCallCode(to_name, expression, emit, context):
                     )
 
 
-def getCallCodeNoArgs(to_name, called_name, expression, needs_check, emit, context):
+def getCallCodeNoArgs(to_name, called_name, expression, emit, context):
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit("%s = CALL_FUNCTION_NO_ARGS(%s);" % (to_name, called_name))
@@ -553,8 +553,8 @@ def getCallCodeNoArgs(to_name, called_name, expression, needs_check, emit, conte
     getErrorExitCode(
         check_name=to_name,
         release_name=called_name,
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
-        needs_check=needs_check,
         context=context,
     )
 
@@ -562,7 +562,7 @@ def getCallCodeNoArgs(to_name, called_name, expression, needs_check, emit, conte
 
 
 def _getInstanceCallCodeNoArgs(
-    to_name, called_name, called_attribute_name, expression, needs_check, emit, context
+    to_name, called_name, called_attribute_name, expression, emit, context
 ):
     emitLineNumberUpdateCode(expression, emit, context)
 
@@ -574,8 +574,8 @@ def _getInstanceCallCodeNoArgs(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, called_attribute_name),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
-        needs_check=needs_check,
         context=context,
     )
 
@@ -594,7 +594,6 @@ def _getInstanceCallCodePosArgsQuick(
     called_attribute_name,
     expression,
     arg_names,
-    needs_check,
     emit,
     context,
 ):
@@ -638,7 +637,7 @@ def _getInstanceCallCodePosArgsQuick(
     getErrorExitCode(
         check_name=to_name,
         release_names=[called_name] + arg_names,
-        needs_check=needs_check,
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -646,9 +645,7 @@ def _getInstanceCallCodePosArgsQuick(
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosArgsQuick(
-    to_name, called_name, arg_names, expression, needs_check, emit, context
-):
+def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, context):
 
     arg_size = len(arg_names)
 
@@ -685,7 +682,7 @@ def getCallCodePosArgsQuick(
     getErrorExitCode(
         check_name=to_name,
         release_names=[called_name] + list(arg_names),
-        needs_check=needs_check,
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -700,7 +697,6 @@ def _getInstanceCallCodeFromTuple(
     expression,
     arg_tuple,
     arg_size,
-    needs_check,
     emit,
     context,
 ):
@@ -742,7 +738,7 @@ def _getInstanceCallCodeFromTuple(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, called_attribute_name),
-        needs_check=needs_check,
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -750,9 +746,7 @@ def _getInstanceCallCodeFromTuple(
     context.addCleanupTempName(to_name)
 
 
-def _getCallCodeFromTuple(
-    to_name, called_name, expression, args_value, needs_check, emit, context
-):
+def _getCallCodeFromTuple(to_name, called_name, expression, args_value, emit, context):
     arg_size = len(args_value)
 
     # For 0 arguments, NOARGS is supposed to be used.
@@ -790,7 +784,7 @@ def _getCallCodeFromTuple(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, args_name),
-        needs_check=needs_check,
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -804,7 +798,6 @@ def _getInstanceCallCodePosArgs(
     called_attribute_name,
     expression,
     args_name,
-    needs_check,
     emit,
     context,
 ):
@@ -818,7 +811,7 @@ def _getInstanceCallCodePosArgs(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, args_name),
-        needs_check=needs_check,
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -826,9 +819,7 @@ def _getInstanceCallCodePosArgs(
     context.addCleanupTempName(to_name)
 
 
-def _getCallCodePosArgs(
-    to_name, called_name, expression, args_name, needs_check, emit, context
-):
+def _getCallCodePosArgs(to_name, called_name, expression, args_name, emit, context):
     emitLineNumberUpdateCode(expression, emit, context)
 
     emit("%s = CALL_FUNCTION_WITH_POSARGS(%s, %s);" % (to_name, called_name, args_name))
@@ -836,7 +827,7 @@ def _getCallCodePosArgs(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, args_name),
-        needs_check=needs_check,
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -914,6 +905,7 @@ def _getCallCodePosConstKeywordVariableArgs(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, args_name) + tuple(dict_value_names),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -922,7 +914,7 @@ def _getCallCodePosConstKeywordVariableArgs(
 
 
 def getCallCodePosVariableKeywordVariableArgs(
-    to_name, expression, called_name, call_args, pairs, needs_check, emit, context
+    to_name, expression, called_name, call_args, pairs, emit, context
 ):
     # Many details for this call variant, pylint: disable=too-many-locals
 
@@ -948,7 +940,6 @@ def getCallCodePosVariableKeywordVariableArgs(
             expression=expression,
             called_name=called_name,
             arg_names=call_arg_names,
-            needs_check=needs_check,
             emit=emit,
             context=context,
         )
@@ -1002,8 +993,8 @@ def getCallCodePosVariableKeywordVariableArgs(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name,) + tuple(call_arg_names) + tuple(dict_value_names),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
-        needs_check=needs_check,
         context=context,
     )
 
@@ -1054,6 +1045,7 @@ def _getCallCodePosConstantKeywordConstArgs(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, vector_name),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )
@@ -1074,6 +1066,7 @@ def _getCallCodePosKeywordArgs(
     getErrorExitCode(
         check_name=to_name,
         release_names=(called_name, call_args_name, call_kw_name),
+        needs_check=expression.mayRaiseExceptionOperation(),
         emit=emit,
         context=context,
     )

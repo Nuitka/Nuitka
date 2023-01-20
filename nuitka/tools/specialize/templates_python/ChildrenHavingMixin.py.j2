@@ -359,6 +359,12 @@ class {{mixin_name}}({{base_class}}):
         return self.computeExpression(trace_collection)
 {% endif %}
 
+{% if is_compute_no_raise %}
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+{% endif %}
+
 {# TODO: Should make it abstract for mere mixins too, but too much work now. #}
 {% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
     @abstractmethod
