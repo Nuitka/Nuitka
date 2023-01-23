@@ -2825,9 +2825,35 @@
         - 'sklearn.utils.sparsetools._graph_tools'
 
 - module-name: 'sound_lib'
-  data-files:
-    dirs:
-      - 'lib'
+  dlls:
+    - from_filenames:
+        relative_path: 'lib/x64'
+        prefixes:
+          - ''
+        suffixes:
+          - 'dylib'
+      when: 'macos'
+    - from_filenames:
+        relative_path: 'lib/x64'
+        prefixes:
+          - ''
+        suffixes:
+          - 'so'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'lib/x64'
+        prefixes:
+          - ''
+        suffixes:
+          - 'dll'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'lib/x86'
+        prefixes:
+          - ''
+        suffixes:
+          - 'dll'
+      when: 'win32 and arch_x86'
 
 - module-name: 'sparse'
   options:
