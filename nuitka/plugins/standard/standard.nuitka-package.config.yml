@@ -1658,6 +1658,12 @@
       change_function:
         'setBreak': "'(lambda self: None)'"
 
+- module-name: 'platform_utils.paths'
+  anti-bloat:
+    - description: 'workaround embedded data files bug'
+      change_function:
+        'embedded_data_path': "'(lambda: app_path())'"
+
 - module-name: 'plotly.graph_objects'
   anti-bloat:
     - description: 'remove IPython reference'
