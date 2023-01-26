@@ -189,6 +189,10 @@ exceeded while calling a Python object' in \
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
             continue
 
+        # This occurs if 32bit libs exist on a 64bit system.
+        if re.match(".*ld: skipping incompatible .* when searching for .*", line):
+            continue
+
         # This is for NetBSD and OpenBSD, which seems to build "libpython" so
         # that it gives such warnings.
         if "() possibly used unsafely" in line or "() is almost always misused" in line:
