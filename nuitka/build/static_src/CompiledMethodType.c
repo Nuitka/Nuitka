@@ -379,12 +379,13 @@ static PyObject *Nuitka_Method_tp_richcompare(struct Nuitka_MethodObject *a, str
         } else if (b->m_object == NULL) {
             b_res = false;
         } else {
-            int res = PyObject_RichCompareBool(a->m_object, b->m_object, Py_EQ);
-            if (unlikely(res < 0)) {
+            nuitka_bool nbool_res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(a->m_object, b->m_object);
+
+            if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
                 return NULL;
             }
 
-            b_res = res != 0;
+            b_res = nbool_res == NUITKA_BOOL_TRUE;
         }
 #else
         b_res = a->m_object == b->m_object;

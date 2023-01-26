@@ -88,7 +88,7 @@ def runCodespell(filenames, verbose, write):
 
             if old_contents != contents:
                 putTextFileContents(filename, contents)
-                cleanupWindowsNewlines(filename)
+                cleanupWindowsNewlines(filename, filename)
 
     if verbose:
         if result != 0:

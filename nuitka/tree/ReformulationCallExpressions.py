@@ -30,9 +30,9 @@ from nuitka.nodes.ContainerMakingNodes import (
 )
 from nuitka.nodes.DictionaryNodes import makeExpressionMakeDictOrConstant
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCall,
-    ExpressionFunctionCreation,
     ExpressionFunctionRef,
+    makeExpressionFunctionCall,
+    makeExpressionFunctionCreation,
 )
 from nuitka.nodes.KeyValuePairNodes import makeExpressionPairs
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
@@ -60,7 +60,7 @@ from .ReformulationDictionaryCreation import buildDictionaryUnpackingArgs
 from .ReformulationSequenceCreation import buildListUnpacking
 from .TreeHelpers import (
     buildNode,
-    buildNodeList,
+    buildNodeTuple,
     getKind,
     makeStatementsSequenceFromStatements,
 )
@@ -82,16 +82,16 @@ def buildCallNode(provider, node, source_ref):
         if getKind(node_arg) == "Starred":
             assert python_version >= 0x350
             list_star_arg = buildListUnpacking(provider, node.args, source_ref)
-            positional_args = []
+            positional_args = ()
             break
     else:
         if node.args and getKind(node.args[-1]) == "Starred":
             assert python_version >= 0x350
 
             list_star_arg = buildNode(provider, node.args[-1].value, source_ref)
-            positional_args = buildNodeList(provider, node.args[:-1], source_ref)
+            positional_args = buildNodeTuple(provider, node.args[:-1], source_ref)
         else:
-            positional_args = buildNodeList(provider, node.args, source_ref)
+            positional_args = buildNodeTuple(provider, node.args, source_ref)
 
     # Only the values of keyword pairs have a real source ref, and those only
     # really matter, so that makes sense.
@@ -123,8 +123,8 @@ def buildCallNode(provider, node, source_ref):
                 ),
             ]
 
-            dict_star_arg = ExpressionFunctionCall(
-                function=ExpressionFunctionCreation(
+            dict_star_arg = makeExpressionFunctionCall(
+                function=makeExpressionFunctionCreation(
                     function_ref=ExpressionFunctionRef(
                         function_body=getFunctionCallHelperDictionaryUnpacking(),
                         source_ref=source_ref,
@@ -138,8 +138,7 @@ def buildCallNode(provider, node, source_ref):
                 source_ref=source_ref,
             )
 
-            outline_body.setChild(
-                "body",
+            outline_body.setChildBody(
                 makeStatementsSequenceFromStatements(
                     makeStatementAssignmentVariable(
                         variable=tmp_called, source=called, source_ref=source_ref
@@ -158,7 +157,7 @@ def buildCallNode(provider, node, source_ref):
                         ),
                         source_ref=source_ref,
                     ),
-                ),
+                )
             )
 
             return outline_body
@@ -290,8 +289,8 @@ def _makeCallNode(
         if dict_star_arg is not None:
             helper_args.append(dict_star_arg)
 
-        result = ExpressionFunctionCall(
-            function=ExpressionFunctionCreation(
+        result = makeExpressionFunctionCall(
+            function=makeExpressionFunctionCreation(
                 function_ref=ExpressionFunctionRef(
                     function_body=get_helper(), source_ref=source_ref
                 ),

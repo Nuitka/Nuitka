@@ -15,11 +15,34 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
-from nuitka.Options import shallMakeModule
+{% macro apply_builtin_extraction(spec_name, call_suffix) %}
+from nuitka.nodes.{{call_node_module_name}} import {{translateNodeClassName("Expression" + module_name_title + function_name_title + call_suffix + "Call")}}
 
+result = extractBuiltinArgs(
+    node=call_node,
+    builtin_class={{translateNodeClassName("Expression" + module_name_title + function_name_title + call_suffix + "Call")}},
+    builtin_spec={{spec_name}},
+)
+
+return (
+    result,
+    "new_expression",
+    "Call to '{{module_name}}.{{function_name}}' recognized.",
+)
+{% endmacro %}
+
+from nuitka.Options import shallMakeModule
+from nuitka.PythonVersions import python_version
 from nuitka.nodes.ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
-from nuitka.specs.HardImportSpecs import {{module_name_code}}_{{function_name_code}}_spec
+from nuitka.specs.HardImportSpecs import (
+{% for spec in specs %}
+    {{spec.spec_name}},
+{% endfor %}
+)
+{% if module_name == "os.path" %}
+import os
+{% endif %}
 
 class Expression{{module_name_title}}{{function_name_title}}Ref(
     ExpressionImportModuleNameHardExistsSpecificBase
@@ -31,9 +54,9 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
     def __init__(self, source_ref):
         ExpressionImportModuleNameHardExistsSpecificBase.__init__(
             self,
-            module_name="{{module_name}}",
+            module_name={%if module_name != 'os.path'%}"{{module_name}}" {% else %} os.path.__name__{% endif %},
             import_name="{{function_name}}",
-            module_guaranteed=not shallMakeModule(),
+            module_guaranteed={% if is_stdlib %}True{% else %}not shallMakeModule(){% endif %},
             source_ref=source_ref,
         )
 
@@ -42,79 +65,13 @@ class Expression{{module_name_title}}{{function_name_title}}Ref(
         # replaced, we might be better but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        from nuitka.nodes.{{call_node_module_name}} import {{call_node_prefix}}Expression{{module_name_title}}{{function_name_title}}Call
-
-        result = extractBuiltinArgs(
-            node=call_node,
-            builtin_class={{call_node_prefix}}Expression{{module_name_title}}{{function_name_title}}Call,
-            builtin_spec={{module_name_code}}_{{function_name_code}}_spec,
-        )
-
-        return (
-            result,
-            "new_expression",
-            "Call to '{{module_name}}.{{function_name}}' recognized.",
-        )
-
-hard_import_node_classes[Expression{{module_name_title}}{{function_name_title}}Ref] = {{module_name_code}}_{{function_name_code}}_spec
-
-from .ExpressionBases import ExpressionBase
-from .ChildrenHavingMixins import ChildrenHaving{{mixin_name}}Mixin
-
-from abc import abstractmethod
-
-class Expression{{module_name_title}}{{function_name_title}}CallBase(ChildrenHaving{{mixin_name}}Mixin, ExpressionBase):
-    """Base class for {{module_name_title}}{{function_name_title}}Call
-
-       Generated boiler plate code.
-    """
-    named_children = {{ parameter_names }}
-
-    __slots__ = ("attempted",)
-
-    def __init__(self,
-{% for parameter_name in parameter_names %}
-                      {{parameter_name}},
-{% endfor %}
-        source_ref):
-
-        ChildrenHaving{{mixin_name}}Mixin.__init__(
-            self,
-{% for parameter_name in parameter_names %}
-            {{parameter_name}} = {{parameter_name}},
-{% endfor %}
-        )
-
-        ExpressionBase.__init__(
-            self,
-            source_ref=source_ref
-        )
-
-        # In module mode, we expect a changing environment, cannot optimize this
-        self.attempted = shallMakeModule()
-
-    def computeExpression(self, trace_collection):
-        if (
-            self.attempted
-            or not {{module_name_code}}_{{function_name_code}}_spec.isCompileTimeComputable(
-{% if argument_names %}
-                (
-{% for argument_name in argument_names %}
-                    self.subnode_{{argument_name}},
-{% endfor %}
-                ),
+{% for spec in specs %}
+{% if spec.python_criterion %}
+        if python_version {{spec.python_criterion}}:
+{{apply_builtin_extraction(spec.spec_name, spec.suffix)| indent(12, True)}}
+{% else %}
+{{apply_builtin_extraction(spec.spec_name, spec.suffix)| indent(8, True)}}
 {% endif %}
-{% if start_list_argument_name %}
-                self.subnode_{{start_list_argument_name}}
-{% endif %}
-            )
-        ):
-            trace_collection.onExceptionRaiseExit(BaseException)
+{% endfor %}
 
-            return self, None, None
-
-        return self.replaceWithCompileTimeValue(trace_collection)
-
-    @abstractmethod
-    def replaceWithCompileTimeValue(self, trace_collection):
-        pass
+hard_import_node_classes[Expression{{module_name_title}}{{function_name_title}}Ref] = {{specs[0].spec_name}}

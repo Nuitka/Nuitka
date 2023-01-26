@@ -73,7 +73,7 @@ def extractDocFromBody(node):
                 doc = body[0].value.value
             body = body[1:]
 
-        if Options.hasPythonFlagNoDocstrings():
+        if Options.hasPythonFlagNoDocStrings():
             doc = None
 
     return body, doc
@@ -368,6 +368,26 @@ def buildNodeList(provider, nodes, source_ref, allow_none=False):
         return []
 
 
+def buildNodeTuple(provider, nodes, source_ref, allow_none=False):
+    if nodes is not None:
+        result = []
+
+        for node in nodes:
+            if hasattr(node, "lineno"):
+                node_source_ref = source_ref.atLineNumber(node.lineno)
+            else:
+                node_source_ref = source_ref
+
+            entry = buildNode(provider, node, node_source_ref, allow_none)
+
+            if entry is not None:
+                result.append(entry)
+
+        return tuple(result)
+    else:
+        return ()
+
+
 _host_node = None
 
 
@@ -423,7 +443,7 @@ def makeModuleFrame(module, statements, source_ref):
             code_name = "<module %s>" % module.getFullName()
 
     return StatementsFrameModule(
-        statements=statements,
+        statements=tuple(statements),
         code_object=CodeObjectSpec(
             co_name=code_name,
             co_qualname=code_name,

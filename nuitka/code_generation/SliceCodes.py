@@ -271,15 +271,15 @@ def generateBuiltinSlice3Code(to_name, expression, emit, context):
     )
 
     with withObjectCodeTemporaryAssignment(
-        to_name, "sliceobj_value", expression, emit, context
+        to_name, "slice_obj_value", expression, emit, context
     ) as result_name:
         emit(
-            "%s = MAKE_SLICEOBJ3(%s, %s, %s);"
+            "%s = MAKE_SLICE_OBJECT3(%s, %s, %s);"
             % (
                 result_name,
-                lower_name if lower_name is not None else "Py_None",
-                upper_name if upper_name is not None else "Py_None",
-                step_name if step_name is not None else "Py_None",
+                lower_name,
+                upper_name,
+                step_name,
             )
         )
 
@@ -300,14 +300,14 @@ def generateBuiltinSlice2Code(to_name, expression, emit, context):
     )
 
     with withObjectCodeTemporaryAssignment(
-        to_name, "sliceobj_value", expression, emit, context
+        to_name, "slice_obj_value", expression, emit, context
     ) as result_name:
         emit(
-            "%s = MAKE_SLICEOBJ2(%s, %s);"
+            "%s = MAKE_SLICE_OBJECT2(%s, %s);"
             % (
                 result_name,
-                lower_name if lower_name is not None else "Py_None",
-                upper_name if upper_name is not None else "Py_None",
+                lower_name,
+                upper_name,
             )
         )
 
@@ -328,13 +328,13 @@ def generateBuiltinSlice1Code(to_name, expression, emit, context):
     )
 
     with withObjectCodeTemporaryAssignment(
-        to_name, "sliceobj_value", expression, emit, context
+        to_name, "slice_obj_value", expression, emit, context
     ) as result_name:
         emit(
-            "%s = MAKE_SLICEOBJ1(%s);"
+            "%s = MAKE_SLICE_OBJECT1(%s);"
             % (
                 result_name,
-                upper_name if upper_name is not None else "Py_None",
+                upper_name,
             )
         )
 

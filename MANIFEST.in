@@ -51,3 +51,6 @@ include tests/plugins/data_files/data_files_package/sub_dir/*.txt
 
 # C templates for code generation.
 recursive-include nuitka/code_generation/templates_c *.j2
+
+# Report templates
+recursive-include nuitka/reports *.j2

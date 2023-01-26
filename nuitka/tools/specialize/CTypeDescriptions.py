@@ -267,7 +267,7 @@ class TypeDescBase(getMetaClassBase("Type")):
         if self.hasSlot("nb_index"):
             return "1"
         elif self.type_name == "object":
-            return "PyIndex_Check(%s)" % operand
+            return "Nuitka_Index_Check(%s)" % operand
         else:
             return "0"
 
@@ -311,7 +311,7 @@ class TypeDescBase(getMetaClassBase("Type")):
             return "1"
 
     def getTypeSubTypeCheckExpression(self, other, type2, type1):
-        return "PyType_IsSubtype(%s, %s)" % (
+        return "Nuitka_Type_IsSubtype(%s, %s)" % (
             other.getTypeValueExpression(None) if other is not object_desc else type2,
             self.getTypeValueExpression(None) if self is not object_desc else type1,
         )
@@ -319,7 +319,7 @@ class TypeDescBase(getMetaClassBase("Type")):
     def getRealSubTypeCheckCode(self, other, type2, type1):
         # Our concrete types, cannot be subtypes of any other type.
         if other is object_desc:
-            return "PyType_IsSubtype(%s, %s)" % (
+            return "Nuitka_Type_IsSubtype(%s, %s)" % (
                 type2,
                 self.getTypeValueExpression(None) if self is not object_desc else type1,
             )
@@ -881,9 +881,9 @@ return %(return_value)s;""" % {
 
             # TODO: This works for small constants only and only for Python3.
             const_name2 = "const_" + namifyConstant(value)
-            const_name3 = (
-                "Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(%d)]" % value
-            )
+            const_name3 = "Nuitka_Long_GetSmallValue(%s)" % value
+
+            assert -5 >= value < 256, value
 
             return """\
 #if PYTHON_VERSION < 0x300
@@ -1415,7 +1415,7 @@ class ObjectDesc(TypeDescBase):
         assert False
 
     def getIndexCheckExpression(self, operand):
-        return "PyIndex_Check(%s)" % operand
+        return "Nuitka_Index_Check(%s)" % operand
 
     def getNewStyleNumberTypeCheckExpression(self, operand):
         return "NEW_STYLE_NUMBER_TYPE(%s)" % operand

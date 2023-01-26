@@ -17,7 +17,7 @@
 #
 """ Nodes representing more trusted imports. """
 
-from nuitka.importing.Importing import locateModule
+from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ExpressionBases import ExpressionBase
@@ -26,17 +26,22 @@ from .ExpressionBases import ExpressionBase
 class ExpressionImportHardBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
     #
-    __slots__ = ("module_name", "finding", "module_filename")
+    __slots__ = ("module_name", "finding", "module_kind", "module_filename")
 
     def __init__(self, module_name, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.module_name = ModuleName(module_name)
 
         self.finding = None
         self.module_filename = None
 
-        _module_name, self.module_filename, self.finding = locateModule(
+        (
+            _module_name,
+            self.module_filename,
+            self.module_kind,
+            self.finding,
+        ) = locateModule(
             module_name=self.module_name,
             parent_package=None,
             level=0,
@@ -46,8 +51,15 @@ class ExpressionImportHardBase(ExpressionBase):
         assert self.finding != "not-found", self.module_name
         assert _module_name == self.module_name, _module_name
 
-    def getUsedModule(self):
-        return self.module_name, self.module_filename, self.finding
+    def getUsedModules(self):
+        yield makeModuleUsageAttempt(
+            module_name=self.module_name,
+            filename=self.module_filename,
+            module_kind=self.module_kind,
+            finding=self.finding,
+            level=0,
+            source_ref=self.source_ref,
+        )
 
 
 class ExpressionImportModuleNameHardBase(ExpressionImportHardBase):

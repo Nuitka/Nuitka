@@ -1,0 +1,126 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+from .ExpressionBases import ExpressionBase
+{% if mixin_name %}
+from .ChildrenHavingMixins import {{mixin_name}}
+{% endif %}
+from abc import abstractmethod
+
+{% for extra_mixin in extra_mixins %}
+from {{extra_mixin.rsplit(".", 1)[0]}} import {{extra_mixin.rsplit(".", 1)[1]}}
+{% endfor %}
+
+class Expression{{module_name_title}}{{function_name_title}}{{suffix}}CallBase(
+{% for extra_mixin in extra_mixins %}
+    {{extra_mixin.rsplit(".", 1)[1]}},
+{% endfor %}
+{% if mixin_name %}
+    {{mixin_name}},
+{% endif %}
+    ExpressionBase
+):
+    """Base class for {{module_name_title}}{{function_name_title}}Call
+
+       Generated boiler plate code.
+    """
+{% if python_criterion %}
+    python_version_spec = "{{python_criterion}}"
+{% endif %}
+
+{% if mixin_name %}
+    named_children = (
+{% for named_child in named_children %}
+{% if named_child in named_children_types %}
+        "{{named_child}}|{{named_children_types[named_child]}}",
+{% else %}
+        "{{named_child}}",
+{% endif %}
+{% endfor %}
+    )
+{% endif %}
+
+    __slots__ = ("attempted",)
+
+    spec = {{spec_name}}
+
+    def __init__(self,
+{% for named_child in named_children %}
+                      {{named_child}},
+{% endfor %}
+        source_ref):
+
+{% if mixin_name %}
+        {{mixin_name}}.__init__(
+            self,
+{% for named_child in named_children %}
+            {{named_child}} = {{named_child}},
+{% endfor %}
+        )
+{% endif %}
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+
+{% if not mixin_name %}
+    def finalize(self):
+        del self.parent
+{% endif %}
+
+{% if mixin_name %}
+    def computeExpression(self, trace_collection):
+{% else %}
+    def computeExpressionRaw(self, trace_collection):
+{% endif %}
+        if (
+            self.attempted
+{% if mixin_name %}
+            or not {{spec_name}}.isCompileTimeComputable(
+                (
+{% for argument_name in argument_names %}
+                    self.subnode_{{argument_name}},
+{% endfor %}
+                )
+{% if star_list_argument_name %}
+                + self.subnode_{{star_list_argument_name}}
+{% endif %}
+{% if star_dict_argument_name %}
+                + self.subnode_{{star_dict_argument_name}}
+{% endif %}
+            )
+{% endif %}
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    {# TODO: Know this from the spec too, some things won't raise during call. #}
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True

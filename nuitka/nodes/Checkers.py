@@ -24,7 +24,11 @@ types only.
 
 
 def checkStatementsSequenceOrNone(value):
-    assert value is None or value.kind == "STATEMENTS_SEQUENCE", value
+    if value is not None:
+        assert value.kind == "STATEMENTS_SEQUENCE", value
+
+        if not value.subnode_statements:
+            return None
 
     return value
 
@@ -33,3 +37,17 @@ def checkStatementsSequence(value):
     assert value is not None and value.kind == "STATEMENTS_SEQUENCE", value
 
     return value
+
+
+def convertNoneConstantToNone(node):
+    if node is None or node.isExpressionConstantNoneRef():
+        return None
+    else:
+        return node
+
+
+def convertEmptyStrConstantToNone(node):
+    if node is None or node.isExpressionConstantStrEmptyRef():
+        return None
+    else:
+        return node

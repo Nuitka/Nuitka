@@ -27,10 +27,8 @@ quickly, in others they will present boundaries for optimization.
 
 """
 
-from .ExpressionBases import (
-    CompileTimeConstantExpressionBase,
-    ExpressionChildHavingBase,
-)
+from .ChildrenHavingMixins import ChildHavingValueMixin
+from .ExpressionBases import CompileTimeConstantExpressionBase, ExpressionBase
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import makeConstantReplacementNode
 
@@ -49,7 +47,7 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
     __slots__ = ("function_body",)
 
     def __init__(self, function_body, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+        CompileTimeConstantExpressionBase.__init__(self, source_ref)
 
         self.function_body = function_body
 
@@ -76,7 +74,7 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
 
 
 class ExpressionFunctionErrorStr(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ChildHavingValueMixin, ExpressionBase
 ):
     """Node for value "_PyObject_FunctionStr" C-API of function or callable in general.
 
@@ -87,10 +85,12 @@ class ExpressionFunctionErrorStr(
 
     kind = "EXPRESSION_FUNCTION_ERROR_STR"
 
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)

@@ -26,30 +26,25 @@ other nodes.
 
 from nuitka.PythonVersions import python_version
 
+from .ChildrenHavingMixins import ChildrenHavingExpressionSubscriptMixin
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
-from .NodeBases import (
-    SideEffectsFromChildrenMixin,
-    StatementChildrenHavingBase,
-)
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     makeRaiseExceptionExpressionFromTemplate,
     wrapExpressionWithNodeSideEffects,
 )
+from .StatementBasesGenerated import (
+    StatementAssignmentSubscriptBase,
+    StatementDelSubscriptBase,
+)
 
 
-class StatementAssignmentSubscript(StatementChildrenHavingBase):
+class StatementAssignmentSubscript(StatementAssignmentSubscriptBase):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
     named_children = ("source", "subscribed", "subscript")
-
-    def __init__(self, subscribed, subscript, source, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"source": source, "subscribed": subscribed, "subscript": subscript},
-            source_ref=source_ref,
-        )
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -71,17 +66,10 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
         return "subscript assignment statement"
 
 
-class StatementDelSubscript(StatementChildrenHavingBase):
+class StatementDelSubscript(StatementDelSubscriptBase):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
     named_children = ("subscribed", "subscript")
-
-    def __init__(self, subscribed, subscript, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"subscribed": subscribed, "subscript": subscript},
-            source_ref=source_ref,
-        )
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -102,17 +90,19 @@ class StatementDelSubscript(StatementChildrenHavingBase):
         return "subscript del statement"
 
 
-class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
+class ExpressionSubscriptLookup(ChildrenHavingExpressionSubscriptMixin, ExpressionBase):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
     named_children = ("expression", "subscript")
 
     def __init__(self, expression, subscript, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingExpressionSubscriptMixin.__init__(
             self,
-            values={"expression": expression, "subscript": subscript},
-            source_ref=source_ref,
+            expression=expression,
+            subscript=subscript,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         return self.subnode_expression.computeExpressionSubscript(
@@ -157,18 +147,21 @@ def hasSubscript(value, subscript):
 class ExpressionSubscriptCheck(
     ExpressionBoolShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildrenHavingBase,
+    ChildrenHavingExpressionSubscriptMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_SUBSCRIPT_CHECK"
 
     named_children = ("expression", "subscript")
 
     def __init__(self, expression, subscript, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingExpressionSubscriptMixin.__init__(
             self,
-            values={"expression": expression, "subscript": subscript},
-            source_ref=source_ref,
+            expression=expression,
+            subscript=subscript,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more

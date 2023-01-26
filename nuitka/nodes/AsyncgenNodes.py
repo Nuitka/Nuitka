@@ -22,28 +22,26 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionNoSideEffectsMixin,
-)
+from .ChildrenHavingMixins import ChildHavingAsyncgenRefMixin
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
 class ExpressionMakeAsyncgenObject(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    ExpressionNoSideEffectsMixin, ChildHavingAsyncgenRefMixin, ExpressionBase
 ):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
-    named_child = "asyncgen_ref"
+    named_children = ("asyncgen_ref",)
 
     __slots__ = ("variable_closure_traces",)
 
     def __init__(self, asyncgen_ref, source_ref):
         assert asyncgen_ref.getFunctionBody().isExpressionAsyncgenObjectBody()
 
-        ExpressionChildHavingBase.__init__(
-            self, value=asyncgen_ref, source_ref=source_ref
-        )
+        ChildHavingAsyncgenRefMixin.__init__(self, asyncgen_ref=asyncgen_ref)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable_closure_traces = []
 

@@ -79,36 +79,6 @@ def importFileAsModule(filename):
         return _importFilePy3NewWay(filename)
 
 
-_all_suffixes = None
-
-
-def getAllModuleSuffixes():
-    # Using global here, as this is for caching only
-    # pylint: disable=global-statement
-    global _all_suffixes
-
-    if _all_suffixes is None:
-        if python_version < 0x300:
-            import imp
-
-            _all_suffixes = []
-
-            for suffix, _mode, _module_type in imp.get_suffixes():
-                _all_suffixes.append(suffix)
-        else:
-            import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
-
-            _all_suffixes = (
-                importlib.machinery.EXTENSION_SUFFIXES
-                + importlib.machinery.SOURCE_SUFFIXES
-                + importlib.machinery.BYTECODE_SUFFIXES
-            )
-
-        _all_suffixes = tuple(_all_suffixes)
-
-    return _all_suffixes
-
-
 _shared_library_suffixes = None
 
 

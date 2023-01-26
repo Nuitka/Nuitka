@@ -186,7 +186,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
     if (tp_as_mapping != NULL && tp_as_mapping->mp_subscript != NULL) {
         return tp_as_mapping->mp_subscript(source, subscript);
     } else if (HAS_SEQUENCE_ITEM_SLOT(type)) {
-        if (PyIndex_Check(subscript)) {
+        if (Nuitka_Index_Check(subscript)) {
             Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
 
             if (index == -1 && ERROR_OCCURRED()) {
@@ -369,7 +369,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_SUBSCRIPT(PyObject *source, PyObject *subsc
         Py_XDECREF(result);
         return bool_result;
     } else if (type->tp_as_sequence != NULL) {
-        if (PyIndex_Check(subscript)) {
+        if (Nuitka_Index_Check(subscript)) {
             Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
 
             if (index == -1 && ERROR_OCCURRED()) {
@@ -457,7 +457,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject 
             return true;
         }
     } else if (Py_TYPE(target)->tp_as_sequence) {
-        if (PyIndex_Check(subscript)) {
+        if (Nuitka_Index_Check(subscript)) {
             Py_ssize_t key_value = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
 
             if (key_value == -1) {
@@ -502,7 +502,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT(PyObject *target, PyObject *subsc
             return false;
         }
     } else if (Py_TYPE(target)->tp_as_sequence) {
-        if (PyIndex_Check(subscript)) {
+        if (Nuitka_Index_Check(subscript)) {
             Py_ssize_t key_value = PyNumber_AsSsize_t(subscript, PyExc_IndexError);
 
             if (key_value == -1) {

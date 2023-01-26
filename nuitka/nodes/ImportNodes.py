@@ -32,9 +32,9 @@ import sys
 from nuitka.__past__ import long, unicode, xrange
 from nuitka.code_generation.Reports import onMissingTrust
 from nuitka.importing.Importing import (
-    getModuleNameAndKindFromFilename,
     isPackageDir,
     locateModule,
+    makeModuleUsageAttempt,
 )
 from nuitka.importing.ImportResolving import resolveModuleName
 from nuitka.importing.Recursion import decideRecursion
@@ -57,16 +57,13 @@ from nuitka.Tracing import unusual_logger
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Utils import isWin32Windows
 
-from .ConstantRefNodes import (
-    ExpressionConstantSysVersionInfoRef,
-    makeConstantRefNode,
+from .ChildrenHavingMixins import (
+    ChildHavingModuleMixin,
+    ChildrenExpressionBuiltinImportMixin,
+    ChildrenExpressionImportlibImportModuleCallMixin,
 )
-from .CtypesNodes import ExpressionCtypesCdllRef
-from .ExpressionBases import (
-    ExpressionBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-)
+from .ConstantRefNodes import ExpressionConstantSysVersionInfoRef
+from .ExpressionBases import ExpressionBase
 from .ImportHardNodes import (
     ExpressionImportHardBase,
     ExpressionImportModuleNameHardExists,
@@ -74,23 +71,13 @@ from .ImportHardNodes import (
     ExpressionImportModuleNameHardMaybeExists,
 )
 from .LocalsScopes import GlobalsDictHandle
-from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeRaiseExceptionReplacementExpression,
     makeRaiseImportErrorReplacementExpression,
 )
-from .PackageResourceNodes import (
-    ExpressionImportlibResourcesReadBinaryRef,
-    ExpressionImportlibResourcesReadTextRef,
-    ExpressionOsPathExistsRef,
-    ExpressionOsPathIsdirRef,
-    ExpressionOsPathIsfileRef,
-    ExpressionOsUnameRef,
-    ExpressionPkglibGetDataRef,
-    ExpressionPkgResourcesResourceStreamRef,
-    ExpressionPkgResourcesResourceStringRef,
-)
 from .shapes.BuiltinTypeShapes import tshape_module, tshape_module_builtin
+from .StatementBasesGenerated import StatementImportStarBase
 
 # These module are supported in code generation to be imported the hard way.
 hard_modules = frozenset(
@@ -224,17 +211,7 @@ module_typing_trust = {
 module_os_trust = {"name": trust_constant}
 
 module_os_path_trust = {"exists": trust_node, "isfile": trust_node, "isdir": trust_node}
-trust_node_factory[(os.path.__name__, "exists")] = ExpressionOsPathExistsRef
-trust_node_factory[(os.path.__name__, "isfile")] = ExpressionOsPathIsfileRef
-trust_node_factory[(os.path.__name__, "isdir")] = ExpressionOsPathIsdirRef
 
-
-if isWin32Windows():
-    module_os_trust["uname"] = trust_not_exist
-else:
-    module_os_trust["uname"] = trust_node
-
-    trust_node_factory[("os", "uname")] = ExpressionOsUnameRef
 
 module_ctypes_trust = {"CDLL": trust_node}
 
@@ -254,12 +231,14 @@ hard_modules_trust = {
         "version": trust_node,
         "distribution": trust_node,
         "metadata": trust_node,
+        "entry_points": trust_node,
         "PackageNotFoundError": trust_exist,
     },
     "importlib_metadata": {
         "version": trust_node,
         "distribution": trust_node,
         "metadata": trust_node,
+        "entry_points": trust_node,
         "PackageNotFoundError": trust_exist,
     },
     "_frozen_importlib": {},
@@ -290,26 +269,20 @@ def _addHardImportNodeClasses():
     for hard_import_node_class, spec in hard_import_node_classes.items():
         module_name, function_name = spec.name.rsplit(".", 1)
 
+        if module_name in hard_modules_aliases:
+            module_name = hard_modules_aliases.get(module_name)
+
         trust_node_factory[(module_name, function_name)] = hard_import_node_class
+
+        # hard_modules_trust[module_name][function_name] = trust_node
 
 
 _addHardImportNodeClasses()
 
-trust_node_factory[("pkgutil", "get_data")] = ExpressionPkglibGetDataRef
-
-trust_node_factory[
-    ("pkg_resources", "resource_string")
-] = ExpressionPkgResourcesResourceStringRef
-trust_node_factory[
-    ("pkg_resources", "resource_stream")
-] = ExpressionPkgResourcesResourceStreamRef
-trust_node_factory[
-    ("importlib.resources", "read_binary")
-] = ExpressionImportlibResourcesReadBinaryRef
-trust_node_factory[
-    ("importlib.resources", "read_text")
-] = ExpressionImportlibResourcesReadTextRef
-trust_node_factory[("ctypes", "CDLL")] = ExpressionCtypesCdllRef
+# Remove this one again, not available on Windows, but the node generation does
+# not know that.
+if isWin32Windows():
+    module_os_trust["uname"] = trust_not_exist
 
 
 def _checkHardModules():
@@ -364,7 +337,7 @@ def isHardModuleWithoutSideEffect(module_name):
 
 
 class ExpressionImportAllowanceMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -373,14 +346,10 @@ class ExpressionImportAllowanceMixin(object):
         elif self.finding == "built-in":
             self.allowed = True
         else:
-            _module_name, module_kind = getModuleNameAndKindFromFilename(
-                self.module_filename
-            )
-
             self.allowed, _reason = decideRecursion(
                 module_filename=self.module_filename,
                 module_name=self.module_name,
-                module_kind=module_kind,
+                module_kind=self.module_kind,
             )
 
             # In case of hard imports, that are not forbidden explicitly, allow their use
@@ -402,12 +371,13 @@ class ExpressionImportModuleFixed(ExpressionBase):
         "module_name",
         "found_module_name",
         "found_module_filename",
+        "module_kind",
         "finding",
         "allowance",
     )
 
     def __init__(self, module_name, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.module_name = ModuleName(module_name)
 
@@ -417,11 +387,13 @@ class ExpressionImportModuleFixed(ExpressionBase):
         (
             self.found_module_name,
             self.found_module_filename,
+            self.module_kind,
             self.finding,
         ) = self._attemptFollow()
 
+    # TODO: This is called in constructor only, is it, then inline it.
     def _attemptFollow(self):
-        found_module_name, found_module_filename, finding = locateModule(
+        found_module_name, found_module_filename, module_kind, finding = locateModule(
             module_name=self.module_name,
             parent_package=None,
             level=0,
@@ -434,7 +406,12 @@ class ExpressionImportModuleFixed(ExpressionBase):
                 if module_name is None:
                     break
 
-                found_module_name, found_module_filename, finding = locateModule(
+                (
+                    found_module_name,
+                    found_module_filename,
+                    module_kind,
+                    finding,
+                ) = locateModule(
                     module_name=module_name,
                     parent_package=None,
                     level=0,
@@ -443,7 +420,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
                 if self.finding != "not-found":
                     break
 
-        return found_module_name, found_module_filename, finding
+        return found_module_name, found_module_filename, module_kind, finding
 
     def finalize(self):
         del self.parent
@@ -470,8 +447,15 @@ class ExpressionImportModuleFixed(ExpressionBase):
         else:
             return tshape_module
 
-    def getUsedModule(self):
-        return self.found_module_name, self.found_module_filename, self.finding
+    def getUsedModules(self):
+        yield makeModuleUsageAttempt(
+            module_name=self.found_module_name,
+            filename=self.found_module_filename,
+            finding=self.finding,
+            module_kind=self.module_kind,
+            level=0,
+            source_ref=self.source_ref,
+        )
 
     def computeExpressionRaw(self, trace_collection):
         if self.mayRaiseException(BaseException):
@@ -702,9 +686,9 @@ class ExpressionImportModuleHard(
                     assert hasattr(self.module, attribute_name), self
 
                     return (
-                        makeConstantRefNode(
+                        makeConstantReplacementNode(
                             constant=getattr(self.module, attribute_name),
-                            source_ref=lookup_node.getSourceReference(),
+                            node=lookup_node,
                             user_provided=True,
                         ),
                         "new_constant",
@@ -807,17 +791,23 @@ def _getImportNameAsStr(value):
     return result
 
 
-class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
+class ExpressionImportlibImportModuleCall(
+    ChildrenExpressionImportlibImportModuleCallMixin, ExpressionBase
+):
     """Call to "importlib.import_module" """
 
     kind = "EXPRESSION_IMPORTLIB_IMPORT_MODULE_CALL"
 
-    named_children = "name", "package"
+    named_children = "name", "package|optional"
 
     def __init__(self, name, package, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"name": name, "package": package}, source_ref=source_ref
+        ChildrenExpressionImportlibImportModuleCallMixin.__init__(
+            self,
+            name=name,
+            package=package,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def _resolveImportLibArgs(module_name, package_name):
@@ -888,6 +878,8 @@ class ExpressionImportlibImportModuleCall(ExpressionChildrenHavingBase):
                         % resolved_module_name,
                     )
 
+        # TODO: This is special for this node, need to support for for call base of hard imports
+
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
 
@@ -904,7 +896,7 @@ module_importlib_trust["import_module"] = trust_node
 trust_node_factory[("importlib", "import_module")] = ExpressionImportlibImportModuleRef
 
 
-class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
+class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBase):
     __slots__ = (
         "follow_attempted",
         "finding",
@@ -915,20 +907,25 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
-    named_children = ("name", "globals_arg", "locals_arg", "fromlist", "level")
+    named_children = (
+        "name|setter",
+        "globals_arg|optional",
+        "locals_arg|optional",
+        "fromlist|optional",
+        "level|optional",
+    )
 
     def __init__(self, name, globals_arg, locals_arg, fromlist, level, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinImportMixin.__init__(
             self,
-            values={
-                "name": name,
-                "globals_arg": globals_arg,
-                "locals_arg": locals_arg,
-                "fromlist": fromlist,
-                "level": level,
-            },
-            source_ref=source_ref,
+            name=name,
+            globals_arg=globals_arg,
+            locals_arg=locals_arg,
+            fromlist=fromlist,
+            level=level,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.follow_attempted = False
 
@@ -943,7 +940,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         self.finding = None
 
     def _attemptFollow(self, module_name):
-        # Complex stuff, pylint: disable=too-many-branches
+        # Complex stuff, pylint: disable=too-many-branches,too-many-locals
 
         parent_module = self.getParentModule()
 
@@ -964,14 +961,36 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if type(level) not in (int, long):
             return None
 
-        module_name, module_filename, self.finding = locateModule(
+        module_name_resolved = resolveModuleName(module_name)
+        if module_name_resolved != module_name:
+            module_name = module_name_resolved
+
+            self.setChildName(
+                makeConstantReplacementNode(
+                    constant=module_name.asString(),
+                    node=self.subnode_name,
+                    user_provided=True,
+                )
+            )
+
+        module_name, module_filename, module_kind, self.finding = locateModule(
             module_name=resolveModuleName(module_name),
             parent_package=parent_package,
             level=level,
         )
 
+        self.used_modules = [
+            makeModuleUsageAttempt(
+                module_name=module_name,
+                filename=module_filename,
+                module_kind=module_kind,
+                finding=self.finding,
+                level=level,
+                source_ref=self.source_ref,
+            )
+        ]
+
         if self.finding != "not-found":
-            self.used_modules = [(module_name, module_filename, self.finding, level)]
             import_list = self.subnode_fromlist
 
             if import_list is not None:
@@ -993,6 +1012,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                     (
                         name_import_module_name,
                         name_import_module_filename,
+                        name_import_module_kind,
                         name_import_finding,
                     ) = locateModule(
                         module_name=ModuleName(import_item),
@@ -1000,15 +1020,16 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                         level=1,  # Relative import
                     )
 
-                    if name_import_module_filename is not None:
-                        self.used_modules.append(
-                            (
-                                name_import_module_name,
-                                name_import_module_filename,
-                                name_import_finding,
-                                1,
-                            )
+                    self.used_modules.append(
+                        makeModuleUsageAttempt(
+                            module_name=name_import_module_name,
+                            filename=name_import_module_filename,
+                            module_kind=name_import_module_kind,
+                            finding=name_import_finding,
+                            level=1,
+                            source_ref=self.source_ref,
                         )
+                    )
 
             return module_filename
         else:
@@ -1017,19 +1038,33 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             while True:
                 module_name = module_name.getPackageName()
 
-                if module_name is None:
+                if not module_name:
                     break
 
-                module_name_found, module_filename, finding = locateModule(
+                (
+                    _module_name_found,
+                    module_filename,
+                    module_kind,
+                    finding,
+                ) = locateModule(
                     module_name=module_name,
                     parent_package=parent_package,
                     level=level,
                 )
 
-                if module_filename is not None:
-                    self.used_modules = [
-                        (module_name_found, module_filename, finding, level)
-                    ]
+                self.used_modules.append(
+                    makeModuleUsageAttempt(
+                        module_name=module_name,
+                        filename=module_filename,
+                        module_kind=module_kind,
+                        finding=finding,
+                        level=level,
+                        source_ref=self.source_ref,
+                    )
+                )
+
+                if finding != "not-found":
+                    break
 
             return None
 
@@ -1175,30 +1210,22 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         return self.type_shape
 
 
-class StatementImportStar(StatementChildHavingBase):
+class StatementImportStar(StatementImportStarBase):
     kind = "STATEMENT_IMPORT_STAR"
 
-    named_child = "module"
+    named_children = ("module",)
+    node_attributes = ("target_scope",)
+    auto_compute_handling = "post_init,operation"
 
-    __slots__ = ("target_scope",)
-
-    def __init__(self, target_scope, module_import, source_ref):
-        StatementChildHavingBase.__init__(
-            self, value=module_import, source_ref=source_ref
-        )
-
-        self.target_scope = target_scope
-
-        # TODO: Abstract these things.
+    def postInitNode(self):
+        # TODO: Abstract these things in some better way, and do not make it permanent.
         if type(self.target_scope) is GlobalsDictHandle:
             self.target_scope.markAsEscaped()
 
     def getTargetDictScope(self):
         return self.target_scope
 
-    def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.subnode_module)
-
+    def computeStatementOperation(self, trace_collection):
         trace_collection.onLocalsDictEscaped(self.target_scope)
 
         # Need to invalidate everything, and everything could be assigned to
@@ -1222,15 +1249,17 @@ class StatementImportStar(StatementChildHavingBase):
         return "star import statement"
 
 
-class ExpressionImportName(ExpressionChildHavingBase):
+class ExpressionImportName(ChildHavingModuleMixin, ExpressionBase):
     kind = "EXPRESSION_IMPORT_NAME"
 
-    named_child = "module"
+    named_children = ("module",)
 
     __slots__ = ("import_name", "level")
 
     def __init__(self, module, import_name, level, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=module, source_ref=source_ref)
+        ChildHavingModuleMixin.__init__(self, module=module)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.import_name = import_name
         self.level = level

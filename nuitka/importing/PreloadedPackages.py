@@ -93,6 +93,29 @@ def isPreloadedPackagePath(path):
     return False
 
 
+def _considerPthImportedPackage(module_name):
+    if module_name in ("os", "sys"):
+        return None
+
+    if module_name.startswith("__editable__"):
+        finder_module = __import__(module_name)
+
+        paths = set()
+
+        mapping = getattr(finder_module, "MAPPING", {})
+        for package_name, path in mapping.items():
+            if os.path.basename(path) != package_name:
+                continue
+
+            paths.add(os.path.dirname(path))
+
+        sys.path.extend(sorted(paths))
+
+        return None
+
+    return module_name
+
+
 def detectPthImportedPackages():
     if not hasattr(sys.modules["site"], "getsitepackages"):
         return ()
@@ -112,9 +135,10 @@ def detectPthImportedPackages():
                                 line = line[: line.find(";")]
 
                             for part in line[7:].split(","):
-                                pth_import = part.strip()
+                                pth_import = _considerPthImportedPackage(part.strip())
 
-                                pth_imports.add(pth_import)
+                                if pth_import is not None:
+                                    pth_imports.add(pth_import)
                 except OSError:
                     recursion_logger.warning(
                         "Python installation problem, cannot read file '%s'."

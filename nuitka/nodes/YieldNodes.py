@@ -27,17 +27,22 @@ dedicated node to save a bit of memory.
 
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ChildrenHavingMixins import ChildHavingExpressionMixin
+from .ExpressionBases import ExpressionBase
 
 
-class ExpressionYieldBase(ExpressionChildHavingBase):
+class ExpressionYieldBase(ChildHavingExpressionMixin, ExpressionBase):
+    named_children = ("expression",)
+
     if python_version >= 0x300:
         __slots__ = ("exception_preserving",)
     else:
         __slots__ = ()
 
-    def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+    def __init__(self, expression, source_ref):
+        ChildHavingExpressionMixin.__init__(self, expression=expression)
+
+        ExpressionBase.__init__(self, source_ref)
 
         if python_version >= 0x300:
             self.exception_preserving = False
@@ -82,11 +87,6 @@ class ExpressionYield(ExpressionYieldBase):
 
     kind = "EXPRESSION_YIELD"
 
-    named_child = "expression"
-
-    def __init__(self, expression, source_ref):
-        ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
-
 
 class ExpressionYieldFrom(ExpressionYieldBase):
     """Yielding from an expression.
@@ -103,11 +103,6 @@ class ExpressionYieldFrom(ExpressionYieldBase):
 
     kind = "EXPRESSION_YIELD_FROM"
 
-    named_child = "expression"
-
-    def __init__(self, expression, source_ref):
-        ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)
-
 
 class ExpressionYieldFromWaitable(ExpressionYieldBase):
     """Yielding from an expression.
@@ -122,8 +117,3 @@ class ExpressionYieldFromWaitable(ExpressionYieldBase):
     """
 
     kind = "EXPRESSION_YIELD_FROM_WAITABLE"
-
-    named_child = "expression"
-
-    def __init__(self, expression, source_ref):
-        ExpressionYieldBase.__init__(self, value=expression, source_ref=source_ref)

@@ -22,31 +22,30 @@
 from nuitka.specs.BuiltinParameterSpecs import builtin_dict_spec
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
+from .ChildrenHavingMixins import ChildrenHavingPosArgOptionalPairsTupleMixin
 from .DictionaryNodes import makeExpressionMakeDict
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 
 class ExpressionBuiltinDict(
-    ExpressionDictShapeExactMixin, ExpressionChildrenHavingBase
+    ExpressionDictShapeExactMixin,
+    ChildrenHavingPosArgOptionalPairsTupleMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_BUILTIN_DICT"
 
-    named_children = ("pos_arg", "pairs")
+    named_children = ("pos_arg|optional", "pairs|tuple")
 
     def __init__(self, pos_arg, pairs, source_ref):
-        assert type(pos_arg) not in (tuple, list), source_ref
-        assert type(pairs) in (tuple, list), source_ref
-
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingPosArgOptionalPairsTupleMixin.__init__(
             self,
-            values={
-                "pos_arg": pos_arg,
-                "pairs": pairs,
-            },
-            source_ref=source_ref,
+            pos_arg=pos_arg,
+            pairs=pairs,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def hasOnlyConstantArguments(self):
         pos_arg = self.subnode_pos_arg

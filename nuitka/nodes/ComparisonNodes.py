@@ -23,7 +23,8 @@ from nuitka import PythonOperators
 from nuitka.Errors import NuitkaAssumptionError
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ChildrenHavingMixins import ChildrenHavingLeftRightMixin
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
@@ -34,13 +35,17 @@ from .shapes.BuiltinTypeShapes import tshape_bool, tshape_exception_class
 from .shapes.StandardShapes import tshape_unknown
 
 
-class ExpressionComparisonBase(ExpressionChildrenHavingBase):
+class ExpressionComparisonBase(ChildrenHavingLeftRightMixin, ExpressionBase):
     named_children = ("left", "right")
 
     def __init__(self, left, right, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"left": left, "right": right}, source_ref=source_ref
+        ChildrenHavingLeftRightMixin.__init__(
+            self,
+            left=left,
+            right=right,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def copyTraceStateFrom(source):
@@ -534,16 +539,21 @@ class ExpressionComparisonExceptionMatchBase(
             or self.mayRaiseExceptionComparison()
         )
 
-    def mayRaiseExceptionComparison(self):
-        if python_version < 0x300:
+    if python_version < 0x300:
+
+        @staticmethod
+        def mayRaiseExceptionComparison():
             return False
 
-        type_shape = self.subnode_right.getTypeShape()
+    else:
 
-        if type_shape is tshape_exception_class:
-            return False
+        def mayRaiseExceptionComparison(self):
+            type_shape = self.subnode_right.getTypeShape()
 
-        return True
+            if type_shape is tshape_exception_class:
+                return False
+
+            return True
 
 
 class ExpressionComparisonExceptionMatch(ExpressionComparisonExceptionMatchBase):

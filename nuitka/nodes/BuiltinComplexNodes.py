@@ -20,23 +20,28 @@
 """
 from nuitka.specs import BuiltinParameterSpecs
 
+from .ChildrenHavingMixins import (
+    ChildHavingValueMixin,
+    ChildrenHavingRealOptionalImagMixin,
+)
 from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+    ExpressionBase,
     ExpressionSpecBasedComputationMixin,
 )
 from .ExpressionShapeMixins import ExpressionComplexShapeExactMixin
 
 
 class ExpressionBuiltinComplex1(
-    ExpressionComplexShapeExactMixin, ExpressionChildHavingBase
+    ExpressionComplexShapeExactMixin, ChildHavingValueMixin, ExpressionBase
 ):
     kind = "EXPRESSION_BUILTIN_COMPLEX1"
 
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.subnode_value
@@ -49,18 +54,23 @@ class ExpressionBuiltinComplex1(
 class ExpressionBuiltinComplex2(
     ExpressionSpecBasedComputationMixin,
     ExpressionComplexShapeExactMixin,
-    ExpressionChildrenHavingBase,
+    ChildrenHavingRealOptionalImagMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_BUILTIN_COMPLEX2"
 
-    named_children = ("real", "imag")
+    named_children = ("real|optional", "imag")
 
     builtin_spec = BuiltinParameterSpecs.builtin_complex_spec
 
     def __init__(self, real, imag, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"real": real, "imag": imag}, source_ref=source_ref
+        ChildrenHavingRealOptionalImagMixin.__init__(
+            self,
+            real=real,
+            imag=imag,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         given_values = self.subnode_real, self.subnode_imag

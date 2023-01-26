@@ -23,16 +23,19 @@ for some types, so it is still useful. Also calls to it can be accelerated
 slightly.
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ChildrenHavingMixins import ChildHavingValueMixin
+from .ExpressionBases import ExpressionBase
 
 
-class ExpressionBuiltinHash(ExpressionChildHavingBase):
+class ExpressionBuiltinHash(ChildHavingValueMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_HASH"
 
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         value = self.subnode_value

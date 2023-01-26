@@ -69,7 +69,7 @@ from .SearchModes import (
     SearchModeResume,
 )
 
-# spellchecker: ignore popenargs,pathsep
+# spellchecker: ignore popenargs,pathsep,killpg
 
 test_logger = OurLogger("", base_style="blue")
 
@@ -1385,19 +1385,18 @@ def executeAfterTimePassed(message, timeout, func):
     alarm.start()
 
 
-def killProcess(process_name, pid):
+def killProcessGroup(process_name, pid):
     """Kill a process in a portable way.
 
     Right now SIGINT is used, unclear what to do on Windows
     with Python2 or non-related processes.
     """
 
-    if str is bytes and isWin32Windows():
-        test_logger.info("Using taskkill on test process '%s'." % process_name)
-        os.system("taskkill.exe /PID %d" % pid)
+    if isWin32Windows():
+        test_logger.sysexit("Error, cannot send kill signal on Windows")
     else:
-        test_logger.info("Killing test process '%s'." % process_name)
-        os.kill(pid, signal.SIGINT)
+        test_logger.info("Killing test process group '%s'." % process_name)
+        os.killpg(pid, signal.SIGINT)
 
 
 def checkLoadedFileAccesses(loaded_filenames, current_dir):

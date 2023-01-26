@@ -147,12 +147,12 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         statements=statements, allow_none=True, source_ref=source_ref
     )
 
-    cleanup_statements = [
+    cleanup_statements = (
         makeStatementReleaseVariable(
             variable=tmp_value_variable, source_ref=source_ref
         ),
         makeStatementReleaseVariable(variable=tmp_iter_variable, source_ref=source_ref),
-    ]
+    )
 
     if else_block is not None:
         statements = [

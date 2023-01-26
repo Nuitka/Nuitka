@@ -193,7 +193,7 @@ def buildImportFromNode(provider, node, source_ref):
 
         return StatementImportStar(
             target_scope=provider.getLocalsScope(),
-            module_import=ExpressionBuiltinImport(
+            module=ExpressionBuiltinImport(
                 name=makeConstantRefNode(module_name, source_ref, True),
                 globals_arg=import_globals,
                 locals_arg=import_locals,

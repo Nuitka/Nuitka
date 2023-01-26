@@ -46,9 +46,29 @@ extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);
 extern bool LIST_APPEND1(PyObject *target, PyObject *item);
 extern bool LIST_APPEND0(PyObject *target, PyObject *item);
 
-extern PyObject *MAKE_LIST(PyObject *iterable);
+// Like list.clear
+extern void LIST_CLEAR(PyObject *target);
 
+// Like list.reverse
+extern void LIST_REVERSE(PyObject *list);
+
+// Like list.copy
 extern PyObject *LIST_COPY(PyObject *list);
+
+// Like list.count
+extern PyObject *LIST_COUNT(PyObject *list, PyObject *item);
+
+// Like list.index
+extern PyObject *LIST_INDEX2(PyObject *list, PyObject *item);
+extern PyObject *LIST_INDEX3(PyObject *list, PyObject *item, PyObject *start);
+extern PyObject *LIST_INDEX4(PyObject *list, PyObject *item, PyObject *start, PyObject *stop);
+
+// Like list.index
+extern bool LIST_INSERT(PyObject *list, PyObject *index, PyObject *item);
+// Like PyList_Insert
+extern void LIST_INSERT_CONST(PyObject *list, Py_ssize_t index, PyObject *item);
+
+extern PyObject *MAKE_LIST(PyObject *iterable);
 
 extern bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other);
 

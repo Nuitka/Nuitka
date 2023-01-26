@@ -201,16 +201,15 @@ template_read_locals_mapping_without_fallback = """\
 """
 
 template_del_global_unclear = """\
-%(res_name)s = PyDict_DelItem((PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
-%(result)s = %(res_name)s != -1;
+%(result)s = DICT_REMOVE_ITEM((PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
 if (%(result)s == false) CLEAR_ERROR_OCCURRED();
 """
 
 template_del_global_known = """\
-%(res_name)s = PyDict_DelItem((PyObject *)moduledict_%(module_identifier)s, %(var_name)s);
-if (%(res_name)s == -1) CLEAR_ERROR_OCCURRED();
+if (DICT_REMOVE_ITEM((PyObject *)moduledict_%(module_identifier)s, %(var_name)s) == false) {
+    CLEAR_ERROR_OCCURRED();
+}
 """
-
 
 template_update_locals_dict_value = """\
 if (%(test_code)s) {
@@ -219,9 +218,7 @@ if (%(test_code)s) {
 
     UPDATE_STRING_DICT0((PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value);
 } else {
-    int res = PyDict_DelItem(%(dict_name)s, %(var_name)s);
-
-    if (res != 0) {
+    if (DICT_REMOVE_ITEM(%(dict_name)s, %(var_name)s) == false) {
         CLEAR_ERROR_OCCURRED();
     }
 }

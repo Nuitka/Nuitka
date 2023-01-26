@@ -656,6 +656,38 @@ value:
    ``C:\Users\...\Nuitka`` will also work on Linux, use an absolute path
    with *two* leading slashes, e.g. ``//home/.../Nuitka``.
 
+Use Case 6 - Multidist
+======================
+
+If you have multiple programs, that each should be executable, in the
+past you had to compile multiple times, and deploy all of these. With
+standalone mode, this of course meant that you were fairly wasteful, as
+sharing the folders could be done, but wasn't really supported by
+Nuitka.
+
+Enter ``Multidist``. There is an option ``--main-path`` that replaces or
+adds to the positional argument given. And it can be given multiple
+times. When given multiple times, Nuitka will create a binary that
+contains the code of all the programs given, but sharing modules used in
+them. They therefore do not have to be distributed multiple times.
+
+Lets call the basename of the main path, and entry point. The names of
+these must of course be different. Then the created binary can execute
+either entry point, and will react to what ``sys.argv[0]`` appears to
+it. So if executed in the right way (with something like ``subprocess``
+or OS API you can control this name), or by renaming or copying the
+binary, or symlinking to it, you can then achieve the miracle.
+
+This allows to combine very different programs into one.
+
+.. note::
+
+   This feature is still experimental. Use with care and report your
+   findings should you encounter anything that is undesirable behavior
+
+This mode works with standalone, onefile, and mere acceleration. It does
+not work with module mode.
+
 ********
  Tweaks
 ********
@@ -760,6 +792,16 @@ syntax to combine the code with the creation, compile this:
    ...
 
    # Rest of your program goes here.
+
+Reports
+=======
+
+For analysis of your program and Nuitka packaging, there is the
+`Compilation Report`_ available. You can also make custom reports
+providing your own template, with a few of them built-in to Nuitka.
+These reports carry all the detail information, e.g. when a module was
+attempted to be imported, but not found, you can see where that happens.
+For bug reporting, it is very much recommended to provide the report.
 
 ******************
  Typical Problems
@@ -986,9 +1028,8 @@ Windows Programs without console give no errors
 
 For debugging purposes, remove ``--disable-console`` or use the options
 ``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec`` with
-paths as documented for ``--windows-onefile-tempdir-spec`` above. These
-can be relative to the program or absolute, so you can see the outputs
-given.
+paths as documented for ``--onefile-tempdir-spec`` above. These can be
+relative to the program or absolute, so you can see the outputs given.
 
 Deep copying uncompiled functions
 =================================
@@ -1267,6 +1308,50 @@ for 64 bits, and just ``Arch: x86`` for 32 bits.
 The C compiler will be picked to match that more or less automatically.
 If you specify it explicitly and it mismatches, you will get a warning
 about the mismatch and informed that you compiler choice was rejected.
+
+********************
+ Compilation Report
+********************
+
+When you use ``--report=compilation-report.xml`` Nuitka will create an
+XML file with detailed information about the compilation and packaging
+process. This is growing in completeness with very release and exposes
+module usage attempts, timings of the compilation, plugin influences,
+data file paths, DLLs, and reasons why things are included or not.
+
+At this time, the report contains absolute paths in some places, with
+your private information. The goal is to make this blended out by
+default, because we also want to become able to compare compilation
+reports from different setups, e.g. with updated packages, and see the
+changes to Nuitka. The report is however recommended for your bug
+reporting.
+
+Also, another form is available, where the report is free form and
+according to a Jinja2 template of yours, and one that is included in
+Nuitka. The same information as used to produce the XML file is
+accessible. However, right now this is not yet documented, but we plan
+to add a table with the data. For reader of the source code that is
+familiar with Jinja2, however, it will be easy to do it now already.
+
+If you have a template, you can use it like this
+``--report-template=your_template.rst.j2:your_report.rst`` and of
+course, the usage of restructured text, is only an example. You can use
+markdown, your own XML, or whatever you see fit. Nuitka will just expand
+the template with the compilation report data.
+
+Currently the follow reports are included in Nuitka. You just use the
+name as a filename, and Nuitka will pick that one instead.
+
++---------------+--------------+--------------------------------------------------------+
+| Report Name   | Status       | Purpose                                                |
++===============+==============+========================================================+
+| LicenseReport | experimental | Distributions used in a compilation with license texts |
++---------------+--------------+--------------------------------------------------------+
+
+.. note::
+
+   The community can and should contribute more report types and help
+   enhancing the existing ones for good looks.
 
 *************
  Performance
@@ -1556,8 +1641,8 @@ Conditional Statement Prediction
 ================================
 
 For conditional statements, some branches may not ever be taken, because
-of the conditions being possible to predict. In these cases, the branch
-not taken and the condition check is removed.
+of the condition truth value being possible to predict. In these cases,
+the branch not taken and the condition check is removed.
 
 This can typically predict code like this:
 
@@ -1756,9 +1841,10 @@ ability to predict if an expression can raise an exception or not.
 
 .. admonition:: Status
 
-   Not implemented yet. Will need us to see through the unpacking of
-   what is an iteration over a tuple, we created ourselves. We are not
-   there yet, but we will get there.
+   This is partially implemented. We are working on unpacking
+   enhancements, that will recognize where index access is available.
+   This faster access will then avoid tuples and iteration, then this
+   will be perfect.
 
 Built-in Type Inference
 =======================
@@ -1847,6 +1933,28 @@ In theory, something similar is also possible for ``dict``. For the
 later, it will be non-trivial though to maintain the order of execution
 without temporary values introduced. The same thing is done for pure
 constants of these types, they change to ``tuple`` values when iterated.
+
+Metadata calls at compile time
+==============================
+
+Nuitka does not include metadata in the distribution. It's rather large,
+and the goal is to use it at compile time. Therefore information about
+entry points, version checks, etc. are all done at compile time rather
+than at run time. Not only is that faster, it also recognized problems
+sooner.
+
+.. code:: python
+
+   pkg_resources.require("lxml")
+   importlib.metadata.version("lxml")
+   ...
+
+.. admonition:: Status
+
+   This is considered complete. The coverage of the APIs is very good,
+   but naturally this will always have to be code that uses compile time
+   values, but that is nearly never an issue, and where it happens, we
+   use "anti-bloat" patches to deal with these in 3rd party packages.
 
 *************************
  Updates for this Manual
