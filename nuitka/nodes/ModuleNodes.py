@@ -692,6 +692,8 @@ class CompiledPythonModule(
     def getRuntimeNameValue(self):
         if self.isMainModule() and Options.hasPythonFlagPackageMode():
             return "__main__"
+        elif self.module_name.isMultidistModuleName():
+            return "__main__"
         else:
             return self.getFullName().asString()
 
