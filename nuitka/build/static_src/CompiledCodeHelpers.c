@@ -57,6 +57,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersMappings.c"
 #include "HelpersRaising.c"
 #include "HelpersSequences.c"
+#include "HelpersSlices.c"
 #include "HelpersStrings.c"
 #include "HelpersTuples.c"
 
