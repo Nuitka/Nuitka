@@ -44,6 +44,7 @@ static void _initBuiltinTypeMethods(void) {
 }
 
 #include "HelpersBuiltin.c"
+#include "HelpersBytes.c"
 #include "HelpersClasses.c"
 #include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"

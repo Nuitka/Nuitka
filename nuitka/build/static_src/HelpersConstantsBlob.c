@@ -594,8 +594,8 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                     static PyObject *empty_frozenset = NULL;
 
                     if (empty_frozenset == NULL) {
-                        empty_frozenset =
-                            CALL_FUNCTION_WITH_SINGLE_ARG((PyObject *)&PyFrozenSet_Type, PyBytes_FromString(""));
+                        empty_frozenset = CALL_FUNCTION_WITH_SINGLE_ARG((PyObject *)&PyFrozenSet_Type,
+                                                                        Nuitka_Bytes_FromStringAndSize("", 0));
                     }
 
                     s = empty_frozenset;
@@ -741,44 +741,58 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
 #if PYTHON_VERSION < 0x300
         case 'a':
-#endif
         case 'c': {
-            // Python2 str, potentially attributes, or Python3 bytes, zero terminated.
-
+            // Python2 str, potentially attribute, zero terminated.
             size_t size = strlen((const char *)data);
 
-            // TODO: Make this zero copy for non-interned with fake objects?
-            PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
+            PyObject *s = PyString_FromStringAndSize((const char *)data, size);
+            CHECK_OBJECT(s);
+
+            data += size + 1;
+
+            if (c == 'a') {
+                PyString_InternInPlace(&s);
+            }
+
+            *output = s;
+            is_object = true;
+
+            break;
+        }
+#else
+        case 'c': {
+            // Python3 bytes, zero terminated.
+            size_t size = strlen((const char *)data);
+
+            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
             CHECK_OBJECT(b);
 
             data += size + 1;
 
-#if PYTHON_VERSION < 0x300
-            if (c == 'a') {
-                PyString_InternInPlace(&b);
+            // Empty bytes value is here as well.
+            if (size > 1) {
+                insertToDictCache(bytes_cache, &b);
             }
-#else
-            insertToDictCache(bytes_cache, &b);
-#endif
 
             *output = b;
             is_object = true;
 
             break;
         }
+#endif
         case 'd': {
             // Python2 str length 1 str, potentially attribute, or Python3 single byte
 
-            PyObject *b = PyBytes_FromStringAndSize((const char *)data, 1);
-            data += 1;
-
 #if PYTHON_VERSION < 0x300
-            PyString_InternInPlace(&b);
+            PyObject *s = PyString_FromStringAndSize((const char *)data, 1);
+            data += 1;
+            *output = s;
 #else
-            insertToDictCache(bytes_cache, &b);
+            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, 1);
+            data += 1;
+            *output = b;
 #endif
 
-            *output = b;
             is_object = true;
 
             break;
@@ -802,14 +816,12 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
         case 'b': {
             // Python2 str or Python3 bytes, length indicated.
-            // Python2 str, potentially attributes, or Python3 bytes, zero terminated.
-
-            // TODO: Use fixed sizes for small, e.g. character values, and length vs. 0
-            // termination.
             int size = unpackValueInt(&data);
+            assert(size > 1);
 
-            // TODO: Make this zero copy for non-interned with fake objects?
-            PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
+            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
+            CHECK_OBJECT(b);
+
             data += size;
 
 #if PYTHON_VERSION >= 0x300
@@ -827,7 +839,6 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             // termination.
             int size = unpackValueInt(&data);
 
-            // TODO: Make this zero copy for non-interned with fake objects?
             PyObject *b = PyByteArray_FromStringAndSize((const char *)data, size);
             data += size;
 

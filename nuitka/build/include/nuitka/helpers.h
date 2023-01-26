@@ -111,6 +111,7 @@ static inline bool Nuitka_Generator_Check(PyObject *object);
 static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 
 #include "nuitka/calling.h"
+#include "nuitka/helper/bytes.h"
 #include "nuitka/helper/complex.h"
 #include "nuitka/helper/floats.h"
 #include "nuitka/helper/ints.h"
