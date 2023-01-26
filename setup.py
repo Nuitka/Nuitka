@@ -389,6 +389,7 @@ setup(
         "Operating System :: POSIX :: BSD :: OpenBSD",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
+        "Operating System :: Android",
         # License
         "License :: OSI Approved :: Apache Software License",
     ],
