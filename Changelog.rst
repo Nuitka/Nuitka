@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 1.4 (Draft)
-****************************
+********************
+ Nuitka Release 1.4
+********************
 
 This release contains a large amount of performance work, where
 specifically Python versions 3.7 or higher see regressions in relative
