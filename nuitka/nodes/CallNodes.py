@@ -25,27 +25,42 @@ There will be a method "computeExpressionCall" to aid predicting them in other
 nodes.
 """
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildrenExpressionCallEmptyMixin,
+    ChildrenExpressionCallKeywordsOnlyMixin,
+    ChildrenExpressionCallMixin,
+    ChildrenExpressionCallNoKeywordsMixin,
 )
+from .ExpressionBases import ExpressionBase
 
 
-class ExpressionCall(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_CALL"
-
-    named_children = ("called", "args", "kwargs")
-
-    def __init__(self, called, args, kwargs, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"called": called, "args": args, "kwargs": kwargs},
-            source_ref=source_ref,
-        )
+class ExpressionCallMixin(object):
+    __slots__ = ()
 
     @staticmethod
     def isExpressionCall():
         return True
+
+    # TODO: Depending on the called, and arguments we might know better.
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionCall(ExpressionCallMixin, ChildrenExpressionCallMixin, ExpressionBase):
+    kind = "EXPRESSION_CALL"
+
+    named_children = ("called|setter", "args", "kwargs")
+
+    def __init__(self, called, args, kwargs, source_ref):
+        ChildrenExpressionCallMixin.__init__(
+            self,
+            called=called,
+            args=args,
+            kwargs=kwargs,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called
@@ -59,22 +74,33 @@ class ExpressionCall(ExpressionChildrenHavingBase):
 
     def extractSideEffectsPreCall(self):
         args = self.subnode_args
-        kw = self.subnode_kwargs
+        kwargs = self.subnode_kwargs
 
-        return args.extractSideEffects() + kw.extractSideEffects()
+        return args.extractSideEffects() + kwargs.extractSideEffects()
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
+        self.subnode_args.onContentEscapes(trace_collection)
+        self.subnode_kwargs.onContentEscapes(trace_collection)
 
 
-class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
+class ExpressionCallNoKeywords(
+    ExpressionCallMixin, ChildrenExpressionCallNoKeywordsMixin, ExpressionBase
+):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
-    named_children = ("called", "args")
+    named_children = ("called|setter", "args")
 
     subnode_kwargs = None
 
     def __init__(self, called, args, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"called": called, "args": args}, source_ref=source_ref
+        ChildrenExpressionCallNoKeywordsMixin.__init__(
+            self,
+            called=called,
+            args=args,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called
@@ -85,28 +111,34 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
             call_kw=None,
             trace_collection=trace_collection,
         )
-
-    @staticmethod
-    def isExpressionCall():
-        return True
 
     def extractSideEffectsPreCall(self):
         args = self.subnode_args
 
         return args.extractSideEffects()
 
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
+        self.subnode_args.onContentEscapes(trace_collection)
 
-class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
+
+class ExpressionCallKeywordsOnly(
+    ExpressionCallMixin, ChildrenExpressionCallKeywordsOnlyMixin, ExpressionBase
+):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
-    named_children = ("called", "kwargs")
+    named_children = ("called|setter", "kwargs")
 
     subnode_args = None
 
     def __init__(self, called, kwargs, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"called": called, "kwargs": kwargs}, source_ref=source_ref
+        ChildrenExpressionCallKeywordsOnlyMixin.__init__(
+            self,
+            called=called,
+            kwargs=kwargs,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called
@@ -118,26 +150,30 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
             trace_collection=trace_collection,
         )
 
-    @staticmethod
-    def isExpressionCall():
-        return True
-
     def extractSideEffectsPreCall(self):
-        kw = self.subnode_kwargs
+        kwargs = self.subnode_kwargs
 
-        return kw.extractSideEffects()
+        return kwargs.extractSideEffects()
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
+        self.subnode_kwargs.onContentEscapes(trace_collection)
 
 
-class ExpressionCallEmpty(ExpressionChildHavingBase):
+class ExpressionCallEmpty(
+    ExpressionCallMixin, ChildrenExpressionCallEmptyMixin, ExpressionBase
+):
     kind = "EXPRESSION_CALL_EMPTY"
 
-    named_child = "called"
+    named_children = ("called|setter",)
 
     subnode_args = None
     subnode_kwargs = None
 
     def __init__(self, called, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=called, source_ref=source_ref)
+        ChildrenExpressionCallEmptyMixin.__init__(self, called=called)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         called = self.subnode_called
@@ -150,12 +186,11 @@ class ExpressionCallEmpty(ExpressionChildHavingBase):
         )
 
     @staticmethod
-    def isExpressionCall():
-        return True
-
-    @staticmethod
     def extractSideEffectsPreCall():
         return ()
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_called.onContentEscapes(trace_collection)
 
 
 def makeExpressionCall(called, args, kw, source_ref):

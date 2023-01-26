@@ -18,8 +18,10 @@
 """Code generation for package resources access."""
 
 from nuitka.Options import shallMakeModule
+from nuitka.utils.Distributions import getDistributionTopLevelPackageNames
 
 from .CallCodes import (
+    getCallCodeKwPairs,
     getCallCodeKwSplit,
     getCallCodeNoArgs,
     getCallCodePosArgsQuick,
@@ -29,9 +31,11 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
+from .DictCodes import getDictionaryCreationCode
 from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
 from .PythonAPICodes import generateCAPIObjectCode
+from .TupleCodes import getTupleCreationCode
 
 
 def generatePkglibGetDataCallCode(to_name, expression, emit, context):
@@ -59,7 +63,6 @@ def generatePkglibGetDataCallCode(to_name, expression, emit, context):
             called_name=get_data_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -93,6 +96,67 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
             called_name=distribution_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataEntryPointsSince310CallCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entrypoints_value", expression, emit, context
+    ) as result_name:
+        entry_points_function_name = context.allocateTempName(
+            "importlib_metadata_entry_points_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_function_name,
+            module_name="importlib.metadata",
+            import_name="entry_points",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodeKwPairs(
+            to_name=result_name,
+            expression=expression,
+            pairs=expression.subnode_params,
+            called_name=entry_points_function_name,
+            called_attribute_name=None,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportEntryPointsCallCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entrypoints_value", expression, emit, context
+    ) as result_name:
+        entry_points_function_name = context.allocateTempName(
+            "importlib_metadata_backport_entry_points_function", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_function_name,
+            module_name="importlib_metadata",
+            import_name="entry_points",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodeKwPairs(
+            to_name=result_name,
+            expression=expression,
+            pairs=expression.subnode_params,
+            called_name=entry_points_function_name,
+            called_attribute_name=None,
             emit=emit,
             context=context,
         )
@@ -105,16 +169,19 @@ def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, co
         distribution.read_text("METADATA") or distribution.read_text("METADATA") or ""
     )
 
+    metadata = str(metadata)
+
     with withObjectCodeTemporaryAssignment(
         to_name, "distribution_value", expression, emit, context
     ) as value_name:
 
         emit(
-            """%(to_name)s = Nuitka_Distribution_New("%(name)s", %(metadata)s);"""
+            """%(to_name)s = Nuitka_Distribution_New("%(name)s", "%(package_name)s", %(metadata)s);"""
             % {
                 "to_name": value_name,
                 "name": original_name,
-                "metadata": context.getConstantCode(constant=str(metadata)),
+                "package_name": getDistributionTopLevelPackageNames(distribution)[0],
+                "metadata": context.getConstantCode(constant=metadata),
             }
         )
 
@@ -151,6 +218,227 @@ def generatePkgResourcesEntryPointValueCode(to_name, expression, emit, context):
             called_name=entry_point_class_name,
             kw_names=kw_names,
             dict_value_names=dict_value_names,
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataEntryPointValueCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_point_value", expression, emit, context
+    ) as result_name:
+        entry_point_class_name = context.allocateTempName(
+            "entry_point_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_point_class_name,
+            module_name="importlib.metadata",
+            import_name="EntryPoint",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(getattr(expression.entry_point, kw_name))
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=entry_point_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportEntryPointValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_point_value", expression, emit, context
+    ) as result_name:
+        entry_point_class_name = context.allocateTempName(
+            "backport_entry_point_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_point_class_name,
+            module_name="importlib_metadata",
+            import_name="EntryPoint",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        kw_names = expression.__class__.preserved_attributes
+        dict_value_names = [
+            context.getConstantCode(getattr(expression.entry_point, kw_name))
+            for kw_name in kw_names
+        ]
+
+        getCallCodeKwSplit(
+            to_name=result_name,
+            called_name=entry_point_class_name,
+            kw_names=kw_names,
+            dict_value_names=dict_value_names,
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataSelectableGroupsValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "selectable_groups_value", expression, emit, context
+    ) as result_name:
+        selectable_group_class_name = context.allocateTempName(
+            "selectable_groups_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=selectable_group_class_name,
+            module_name="importlib.metadata",
+            import_name="SelectableGroups",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_dict = context.allocateTempName("selectable_group_dict")
+
+        getDictionaryCreationCode(
+            to_name=selectable_group_dict,
+            pairs=expression.subnode_pairs,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=selectable_group_class_name,
+            expression=expression,
+            arg_names=(selectable_group_dict,),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportSelectableGroupsValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "selectable_groups_value", expression, emit, context
+    ) as result_name:
+        selectable_group_class_name = context.allocateTempName(
+            "backport_selectable_groups_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=selectable_group_class_name,
+            module_name="importlib_metadata",
+            import_name="SelectableGroups",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_dict = context.allocateTempName("selectable_group_dict")
+
+        getDictionaryCreationCode(
+            to_name=selectable_group_dict,
+            pairs=expression.subnode_pairs,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=selectable_group_class_name,
+            expression=expression,
+            arg_names=(selectable_group_dict,),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataEntryPointsValueCode(to_name, expression, emit, context):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_points_class_value", expression, emit, context
+    ) as result_name:
+        entry_points_class_name = context.allocateTempName(
+            "entry_points_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_class_name,
+            module_name="importlib.metadata",
+            import_name="EntryPoints",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_tuple = context.allocateTempName("selectable_group_dict")
+
+        getTupleCreationCode(
+            to_name=selectable_group_tuple,
+            elements=expression.subnode_elements,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=entry_points_class_name,
+            expression=expression,
+            arg_names=(selectable_group_tuple,),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibMetadataBackportEntryPointsValueCode(
+    to_name, expression, emit, context
+):
+    with withObjectCodeTemporaryAssignment(
+        to_name, "entry_points_class_value", expression, emit, context
+    ) as result_name:
+        entry_points_class_name = context.allocateTempName(
+            "backport_entry_points_class", unique=True
+        )
+
+        getImportModuleNameHardCode(
+            to_name=entry_points_class_name,
+            module_name="importlib_metadata",
+            import_name="EntryPoints",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        selectable_group_tuple = context.allocateTempName("selectable_group_dict")
+
+        getTupleCreationCode(
+            to_name=selectable_group_tuple,
+            elements=expression.subnode_elements,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=entry_points_class_name,
+            expression=expression,
+            arg_names=(selectable_group_tuple,),
             emit=emit,
             context=context,
         )
@@ -182,7 +470,6 @@ def generatePkgResourcesRequireCallCode(to_name, expression, emit, context):
             called_name=require_function_name,
             expression=expression,
             arg_names=requirement_arg_names,
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -214,7 +501,6 @@ def generatePkgResourcesGetDistributionCallCode(to_name, expression, emit, conte
             called_name=get_distribution_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -251,7 +537,6 @@ def generatePkgResourcesIterEntryPointsCallCode(to_name, expression, emit, conte
             )
             if name_arg_name is not None
             else (group_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -283,7 +568,6 @@ def generateImportlibMetadataVersionCallCode(to_name, expression, emit, context)
             called_name=version_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -317,7 +601,6 @@ def generateImportlibMetadataBackportVersionCallCode(
             called_name=version_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -349,7 +632,6 @@ def generateImportlibMetadataDistributionCallCode(to_name, expression, emit, con
             called_name=get_distribution_function_name,
             expression=expression,
             arg_names=(dist_arg_name,),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -381,7 +663,6 @@ def generatePkgResourcesResourceStringCallCode(to_name, expression, emit, contex
             called_name=resource_string_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -413,7 +694,6 @@ def generateImportlibResourcesReadBinaryCallCode(to_name, expression, emit, cont
             called_name=read_binary_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -446,7 +726,6 @@ def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, contex
             called_name=read_text_function,
             expression=expression,
             arg_names=(package_name, resource_name, encoding_name, errors_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -478,7 +757,6 @@ def generatePkgResourcesResourceStreamCallCode(to_name, expression, emit, contex
             called_name=resource_stream_function,
             expression=expression,
             arg_names=(package_name, resource_name),
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )
@@ -503,7 +781,6 @@ def generateOsUnameCallCode(to_name, expression, emit, context):
             to_name=result_name,
             called_name=os_uname_function,
             expression=expression,
-            needs_check=expression.mayRaiseException(BaseException),
             emit=emit,
             context=context,
         )

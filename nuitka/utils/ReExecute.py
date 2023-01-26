@@ -91,13 +91,6 @@ def reExecuteNuitka(pgo_filename):
     # Same arguments as before.
     args += sys.argv[1:]
 
-    os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
-
-    # In some environments, initial "sys.path" does not contain enough to load "ast" module.
-    import ast
-
-    os.environ["NUITKA_PYTHONPATH_AST"] = os.path.dirname(ast.__file__)
-
     from nuitka.importing.PreloadedPackages import (
         detectPreLoadedPackagePaths,
         detectPthImportedPackages,
@@ -112,7 +105,17 @@ def reExecuteNuitka(pgo_filename):
 
         os.environ["NUITKA_SITE_FILENAME"] = site_filename
 
+        # Note: As side effect, this might modify the "sys.path" too.
         os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
+
+    os.environ["NUITKA_PYTHONPATH"] = repr(sys.path)
+
+    # In some environments, initial "sys.path" does not contain enough to load
+    # "ast" module, which however we use to decode "NUITKA_PYTHONPATH", this
+    # helps solve the chicken and egg problem.
+    import ast
+
+    os.environ["NUITKA_PYTHONPATH_AST"] = os.path.dirname(ast.__file__)
 
     if sys.flags.no_site:
         os.environ["NUITKA_NOSITE_FLAG"] = "1"

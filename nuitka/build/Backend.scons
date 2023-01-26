@@ -824,12 +824,7 @@ def discoverSourceFiles():
         static_src_filenames.append("MainProgram.c")
 
     # Compiled types.
-    static_src_filenames.append("CompiledCellType.c")
     static_src_filenames.append("CompiledFunctionType.c")
-    static_src_filenames.append("CompiledGeneratorType.c")
-
-    # Helper codes.
-    static_src_filenames.append("InspectPatcher.c")
 
     result += [
         provideStaticSourceFile(

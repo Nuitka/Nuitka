@@ -53,13 +53,18 @@ extern PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyOb
 extern PyObject *getImportLibBootstrapModule(void);
 #endif
 
-// Replacement for PyImport_GetModule working across all versions and less checks.
-NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyObject *module_name) {
-#if PYTHON_VERSION < 0x370
-    return DICT_GET_ITEM1(PyImport_GetModuleDict(), module_name);
+// Replacement for "PyImport_GetModuleDict"
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetSysModules(void) {
+#if PYTHON_VERSION < 0x390
+    return PyThreadState_GET()->interp->modules;
 #else
-    return PyImport_GetModule(module_name);
+    return _PyInterpreterState_GET()->modules;
 #endif
+}
+
+// Replacement for "PyImport_GetModule" working across all versions and less checks.
+NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetModule(PyObject *module_name) {
+    return DICT_GET_ITEM1(Nuitka_GetSysModules(), module_name);
 }
 
 // Replacement for PyImport_GetModule working across all versions and less checks.
@@ -77,7 +82,7 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_SetModule(PyObject *module_name, PyObjec
     CHECK_OBJECT(module);
     assert(PyModule_Check(module));
 
-    return SET_SUBSCRIPT(PyImport_GetModuleDict(), module_name, module);
+    return DICT_SET_ITEM(Nuitka_GetSysModules(), module_name, module);
 }
 
 // Add a module to the modules dictionary from name C string
@@ -97,7 +102,7 @@ NUITKA_MAY_BE_UNUSED static bool Nuitka_DelModule(PyObject *module_name) {
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
-    bool result = DEL_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+    bool result = DICT_REMOVE_ITEM(PyImport_GetModuleDict(), module_name);
 
     RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 

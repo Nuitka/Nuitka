@@ -67,6 +67,7 @@ class ParameterSpec(object):
         "kw_only_variables",
         "pos_only_args",
         "pos_only_variables",
+        "type_shape",
     )
 
     @counted_init
@@ -80,6 +81,7 @@ class ParameterSpec(object):
         ps_dict_star_arg,
         ps_default_count,
         ps_is_list_star_arg_single=False,
+        type_shape=None,
     ):
         if type(ps_normal_args) is str:
             if ps_normal_args == "":
@@ -125,6 +127,8 @@ class ParameterSpec(object):
         self.pos_only_args = tuple(ps_pos_only_args)
         self.pos_only_variables = None
 
+        self.type_shape = type_shape
+
     if isCountingInstances():
         __del__ = counted_del()
 
@@ -137,6 +141,7 @@ class ParameterSpec(object):
             ps_list_star_arg=self.list_star_arg,
             ps_dict_star_arg=self.dict_star_arg,
             ps_default_count=self.default_count,
+            type_shape=self.type_shape,
         )
 
     def getDetails(self):
@@ -152,6 +157,7 @@ class ParameterSpec(object):
             if self.dict_star_arg is not None
             else "",
             "ps_default_count": self.default_count,
+            "type_shape": self.type_shape,
         }
 
     def checkParametersValid(self):
@@ -297,6 +303,9 @@ class ParameterSpec(object):
 
     def getPosOnlyParameterCount(self):
         return len(self.pos_only_args)
+
+    def getTypeShape(self):
+        return self.type_shape
 
 
 def matchCall(

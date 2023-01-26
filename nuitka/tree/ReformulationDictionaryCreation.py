@@ -43,9 +43,9 @@ from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException,
 )
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCall,
-    ExpressionFunctionCreation,
     ExpressionFunctionRef,
+    makeExpressionFunctionCall,
+    makeExpressionFunctionCreation,
 )
 from nuitka.nodes.KeyValuePairNodes import (
     makeExpressionKeyValuePair,
@@ -74,7 +74,7 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
-    buildNodeList,
+    buildNodeTuple,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
 )
@@ -90,8 +90,8 @@ def buildDictionaryNode(provider, node, source_ref):
 
     return makeExpressionMakeDictOrConstant(
         pairs=makeExpressionPairs(
-            keys=buildNodeList(provider, node.keys, source_ref),
-            values=buildNodeList(provider, node.values, source_ref),
+            keys=buildNodeTuple(provider, node.keys, source_ref),
+            values=buildNodeTuple(provider, node.values, source_ref),
         ),
         user_provided=True,
         source_ref=source_ref,
@@ -229,8 +229,7 @@ def getDictUnpackingHelper():
         ),
     )
 
-    result.setChild(
-        "body",
+    result.setChildBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -238,7 +237,7 @@ def getDictUnpackingHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        ),
+        )
     )
 
     return result
@@ -277,7 +276,7 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
                 )
             )
 
-    return result
+    return tuple(result)
 
 
 def buildDictionaryUnpacking(provider, node, source_ref):
@@ -285,8 +284,8 @@ def buildDictionaryUnpacking(provider, node, source_ref):
         provider, node.keys, node.values, source_ref
     )
 
-    result = ExpressionFunctionCall(
-        function=ExpressionFunctionCreation(
+    result = makeExpressionFunctionCall(
+        function=makeExpressionFunctionCreation(
             function_ref=ExpressionFunctionRef(
                 function_body=getDictUnpackingHelper(), source_ref=source_ref
             ),

@@ -629,15 +629,22 @@ def commentArgs():
         # that environment variable.
         if "PYTHON" not in os.environ:
             Tracing.general.warning(
-                "The version '%s' is not currently supported. Expect problems."
+                """\
+The Python version '%s' is not currently supported. Expect problems."""
                 % python_version_str,
             )
 
     if python_version_str in getNotYetSupportedPythonVersions():
         if not isExperimental("python" + python_version_str):
             Tracing.general.sysexit(
-                "The Python version '%s' is not supported by '%s', but an upcoming release will add it."
-                % (python_version_str, getNuitkaVersion())
+                """\
+The Python version '%s' is not supported by Nuitka '%s', but an upcoming \
+release will add it. In the mean time use '%s' instead."""
+                % (
+                    python_version_str,
+                    getNuitkaVersion(),
+                    getSupportedPythonVersions()[-1],
+                )
             )
 
     default_reference_mode = (
@@ -858,17 +865,18 @@ notarization capable signature, the default identify 'ad-hoc' is not going \
 to work."""
         )
 
-    filename = getPositionalArgs()[0]
-    if not os.path.exists(filename):
-        Tracing.general.sysexit("Error, file '%s' is not found." % filename)
+    for filename in getMainEntryPointFilenames():
+        if not os.path.exists(filename):
+            Tracing.general.sysexit("Error, file '%s' is not found." % filename)
 
-    if (
-        shallMakeModule()
-        and os.path.normcase(os.path.basename(filename)) == "__init__.py"
-    ):
-        Tracing.general.sysexit(
-            "Error, to compile a package, specify its directory name, not the '__init__.py'."
-        )
+        if (
+            shallMakeModule()
+            and os.path.normcase(os.path.basename(filename)) == "__init__.py"
+        ):
+            Tracing.general.sysexit(
+                """\
+Error, to compile a package, specify its directory but, not the '__init__.py'."""
+            )
 
 
 def isVerbose():
@@ -1000,7 +1008,7 @@ def getMustIncludePackages():
 
 
 def getShallIncludePackageData():
-    """*iterable of (module pattern, filename pattern)*, derived from ``--include-package-data=``
+    """*iterable of (module name, filename pattern)*, derived from ``--include-package-data=``
 
     The filename pattern can be None if not given. Empty values give None too.
     """
@@ -1134,6 +1142,17 @@ def getPositionalArgs():
 def getMainArgs():
     """*tuple*, arguments following the optional arguments"""
     return tuple(extra_args)
+
+
+def getMainEntryPointFilenames():
+    """*tuple*, main programs, none, one or more"""
+    if options.mains:
+        if len(options.mains) == 1:
+            assert not positional_args
+
+        return tuple(options.mains)
+    else:
+        return [positional_args[0]]
 
 
 def shallOptimizeStringExec():
@@ -1485,6 +1504,11 @@ def getOnefileTempDirSpec():
     return os.path.normpath(result)
 
 
+def getOnefileChildGraceTime():
+    """*int* = ``--onefile-child-grace-time``"""
+    return int(options.onefile_child_grace_time)
+
+
 def getIconPaths():
     """*list of str*, values of ``--windows-icon-from-ico`` and ``--linux-onefile-icon``"""
 
@@ -1720,14 +1744,14 @@ def hasPythonFlagNoAsserts():
     return "no_asserts" in _getPythonFlags()
 
 
-def hasPythonFlagNoDocstrings():
+def hasPythonFlagNoDocStrings():
     """*bool* = "no_docstrings" in python flags given"""
 
     return "no_docstrings" in _getPythonFlags()
 
 
 def hasPythonFlagNoWarnings():
-    """*bool* = "no_docstrings" in python flags given"""
+    """*bool* = "no_warnings" in python flags given"""
 
     return "no_warnings" in _getPythonFlags()
 
@@ -1899,6 +1923,15 @@ def isLowMemory():
 def getCompilationReportFilename():
     """*str* filename to write XML report of compilation to"""
     return options.compilation_report_filename
+
+
+def getCompilationReportTemplates():
+    """*tuple of str,str* template and output filenames to write reports to"""
+    result = []
+    for value in options.compilation_report_templates:
+        result.append(value.split(":", 1))
+
+    return tuple(result)
 
 
 def getUserProvidedYamlFiles():

@@ -38,16 +38,6 @@ def visitTree(tree, visitor):
     visitor.onLeaveNode(tree)
 
 
-def visitFunction(function, visitor):
-    visitor.onEnterNode(function)
-    visitor.onLeaveNode(function)
-
-
-def visitModule(module, visitor):
-    visitor.onEnterNode(module)
-    visitor.onLeaveNode(module)
-
-
 class VisitorNoopMixin(object):
     def onEnterNode(self, node):
         """Overloaded for operation before the node children were done."""
@@ -71,32 +61,8 @@ class DetectUsedModules(VisitorNoopMixin):
             raise
 
     def _onEnterNode(self, node):
-        if node.isExpressionBuiltinImport():
-
-            for (
-                used_module_name,
-                used_module_filename,
-                finding,
-                level,
-            ) in node.getUsedModules():
-                self.used_modules.add(
-                    (
-                        used_module_name,
-                        used_module_filename,
-                        finding,
-                        level,
-                        node.source_ref,
-                    )
-                )
-        elif (
-            node.isExpressionImportModuleHard()
-            or node.isExpressionImportModuleNameHard()
-            or node.isExpressionImportModuleFixed()
-        ):
-            used_module_name, used_module_filename, finding = node.getUsedModule()
-            self.used_modules.add(
-                (used_module_name, used_module_filename, finding, 0, node.source_ref)
-            )
+        if node.isExpression():
+            self.used_modules.update(node.getUsedModules())
 
     def getUsedModules(self):
         return self.used_modules

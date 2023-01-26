@@ -41,9 +41,12 @@ static void _initBuiltinTypeMethods(void) {
     _initUnicodeBuiltinMethods();
     NUITKA_PRINT_TRACE("main(): Calling _initDictBuiltinMethods().");
     _initDictBuiltinMethods();
+    NUITKA_PRINT_TRACE("main(): Calling _initListBuiltinMethods().");
+    _initListBuiltinMethods();
 }
 
 #include "HelpersBuiltin.c"
+#include "HelpersBytes.c"
 #include "HelpersClasses.c"
 #include "HelpersDictionaries.c"
 #include "HelpersExceptions.c"
@@ -56,6 +59,7 @@ static void _initBuiltinTypeMethods(void) {
 #include "HelpersMappings.c"
 #include "HelpersRaising.c"
 #include "HelpersSequences.c"
+#include "HelpersSlices.c"
 #include "HelpersStrings.c"
 #include "HelpersTuples.c"
 
@@ -328,16 +332,16 @@ PyObject *MAKE_XRANGE(long start, long stop, long step) {
 
 /* Same as CPython3: */
 static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *step) {
-    int res = PyObject_RichCompareBool(step, const_int_0, Py_GT);
+    nuitka_bool nbool_res = RICH_COMPARE_GT_NBOOL_OBJECT_LONG(step, const_int_0);
 
-    if (unlikely(res == -1)) {
+    if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
         return NULL;
     }
 
     PyObject *lo, *hi;
 
     // Make sure we use step as a positive number.
-    if (res == 1) {
+    if (nbool_res == NUITKA_BOOL_TRUE) {
         lo = start;
         hi = stop;
 
@@ -352,13 +356,13 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
             return NULL;
         }
 
-        res = PyObject_RichCompareBool(step, const_int_0, Py_EQ);
+        nbool_res = RICH_COMPARE_EQ_NBOOL_OBJECT_LONG(step, const_int_0);
 
-        if (unlikely(res == -1)) {
+        if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
             return NULL;
         }
 
-        if (res == 1) {
+        if (unlikely(nbool_res == NUITKA_BOOL_TRUE)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() arg 3 must not be zero");
 
             return NULL;
@@ -366,12 +370,13 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
     }
 
     // Negative difference, we got zero length.
-    res = PyObject_RichCompareBool(lo, hi, Py_GE);
+    nbool_res = RICH_COMPARE_GE_NBOOL_OBJECT_OBJECT(lo, hi);
 
-    if (res != 0) {
+    // No distance means we do not have any length to go.
+    if (nbool_res != NUITKA_BOOL_FALSE) {
         Py_XDECREF(step);
 
-        if (res < 0) {
+        if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
             return NULL;
         }
 
@@ -379,6 +384,7 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
         return const_int_0;
     }
 
+    // TODO: Use binary operations here, for now we only eliminated rich comparison API
     PyObject *tmp1 = PyNumber_Subtract(hi, lo);
 
     if (unlikely(tmp1 == NULL)) {
@@ -411,15 +417,15 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
 }
 
 static PyObject *MAKE_XRANGE(PyObject *start, PyObject *stop, PyObject *step) {
-    start = PyNumber_Index(start);
+    start = Nuitka_Number_IndexAsLong(start);
     if (unlikely(start == NULL)) {
         return NULL;
     }
-    stop = PyNumber_Index(stop);
+    stop = Nuitka_Number_IndexAsLong(stop);
     if (unlikely(stop == NULL)) {
         return NULL;
     }
-    step = PyNumber_Index(step);
+    step = Nuitka_Number_IndexAsLong(step);
     if (unlikely(step == NULL)) {
         return NULL;
     }
@@ -458,7 +464,7 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
 
     return MAKE_XRANGE(0, int_high, 1);
 #else
-    PyObject *stop = PyNumber_Index(high);
+    PyObject *stop = Nuitka_Number_IndexAsLong(high);
 
     if (unlikely(stop == NULL)) {
         return NULL;
@@ -1104,7 +1110,7 @@ static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObj
     }
 
     if (value == NULL) {
-        int status = PyDict_DelItem(klass->cl_dict, attr_name);
+        int status = DICT_REMOVE_ITEM(klass->cl_dict, attr_name);
 
         if (status < 0) {
             PyErr_Format(PyExc_AttributeError, "class %s has no attribute '%s'", PyString_AS_STRING(klass->cl_name),
@@ -2044,10 +2050,8 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 }
 #endif
 
-#include "HelpersDeepcopy.c"
-
 #include "HelpersAttributes.c"
-
+#include "HelpersDeepcopy.c"
 #include "HelpersOperationBinaryAdd.c"
 #include "HelpersOperationBinaryBitand.c"
 #include "HelpersOperationBinaryBitor.c"
@@ -2061,6 +2065,7 @@ PyObject *MAKE_UNION_TYPE(PyObject *args) {
 #include "HelpersOperationBinaryRshift.c"
 #include "HelpersOperationBinarySub.c"
 #include "HelpersOperationBinaryTruediv.c"
+#include "HelpersTypes.c"
 #if PYTHON_VERSION < 0x300
 #include "HelpersOperationBinaryOlddiv.c"
 #endif

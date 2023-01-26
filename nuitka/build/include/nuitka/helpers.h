@@ -93,6 +93,7 @@ extern void stopProfiling(void);
 
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/dictionaries.h"
+#include "nuitka/helper/indexes.h"
 #include "nuitka/helper/mappings.h"
 #include "nuitka/helper/operations_builtin_types.h"
 #include "nuitka/helper/sets.h"
@@ -110,65 +111,10 @@ static inline bool Nuitka_Generator_Check(PyObject *object);
 static inline PyObject *Nuitka_Generator_GetName(PyObject *object);
 
 #include "nuitka/calling.h"
+#include "nuitka/helper/bytes.h"
 #include "nuitka/helper/complex.h"
 #include "nuitka/helper/floats.h"
 #include "nuitka/helper/ints.h"
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors) {
-    CHECK_OBJECT(value);
-    CHECK_OBJECT_X(encoding);
-    CHECK_OBJECT_X(errors);
-
-    char const *encoding_str;
-
-    if (encoding == NULL) {
-        encoding_str = NULL;
-    } else if (Nuitka_String_Check(encoding)) {
-        encoding_str = Nuitka_String_AsString_Unchecked(encoding);
-    }
-#if PYTHON_VERSION < 0x300
-    else if (PyUnicode_Check(encoding)) {
-        PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString(encoding, NULL);
-        CHECK_OBJECT(uarg2);
-
-        encoding_str = Nuitka_String_AsString_Unchecked(uarg2);
-    }
-#endif
-    else {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 2 must be string, not %s", encoding);
-        return NULL;
-    }
-
-    char const *errors_str;
-
-    if (errors == NULL) {
-        errors_str = NULL;
-    } else if (Nuitka_String_Check(errors)) {
-        errors_str = Nuitka_String_AsString_Unchecked(errors);
-    }
-#if PYTHON_VERSION < 0x300
-    else if (PyUnicode_Check(errors)) {
-        PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString(errors, NULL);
-        CHECK_OBJECT(uarg3);
-
-        errors_str = Nuitka_String_AsString_Unchecked(uarg3);
-    }
-#endif
-    else {
-        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("unicode() argument 3 must be string, not %s", errors);
-        return NULL;
-    }
-
-    PyObject *result = PyUnicode_FromEncodedObject(value, encoding_str, errors_str);
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    assert(PyUnicode_Check(result));
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
     CHECK_OBJECT(source);
@@ -195,8 +141,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
 
 #include "nuitka/builtins.h"
 
-#include "nuitka/allocator.h"
-
 #include "helper/operations.h"
 
 // Compile source code given, pretending the file name was given.
@@ -211,6 +155,13 @@ extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObje
 #if PYTHON_VERSION < 0x300
 extern bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name);
 #endif
+
+// For quicker built-in str() functionality, Python2 str
+extern PyObject *BUILTIN_STR(PyObject *value);
+
+// For quicker built-in unicode() functionality, Python3 str or Python2 unicode
+extern PyObject *BUILTIN_UNICODE1(PyObject *value);
+extern PyObject *BUILTIN_UNICODE3(PyObject *value, PyObject *encoding, PyObject *errors);
 
 // For quicker built-in open() functionality.
 #if PYTHON_VERSION < 0x300

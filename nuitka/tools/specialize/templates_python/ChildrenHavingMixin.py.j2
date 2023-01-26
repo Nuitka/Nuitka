@@ -15,52 +15,69 @@
 {#     See the License for the specific language governing permissions and      #}
 {#     limitations under the License.                                           #}
 {#                                                                              #}
+{# macro for code to updating one child value #}
+{% macro named_child_setter_code(named_child, value, needs_parent) %}
+{% if named_child in named_children_checkers %}
+    {{value}} = {{named_children_checkers[named_child]}}({{value}})
+{% endif %}
+{% if needs_parent %}
+{% if named_children_types.get(named_child) == "tuple" %}
+    assert type({{value}}) is tuple, type(value)
 
-from nuitka.nodes.NodeBases import NodeBase
+    for val in {{value}}:
+        val.parent = self
+{% elif named_children_types.get(named_child) == "optional" %}
+    if {{value}} is not None:
+        {{value}}.parent = self
+{% else %}
+    {{value}}.parent = self
+{% endif %}
+{% endif %}
 
+    self.subnode_{{named_child}} = {{value}}
+{% endmacro %}
+
+{% if is_statement %}
+{% set base_class = "StatementBase" %}
+from nuitka.nodes.NodeBases import StatementBase
+{% elif is_compute_final or node_attributes or is_compute_no_raise %}
+{% set base_class = "ExpressionBase" %}
+from nuitka.nodes.ExpressionBases import ExpressionBase
+{% else %}
+{% set base_class = "object" %}
+{% endif %}
+
+{% if named_children and is_expression %}
 from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithSideEffects
+{% endif %}
+{% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
+from abc import abstractmethod
+{% endif %}
+{% if is_compute_statement %}
+from abc import abstractmethod
+{% endif %}
 
-class ChildrenHaving{{mixin_name}}Mixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+class {{mixin_name}}({{base_class}}):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
-    {# We need to expose this, at least until getChildNameNice and "nice_children" are covered too. #}
-    named_children = {{ named_children }}
-
-    checkers = {
-{% for named_child in named_children %}
-{% if named_child in named_children_checkers %}
-        "{{named_child}}" : {{named_children_checkers[named_child]}},
-{% endif %}
+    # This is generated for use in
+{% for node_class_name in intended_for %}
+    #   {{node_class_name}}
 {% endfor %}
-    }
 
+{% if named_children or node_attributes %}
     def __init__(self,
 {% for named_child in named_children %}
                  {{named_child}},
 {% endfor %}
+{% for node_attribute in node_attributes %}
+                 {{node_attribute}},
+{% endfor %}
+{% if base_class in ("ExpressionBase", "StatementBase") %}
+                 source_ref
+{% endif %}
     ):
-{% if single_child %}
-{% if named_children[0] in named_children_checkers %}
-        {{named_children[0]}} = {{named_children_checkers[named_children[0]]}}(({{named_children[0]}})
-{% endif %}
-{% if named_children_types.get(named_children[0]) == "tuple" %}
-        assert type({{named_children[0]}}) is tuple
-
-        for val in {{named_children[0]}}:
-            assert val is not None
-            val.parent = self
-
-        self.subnode_{{named_children[0]}} = {{named_children[0]}}
-{% else %}
-        assert type({{named_children[0]}}) is not tuple
-
-        if {{named_children[0]}} is not None:
-            {{named_children[0]}}.parent = self
-
-        self.subnode_{{named_children[0]}} = {{named_children[0]}}
-{% endif %}
-{% else %}
 {% for named_child in named_children %}
 {% if named_child in named_children_checkers %}
         {{named_child}} = {{named_children_checkers[named_child]}}({{named_child}})
@@ -69,83 +86,61 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         assert type({{named_child}}) is tuple
 
         for val in {{named_child}}:
-            assert val is not None
             val.parent = self
-{% else %}
+{% elif named_children_types.get(named_child) == "optional" %}
         if {{named_child}} is not None:
             {{named_child}}.parent = self
+{% else %}
+        {{named_child}}.parent = self
 {% endif %}
 
         self.subnode_{{named_child}} = {{named_child}}
 
 {% endfor %}
+{% for node_attribute in node_attributes %}
+        self.{{node_attribute}} = {{node_attribute}}
+{% endfor %}
+
+{% if base_class != "object" %}
+        {{base_class}}.__init__(self, source_ref)
 {% endif %}
 
-    {# TODO: We to generate methods that imply the name rather than passing it, e.g. setChildStatements #}
-    def setChild(self, name, value):
-        """Set a child value.
-
-        Do not overload, provider self.checkers instead.
-        """
-        # Lists as inputs are OK, but turn them into tuples on the fly.
-        if type(value) is list:
-            value = tuple(value)
-
-{# While we still have these without names, avoid this most of the time #}
-{% if named_children_checkers %}
-        if name in self.checkers:
-            value = self.checkers[name](value)
+{% if has_post_node_init %}
+        self.postInitNode()
 {% endif %}
 
-        # Re-parent value to us.
-        if type(value) is tuple:
-            for val in value:
-                val.parent = self
-        elif value is not None:
-            value.parent = self
-
-        # Determine old value, and inform it about losing its parent.
-        attr_name = "subnode_" + name
-        old_value = getattr(self, attr_name)
-        assert old_value is not value, value
-
-        setattr(self, attr_name, value)
-
-    {# TODO: We to generate methods that imply the name rather than passing it, e.g. clearChildYesBranch #}
-    def clearChild(self, name):
-        # Only accept legal child names
-        assert name in {{ named_children }}, name
-
-{# While we still have these without names, avoid this most of the time #}
-{% if named_children_checkers %}
-        if name in self.checkers:
-            self.checkers[name](None)
+{% if has_post_node_init %}
+    @abstractmethod
+    def postInitNode(self):
+        """For overload"""
 {% endif %}
 
-        # Determine old value, and check it has no parent anymore.
-{% if single_child %}
-        old_value = self.subnode_{{named_children[0]}}
-        assert old_value is not None
-        {# TODO: We to call finalize here, instead of on the outside. #}
-        assert old_value.parent is None
-        self.subnode_{{named_children[0]}} = None
-{% else %}
-        attr_name = "subnode_" + name
-        # Determine old value, and inform it about losing its parent.
-        old_value = getattr(self, attr_name)
-        assert old_value is not None
-        assert old_value.parent is None
-
-        setattr(self, attr_name, None)
+{% if node_attributes %}
+    def getDetails(self):
+        return {
+{% for node_attribute in node_attributes %}
+            "{{node_attribute}}" : self.{{node_attribute}},
+{% endfor %}
+        }
 {% endif %}
+
+{% for named_child in children_mixing_setters_needed %}
+    def setChild{{named_child.title().replace("_", "")}}(self, value):
+{{ named_child_setter_code(named_child, "value", needs_parent=True) | indent(8, True) }}
+{% endfor %}
 
     def getVisitableNodes(self):
         """ The visitable nodes, with tuple values flattened. """
 
-{% if single_child %}
-{% if named_children_types.get(named_children[0]) == "tuple" %}
+{% if "tuple" not in named_children_types.values() and "optional" not in named_children_types.values() %}
+        return (
+{% for named_child in named_children %}
+            self.subnode_{{named_child}},
+{% endfor %}
+        )
+{% elif len(named_children) == 1 and named_children_types.get(named_children[0]) == "tuple" %}
         return self.subnode_{{named_children[0]}}
-{% else %}
+{% elif len(named_children) == 1 and named_children_types.get(named_children[0]) == "optional" %}
         value = self.subnode_{{named_children[0]}}
 
         {# In this case, generator is not faster. #}
@@ -153,25 +148,23 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
             return ()
         else:
             return (value,)
-{% endif %}
+{% elif len(named_children) == 1 %}
+        return (self.subnode_{{named_children[0]}},)
 {% else %}
-        {# TODO: Consider if a generator is faster. #}
         result = []
-
 {% for named_child in named_children %}
-
+{% if named_children_types.get(named_child) == "optional" %}
         value = self.subnode_{{named_child}}
-
         if value is None:
             pass
-        elif type(value) is tuple:
-            result.extend(value)
         else:
-            assert isinstance(value, NodeBase), ("has illegal child", "{{named_child}}", value, value.__class__)
             result.append(value)
-
-        {% endfor %}
-
+{% elif named_children_types.get(named_child) == "tuple" %}
+        result.extend(self.subnode_{{named_child}})
+{% else %}
+        result.append(self.subnode_{{named_child}})
+{% endif %}
+{% endfor %}
         return tuple(result)
 {% endif %}
 
@@ -181,7 +174,7 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         For use in cloning nodes, debugging and XML output.
         """
 
-{% if single_child %}
+{% if len(named_children) == 1 %}
         return (
             ("{{named_children[0]}}", self.subnode_{{named_children[0]}}),
         )
@@ -194,73 +187,34 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
 {% endif %}
 
     def replaceChild(self, old_node, new_node):
-        if new_node is not None and not isinstance(new_node, NodeBase):
-            raise AssertionError(
-                "Cannot replace with", new_node, "old", old_node, "in", self
-            )
-{% if single_child %}
-        value = self.subnode_{{named_children[0]}}
-{% if named_children_types.get(named_children[0]) == "tuple" %}
-        if old_node not in value:
-            raise AssertionError("Didn't find child", old_node, "in", self)
-
-        if new_node is not None:
-            new_value = tuple(
-                (val if val is not old_node else new_node) for val in value
-            )
-        else:
-            new_value = tuple(val for val in value if val is not old_node)
-
-        new_node.parent = self
-
-        self.subnode_{{named_children[0]}} = new_value
-{% else %}
-        # Find the replaced node, as an added difficulty, what might be
-        # happening, is that the old node is an element of a tuple, in which we
-        # may also remove that element, by setting it to None.
-
-        if old_node is value:
-            new_node.parent = self
-            self.subnode_{{named_children[0]}} = new_node
-        else:
-            raise AssertionError("Didn't find child", old_node, "in", self)
-{% endif %}
-{% else %}
-        # Find the replaced node, as an added difficulty, what might be
-        # happening, is that the old node is an element of a tuple, in which we
-        # may also remove that element, by setting it to None.
 {% for named_child in named_children %}
         value = self.subnode_{{named_child}}
+{% if named_children_types.get(named_child) == "tuple" %}
+        if old_node in value:
+            if new_node is not None:
+                new_node.parent = self
 
-        if value is None:
-            pass
-        elif type(value) is tuple:
-            if old_node in value:
-                if new_node is not None:
-                    self.subnode_{{named_child}} = tuple(
-                            (val if val is not old_node else new_node)
-                            for val in value
-                        )
-                else:
-                    self.subnode_{{named_child}} = tuple(
-                            val
-                            for val in value
-                            if val is not old_node
-                        )
+                self.subnode_{{named_child}} = tuple(
+                    (val if val is not old_node else new_node)
+                    for val in value
+                )
+            else:
+                self.subnode_{{named_child}} = tuple(
+                    val
+                    for val in value
+                    if val is not old_node
+                )
 
 
-                return "{{named_child}}"
-        else:
-            assert isinstance(value, NodeBase), ("has illegal child", "{{named_child}}", value, value.__class__)
-
-            if old_node is value:
-                self.setChild("{{named_child}}", new_node)
-
-                return "{{named_child}}"
+            return
+{% else %}
+        if old_node is value:
+{{ named_child_setter_code(named_child, "new_node", needs_parent=True) | indent(8, True) }}
+            return
+{% endif %}
 
 {% endfor %}
         raise AssertionError("Didn't find child", old_node, "in", self)
-{% endif %}
 
     def getCloneArgs(self):
         """ Get clones of all children to pass for a new node.
@@ -268,58 +222,48 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
             Needs to make clones of child nodes too.
         """
 
-{% if single_child %}
-{% if named_children_types.get(named_children[0]) == "tuple" %}
-        value = self.subnode_{{named_children[0]}}
-
-        values = {"{{named_children[0]}}": tuple(v.makeClone() for v in value)}
-        values.update(self.getDetails())
-
-        return values
-{% else %}
-        value = self.subnode_{{named_children[0]}}
-
-        values = {"{{named_children[0]}}": value.makeClone()}
-        values.update(self.getDetails())
-
-        return values
-{% endif %}
-{% else %}
-        values = {}
-
+        values = {
 {% for named_child in named_children %}
-        value = self.subnode_{{named_child}}
-
-        if value is None:
-            values["{{named_child}}"] = None
-        elif type(value) is tuple:
-            values["{{named_child}}"] = tuple(v.makeClone() for v in value)
-        else:
-            values["{{named_child}}"] = value.makeClone()
+{% if named_children_types.get(named_child) == "tuple" %}
+            "{{named_child}}" : tuple(v.makeClone() for v in self.subnode_{{named_child}}),
+{% elif named_children_types.get(named_child) == "optional" %}
+            "{{named_child}}" : self.subnode_{{named_child}}.makeClone() if self.subnode_{{named_child}} is not None else None,
+{% else %}
+            "{{named_child}}" : self.subnode_{{named_child}}.makeClone(),
+{% endif %}
 {% endfor %}
+        }
 
         values.update(self.getDetails())
 
         return values
+
 {% endif %}
 
     def finalize(self):
         del self.parent
 
-{% if single_child %}
-{% if named_children_types.get(named_children[0]) == "tuple" %}
-        for c in self.subnode_{{named_children[0]}}:
-            c.finalize()
-{% else %}
-        self.subnode_{{named_children[0]}}.finalize()
-{% endif %}
-{% else %}
 {% for named_child in named_children %}
+{% if named_children_types.get(named_child) == "optional" %}
         if self.subnode_{{named_child}} is not None:
             self.subnode_{{named_child}}.finalize()
-{% endfor %}
+{% elif named_children_types.get(named_child) == "tuple" %}
+        for c in self.subnode_{{named_child}}:
+            c.finalize()
+{% else %}
+        self.subnode_{{named_child}}.finalize()
 {% endif %}
+        del self.subnode_{{named_child}}
+{% endfor %}
 
+{% for node_attribute in node_attributes %}
+{% if node_attribute in ("locals_scope", "target_scope", "variable") %}
+        del self.{{node_attribute}}
+{% endif %}
+{% endfor %}
+
+
+{% if is_expression %}
     def computeExpressionRaw(self, trace_collection):
         """Compute an expression.
 
@@ -328,18 +272,22 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         be overloaded, e.g. conditional expressions.
         """
 
-{% if single_child %}
+{% if named_children %}
+{% if len(named_children) == 1 %}
 {% if named_children_types.get(named_children[0]) == "tuple" %}
         # First apply the sub-expressions, as they are evaluated before
         # the actual operation.
-        for count, sub_expression in enumerate(self.subnode_{{named_children[0]}}):
+        {# Keep this around, so we can look up its index, even after it got replaced. This
+           avoids an enumeration that will not be used unless something will raise an
+           exception. #}
+        old_subnode_{{named_children[0]}} = self.subnode_{{named_children[0]}}
+
+        for sub_expression in old_subnode_{{named_children[0]}}:
             expression = trace_collection.onExpression(sub_expression)
 
-            if expression.willRaiseException(BaseException):
-                sub_expressions = self.getVisitableNodes()
-
+            if expression.willRaiseAnyException():
                 wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects=sub_expressions[:count],
+                    side_effects=self.subnode_{{named_children[0]}}[:old_subnode_{{named_children[0]}}.index(sub_expression)],
                     old_node=sub_expression,
                     new_node=expression,
                 )
@@ -350,26 +298,32 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
                     lambda: "For '%s' the child expression '%s' will raise."
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
 {% else %}
         # First apply the sub-expression, as they it's evaluated before.
+{% if named_children_types.get(named_children[0]) == "optional" %}
         expression = self.subnode_{{named_children[0]}}
 
         if expression is not None:
             expression = trace_collection.onExpression(expression)
 
-            if expression.willRaiseException(BaseException):
+            if expression.willRaiseAnyException():
                 return (
                     expression,
                     "new_raise",
                     lambda: "For '%s' the child expression '%s' will raise."
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
+{% else %}
+        expression = trace_collection.onExpression(self.subnode_{{named_children[0]}})
 
-        # Then ask ourselves to work on it.
-        return self.computeExpression(trace_collection)
+        if expression.willRaiseAnyException():
+            return (
+                expression,
+                "new_raise",
+                lambda: "For '%s' the child expression '%s' will raise."
+                % (self.getChildNameNice(), expression.getChildNameNice()),
+            )
+{% endif %}
 {% endif %}
 {% else %}
         # First apply the sub-expressions, as they are evaluated before
@@ -377,7 +331,7 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
         for count, sub_expression in enumerate(self.getVisitableNodes()):
             expression = trace_collection.onExpression(sub_expression)
 
-            if expression.willRaiseException(BaseException):
+            if expression.willRaiseAnyException():
                 sub_expressions = self.getVisitableNodes()
 
                 wrapped_expression = wrapExpressionWithSideEffects(
@@ -392,7 +346,78 @@ class ChildrenHaving{{mixin_name}}Mixin(object):
                     lambda: "For '%s' the child expression '%s' will raise."
                     % (self.getChildNameNice(), expression.getChildNameNice()),
                 )
+{% endif %}
+{% endif %}
 
+{% if is_compute_final %}
+{% if not is_compute_no_raise %}
+        trace_collection.onExceptionRaiseExit(BaseException)
+{% endif %}
+        return self, None, None
+{% else %}
         # Then ask ourselves to work on it.
         return self.computeExpression(trace_collection)
 {% endif %}
+
+{% if is_compute_no_raise %}
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+{% if named_children %}
+    def mayRaiseException(self, exception_type):
+        return \
+{% for named_child in named_children %}
+{% if named_children_types.get(named_child) == "optional" %}
+            (self.subnode_{{named_child}} is not None and self.subnode_{{named_child}}.mayRaiseException(exception_type)) \
+{% elif named_children_types.get(named_child) == "tuple" %}
+            any(value.mayRaiseException(exception_type) for value in self.subnode_{{named_child}}) \
+{% else %}
+            self.subnode_{{named_child}}.mayRaiseException(exception_type) \
+{% endif %}
+{% if named_child != named_children[-1] %}
+            or \
+{% endif %}
+{% endfor %}
+{% else %}
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return False
+{% endif %}
+
+{% endif %}
+
+{# TODO: Should make it abstract for mere mixins too, but too much work now. #}
+{% if not is_compute_final and named_children and base_class == "ExpressionBase" %}
+    @abstractmethod
+    def computeExpression(self, trace_collection):
+        """Must be overloaded for non-final node."""
+{% endif %}
+
+{% endif %}
+
+{% if is_compute_statement %}
+    def computeStatement(self, trace_collection):
+        {# TODO: Role this out for better performance and eliminate computeStatementSubExpressions globally #}
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+{% endif %}
+
+# Assign the names that are easier to import with a stable name.
+{% for node_class_name in intended_for %}
+{% if base_class in ("ExpressionBase", "StatementBase") %}
+{{node_class_name}}Base = {{mixin_name}}
+{% else %}
+Children{{node_class_name}}Mixin = {{mixin_name}}
+{% endif %}
+{% endfor %}

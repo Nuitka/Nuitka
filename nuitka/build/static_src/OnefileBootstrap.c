@@ -43,10 +43,12 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <wchar.h>
 
 /* Type bool */
@@ -70,10 +72,13 @@
 #include "onefile_definitions.h"
 #else
 #define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
+#define _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
 #define _NUITKA_ONEFILE_TEMP_BOOL 0
-#define _NUITKA_AUTO_UPDATE_BOOL 1
-#define _NUITKA_EXPERIMENTAL_DEBUG_AUTO_UPDATE
+#define _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT 5000
 #define _NUITKA_ONEFILE_TEMP_SPEC "%TEMP%/onefile_%PID%_%TIME%"
+
+#define _NUITKA_EXPERIMENTAL_DEBUG_AUTO_UPDATE
+#define _NUITKA_AUTO_UPDATE_BOOL 1
 #define _NUITKA_AUTO_UPDATE_URL_SPEC "https://..."
 
 #if __APPLE__
@@ -473,11 +478,34 @@ static void createContainingDirectory(filename_char_t const *path) {
 }
 
 #if defined(_WIN32)
-static void removeDirectory(wchar_t const *path) {
+
+static bool isDirectory(wchar_t const *path) {
+    DWORD dwAttrib = GetFileAttributesW(path);
+
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) != 0);
+}
+
+static void _removeDirectory(wchar_t const *path) {
     SHFILEOPSTRUCTW file_op_struct = {
         NULL, FO_DELETE, payload_path, L"", FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT, false, 0, L""};
     SHFileOperationW(&file_op_struct);
 }
+
+static void removeDirectory(wchar_t const *path) {
+    _removeDirectory(path);
+
+    for (int i = 0; i < 20; i++) {
+        if (!isDirectory(path)) {
+            break;
+        }
+
+        // Delay 0.1s before trying again.
+        Sleep(100);
+
+        _removeDirectory(path);
+    }
+}
+
 #else
 static int removeDirectory(char const *path) {
     DIR *d = opendir(path);
@@ -531,12 +559,15 @@ static int removeDirectory(char const *path) {
 #endif
 
 #if !defined(_WIN32)
-static int waitpid_retried(pid_t pid, int *status) {
+static int waitpid_retried(pid_t pid, int *status, bool async) {
     int res;
 
     for (;;) {
-        *status = 0;
-        res = waitpid(pid, status, 0);
+        if (status != NULL) {
+            *status = 0;
+        }
+
+        res = waitpid(pid, status, async ? WNOHANG : 0);
 
         if ((res == -1) && (errno == EINTR)) {
             continue;
@@ -547,35 +578,86 @@ static int waitpid_retried(pid_t pid, int *status) {
 
     return res;
 }
+
+static int waitpid_timeout(pid_t pid) {
+    // Check if already exited.
+    if (waitpid(pid, NULL, WNOHANG) == -1) {
+        return 0;
+    }
+
+    // Checking 5 times per second should be good enough.
+    long ns = 200000000L; // 0.2s
+
+    // Seconds, nanoseconds from our milliseconds value.
+    struct timespec timeout = {
+        _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT / 1000,
+        (_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT % 1000) * 1000,
+    };
+    struct timespec delay = {0, ns};
+    struct timespec elapsed = {0, 0};
+    struct timespec rem;
+
+    do {
+        // Only want to care about SIGCHLD here.
+        int res = waitpid_retried(pid, NULL, true);
+
+        if (unlikely(res < 0)) {
+            perror("waitpid");
+
+            return -1;
+        }
+
+        if (res != 0) {
+            break;
+        }
+
+        nanosleep(&delay, &rem);
+
+        elapsed.tv_sec += (elapsed.tv_nsec + ns) / 1000000000L;
+        elapsed.tv_nsec = (elapsed.tv_nsec + ns) % 1000000000L;
+    } while (elapsed.tv_sec < timeout.tv_sec ||
+             (elapsed.tv_sec == timeout.tv_sec && elapsed.tv_nsec < timeout.tv_nsec));
+
+    return 0;
+}
 #endif
 
-static void cleanupChildProcess(void) {
+static void cleanupChildProcess(bool send_sigint) {
 
     // Cause KeyboardInterrupt in the child process.
     if (handle_process != 0) {
-        NUITKA_PRINT_TRACE("Sending CTRL-C to child\n");
+
+        if (send_sigint) {
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+            puts("Sending CTRL-C to child\n");
+#endif
 
 #if defined(_WIN32)
-        BOOL res = GenerateConsoleCtrlEvent(CTRL_C_EVENT, GetProcessId(handle_process));
+            BOOL res = GenerateConsoleCtrlEvent(CTRL_C_EVENT, GetProcessId(handle_process));
 
-        if (res == false) {
-            printError("Failed to send CTRL-C to child process.");
-            // No error exit is done, we still want to cleanup when it does exit
-        }
+            if (res == false) {
+                printError("Failed to send CTRL-C to child process.");
+                // No error exit is done, we still want to cleanup when it does exit
+            }
 #else
-        kill(handle_process, SIGINT);
+            kill(handle_process, SIGINT);
 #endif
+        }
+
         // TODO: We ought to only need to wait if there is a need to cleanup
-        // files when we are on Windows, on Linux maybe exec can be used to
-        // this process to exist anymore.
+        // files when we are on Windows, on Linux maybe exec can be used so
+        // this process to exist anymore if there is nothing to do.
 #if _NUITKA_ONEFILE_TEMP_BOOL == 1 || 1
         NUITKA_PRINT_TRACE("Waiting for child to exit.\n");
 #if defined(_WIN32)
-        WaitForSingleObject(handle_process, INFINITE);
+        if (WaitForSingleObject(handle_process, _NUITKA_ONEFILE_CHILD_GRACE_TIME_INT) != 0) {
+            TerminateProcess(handle_process, 0);
+        }
+
         CloseHandle(handle_process);
 #else
-        int status;
-        waitpid_retried(handle_process, &status);
+        waitpid_timeout(handle_process);
+        kill(handle_process, SIGKILL);
 #endif
         NUITKA_PRINT_TRACE("Child is exited.\n");
 #endif
@@ -583,6 +665,9 @@ static void cleanupChildProcess(void) {
 
 #if _NUITKA_ONEFILE_TEMP_BOOL == 1
     if (payload_created) {
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+        wprintf(L"Removing payload path '%lS'\n", payload_path);
+#endif
         removeDirectory(payload_path);
     }
 #endif
@@ -631,30 +716,40 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
         // Handle the CTRL-C signal.
     case CTRL_C_EVENT:
-        NUITKA_PRINT_TRACE("Ctrl-C event");
-        cleanupChildProcess();
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+        puts("Ctrl-C event");
+#endif
+        cleanupChildProcess(false);
         return FALSE;
 
         // CTRL-CLOSE: confirm that the user wants to exit.
     case CTRL_CLOSE_EVENT:
-        NUITKA_PRINT_TRACE("Ctrl-Close event");
-        cleanupChildProcess();
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+        puts("Ctrl-Close event");
+#endif
+        cleanupChildProcess(false);
         return FALSE;
 
         // Pass other signals to the next handler.
     case CTRL_BREAK_EVENT:
-        NUITKA_PRINT_TRACE("Ctrl-Break event");
-        cleanupChildProcess();
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+        puts("Ctrl-Break event");
+#endif
+        cleanupChildProcess(false);
         return FALSE;
 
     case CTRL_LOGOFF_EVENT:
-        NUITKA_PRINT_TRACE("Ctrl-Logoff event");
-        cleanupChildProcess();
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+        puts("Ctrl-Logoff event");
+#endif
+        cleanupChildProcess(false);
         return FALSE;
 
     case CTRL_SHUTDOWN_EVENT:
-        NUITKA_PRINT_TRACE("Ctrl-Shutdown event");
-        cleanupChildProcess();
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+        puts("Ctrl-Shutdown event");
+#endif
+        cleanupChildProcess(false);
         return FALSE;
 
     default:
@@ -663,7 +758,7 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 }
 
 #else
-void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(); }
+void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(false); }
 #endif
 
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
@@ -697,6 +792,10 @@ int main(int argc, char **argv) {
     if (unlikely(bool_res == false)) {
         fatalErrorSpec(pattern);
     }
+
+#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+    wprintf(L"payload path: '%lS'\n", payload_path);
+#endif
 
 #if defined(_WIN32)
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
@@ -1028,7 +1127,7 @@ int main(int argc, char **argv) {
         handle_process = 0;
     }
 
-    cleanupChildProcess();
+    cleanupChildProcess(false);
 #else
     int exit_code;
 
@@ -1045,15 +1144,14 @@ int main(int argc, char **argv) {
     } else {
         handle_process = pid;
         int status;
-        int res = waitpid_retried(handle_process, &status);
+        int res = waitpid_retried(handle_process, &status, false);
 
         if (res == -1 && errno != ECHILD) {
-            printError("waitpid");
-            cleanupChildProcess();
             exit_code = 2;
+            cleanupChildProcess(false);
         } else {
             exit_code = WEXITSTATUS(status);
-            cleanupChildProcess();
+            cleanupChildProcess(false);
         }
     }
 

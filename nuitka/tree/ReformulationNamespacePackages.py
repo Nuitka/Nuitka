@@ -147,7 +147,7 @@ def getNameSpacePathExpression(package, source_ref):
 
                 elements.append(path_part)
 
-        return makeExpressionMakeList(elements=elements, source_ref=source_ref)
+        return makeExpressionMakeList(elements=tuple(elements), source_ref=source_ref)
 
 
 def createPathAssignment(package, source_ref):
@@ -208,7 +208,7 @@ def createNamespacePackage(module_name, is_top, source_ref):
     else:
         statement = createPathAssignment(package, source_ref)
 
-    package.setChild("body", makeStatementsSequenceFromStatement(statement=statement))
+    package.setChildBody(makeStatementsSequenceFromStatement(statement=statement))
 
     completeVariableClosures(package)
 

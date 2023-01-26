@@ -26,8 +26,11 @@ from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
 from .BuiltinTypeNodes import ExpressionBuiltinBool
 from .Checkers import checkStatementsSequenceOrNone
-from .ExpressionBases import ExpressionChildrenHavingBase
-from .NodeBases import StatementChildrenHavingBase
+from .ChildrenHavingMixins import (
+    ChildrenHavingConditionExpressionYesExpressionNoMixin,
+    ChildrenHavingLeftRightMixin,
+)
+from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeStatementExpressionOnlyReplacementNode,
@@ -37,6 +40,7 @@ from .NodeMakingHelpers import (
 )
 from .OperatorNodesUnary import ExpressionOperationNot
 from .shapes.BuiltinTypeShapes import tshape_bool, tshape_unknown
+from .StatementBasesGenerated import StatementConditionalBase
 from .StatementNodes import StatementsSequence
 
 
@@ -65,21 +69,24 @@ class ConditionalValueComputeMixin(object):
             return condition.getTruthValue(), condition
 
 
-class ExpressionConditional(ConditionalValueComputeMixin, ExpressionChildrenHavingBase):
+class ExpressionConditional(
+    ConditionalValueComputeMixin,
+    ChildrenHavingConditionExpressionYesExpressionNoMixin,
+    ExpressionBase,
+):
     kind = "EXPRESSION_CONDITIONAL"
 
     named_children = ("condition", "expression_yes", "expression_no")
 
     def __init__(self, condition, expression_yes, expression_no, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingConditionExpressionYesExpressionNoMixin.__init__(
             self,
-            values={
-                "condition": condition,
-                "expression_yes": expression_yes,
-                "expression_no": expression_no,
-            },
-            source_ref=source_ref,
+            condition=condition,
+            expression_yes=expression_yes,
+            expression_no=expression_no,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def getTypeShape(self):
         yes_shape = self.subnode_expression_yes.getTypeShape()
@@ -106,7 +113,7 @@ class ExpressionConditional(ConditionalValueComputeMixin, ExpressionChildrenHavi
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
-        if condition.willRaiseException(BaseException):
+        if condition.willRaiseAnyException():
             return (
                 condition,
                 "new_raise",
@@ -133,7 +140,7 @@ branches.""",
             yes_branch = branch_yes_collection.onExpression(yes_branch)
 
             # If it's aborting, it doesn't contribute to merging.
-            if truth_value is not True and yes_branch.willRaiseException(BaseException):
+            if truth_value is not True and yes_branch.willRaiseAnyException():
                 branch_yes_collection = None
         else:
             branch_yes_collection = None
@@ -149,7 +156,7 @@ branches.""",
             no_branch = branch_no_collection.onExpression(no_branch)
 
             # If it's aborting, it doesn't contribute to merging.
-            if truth_value is not False and no_branch.willRaiseException(BaseException):
+            if truth_value is not False and no_branch.willRaiseAnyException():
                 branch_no_collection = None
         else:
             branch_no_collection = None
@@ -257,13 +264,13 @@ Convert conditional expression with unused result into conditional statement."""
             return None
 
 
-class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
+class ExpressionConditionalBoolBase(ChildrenHavingLeftRightMixin, ExpressionBase):
     named_children = ("left", "right")
 
     def __init__(self, left, right, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"left": left, "right": right}, source_ref=source_ref
-        )
+        ChildrenHavingLeftRightMixin.__init__(self, left=left, right=right)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpressionRaw(self, trace_collection):
         # Query the truth value after the expression is evaluated, once it is
@@ -272,7 +279,7 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
-        if left.willRaiseException(BaseException):
+        if left.willRaiseAnyException():
             return (
                 left,
                 "new_raise",
@@ -308,7 +315,7 @@ branches."""
             right = branch_yes_collection.onExpression(right)
 
             # If it's aborting, it doesn't contribute to merging.
-            if right.willRaiseException(BaseException):
+            if right.willRaiseAnyException():
                 branch_yes_collection = None
         else:
             branch_yes_collection = None
@@ -494,26 +501,19 @@ Convert conditional 'and' expression with unused result into conditional stateme
         )
 
 
-class StatementConditional(ConditionalValueComputeMixin, StatementChildrenHavingBase):
+class StatementConditional(ConditionalValueComputeMixin, StatementConditionalBase):
     kind = "STATEMENT_CONDITIONAL"
 
-    named_children = ("condition", "yes_branch", "no_branch")
+    named_children = (
+        "condition",
+        "yes_branch|statements_or_none+setter",
+        "no_branch|statements_or_none+setter",
+    )
 
     checkers = {
         "yes_branch": checkStatementsSequenceOrNone,
         "no_branch": checkStatementsSequenceOrNone,
     }
-
-    def __init__(self, condition, yes_branch, no_branch, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={
-                "condition": condition,
-                "yes_branch": yes_branch,
-                "no_branch": no_branch,
-            },
-            source_ref=source_ref,
-        )
 
     def isStatementAborting(self):
         yes_branch = self.subnode_yes_branch
@@ -584,7 +584,7 @@ class StatementConditional(ConditionalValueComputeMixin, StatementChildrenHaving
 
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
-        if condition.willRaiseException(BaseException):
+        if condition.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=condition, node=self
             )
@@ -612,14 +612,14 @@ branches.""",
                 yes_branch.finalize()
                 yes_branch = None
 
-                self.clearChild("yes_branch")
+                self.setChildYesBranch(None)
 
         if no_branch is not None:
             if not no_branch.subnode_statements:
                 no_branch.finalize()
                 no_branch = None
 
-                self.clearChild("no_branch")
+                self.setChildNoBranch(None)
 
         # Consider to not remove branches that we know won't be taken.
         if yes_branch is not None and truth_value is False:
@@ -630,8 +630,9 @@ branches.""",
             )
 
             yes_branch.finalize()
-            self.clearChild("yes_branch")
             yes_branch = None
+
+            self.setChildYesBranch(None)
 
         if no_branch is not None and truth_value is True:
             trace_collection.signalChange(
@@ -641,8 +642,9 @@ branches.""",
             )
 
             no_branch.finalize()
-            self.clearChild("no_branch")
             no_branch = None
+
+            self.setChildNoBranch(None)
 
         # Do we need to merge branches
         needs_merge = True

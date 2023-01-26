@@ -1,0 +1,322 @@
+{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#                                                                              #}
+{#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
+{#     integrates with CPython, but also works on its own.                      #}
+{#                                                                              #}
+{#     Licensed under the Apache License, Version 2.0 (the "License");          #}
+{#     you may not use this file except in compliance with the License.         #}
+{#     You may obtain a copy of the License at                                  #}
+{#                                                                              #}
+{#        http://www.apache.org/licenses/LICENSE-2.0                            #}
+{#                                                                              #}
+{#     Unless required by applicable law or agreed to in writing, software      #}
+{#     distributed under the License is distributed on an "AS IS" BASIS,        #}
+{#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{#     See the License for the specific language governing permissions and      #}
+{#     limitations under the License.                                           #}
+{#                                                                              #}
+{% macro make_bytes_class(class_name, arg_names) %}
+{% set bytes_operation_arg_types = {} %}
+{% set bytes_operation_mixin_name = addChildrenMixin(True, False, class_name, ("bytes_arg",) + arg_names, bytes_operation_arg_types, {}) %}
+from .ChildrenHavingMixins import {{bytes_operation_mixin_name}}
+
+class {{class_name}}(
+{% for extra_mixin in bytes_operation_mixin_classes %}
+    {{extra_mixin.rsplit(".", 1)[1]}},
+{% endfor %}
+    {{bytes_operation_mixin_name}},
+    ExpressionBase):
+    named_children = ("bytes_arg",
+{% for named_child in arg_names %}
+{% if named_child in bytes_operation_arg_types %}
+        "{{named_child}}|{{bytes_operation_arg_types[named_child]}}",
+{% else %}
+        "{{named_child}}",
+{% endif %}
+{% endfor %}
+    )
+
+    def __init__(self, bytes_arg,
+{{formatArgs(arg_names, starting=True, finishing=False)}} source_ref):
+        {{bytes_operation_mixin_name}}.__init__(self, bytes_arg = bytes_arg,
+{% for named_child in arg_names %}
+            {{named_child}} = {{named_child}},
+{% endfor %}
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        if (
+            ( self.subnode_bytes_arg.isCompileTimeConstant()
+{% for named_child in arg_names %}
+                and self.subnode_{{named_child}}.isCompileTimeConstant()
+{% endfor %}
+            )
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: bytes.{{attribute_name}}(
+                    self.subnode_bytes_arg.getCompileTimeConstant(),
+{% for named_child in arg_names %}
+                    self.subnode_{{named_child}}.getCompileTimeConstant(),
+{% endfor %}
+                ),
+                description="Built-in 'bytes.{{attribute_name}}' with constant values.",
+                user_provided=self.subnode_bytes_arg.user_provided,
+            )
+
+        {# TODO: For actual implementors, lets use this: return self.computeExpressionOperation(trace_collection) #}
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+{#
+    TODO: We could implement computeExpression and do things in a fashion, where
+    we remember raising and compile time constant nature of our children, for now
+    this will work, and ultimately a negative result of this.
+#}
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_bytes_arg.mayRaiseException(exception_type) or
+{% for named_child in arg_names %}
+            self.subnode_{{named_child}}.mayRaiseException(exception_type) or
+{% endfor %}
+            self.mayRaiseExceptionOperation()
+        )
+
+    @abstractmethod
+    def mayRaiseExceptionOperation(self):
+        """Does the operation part raise an exception possibly."""
+
+{% endmacro %}
+
+{% macro make_str_class(class_name, arg_names) %}
+{% if attribute_name == "format" %}
+{% set str_operation_arg_types = {"args": "tuple", "pairs": "tuple"} %}
+{% else %}
+{% set str_operation_arg_types = {} %}
+{% endif %}
+{% set str_operation_mixin_name = addChildrenMixin(True, False, class_name, ("str_arg",) + arg_names, str_operation_arg_types, {}) %}
+from .ChildrenHavingMixins import {{str_operation_mixin_name}}
+
+class {{class_name}}(
+{% for extra_mixin in str_operation_mixin_classes %}
+    {{extra_mixin.rsplit(".", 1)[1]}},
+{% endfor %}
+    {{str_operation_mixin_name}},
+    ExpressionBase):
+    named_children = ("str_arg",
+{% for named_child in arg_names %}
+{% if named_child in str_operation_arg_types %}
+        "{{named_child}}|{{str_operation_arg_types[named_child]}}",
+{% else %}
+        "{{named_child}}",
+{% endif %}
+{% endfor %}
+    )
+
+    def __init__(self, str_arg,
+{{formatArgs(arg_names, starting=True, finishing=False)}} source_ref):
+        {{str_operation_mixin_name}}.__init__(self, str_arg = str_arg,
+{% for named_child in arg_names %}
+            {{named_child}} = {{named_child}},
+{% endfor %}
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        if (
+            ( self.subnode_str_arg.isCompileTimeConstant()
+{% for named_child in arg_names %}
+                and self.subnode_{{named_child}}.isCompileTimeConstant()
+{% endfor %}
+            )
+        ):
+            return trace_collection.getCompileTimeComputationResult(
+                node=self,
+                computation=lambda: str.{{attribute_name}}(
+                    self.subnode_str_arg.getCompileTimeConstant(),
+{% for named_child in arg_names %}
+                    self.subnode_{{named_child}}.getCompileTimeConstant(),
+{% endfor %}
+                ),
+                description="Built-in 'str.{{attribute_name}}' with constant values.",
+                user_provided=self.subnode_str_arg.user_provided,
+            )
+
+        {# TODO: For actual implementors, lets use this: return self.computeExpressionOperation(trace_collection) #}
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+{#
+    TODO: We could implement computeExpression and do things in a fashion, where
+    we remember raising and compile time constant nature of our children, for now
+    this will work, and ultimately a negative result of this.
+#}
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_str_arg.mayRaiseException(exception_type) or
+{% for named_child in arg_names %}
+            self.subnode_{{named_child}}.mayRaiseException(exception_type) or
+{% endfor %}
+            self.mayRaiseExceptionOperation()
+        )
+
+    @abstractmethod
+    def mayRaiseExceptionOperation(self):
+        """Does the operation part raise an exception possibly."""
+
+{% endmacro %}
+
+
+{% macro make_dict_class(class_name, arg_names) %}
+{% if "pairs" in arg_names %}
+{% set dict_operation_arg_types = {"pairs": "tuple"} %}
+{% else %}
+{% set dict_operation_arg_types = {} %}
+{% endif %}
+{% set dict_operation_mixin_name = addChildrenMixin(True, False, class_name, ("dict_arg",) + arg_names, dict_operation_arg_types, {}) %}
+from .ChildrenHavingMixins import {{dict_operation_mixin_name}}
+
+class {{class_name}}(
+{% for extra_mixin in dict_operation_mixin_classes %}
+    {{extra_mixin.rsplit(".", 1)[1]}},
+{% endfor %}
+    {{dict_operation_mixin_name}},
+    ExpressionBase):
+    named_children = ("dict_arg",
+{% for named_child in arg_names %}
+{% if named_child in dict_operation_arg_types %}
+        "{{named_child}}|{{dict_operation_arg_types[named_child]}}",
+{% else %}
+        "{{named_child}}",
+{% endif %}
+{% endfor %}
+    )
+
+    def __init__(self, dict_arg,
+{{formatArgs(arg_names, starting=True, finishing=False)}} source_ref):
+        {{dict_operation_mixin_name}}.__init__(self, dict_arg = dict_arg,
+{% for named_child in arg_names %}
+            {{named_child}} = {{named_child}},
+{% endfor %}
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+{% endmacro %}
+
+{% set attribute_name_class = attribute_name.replace("_", "").title() %}
+
+{% if "tshape_dict" in shape_names %}
+{% set dict_shape = 1 %}
+{% set dict_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_args = attribute_shape_args.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_dict")) %}
+{% set dict_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_dict"), "None") %}
+{% set dict_operation_mixin_classes = attribute_shape_operations_mixin_classes.get((attribute_name, "tshape_dict"), ()) %}
+
+{% else %}
+{% set dict_shape = 0 %}
+{% endif %}
+
+{% if "tshape_str" in shape_names %}
+{% set str_shape = 1 %}
+{% set str_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_str")) %}
+{% set str_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_str")) %}
+{% set str_operation_args = attribute_shape_args.get((attribute_name, "tshape_str"), ()) %}
+{% set str_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_str")) %}
+{% set str_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_str")) %}
+{% set str_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_str")) %}
+{% set str_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_str"), "None") %}
+{% set str_operation_mixin_classes = attribute_shape_operations_mixin_classes.get((attribute_name, "tshape_str"), ()) %}
+{% else %}
+{% set str_shape = 0 %}
+{% endif %}
+
+{% if "tshape_bytes" in shape_names %}
+{% set bytes_shape = 1 %}
+{% set bytes_operation_version_check = attribute_shape_versions.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_version_presence = attribute_shape_operations.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_args = attribute_shape_args.get((attribute_name, "tshape_bytes"), ()) %}
+{% set bytes_operation_arg_tests = attribute_shape_arg_tests.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_variation = attribute_shape_variations.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_bytes")) %}
+{% set bytes_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_bytes"), "None") %}
+{% set bytes_operation_mixin_classes = attribute_shape_operations_mixin_classes.get((attribute_name, "tshape_bytes"), ()) %}
+{% else %}
+{% set bytes_shape = 0 %}
+{% endif %}
+
+
+{% if str_shape %}
+
+from .ExpressionBases import ExpressionBase
+from abc import abstractmethod
+
+{% for extra_mixin in str_operation_mixin_classes %}
+from {{extra_mixin.rsplit(".", 1)[0]}} import {{extra_mixin.rsplit(".", 1)[1]}}
+{% endfor %}
+
+{% if str_operation_variation %}
+
+{% for count in reversed(str_operation_variation) %}
+{{ make_str_class("ExpressionStrOperation" + attribute_name_class + str(count+1) + "Base", str_operation_args[:count] )}}
+{% endfor %}
+
+{% else %}
+{{ make_str_class("ExpressionStrOperation" + attribute_name_class + "Base", str_operation_args )}}
+{% endif %}
+
+{% endif %}
+
+{% if bytes_shape %}
+
+from .ExpressionBases import ExpressionBase
+from abc import abstractmethod
+
+{% for extra_mixin in bytes_operation_mixin_classes %}
+from {{extra_mixin.rsplit(".", 1)[0]}} import {{extra_mixin.rsplit(".", 1)[1]}}
+{% endfor %}
+
+{% if bytes_operation_variation %}
+
+{% for count in reversed(bytes_operation_variation) %}
+{{ make_bytes_class("ExpressionBytesOperation" + attribute_name_class + str(count+1) + "Base", bytes_operation_args[:count] )}}
+{% endfor %}
+
+{% else %}
+{{ make_bytes_class("ExpressionBytesOperation" + attribute_name_class + "Base", bytes_operation_args )}}
+{% endif %}
+
+{% endif %}
+
+
+{% if dict_shape %}
+
+from .ExpressionBases import ExpressionBase
+from abc import abstractmethod
+
+{% for extra_mixin in dict_operation_mixin_classes %}
+from {{extra_mixin.rsplit(".", 1)[0]}} import {{extra_mixin.rsplit(".", 1)[1]}}
+{% endfor %}
+
+{% if dict_operation_variation %}
+
+{% for count in reversed(dict_operation_variation) %}
+{{ make_dict_class("ExpressionDictOperation" + attribute_name_class + str(count+1) + "Base", dict_operation_args[:count] )}}
+{% endfor %}
+
+{% else %}
+{{ make_dict_class("ExpressionDictOperation" + attribute_name_class + "Base", dict_operation_args )}}
+{% endif %}
+
+{% endif %}

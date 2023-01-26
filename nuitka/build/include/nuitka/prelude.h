@@ -40,10 +40,6 @@
 #define PYTHON_VERSION (PY_MAJOR_VERSION * 256 + PY_MINOR_VERSION * 16 + 15)
 #endif
 
-#if PYTHON_VERSION >= 0x3b0
-#define Py_BUILD_CORE
-#endif
-
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
  */
@@ -110,7 +106,12 @@ extern _PyRuntimeState _PyRuntime;
 #include <internal/pycore_runtime.h>
 #endif
 
+#if PYTHON_VERSION >= 0x380
+#include <internal/pycore_pyerrors.h>
+#endif
+
 #if PYTHON_VERSION >= 0x3a0
+#include <internal/pycore_long.h>
 #include <internal/pycore_unionobject.h>
 #endif
 
@@ -128,6 +129,7 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x380
+#undef _PyObject_LookupSpecial
 #include <internal/pycore_object.h>
 #else
 #include <objimpl.h>
@@ -321,8 +323,6 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-#include "nuitka/allocator.h"
-
 #if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 0x300 && PYTHON_VERSION < 0x370
 // We are careful, access without locking under the assumption that we hold
 // the GIL over uses of this or the same thread continues to execute code of
@@ -374,6 +374,12 @@ extern PyThreadState *_PyThreadState_Current;
 #else
 #define NuitkaType_HasFeatureClass(descr) (1)
 #endif
+
+// Our replacement for "PyType_IsSubtype"
+extern bool Nuitka_Type_IsSubtype(PyTypeObject *a, PyTypeObject *b);
+
+#include "nuitka/allocator.h"
+#include "nuitka/exceptions.h"
 
 // The digit types
 #if PYTHON_VERSION < 0x300
