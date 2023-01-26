@@ -127,11 +127,7 @@ def getResultFullpath(onefile):
             result = output_filename
         elif isWin32OrPosixWindows():
             result += ".exe"
-        elif (
-            not Options.isStandaloneMode()
-            or onefile
-            and not Options.shallCreateAppBundle()
-        ):
+        elif not Options.shallCreateAppBundle():
             result += ".bin"
 
     return result

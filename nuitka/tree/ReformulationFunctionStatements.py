@@ -39,8 +39,8 @@ from nuitka.nodes.CoroutineNodes import (
 )
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
-    ExpressionFunctionCreation,
     ExpressionFunctionRef,
+    makeExpressionFunctionCreation,
 )
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
@@ -72,6 +72,7 @@ from .TreeHelpers import (
     buildFrameNode,
     buildNode,
     buildNodeList,
+    buildNodeTuple,
     detectFunctionBodyKind,
     extractDocFromBody,
     getKind,
@@ -88,9 +89,8 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
             statement=return_statement
         )
     elif not function_statements_body.isStatementAborting():
-        function_statements_body.setChild(
-            "statements",
-            function_statements_body.subnode_statements + (return_statement,),
+        function_statements_body.setChildStatements(
+            function_statements_body.subnode_statements + (return_statement,)
         )
 
     return function_statements_body
@@ -106,15 +106,15 @@ def _insertInitialSetLocalsDictStatement(function_body, function_statements_body
             statement=locals_statement
         )
     else:
-        function_statements_body.setChild(
-            "statements",
-            (locals_statement,) + function_statements_body.subnode_statements,
+        function_statements_body.setChildStatements(
+            (locals_statement,) + function_statements_body.subnode_statements
         )
 
     return function_statements_body
 
 
 def _injectDecorator(decorators, inject, acceptable, source_ref):
+    assert type(decorators) is list
     assert type(inject) is str
     assert type(acceptable) is tuple
 
@@ -182,8 +182,7 @@ def buildFunctionNode(provider, node, source_ref):
         for variable in function_body.getProvidedVariables():
             code_body.getVariableForReference(variable.getName())
 
-        function_body.setChild(
-            "body",
+        function_body.setChildBody(
             makeStatementsSequenceFromStatement(
                 statement=StatementReturn(
                     expression=maker_class(
@@ -194,14 +193,14 @@ def buildFunctionNode(provider, node, source_ref):
                     ),
                     source_ref=source_ref,
                 )
-            ),
+            )
         )
 
     decorators = buildNodeList(
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    defaults = buildNodeList(
+    defaults = buildNodeTuple(
         provider=provider, nodes=node.args.defaults, source_ref=source_ref
     )
 
@@ -233,11 +232,11 @@ def buildFunctionNode(provider, node, source_ref):
             statement=function_statements_body
         )
 
-    code_body.setChild("body", function_statements_body)
+    code_body.setChildBody(function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
-    function_creation = ExpressionFunctionCreation(
+    function_creation = makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
             function_body=function_body, source_ref=source_ref
         ),
@@ -347,7 +346,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
     )
 
-    defaults = buildNodeList(
+    defaults = buildNodeTuple(
         provider=provider, nodes=node.args.defaults, source_ref=source_ref
     )
 
@@ -368,7 +367,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             statement=function_statements_body
         )
 
-    function_body.setChild("body", function_statements_body)
+    function_body.setChildBody(function_statements_body)
 
     annotations = buildParameterAnnotations(provider, node, source_ref)
 
@@ -394,14 +393,13 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             source_ref=source_ref,
         )
 
-    creator_function_body.setChild(
-        "body",
+    creator_function_body.setChildBody(
         makeStatementsSequenceFromStatement(
             statement=StatementReturn(expression=creation_node, source_ref=source_ref)
-        ),
+        )
     )
 
-    function_creation = ExpressionFunctionCreation(
+    function_creation = makeExpressionFunctionCreation(
         function_ref=ExpressionFunctionRef(
             function_body=creator_function_body, source_ref=source_ref
         ),
@@ -640,8 +638,7 @@ def _wrapFunctionWithSpecialNestedArgs(
 
     statements.append(StatementReturn(expression=code_body, source_ref=source_ref))
 
-    outer_body.setChild(
-        "body",
+    outer_body.setChildBody(
         makeStatementsSequenceFromStatement(
             statement=makeTryFinallyStatement(
                 provider=outer_body,
@@ -658,7 +655,7 @@ def _wrapFunctionWithSpecialNestedArgs(
                 source_ref=source_ref,
                 public_exc=False,
             )
-        ),
+        )
     )
 
     return code_body
@@ -797,4 +794,4 @@ def addFunctionVariableReleases(function):
             provider=function, tried=body, final=releases, source_ref=source_ref
         )
 
-        function.setChild("body", makeStatementsSequenceFromStatement(statement=body))
+        function.setChildBody(makeStatementsSequenceFromStatement(statement=body))

@@ -237,7 +237,7 @@ def getBuiltinEvalCode(
 
 
 def generateExecCode(statement, emit, context):
-    source_arg = statement.subnode_source
+    source_arg = statement.subnode_source_code
     globals_arg = statement.subnode_globals_arg
     locals_arg = statement.subnode_locals_arg
 
@@ -341,7 +341,10 @@ def _generateEvalCode(to_name, node, emit, context):
     locals_name = context.allocateTempName("eval_locals")
 
     generateExpressionCode(
-        to_name=source_name, expression=node.subnode_source, emit=emit, context=context
+        to_name=source_name,
+        expression=node.subnode_source_code,
+        emit=emit,
+        context=context,
     )
 
     generateExpressionCode(

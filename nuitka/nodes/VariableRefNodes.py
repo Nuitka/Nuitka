@@ -61,7 +61,7 @@ class ExpressionVariableRefBase(ExpressionBase):
     __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable = variable
         self.variable_trace = None
@@ -601,6 +601,11 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
         return None, None, None
 
+    def hasShapeListExact(self):
+        return (
+            self.variable_trace is not None and self.variable_trace.hasShapeListExact()
+        )
+
     def hasShapeDictionaryExact(self):
         return (
             self.variable_trace is not None
@@ -787,10 +792,7 @@ class ExpressionTempVariableRef(
             ),
         )
 
-        outline_body.setChild(
-            "body",
-            makeStatementsSequenceFromStatements(*statements),
-        )
+        outline_body.setChildBody(makeStatementsSequenceFromStatements(*statements))
 
         return False, trace_collection.computedExpressionResultRaw(
             outline_body,

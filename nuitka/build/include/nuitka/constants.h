@@ -84,6 +84,8 @@ extern PyObject **global_constants;
 #define const_str_plain___init__ global_constants[24]
 // '__iter__'
 #define const_str_plain___iter__ global_constants[25]
+// '__subclasscheck__'
+#define const_str_plain___subclasscheck__ global_constants[25]
 // '__compiled__'
 #define const_str_plain___compiled__ global_constants[26]
 // 'inspect'

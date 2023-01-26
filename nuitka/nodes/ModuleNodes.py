@@ -25,10 +25,7 @@ import os
 
 from nuitka import Options, Variables
 from nuitka.containers.OrderedSets import OrderedSet
-from nuitka.importing.Importing import (
-    getModuleNameAndKindFromFilename,
-    locateModule,
-)
+from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
@@ -40,12 +37,13 @@ from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 
-from .Checkers import checkStatementsSequenceOrNone
+from .ChildrenHavingMixins import (
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
+)
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
-    ChildrenHavingMixin,
     ClosureGiverNodeMixin,
     NodeBase,
     extractKindAndArgsFromXML,
@@ -90,7 +88,12 @@ class PythonModuleBase(NodeBase):
         package = getModuleByName(package_name)
 
         if package_name is not None and package is None:
-            _package_name, package_filename, finding = locateModule(
+            (
+                _package_name,
+                package_filename,
+                package_module_kind,
+                finding,
+            ) = locateModule(
                 module_name=package_name,
                 parent_package=None,
                 level=0,
@@ -106,15 +109,12 @@ class PythonModuleBase(NodeBase):
 
             assert package_filename is not None, (package_name, finding)
 
-            _package_name, package_kind = getModuleNameAndKindFromFilename(
-                package_filename
-            )
             # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
 
             decision, _reason = decideRecursion(
                 module_filename=package_filename,
                 module_name=package_name,
-                module_kind=package_kind,
+                module_kind=package_module_kind,
             )
 
             if decision is not None:
@@ -124,7 +124,9 @@ class PythonModuleBase(NodeBase):
                     else None,
                     module_name=package_name,
                     module_filename=package_filename,
-                    module_kind="py",
+                    module_kind=package_module_kind,
+                    using_module=self,
+                    source_ref=self.source_ref,
                     reason="Containing package of '%s'." % self.getFullName(),
                 )
 
@@ -210,7 +212,7 @@ class PythonModuleBase(NodeBase):
 
 
 class CompiledPythonModule(
-    ChildrenHavingMixin,
+    ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin,
     ClosureGiverNodeMixin,
     MarkNeedsAnnotationsMixin,
     EntryPointMixin,
@@ -245,9 +247,7 @@ class CompiledPythonModule(
         "locals_scope",
     )
 
-    named_children = ("body", "functions")
-
-    checkers = {"body": checkStatementsSequenceOrNone}
+    named_children = ("body|statements_or_none+setter", "functions|tuple+setter")
 
     def __init__(self, module_name, is_top, mode, future_spec, source_ref):
         PythonModuleBase.__init__(self, module_name=module_name, source_ref=source_ref)
@@ -256,8 +256,10 @@ class CompiledPythonModule(
             self, name=module_name.getBasename(), code_prefix="module"
         )
 
-        ChildrenHavingMixin.__init__(
-            self, values={"body": None, "functions": ()}  # delayed
+        ModuleChildrenHavingBodyOptionalStatementsOrNoneFunctionsTupleMixin.__init__(
+            self,
+            body=None,  # delayed
+            functions=(),
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
@@ -462,7 +464,7 @@ class CompiledPythonModule(
         functions = self.subnode_functions
         assert function_body not in functions
         functions += (function_body,)
-        self.setChild("functions", functions)
+        self.setChildFunctions(functions)
 
     def startTraversal(self):
         self.used_modules = None
@@ -552,7 +554,7 @@ class CompiledPythonModule(
             )
 
             if result is not module_body:
-                self.setChild("body", result)
+                self.setChildBody(result)
 
         self.attemptRecursion()
 
@@ -689,6 +691,8 @@ class CompiledPythonModule(
 
     def getRuntimeNameValue(self):
         if self.isMainModule() and Options.hasPythonFlagPackageMode():
+            return "__main__"
+        elif self.module_name.isMultidistModuleName():
             return "__main__"
         else:
             return self.getFullName().asString()
@@ -873,15 +877,14 @@ class PythonMainModule(CompiledPythonModule):
             function_work.append((function, iter(iter(xml).next()).next()))
 
         for function, xml in function_work:
-            function.setChild(
-                "body",
+            function.setChildBody(
                 fromXML(
                     provider=function, xml=xml, source_ref=function.getSourceReference()
-                ),
+                )
             )
 
-        result.setChild(
-            "body", fromXML(provider=result, xml=args["body"][0], source_ref=source_ref)
+        result.setChildBody(
+            fromXML(provider=result, xml=args["body"][0], source_ref=source_ref)
         )
 
         return result
@@ -972,7 +975,7 @@ class PythonExtensionModule(PythonModuleBase):
 
         return os.path.join(dirname, filename.split(".")[0]) + ".pyi"
 
-    def _readPyPIFile(self):
+    def _readPyIFile(self):
         """Read the .pyi file if present and scan for dependencies."""
 
         # Complex stuff, pylint: disable=too-many-branches,too-many-statements
@@ -1074,16 +1077,22 @@ class PythonExtensionModule(PythonModuleBase):
                 if self.getFullName().getPackageName() in pyi_deps:
                     pyi_deps.discard(self.getFullName().getPackageName())
 
-                self.used_modules = tuple((pyi_dep, None) for pyi_dep in pyi_deps)
+                self.used_modules = tuple(pyi_deps)
             else:
                 self.used_modules = ()
 
-    def getUsedModules(self):
-        self._readPyPIFile()
+    def getPyIModuleImportedNames(self):
+        self._readPyIFile()
 
         assert "." not in self.used_modules, self
 
         return self.used_modules
+
+    @staticmethod
+    def getUsedModules():
+        # The PyI contents is currently delivered via implicit imports
+        # plugin.
+        return ()
 
     def getParentModule(self):
         return self

@@ -62,7 +62,7 @@ from .ReformulationClasses3 import buildClassNode3
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildFrameNode,
-    buildNodeList,
+    buildNodeTuple,
     extractDocFromBody,
     getKind,
     makeStatementsSequence,
@@ -163,7 +163,7 @@ def buildClassNode2(provider, node, source_ref):
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
 
-    function_body.setChild("body", body)
+    function_body.setChildBody(body)
 
     temp_scope = provider.allocateTempScope("class_creation")
 
@@ -258,18 +258,17 @@ def buildClassNode2(provider, node, source_ref):
             ),
         )
 
-    select_metaclass.setChild(
-        "body",
+    select_metaclass.setChildBody(
         makeStatementsSequence(
             statements=statements, allow_none=False, source_ref=source_ref
-        ),
+        )
     )
 
     statements = [
         makeStatementAssignmentVariable(
             variable=tmp_bases,
             source=makeExpressionMakeTupleOrConstant(
-                elements=buildNodeList(
+                elements=buildNodeTuple(
                     provider=provider, nodes=node.bases, source_ref=source_ref
                 ),
                 user_provided=True,
@@ -339,7 +338,9 @@ def buildClassNode2(provider, node, source_ref):
         ),
     ]
 
-    for decorator in buildNodeList(provider, reversed(node.decorator_list), source_ref):
+    for decorator in buildNodeTuple(
+        provider, reversed(node.decorator_list), source_ref
+    ):
         statements.append(
             makeStatementAssignmentVariable(
                 variable=tmp_class,

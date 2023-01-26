@@ -25,9 +25,9 @@ to be very general, yet the node type for loop, becomes very simple.
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.tree.Extractions import getVariablesWrittenOrRead
 
-from .Checkers import checkStatementsSequenceOrNone
-from .NodeBases import StatementBase, StatementChildHavingBase
+from .NodeBases import StatementBase
 from .shapes.StandardShapes import tshape_unknown, tshape_unknown_loop
+from .StatementBasesGenerated import StatementLoopBase
 
 tshape_unknown_set = frozenset([tshape_unknown])
 
@@ -40,12 +40,11 @@ def minimizeShapes(shapes):
     return shapes
 
 
-class StatementLoop(StatementChildHavingBase):
+class StatementLoop(StatementLoopBase):
     kind = "STATEMENT_LOOP"
 
-    named_child = "loop_body"
-
-    checker = checkStatementsSequenceOrNone
+    named_children = ("loop_body|statements_or_none+setter",)
+    auto_compute_handling = "post_init"
 
     __slots__ = (
         "loop_variables",
@@ -55,9 +54,10 @@ class StatementLoop(StatementChildHavingBase):
         "incomplete_count",
     )
 
-    def __init__(self, loop_body, source_ref):
-        StatementChildHavingBase.__init__(self, value=loop_body, source_ref=source_ref)
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
+    def postInitNode(self):
+        # Variables used inside the loop.
         self.loop_variables = None
 
         # Traces of the variable at the start of loop, to detect changes and make
@@ -76,6 +76,7 @@ class StatementLoop(StatementChildHavingBase):
         self.incomplete_count = 0
 
     def mayReturn(self):
+        # TODO: Seems the trace collection should feed this after first pass of the loop.
         loop_body = self.subnode_loop_body
 
         if loop_body is not None and loop_body.mayReturn():
@@ -214,7 +215,7 @@ class StatementLoop(StatementChildHavingBase):
 
             # Might be changed.
             if result is not loop_body:
-                self.setChild("loop_body", result)
+                self.setChildLoopBody(result)
                 loop_body = result
 
             if loop_body is not None:
@@ -354,28 +355,6 @@ Removed useless terminal 'continue' as last statement of loop.""",
                         "new_statements",
                         "Removed useless loop with only a break at the end.",
                     )
-
-        # Consider leading "break" statements, they should be the only, and
-        # should lead to removing the whole loop statement. Trailing "break"
-        # statements could also be handled, but that would need to consider if
-        # there are other "break" statements too. Numbering loop exits is
-        # nothing we have yet.
-        if loop_body is not None:
-            assert loop_body.isStatementsSequence()
-
-            statements = loop_body.subnode_statements
-            assert statements  # Cannot be empty
-
-            if len(statements) == 1 and statements[-1].isStatementLoopBreak():
-                # TODO: Should be dead code now, due to the optimization above.
-                assert False
-
-                return (
-                    None,
-                    "new_statements",
-                    """\
-Removed useless loop with immediate 'break' statement.""",
-                )
 
         # Also consider the threading intermission. TODO: We ought to make it
         # explicit, so we can see it potentially disrupting and changing the

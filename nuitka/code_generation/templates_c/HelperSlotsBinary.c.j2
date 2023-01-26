@@ -100,7 +100,7 @@
 
     {
 {% if right.needsIndexConversion() %}
-        PyObject *index_value = PyNumber_Index({{ operand2 }});
+        PyObject *index_value = Nuitka_Number_Index({{ operand2 }});
 
         if (unlikely(index_value == NULL)) {
             {{ goto_exit(props, exit_result_exception) }}

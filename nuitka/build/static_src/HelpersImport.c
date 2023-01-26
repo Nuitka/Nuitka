@@ -293,14 +293,15 @@ static PyObject *resolveParentModuleName(PyObject *module, PyObject *name, int l
                 return NULL;
             }
 
-            int equal = PyObject_RichCompareBool(package, parent, Py_EQ);
+            nuitka_bool nbool_equal = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(package, parent);
 
             Py_DECREF(parent);
 
-            if (unlikely(equal < 0)) {
+            if (unlikely(nbool_equal == NUITKA_BOOL_EXCEPTION)) {
                 return NULL;
             }
-            if (unlikely(equal == 0)) {
+
+            if (unlikely(nbool_equal == NUITKA_BOOL_FALSE)) {
                 if (PyErr_WarnEx(PyExc_ImportWarning, "__package__ != __spec__.parent", 1) < 0) {
                     return NULL;
                 }

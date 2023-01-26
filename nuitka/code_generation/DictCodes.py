@@ -63,7 +63,7 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
             # into to_name.
 
             if seq_name is None:
-                _getDictionaryCreationCode(
+                getDictionaryCreationCode(
                     to_name=value_name,
                     pairs=expression.subnode_pairs,
                     emit=emit,
@@ -74,7 +74,7 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
             else:
                 dict_name = context.allocateTempName("dict_arg")
 
-                _getDictionaryCreationCode(
+                getDictionaryCreationCode(
                     to_name=dict_name,
                     pairs=expression.subnode_pairs,
                     emit=emit,
@@ -103,7 +103,7 @@ def generateDictionaryCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "dict_result", expression, emit, context
     ) as value_name:
-        _getDictionaryCreationCode(
+        getDictionaryCreationCode(
             to_name=value_name,
             pairs=expression.subnode_pairs,
             emit=emit,
@@ -111,7 +111,7 @@ def generateDictionaryCreationCode(to_name, expression, emit, context):
         )
 
 
-def _getDictionaryCreationCode(to_name, pairs, emit, context):
+def getDictionaryCreationCode(to_name, pairs, emit, context):
     # Detailed, and verbose code, pylint: disable=too-many-locals
 
     pairs_count = len(pairs)
@@ -488,7 +488,7 @@ def generateDictOperationUpdate3Code(to_name, expression, emit, context):
 
     emit("assert(PyDict_Check(%s));" % dict_name)
 
-    if expression.subnode_iterable is not None:
+    if expression.isExpressionDictOperationUpdate3():
         iterable_name = generateChildExpressionCode(
             expression=expression.subnode_iterable, emit=emit, context=context
         )

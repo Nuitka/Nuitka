@@ -28,10 +28,12 @@ import math
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildHavingLowMixin,
+    ChildrenHavingLowHighMixin,
+    ChildrenHavingLowHighStepMixin,
 )
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionListShapeExactMixin
 from .IterationHandles import (
     IterationHandleRange1,
@@ -134,19 +136,22 @@ class ExpressionBuiltinRangeMixin(ExpressionListShapeExactMixin):
         return self.getIterationLength() is not None
 
 
-class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHavingBase):
+class ExpressionBuiltinRange1(
+    ExpressionBuiltinRangeMixin, ChildHavingLowMixin, ExpressionBase
+):
     kind = "EXPRESSION_BUILTIN_RANGE1"
 
-    named_child = "low"
+    python_version_spec = "< 0x300"
+
+    named_children = ("low",)
 
     subnode_high = None
     subnode_step = None
 
     def __init__(self, low, source_ref):
-        assert low is not None
-        assert python_version < 0x300
+        ChildHavingLowMixin.__init__(self, low=low)
 
-        ExpressionChildHavingBase.__init__(self, value=low, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         low = self.subnode_low
@@ -190,18 +195,25 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeMixin, ExpressionChildHaving
 
 
 class ExpressionBuiltinRange2(
-    ExpressionBuiltinRangeMixin, ExpressionChildrenHavingBase
+    ExpressionBuiltinRangeMixin, ChildrenHavingLowHighMixin, ExpressionBase
 ):
     kind = "EXPRESSION_BUILTIN_RANGE2"
 
+    python_version_spec = "< 0x300"
+
     named_children = ("low", "high")
 
+    # For the mixing to work generically
     subnode_step = None
 
     def __init__(self, low, high, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"low": low, "high": high}, source_ref=source_ref
+        ChildrenHavingLowHighMixin.__init__(
+            self,
+            low=low,
+            high=high,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
@@ -270,18 +282,23 @@ class ExpressionBuiltinRange2(
 
 
 class ExpressionBuiltinRange3(
-    ExpressionBuiltinRangeMixin, ExpressionChildrenHavingBase
+    ExpressionBuiltinRangeMixin, ChildrenHavingLowHighStepMixin, ExpressionBase
 ):
     kind = "EXPRESSION_BUILTIN_RANGE3"
+
+    python_version_spec = "< 0x300"
 
     named_children = ("low", "high", "step")
 
     def __init__(self, low, high, step, source_ref):
-        assert python_version < 0x300
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"low": low, "high": high, "step": step}, source_ref=source_ref
+        ChildrenHavingLowHighStepMixin.__init__(
+            self,
+            low=low,
+            high=high,
+            step=step,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
@@ -457,16 +474,20 @@ class ExpressionBuiltinXrangeMixin(object):
         return iter_node, None, None
 
 
-class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeMixin, ExpressionChildHavingBase):
+class ExpressionBuiltinXrange1(
+    ExpressionBuiltinXrangeMixin, ChildHavingLowMixin, ExpressionBase
+):
     kind = "EXPRESSION_BUILTIN_XRANGE1"
 
-    named_child = "low"
+    named_children = ("low",)
 
     subnode_high = None
     subnode_step = None
 
     def __init__(self, low, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=low, source_ref=source_ref)
+        ChildHavingLowMixin.__init__(self, low=low)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         low = self.subnode_low
@@ -501,7 +522,7 @@ class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeMixin, ExpressionChildHavi
 
 
 class ExpressionBuiltinXrange2(
-    ExpressionBuiltinXrangeMixin, ExpressionChildrenHavingBase
+    ExpressionBuiltinXrangeMixin, ChildrenHavingLowHighMixin, ExpressionBase
 ):
     kind = "EXPRESSION_BUILTIN_XRANGE2"
 
@@ -510,9 +531,13 @@ class ExpressionBuiltinXrange2(
     subnode_step = None
 
     def __init__(self, low, high, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"low": low, "high": high}, source_ref=source_ref
+        ChildrenHavingLowHighMixin.__init__(
+            self,
+            low=low,
+            high=high,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         low = self.subnode_low
@@ -563,16 +588,21 @@ class ExpressionBuiltinXrange2(
 
 
 class ExpressionBuiltinXrange3(
-    ExpressionBuiltinXrangeMixin, ExpressionChildrenHavingBase
+    ExpressionBuiltinXrangeMixin, ChildrenHavingLowHighStepMixin, ExpressionBase
 ):
     kind = "EXPRESSION_BUILTIN_XRANGE3"
 
     named_children = ("low", "high", "step")
 
     def __init__(self, low, high, step, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"low": low, "high": high, "step": step}, source_ref=source_ref
+        ChildrenHavingLowHighStepMixin.__init__(
+            self,
+            low=low,
+            high=high,
+            step=step,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         low = self.subnode_low

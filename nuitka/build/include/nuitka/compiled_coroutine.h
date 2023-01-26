@@ -25,6 +25,11 @@
 
 #if PYTHON_VERSION >= 0x350
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 // The Nuitka_CoroutineObject is the storage associated with a compiled
 // coroutine object instance of which there can be many for each code.
 struct Nuitka_CoroutineObject {
@@ -75,10 +80,10 @@ struct Nuitka_CoroutineObject {
     // NULL if not a return
     PyObject *m_returned;
 
-    // A kind of uuid for the generator object, used in comparisons.
+    // A kind of uuid for the coroutine object, used in comparisons.
     long m_counter;
 
-    /* The heap of generator objects at run time. */
+    /* The heap of coroutine objects at run time. */
     void *m_heap_storage;
 
     /* Closure variables given, if any, we reference cells here. The last
@@ -222,7 +227,32 @@ extern PyObject *ASYNC_ITERATOR_NEXT(PyObject *value);
 // Create the object for plain "await".
 extern PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind);
 
+NUITKA_MAY_BE_UNUSED static void STORE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *coroutine) {
+    PyThreadState *thread_state = PyThreadState_GET();
+
+#if PYTHON_VERSION < 0x3b0
+    EXC_TYPE_F(coroutine) = EXC_TYPE(thread_state);
+    if (EXC_TYPE_F(coroutine) == Py_None)
+        EXC_TYPE_F(coroutine) = NULL;
+    Py_XINCREF(EXC_TYPE_F(coroutine));
 #endif
+    EXC_VALUE_F(coroutine) = EXC_VALUE(thread_state);
+    Py_XINCREF(EXC_VALUE_F(coroutine));
+#if PYTHON_VERSION < 0x3b0
+    ASSIGN_EXC_TRACEBACK_F(coroutine, EXC_TRACEBACK(thread_state));
+    Py_XINCREF(EXC_TRACEBACK_F(coroutine));
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED static void DROP_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *coroutine) {
+#if PYTHON_VERSION < 0x3b0
+    Py_CLEAR(EXC_TYPE_F(coroutine));
+#endif
+    Py_CLEAR(EXC_VALUE_F(coroutine));
+#if PYTHON_VERSION < 0x3b0
+    Py_CLEAR(EXC_TRACEBACK_F(coroutine));
+#endif
+}
 
 // For reference count debugging.
 #if _DEBUG_REFCOUNTS
@@ -237,6 +267,8 @@ extern int count_released_Nuitka_CoroutineWrapper_Type;
 extern int count_active_Nuitka_AIterWrapper_Type;
 extern int count_allocated_Nuitka_AIterWrapper_Type;
 extern int count_released_Nuitka_AIterWrapper_Type;
+#endif
+
 #endif
 
 #endif

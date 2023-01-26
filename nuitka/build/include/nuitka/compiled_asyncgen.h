@@ -18,12 +18,17 @@
 #ifndef __NUITKA_COMPILED_ASYNCGEN_H__
 #define __NUITKA_COMPILED_ASYNCGEN_H__
 
-// Compiled async generator type.
+// Compiled async generator type, asyncgen in short.
 
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal asyncgen objects do or even better.
 
 #if PYTHON_VERSION >= 0x360
+
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
 
 // The Nuitka_AsyncgenObject is the storage associated with a compiled
 // async generator object instance of which there can be many for each code.
@@ -54,7 +59,7 @@ struct Nuitka_AsyncgenObject {
 
     void *m_code;
 
-    // The parent frame of the coroutine, if created.
+    // The parent frame of the asyncgen, if created.
     struct Nuitka_FrameObject *m_frame;
 
     PyCodeObject *m_code_object;
@@ -222,7 +227,32 @@ static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyn
 #endif
 }
 
+NUITKA_MAY_BE_UNUSED static void STORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncgen) {
+    PyThreadState *thread_state = PyThreadState_GET();
+
+#if PYTHON_VERSION < 0x3b0
+    EXC_TYPE_F(asyncgen) = EXC_TYPE(thread_state);
+    if (EXC_TYPE_F(asyncgen) == Py_None)
+        EXC_TYPE_F(asyncgen) = NULL;
+    Py_XINCREF(EXC_TYPE_F(asyncgen));
 #endif
+    EXC_VALUE_F(asyncgen) = EXC_VALUE(thread_state);
+    Py_XINCREF(EXC_VALUE_F(asyncgen));
+#if PYTHON_VERSION < 0x3b0
+    ASSIGN_EXC_TRACEBACK_F(asyncgen, EXC_TRACEBACK(thread_state));
+    Py_XINCREF(EXC_TRACEBACK_F(asyncgen));
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED static void DROP_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncgen) {
+#if PYTHON_VERSION < 0x3b0
+    Py_CLEAR(EXC_TYPE_F(asyncgen));
+#endif
+    Py_CLEAR(EXC_VALUE_F(asyncgen));
+#if PYTHON_VERSION < 0x3b0
+    Py_CLEAR(EXC_TRACEBACK_F(asyncgen));
+#endif
+}
 
 // For reference count debugging.
 #if _DEBUG_REFCOUNTS
@@ -241,6 +271,9 @@ extern int count_released_Nuitka_AsyncgenAsend_Type;
 extern int count_active_Nuitka_AsyncgenAthrow_Type;
 extern int count_allocated_Nuitka_AsyncgenAthrow_Type;
 extern int count_released_Nuitka_AsyncgenAthrow_Type;
+
+#endif
+
 #endif
 
 #endif

@@ -31,11 +31,15 @@ from .BuiltinRefNodes import (
     ExpressionBuiltinRef,
     makeExpressionBuiltinRef,
 )
-from .ExpressionBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildHavingClsMixin,
+    ChildrenExpressionBuiltinIssubclassMixin,
+    ChildrenExpressionBuiltinSuper0Mixin,
+    ChildrenExpressionBuiltinSuper1Mixin,
+    ChildrenExpressionBuiltinSuper2Mixin,
+    ChildrenHavingInstanceClassesMixin,
 )
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
@@ -122,7 +126,29 @@ Removed type taking for unused result.""",
         return self.subnode_value.mayHaveSideEffects()
 
 
-class ExpressionBuiltinSuper2(ExpressionChildrenHavingBase):
+class ExpressionBuiltinSuper1(ChildrenExpressionBuiltinSuper1Mixin, ExpressionBase):
+    """Two arguments form of super."""
+
+    kind = "EXPRESSION_BUILTIN_SUPER1"
+
+    named_children = ("type_arg",)
+
+    def __init__(self, type_arg, source_ref):
+        ChildrenExpressionBuiltinSuper1Mixin.__init__(
+            self,
+            type_arg=type_arg,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Quite some cases should be possible to predict.
+        return self, None, None
+
+
+class ExpressionBuiltinSuper2(ChildrenExpressionBuiltinSuper2Mixin, ExpressionBase):
     """Two arguments form of super."""
 
     kind = "EXPRESSION_BUILTIN_SUPER2"
@@ -130,11 +156,13 @@ class ExpressionBuiltinSuper2(ExpressionChildrenHavingBase):
     named_children = ("type_arg", "object_arg")
 
     def __init__(self, type_arg, object_arg, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinSuper2Mixin.__init__(
             self,
-            values={"type_arg": type_arg, "object_arg": object_arg},
-            source_ref=source_ref,
+            type_arg=type_arg,
+            object_arg=object_arg,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -143,7 +171,7 @@ class ExpressionBuiltinSuper2(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionBuiltinSuper0(ExpressionChildrenHavingBase):
+class ExpressionBuiltinSuper0(ChildrenExpressionBuiltinSuper0Mixin, ExpressionBase):
     """Python3 form of super, arguments determined from cells and function arguments."""
 
     kind = "EXPRESSION_BUILTIN_SUPER0"
@@ -151,11 +179,13 @@ class ExpressionBuiltinSuper0(ExpressionChildrenHavingBase):
     named_children = ("type_arg", "object_arg")
 
     def __init__(self, type_arg, object_arg, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinSuper0Mixin.__init__(
             self,
-            values={"type_arg": type_arg, "object_arg": object_arg},
-            source_ref=source_ref,
+            type_arg=type_arg,
+            object_arg=object_arg,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -164,17 +194,19 @@ class ExpressionBuiltinSuper0(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
+class ExpressionBuiltinIsinstance(ChildrenHavingInstanceClassesMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
     named_children = ("instance", "classes")
 
     def __init__(self, instance, classes, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingInstanceClassesMixin.__init__(
             self,
-            values={"instance": instance, "classes": classes},
-            source_ref=source_ref,
+            instance=instance,
+            classes=classes,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.
@@ -205,17 +237,21 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
         )
 
 
-class ExpressionBuiltinIssubclass(ExpressionChildrenHavingBase):
+class ExpressionBuiltinIssubclass(
+    ChildrenExpressionBuiltinIssubclassMixin, ExpressionBase
+):
     kind = "EXPRESSION_BUILTIN_ISSUBCLASS"
 
     named_children = ("cls", "classes")
 
     def __init__(self, cls, classes, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinIssubclassMixin.__init__(
             self,
-            values={"cls": cls, "classes": classes},
-            source_ref=source_ref,
+            cls=cls,
+            classes=classes,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.
@@ -249,18 +285,17 @@ class ExpressionBuiltinIssubclass(ExpressionChildrenHavingBase):
 class ExpressionTypeCheck(
     ExpressionBoolShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildHavingBase,
+    ChildHavingClsMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_TYPE_CHECK"
 
-    named_child = "cls"
+    named_children = ("cls",)
 
     def __init__(self, cls, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self,
-            value=cls,
-            source_ref=source_ref,
-        )
+        ChildHavingClsMixin.__init__(self, cls=cls)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict, but I am not aware of

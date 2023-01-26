@@ -52,6 +52,9 @@ from nuitka.ModuleRegistry import (
     getModuleInclusionInfoByName,
 )
 from nuitka.Options import (
+    hasPythonFlagNoAnnotations,
+    hasPythonFlagNoAsserts,
+    hasPythonFlagNoDocStrings,
     isStandaloneMode,
     shallCreateAppBundle,
     shallMakeModule,
@@ -90,7 +93,7 @@ def _convertVersionToTuple(version_str):
 
 
 def _getPackageNameFromDistributionName(distribution_name):
-    if distribution_name == "opencv-python":
+    if distribution_name in ("opencv-python", "opencv-python-headless"):
         return "cv2"
     elif distribution_name == "pyobjc":
         return "objc"
@@ -424,13 +427,17 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
-    def onModuleRecursion(self, module_name, module_filename, module_kind):
+    def onModuleRecursion(
+        self, module_name, module_filename, module_kind, using_module, source_ref
+    ):
         """React to recursion to a module coming up.
 
         Args:
             module_name: full module name
             module_filename: filename
             module_kind: one of "py", "extension" (shared library)
+            using_module: module object that does the usage (None if it is a user choice)
+            source_ref: code making the import (None if it is a user choice)
         Returns:
             None
         """
@@ -504,7 +511,7 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
         from nuitka.importing.Importing import locateModule
 
-        _module_name, module_filename, _finding = locateModule(
+        _module_name, module_filename, _module_kind, _finding = locateModule(
             module_name=ModuleName(module_name), parent_package=None, level=0
         )
 
@@ -601,6 +608,17 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
 
         Args:
             module_name: name of a package or module, for which the DLL path addition applies.
+        Returns:
+            iterable of paths
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
+    def getModuleSysPathAdditions(self, module_name):
+        """Provide a list of directories, that should be considered in 'PYTHONPATH' when this module is used.
+
+        Args:
+            module_name: name of a package or module
         Returns:
             iterable of paths
         """
@@ -1037,10 +1055,11 @@ except ImportError:
 
         This must be used to invalidate cache results, e.g. when using the
         onFunctionBodyParsing function, and other things, that do not directly
-        affect the source code.
+        affect the source code. By default a plugin being enabled changes the
+        result unless it makes it clear that is not the case.
         """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return ()
+        # Virtual method, pylint: disable=unused-argument
+        return self.plugin_name
 
     @staticmethod
     def getPackageVersion(distribution_name):
@@ -1073,6 +1092,9 @@ except ImportError:
                 # Querying package versions.
                 "version": _getPackageVersion,
                 "plugin": _isPluginActive,
+                "no_asserts": hasPythonFlagNoAsserts(),
+                "no_docstrings": hasPythonFlagNoDocStrings(),
+                "no_annotations": hasPythonFlagNoAnnotations(),
             }
         )
 

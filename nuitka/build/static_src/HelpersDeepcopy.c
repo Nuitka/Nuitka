@@ -604,7 +604,8 @@ static PyObject *_DEEP_COPY_TUPLE_GUIDED(PyObject *value, char const **guide) {
 
     Py_ssize_t size = PyTuple_GET_SIZE(value);
 
-    PyObject *result = MAKE_TUPLE_EMPTY_VAR(size);
+    // We cannot have size 0, so this is safe.
+    PyObject *result = MAKE_TUPLE_EMPTY(size);
 
     for (Py_ssize_t i = 0; i < size; i++) {
         PyObject *item = _DEEP_COPY_ELEMENT_GUIDED(PyTuple_GET_ITEM(value, i), guide);

@@ -25,10 +25,10 @@ about performance critical.
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
-from .ExpressionBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin,
 )
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionShapeMixins import (
     ExpressionIntOrLongExactMixin,
     ExpressionStrOrUnicodeExactMixin,
@@ -38,32 +38,28 @@ from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
 
 class ExpressionBuiltinFormat(
-    ExpressionStrOrUnicodeExactMixin, ExpressionChildrenHavingBase
+    ExpressionStrOrUnicodeExactMixin,
+    ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_BUILTIN_FORMAT"
 
-    named_children = ("value", "format_spec")
-
-    # Using slots, they don't need that
-    # pylint: disable=access-member-before-definition,attribute-defined-outside-init
+    named_children = ("value", "format_spec|auto_none_empty_str")
 
     def __init__(self, value, format_spec, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingValueFormatSpecOptionalAutoNoneEmptyStrMixin.__init__(
             self,
-            values={"value": value, "format_spec": format_spec},
-            source_ref=source_ref,
+            value=value,
+            format_spec=format_spec,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Can use the format built-in on compile time constants at least.
 
         value = self.subnode_value
         format_spec = self.subnode_format_spec
-
-        # Go to default way if possible.
-        if format_spec is not None and format_spec.isExpressionConstantStrEmptyRef():
-            self.subnode_format_spec = None
-            format_spec = None
 
         # TODO: Provide "__format__" slot based handling.
 

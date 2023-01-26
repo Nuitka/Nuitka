@@ -364,7 +364,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             }
 
             if (likely(obj != NULL)) {
-                if (!PyType_IsSubtype(obj->ob_type, called_type)) {
+                if (!Nuitka_Type_IsSubtype(obj->ob_type, called_type)) {
 {% if not has_tuple_arg and args_count != 0 %}
                     Py_DECREF(pos_args);
 {% endif %}

@@ -38,7 +38,7 @@ class ExpressionBuiltinGlobals(ExpressionNoSideEffectsMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
     def __init__(self, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def finalize(self):
         del self.parent
@@ -53,7 +53,7 @@ class ExpressionBuiltinLocalsBase(ExpressionNoSideEffectsMixin, ExpressionBase):
     __slots__ = ("variable_traces", "locals_scope")
 
     def __init__(self, locals_scope, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable_traces = None
         self.locals_scope = locals_scope

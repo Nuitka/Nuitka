@@ -15,10 +15,21 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+/** Compiled cells.
+ *
+ * We have our own cell type, so we can use a freelist for them, to speed up our
+ * interactions with allocating them.
+ *
+ * It strives to be full replacement for normal cells. It does not yet inherit
+ * from the cell type like functions, generators, etc. do but could be made so
+ * if that becomes necessary by some C extension code.
+ *
+ */
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
-
-#include "nuitka/freelists.h"
+#endif
 
 #define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list_cells = NULL;
@@ -62,12 +73,29 @@ static PyObject *Nuitka_Cell_tp_richcompare(PyObject *a, PyObject *b, int op) {
         return result;
     }
 
-    /* Now just dereference, and compare from there by contents. */
+    // Now just dereference cell value, and compare from there by contents, which can
+    // be NULL however.
     a = ((struct Nuitka_CellObject *)a)->ob_ref;
     b = ((struct Nuitka_CellObject *)b)->ob_ref;
 
     if (a != NULL && b != NULL) {
-        return PyObject_RichCompare(a, b, op);
+        switch (op) {
+        case Py_EQ:
+            return RICH_COMPARE_EQ_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_NE:
+            return RICH_COMPARE_NE_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_LE:
+            return RICH_COMPARE_LE_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_GE:
+            return RICH_COMPARE_GE_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_LT:
+            return RICH_COMPARE_LT_OBJECT_OBJECT_OBJECT(a, b);
+        case Py_GT:
+            return RICH_COMPARE_GT_OBJECT_OBJECT_OBJECT(a, b);
+        default:
+            PyErr_BadArgument();
+            return NULL;
+        }
     }
 
     int res = (b == NULL) - (a == NULL);

@@ -26,27 +26,45 @@ that is the child of the dictionary creation.
 from nuitka import Constants
 
 from .AttributeNodes import makeExpressionAttributeLookup
-from .ChildrenHavingMixins import ChildrenHavingPairsTupleMixin
+from .BuiltinOperationNodeBasesGenerated import (
+    ExpressionDictOperationClearBase,
+    ExpressionDictOperationCopyBase,
+    ExpressionDictOperationGet2Base,
+    ExpressionDictOperationGet3Base,
+    ExpressionDictOperationHaskeyBase,
+    ExpressionDictOperationItemsBase,
+    ExpressionDictOperationIteritemsBase,
+    ExpressionDictOperationIterkeysBase,
+    ExpressionDictOperationItervaluesBase,
+    ExpressionDictOperationKeysBase,
+    ExpressionDictOperationPop2Base,
+    ExpressionDictOperationPop3Base,
+    ExpressionDictOperationPopitemBase,
+    ExpressionDictOperationSetdefault2Base,
+    ExpressionDictOperationSetdefault3Base,
+    ExpressionDictOperationUpdate2Base,
+    ExpressionDictOperationUpdate3Base,
+    ExpressionDictOperationValuesBase,
+    ExpressionDictOperationViewitemsBase,
+    ExpressionDictOperationViewkeysBase,
+    ExpressionDictOperationViewvaluesBase,
+)
+from .ChildrenHavingMixins import (
+    ChildrenExpressionDictOperationItemMixin,
+    ChildrenExpressionDictOperationUpdatePairsMixin,
+    ChildrenExpressionMakeDictMixin,
+    ChildrenHavingKeyDictArgMixin,
+)
 from .ConstantRefNodes import (
     ExpressionConstantDictEmptyRef,
     makeConstantRefNode,
 )
-from .ExpressionBases import (
-    ExpressionBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-)
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
     ExpressionDictShapeExactMixin,
-    ExpressionListShapeExactMixin,
-    ExpressionNoneShapeExactMixin,
-    ExpressionTupleShapeExactMixin,
 )
-from .NodeBases import (
-    SideEffectsFromChildrenMixin,
-    StatementChildrenHavingBase,
-)
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionExpressionFromTemplate,
@@ -55,6 +73,12 @@ from .NodeMakingHelpers import (
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_iterator
+from .StatementBasesGenerated import (
+    StatementDictOperationRemoveBase,
+    StatementDictOperationSetBase,
+    StatementDictOperationSetKeyValueBase,
+    StatementDictOperationUpdateBase,
+)
 
 
 def makeExpressionMakeDict(pairs, source_ref):
@@ -98,25 +122,108 @@ def makeExpressionMakeDictOrConstant(pairs, user_provided, source_ref):
     return result
 
 
+class ExpressionMakeDictMixin(object):
+    __slots__ = ()
+
+    def mayRaiseException(self, exception_type):
+        for pair in self.subnode_pairs:
+            if pair.mayRaiseException(exception_type):
+                return True
+
+        return False
+
+    def isKnownToBeIterable(self, count):
+        return count is None or count == len(self.subnode_pairs)
+
+    def getIterationLength(self):
+        pair_count = len(self.subnode_pairs)
+
+        # Hashing may consume elements.
+        if pair_count > 1:
+            return None
+        else:
+            return pair_count
+
+    @staticmethod
+    def getIterationMinLength():
+        return 1
+
+    @staticmethod
+    def canPredictIterationValues():
+        # Dictionaries are assumed to be fully predictable
+
+        # TODO: For some things, that may not be true, when key collisions
+        # happen for example. We will have to check that then.
+        return True
+
+    def getIterationValue(self, count):
+        return self.subnode_pairs[count].getKeyNode()
+
+    def isMappingWithConstantStringKeys(self):
+        return all(pair.isKeyExpressionConstantStrRef() for pair in self.subnode_pairs)
+
+    def getMappingStringKeyPairs(self):
+        return [
+            (pair.getKeyCompileTimeConstant(), pair.getValueNode())
+            for pair in self.subnode_pairs
+        ]
+
+    # TODO: Make this happen from auto-compute, children only side effects
+    def computeExpressionDrop(self, statement, trace_collection):
+        # Virtual method overload, pylint: disable=unused-argument
+        expressions = []
+
+        for pair in self.subnode_pairs:
+            expressions.extend(pair.extractSideEffects())
+
+        result = makeStatementOnlyNodesFromExpressions(expressions=expressions)
+
+        del self.parent
+
+        return (
+            result,
+            "new_statements",
+            """\
+Removed sequence creation for unused sequence.""",
+        )
+
+    # TODO: Missing computeExpressionIter1 here. For now it would require us to
+    # add lots of temporary variables for keys, which then becomes the tuple,
+    # but for as long as we don't have efficient forward propagation of these,
+    # we won't do that. Otherwise we loose execution order of values with them
+    # remaining as side effects. We could limit ourselves to cases where
+    # isMappingWithConstantStringKeys is true, or keys had no side effects, but
+    # that feels wasted effort as we are going to have full propagation.
+
+    @staticmethod
+    def computeExpressionIter1(iter_node, trace_collection):
+        return iter_node, None, None
+
+    def onContentEscapes(self, trace_collection):
+        for pair in self.subnode_pairs:
+            pair.onContentEscapes(trace_collection)
+
+
 class ExpressionMakeDict(
     ExpressionDictShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ChildrenHavingPairsTupleMixin,
+    ExpressionMakeDictMixin,
+    ChildrenExpressionMakeDictMixin,
     ExpressionBase,
 ):
     kind = "EXPRESSION_MAKE_DICT"
 
-    named_children = ("pairs",)
+    named_children = ("pairs|tuple",)
 
     def __init__(self, pairs, source_ref):
         assert pairs
 
-        ChildrenHavingPairsTupleMixin.__init__(
+        ChildrenExpressionMakeDictMixin.__init__(
             self,
-            pairs=tuple(pairs),
+            pairs=pairs,
         )
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         pairs = self.subnode_pairs
@@ -181,110 +288,14 @@ class ExpressionMakeDict(
 Created dictionary found to be constant.""",
         )
 
-    def mayRaiseException(self, exception_type):
-        for pair in self.subnode_pairs:
-            if pair.mayRaiseException(exception_type):
-                return True
-
-        return False
-
-    def isKnownToBeIterable(self, count):
-        return count is None or count == len(self.subnode_pairs)
-
-    def getIterationLength(self):
-        pair_count = len(self.subnode_pairs)
-
-        # Hashing may consume elements.
-        if pair_count > 1:
-            return None
-        else:
-            return pair_count
-
-    @staticmethod
-    def getIterationMinLength():
-        return 1
-
-    def canPredictIterationValues(self):
-        # Dictionaries are assumed to be fully predictable
-
-        # TODO: For some things, that may not be true, when key collisions
-        # happen for example. We will have to check that then.
-        return True
-
-    def getIterationValue(self, count):
-        return self.subnode_pairs[count].getKeyNode()
-
     @staticmethod
     def getTruthValue():
+        # Cannot be empty
         return True
 
-    def isMappingWithConstantStringKeys(self):
-        return all(pair.isKeyExpressionConstantStrRef() for pair in self.subnode_pairs)
 
-    def getMappingStringKeyPairs(self):
-        return [
-            (pair.getKeyCompileTimeConstant(), pair.getValueNode())
-            for pair in self.subnode_pairs
-        ]
-
-    # TODO: Missing computeExpressionIter1 here. For now it would require us to
-    # add lots of temporary variables for keys, which then becomes the tuple,
-    # but for as long as we don't have efficient forward propagation of these,
-    # we won't do that. Otherwise we loose execution order of values with them
-    # remaining as side effects. We could limit ourselves to cases where
-    # isMappingWithConstantStringKeys is true, or keys had no side effects, but
-    # that feels wasted effort as we are going to have full propagation.
-
-    def computeExpressionDrop(self, statement, trace_collection):
-        expressions = []
-
-        for pair in self.subnode_pairs:
-            expressions.extend(pair.extractSideEffects())
-
-        result = makeStatementOnlyNodesFromExpressions(expressions=expressions)
-
-        del self.parent
-
-        return (
-            result,
-            "new_statements",
-            """\
-Removed sequence creation for unused sequence.""",
-        )
-
-    def computeExpressionIter1(self, iter_node, trace_collection):
-        return iter_node, None, None
-
-    def onContentEscapes(self, trace_collection):
-        for pair in self.subnode_pairs:
-            pair.onContentEscapes(trace_collection)
-
-
-class StatementDictOperationSet(StatementChildrenHavingBase):
-    kind = "STATEMENT_DICT_OPERATION_SET"
-
-    named_children = ("value", "dict_arg", "key")
-
-    def __init__(self, dict_arg, key, value, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-        assert value is not None
-
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"dict_arg": dict_arg, "key": key, "value": value},
-            source_ref=source_ref,
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self.computeStatementOperation(trace_collection)
+class StatementDictOperationSetMixin(object):
+    __slots__ = ()
 
     def computeStatementOperation(self, trace_collection):
         key = self.subnode_key
@@ -318,34 +329,29 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
         return not self.subnode_key.isKnownToBeHashable()
 
 
-class StatementDictOperationSetKeyValue(StatementDictOperationSet):
+class StatementDictOperationSet(
+    StatementDictOperationSetMixin, StatementDictOperationSetBase
+):
+    kind = "STATEMENT_DICT_OPERATION_SET"
+
+    named_children = ("value", "dict_arg", "key")
+    auto_compute_handling = "operation"
+
+
+class StatementDictOperationSetKeyValue(
+    StatementDictOperationSetMixin, StatementDictOperationSetKeyValueBase
+):
     kind = "STATEMENT_DICT_OPERATION_SET_KEY_VALUE"
 
-    named_children = ("key", "value", "dict_arg")
+    named_children = ("value", "dict_arg", "key")
+    auto_compute_handling = "operation"
 
 
-class StatementDictOperationRemove(StatementChildrenHavingBase):
+class StatementDictOperationRemove(StatementDictOperationRemoveBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
     named_children = ("dict_arg", "key")
-
-    def __init__(self, dict_arg, key, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        StatementChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
-        return self.computeStatementOperation(trace_collection)
+    auto_compute_handling = "operation"
 
     def computeStatementOperation(self, trace_collection):
         # Any exception may be raised, we don't know if the key is present.
@@ -369,22 +375,18 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         return True
 
 
-class ExpressionDictOperationPop2(ExpressionChildrenHavingBase):
+class ExpressionDictOperationPop2(ExpressionDictOperationPop2Base):
     """This operation represents d.pop(key), i.e. default None."""
 
     kind = "EXPRESSION_DICT_OPERATION_POP2"
 
-    named_children = ("dict_arg", "key")
-
     __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionDictOperationPop2Base.__init__(
             self,
-            values={"dict_arg": dict_arg, "key": key},
+            dict_arg=dict_arg,
+            key=key,
             source_ref=source_ref,
         )
 
@@ -436,23 +438,19 @@ class ExpressionDictOperationPop2(ExpressionChildrenHavingBase):
         #     ) or self.subnode_key.mayRaiseException(exception_type)
 
 
-class ExpressionDictOperationPop3(ExpressionChildrenHavingBase):
+class ExpressionDictOperationPop3(ExpressionDictOperationPop3Base):
     """This operation represents d.pop(key, default)."""
 
     kind = "EXPRESSION_DICT_OPERATION_POP3"
 
-    named_children = ("dict_arg", "key", "default")
-
     __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, default, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-        assert default is not None
-
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionDictOperationPop3Base.__init__(
             self,
-            values={"dict_arg": dict_arg, "key": key, "default": default},
+            dict_arg=dict_arg,
+            key=key,
+            default=default,
             source_ref=source_ref,
         )
 
@@ -498,23 +496,10 @@ class ExpressionDictOperationPop3(ExpressionChildrenHavingBase):
             )
 
 
-class ExpressionDictOperationPopitem(
-    ExpressionTupleShapeExactMixin, ExpressionChildHavingBase
-):
+class ExpressionDictOperationPopitem(ExpressionDictOperationPopitemBase):
     """This operation represents d.popitem()."""
 
     kind = "EXPRESSION_DICT_OPERATION_POPITEM"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(
-            self,
-            value=dict_arg,
-            source_ref=source_ref,
-        )
 
     def computeExpression(self, trace_collection):
         dict_arg = self.subnode_dict_arg
@@ -539,22 +524,18 @@ class ExpressionDictOperationPopitem(
         return True
 
 
-class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
+class ExpressionDictOperationSetdefault2(ExpressionDictOperationSetdefault2Base):
     """This operation represents d.setdefault(key), i.e. default None."""
 
     kind = "EXPRESSION_DICT_OPERATION_SETDEFAULT2"
 
-    named_children = ("dict_arg", "key")
-
     __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionDictOperationSetdefault2Base.__init__(
             self,
-            values={"dict_arg": dict_arg, "key": key},
+            dict_arg=dict_arg,
+            key=key,
             source_ref=source_ref,
         )
 
@@ -597,26 +578,23 @@ class ExpressionDictOperationSetdefault2(ExpressionChildrenHavingBase):
             ) or self.subnode_key.mayRaiseException(exception_type)
 
 
-class ExpressionDictOperationSetdefault3(ExpressionChildrenHavingBase):
+class ExpressionDictOperationSetdefault3(ExpressionDictOperationSetdefault3Base):
     """This operation represents d.setdefault(key, default)."""
 
     kind = "EXPRESSION_DICT_OPERATION_SETDEFAULT3"
 
-    named_children = ("dict_arg", "key", "default")
-
     __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, default, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-        assert default is not None
-
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionDictOperationSetdefault3Base.__init__(
             self,
-            values={"dict_arg": dict_arg, "key": key, "default": default},
+            dict_arg=dict_arg,
+            key=key,
+            default=default,
             source_ref=source_ref,
         )
 
+        # TODO: Slots could be part of base class generation too.
         self.known_hashable_key = None
 
     def computeExpression(self, trace_collection):
@@ -658,7 +636,9 @@ class ExpressionDictOperationSetdefault3(ExpressionChildrenHavingBase):
             )
 
 
-class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
+class ExpressionDictOperationItem(
+    ChildrenExpressionDictOperationItemMixin, ExpressionBase
+):
     """This operation represents d[key] with an exception for missing key."""
 
     kind = "EXPRESSION_DICT_OPERATION_ITEM"
@@ -666,12 +646,11 @@ class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
     named_children = ("dict_arg", "key")
 
     def __init__(self, dict_arg, key, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
+        ChildrenExpressionDictOperationItemMixin.__init__(
+            self, dict_arg=dict_arg, key=key
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         dict_arg = self.subnode_dict_arg
@@ -693,7 +672,7 @@ class ExpressionDictOperationItem(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionDictOperationGet2(ExpressionChildrenHavingBase):
+class ExpressionDictOperationGet2(ExpressionDictOperationGet2Base):
     """This operation represents d.get(key) with no exception for missing key but None default."""
 
     kind = "EXPRESSION_DICT_OPERATION_GET2"
@@ -703,11 +682,8 @@ class ExpressionDictOperationGet2(ExpressionChildrenHavingBase):
     __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
+        ExpressionDictOperationGet2Base.__init__(
+            self, dict_arg=dict_arg, key=key, source_ref=source_ref
         )
 
         self.known_hashable_key = None
@@ -780,7 +756,7 @@ class ExpressionDictOperationGet2(ExpressionChildrenHavingBase):
             )
 
 
-class ExpressionDictOperationGet3(ExpressionChildrenHavingBase):
+class ExpressionDictOperationGet3(ExpressionDictOperationGet3Base):
     """This operation represents d.get(key, default) with no exception for missing key but default value."""
 
     kind = "EXPRESSION_DICT_OPERATION_GET3"
@@ -790,14 +766,8 @@ class ExpressionDictOperationGet3(ExpressionChildrenHavingBase):
     __slots__ = ("known_hashable_key",)
 
     def __init__(self, dict_arg, key, default, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-        assert default is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"dict_arg": dict_arg, "key": key, "default": default},
-            source_ref=source_ref,
+        ExpressionDictOperationGet3Base.__init__(
+            self, dict_arg=dict_arg, key=key, default=default, source_ref=source_ref
         )
 
         self.known_hashable_key = None
@@ -890,18 +860,10 @@ class ExpressionDictOperationGet3(ExpressionChildrenHavingBase):
 
 
 class ExpressionDictOperationCopy(
-    ExpressionDictShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildHavingBase,
+    ExpressionDictOperationCopyBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_COPY"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         dict_arg = self.subnode_dict_arg
@@ -927,17 +889,8 @@ class ExpressionDictOperationCopy(
         return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
-class ExpressionDictOperationClear(
-    ExpressionNoneShapeExactMixin, ExpressionChildHavingBase
-):
+class ExpressionDictOperationClear(ExpressionDictOperationClearBase):
     kind = "EXPRESSION_DICT_OPERATION_CLEAR"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         # Once we do dictionary tracing, we should tell it, we know its new value
@@ -951,18 +904,10 @@ class ExpressionDictOperationClear(
 
 
 class ExpressionDictOperationKeys(
-    ExpressionListShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildHavingBase,
+    ExpressionDictOperationKeysBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_KEYS"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         dict_arg = self.subnode_dict_arg
@@ -987,16 +932,9 @@ class ExpressionDictOperationKeys(
 
 
 class ExpressionDictOperationViewkeys(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionDictOperationViewkeysBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_VIEWKEYS"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -1013,16 +951,9 @@ class ExpressionDictOperationViewkeys(
 
 
 class ExpressionDictOperationIterkeys(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionDictOperationIterkeysBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITERKEYS"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -1039,18 +970,10 @@ class ExpressionDictOperationIterkeys(
 
 
 class ExpressionDictOperationValues(
-    ExpressionListShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildHavingBase,
+    ExpressionDictOperationValuesBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_VALUES"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         dict_arg = self.subnode_dict_arg
@@ -1075,16 +998,9 @@ class ExpressionDictOperationValues(
 
 
 class ExpressionDictOperationViewvalues(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionDictOperationViewvaluesBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_VIEWVALUES"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -1101,16 +1017,9 @@ class ExpressionDictOperationViewvalues(
 
 
 class ExpressionDictOperationItervalues(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionDictOperationItervaluesBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITERVALUES"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -1127,18 +1036,10 @@ class ExpressionDictOperationItervalues(
 
 
 class ExpressionDictOperationItems(
-    ExpressionListShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildHavingBase,
+    ExpressionDictOperationItemsBase,
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITEMS"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         dict_arg = self.subnode_dict_arg
@@ -1163,16 +1064,9 @@ class ExpressionDictOperationItems(
 
 
 class ExpressionDictOperationIteritems(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionDictOperationIteritemsBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_ITERITEMS"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -1190,16 +1084,9 @@ class ExpressionDictOperationIteritems(
 
 
 class ExpressionDictOperationViewitems(
-    SideEffectsFromChildrenMixin, ExpressionChildHavingBase
+    SideEffectsFromChildrenMixin, ExpressionDictOperationViewitemsBase
 ):
     kind = "EXPRESSION_DICT_OPERATION_VIEWITEMS"
-
-    named_child = "dict_arg"
-
-    def __init__(self, dict_arg, source_ref):
-        assert dict_arg is not None
-
-        ExpressionChildHavingBase.__init__(self, value=dict_arg, source_ref=source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -1215,26 +1102,20 @@ class ExpressionDictOperationViewitems(
         return self.subnode_dict_arg.mayRaiseException(exception_type)
 
 
-class ExpressionDictOperationUpdate2(
-    ExpressionNoneShapeExactMixin, ExpressionChildrenHavingBase
-):
+class ExpressionDictOperationUpdate2(ExpressionDictOperationUpdate2Base):
     """This operation represents d.update(iterable)."""
 
     kind = "EXPRESSION_DICT_OPERATION_UPDATE2"
 
-    named_children = ("dict_arg", "iterable")
-
     def __init__(self, dict_arg, iterable, source_ref):
-        assert dict_arg is not None
-        assert iterable is not None
-
         # TODO: Change generation of attribute nodes to pass it like this already.
         if type(iterable) is tuple:
             (iterable,) = iterable
 
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionDictOperationUpdate2Base.__init__(
             self,
-            values={"dict_arg": dict_arg, "iterable": iterable},
+            dict_arg=dict_arg,
+            iterable=iterable,
             source_ref=source_ref,
         )
 
@@ -1244,7 +1125,7 @@ class ExpressionDictOperationUpdate2(
         # TODO: Using it might change it, unfortunately
         trace_collection.removeKnowledge(self.subnode_iterable)
 
-        # TODO: Until we can know KeyError won't happen, but then we should change into
+        # TODO: Until we can know iteration error won't happen, but then we should change into
         # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -1257,32 +1138,32 @@ class ExpressionDictOperationUpdate2(
         return True
 
 
-class ExpressionDictOperationUpdate3(
-    ExpressionNoneShapeExactMixin, ExpressionChildrenHavingBase
-):
-    """This operation represents d.update(iterable)."""
+def makeExpressionDictOperationUpdate3(dict_arg, iterable, pairs, source_ref):
+    # Artefact of star argument parsing iterable, where it is also optional
+    # revolved on the outside here
+    if type(iterable) is tuple:
+        if not iterable:
+            iterable = None
+        else:
+            (iterable,) = iterable
+
+    if iterable is not None:
+        return ExpressionDictOperationUpdate3(dict_arg, iterable, pairs, source_ref)
+    else:
+        return ExpressionDictOperationUpdatePairs(dict_arg, pairs, source_ref)
+
+
+class ExpressionDictOperationUpdate3(ExpressionDictOperationUpdate3Base):
+    """This operation represents d.update(iterable, **pairs)."""
 
     kind = "EXPRESSION_DICT_OPERATION_UPDATE3"
 
-    named_children = ("dict_arg", "iterable", "pairs")
-
     def __init__(self, dict_arg, iterable, pairs, source_ref):
-        assert dict_arg is not None
-
-        # Artefact of star argument parsing, should be resolved on the outside though.
-        if type(iterable) is tuple:
-            if not iterable:
-                iterable = None
-            else:
-                (iterable,) = iterable
-
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionDictOperationUpdate3Base.__init__(
             self,
-            values={
-                "dict_arg": dict_arg,
-                "iterable": iterable,
-                "pairs": pairs,
-            },
+            dict_arg=dict_arg,
+            iterable=iterable,
+            pairs=pairs,
             source_ref=source_ref,
         )
 
@@ -1290,9 +1171,49 @@ class ExpressionDictOperationUpdate3(
         # TODO: Until we have proper dictionary tracing, do this.
         trace_collection.removeKnowledge(self.subnode_dict_arg)
         # TODO: Using it might change it, unfortunately
+        # TODO: When iterable is empty, this should be specialized further to
+        # ExpressionDictOperationUpdatePairs
+        trace_collection.removeKnowledge(self.subnode_iterable)
+
+        for pair in self.subnode_pairs:
+            trace_collection.removeKnowledge(pair)
+
+        # TODO: Until we can know iteration error won't happen, but then we should change into
+        # something else.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Check empty, and remove itself if that's the case.
+        return self, None, None
+
+    # TODO: Might raise non-iterable depending on value shape, or not hashable from content.
+    @staticmethod
+    def mayRaiseException(exception_type):
+        return True
+
+
+class ExpressionDictOperationUpdatePairs(
+    ChildrenExpressionDictOperationUpdatePairsMixin, ExpressionBase
+):
+    """This operation represents d.update(iterable, **pairs)."""
+
+    kind = "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS"
+
+    named_children = ("dict_arg", "pairs|tuple")
+
+    def __init__(self, dict_arg, pairs, source_ref):
+        ChildrenExpressionDictOperationUpdatePairsMixin.__init__(
+            self,
+            dict_arg=dict_arg,
+            pairs=pairs,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        # TODO: Using it might change it, unfortunately
         # TODO: When iterable is empty, this should be specialized further.
-        if self.subnode_iterable is not None:
-            trace_collection.removeKnowledge(self.subnode_iterable)
 
         for pair in self.subnode_pairs:
             trace_collection.removeKnowledge(pair)
@@ -1310,7 +1231,7 @@ class ExpressionDictOperationUpdate3(
         return True
 
 
-class StatementDictOperationUpdate(StatementChildrenHavingBase):
+class StatementDictOperationUpdate(StatementDictOperationUpdateBase):
     """Update dict value.
 
     This is mainly used for re-formulations, where a dictionary
@@ -1321,25 +1242,19 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_UPDATE"
 
     named_children = ("dict_arg", "value")
+    auto_compute_handling = "operation"
 
-    def __init__(self, dict_arg, value, source_ref):
-        assert dict_arg is not None
-        assert value is not None
+    def computeStatementOperation(self, trace_collection):
+        # TODO: Until we have proper dictionary tracing, do this.
+        trace_collection.removeKnowledge(self.subnode_dict_arg)
+        # TODO: Using it might change it, unfortunately
+        trace_collection.removeKnowledge(self.subnode_value)
 
-        StatementChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "value": value}, source_ref=source_ref
-        )
-
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+        # TODO: Until we can know iteration error won't happen, but then we should change into
+        # something else.
         trace_collection.onExceptionRaiseExit(BaseException)
 
+        # TODO: Check empty, and remove itself if that's the case.
         return self, None, None
 
 
@@ -1366,24 +1281,9 @@ def makeUnhashableExceptionReplacementExpression(node, key, side_effects, operat
     )
 
 
-class ExpressionDictOperationInNotInUncertainBase(
-    ExpressionBoolShapeExactMixin, ExpressionChildrenHavingBase
-):
-    # Follows the reversed nature of "in", with the dictionary on the right
-    # side of things.
-    named_children = ("key", "dict_arg")
-
-    __slots__ = ("known_hashable_key",)
-
-    def __init__(self, key, dict_arg, source_ref):
-        assert dict_arg is not None
-        assert key is not None
-
-        ExpressionChildrenHavingBase.__init__(
-            self, values={"dict_arg": dict_arg, "key": key}, source_ref=source_ref
-        )
-
-        self.known_hashable_key = None
+class ExpressionDictOperationInNotInUncertainMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
     def computeExpression(self, trace_collection):
         if self.known_hashable_key is None:
@@ -1429,6 +1329,30 @@ class ExpressionDictOperationInNotInUncertainBase(
             return tuple(result)
 
 
+class ExpressionDictOperationInNotInUncertainBase(
+    ExpressionDictOperationInNotInUncertainMixin,
+    ExpressionBoolShapeExactMixin,
+    ChildrenHavingKeyDictArgMixin,
+    ExpressionBase,
+):
+    # Follows the reversed nature of "in", with the dictionary on the right
+    # side of things.
+    named_children = ("key", "dict_arg")
+
+    __slots__ = ("known_hashable_key",)
+
+    def __init__(self, key, dict_arg, source_ref):
+        ChildrenHavingKeyDictArgMixin.__init__(
+            self,
+            key=key,
+            dict_arg=dict_arg,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.known_hashable_key = None
+
+
 class ExpressionDictOperationIn(ExpressionDictOperationInNotInUncertainBase):
     kind = "EXPRESSION_DICT_OPERATION_IN"
 
@@ -1437,8 +1361,20 @@ class ExpressionDictOperationNotIn(ExpressionDictOperationInNotInUncertainBase):
     kind = "EXPRESSION_DICT_OPERATION_NOT_IN"
 
 
-class ExpressionDictOperationHaskey(ExpressionDictOperationIn):
+class ExpressionDictOperationHaskey(
+    ExpressionDictOperationInNotInUncertainMixin,
+    ExpressionDictOperationHaskeyBase,
+):
     kind = "EXPRESSION_DICT_OPERATION_HASKEY"
 
     # Different order of arguments.
     named_children = ("dict_arg", "key")
+
+    __slots__ = ("known_hashable_key",)
+
+    def __init__(self, key, dict_arg, source_ref):
+        ExpressionDictOperationHaskeyBase.__init__(
+            self, key=key, dict_arg=dict_arg, source_ref=source_ref
+        )
+
+        self.known_hashable_key = None

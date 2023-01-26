@@ -20,7 +20,8 @@
 Not usable with older Python as it depends on type flags not present.
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ChildrenHavingMixins import ChildHavingValueMixin
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
 
@@ -28,16 +29,15 @@ from .NodeBases import SideEffectsFromChildrenMixin
 class ExpressionMatchTypeCheckBase(
     ExpressionBoolShapeExactMixin,
     SideEffectsFromChildrenMixin,
-    ExpressionChildHavingBase,
+    ChildHavingValueMixin,
+    ExpressionBase,
 ):
-    named_child = "value"
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self,
-            value=value,
-            source_ref=source_ref,
-        )
+        ChildHavingValueMixin.__init__(self, value=value)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)

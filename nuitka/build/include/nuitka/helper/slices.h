@@ -18,24 +18,30 @@
 #ifndef __NUITKA_HELPER_SLICES_H__
 #define __NUITKA_HELPER_SLICES_H__
 
+#if PYTHON_VERSION >= 0x3a0
+extern PyObject *Nuitka_Slice_New(PyObject *start, PyObject *stop, PyObject *step);
+#else
+#define Nuitka_Slice_New PySlice_New
+#endif
+
 // Note: Cannot these cannot fail, PySlice_New does not return errors.
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ3(PyObject *start, PyObject *stop, PyObject *step) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT3(PyObject *start, PyObject *stop, PyObject *step) {
     CHECK_OBJECT(start);
     CHECK_OBJECT(stop);
     CHECK_OBJECT(step);
 
-    return PySlice_New(start, stop, step);
+    return Nuitka_Slice_New(start, stop, step);
 }
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ2(PyObject *start, PyObject *stop) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT2(PyObject *start, PyObject *stop) {
     CHECK_OBJECT(start);
     CHECK_OBJECT(stop);
 
-    return PySlice_New(start, stop, Py_None);
+    return Nuitka_Slice_New(start, stop, Py_None);
 }
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ1(PyObject *stop) {
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICE_OBJECT1(PyObject *stop) {
     CHECK_OBJECT(stop);
 
-    return PySlice_New(Py_None, stop, Py_None);
+    return Nuitka_Slice_New(Py_None, stop, Py_None);
 }
 
 #if PYTHON_VERSION < 0x300
@@ -48,7 +54,7 @@ static inline bool IS_INDEXABLE(PyObject *value) {
 #if PYTHON_VERSION < 0x300
            PyInt_Check(value) ||
 #endif
-           PyLong_Check(value) || PyIndex_Check(value);
+           PyLong_Check(value) || Nuitka_Index_Check(value);
 }
 
 static Py_ssize_t CONVERT_TO_INDEX(PyObject *value) {
@@ -56,7 +62,7 @@ static Py_ssize_t CONVERT_TO_INDEX(PyObject *value) {
 
     if (PyInt_Check(value)) {
         return PyInt_AS_LONG(value);
-    } else if (PyIndex_Check(value)) {
+    } else if (Nuitka_Index_Check(value)) {
         return PyNumber_AsSsize_t(value, NULL);
     } else {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError,

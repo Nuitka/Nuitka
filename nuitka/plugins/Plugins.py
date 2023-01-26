@@ -307,8 +307,6 @@ class Plugins(object):
 
     @staticmethod
     def _considerImplicitImports(plugin, module):
-        from nuitka.importing import Importing
-
         result = []
 
         def iterateModuleNames(value):
@@ -346,11 +344,7 @@ class Plugins(object):
                 continue
 
             try:
-                _module_name, module_filename, _finding = Importing.locateModule(
-                    module_name=full_name,
-                    parent_package=None,
-                    level=0,
-                )
+                module_filename = plugin.locateModule(full_name)
             except Exception:
                 plugin.warning(
                     "Problem locating '%s' for implicit imports of '%s'."
@@ -383,6 +377,8 @@ class Plugins(object):
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
         for full_name, module_filename in implicit_imports:
+
+            # TODO: The module_kind should be forwarded from previous in the class using locateModule code.
             _module_name2, module_kind = getModuleNameAndKindFromFilename(
                 module_filename
             )
@@ -400,6 +396,8 @@ class Plugins(object):
                     module_name=full_name,
                     module_filename=module_filename,
                     module_kind=module_kind,
+                    using_module=module,
+                    source_ref=module.getSourceReference(),
                     reason=reason,
                 )
 
@@ -561,6 +559,27 @@ class Plugins(object):
                 result.add(dll_path)
 
         return result
+
+    sys_path_additions_cache = {}
+
+    @classmethod
+    def getModuleSysPathAdditions(cls, module_name):
+        """Provide a list of directories, that should be considered in 'PYTHONPATH' when this module is used.
+
+        Args:
+            module_name: name of a package or module
+        Returns:
+            iterable of paths
+        """
+
+        if module_name not in cls.sys_path_additions_cache:
+            cls.sys_path_additions_cache[module_name] = OrderedSet()
+
+            for plugin in getActivePlugins():
+                for dll_path in plugin.getModuleSysPathAdditions(module_name):
+                    cls.sys_path_additions_cache[module_name].add(dll_path)
+
+        return cls.sys_path_additions_cache[module_name]
 
     @staticmethod
     def removeDllDependencies(dll_filename, dll_filenames):
@@ -910,12 +929,16 @@ class Plugins(object):
         return result
 
     @staticmethod
-    def onModuleRecursion(module_name, module_filename, module_kind):
+    def onModuleRecursion(
+        module_name, module_filename, module_kind, using_module, source_ref
+    ):
         for plugin in getActivePlugins():
             plugin.onModuleRecursion(
                 module_name=module_name,
                 module_filename=module_filename,
                 module_kind=module_kind,
+                using_module=using_module,
+                source_ref=source_ref,
             )
 
     @staticmethod
