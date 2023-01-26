@@ -353,7 +353,11 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 // TODO: Disable for Python3.11 initially
 #if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL) && PYTHON_VERSION < 0x3b0
 
+// Clashes with our helper names.
 #include <opcode.h>
+#undef LIST_EXTEND
+#undef CALL_FUNCTION
+#undef IMPORT_NAME
 
 // Not done for earlier versions yet, indicate usability for compiled generators.
 #define NUITKA_UNCOMPILED_THROW_INTEGRATION 1

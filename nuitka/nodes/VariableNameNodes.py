@@ -28,31 +28,22 @@ or even code generation.
 """
 
 from .ExpressionBases import ExpressionBase
-from .NodeBases import StatementBase, StatementChildHavingBase
+from .NodeBases import StatementBase
+from .StatementBasesGenerated import StatementAssignmentVariableNameBase
 
 
-class StatementAssignmentVariableName(StatementChildHavingBase):
+class StatementAssignmentVariableName(StatementAssignmentVariableNameBase):
     """Precursor of StatementAssignmentVariable used during tree building phase"""
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_NAME"
 
-    named_child = "source"
-    nice_child = "assignment source"
+    named_children = ("source",)
+    nice_children = ("assignment source",)
+    node_attributes = ("provider", "variable_name")
+    auto_compute_handling = "post_init"
 
-    __slots__ = ("variable_name", "provider")
-
-    def __init__(self, provider, variable_name, source, source_ref):
-        assert source is not None, source_ref
-
-        StatementChildHavingBase.__init__(self, value=source, source_ref=source_ref)
-
-        self.variable_name = variable_name
-        self.provider = provider
-
-        assert not provider.isExpressionOutlineBody(), source_ref
-
-    def getDetails(self):
-        return {"variable_name": self.variable_name, "provider": self.provider}
+    def postInitNode(self):
+        assert not self.provider.isExpressionOutlineBody(), self.source_ref
 
     def getVariableName(self):
         return self.variable_name
@@ -116,7 +107,7 @@ class ExpressionVariableNameRef(ExpressionBase):
     def __init__(self, provider, variable_name, source_ref):
         assert not provider.isExpressionOutlineBody(), source_ref
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable_name = variable_name
 

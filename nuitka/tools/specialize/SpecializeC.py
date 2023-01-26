@@ -29,6 +29,7 @@ import os
 
 import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
+import nuitka.specs.BuiltinListOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinUnicodeOperationSpecs
 from nuitka.code_generation.BinaryOperationHelperDefinitions import (
@@ -52,16 +53,28 @@ from nuitka.nodes.ImportNodes import (
     hard_modules_non_stdlib,
     hard_modules_version,
 )
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    tshape_bool,
+    tshape_bytes,
+    tshape_dict,
+    tshape_int,
+    tshape_list,
+    tshape_none,
+    tshape_str,
+    tshape_tuple,
+)
 from nuitka.utils.Jinja2 import getTemplateC
 
 from .Common import (
     formatArgs,
     getMethodVariations,
     python2_dict_methods,
+    python2_list_methods,
     python2_str_methods,
     python2_unicode_methods,
     python3_bytes_methods,
     python3_dict_methods,
+    python3_list_methods,
     python3_str_methods,
     withFileOpenedAndAutoFormatted,
     writeLine,
@@ -880,6 +893,16 @@ generate_builtin_type_operations = [
         nuitka.specs.BuiltinDictOperationSpecs,
         ("pop", "popitem", "setdefault"),
     ),
+    (
+        "tshape_list",
+        list_desc,
+        nuitka.specs.BuiltinListOperationSpecs,
+        (
+            "pop",
+            # TODO: template doesn't do positional only yet.
+            # "sort",
+        ),
+    ),
     # TODO: These are very complex things using "string lib" code in CPython,
     # that we do not have easy access to, but we might one day for Nuitka-Python
     # expose it for the static linking of it and then we could in fact call
@@ -973,7 +996,44 @@ generate_builtin_type_operations = [
         "tshape_bytes",
         bytes_desc,
         nuitka.specs.BuiltinBytesOperationSpecs,
-        ("decode",),
+        (
+            "capitalize",
+            "center",
+            "count",
+            "decode",
+            "endswith",
+            "expandtabs",
+            "find",
+            "index",
+            "isalnum",
+            "isalpha",
+            "isdigit",
+            "islower",
+            "isspace",
+            "istitle",
+            "isupper",
+            "join",
+            "ljust",
+            "lower",
+            "lstrip",
+            "partition",
+            "replace",
+            "rfind",
+            "rindex",
+            "rjust",
+            "rpartition",
+            "rsplit",
+            "rstrip",
+            "split",
+            "splitlines",
+            "startswith",
+            "strip",
+            "swapcase",
+            "title",
+            "translate",
+            "upper",
+            "zfill",
+        ),
     ),
 ]
 
@@ -997,6 +1057,31 @@ def makeDictCopyHelperCodes():
         emit(code)
 
 
+def _getCheckForShape(shape):
+    # Return driven for better debugging experience, pylint: disable=too-many-return-statements
+
+    if shape is tshape_str:
+        return "Nuitka_String_CheckExact"
+    elif shape is tshape_list:
+        return "PyList_CheckExact"
+    elif shape is tshape_tuple:
+        return "PyTuple_CheckExact"
+    elif shape is tshape_int:
+        # TODO: Not defined a version independent one yet in prelude.h
+        return None
+    elif shape is tshape_bool:
+        return "PyBool_Check"
+    elif shape is tshape_none:
+        # TODO: Not defined one in prelude.h yet
+        return None
+    elif shape is tshape_dict:
+        return "PyDict_CheckExact"
+    elif shape is tshape_bytes:
+        return "PyBytes_CheckExact"
+    else:
+        assert False, shape
+
+
 def makeHelperBuiltinTypeMethods():
     # Many details, pylint: disable=too-many-locals
     filename_c = "nuitka/build/static_src/HelpersBuiltinTypeMethods.c"
@@ -1014,8 +1099,14 @@ def makeHelperBuiltinTypeMethods():
                 emit_h(*args)
                 emit_c(*args)
 
+            template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
+
+            emitGenerationWarning(emit, template.name)
+
             emitIDE(emit)
 
+            # TODO: Isn't this creating more than necessary, we don't use all of them, e.g.
+            # not with lists and dicts.
             _makeHelperBuiltinTypeAttributes(
                 "str", "PyString_Type", python2_str_methods, (), emit_c, emit_h
             )
@@ -1038,8 +1129,14 @@ def makeHelperBuiltinTypeMethods():
                 emit_c,
                 emit_h,
             )
-
-            template = getDoExtensionUsingTemplateC("HelperBuiltinMethodOperation.c.j2")
+            _makeHelperBuiltinTypeAttributes(
+                "list",
+                "PyList_Type",
+                python2_list_methods,
+                python3_list_methods,
+                emit_c,
+                emit_h,
+            )
 
             for (
                 shape_name,
@@ -1057,6 +1154,7 @@ def makeHelperBuiltinTypeMethods():
                         _arg_tests,
                         arg_name_mapping,
                         arg_counts,
+                        result_shape,
                     ) = getMethodVariations(
                         spec_module=spec_module,
                         shape_name=shape_name,
@@ -1080,7 +1178,7 @@ def makeHelperBuiltinTypeMethods():
                         if arg_name in arg_name_mapping:
                             arg_name = arg_name_mapping[arg_name]
 
-                        if arg_name in ("default", "new"):
+                        if arg_name in ("default", "new", "delete"):
                             return arg_name + "_value"
                         else:
                             return arg_name
@@ -1102,6 +1200,9 @@ def makeHelperBuiltinTypeMethods():
                             arg_names=variant_args,
                             arg_types=[object_desc] * len(variant_args),
                             formatArgumentDeclaration=formatArgumentDeclaration,
+                            extra_check=_getCheckForShape(result_shape)
+                            if result_shape is not None
+                            else None,
                             zip=zip,
                             len=len,
                             name=template.name,

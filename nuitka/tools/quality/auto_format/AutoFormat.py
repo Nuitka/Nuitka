@@ -46,20 +46,21 @@ from nuitka.utils.Execution import (
     withEnvironmentPathAdded,
 )
 from nuitka.utils.FileOperations import (
+    copyFile,
     getFileContentByLine,
     getFileContents,
     listDir,
     openTextFile,
     putTextFileContents,
-    renameFile,
     withPreserveFileMode,
+    withTemporaryFile,
 )
 from nuitka.utils.Utils import isWin32OrPosixWindows
 
 from .YamlFormatter import formatYaml
 
 
-def cleanupWindowsNewlines(filename):
+def cleanupWindowsNewlines(filename, effective_filename):
     """Remove Windows new-lines from a file.
 
     Simple enough to not depend on external binary and used by
@@ -73,7 +74,7 @@ def cleanupWindowsNewlines(filename):
     updated_code = updated_code.replace(b"\n\r", b"\n")
 
     # Smuggle consistency replacement in here.
-    if "AutoFormat.py" not in filename:
+    if "AutoFormat.py" not in effective_filename:
         updated_code = updated_code.replace(b'.decode("utf-8")', b'.decode("utf8")')
         updated_code = updated_code.replace(b'.encode("utf-8")', b'.encode("utf8")')
 
@@ -194,15 +195,15 @@ def _cleanupPyLintComments(filename, effective_filename):
         putTextFileContents(filename, new_code)
 
 
-def _cleanupImportRelative(filename):
+def _cleanupImportRelative(filename, effective_filename):
     """Make imports of Nuitka package when possible."""
 
     # Avoid doing it for "__main__" packages, because for those the Visual Code
     # IDE doesn't like it and it may not run
-    if os.path.basename(filename) == "__main__.py.tmp":
+    if os.path.basename(effective_filename) == "__main__.py":
         return
 
-    package_name = os.path.dirname(filename).replace(os.path.sep, ".")
+    package_name = os.path.dirname(effective_filename).replace(os.path.sep, ".")
 
     # Make imports local if possible.
     if not package_name.startswith("nuitka."):
@@ -270,8 +271,8 @@ def _getPythonBinaryCall(binary_name):
     return _binary_calls[binary_name]
 
 
-def _cleanupImportSortOrder(filename):
-    _cleanupImportRelative(filename)
+def _cleanupImportSortOrder(filename, effective_filename):
+    _cleanupImportRelative(filename, effective_filename)
 
     isort_call = _getPythonBinaryCall("isort")
 
@@ -312,7 +313,7 @@ def _cleanupImportSortOrder(filename):
         putTextFileContents(filename, contents=contents)
 
 
-def _cleanupRstFmt(filename):
+def _cleanupRstFmt(filename, effective_filename):
     updated_contents = contents = getFileContents(filename, mode="rb")
 
     for keyword in extra_rst_keywords:
@@ -334,7 +335,7 @@ def _cleanupRstFmt(filename):
         #        stdout=devnull,
     )
 
-    cleanupWindowsNewlines(filename)
+    cleanupWindowsNewlines(filename, effective_filename)
 
     contents = getFileContents(filename, mode="rb")
 
@@ -589,38 +590,39 @@ def autoFormatFile(
     else:
         old_code = getFileContents(filename, "rb")
 
-    with open(tmp_filename, "wb") as output_file:
+    with withTemporaryFile(mode="wb", delete=False) as output_file:
+        tmp_filename = output_file.name
         output_file.write(old_code)
+        output_file.close()
 
-    try:
         if is_python:
-            cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename, effective_filename)
 
             if not _shouldNotFormatCode(effective_filename):
-                _cleanupImportSortOrder(tmp_filename)
+                _cleanupImportSortOrder(tmp_filename, effective_filename)
                 _cleanupPyLintComments(tmp_filename, effective_filename)
 
                 black_call = _getPythonBinaryCall("black")
 
                 subprocess.call(black_call + ["-q", "--fast", tmp_filename])
-                cleanupWindowsNewlines(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename, effective_filename)
 
         elif is_c or is_cpp:
-            cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename, effective_filename)
             if not _shouldNotFormatCode(effective_filename):
                 _cleanupClangFormat(tmp_filename)
-                cleanupWindowsNewlines(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename, effective_filename)
         elif is_txt:
-            cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename, effective_filename)
             _cleanupTrailingWhitespace(tmp_filename)
-            cleanupWindowsNewlines(tmp_filename)
+            cleanupWindowsNewlines(tmp_filename, effective_filename)
 
             if is_rst:
-                _cleanupRstFmt(tmp_filename)
+                _cleanupRstFmt(tmp_filename, effective_filename)
 
             if is_package_config_yaml:
                 formatYaml(tmp_filename)
-                cleanupWindowsNewlines(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename, effective_filename)
                 _cleanupTrailingWhitespace(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
@@ -642,14 +644,11 @@ def autoFormatFile(
                             filename, git_stage["dst_hash"], new_hash_value
                         )
                     else:
-                        renameFile(tmp_filename, filename)
+                        copyFile(tmp_filename, filename)
 
             changed = True
 
         return changed
-    finally:
-        if os.path.exists(tmp_filename):
-            os.unlink(tmp_filename)
 
 
 @contextlib.contextmanager

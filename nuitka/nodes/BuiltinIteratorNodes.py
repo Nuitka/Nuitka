@@ -27,17 +27,18 @@ good.
 from nuitka.PythonVersions import python_version
 
 from .BuiltinLenNodes import ExpressionBuiltinLen
-from .ExpressionBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase,
-)
-from .NodeBases import StatementChildHavingBase
+from .ExpressionBases import ExpressionBuiltinSingleArgBase
+from .ExpressionBasesGenerated import ExpressionBuiltinIter2Base
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import tshape_iterator
+from .StatementBasesGenerated import (
+    StatementSpecialUnpackCheckBase,
+    StatementSpecialUnpackCheckFromIteratedBase,
+)
 from .VariableRefNodes import ExpressionTempVariableRef
 
 
@@ -190,25 +191,20 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
             )
 
 
-class StatementSpecialUnpackCheckFromIterated(StatementChildHavingBase):
+class StatementSpecialUnpackCheckFromIterated(
+    StatementSpecialUnpackCheckFromIteratedBase
+):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK_FROM_ITERATED"
 
-    named_child = "iterated_length"
+    named_children = ("iterated_length",)
+    node_attributes = ("count",)
+    auto_compute_handling = "operation"
 
-    __slots__ = ("count",)
-
-    def __init__(self, iterated_length, count, source_ref):
-        StatementChildHavingBase.__init__(
-            self, value=iterated_length, source_ref=source_ref
-        )
-
-        self.count = int(count)
-
-    def computeStatement(self, trace_collection):
-        iterated_length = trace_collection.onExpression(self.subnode_iterated_length)
-
-        if iterated_length.isCompileTimeConstant():
-            iterated_length_value = iterated_length.getCompileTimeConstant()
+    def computeStatementOperation(self, trace_collection):
+        if self.subnode_iterated_length.isCompileTimeConstant():
+            iterated_length_value = (
+                self.subnode_iterated_length.getCompileTimeConstant()
+            )
 
             if iterated_length_value <= self.count:
                 return (
@@ -255,45 +251,18 @@ def makeStatementSpecialUnpackCheckFromIterated(
     )
 
 
-class StatementSpecialUnpackCheck(StatementChildHavingBase):
+class StatementSpecialUnpackCheck(StatementSpecialUnpackCheckBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
-    named_child = "iterator"
-
-    __slots__ = ("count",)
-
-    def __init__(self, iterator, count, source_ref):
-        StatementChildHavingBase.__init__(self, value=iterator, source_ref=source_ref)
-
-        self.count = int(count)
-
-    def getDetails(self):
-        return {"count": self.getCount()}
+    named_children = ("iterator",)
+    node_attributes = ("count",)
+    auto_compute_handling = "operation"
 
     def getCount(self):
         return self.count
 
-    def computeStatement(self, trace_collection):
-        iterator = trace_collection.onExpression(self.subnode_iterator)
-
-        if iterator.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if iterator.willRaiseException(BaseException):
-            from .NodeMakingHelpers import (
-                makeStatementExpressionOnlyReplacementNode,
-            )
-
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression=iterator, node=self
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Explicit raise already raises implicitly building exception type.""",
-            )
+    def computeStatementOperation(self, trace_collection):
+        iterator = self.subnode_iterator
 
         if iterator.isExpressionTempVariableRef():
             iteration_source_node = iterator.variable_trace.getIterationSourceNode()
@@ -325,28 +294,20 @@ Explicit raise already raises implicitly building exception type.""",
         return "iteration check statement"
 
 
-class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
+class ExpressionBuiltinIter2(ExpressionBuiltinIter2Base):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ("callable_arg", "sentinel")
 
-    def __init__(self, callable_arg, sentinel, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"callable_arg": callable_arg, "sentinel": sentinel},
-            source_ref=source_ref,
-        )
+    auto_compute_handling = "final"
+
+    # TODO: The "callable" be investigated in a non-final
+    # "auto_compute_handling" here, as maybe it is not really callable.
 
     @staticmethod
     def getTypeShape():
-        # TODO: This could be more specific, this one is a fixed thing!
+        # TODO: This could be more specific, this one is a fixed well known thing!
         return tshape_iterator
-
-    def computeExpression(self, trace_collection):
-        # TODO: The "callable" should be investigated here, maybe it is not
-        # really callable, or raises an exception.
-
-        return self, None, None
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         return self, "new_builtin", "Eliminated useless iterator creation."

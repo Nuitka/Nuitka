@@ -21,41 +21,24 @@ Sometimes, the effect of an expression needs to be had, but the value itself
 does not matter at all.
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ChildrenHavingMixins import ChildrenHavingSideEffectsTupleExpressionMixin
+from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
-def checkSideEffects(value):
-    real_value = []
-
-    for child in value:
-        if child.isExpressionSideEffects():
-            real_value.extend(child.subnode_side_effects)
-            real_value.append(child.subnode_expression)
-        else:
-            assert child.isExpression()
-
-            real_value.append(child)
-
-    return tuple(real_value)
-
-
-class ExpressionSideEffects(ExpressionChildrenHavingBase):
+class ExpressionSideEffects(
+    ChildrenHavingSideEffectsTupleExpressionMixin, ExpressionBase
+):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
-    named_children = ("side_effects", "expression")
-
-    checkers = {"side_effects": checkSideEffects}
+    named_children = ("side_effects|tuple+setter", "expression|setter")
 
     def __init__(self, side_effects, expression, source_ref):
-        # We expect to be not used without there actually being side effects.
-        assert side_effects
-
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"side_effects": tuple(side_effects), "expression": expression},
-            source_ref=source_ref,
+        ChildrenHavingSideEffectsTupleExpressionMixin.__init__(
+            self, side_effects=side_effects, expression=expression
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     @staticmethod
     def isExpressionSideEffects():
@@ -72,7 +55,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
         for count, side_effect in enumerate(side_effects):
             side_effect = trace_collection.onExpression(side_effect)
 
-            if side_effect.willRaiseException(BaseException):
+            if side_effect.willRaiseAnyException():
                 for c in side_effects[count + 1 :]:
                     c.finalize()
 
@@ -80,7 +63,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
                     expression = self.subnode_expression
                     expression.finalize()
 
-                    self.setChild("expression", side_effect)
+                    self.setChildExpression(side_effect)
 
                     return (
                         self,
@@ -102,9 +85,10 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
 
                 del side_effect.parent
                 del side_effect.subnode_side_effects
-
-            if side_effect is not None and side_effect.mayHaveSideEffects():
+            elif side_effect is not None and side_effect.mayHaveSideEffects():
                 new_side_effects.append(side_effect)
+
+        self.setChildSideEffects(tuple(new_side_effects))
 
         trace_collection.onExpression(self.subnode_expression)
 
@@ -112,17 +96,10 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
             return (
                 self.subnode_expression,
                 "new_expression",
-                "Removed empty side effects.",
+                "Removed now empty side effects.",
             )
 
         return self, None, None
-
-    def willRaiseException(self, exception_type):
-        for child in self.getVisitableNodes():
-            if child.willRaiseException(exception_type):
-                return True
-
-        return False
 
     def getTruthValue(self):
         return self.subnode_expression.getTruthValue()

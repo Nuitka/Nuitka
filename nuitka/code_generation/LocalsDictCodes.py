@@ -42,6 +42,18 @@ from .templates.CodeTemplatesVariables import (
 
 
 def generateSetLocalsDictCode(statement, emit, context):
+    locals_declaration = context.addLocalsDictName(
+        statement.getLocalsScope().getCodeName()
+    )
+
+    emit(
+        """\
+%(locals_dict)s = MAKE_DICT_EMPTY();"""
+        % {"locals_dict": locals_declaration}
+    )
+
+
+def generateSetLocalsMappingCode(statement, emit, context):
     new_locals_name = context.allocateTempName("set_locals")
 
     generateExpressionCode(

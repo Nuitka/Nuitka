@@ -22,28 +22,29 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionNoSideEffectsMixin,
+from .ChildrenHavingMixins import (
+    ChildHavingCoroutineRefMixin,
+    ChildHavingExpressionMixin,
 )
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
 
 class ExpressionMakeCoroutineObject(
-    ExpressionNoSideEffectsMixin, ExpressionChildHavingBase
+    ExpressionNoSideEffectsMixin, ChildHavingCoroutineRefMixin, ExpressionBase
 ):
     kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
-    named_child = "coroutine_ref"
+    named_children = ("coroutine_ref",)
 
     __slots__ = ("variable_closure_traces",)
 
     def __init__(self, coroutine_ref, source_ref):
         assert coroutine_ref.getFunctionBody().isExpressionCoroutineObjectBody()
 
-        ExpressionChildHavingBase.__init__(
-            self, value=coroutine_ref, source_ref=source_ref
-        )
+        ChildHavingCoroutineRefMixin.__init__(self, coroutine_ref=coroutine_ref)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable_closure_traces = None
 
@@ -110,17 +111,17 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
         return False
 
 
-class ExpressionAsyncWait(ExpressionChildHavingBase):
+class ExpressionAsyncWait(ChildHavingExpressionMixin, ExpressionBase):
     kind = "EXPRESSION_ASYNC_WAIT"
 
-    named_child = "expression"
+    named_children = ("expression",)
 
     __slots__ = ("exception_preserving",)
 
     def __init__(self, expression, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=expression, source_ref=source_ref
-        )
+        ChildHavingExpressionMixin.__init__(self, expression=expression)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.exception_preserving = False
 

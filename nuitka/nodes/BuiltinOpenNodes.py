@@ -21,9 +21,11 @@ This is a rather two sided beast, as it may be read or write. And we would like 
 to track it, so we can include files into the executable, or write more efficiently.
 """
 
-from nuitka.PythonVersions import python_version
-
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ChildrenHavingMixins import (
+    ChildrenExpressionBuiltinOpenP2Mixin,
+    ChildrenExpressionBuiltinOpenP3Mixin,
+)
+from .ExpressionBases import ExpressionBase
 from .shapes.BuiltinTypeShapes import tshape_file
 
 
@@ -43,63 +45,70 @@ class ExpressionBuiltinOpenMixin(object):
         return self, None, None
 
 
-if python_version < 0x300:
+class ExpressionBuiltinOpenP2(
+    ExpressionBuiltinOpenMixin,
+    ChildrenExpressionBuiltinOpenP2Mixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_BUILTIN_OPEN_P2"
 
-    class ExpressionBuiltinOpen(
-        ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase
-    ):
-        kind = "EXPRESSION_BUILTIN_OPEN"
+    python_version_spec = "< 0x300"
 
-        named_children = ("filename", "mode", "buffering")
+    named_children = ("filename", "mode|optional", "buffering|optional")
 
-        def __init__(self, filename, mode, buffering, source_ref):
-            ExpressionChildrenHavingBase.__init__(
-                self,
-                values={"filename": filename, "mode": mode, "buffering": buffering},
-                source_ref=source_ref,
-            )
-
-else:
-
-    class ExpressionBuiltinOpen(
-        ExpressionBuiltinOpenMixin, ExpressionChildrenHavingBase
-    ):
-        kind = "EXPRESSION_BUILTIN_OPEN"
-
-        named_children = (
-            "filename",
-            "mode",
-            "buffering",
-            "encoding",
-            "errors",
-            "newline",
-            "closefd",
-            "opener",
+    def __init__(self, filename, mode, buffering, source_ref):
+        ChildrenExpressionBuiltinOpenP2Mixin.__init__(
+            self,
+            filename=filename,
+            mode=mode,
+            buffering=buffering,
         )
 
-        def __init__(
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionBuiltinOpenP3(
+    ExpressionBuiltinOpenMixin,
+    ChildrenExpressionBuiltinOpenP3Mixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_BUILTIN_OPEN_P3"
+
+    python_version_spec = ">= 0x300"
+
+    named_children = (
+        "filename",
+        "mode|optional",
+        "buffering|optional",
+        "encoding|optional",
+        "errors|optional",
+        "newline|optional",
+        "closefd|optional",
+        "opener|optional",
+    )
+
+    def __init__(
+        self,
+        filename,
+        mode,
+        buffering,
+        encoding,
+        errors,
+        newline,
+        closefd,
+        opener,
+        source_ref,
+    ):
+        ChildrenExpressionBuiltinOpenP3Mixin.__init__(
             self,
-            filename,
-            mode,
-            buffering,
-            encoding,
-            errors,
-            newline,
-            closefd,
-            opener,
-            source_ref,
-        ):
-            ExpressionChildrenHavingBase.__init__(
-                self,
-                values={
-                    "filename": filename,
-                    "mode": mode,
-                    "buffering": buffering,
-                    "encoding": encoding,
-                    "errors": errors,
-                    "newline": newline,
-                    "closefd": closefd,
-                    "opener": opener,
-                },
-                source_ref=source_ref,
-            )
+            filename=filename,
+            mode=mode,
+            buffering=buffering,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+            closefd=closefd,
+            opener=opener,
+        )
+
+        ExpressionBase.__init__(self, source_ref)

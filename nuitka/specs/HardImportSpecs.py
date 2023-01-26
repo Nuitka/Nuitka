@@ -22,7 +22,15 @@ it automatically creates a reference node and a base class for the call node
 to use.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    tshape_bytes,
+    tshape_dict,
+    tshape_str,
+)
+
 from .BuiltinParameterSpecs import BuiltinParameterSpec
+
+# Metadata:
 
 pkg_resources_iter_entry_points_spec = BuiltinParameterSpec(
     "pkg_resources.iter_entry_points", ("group", "name"), default_count=1
@@ -51,4 +59,83 @@ importlib_metadata_metadata_spec = BuiltinParameterSpec(
 )
 importlib_metadata_backport_metadata_spec = BuiltinParameterSpec(
     "importlib_metadata.metadata", ("distribution_name",), default_count=0
+)
+
+importlib_metadata_entry_points_before_310_spec = BuiltinParameterSpec(
+    "importlib.metadata.entry_points", (), default_count=0, type_shape=tshape_dict
+)
+importlib_metadata_entry_points_since_310_spec = BuiltinParameterSpec(
+    "importlib.metadata.entry_points", (), default_count=0, dict_star_arg="params"
+)
+importlib_metadata_backport_entry_points_spec = BuiltinParameterSpec(
+    "importlib_metadata.entry_points", (), default_count=0, dict_star_arg="params"
+)
+
+# TODO: Once we have selectable group under control, we can do this too.
+# importlib_metadata_backport_entry_points_spec = BuiltinParameterSpec(
+#    "importlib_metadata.entry_points", (), default_count=0, type_shape=tshape_dict
+# )
+
+# Resources:
+
+pkgutil_get_data_spec = BuiltinParameterSpec(
+    "pkgutil.get_data", ("package", "resource"), default_count=0
+)
+pkg_resources_resource_string_spec = BuiltinParameterSpec(
+    "pkg_resources.resource_string",
+    ("package_or_requirement", "resource_name"),
+    default_count=0,
+)
+pkg_resources_resource_stream_spec = BuiltinParameterSpec(
+    "pkg_resources.resource_stream",
+    ("package_or_requirement", "resource_name"),
+    default_count=0,
+)
+importlib_resources_read_binary_spec = BuiltinParameterSpec(
+    "importlib.resources.read_binary",
+    ("package", "resource"),
+    default_count=0,
+    type_shape=tshape_bytes,
+)
+importlib_resources_read_text_spec = BuiltinParameterSpec(
+    "importlib.resources.read_text",
+    ("package", "resource", "encoding", "errors"),
+    default_count=2,
+    type_shape=tshape_str,
+)
+
+# os/sys functions:
+os_uname_spec = BuiltinParameterSpec(
+    "os.uname",
+    (),
+    default_count=0,
+)
+
+os_path_exists_spec = BuiltinParameterSpec("os.path.exists", ("path",), default_count=0)
+os_path_isfile_spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_count=0)
+os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("path",), default_count=0)
+
+ctypes_cdll_since_38_spec = BuiltinParameterSpec(
+    "ctypes.CDLL",
+    (
+        "name",
+        "mode",
+        "handle",
+        "use_errno",
+        "use_lasterror",
+        "winmode",
+    ),
+    default_count=5,
+)
+
+ctypes_cdll_before_38_spec = BuiltinParameterSpec(
+    "ctypes.CDLL",
+    (
+        "name",
+        "mode",
+        "handle",
+        "use_errno",
+        "use_lasterror",
+    ),
+    default_count=4,
 )

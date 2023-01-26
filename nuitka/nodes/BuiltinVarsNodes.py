@@ -22,16 +22,19 @@ and hopefully can be predicted, because at run time, it is hard to support.
 """
 
 
-from .ExpressionBases import ExpressionChildHavingBase
+from .ChildrenHavingMixins import ChildHavingSourceMixin
+from .ExpressionBases import ExpressionBase
 
 
-class ExpressionBuiltinVars(ExpressionChildHavingBase):
+class ExpressionBuiltinVars(ChildHavingSourceMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_VARS"
 
-    named_child = "source"
+    named_children = ("source",)
 
     def __init__(self, source, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=source, source_ref=source_ref)
+        ChildHavingSourceMixin.__init__(self, source=source)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Should be possible to predict this.

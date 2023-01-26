@@ -444,7 +444,7 @@ def _buildMatchOr(provider, pattern, make_against, source_ref):
             provider=provider, name="match_or", source_ref=source_ref
         )
 
-        outline_body.setChild("body", body)
+        outline_body.setChildBody(body)
 
         conditions = (outline_body,)
         assignments = None

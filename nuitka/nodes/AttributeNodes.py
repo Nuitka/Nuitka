@@ -35,18 +35,24 @@ and annotation is happening in the nodes that implement these compute slots.
 """
 
 from .AttributeLookupNodes import ExpressionAttributeLookup
-from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+from .ChildrenHavingMixins import (
+    ChildHavingExpressionMixin,
+    ChildrenExpressionBuiltinGetattrMixin,
+    ChildrenExpressionBuiltinHasattrMixin,
+    ChildrenExpressionBuiltinSetattrMixin,
 )
-from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
+from .ExpressionBases import ExpressionBase
 from .NodeMakingHelpers import (
     makeCompileTimeConstantReplacementNode,
     wrapExpressionWithNodeSideEffects,
 )
+from .StatementBasesGenerated import (
+    StatementAssignmentAttributeBase,
+    StatementDelAttributeBase,
+)
 
 
-class StatementAssignmentAttribute(StatementChildrenHavingBase):
+class StatementAssignmentAttribute(StatementAssignmentAttributeBase):
     """Assignment to an attribute.
 
     Typically from code like: source.attribute_name = expression
@@ -57,23 +63,10 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     and what value it will be.
     """
 
-    __slots__ = ("attribute_name",)
-
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ("source", "expression")
-
-    def __init__(self, expression, attribute_name, source, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "source": source},
-            source_ref=source_ref,
-        )
-
-        self.attribute_name = attribute_name
-
-    def getDetails(self):
-        return {"attribute_name": self.attribute_name}
+    node_attributes = ("attribute_name",)
 
     def getAttributeName(self):
         return self.attribute_name
@@ -98,7 +91,7 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
         return "attribute assignment statement"
 
 
-class StatementDelAttribute(StatementChildHavingBase):
+class StatementDelAttribute(StatementDelAttributeBase):
     """Deletion of an attribute.
 
     Typically from code like: del source.attribute_name
@@ -110,17 +103,8 @@ class StatementDelAttribute(StatementChildHavingBase):
 
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
-    named_child = "expression"
-
-    __slots__ = ("attribute_name",)
-
-    def __init__(self, expression, attribute_name, source_ref):
-        StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
-
-        self.attribute_name = attribute_name
-
-    def getDetails(self):
-        return {"attribute_name": self.attribute_name}
+    named_children = ("expression",)
+    node_attributes = ("attribute_name",)
 
     def getAttributeName(self):
         return self.attribute_name
@@ -158,26 +142,7 @@ def makeExpressionAttributeLookup(expression, attribute_name, source_ref):
         )
 
 
-class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
-    """Special lookup up an attribute of an object.
-
-    Typically from code like this: with source: pass
-
-    These directly go to slots, and are performed for with statements
-    of Python2.7 or higher.
-    """
-
-    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"
-
-    def computeExpression(self, trace_collection):
-        return self.subnode_expression.computeExpressionAttributeSpecial(
-            lookup_node=self,
-            attribute_name=self.attribute_name,
-            trace_collection=trace_collection,
-        )
-
-
-class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
+class ExpressionBuiltinGetattr(ChildrenExpressionBuiltinGetattrMixin, ExpressionBase):
     """Built-in "getattr".
 
     Typical code like this: getattr(object_arg, name, default)
@@ -187,14 +152,14 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
 
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
-    named_children = ("expression", "name", "default")
+    named_children = ("expression", "name", "default|optional")
 
     def __init__(self, expression, name, default, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "name": name, "default": default},
-            source_ref=source_ref,
+        ChildrenExpressionBuiltinGetattrMixin.__init__(
+            self, expression=expression, name=name, default=default
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -237,7 +202,7 @@ attribute '%s' to mere attribute lookup"""
         return self, None, None
 
 
-class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
+class ExpressionBuiltinSetattr(ChildrenExpressionBuiltinSetattrMixin, ExpressionBase):
     """Built-in "setattr".
 
     Typical code like this: setattr(source, attribute, value)
@@ -248,30 +213,44 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     named_children = ("expression", "attribute", "value")
 
     def __init__(self, expression, name, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinSetattrMixin.__init__(
             self,
-            values={"expression": expression, "attribute": name, "value": value},
-            source_ref=source_ref,
+            expression=expression,
+            attribute=name,
+            value=value,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    # TODO: Enable this.
+    # auto_compute_handling="wait_constant:attribute,raise"
+
+    def computeExpressionConstantAttribute(self, trace_collection):
+        return ExpressionAttributeLookup(
+            expression=self.subnode_expression,
+            attribute_name=self.subnode_attribute.getCompileTimeConstant(),
+            source_ref=self.source_ref,
         )
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        # Note: Might be possible to predict or downgrade to mere attribute set.
+        # TODO: Might be possible to predict or downgrade to mere attribute set
+        # in case of a compile time string attribute value.
         return self, None, None
 
 
-class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
+class ExpressionBuiltinHasattr(ChildrenExpressionBuiltinHasattrMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ("expression", "attribute")
 
     def __init__(self, expression, name, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "attribute": name},
-            source_ref=source_ref,
+        ChildrenExpressionBuiltinHasattrMixin.__init__(
+            self, expression=expression, attribute=name
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more
@@ -314,17 +293,17 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionAttributeCheck(ExpressionChildHavingBase):
+class ExpressionAttributeCheck(ChildHavingExpressionMixin, ExpressionBase):
     kind = "EXPRESSION_ATTRIBUTE_CHECK"
 
-    named_child = "expression"
+    named_children = ("expression",)
 
     __slots__ = ("attribute_name",)
 
     def __init__(self, expression, attribute_name, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self, value=expression, source_ref=source_ref
-        )
+        ChildHavingExpressionMixin.__init__(self, expression=expression)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.attribute_name = attribute_name
 

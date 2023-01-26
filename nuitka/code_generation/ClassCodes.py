@@ -56,6 +56,34 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
+def generateBuiltinSuper1Code(to_name, expression, emit, context):
+    (type_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "super_value", expression, emit, context
+    ) as value_name:
+
+        emit(
+            "%s = BUILTIN_SUPER2(moduledict_%s, %s, NULL);"
+            % (
+                value_name,
+                context.getModuleCodeName(),
+                type_name if type_name is not None else "NULL",
+            )
+        )
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_name=type_name,
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
 def generateBuiltinSuperCode(to_name, expression, emit, context):
     type_name, object_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context

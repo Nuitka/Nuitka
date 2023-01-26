@@ -370,7 +370,7 @@ static PyObject *getExtensionModuleSuffixesByPriority(void) {
 static PyObject *installed_extension_modules = NULL;
 
 static bool scanModuleInPackagePath(PyObject *module_name, char const *parent_module_name) {
-    PyObject *sys_modules = PyImport_GetModuleDict();
+    PyObject *sys_modules = Nuitka_GetSysModules();
 
     PyObject *parent_module = PyDict_GetItemString(sys_modules, parent_module_name);
     CHECK_OBJECT(parent_module);
@@ -672,15 +672,13 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
     unsigned int old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
+    HINSTANCE hDLL;
 #if PYTHON_VERSION >= 0x380
-    // TODO: Enable threads, this is done since 3.8 but the hotfix should not do
-    // it yet.
-    // Py_BEGIN_ALLOW_THREADS
-    HINSTANCE hDLL =
-        LoadLibraryExW(filename, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
-    // Py_END_ALLOW_THREADS
+    Py_BEGIN_ALLOW_THREADS;
+    hDLL = LoadLibraryExW(filename, NULL, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR);
+    Py_END_ALLOW_THREADS;
 #else
-    HINSTANCE hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    hDLL = LoadLibraryExW(filename, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 #endif
 
 #ifndef _NUITKA_EXPERIMENTAL_DEBUG_STANDALONE
@@ -910,7 +908,7 @@ static PyObject *callIntoExtensionModule(char const *full_name, const char *file
     int res = _PyImport_FixupExtensionObject(module, full_name_obj, filename_obj
 #if PYTHON_VERSION >= 0x370
                                              ,
-                                             PyImport_GetModuleDict()
+                                             Nuitka_GetSysModules()
 #endif
 
     );
@@ -1828,22 +1826,21 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 #endif
 
     // Register it as a meta path loader.
-    int res = PyList_Insert(Nuitka_SysGetObject("meta_path"),
+    LIST_INSERT_CONST(Nuitka_SysGetObject("meta_path"),
 #if PYTHON_VERSION < 0x300
-                            0,
+                      0,
 #else
-                            2,
+                      2,
 #endif
 
-                            Nuitka_Loader_New(NULL));
-    assert(res == 0);
+                      Nuitka_Loader_New(NULL));
 }
 
 #if defined(_NUITKA_STANDALONE)
 // This is called for the technical module imported early on during interpreter
 // into, to still get compatible "__file__" attributes.
 void setEarlyFrozenModulesFileAttribute(void) {
-    PyObject *sys_modules = PyImport_GetModuleDict();
+    PyObject *sys_modules = Nuitka_GetSysModules();
     Py_ssize_t pos = 0;
     PyObject *key, *value;
 

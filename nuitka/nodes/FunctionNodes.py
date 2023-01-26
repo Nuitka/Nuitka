@@ -47,15 +47,15 @@ from nuitka.Tracing import optimization_logger
 from nuitka.tree.Extractions import updateVariableUsage
 from nuitka.tree.TreeHelpers import makeDictCreationOrConstant2
 
-from .Checkers import checkStatementsSequenceOrNone
+from .ChildrenHavingMixins import (
+    ChildHavingBodyOptionalMixin,
+    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
+    ChildrenHavingFunctionValuesTupleMixin,
+    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin,
+)
 from .CodeObjectSpecs import CodeObjectSpec
 from .ContainerMakingNodes import makeExpressionMakeTupleOrConstant
-from .ExpressionBases import (
-    ExpressionBase,
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
-    ExpressionNoSideEffectsMixin,
-)
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import (
     EntryPointMixin,
@@ -79,7 +79,10 @@ class MaybeLocalVariableUsage(Exception):
 
 
 class ExpressionFunctionBodyBase(
-    ClosureTakerMixin, ClosureGiverNodeMixin, ExpressionChildHavingBase
+    ClosureTakerMixin,
+    ClosureGiverNodeMixin,
+    ChildHavingBodyOptionalMixin,
+    ExpressionBase,
 ):
     # TODO: The code_prefix should be a class attribute instead.
     __slots__ = (
@@ -101,23 +104,23 @@ class ExpressionFunctionBodyBase(
     if python_version >= 0x300:
         __slots__ += ("non_local_declarations",)
 
-    named_child = "body"
-
-    checker = checkStatementsSequenceOrNone
+    # Might be None initially in some cases.
+    named_children = ("body|optional+setter",)
 
     def __init__(self, provider, name, body, code_prefix, flags, source_ref):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
-        ExpressionChildHavingBase.__init__(
+        ChildHavingBodyOptionalMixin.__init__(
             self,
-            value=body,  # Might be None initially in some cases.
-            source_ref=source_ref,
+            body=body,
         )
 
         ClosureTakerMixin.__init__(self, provider=provider)
 
         ClosureGiverNodeMixin.__init__(self, name=name, code_prefix=code_prefix)
+
+        ExpressionBase.__init__(self, source_ref)
 
         # Special things, "has_super" indicates presence of "super" in variable
         # usage, which modifies some behaviors.
@@ -499,8 +502,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         # TODO: Lift this restriction to only functions here and it code generation.
         if statements_sequence is not None and self.isExpressionFunctionBody():
             if statements_sequence.subnode_statements[0].isStatementReturnNone():
-                self.clearChild("body")
                 statements_sequence.finalize()
+                self.setChildBody(None)
+
                 statements_sequence = None
 
         if statements_sequence is not None:
@@ -509,7 +513,7 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             )
 
             if result is not statements_sequence:
-                self.setChild("body", result)
+                self.setChildBody(result)
 
     def removeVariableReleases(self, variable):
         assert variable in self.locals_scope.providing.values(), (self, variable)
@@ -580,11 +584,6 @@ class ExpressionFunctionBody(
 
     if python_version >= 0x340:
         __slots__ += ("qualname_setup",)
-
-    checkers = {
-        # TODO: Is "None" really an allowed value.
-        "body": checkStatementsSequenceOrNone
-    }
 
     def __init__(
         self,
@@ -856,58 +855,35 @@ class ExpressionFunctionPureInlineConstBody(ExpressionFunctionBody):
         return 0
 
 
-def _convertNoneConstantOrEmptyDictToNone(node):
-    if node is None:
-        return None
-    elif node.isExpressionConstantNoneRef():
-        return None
-    elif node.isExpressionConstantDictEmptyRef():
-        return None
-    else:
-        return node
-
-
 # TODO: Function direct call node ought to be here too.
 
 
-class ExpressionFunctionCreation(
-    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
+def makeExpressionFunctionCreation(
+    function_ref, defaults, kw_defaults, annotations, source_ref
 ):
-    kind = "EXPRESSION_FUNCTION_CREATION"
+    if kw_defaults is not None and kw_defaults.isExpressionConstantDictEmptyRef():
+        kw_defaults = None
 
-    __slots__ = ("variable_closure_traces",)
+    assert kw_defaults is None or kw_defaults.isExpression()
+    assert annotations is None or annotations.isExpression()
+    assert function_ref.isExpressionFunctionRef()
 
-    # Note: The order of evaluation for these is a bit unexpected, but
-    # true. Keyword defaults go first, then normal defaults, and annotations of
-    # all kinds go last.
+    return ExpressionFunctionCreation(
+        function_ref=function_ref,
+        defaults=defaults,
+        kw_defaults=kw_defaults,
+        annotations=annotations,
+        source_ref=source_ref,
+    )
 
-    # A bug of CPython3.x not fixed before version 3.4, see bugs.python.org/issue16967
-    kw_defaults_before_defaults = python_version < 0x340
 
-    if kw_defaults_before_defaults:
-        named_children = ("kw_defaults", "defaults", "annotations", "function_ref")
-    else:
-        named_children = ("defaults", "kw_defaults", "annotations", "function_ref")
+class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
 
-    checkers = {"kw_defaults": _convertNoneConstantOrEmptyDictToNone}
-
-    def __init__(self, function_ref, defaults, kw_defaults, annotations, source_ref):
-        assert kw_defaults is None or kw_defaults.isExpression()
-        assert annotations is None or annotations.isExpression()
-        assert function_ref.isExpressionFunctionRef()
-
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values={
-                "function_ref": function_ref,
-                "defaults": tuple(defaults),
-                "kw_defaults": kw_defaults,
-                "annotations": annotations,
-            },
-            source_ref=source_ref,
-        )
-
-        self.variable_closure_traces = None
+    @staticmethod
+    def isExpressionFunctionCreation():
+        return True
 
     def getName(self):
         return self.subnode_function_ref.getName()
@@ -1023,7 +999,7 @@ class ExpressionFunctionCreation(
                     source_ref=call_node.source_ref,
                 )
 
-            result = ExpressionFunctionCall(
+            result = makeExpressionFunctionCall(
                 function=self.makeClone(),
                 values=values,
                 source_ref=call_node.source_ref,
@@ -1059,6 +1035,85 @@ error"""
         return self.variable_closure_traces
 
 
+class ExpressionFunctionCreationOld(
+    ExpressionFunctionCreationMixin,
+    ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_FUNCTION_CREATION_OLD"
+
+    python_version_spec = "< 0x340"
+    # Note: The order of evaluation for these is a bit unexpected, but
+    # true. Keyword defaults go first, then normal defaults, and annotations of
+    # all kinds go last.
+
+    # A bug of CPython3.x was not fixed before version 3.4, this is to allow
+    # code generation to detect which one is used. bugs.python.org/issue16967
+    kw_defaults_before_defaults = True
+
+    named_children = (
+        "kw_defaults|optional",
+        "defaults|tuple",
+        "annotations|optional",
+        "function_ref",
+    )
+
+    __slots__ = ("variable_closure_traces",)
+
+    def __init__(self, kw_defaults, defaults, annotations, function_ref, source_ref):
+        ChildrenHavingKwDefaultsOptionalDefaultsTupleAnnotationsOptionalFunctionRefMixin.__init__(
+            self,
+            kw_defaults=kw_defaults,
+            defaults=defaults,
+            annotations=annotations,
+            function_ref=function_ref,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.variable_closure_traces = None
+
+
+class ExpressionFunctionCreation(
+    ExpressionFunctionCreationMixin,
+    ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin,
+    ExpressionBase,
+):
+    kind = "EXPRESSION_FUNCTION_CREATION"
+
+    python_version_spec = ">= 0x340"
+
+    # A bug of CPython3.x was not fixed before version 3.4, this is to allow
+    # code generation to detect which one is used. bugs.python.org/issue16967
+    kw_defaults_before_defaults = False
+
+    named_children = (
+        "defaults|tuple",
+        "kw_defaults|optional",
+        "annotations|optional",
+        "function_ref",
+    )
+
+    __slots__ = ("variable_closure_traces",)
+
+    def __init__(self, defaults, kw_defaults, annotations, function_ref, source_ref):
+        ChildrenHavingDefaultsTupleKwDefaultsOptionalAnnotationsOptionalFunctionRefMixin.__init__(
+            self,
+            kw_defaults=kw_defaults,
+            defaults=defaults,
+            annotations=annotations,
+            function_ref=function_ref,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.variable_closure_traces = None
+
+
+if python_version < 0x340:
+    ExpressionFunctionCreation = ExpressionFunctionCreationOld
+
+
 class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
     kind = "EXPRESSION_FUNCTION_REF"
 
@@ -1068,7 +1123,7 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
         assert function_body is not None or code_name is not None
         assert code_name != "None"
 
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.function_body = function_body
         self.code_name = code_name
@@ -1105,7 +1160,15 @@ class ExpressionFunctionRef(ExpressionNoSideEffectsMixin, ExpressionBase):
         return self, None, None
 
 
-class ExpressionFunctionCall(ExpressionChildrenHavingBase):
+def makeExpressionFunctionCall(function, values, source_ref):
+    assert function.isExpressionFunctionCreation()
+
+    return ExpressionFunctionCall(
+        function=function, values=tuple(values), source_ref=source_ref
+    )
+
+
+class ExpressionFunctionCall(ChildrenHavingFunctionValuesTupleMixin, ExpressionBase):
     """Shared function call.
 
     This is for calling created function bodies with multiple users. Not
@@ -1117,16 +1180,16 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
     __slots__ = ("variable_closure_traces",)
 
-    named_children = ("function", "values")
+    named_children = ("function", "values|tuple")
 
     def __init__(self, function, values, source_ref):
-        assert function.isExpressionFunctionCreation()
-
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingFunctionValuesTupleMixin.__init__(
             self,
-            values={"function": function, "values": tuple(values)},
-            source_ref=source_ref,
+            function=function,
+            values=values,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable_closure_traces = None
 

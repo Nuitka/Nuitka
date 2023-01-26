@@ -113,6 +113,9 @@ def getCodeObjectsInitCode(context):
     else:
         template = "module_filename_obj = MAKE_RELATIVE_PATH(%s); CHECK_OBJECT(module_filename_obj);"
 
+    # The code object will not work from any other type, cannot be e.g. unicode.
+    assert type(module_filename) is str, type(module_filename)
+
     statements.append(template % (context.getConstantCode(constant=module_filename)))
 
     for code_object_key, code_identifier in code_objects:

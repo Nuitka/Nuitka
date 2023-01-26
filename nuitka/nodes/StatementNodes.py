@@ -19,38 +19,17 @@
 
 """
 
-from .NodeBases import StatementBase, StatementChildHavingBase
+from nuitka.PythonVersions import python_version
+
+from .NodeBases import StatementBase
+from .StatementBasesGenerated import (
+    StatementExpressionOnlyBase,
+    StatementsSequenceBase,
+)
 
 
-def checkStatements(value):
-    """Check that statements list value property.
-
-    Must not be None, must not contain None, and of course only statements,
-    may be empty.
-    """
-
-    assert value is not None
-    assert None not in value
-
-    for statement in value:
-        assert (
-            statement.isStatement() or statement.isStatementsFrame()
-        ), statement.asXmlText()
-
-    return tuple(value)
-
-
-class StatementsSequence(StatementChildHavingBase):
-    kind = "STATEMENTS_SEQUENCE"
-
-    named_child = "statements"
-
-    checker = checkStatements
-
-    def __init__(self, statements, source_ref):
-        StatementChildHavingBase.__init__(
-            self, value=tuple(statements), source_ref=source_ref
-        )
+class StatementsSequenceMixin(object):
+    __slots__ = ()
 
     def finalize(self):
         del self.parent
@@ -78,14 +57,14 @@ class StatementsSequence(StatementChildHavingBase):
 
         new_statements = old_statements[: old_statements.index(statement) + 1]
 
-        self.setChild("statements", new_statements)
+        self.setChildStatements(new_statements)
 
     def removeStatement(self, statement):
         assert statement.parent is self
 
         statements = list(self.subnode_statements)
         statements.remove(statement)
-        self.setChild("statements", statements)
+        self.setChildStatements(tuple(statements))
 
         if statements:
             return self
@@ -103,7 +82,7 @@ class StatementsSequence(StatementChildHavingBase):
             + tuple(old_statements[merge_index + 1 :])
         )
 
-        self.setChild("statements", new_statements)
+        self.setChildStatements(new_statements)
 
     def mayHaveSideEffects(self):
         # Statement sequences have a side effect if one of the statements does.
@@ -153,8 +132,14 @@ class StatementsSequence(StatementChildHavingBase):
     def isStatementAborting(self):
         return self.subnode_statements[-1].isStatementAborting()
 
-    def willRaiseException(self, exception_type):
-        return self.subnode_statements[-1].willRaiseException(exception_type)
+    def willRaiseAnyException(self):
+        return self.subnode_statements[-1].willRaiseAnyException()
+
+
+class StatementsSequence(StatementsSequenceMixin, StatementsSequenceBase):
+    kind = "STATEMENTS_SEQUENCE"
+
+    named_children = ("statements|tuple+setter",)
 
     def computeStatement(self, trace_collection):
         # Don't want to be called like this.
@@ -197,9 +182,10 @@ class StatementsSequence(StatementChildHavingBase):
 
                     break
 
+        new_statements = tuple(new_statements)
         if statements != new_statements:
             if new_statements:
-                self.setChild("statements", new_statements)
+                self.setChildStatements(new_statements)
 
                 return self
             else:
@@ -212,15 +198,10 @@ class StatementsSequence(StatementChildHavingBase):
         return "statements sequence"
 
 
-class StatementExpressionOnly(StatementChildHavingBase):
+class StatementExpressionOnly(StatementExpressionOnlyBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
-    named_child = "expression"
-
-    def __init__(self, expression, source_ref):
-        assert expression.isExpression()
-
-        StatementChildHavingBase.__init__(self, value=expression, source_ref=source_ref)
+    named_children = ("expression",)
 
     def mayHaveSideEffects(self):
         return self.subnode_expression.mayHaveSideEffects()
@@ -229,6 +210,10 @@ class StatementExpressionOnly(StatementChildHavingBase):
         return self.subnode_expression.mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
+        # TODO: Maybe also have a variant that will not attempt dropping anymore, for nodes
+        # that are known to not do it anymore, or wait for a node change, or make it part of
+        # the expression interface to be used in statement form as well.
+
         expression = trace_collection.onExpression(self.subnode_expression)
 
         return expression.computeExpressionDrop(
@@ -262,18 +247,25 @@ class StatementPreserveFrameException(StatementBase):
     def getPreserverId(self):
         return self.preserver_id
 
-    def computeStatement(self, trace_collection):
-        # For Python2 generators, it's not necessary to preserve, the frame
-        # decides it. TODO: This check makes only sense once.
+    if python_version < 0x300:
 
-        if self.getParentStatementsFrame().needsExceptionFramePreservation():
+        def computeStatement(self, trace_collection):
+            # For Python2 generators, it's not necessary to preserve, the frame
+            # decides it. TODO: This check makes only sense once.
+
+            if self.getParentStatementsFrame().needsExceptionFramePreservation():
+                return self, None, None
+            else:
+                return (
+                    None,
+                    "new_statements",
+                    "Removed frame preservation for generators.",
+                )
+
+    else:
+
+        def computeStatement(self, trace_collection):
             return self, None, None
-        else:
-            return (
-                None,
-                "new_statements",
-                "Removed frame preservation for generators.",
-            )
 
     @staticmethod
     def mayRaiseException(exception_type):

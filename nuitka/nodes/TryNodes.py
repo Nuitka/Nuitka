@@ -25,53 +25,27 @@ Manual for how this maps to try/finally and try/except as in Python.
 from nuitka.Errors import NuitkaOptimizationError
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
-from .Checkers import checkStatementsSequence, checkStatementsSequenceOrNone
-from .NodeBases import StatementChildrenHavingBase
+from .StatementBasesGenerated import StatementTryBase
 from .StatementNodes import StatementsSequence
 
 
-class StatementTry(StatementChildrenHavingBase):
+class StatementTry(StatementTryBase):
     kind = "STATEMENT_TRY"
 
     named_children = (
-        "tried",
-        "except_handler",
-        "break_handler",
-        "continue_handler",
-        "return_handler",
+        "tried|statements+setter",
+        "except_handler|statements_or_none+setter",
+        "break_handler|statements_or_none+setter",
+        "continue_handler|statements_or_none+setter",
+        "return_handler|statements_or_none+setter",
     )
-
-    checkers = {
-        "tried": checkStatementsSequence,
-        "except_handler": checkStatementsSequenceOrNone,
-        "break_handler": checkStatementsSequenceOrNone,
-        "continue_handler": checkStatementsSequenceOrNone,
-        "return_handler": checkStatementsSequenceOrNone,
-    }
+    auto_compute_handling = "post_init"
 
     __slots__ = ("tried_may_raise",)
 
-    def __init__(
-        self,
-        tried,
-        except_handler,
-        break_handler,
-        continue_handler,
-        return_handler,
-        source_ref,
-    ):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={
-                "tried": tried,
-                "except_handler": except_handler,
-                "break_handler": break_handler,
-                "continue_handler": continue_handler,
-                "return_handler": return_handler,
-            },
-            source_ref=source_ref,
-        )
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
+    def postInitNode(self):
         self.tried_may_raise = None
 
     def getDetailsForDisplay(self):
@@ -110,7 +84,7 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not tried:
-                self.setChild("tried", result)
+                self.setChildTried(result)
                 tried = result
 
             break_collections = trace_collection.getLoopBreakCollections()
@@ -126,16 +100,17 @@ class StatementTry(StatementChildrenHavingBase):
         # Exception handling is useless if no exception is to be raised.
         if not self.tried_may_raise:
             if except_handler is not None:
-                except_handler.finalize()
-
-                self.clearChild("except_handler")
+                # TODO: This is inconsistent with other handlers being cleared, might make sense there too.
                 trace_collection.signalChange(
                     tags="new_statements",
                     message="Removed useless exception handler.",
                     source_ref=except_handler.source_ref,
                 )
 
+                except_handler.finalize()
                 except_handler = None
+
+                self.setChildExceptHandler(None)
 
         # If tried may raise, even empty exception handler has a meaning to
         # ignore that exception.
@@ -168,15 +143,16 @@ class StatementTry(StatementChildrenHavingBase):
 
                 # Might be changed.
                 if result is not except_handler:
-                    self.setChild("except_handler", result)
                     except_handler = result
+
+                    self.setChildExceptHandler(result)
 
         if break_handler is not None:
             if not tried.mayBreak():
                 break_handler.finalize()
-
-                self.clearChild("break_handler")
                 break_handler = None
+
+                self.setChildBreakHandler(None)
 
         if break_handler is not None:
             collection_break = TraceCollectionBranch(
@@ -191,15 +167,15 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not break_handler:
-                self.setChild("break_handler", result)
+                self.setChildBreakHandler(result)
                 break_handler = result
 
         if continue_handler is not None:
             if not tried.mayContinue():
                 continue_handler.finalize()
-
-                self.clearChild("continue_handler")
                 continue_handler = None
+
+                self.setChildContinueHandler(None)
 
         if continue_handler is not None:
             collection_continue = TraceCollectionBranch(
@@ -214,15 +190,16 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not continue_handler:
-                self.setChild("continue_handler", result)
                 continue_handler = result
+
+                self.setChildContinueHandler(result)
 
         if return_handler is not None:
             if not tried.mayReturn():
                 return_handler.finalize()
-
-                self.clearChild("return_handler")
                 return_handler = None
+
+                self.setChildReturnHandler(None)
 
         if return_handler is not None:
             collection_return = TraceCollectionBranch(
@@ -237,17 +214,18 @@ class StatementTry(StatementChildrenHavingBase):
 
             # Might be changed.
             if result is not return_handler:
-                self.setChild("return_handler", result)
                 return_handler = result
+
+                self.setChildReturnHandler(result)
 
         # Check for trivial return handlers that immediately return, they can
         # just be removed.
         if return_handler is not None:
             if return_handler.subnode_statements[0].isStatementReturnReturnedValue():
                 return_handler.finalize()
-
-                self.clearChild("return_handler")
                 return_handler = None
+
+                self.setChildReturnHandler(None)
 
         # Merge exception handler only if it is used. Empty means it is not
         # aborting, as it swallows the exception.
@@ -334,10 +312,10 @@ class StatementTry(StatementChildrenHavingBase):
         if pre_statements or post_statements:
             assert tried_statements  # Should be dealt with already
 
-            tried.setChild("statements", tried_statements)
+            tried.setChildStatements(tuple(tried_statements))
 
             result = StatementsSequence(
-                statements=pre_statements + [self] + post_statements,
+                statements=tuple(pre_statements + [self] + post_statements),
                 source_ref=self.source_ref,
             )
 

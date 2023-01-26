@@ -199,7 +199,6 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
                 called_name=getExceptionIdentifier(exception_type),
                 expression=expression,
                 arg_names=exception_arg_names,
-                needs_check=False,
                 emit=emit,
                 context=context,
             )
@@ -209,7 +208,6 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
                 to_name=value_name,
                 called_name=getExceptionIdentifier(exception_type),
                 expression=expression,
-                needs_check=False,
                 emit=emit,
                 context=context,
             )

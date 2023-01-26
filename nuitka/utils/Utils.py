@@ -124,9 +124,9 @@ def getLinuxDistribution():
             )
             result = "Unknown"
 
-        # Change e.g. "11 (Bullseye)"" to "11".
+        # Change e.g. "11 (Bullseye)" to "11".
         if version is not None and version.strip():
-            version = version.split()[0]
+            version = version.strip().split()[0]
 
         _linux_distribution_info = result.title(), base, version
 

@@ -32,7 +32,7 @@ from .CodeHelpers import (
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
-def _decideIntegerSubscript(subscript):
+def decideIntegerSubscript(subscript):
     if subscript.isExpressionConstantRef():
         if subscript.isIndexConstant():
             constant_value = subscript.getIndexValue()
@@ -48,7 +48,7 @@ def generateAssignmentSubscriptCode(statement, emit, context):
     subscript = statement.subnode_subscript
     value = statement.subnode_source
 
-    subscript_constant, integer_subscript = _decideIntegerSubscript(subscript)
+    subscript_constant, integer_subscript = decideIntegerSubscript(subscript)
 
     value_name = context.allocateTempName("ass_subvalue")
 
@@ -126,7 +126,7 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
         expression=subscript, emit=emit, context=context
     )
 
-    subscript_constant, integer_subscript = _decideIntegerSubscript(subscript)
+    subscript_constant, integer_subscript = decideIntegerSubscript(subscript)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "subscript_result", expression, emit, context
@@ -163,7 +163,7 @@ def generateSubscriptCheckCode(to_name, expression, emit, context):
         expression=subscript, emit=emit, context=context
     )
 
-    subscript_constant, integer_subscript = _decideIntegerSubscript(subscript)
+    subscript_constant, integer_subscript = decideIntegerSubscript(subscript)
 
     res_name = context.getBoolResName()
 

@@ -25,7 +25,7 @@
 #include "nuitka/unfreezing.h"
 #endif
 
-PyObject *Nuitka_Distribution_New(char const *name, PyObject *metadata) {
+PyObject *Nuitka_Distribution_New(char const *distribution_name, char const *package_name, PyObject *metadata) {
     // TODO: Have our own Python code to be included in compiled form,
     // this duplicates with inspec patcher code.
     static PyObject *nuitka_distribution_type = NULL;
@@ -70,10 +70,10 @@ class nuitka_distribution(Distribution):\n\
         }
     }
 
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(name);
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(package_name);
 
     if (entry == NULL) {
-        PyObject *name_obj = Nuitka_String_FromString(name);
+        PyObject *name_obj = Nuitka_String_FromString(distribution_name);
         CHECK_OBJECT(name_obj);
         PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(importlib_metadata_distribution, name_obj);
         Py_DECREF(name_obj);
