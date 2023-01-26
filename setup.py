@@ -172,6 +172,7 @@ package_data = {
     ]
     + inline_copy_files,
     "nuitka.code_generation": ["templates_c/*.j2"],
+    "nuitka.reports": ["*.j2"],
 }
 
 
@@ -387,6 +388,8 @@ setup(
         "Operating System :: POSIX :: BSD :: NetBSD",
         "Operating System :: POSIX :: BSD :: OpenBSD",
         "Operating System :: Microsoft :: Windows",
+        "Operating System :: MacOS",
+        "Operating System :: Android",
         # License
         "License :: OSI Approved :: Apache Software License",
     ],

@@ -23,53 +23,45 @@ achieve more compact code, or predict results at compile time.
 There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
-from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
+from .ChildrenHavingMixins import (
+    ChildHavingStopMixin,
+    ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin,
+    ChildrenHavingStartStopMixin,
+    ChildrenHavingStartStopStepMixin,
+)
 from .ConstantRefNodes import ExpressionConstantNoneRef, makeConstantRefNode
 from .ExpressionBases import (
-    ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase,
+    ExpressionBase,
     ExpressionSpecBasedComputationNoRaiseMixin,
 )
 from .ExpressionShapeMixins import ExpressionSliceShapeExactMixin
-from .NodeBases import (
-    SideEffectsFromChildrenMixin,
-    StatementChildrenHavingBase,
-)
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
-    convertNoneConstantToNone,
     makeStatementExpressionOnlyReplacementNode,
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects,
 )
+from .StatementBasesGenerated import (
+    StatementAssignmentSliceBase,
+    StatementDelSliceBase,
+)
 
 
-class StatementAssignmentSlice(StatementChildrenHavingBase):
+class StatementAssignmentSlice(StatementAssignmentSliceBase):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
-    named_children = ("source", "expression", "lower", "upper")
+    named_children = ("source", "expression", "lower|optional", "upper|optional")
 
-    def __init__(self, expression, lower, upper, source, source_ref):
-        assert python_version < 0x300
-
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={
-                "source": source,
-                "expression": expression,
-                "lower": lower,
-                "upper": upper,
-            },
-            source_ref=source_ref,
-        )
+    python_version_spec = "< 0x300"
 
     def computeStatement(self, trace_collection):
         source = trace_collection.onExpression(self.subnode_source)
 
         # No assignment will occur, if the assignment source raises, so strip it
         # away.
-        if source.willRaiseException(BaseException):
+        if source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=source, node=self
             )
@@ -83,7 +75,7 @@ Slice assignment raises exception in assigned value, removed assignment.""",
 
         lookup_source = trace_collection.onExpression(self.subnode_expression)
 
-        if lookup_source.willRaiseException(BaseException):
+        if lookup_source.willRaiseAnyException():
             result = makeStatementOnlyNodesFromExpressions(
                 expressions=(source, lookup_source)
             )
@@ -97,7 +89,7 @@ Slice assignment raises exception in sliced value, removed assignment.""",
 
         lower = trace_collection.onExpression(self.subnode_lower, allow_none=True)
 
-        if lower is not None and lower.willRaiseException(BaseException):
+        if lower is not None and lower.willRaiseAnyException():
             result = makeStatementOnlyNodesFromExpressions(
                 expressions=(source, lookup_source, lower)
             )
@@ -112,7 +104,7 @@ assignment.""",
 
         upper = trace_collection.onExpression(self.subnode_upper, allow_none=True)
 
-        if upper is not None and upper.willRaiseException(BaseException):
+        if upper is not None and upper.willRaiseAnyException():
             result = makeStatementOnlyNodesFromExpressions(
                 expressions=(source, lookup_source, lower, upper)
             )
@@ -134,22 +126,15 @@ assignment.""",
         )
 
 
-class StatementDelSlice(StatementChildrenHavingBase):
+class StatementDelSlice(StatementDelSliceBase):
     kind = "STATEMENT_DEL_SLICE"
 
-    named_children = ("expression", "lower", "upper")
-
-    def __init__(self, expression, lower, upper, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values={"expression": expression, "lower": lower, "upper": upper},
-            source_ref=source_ref,
-        )
+    named_children = ("expression", "lower|optional", "upper|optional")
 
     def computeStatement(self, trace_collection):
         lookup_source = trace_collection.onExpression(self.subnode_expression)
 
-        if lookup_source.willRaiseException(BaseException):
+        if lookup_source.willRaiseAnyException():
             result = makeStatementExpressionOnlyReplacementNode(
                 expression=lookup_source, node=self
             )
@@ -163,7 +148,7 @@ Slice del raises exception in sliced value, removed del""",
 
         lower = trace_collection.onExpression(self.subnode_lower, allow_none=True)
 
-        if lower is not None and lower.willRaiseException(BaseException):
+        if lower is not None and lower.willRaiseAnyException():
             result = makeStatementOnlyNodesFromExpressions(
                 expressions=(lookup_source, lower)
             )
@@ -178,7 +163,7 @@ Slice del raises exception in lower slice boundary value, removed del""",
         trace_collection.onExpression(self.subnode_upper, allow_none=True)
         upper = self.subnode_upper
 
-        if upper is not None and upper.willRaiseException(BaseException):
+        if upper is not None and upper.willRaiseAnyException():
             result = makeStatementOnlyNodesFromExpressions(
                 expressions=(lookup_source, lower, upper)
             )
@@ -195,21 +180,24 @@ Slice del raises exception in upper slice boundary value, removed del""",
         )
 
 
-class ExpressionSliceLookup(ExpressionChildrenHavingBase):
+class ExpressionSliceLookup(
+    ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin, ExpressionBase
+):
     kind = "EXPRESSION_SLICE_LOOKUP"
 
-    named_children = ("expression", "lower", "upper")
+    python_version_spec = "< 0x300"
 
-    checkers = {"upper": convertNoneConstantToNone, "lower": convertNoneConstantToNone}
+    named_children = ("expression", "lower|auto_none", "upper|auto_none")
 
     def __init__(self, expression, lower, upper, source_ref):
-        assert python_version < 0x300
-
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingExpressionLowerAutoNoneUpperAutoNoneMixin.__init__(
             self,
-            values={"expression": expression, "upper": upper, "lower": lower},
-            source_ref=source_ref,
+            expression=expression,
+            lower=lower,
+            upper=upper,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         lookup_source = self.subnode_expression
@@ -275,18 +263,22 @@ class ExpressionBuiltinSliceMixin(
 class ExpressionBuiltinSlice3(
     ExpressionBuiltinSliceMixin,
     ExpressionSpecBasedComputationNoRaiseMixin,
-    ExpressionChildrenHavingBase,
+    ChildrenHavingStartStopStepMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_BUILTIN_SLICE3"
 
     named_children = ("start", "stop", "step")
 
     def __init__(self, start, stop, step, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingStartStopStepMixin.__init__(
             self,
-            values={"start": start, "stop": stop, "step": step},
-            source_ref=source_ref,
+            start=start,
+            stop=stop,
+            step=step,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         if (
@@ -323,17 +315,23 @@ class ExpressionBuiltinSlice3(
 class ExpressionBuiltinSlice2(
     ExpressionBuiltinSliceMixin,
     ExpressionSpecBasedComputationNoRaiseMixin,
-    ExpressionChildrenHavingBase,
+    ChildrenHavingStartStopMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_BUILTIN_SLICE2"
 
     named_children = ("start", "stop")
 
     def __init__(self, start, stop, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingStartStopMixin.__init__(
             self,
-            values={"start": start, "stop": stop},
-            source_ref=source_ref,
+            start=start,
+            stop=stop,
+        )
+
+        ExpressionBase.__init__(
+            self,
+            source_ref,
         )
 
     def computeExpression(self, trace_collection):
@@ -364,18 +362,17 @@ class ExpressionBuiltinSlice2(
 class ExpressionBuiltinSlice1(
     ExpressionBuiltinSliceMixin,
     ExpressionSpecBasedComputationNoRaiseMixin,
-    ExpressionChildHavingBase,
+    ChildHavingStopMixin,
+    ExpressionBase,
 ):
     kind = "EXPRESSION_BUILTIN_SLICE1"
 
-    named_child = "stop"
+    named_children = ("stop",)
 
     def __init__(self, stop, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self,
-            value=stop,
-            source_ref=source_ref,
-        )
+        ChildHavingStopMixin.__init__(self, stop=stop)
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         return self.computeBuiltinSpec(

@@ -53,9 +53,9 @@ from nuitka.nodes.ExceptionNodes import (
 )
 from nuitka.nodes.FunctionAttributeNodes import ExpressionFunctionErrorStr
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCall,
-    ExpressionFunctionCreation,
     ExpressionFunctionRef,
+    makeExpressionFunctionCall,
+    makeExpressionFunctionCreation,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
@@ -190,7 +190,7 @@ def getCallableNameDescBody():
     )
 
     if python_version >= 0x390:
-        result.setChild("body", functions_case)
+        result.setChildBody(functions_case)
 
         return result
 
@@ -288,8 +288,7 @@ def getCallableNameDescBody():
     else:
         normal_cases = ("function", "builtin_function_or_method")
 
-    result.setChild(
-        "body",
+    result.setChildBody(
         makeStatementsSequenceFromStatement(
             statement=makeStatementConditional(
                 condition=ExpressionBuiltinIsinstance(
@@ -312,7 +311,7 @@ def getCallableNameDescBody():
                 no_branch=no_branch,
                 source_ref=internal_source_ref,
             )
-        ),
+        )
     )
 
     return result
@@ -332,8 +331,8 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
                     ),
                     right=makeExpressionMakeTuple(
                         elements=(
-                            ExpressionFunctionCall(
-                                function=ExpressionFunctionCreation(
+                            makeExpressionFunctionCall(
+                                function=makeExpressionFunctionCreation(
                                     function_ref=ExpressionFunctionRef(
                                         function_body=getCallableNameDescBody(),
                                         source_ref=internal_source_ref,
@@ -463,8 +462,8 @@ def _makeRaiseExceptionMustBeMapping(called_variable, star_dict_variable):
                     ),
                     right=makeExpressionMakeTuple(
                         elements=(
-                            ExpressionFunctionCall(
-                                function=ExpressionFunctionCreation(
+                            makeExpressionFunctionCall(
+                                function=makeExpressionFunctionCreation(
                                     function_ref=ExpressionFunctionRef(
                                         function_body=getCallableNameDescBody(),
                                         source_ref=internal_source_ref,
@@ -679,8 +678,8 @@ def _makeRaiseNoStringItem(called_variable):
                 source_ref=internal_source_ref,
                 user_provided=True,
             ),
-            right=ExpressionFunctionCall(
-                function=ExpressionFunctionCreation(
+            right=makeExpressionFunctionCall(
+                function=makeExpressionFunctionCreation(
                     function_ref=ExpressionFunctionRef(
                         function_body=getCallableNameDescBody(),
                         source_ref=internal_source_ref,
@@ -734,8 +733,8 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
                     ),
                     right=makeExpressionMakeTuple(
                         elements=(
-                            ExpressionFunctionCall(
-                                function=ExpressionFunctionCreation(
+                            makeExpressionFunctionCall(
+                                function=makeExpressionFunctionCreation(
                                     function_ref=ExpressionFunctionRef(
                                         function_body=getCallableNameDescBody(),
                                         source_ref=internal_source_ref,
@@ -1059,7 +1058,7 @@ def getFunctionCallHelperStarList():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1128,7 +1127,7 @@ def getFunctionCallHelperKeywordsStarList():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1202,7 +1201,7 @@ def getFunctionCallHelperPosStarList():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1279,7 +1278,7 @@ def getFunctionCallHelperPosKeywordsStarList():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1358,7 +1357,7 @@ def getFunctionCallHelperStarDict():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1442,7 +1441,7 @@ def getFunctionCallHelperPosStarDict():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1550,7 +1549,7 @@ def getFunctionCallHelperKeywordsStarDict():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1662,7 +1661,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
         ),
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1757,7 +1756,7 @@ def getFunctionCallHelperStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1831,7 +1830,7 @@ def getFunctionCallHelperPosStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1895,7 +1894,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -1973,7 +1972,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
 
     body = makeStatementsSequenceFromStatements(*statements)
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result
 
@@ -2150,6 +2149,6 @@ def getFunctionCallHelperDictionaryUnpacking():
         )
     )
 
-    result.setChild("body", body)
+    result.setChildBody(body)
 
     return result

@@ -287,9 +287,13 @@ static PyObject *our_dict_richcompare(PyObject *a, PyObject *b, int op) {
     return result;
 }
 
-#if PYTHON_VERSION >= 0x300
 // For creation of small long singleton long values as required by Python3.
+#if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION >= 0x390
+PyObject **Nuitka_Long_SmallValues;
+#elif PYTHON_VERSION >= 0x300
 PyObject *Nuitka_Long_SmallValues[NUITKA_STATIC_SMALLINT_VALUE_MAX - NUITKA_STATIC_SMALLINT_VALUE_MIN + 1];
+#endif
 #endif
 
 static void initCaches(void) {
@@ -324,14 +328,17 @@ static void initCaches(void) {
 
     frozenset_cache = PyDict_New();
 
-    for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i <= NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
-#if PYTHON_VERSION >= 0x300
+#if PYTHON_VERSION < 0x3b0
+#if PYTHON_VERSION >= 0x390
+    // On Python3.9+ these are exposed in the interpreter.
+    Nuitka_Long_SmallValues = (PyObject **)_PyInterpreterState_GET()->small_ints;
+#elif PYTHON_VERSION >= 0x300
+    for (long i = NUITKA_STATIC_SMALLINT_VALUE_MIN; i < NUITKA_STATIC_SMALLINT_VALUE_MAX; i++) {
         PyObject *value = PyLong_FromLong(i);
-        Py_INCREF(value);
-
         Nuitka_Long_SmallValues[NUITKA_TO_SMALL_VALUE_OFFSET(i)] = value;
-#endif
     }
+#endif
+#endif
 
     init_done = true;
 }
@@ -587,8 +594,8 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
                     static PyObject *empty_frozenset = NULL;
 
                     if (empty_frozenset == NULL) {
-                        empty_frozenset =
-                            CALL_FUNCTION_WITH_SINGLE_ARG((PyObject *)&PyFrozenSet_Type, PyBytes_FromString(""));
+                        empty_frozenset = CALL_FUNCTION_WITH_SINGLE_ARG((PyObject *)&PyFrozenSet_Type,
+                                                                        Nuitka_Bytes_FromStringAndSize("", 0));
                     }
 
                     s = empty_frozenset;
@@ -636,12 +643,18 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
 #endif
         case 'l': {
-            // TODO: Use fixed sizes for small values, e.g. byte sized.
+            // TODO: Use fixed sizes for small values, e.g. byte, word sized.
             long value = unpackValueLong(&data);
 
-            PyObject *l = PyLong_FromLong(value);
+            PyObject *l = Nuitka_LongFromCLong(value);
 
-            insertToDictCache(long_cache, &l);
+            // Avoid the long cache, won't do anything useful for small ints
+#if PYTHON_VERSION >= 0x300
+            if (value < NUITKA_STATIC_SMALLINT_VALUE_MIN || value >= NUITKA_STATIC_SMALLINT_VALUE_MAX)
+#endif
+            {
+                insertToDictCache(long_cache, &l);
+            }
 
             *output = l;
             is_object = true;
@@ -728,44 +741,58 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
 #if PYTHON_VERSION < 0x300
         case 'a':
-#endif
         case 'c': {
-            // Python2 str, potentially attributes, or Python3 bytes, zero terminated.
-
+            // Python2 str, potentially attribute, zero terminated.
             size_t size = strlen((const char *)data);
 
-            // TODO: Make this zero copy for non-interned with fake objects?
-            PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
+            PyObject *s = PyString_FromStringAndSize((const char *)data, size);
+            CHECK_OBJECT(s);
+
+            data += size + 1;
+
+            if (c == 'a') {
+                PyString_InternInPlace(&s);
+            }
+
+            *output = s;
+            is_object = true;
+
+            break;
+        }
+#else
+        case 'c': {
+            // Python3 bytes, zero terminated.
+            size_t size = strlen((const char *)data);
+
+            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
             CHECK_OBJECT(b);
 
             data += size + 1;
 
-#if PYTHON_VERSION < 0x300
-            if (c == 'a') {
-                PyString_InternInPlace(&b);
+            // Empty bytes value is here as well.
+            if (size > 1) {
+                insertToDictCache(bytes_cache, &b);
             }
-#else
-            insertToDictCache(bytes_cache, &b);
-#endif
 
             *output = b;
             is_object = true;
 
             break;
         }
+#endif
         case 'd': {
             // Python2 str length 1 str, potentially attribute, or Python3 single byte
 
-            PyObject *b = PyBytes_FromStringAndSize((const char *)data, 1);
-            data += 1;
-
 #if PYTHON_VERSION < 0x300
-            PyString_InternInPlace(&b);
+            PyObject *s = PyString_FromStringAndSize((const char *)data, 1);
+            data += 1;
+            *output = s;
 #else
-            insertToDictCache(bytes_cache, &b);
+            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, 1);
+            data += 1;
+            *output = b;
 #endif
 
-            *output = b;
             is_object = true;
 
             break;
@@ -789,14 +816,12 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
         }
         case 'b': {
             // Python2 str or Python3 bytes, length indicated.
-            // Python2 str, potentially attributes, or Python3 bytes, zero terminated.
-
-            // TODO: Use fixed sizes for small, e.g. character values, and length vs. 0
-            // termination.
             int size = unpackValueInt(&data);
+            assert(size > 1);
 
-            // TODO: Make this zero copy for non-interned with fake objects?
-            PyObject *b = PyBytes_FromStringAndSize((const char *)data, size);
+            PyObject *b = Nuitka_Bytes_FromStringAndSize((const char *)data, size);
+            CHECK_OBJECT(b);
+
             data += size;
 
 #if PYTHON_VERSION >= 0x300
@@ -814,7 +839,6 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             // termination.
             int size = unpackValueInt(&data);
 
-            // TODO: Make this zero copy for non-interned with fake objects?
             PyObject *b = PyByteArray_FromStringAndSize((const char *)data, size);
             data += size;
 
@@ -890,7 +914,7 @@ static unsigned char const *_unpackBlobConstants(PyObject **output, unsigned cha
             PyObject *items[3];
             data = _unpackBlobConstants(&items[0], data, 3);
 
-            PyObject *s = MAKE_SLICEOBJ3(items[0], items[1], items[2]);
+            PyObject *s = MAKE_SLICE_OBJECT3(items[0], items[1], items[2]);
 
             *output = s;
             is_object = true;

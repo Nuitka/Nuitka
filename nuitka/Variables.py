@@ -26,6 +26,7 @@ module variable references.
 from abc import abstractmethod
 
 from nuitka.__past__ import getMetaClassBase, iterItems
+from nuitka.nodes.shapes.BuiltinTypeShapes import tshape_dict
 from nuitka.nodes.shapes.StandardShapes import tshape_unknown
 from nuitka.utils import Utils
 from nuitka.utils.InstanceCounters import (
@@ -275,6 +276,18 @@ class Variable(getMetaClassBase("Variable")):
 
         return result
 
+    @staticmethod
+    def onControlFlowEscape(trace_collection):
+        """Mark the variable as escaped or unknown, or keep it depending on variable type."""
+
+    def removeKnowledge(self, trace_collection):
+        """Remove knowledge for the variable marking as unknown or escaped."""
+        trace_collection.markActiveVariableAsEscaped(self)
+
+    def removeAllKnowledge(self, trace_collection):
+        """Remove all knowledge for the variable marking as unknown, or keep it depending on variable type."""
+        trace_collection.markActiveVariableAsUnknown(self)
+
 
 class LocalVariable(Variable):
     __slots__ = ()
@@ -285,6 +298,24 @@ class LocalVariable(Variable):
     @staticmethod
     def isLocalVariable():
         return True
+
+    def initVariable(self, trace_collection):
+        """Initialize variable in trace collection state."""
+        return trace_collection.initVariableUninitialized(self)
+
+    if str is not bytes:
+
+        def onControlFlowEscape(self, trace_collection):
+            if self.hasWritersOutsideOf(trace_collection.owner) is not False:
+                trace_collection.markClosureVariableAsUnknown(self)
+            elif self.hasAccessesOutsideOf(trace_collection.owner) is not False:
+                trace_collection.markActiveVariableAsEscaped(self)
+
+    else:
+
+        def onControlFlowEscape(self, trace_collection):
+            if self.hasAccessesOutsideOf(trace_collection.owner) is not False:
+                trace_collection.markActiveVariableAsEscaped(self)
 
     @staticmethod
     def getVariableType():
@@ -303,6 +334,10 @@ class ParameterVariable(LocalVariable):
     @staticmethod
     def isParameterVariable():
         return True
+
+    def initVariable(self, trace_collection):
+        """Initialize variable in trace collection state."""
+        return trace_collection.initVariableInit(self)
 
 
 class ModuleVariable(Variable):
@@ -326,6 +361,17 @@ class ModuleVariable(Variable):
     @staticmethod
     def isModuleVariable():
         return True
+
+    def initVariable(self, trace_collection):
+        """Initialize variable in trace collection state."""
+        return trace_collection.initVariableModule(self)
+
+    def onControlFlowEscape(self, trace_collection):
+        trace_collection.markActiveVariableAsUnknown(self)
+
+    def removeKnowledge(self, trace_collection):
+        """Remove knowledge for the variable marking as unknown or escaped."""
+        trace_collection.markActiveVariableAsUnknown(self)
 
     def isIncompleteModuleVariable(self):
         return not self.owner.locals_scope.complete
@@ -361,6 +407,16 @@ class TempVariable(Variable):
     def getVariableType():
         return "object"
 
+    def initVariable(self, trace_collection):
+        """Initialize variable in trace collection state."""
+        return trace_collection.initVariableUninitialized(self)
+
+    @staticmethod
+    def removeAllKnowledge(trace_collection):
+        """Remove all knowledge for the variable marking as unknown, or keep it depending on variable type."""
+        # For temporary variables, the knowledge is not by name, so never gets
+        # lost to outside star imports or exec/eval uses.
+
 
 class TempVariableBool(TempVariable):
     __slots__ = ()
@@ -390,6 +446,13 @@ class LocalsDictVariable(Variable):
     @staticmethod
     def getVariableType():
         return "object"
+
+    def initVariable(self, trace_collection):
+        """Initialize variable in trace collection state."""
+        if self.owner.getTypeShape() is tshape_dict:
+            return trace_collection.initVariableUninitialized(self)
+        else:
+            return trace_collection.initVariableUnknown(self)
 
 
 def updateVariablesFromCollection(old_collection, new_collection, source_ref):

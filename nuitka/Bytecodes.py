@@ -19,13 +19,13 @@
 
 import ast
 
-from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoDocstrings
+from nuitka.Options import hasPythonFlagNoAsserts, hasPythonFlagNoDocStrings
 from nuitka.tree.TreeHelpers import getKind
 
 doc_having = tuple(
-    getattr(ast, cand)
-    for cand in ("FunctionDef", "ClassDef", "AsyncFunctionDef")
-    if hasattr(ast, cand)
+    getattr(ast, candidate)
+    for candidate in ("FunctionDef", "ClassDef", "AsyncFunctionDef")
+    if hasattr(ast, candidate)
 )
 
 
@@ -43,15 +43,15 @@ def compileSourceToBytecode(source_code, filename):
     # Prepare compile call with AST tree.
     tree = ast.parse(source_code, filename)
 
-    # Do we need to remove docstrings.
-    remove_docstrings_from_tree = hasPythonFlagNoDocstrings()
+    # Do we need to remove doc strings.
+    remove_doc_strings_from_tree = hasPythonFlagNoDocStrings()
 
     # For Python2, we need to do this manually.
     remove_asserts_from_tree = hasPythonFlagNoAsserts() and str is bytes
 
-    if remove_docstrings_from_tree or remove_asserts_from_tree:
+    if remove_doc_strings_from_tree or remove_asserts_from_tree:
         # Module level docstring.
-        if remove_docstrings_from_tree:
+        if remove_doc_strings_from_tree:
             _removeDocFromBody(tree)
 
         for node in ast.walk(tree):
@@ -73,7 +73,7 @@ def compileSourceToBytecode(source_code, filename):
                     node.msg = None
 
             # Check if it's a docstring having node type.
-            if remove_docstrings_from_tree and isinstance(node, doc_having):
+            if remove_doc_strings_from_tree and isinstance(node, doc_having):
                 _removeDocFromBody(node)
 
     if str is bytes:

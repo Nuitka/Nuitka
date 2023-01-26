@@ -31,7 +31,7 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
     first, because they do.
     """
 
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self, flags):
@@ -46,7 +46,7 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
 
 
 class MarkNeedsAnnotationsMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):
@@ -62,7 +62,7 @@ class MarkNeedsAnnotationsMixin(object):
 
 
 class EntryPointMixin(object):
-    # Mixins are not allow to specify slots, pylint: disable=assigning-non-slot
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
     def __init__(self):

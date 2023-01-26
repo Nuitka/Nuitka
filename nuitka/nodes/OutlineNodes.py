@@ -23,14 +23,15 @@ own anything by themselves. It's just a way of having try/finally for the
 expressions, or multiple returns, without running in a too different context.
 """
 
+from .ChildrenHavingMixins import ChildHavingBodyOptionalMixin
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionRaiseException
-from .ExpressionBases import ExpressionChildHavingBase
+from .ExpressionBases import ExpressionBase
 from .FunctionNodes import ExpressionFunctionBodyBase
 from .LocalsScopes import getLocalsDictHandle
 
 
-class ExpressionOutlineBody(ExpressionChildHavingBase):
+class ExpressionOutlineBody(ChildHavingBodyOptionalMixin, ExpressionBase):
     """Outlined expression code.
 
     This is for a call to a piece of code to be executed in a specific
@@ -43,7 +44,7 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
 
     kind = "EXPRESSION_OUTLINE_BODY"
 
-    named_child = "body"
+    named_children = ("body|optional+setter",)
 
     __slots__ = ("provider", "name", "temp_scope")
 
@@ -54,7 +55,9 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
     def __init__(self, provider, name, source_ref, body=None):
         assert name != ""
 
-        ExpressionChildHavingBase.__init__(self, value=body, source_ref=source_ref)
+        ChildHavingBodyOptionalMixin.__init__(self, body=body)
+
+        ExpressionBase.__init__(self, source_ref)
 
         self.provider = provider
         self.name = name
@@ -121,7 +124,7 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
             result = body.computeStatementsSequence(trace_collection=trace_collection)
 
             if result is not body:
-                self.setChild("body", result)
+                self.setChildBody(result)
                 body = result
 
             return_collections = trace_collection.getFunctionReturnCollections()
@@ -170,8 +173,8 @@ class ExpressionOutlineBody(ExpressionChildHavingBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_body.mayRaiseException(exception_type)
 
-    def willRaiseException(self, exception_type):
-        return self.subnode_body.willRaiseException(exception_type)
+    def willRaiseAnyException(self):
+        return self.subnode_body.willRaiseAnyException()
 
     def getEntryPoint(self):
         """Entry point for code.
@@ -246,7 +249,7 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
             result = body.computeStatementsSequence(trace_collection=trace_collection)
 
             if result is not body:
-                self.setChild("body", result)
+                self.setChildBody(result)
                 body = result
 
             return_collections = trace_collection.getFunctionReturnCollections()
@@ -295,8 +298,8 @@ class ExpressionOutlineFunctionBase(ExpressionFunctionBodyBase):
     def mayRaiseException(self, exception_type):
         return self.subnode_body.mayRaiseException(exception_type)
 
-    def willRaiseException(self, exception_type):
-        return self.subnode_body.willRaiseException(exception_type)
+    def willRaiseAnyException(self):
+        return self.subnode_body.willRaiseAnyException()
 
     def getTraceCollection(self):
         return self.provider.getTraceCollection()

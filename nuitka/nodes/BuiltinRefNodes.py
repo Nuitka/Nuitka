@@ -51,7 +51,7 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     __slots__ = ("builtin_name",)
 
     def __init__(self, builtin_name, source_ref):
-        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
+        CompileTimeConstantExpressionBase.__init__(self, source_ref)
 
         self.builtin_name = builtin_name
 
@@ -244,7 +244,6 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         def createBuiltinMakeException(args, name=None, path=None, source_ref=None):
             if exception_name == "ImportError" and python_version >= 0x300:
                 return ExpressionBuiltinMakeExceptionImportError(
-                    exception_name=exception_name,
                     args=args,
                     name=name,
                     path=path,

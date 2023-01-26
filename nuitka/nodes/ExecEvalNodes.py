@@ -22,239 +22,183 @@ to eliminate or limit their impact as much as possible, but it's difficult
 to do.
 """
 
-from nuitka.PythonVersions import python_version
-
-from .ExpressionBases import ExpressionChildrenHavingBase
-from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
-from .NodeMakingHelpers import (
-    convertNoneConstantToNone,
-    makeStatementOnlyNodesFromExpressions,
+from .ChildrenHavingMixins import (
+    ChildrenExpressionBuiltinCompileMixin,
+    ChildrenExpressionBuiltinEvalMixin,
+    ChildrenExpressionBuiltinExecfileMixin,
+    ChildrenExpressionBuiltinExecMixin,
+)
+from .ExpressionBases import ExpressionBase
+from .StatementBasesGenerated import (
+    StatementExecBase,
+    StatementLocalsDictSyncBase,
 )
 
 
-class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
+class ExpressionBuiltinEval(ChildrenExpressionBuiltinEvalMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
-    named_children = ("source", "globals_arg", "locals_arg")
+    named_children = ("source_code", "globals_arg", "locals_arg")
 
     def __init__(self, source_code, globals_arg, locals_arg, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinEvalMixin.__init__(
             self,
-            values={
-                "source": source_code,
-                "globals_arg": globals_arg,
-                "locals_arg": locals_arg,
-            },
-            source_ref=source_ref,
+            source_code=source_code,
+            globals_arg=globals_arg,
+            locals_arg=locals_arg,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: Attempt for constant values to do it.
         return self, None, None
 
 
-# Note: Python3 only so far.
-if python_version >= 0x300:
+class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
+    kind = "EXPRESSION_BUILTIN_EXEC"
 
-    class ExpressionBuiltinExec(ExpressionBuiltinEval):
-        kind = "EXPRESSION_BUILTIN_EXEC"
+    python_version_spec = ">= 0x300"
 
-        def __init__(self, source_code, globals_arg, locals_arg, source_ref):
-            ExpressionBuiltinEval.__init__(
-                self,
-                source_code=source_code,
-                globals_arg=globals_arg,
-                locals_arg=locals_arg,
-                source_ref=source_ref,
-            )
+    named_children = ("source_code", "globals_arg", "locals_arg")
 
-        def computeExpression(self, trace_collection):
-            # TODO: Attempt for constant values to do it.
-            return self, None, None
+    __slots__ = ("in_early_closure",)
 
-        def computeExpressionDrop(self, statement, trace_collection):
-            if self.getParentVariableProvider().isEarlyClosure():
-                result = StatementExec(
-                    source_code=self.subnode_source,
-                    globals_arg=self.subnode_globals_arg,
-                    locals_arg=self.subnode_locals_arg,
-                    source_ref=self.source_ref,
-                )
-
-                del self.parent
-
-                return (
-                    result,
-                    "new_statements",
-                    """\
-Replaced built-in exec call to exec statement in early closure context.""",
-                )
-            else:
-                return statement, None, None
-
-
-# Note: Python2 only
-if python_version < 0x300:
-
-    class ExpressionBuiltinExecfile(ExpressionBuiltinEval):
-        kind = "EXPRESSION_BUILTIN_EXECFILE"
-
-        named_children = ("source", "globals_arg", "locals_arg")
-
-        def __init__(self, source_code, globals_arg, locals_arg, source_ref):
-            ExpressionBuiltinEval.__init__(
-                self,
-                source_code=source_code,
-                globals_arg=globals_arg,
-                locals_arg=locals_arg,
-                source_ref=source_ref,
-            )
-
-        def computeExpressionDrop(self, statement, trace_collection):
-            # In this case, the copy-back must be done and will only be done
-            # correctly by the code for exec statements.
-            provider = self.getParentVariableProvider()
-
-            if provider.isExpressionClassBody():
-                result = StatementExec(
-                    source_code=self.subnode_source,
-                    globals_arg=self.subnode_globals_arg,
-                    locals_arg=self.subnode_locals_arg,
-                    source_ref=self.source_ref,
-                )
-
-                del self.parent
-
-                return (
-                    result,
-                    "new_statements",
-                    """\
-Changed 'execfile' with unused result to 'exec' on class level.""",
-                )
-            else:
-                return statement, None, None
-
-
-class StatementExec(StatementChildrenHavingBase):
-    kind = "STATEMENT_EXEC"
-
-    named_children = ("source", "globals_arg", "locals_arg")
-
-    checkers = {
-        "globals_arg": convertNoneConstantToNone,
-        "locals_arg": convertNoneConstantToNone,
-    }
-
-    def __init__(self, source_code, globals_arg, locals_arg, source_ref):
-        StatementChildrenHavingBase.__init__(
+    def __init__(
+        self, in_early_closure, source_code, globals_arg, locals_arg, source_ref
+    ):
+        ChildrenExpressionBuiltinExecMixin.__init__(
             self,
-            values={
-                "globals_arg": globals_arg,
-                "locals_arg": locals_arg,
-                "source": source_code,
-            },
-            source_ref=source_ref,
+            source_code=source_code,
+            globals_arg=globals_arg,
+            locals_arg=locals_arg,
         )
 
-    def computeStatement(self, trace_collection):
-        source_code = trace_collection.onExpression(self.subnode_source)
+        ExpressionBase.__init__(self, source_ref)
 
-        if source_code.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
+        self.in_early_closure = in_early_closure
 
-        if source_code.willRaiseException(BaseException):
-            result = source_code
+    def getDetails(self):
+        return {"in_early_closure": self.in_early_closure}
+
+    def computeExpression(self, trace_collection):
+        # TODO: Attempt for constant values to do it.
+        return self, None, None
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        # TODO: Have this as an attribute during creation.
+        if self.early_closure:
+            result = StatementExec(
+                source_code=self.subnode_source_code,
+                globals_arg=self.subnode_globals_arg,
+                locals_arg=self.subnode_locals_arg,
+                source_ref=self.source_ref,
+            )
+
+            del self.parent
 
             return (
                 result,
-                "new_raise",
+                "new_statements",
                 """\
-Exec statement raises implicitly when determining source code argument.""",
+Replaced built-in exec call to exec statement in early closure context.""",
             )
+        else:
+            return statement, None, None
 
-        globals_arg = trace_collection.onExpression(
-            expression=self.subnode_globals_arg, allow_none=True
+
+class ExpressionBuiltinExecfile(ChildrenExpressionBuiltinExecfileMixin, ExpressionBase):
+    kind = "EXPRESSION_BUILTIN_EXECFILE"
+
+    python_version_spec = "< 0x300"
+
+    named_children = ("source_code", "globals_arg", "locals_arg")
+
+    __slots__ = ("in_class_body",)
+
+    def __init__(self, in_class_body, source_code, globals_arg, locals_arg, source_ref):
+        ChildrenExpressionBuiltinExecfileMixin.__init__(
+            self,
+            source_code=source_code,
+            globals_arg=globals_arg,
+            locals_arg=locals_arg,
         )
 
-        if globals_arg is not None and globals_arg.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
+        ExpressionBase.__init__(self, source_ref)
 
-        if globals_arg is not None and globals_arg.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions=(source_code, globals_arg)
-            )
+        self.in_class_body = in_class_body
 
-            return (
-                result,
-                "new_raise",
-                """\
-Exec statement raises implicitly when determining globals argument.""",
-            )
+    def getDetails(self):
+        return {"in_class_body": self.in_class_body}
 
-        locals_arg = trace_collection.onExpression(
-            expression=self.subnode_locals_arg, allow_none=True
-        )
-
-        if locals_arg is not None and locals_arg.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        if locals_arg is not None and locals_arg.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions=(source_code, globals_arg, locals_arg)
-            )
-
-            return (
-                result,
-                "new_raise",
-                """\
-Exec statement raises implicitly when determining locals argument.""",
-            )
-
+    def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        str_value = self.subnode_source.getStrValue()
+        # Nothing can be done for it really.
+        return self, None, None
 
-        if str_value is not None:
-            # TODO: This needs to be re-done.
-            # TODO: Don't forget to consider side effects of source code,
-            # locals_arg, and globals_arg.
-            return self, None, None
+    def computeExpressionDrop(self, statement, trace_collection):
+        # In this case, the copy-back must be done and will only be done
+        # correctly by the code for exec statements.
 
-            # exec_body = ...
-            # return (exec_body, "new_statements", "In-lined constant exec statement.")
+        if self.in_class_body:
+            result = StatementExec(
+                source_code=self.subnode_source_code,
+                globals_arg=self.subnode_globals_arg,
+                locals_arg=self.subnode_locals_arg,
+                source_ref=self.source_ref,
+            )
+
+            del self.parent
+
+            return (
+                result,
+                "new_statements",
+                """\
+Changed 'execfile' with unused result to 'exec' on class level.""",
+            )
+        else:
+            return statement, None, None
+
+
+class StatementExec(StatementExecBase):
+    kind = "STATEMENT_EXEC"
+
+    named_children = ("source_code", "globals_arg|auto_none", "locals_arg|auto_none")
+    auto_compute_handling = "operation"
+
+    python_version_spec = "< 0x300"
+
+    def computeStatementOperation(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # TODO: Optimize strings for exec expression and statement again.
+        # str_value = self.subnode_source_code.getStrValue()
 
         return self, None, None
 
 
-class StatementLocalsDictSync(StatementChildHavingBase):
+class StatementLocalsDictSync(StatementLocalsDictSyncBase):
     kind = "STATEMENT_LOCALS_DICT_SYNC"
 
-    named_child = "locals_arg"
+    named_children = ("locals_arg",)
+    node_attributes = ("locals_scope",)
+    auto_compute_handling = "operation,post_init"
 
-    __slots__ = ("locals_scope", "previous_traces", "variable_traces")
+    __slots__ = ("previous_traces", "variable_traces")
 
-    def __init__(self, locals_scope, locals_arg, source_ref):
-        StatementChildHavingBase.__init__(self, value=locals_arg, source_ref=source_ref)
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
+    def postInitNode(self):
         self.previous_traces = None
         self.variable_traces = None
-
-        self.locals_scope = locals_scope
-
-    def getDetails(self):
-        return {"locals_scope": self.locals_scope}
 
     def getPreviousVariablesTraces(self):
         return self.previous_traces
 
-    def computeStatement(self, trace_collection):
-        result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection=trace_collection
-        )
-
-        if result is not self:
-            return result, change_tags, change_desc
-
+    def computeStatementOperation(self, trace_collection):
+        # TODO: Derive this from the locals scope instead, otherwise this is
+        # costly and a potentially wrong decision.
         provider = self.getParentVariableProvider()
         if provider.isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
@@ -273,26 +217,32 @@ class StatementLocalsDictSync(StatementChildHavingBase):
         return False
 
 
-class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):
+class ExpressionBuiltinCompile(ChildrenExpressionBuiltinCompileMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_COMPILE"
 
-    named_children = ("source", "filename", "mode", "flags", "dont_inherit", "optimize")
+    named_children = (
+        "source",
+        "filename",
+        "mode",
+        "flags|optional",
+        "dont_inherit|optional",
+        "optimize|optional",
+    )
 
     def __init__(
         self, source_code, filename, mode, flags, dont_inherit, optimize, source_ref
     ):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenExpressionBuiltinCompileMixin.__init__(
             self,
-            values={
-                "source": source_code,
-                "filename": filename,
-                "mode": mode,
-                "flags": flags,
-                "dont_inherit": dont_inherit,
-                "optimize": optimize,
-            },
-            source_ref=source_ref,
+            source=source_code,
+            filename=filename,
+            mode=mode,
+            flags=flags,
+            dont_inherit=dont_inherit,
+            optimize=optimize,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

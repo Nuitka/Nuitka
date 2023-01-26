@@ -22,60 +22,61 @@ only the way a class member is being called. Being able to avoid going through a
 C call to the built-ins resulting wrapper, will speed up things.
 """
 
-from .ExpressionBases import ExpressionChildHavingBase
-from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+from .ExpressionBasesGenerated import (
+    ExpressionBuiltinClassmethodBase,
+    ExpressionBuiltinStaticmethodBase,
+)
 from .shapes.BuiltinTypeShapes import tshape_classmethod, tshape_staticmethod
 
 
-class ExpressionBuiltinStaticmethodClassmethodBase(ExpressionChildHavingBase):
-    named_child = "value"
+class BuiltinStaticmethodClassmethodMixin(object):
+    __slots__ = ()
 
-    def __init__(self, value, source_ref):
-        ExpressionChildHavingBase.__init__(self, value=value, source_ref=source_ref)
+    # There is nothing to compute for it as a value.
+    auto_compute_handling = "final,no_raise"
 
-    def computeExpression(self, trace_collection):
-        return self, None, None
-
+    # TODO: Make it part of auto-compute through a the shape provided.
     @staticmethod
     def isKnownToBeIterable(count):
+        # pylint: disable=unused-argument
         return False
 
     @staticmethod
     def isKnownToBeHashable():
         return True
 
-    # TODO: Side effect from child mixin should do these, there is one for multiple children.
+    # TODO: should be automatic due to final
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
 
+    # TODO: should be a auto_compute property.
     def mayHaveSideEffect(self):
         return self.subnode_value.mayHaveSideEffect()
 
     def extractSideEffects(self):
         return self.subnode_value.extractSideEffects()
 
-    def computeExpressionDrop(self, statement, trace_collection):
-        result = makeStatementOnlyNodesFromExpressions(
-            self.subnode_value.extractSideEffects()
-        )
 
-        return (
-            result,
-            "new_statements",
-            "Removed unused %r call." % self.getTypeShape().getTypeName(),
-        )
-
-
-class ExpressionBuiltinStaticmethod(ExpressionBuiltinStaticmethodClassmethodBase):
+class ExpressionBuiltinStaticmethod(
+    BuiltinStaticmethodClassmethodMixin, ExpressionBuiltinStaticmethodBase
+):
     kind = "EXPRESSION_BUILTIN_STATICMETHOD"
+
+    # TODO: Allow these to be in class classes instead.
+    named_children = ("value",)
 
     @staticmethod
     def getTypeShape():
         return tshape_staticmethod
 
 
-class ExpressionBuiltinClassmethod(ExpressionBuiltinStaticmethodClassmethodBase):
+class ExpressionBuiltinClassmethod(
+    BuiltinStaticmethodClassmethodMixin, ExpressionBuiltinClassmethodBase
+):
     kind = "EXPRESSION_BUILTIN_CLASSMETHOD"
+
+    # TODO: Allow these to be in mixin classes instead.
+    named_children = ("value",)
 
     @staticmethod
     def getTypeShape():

@@ -23,10 +23,8 @@ source code comments with Developer Manual sections.
 """
 
 from nuitka import Options
-from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookupSpecial,
-    makeExpressionAttributeLookup,
-)
+from nuitka.nodes.AttributeLookupNodes import ExpressionAttributeLookupSpecial
+from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.CallNodes import (
     ExpressionCallEmpty,
     ExpressionCallNoKeywords,

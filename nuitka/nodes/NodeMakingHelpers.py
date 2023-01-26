@@ -320,7 +320,7 @@ def mergeStatements(statements, allow_none=False):
         else:
             assert False, statement
 
-    return merged_statements
+    return tuple(merged_statements)
 
 
 def makeStatementsSequenceReplacementNode(statements, node):
@@ -329,13 +329,6 @@ def makeStatementsSequenceReplacementNode(statements, node):
     return StatementsSequence(
         statements=mergeStatements(statements), source_ref=node.getSourceReference()
     )
-
-
-def convertNoneConstantToNone(node):
-    if node is None or node.isExpressionConstantNoneRef():
-        return None
-    else:
-        return node
 
 
 def wrapExpressionWithSideEffects(side_effects, old_node, new_node):

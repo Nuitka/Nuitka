@@ -55,7 +55,15 @@ def _recurseTo(module_name, module_filename, module_kind):
     return module, is_added
 
 
-def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
+def recurseTo(
+    signal_change,
+    module_name,
+    module_filename,
+    module_kind,
+    using_module,
+    source_ref,
+    reason,
+):
     try:
         module = ImportCache.getImportedModuleByNameAndPath(
             module_name, module_filename
@@ -68,6 +76,8 @@ def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
             module_filename=module_filename,
             module_name=module_name,
             module_kind=module_kind,
+            using_module=using_module,
+            source_ref=source_ref,
         )
 
         module, added_flag = _recurseTo(
@@ -82,7 +92,21 @@ def recurseTo(signal_change, module_name, module_filename, module_kind, reason):
     return module
 
 
+_recursion_decision_cache = {}
+
+
 def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
+    key = module_filename, module_name, module_kind, extra_recursion
+
+    if key not in _recursion_decision_cache:
+        _recursion_decision_cache[key] = _decideRecursion(
+            module_filename, module_name, module_kind, extra_recursion
+        )
+
+    return _recursion_decision_cache[key]
+
+
+def _decideRecursion(module_filename, module_name, module_kind, extra_recursion):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
@@ -177,24 +201,8 @@ def decideRecursion(module_filename, module_name, module_kind, extra_recursion=F
 
 
 def considerFilename(module_filename):
-    module_filename = os.path.normpath(module_filename)
-
-    if os.path.isdir(module_filename):
-        module_filename = os.path.abspath(module_filename)
-
-        module_name = os.path.basename(module_filename)
-
-        return module_filename, module_name
-    elif module_filename.endswith(".py"):
-        module_name = os.path.basename(module_filename)[:-3]
-
-        return module_filename, module_name
-    elif module_filename.endswith(".pyw"):
-        module_name = os.path.basename(module_filename)[:-4]
-
-        return module_filename, module_name
-    else:
-        return None
+    module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
+    return None if module_kind == "extension" else module_filename, module_name
 
 
 def isSameModulePath(path1, path2):
@@ -296,6 +304,8 @@ def checkPluginSinglePath(plugin_filename, module_package):
                 module_filename=plugin_filename,
                 module_name=module_name,
                 module_kind=module_kind,
+                using_module=None,
+                source_ref=None,
                 reason=reason,
             )
 
@@ -366,13 +376,16 @@ def checkPluginFilenamePattern(pattern):
 
 def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):
     for parent_package_name in module_name.getParentPackageNames():
-        _parent_package_name, parent_package_filename, finding = locateModule(
-            module_name=parent_package_name, parent_package=None, level=0
-        )
+        (
+            _parent_package_name,
+            parent_package_filename,
+            package_module_kind,
+            finding,
+        ) = locateModule(module_name=parent_package_name, parent_package=None, level=0)
 
         if parent_package_filename is None:
             recursion_logger.sysexit(
-                "Error, failed to local parent package file for '%s' parent of '%s' (used by %s) module (%s)"
+                "Error, failed to locate parent package file for '%s' parent of '%s' (used by '%s') module (%s)"
                 % (
                     parent_package_name.asString(),
                     module_name.asString(),
@@ -382,10 +395,6 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
             )
 
         assert _parent_package_name == parent_package_name
-
-        _parent_package_name, package_module_kind = getModuleNameAndKindFromFilename(
-            parent_package_filename
-        )
 
         _decision, reason = decideRecursion(
             module_filename=parent_package_filename,
@@ -398,6 +407,8 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
             module_name=parent_package_name,
             module_filename=parent_package_filename,
             module_kind=package_module_kind,
+            using_module=using_module,
+            source_ref=source_ref,
             reason=reason,
         )
 
@@ -411,62 +422,59 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
 
 
 def considerUsedModules(module, signal_change):
-    for (
-        used_module_name,
-        used_module_filename,
-        finding,
-        level,
-        source_ref,
-    ) in module.getUsedModules():
-        if finding == "not-found":
+    for used_module in module.getUsedModules():
+        if used_module.finding == "not-found":
             Importing.warnAbout(
                 importing=module,
-                source_ref=source_ref,
-                module_name=used_module_name,
-                level=level,
+                source_ref=used_module.source_ref,
+                module_name=used_module.module_name,
+                level=used_module.level,
             )
+
+        # Nothing was found here
+        if used_module.filename is None:
+            continue
 
         try:
-            if used_module_filename is None:
-                continue
-
-            _module_name, module_kind = getModuleNameAndKindFromFilename(
-                used_module_filename
-            )
-
             decision, reason = decideRecursion(
-                module_filename=used_module_filename,
-                module_name=used_module_name,
-                module_kind=module_kind,
+                module_filename=used_module.filename,
+                module_name=used_module.module_name,
+                module_kind=used_module.module_kind,
             )
 
             if decision:
                 _addParentPackageUsages(
                     using_module=module,
-                    module_name=used_module_name,
+                    module_name=used_module.module_name,
                     signal_change=signal_change,
-                    source_ref=source_ref,
+                    source_ref=used_module.source_ref,
                 )
 
-                used_module = recurseTo(
+                new_module = recurseTo(
                     signal_change=signal_change,
-                    module_name=used_module_name,
-                    module_filename=used_module_filename,
-                    module_kind=module_kind,
+                    module_name=used_module.module_name,
+                    module_filename=used_module.filename,
+                    module_kind=used_module.module_kind,
+                    source_ref=used_module.source_ref,
+                    using_module=module,
                     reason=reason,
                 )
 
                 addUsedModule(
-                    module=used_module,
+                    module=new_module,
                     using_module=module,
                     usage_tag="import",
                     reason=reason,
-                    source_ref=source_ref,
+                    source_ref=used_module.source_ref,
                 )
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
                 "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
-                % (e, module.getFullName().asString(), source_ref.getAsString())
+                % (
+                    e,
+                    module.getFullName().asString(),
+                    used_module.source_ref.getAsString(),
+                )
             )
 
     try:

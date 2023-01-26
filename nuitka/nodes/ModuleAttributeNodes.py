@@ -44,7 +44,7 @@ class ExpressionModuleAttributeBase(ExpressionBase):
     __slots__ = ("variable",)
 
     def __init__(self, variable, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.variable = variable
 
@@ -184,7 +184,7 @@ class ExpressionNuitkaLoaderCreation(ExpressionNoSideEffectsMixin, ExpressionBas
     kind = "EXPRESSION_NUITKA_LOADER_CREATION"
 
     def __init__(self, provider, source_ref):
-        ExpressionBase.__init__(self, source_ref=source_ref)
+        ExpressionBase.__init__(self, source_ref)
 
         self.provider = provider
 

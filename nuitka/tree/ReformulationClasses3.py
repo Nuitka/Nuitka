@@ -47,10 +47,7 @@ from nuitka.nodes.ContainerMakingNodes import (
     makeExpressionMakeTuple,
     makeExpressionMakeTupleOrConstant,
 )
-from nuitka.nodes.ContainerOperationNodes import (
-    ExpressionListOperationExtend,
-    StatementListOperationAppend,
-)
+from nuitka.nodes.ContainerOperationNodes import StatementListOperationAppend
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet2,
     ExpressionDictOperationIn,
@@ -59,11 +56,12 @@ from nuitka.nodes.DictionaryNodes import (
 )
 from nuitka.nodes.FunctionAttributeNodes import ExpressionFunctionQualnameRef
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCall,
-    ExpressionFunctionCreation,
     ExpressionFunctionRef,
+    makeExpressionFunctionCall,
+    makeExpressionFunctionCreation,
 )
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
+from nuitka.nodes.ListOperationNodes import ExpressionListOperationExtend
 from nuitka.nodes.LocalsDictNodes import (
     StatementLocalsDictOperationSet,
     StatementReleaseLocals,
@@ -100,7 +98,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildFrameNode,
     buildNode,
-    buildNodeList,
+    buildNodeTuple,
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant2,
@@ -120,7 +118,7 @@ def _buildBasesTupleCreationNode(provider, elements, source_ref):
             )
 
     return makeExpressionMakeTupleOrConstant(
-        elements=buildNodeList(provider, elements, source_ref),
+        elements=buildNodeTuple(provider, elements, source_ref),
         user_provided=True,
         source_ref=source_ref,
     )
@@ -242,7 +240,7 @@ def buildClassNode3(provider, node, source_ref):
         StatementLocalsDictOperationSet(
             locals_scope=locals_scope,
             variable_name="__qualname__",
-            value=qualname_ref,
+            source=qualname_ref,
             source_ref=source_ref,
         )
     )
@@ -255,7 +253,7 @@ def buildClassNode3(provider, node, source_ref):
             StatementLocalsDictOperationSet(
                 locals_scope=locals_scope,
                 variable_name="__annotations__",
-                value=makeConstantRefNode(
+                source=makeConstantRefNode(
                     constant={}, source_ref=source_ref, user_provided=True
                 ),
                 source_ref=source_ref,
@@ -296,7 +294,7 @@ def buildClassNode3(provider, node, source_ref):
                 yes_branch=StatementLocalsDictOperationSet(
                     locals_scope=locals_scope,
                     variable_name="__orig_bases__",
-                    value=ExpressionTempVariableRef(
+                    source=ExpressionTempVariableRef(
                         variable=tmp_bases_orig, source_ref=source_ref
                     ),
                     source_ref=source_ref,
@@ -350,7 +348,7 @@ def buildClassNode3(provider, node, source_ref):
 
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
-    class_creation_function.setChild("body", body)
+    class_creation_function.setChildBody(body)
 
     # The class body is basically a function that implicitly, at the end
     # returns its created class and cannot have other return statements
@@ -358,7 +356,9 @@ def buildClassNode3(provider, node, source_ref):
 
     decorated_body = class_creation_function
 
-    for decorator in buildNodeList(provider, reversed(node.decorator_list), source_ref):
+    for decorator in buildNodeTuple(
+        provider, reversed(node.decorator_list), source_ref
+    ):
         decorated_body = makeExpressionCall(
             called=decorator,
             args=makeExpressionMakeTuple(
@@ -387,8 +387,8 @@ def buildClassNode3(provider, node, source_ref):
         )
 
         if python_version >= 0x370:
-            bases_conversion = ExpressionFunctionCall(
-                function=ExpressionFunctionCreation(
+            bases_conversion = makeExpressionFunctionCall(
+                function=makeExpressionFunctionCreation(
                     function_ref=ExpressionFunctionRef(
                         function_body=getClassBasesMroConversionHelper(),
                         source_ref=source_ref,
@@ -804,8 +804,7 @@ def getClassBasesMroConversionHelper():
         ),
     )
 
-    result.setChild(
-        "body",
+    result.setChildBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
                 provider=result,
@@ -813,7 +812,7 @@ def getClassBasesMroConversionHelper():
                 final=final,
                 source_ref=internal_source_ref,
             )
-        ),
+        )
     )
 
     return result

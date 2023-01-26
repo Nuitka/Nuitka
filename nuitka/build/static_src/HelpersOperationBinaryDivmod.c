@@ -354,7 +354,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_DIVMOD_OBJECT_INT_OBJECT
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyInt_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyInt_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -817,7 +817,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_DIVMOD_OBJECT_LONG_OBJEC
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyLong_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyLong_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -1320,7 +1320,7 @@ static HEDLEY_NEVER_INLINE PyObject *__BINARY_OPERATION_DIVMOD_OBJECT_FLOAT_OBJE
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, &PyFloat_Type)) {
+            if (Nuitka_Type_IsSubtype(type2, &PyFloat_Type)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {
@@ -2253,7 +2253,7 @@ static PyObject *_BINARY_OPERATION_DIVMOD_OBJECT_OBJECT_OBJECT(PyObject *operand
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (Nuitka_Type_IsSubtype(type2, type1)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {

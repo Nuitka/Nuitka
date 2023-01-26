@@ -8,6 +8,11 @@
     - depends:
         - '_dbus_bindings'
 
+- module-name: '_mplcairo'
+  implicit-imports:
+    - depends:
+        - 'pydoc'
+
 - module-name: '_mysql'
   implicit-imports:
     - depends:
@@ -1653,6 +1658,12 @@
       change_function:
         'setBreak': "'(lambda self: None)'"
 
+- module-name: 'platform_utils.paths'
+  anti-bloat:
+    - description: 'workaround embedded data files bug'
+      change_function:
+        'embedded_data_path': "'(lambda: app_path())'"
+
 - module-name: 'plotly.graph_objects'
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2820,9 +2831,35 @@
         - 'sklearn.utils.sparsetools._graph_tools'
 
 - module-name: 'sound_lib'
-  data-files:
-    dirs:
-      - 'lib'
+  dlls:
+    - from_filenames:
+        relative_path: 'lib/x64'
+        prefixes:
+          - ''
+        suffixes:
+          - 'dylib'
+      when: 'macos'
+    - from_filenames:
+        relative_path: 'lib/x64'
+        prefixes:
+          - ''
+        suffixes:
+          - 'so'
+      when: 'linux'
+    - from_filenames:
+        relative_path: 'lib/x64'
+        prefixes:
+          - ''
+        suffixes:
+          - 'dll'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'lib/x86'
+        prefixes:
+          - ''
+        suffixes:
+          - 'dll'
+      when: 'win32 and arch_x86'
 
 - module-name: 'sparse'
   options:
@@ -3443,6 +3480,33 @@
           - 'libextrafont'
       when: 'win32'
 
+- module-name: 'tkinterweb'
+  data-files:
+    dirs:
+      - 'tkhtml'
+
+  dlls:
+    - from_filenames:
+        relative_path: 'tkhtml/Windows/32-bit'
+        prefixes:
+          - 'Tkhtml'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'tkhtml/Windows/64-bit'
+        prefixes:
+          - 'Tkhtml'
+      when: 'win32 and arch_amd64'
+
+  anti-bloat:
+    - description: 'remove "sys.path" hack'
+      replacements_plain:
+        'sys.path.append': ''
+  import-hacks:
+    - global-sys-path:
+        # This package forces itself into "sys.path" and expects absolute
+        # imports to be available.
+        - ''
+
 - module-name: 'tls_client.cffi'
   dlls:
     - from_filenames:
@@ -3962,6 +4026,13 @@
         relative_path: 'lib'
         prefixes:
           - 'xgboost'
+
+- module-name: 'xgboost.sklearn'
+  anti-bloat:
+    - description: 'remove docstring dependency'
+      replacements_plain:
+        'fit.__doc__ = XGBModel.fit.__doc__.replace(': 'fit.__doc__ = "Fit gradient boosting model".replace('
+      when: 'no_docstrings and no_asserts'
 
 - module-name: 'Xlib.display'
   implicit-imports:

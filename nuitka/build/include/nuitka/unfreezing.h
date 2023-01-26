@@ -72,6 +72,7 @@ extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntr
 /* Create a loader object responsible for a package. */
 extern PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 
-extern PyObject *Nuitka_Distribution_New(char const *name, PyObject *metadata);
+// Create a distribution object from the given metadata.
+extern PyObject *Nuitka_Distribution_New(char const *distribution_name, char const *package_name, PyObject *metadata);
 
 #endif

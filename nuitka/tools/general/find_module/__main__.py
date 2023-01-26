@@ -24,8 +24,8 @@ import sys
 
 from nuitka.importing.Importing import (
     ModuleName,
+    addMainScriptDirectory,
     locateModule,
-    setMainScriptDirectory,
 )
 from nuitka.Tracing import my_print
 
@@ -33,7 +33,7 @@ from nuitka.Tracing import my_print
 def main():
     module_name = ModuleName(sys.argv[1])
 
-    setMainScriptDirectory(os.getcwd())
+    addMainScriptDirectory(os.getcwd())
 
     my_print(
         " ".join(locateModule(module_name=module_name, parent_package=None, level=0))

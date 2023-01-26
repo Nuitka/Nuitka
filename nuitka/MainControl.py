@@ -71,6 +71,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
+from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters, MemoryUsage
 from nuitka.utils.Execution import (
     callProcess,
@@ -102,7 +103,7 @@ from .build.SconsInterface import (
 )
 from .code_generation import CodeGeneration, LoaderCodes, Reports
 from .finalizations import Finalization
-from .freezer.Onefile import packDistFolderToOnefile
+from .freezer.Onefile import getCompressorPython, packDistFolderToOnefile
 from .freezer.Standalone import (
     checkFreezingModuleSet,
     copyDllsUsed,
@@ -110,28 +111,54 @@ from .freezer.Standalone import (
 )
 from .optimizations.Optimization import optimizeModules
 from .pgo.PGO import readPGOInputFile
-from .Reports import writeCompilationReport
+from .reports.Reports import writeCompilationReports
 from .tree.Building import buildMainModuleTree
 from .tree.SourceHandling import writeSourceCode
 from .TreeXML import dumpTreeXMLToFile
 
 
-def _createNodeTree(filename):
+def _setupFromMainFilenames():
+    main_filenames = Options.getMainEntryPointFilenames()
+    for filename in main_filenames:
+        # Inform the importing layer about the main script directory, so it can use
+        # it when attempting to follow imports.
+        Importing.addMainScriptDirectory(
+            main_dir=os.path.dirname(os.path.abspath(filename))
+        )
+
+
+def _createMainModule():
     """Create a node tree.
 
-    Turn that source code into a node tree structure. If recursion into
-    imported modules is available, more trees will be available during
-    optimization, or immediately through recursed directory paths.
+    Turn that source code into a node tree structure. If following into
+    imported modules is allowed, more trees will be available during
+    optimization, or even immediately through forcefully included
+    directory paths.
 
     """
-
     # Many cases to deal with, pylint: disable=too-many-branches
 
+    Plugins.onBeforeCodeParsing()
+
+    main_filenames = Options.getMainEntryPointFilenames()
+
     # First, build the raw node tree from the source code.
-    main_module = buildMainModuleTree(
-        filename=filename,
-        is_main=not Options.shallMakeModule(),
-    )
+    if len(main_filenames) > 1:
+        main_module = buildMainModuleTree(
+            # TODO: Should not be given.
+            filename=main_filenames[0],
+            is_main=True,
+            source_code=createMultidistMainSourceCode(main_filenames),
+        )
+
+    else:
+        main_module = buildMainModuleTree(
+            filename=main_filenames[0],
+            is_main=not Options.shallMakeModule(),
+            source_code=None,
+        )
+
+    OutputDirectories.setMainModule(main_module)
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do
@@ -161,6 +188,9 @@ def _createNodeTree(filename):
             path=OutputDirectories.getResultFullpath(onefile=True), must_exist=False
         )
 
+        # Also make sure we inform the user in case the compression is not possible.
+        getCompressorPython()
+
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
         Recursion.checkPluginPath(plugin_filename=plugin_filename, module_package=None)
@@ -169,13 +199,13 @@ def _createNodeTree(filename):
         Recursion.checkPluginFilenamePattern(pattern=pattern)
 
     for package_name in Options.getMustIncludePackages():
-        package_name, package_directory, kind = Importing.locateModule(
+        package_name, package_directory, _module_kind, finding = Importing.locateModule(
             module_name=ModuleName(package_name),
             parent_package=None,
             level=0,
         )
 
-        if kind != "absolute":
+        if finding != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate package '%s' you asked to include."
                 % package_name
@@ -187,13 +217,13 @@ def _createNodeTree(filename):
         )
 
     for module_name in Options.getMustIncludeModules():
-        module_name, module_filename, kind = Importing.locateModule(
+        module_name, module_filename, _module_kind, finding = Importing.locateModule(
             module_name=ModuleName(module_name),
             parent_package=None,
             level=0,
         )
 
-        if kind != "absolute":
+        if finding != "absolute":
             inclusion_logger.sysexit(
                 "Error, failed to locate module '%s' you asked to include."
                 % module_name.asString()
@@ -207,6 +237,9 @@ def _createNodeTree(filename):
     Plugins.onModuleInitialSet()
 
     # Then optimize the tree and potentially recursed modules.
+    # TODO: The passed filename is really something that should come from
+    # a command line option, it's a filename for the graph, which might not
+    # need a default at all.
     optimizeModules(main_module.getOutputFilename())
 
     # Freezer may have concerns for some modules.
@@ -899,20 +932,14 @@ def main():
         )
     )
 
-    filename = Options.getPositionalArgs()[0]
-
-    # Inform the importing layer about the main script directory, so it can use
-    # it when attempting to follow imports.
-    Importing.setMainScriptDirectory(
-        main_dir=os.path.dirname(os.path.abspath(filename))
-    )
+    _setupFromMainFilenames()
 
     addIncludedDataFilesFromFileOptions()
     addIncludedDataFilesFromPackageOptions()
 
     # Turn that source code into a node tree structure.
     try:
-        main_module = _createNodeTree(filename=filename)
+        main_module = _createMainModule()
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
@@ -1020,10 +1047,7 @@ not use compiled code while it exists."""
 
     general.info("Successfully created '%s'." % final_filename)
 
-    report_filename = Options.getCompilationReportFilename()
-
-    if report_filename:
-        writeCompilationReport(report_filename)
+    writeCompilationReports()
 
     run_filename = OutputDirectories.getResultRunFilename(
         onefile=Options.isOnefileMode()

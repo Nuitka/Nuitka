@@ -154,6 +154,14 @@ installation from Windows registry. On Windows Python 3.5 or higher is
 needed. On non-Windows, Python 2.6 or 2.7 will do as well.""",
 )
 
+parser.add_option(
+    "--main",
+    action="append",
+    dest="mains",
+    metavar="PATH",
+    default=[],
+    help=SUPPRESS_HELP,
+)
 
 include_group = parser.add_option_group(
     "Control the inclusion of modules and packages in result"
@@ -307,6 +315,19 @@ and being non-static it's removed. Use e.g. a string like
 static cache path, this will then not be removed.""",
 )
 
+onefile_group.add_option(
+    "--onefile-child-grace-time",
+    action="store",
+    dest="onefile_child_grace_time",
+    metavar="GRACE_TIME_MS",
+    default="5000",
+    help="""\
+When stopping the child, e.g. due to CTRL-C or shutdown, etc. the
+Python code gets a "KeyboardInterrupt", that it may handle e.g. to
+flush data. This is the amount of time in ms, before the child it
+killed in the hard way. Unit is ms, and default 5000.""",
+)
+
 del onefile_group
 
 data_group = parser.add_option_group("Data files")
@@ -374,6 +395,17 @@ the target filename, not source paths. So to ignore a file pattern from package
 data for "package_name" should be matched as "package_name/*.txt". Or for the
 whole directory simply use "package_name". Default empty.""",
 )
+
+data_group.add_option(
+    "--list-package-data",
+    action="store",
+    dest="list_package_data",
+    default="",
+    require_compiling=False,
+    help="""\
+Output the data files found for a given package name. Default not done.""",
+)
+
 
 del data_group
 
@@ -979,6 +1011,18 @@ super useful for issue reporting. Default is off.""",
 )
 
 tracing_group.add_option(
+    "--report-template",
+    action="append",
+    dest="compilation_report_templates",
+    metavar="REPORT_DESC",
+    default=[],
+    help="""\
+Report via template. Provide template and output filename "template.rst.j2:output.rst". For
+built-in templates, check the User Manual for what these are. Can be given multiple times.
+Default is empty.""",
+)
+
+tracing_group.add_option(
     "--quiet",
     action="store_true",
     dest="quiet",
@@ -1550,7 +1594,12 @@ def _expandProjectArg(arg, filename_arg, for_eval):
     return arg
 
 
-def _getProjectOptions(logger, filename_arg, module_mode):
+def getNuitkaProjectOptions(logger, filename_arg, module_mode):
+    """Extract the Nuitka project options.
+
+    Note: This is used by Nuitka project and test tools as well.
+    """
+
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if os.path.isdir(filename_arg):
@@ -1669,7 +1718,6 @@ def parseOptions(logger):
                 continue
 
             if arg[0] != "-":
-                filename_arg = arg[0]
                 break
 
             # Treat "--" as a terminator.
@@ -1681,20 +1729,27 @@ def parseOptions(logger):
             extra_args = sys.argv[count + 1 :]
             sys.argv = sys.argv[0 : count + 1]
 
-    filename_arg = None
+    filename_args = []
+    module_mode = False
 
     for count, arg in enumerate(sys.argv):
         if count == 0:
             continue
 
+        if arg.startswith("--main="):
+            filename_args.append(arg)
+
+        if arg == "--module":
+            module_mode = True
+
         if arg[0] != "-":
-            filename_arg = arg
+            filename_args.append(arg)
             break
 
-    if filename_arg is not None:
+    for filename in filename_args:
         sys.argv = (
             [sys.argv[0]]
-            + list(_getProjectOptions(logger, filename_arg, "--module" in sys.argv[1:]))
+            + list(getNuitkaProjectOptions(logger, filename, module_mode))
             + sys.argv[1:]
         )
 
@@ -1703,12 +1758,16 @@ def parseOptions(logger):
 
     options, positional_args = parser.parse_args()
 
-    if not positional_args and not parser.hasNonCompilingAction(options):
+    if (
+        not positional_args
+        and not options.mains
+        and not parser.hasNonCompilingAction(options)
+    ):
         parser.print_help()
 
         logger.sysexit(
             """
-Error, need positional argument with python module or main program."""
+Error, need filename argument with python module or main program."""
         )
 
     if options.plugin_list:
@@ -1721,6 +1780,12 @@ Error, need positional argument with python module or main program."""
         from nuitka.tools.scanning.DisplayPackageDLLs import displayDLLs
 
         displayDLLs(options.list_package_dlls)
+        sys.exit(0)
+
+    if options.list_package_data:
+        from nuitka.tools.scanning.DisplayPackageData import displayPackageData
+
+        displayPackageData(options.list_package_data)
         sys.exit(0)
 
     if not options.immediate_execution and len(positional_args) > 1:

@@ -21,10 +21,8 @@
     text, explaining things about its context.
 """
 
-from .ExpressionBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase,
-)
+from .ChildrenHavingMixins import ChildrenHavingIteratorDefaultMixin
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 
 
 class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
@@ -84,17 +82,19 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
         return self.starred
 
 
-class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
+class ExpressionBuiltinNext2(ChildrenHavingIteratorDefaultMixin, ExpressionBase):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
     named_children = ("iterator", "default")
 
     def __init__(self, iterator, default, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ChildrenHavingIteratorDefaultMixin.__init__(
             self,
-            values={"iterator": iterator, "default": default},
-            source_ref=source_ref,
+            iterator=iterator,
+            default=default,
         )
+
+        ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
         # TODO: The "iterator" should be investigated here, if it is iterable,

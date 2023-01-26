@@ -152,7 +152,7 @@ def checkSequence(filename, statements):
 
             (assign_source,) = getRole(statement, "source")
 
-            if getKind(assign_source) == "FunctionCreation":
+            if getKind(assign_source) in ("FunctionCreation", "FunctionCreationOld"):
                 continue
 
             if not isConstantExpression(assign_source):

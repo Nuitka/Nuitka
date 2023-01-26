@@ -400,7 +400,7 @@ static PyObject *_BINARY_OPERATION_MATMULT_OBJECT_OBJECT_OBJECT(PyObject *operan
 
     if (slot1 != NULL) {
         if (slot2 != NULL) {
-            if (PyType_IsSubtype(type2, type1)) {
+            if (Nuitka_Type_IsSubtype(type2, type1)) {
                 PyObject *x = slot2(operand1, operand2);
 
                 if (x != Py_NotImplemented) {

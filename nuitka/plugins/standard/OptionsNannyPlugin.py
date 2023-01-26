@@ -85,13 +85,15 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
             if shallDisableConsoleWindow() is None:
                 if isMacOS():
                     downside_message = """\
-Otherwise high resolution will not be available and a terminal window will open."""
+Otherwise high resolution will not be available and a terminal window will open"""
                 else:
                     downside_message = """\
-Otherwise a terminal window will open."""
+Otherwise a terminal window will open"""
 
                 self.info(
-                    "Note, when using '%s', consider using '--disable-console' option. %s"
+                    """\
+Note, when using '%s', consider using '--disable-console' option. %s. However for \
+debugging, terminal output is the easiest way to see informative traceback information."""
                     % (full_name, downside_message)
                 )
 

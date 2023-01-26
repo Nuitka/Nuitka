@@ -59,8 +59,8 @@ from nuitka import (
 )
 from nuitka.__past__ import long, unicode
 from nuitka.BytecodeCaching import (
-    getCachedImportedModulesNames,
-    hasCachedImportedModulesNames,
+    getCachedImportedModuleUsageAttempts,
+    hasCachedImportedModuleUsageAttempts,
 )
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import CodeTooComplexCode
@@ -204,7 +204,7 @@ from .SourceHandling import (
 )
 from .TreeHelpers import (
     buildNode,
-    buildNodeList,
+    buildNodeTuple,
     buildStatementsNode,
     extractDocFromBody,
     getBuildContext,
@@ -668,7 +668,7 @@ def buildFormattedValueNode(provider, node, source_ref):
 def buildJoinedStrNode(provider, node, source_ref):
     if node.values:
         return ExpressionStringConcatenation(
-            values=buildNodeList(provider, node.values, source_ref),
+            values=buildNodeTuple(provider, node.values, source_ref),
             source_ref=source_ref,
         )
     else:
@@ -1004,26 +1004,9 @@ def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_
 
     used_modules = OrderedSet()
 
-    for used_module_name, line_number in getCachedImportedModulesNames(
-        module_name=module_name, source_code=source_code
-    ):
-        _module_name, module_filename, finding = Importing.locateModule(
-            module_name=used_module_name,
-            parent_package=None,
-            level=0,
-        )
-
-        assert _module_name == used_module_name
-
-        used_modules.add(
-            (
-                used_module_name,
-                module_filename,
-                finding,
-                0,
-                source_ref.atLineNumber(line_number),
-            )
-        )
+    used_modules = getCachedImportedModuleUsageAttempts(
+        module_name=module_name, source_code=source_code, source_ref=source_ref
+    )
 
     # assert not is_package, (module_name, used_modules, result, result.getCompileTimeFilename())
 
@@ -1070,7 +1053,9 @@ def _createModule(
             mode == "bytecode"
             and not is_top
             and not Options.shallDisableBytecodeCacheUsage()
-            and hasCachedImportedModulesNames(module_name, source_code)
+            and hasCachedImportedModuleUsageAttempts(
+                module_name=module_name, source_code=source_code, source_ref=source_ref
+            )
         ):
             result = _loadUncompiledModuleFromCache(
                 module_name=module_name,
@@ -1117,7 +1102,7 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
     if module_body.isStatementsFrame():
         module_body = makeStatementsSequenceFromStatement(statement=module_body)
 
-    module.setChild("body", module_body)
+    module.setChildBody(module_body)
 
     completeVariableClosures(module)
 
@@ -1130,11 +1115,9 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
         )
 
 
-def buildMainModuleTree(filename, is_main):
+def buildMainModuleTree(filename, is_main, source_code):
     # Detect to be frozen modules if any, so we can consider to not follow
     # to them.
-
-    Plugins.onBeforeCodeParsing()
 
     if is_main:
         # TODO: Doesn't work for deeply nested packages at all.
@@ -1148,11 +1131,11 @@ def buildMainModuleTree(filename, is_main):
     module, _added = buildModule(
         module_name=module_name,
         module_filename=filename,
-        source_code=None,
+        source_code=source_code,
         is_top=True,
         is_main=is_main,
         is_extension=False,
-        is_fake=False,
+        is_fake=source_code is not None,
         hide_syntax_error=False,
     )
 
@@ -1199,7 +1182,7 @@ Cannot follow import to module '%s' because of '%s'."""
     )
 
     module_body = makeStatementsSequenceFromStatement(statement=module_body)
-    module.setChild("body", module_body)
+    module.setChildBody(module_body)
 
     return module
 
