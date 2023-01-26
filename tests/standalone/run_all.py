@@ -124,9 +124,6 @@ def main():
             if python_version < (3,):
                 extra_flags.append("ignore_stderr")
 
-        if filename == "CtypesUsing.py":
-            extra_flags.append("plugin_disable:pylint-warnings")
-
         if filename == "GtkUsing.py":
             # Don't test on platforms not supported by current Debian testing, and
             # which should be considered irrelevant by now.
@@ -174,7 +171,6 @@ def main():
 
         if filename == "PandasUsing.py":
             extra_flags.append("plugin_enable:no-qt")
-            extra_flags.append("plugin_disable:pylint-warnings")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
@@ -259,7 +255,8 @@ def main():
             sys.exit(1)
 
         binary_filename = os.path.join(
-            filename[:-3] + ".dist", filename[:-3] + (".exe" if os.name == "nt" else "")
+            filename[:-3] + ".dist",
+            filename[:-3] + (".exe" if os.name == "nt" else ".bin"),
         )
 
         # Then use "strace" on the result.
