@@ -609,8 +609,7 @@ class Plugins(object):
             for removed_dll in removed_dlls:
                 to_remove.add(removed_dll)
 
-        for removed in to_remove:
-            dll_filenames.discard(removed)
+        return to_remove
 
     @staticmethod
     def considerDataFiles(module):

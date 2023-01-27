@@ -693,9 +693,10 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         inclusion_logger.info("Not including forbidden DLL '%s'." % binary_filename)
     else:
         # Allow plugins can prevent inclusion, this may discard things from used_dlls.
-        Plugins.removeDllDependencies(
+        removed_dlls = Plugins.removeDllDependencies(
             dll_filename=binary_filename, dll_filenames=used_dlls
         )
+        used_dlls = tuple(OrderedSet(used_dlls) - OrderedSet(removed_dlls))
 
         for used_dll in used_dlls:
             dll_entry_point = makeDllEntryPoint(
