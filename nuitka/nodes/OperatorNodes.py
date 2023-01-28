@@ -480,7 +480,44 @@ class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
         return left_shape.getOperationBinaryDivmodShape(right_shape)
 
 
-class ExpressionOperationBinaryPow(ExpressionOperationBinaryBase):
+class ExpressionOperationPowMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    def getValueShape(self):
+        return self.shape
+
+    def _isTooLarge(self):
+        if self.subnode_right.isIndexConstant():
+            # Estimate with logarithm, if the result of number
+            # calculations is computable with acceptable effort,
+            # otherwise, we will have to do it at runtime.
+            left_value = abs(self.subnode_left.getCompileTimeConstant())
+
+            if left_value in (0, 1):
+                return False
+
+            if self.subnode_left.isIndexConstant():
+                right_value = self.subnode_right.getCompileTimeConstant()
+
+                # Negative values, and 0, 1 powers are not a problem.
+                if right_value <= 1:
+                    return False
+
+                # More than a typical pow, most likely a stupid test.
+                if math.log10(left_value) * right_value > 20:
+                    self.shape = ShapeLargeConstantValue(
+                        size=None, shape=tshape_int_or_long
+                    )
+
+                    return True
+
+        return False
+
+
+class ExpressionOperationBinaryPow(
+    ExpressionOperationPowMixin, ExpressionOperationBinaryBase
+):
     kind = "EXPRESSION_OPERATION_BINARY_POW"
 
     operator = "Pow"
@@ -787,7 +824,9 @@ class ExpressionOperationInplaceMod(ExpressionOperationBinaryInplaceBase):
         return left_shape.getOperationBinaryModShape(right_shape)
 
 
-class ExpressionOperationInplacePow(ExpressionOperationBinaryInplaceBase):
+class ExpressionOperationInplacePow(
+    ExpressionOperationPowMixin, ExpressionOperationBinaryInplaceBase
+):
     kind = "EXPRESSION_OPERATION_INPLACE_POW"
 
     operator = "IPow"
