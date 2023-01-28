@@ -170,7 +170,7 @@ def main():
             continue
 
         if filename == "PandasUsing.py":
-            extra_flags.append("plugin_enable:no-qt")
+            extra_flags.append("ignore_warnings")
 
         if filename == "PmwUsing.py":
             extra_flags.append("plugin_enable:pmw-freezer")
