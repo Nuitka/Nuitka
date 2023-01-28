@@ -211,6 +211,11 @@
     - depends:
         - 'chainer.distributions.utils'
 
+- module-name: 'charset_normalizer'
+  implicit-imports:
+    - depends:
+        - 'charset_normalizer.md__mypyc'
+
 - module-name: 'clr'
   dlls:
     - from_filenames:
