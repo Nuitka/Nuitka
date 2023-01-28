@@ -837,8 +837,8 @@ void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame_object, char con
     assertFrameObject(frame_object);
 
 #if _DEBUG_FRAME
-    printf("Attaching to frame 0x%x %s\n", frame_object,
-           Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
+    PRINT_FORMAT("Attaching to frame 0x%lx %s\n", frame_object,
+                 Nuitka_String_AsString(PyObject_Repr((PyObject *)Nuitka_Frame_GetCodeObject(&frame_object->m_frame))));
 #endif
 
     assert(frame_object->m_type_description == NULL);
@@ -1031,7 +1031,11 @@ void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameType *fr
 void PRINT_TOP_FRAME(char const *prefix) {
     PyThreadState *tstate = PyThreadState_GET();
 
+#if PYTHON_VERSION < 0x3b0
+    PRINT_UNCOMPILED_FRAME(prefix, tstate->frame);
+#else
     PRINT_INTERPRETER_FRAME(prefix, tstate->cframe->current_frame);
+#endif
 }
 
 #endif
