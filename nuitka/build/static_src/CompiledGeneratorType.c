@@ -419,77 +419,6 @@ static PyObject *Nuitka_YieldFromGeneratorInitial(struct Nuitka_GeneratorObject 
 
 #endif
 
-static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrame(PyThreadState *thread_state,
-                                                               Nuitka_ThreadStateFrameType *generator_frame) {
-    PRINT_TOP_FRAME("Generator push entry gives top frame:");
-    PRINT_INTERPRETER_FRAME("Pushing:", generator_frame);
-
-    // First take of running frame from the stack, owning a reference.
-#if PYTHON_VERSION < 0x3b0
-    PyFrameObject *return_frame = thread_state->frame;
-#ifndef __NUITKA_NO_ASSERT__
-    if (return_frame) {
-        assertFrameObject((struct Nuitka_FrameObject *)return_frame);
-    }
-#endif
-#else
-    _PyInterpreterFrame *return_frame = thread_state->cframe->current_frame;
-#endif
-
-    if (generator_frame != NULL) {
-
-        // It's not supposed to be on the top right now.
-#if PYTHON_VERSION < 0x3b0
-        // It would be nice if our frame were still alive. Nobody had the
-        // right to release it.
-        assertFrameObject((struct Nuitka_FrameObject *)generator_frame);
-
-        // Link frames
-        assert(return_frame != generator_frame);
-        Py_XINCREF(return_frame);
-        generator_frame->f_back = return_frame;
-
-        // Make generator frame active
-        thread_state->frame = generator_frame;
-#else
-        // It would be nice if our frame were still alive. Nobody had the
-        // right to release it.
-        assertFrameObject((struct Nuitka_FrameObject *)(generator_frame->frame_obj));
-
-        // Link frames
-        if (return_frame) {
-            // Connect frames if possible.
-            PyFrameObject *back_frame = return_frame->frame_obj;
-
-            generator_frame->frame_obj->f_back = back_frame;
-            Py_INCREF(back_frame);
-        }
-        generator_frame->previous = return_frame;
-
-        // Make generator frame active
-        thread_state->cframe->current_frame = generator_frame;
-#endif
-    }
-
-    PRINT_TOP_FRAME("Generator push exit gives top frame:");
-
-    return return_frame;
-}
-
-static Nuitka_ThreadStateFrameType *_Nuitka_GeneratorPushFrameObject(PyThreadState *thread_state,
-                                                                     struct Nuitka_FrameObject *generator_frame) {
-#if PYTHON_VERSION < 0x3b0
-    Nuitka_ThreadStateFrameType *thread_frame = &generator_frame->m_frame;
-#else
-    Nuitka_ThreadStateFrameType *thread_frame = NULL;
-    if (generator_frame != NULL) {
-        thread_frame = &generator_frame->m_interpreter_frame;
-    }
-#endif
-
-    return _Nuitka_GeneratorPushFrame(thread_state, thread_frame);
-}
-
 static void _Nuitka_GeneratorPopFrame(PyThreadState *thread_state, Nuitka_ThreadStateFrameType *return_frame) {
 #if PYTHON_VERSION < 0x3b0
     thread_state->frame = return_frame;
@@ -550,11 +479,14 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
         }
 #endif
 
-        // Put the generator back on the frame stack.
-        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GeneratorPushFrameObject(thread_state, generator->m_frame);
+        // Put the asyncgen back on the frame stack.
+        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(thread_state);
 
         if (generator->m_status == status_Unused) {
             generator->m_status = status_Running;
+        } else {
+            // Put the generator back on the frame stack.
+            pushFrameStackGenerator(generator->m_frame);
         }
 
         // Continue the yielder function while preventing recursion.

@@ -38,6 +38,7 @@ if (isFrameUnusable({{frame_cache_identifier}})) {
     count_hit_frame_cache_instances += 1;
 #endif
 }
+
 assert({{frame_cache_identifier}}->m_type_description == NULL);
 {{frame_identifier}} = {{frame_cache_identifier}};
 {% else %}
@@ -46,25 +47,56 @@ assert({{frame_cache_identifier}}->m_type_description == NULL);
 {% if frame_init_code %}
 {{frame_init_code}}
 {% endif %}
-{% if context_identifier and is_python34_or_later %}
+{% if context_identifier %}
+{% if frame_cache_identifier %}
+// Mark the frame object as in use, ref count 1 will be up for reuse.
+Py_INCREF({{context_identifier}}->m_frame);
+assert(Py_REFCNT({{context_identifier}}->m_frame) == 2); // Frame stack
+{% endif %}
+
+{% if is_python34_or_later %}
 Nuitka_SetFrameGenerator({{context_identifier}}->m_frame, (PyObject *){{context_identifier}});
+{% endif %}
+
+assert({{context_identifier}}->m_frame->m_frame.f_back == NULL);
 {% endif %}
 
 // Push the new frame as the currently active one, and we should be exclusively
 // owning it.
+{% if context_identifier %}
+pushFrameStackGenerator({{frame_identifier}});
+{% else %}
 pushFrameStack({{frame_identifier}});
+{% endif %}
 assert(Py_REFCNT({{frame_identifier}}) == 2);
 
+{% if context_identifier and is_python3 %}
+// Store currently existing exception as the one to publish again when we
+// yield or yield from.
+STORE_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
+
+{% endif %}
 // Framed code:
 {{codes}}
 
+{% if context_identifier and frame_cache_identifier %}
+Nuitka_Frame_MarkAsNotExecuting({{context_identifier}}->m_frame);
+
+{% endif %}
+{% if context_identifier and is_python3 %}
+// Release exception attached to the frame
+DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
+
+{% endif %}
 {% if needs_preserve %}
 // Restore frame exception if necessary.
 RESTORE_FRAME_EXCEPTION({{frame_identifier}});
 {% endif %}
 
+{% if not context_identifier %}
 // Put the previous frame back on top.
 popFrameStack();
+{% endif %}
 {% if frame_exit_code %}
 {{frame_exit_code}}
 {% endif %}
@@ -136,64 +168,6 @@ popFrameStack();
 goto {{parent_exception_exit}};
 """
 
-# Frame in a generator, coroutine or asyncgen.
-template_frame_guard_generator = """\
-if (isFrameUnusable(%(frame_cache_identifier)s)) {
-    Py_XDECREF(%(frame_cache_identifier)s);
-
-#if _DEBUG_REFCOUNTS
-    if (%(frame_cache_identifier)s == NULL) {
-        count_active_frame_cache_instances += 1;
-    } else {
-        count_released_frame_cache_instances += 1;
-    }
-    count_allocated_frame_cache_instances += 1;
-#endif
-    %(frame_cache_identifier)s = MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s);
-#if _DEBUG_REFCOUNTS
-} else {
-    count_hit_frame_cache_instances += 1;
-#endif
-}
-%(context_identifier)s->m_frame = %(frame_cache_identifier)s;
-
-// Mark the frame object as in use, ref count 1 will be up for reuse.
-Py_INCREF(%(context_identifier)s->m_frame);
-assert(Py_REFCNT(%(context_identifier)s->m_frame) == 2); // Frame stack
-
-#if PYTHON_VERSION >= 0x340
-Nuitka_SetFrameGenerator(%(context_identifier)s->m_frame, (PyObject *)%(context_identifier)s);
-#endif
-
-assert(%(context_identifier)s->m_frame->m_frame.f_back == NULL);
-
-pushFrameStack(%(context_identifier)s->m_frame);
-
-// Taking a reference prevents reuse of generator frame while it is being used.
-Py_INCREF(%(context_identifier)s->m_frame->m_frame.f_back);
-
-#if PYTHON_VERSION >= 0x300
-// Store currently existing exception as the one to publish again when we
-// yield or yield from.
-STORE_%(generator_kind)s_EXCEPTION(%(context_identifier)s);
-#endif
-
-// Framed code:
-%(codes)s
-
-Nuitka_Frame_MarkAsNotExecuting(%(context_identifier)s->m_frame);
-
-#if PYTHON_VERSION >= 0x300
-// Release exception attached to the frame
-DROP_%(generator_kind)s_EXCEPTION(%(context_identifier)s);
-#endif
-
-// Allow re-use of the frame again.
-Py_DECREF(%(context_identifier)s->m_frame);
-goto %(no_exception_exit)s;
-"""
-
-
 # Coroutines and asyncgen do this
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
@@ -208,7 +182,6 @@ Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 #endif
 
-Py_DECREF(%(frame_identifier)s);
 goto %(return_exit)s;
 """
 
@@ -249,8 +222,6 @@ Py_CLEAR(EXC_VALUE_F(%(context_identifier)s));
 Py_CLEAR(EXC_TRACEBACK_F(%(context_identifier)s));
 #endif
 #endif
-
-Py_DECREF(%(frame_identifier)s);
 
 // Return the error.
 goto %(parent_exception_exit)s;

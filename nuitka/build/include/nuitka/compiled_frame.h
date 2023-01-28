@@ -225,9 +225,6 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject
     // Make sure it's healthy.
     assertFrameObject(frame_object);
 
-    // We don't allow frame objects where this is not true.
-    assert(frame_object->m_frame.f_back == NULL);
-
     // Look at current frame, "old" is the one previously active.
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -365,6 +362,25 @@ NUITKA_MAY_BE_UNUSED static PyObject **Nuitka_GetCodeVarNames(PyCodeObject *code
 
 // Attach locals to a frame object. TODO: Upper case, this is for generated code only.
 extern void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...);
+
+NUITKA_MAY_BE_UNUSED static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateFrame(PyThreadState *thread_state) {
+#if PYTHON_VERSION < 0x3b0
+    return thread_state->frame;
+#else
+    return thread_state->cframe->current_frame;
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGenerator(struct Nuitka_FrameObject *frame_object) {
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(thread_state);
+
+    // Put the generator back on the frame stack.
+    Py_XINCREF(return_frame);
+    pushFrameStack(frame_object);
+    Py_DECREF(frame_object);
+}
 
 // Codes used for type_description.
 #define NUITKA_TYPE_DESCRIPTION_NULL 'N'

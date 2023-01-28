@@ -274,6 +274,12 @@ class StatementsFrameBase(StatementsSequence):
     def hasStructureMember(self):
         """Does the frame have a structure associated, like e.g. generator objects need."""
 
+    def getStructureMember(self):
+        """Get the frame structure member code name, generator, coroutine, asyncgen."""
+        assert not self.hasStructureMember()
+
+        return None
+
 
 class StatementsFrameModule(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_MODULE"
@@ -358,14 +364,26 @@ class StatementsFrameGenerator(StatementsFrameGeneratorBase):
         def needsExceptionFramePreservation():
             return False
 
+    @staticmethod
+    def getStructureMember():
+        return "generator"
+
 
 class StatementsFrameCoroutine(StatementsFrameGeneratorBase):
     kind = "STATEMENTS_FRAME_COROUTINE"
 
     python_version_spec = ">= 0x350"
 
+    @staticmethod
+    def getStructureMember():
+        return "coroutine"
+
 
 class StatementsFrameAsyncgen(StatementsFrameGeneratorBase):
     kind = "STATEMENTS_FRAME_ASYNCGEN"
 
     python_version_spec = ">= 0x360"
+
+    @staticmethod
+    def getStructureMember():
+        return "asyncgen"

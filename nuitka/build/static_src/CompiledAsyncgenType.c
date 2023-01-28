@@ -298,12 +298,17 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
         PyThreadState *thread_state = PyThreadState_GET();
 
         // Put the asyncgen back on the frame stack.
-        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GeneratorPushFrame(thread_state, asyncgen->m_resume_frame);
-        asyncgen->m_resume_frame = NULL;
+        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(thread_state);
 
         // Consider it as running.
         if (asyncgen->m_status == status_Unused) {
             asyncgen->m_status = status_Running;
+            assert(asyncgen->m_resume_frame == NULL);
+        } else {
+            assert(asyncgen->m_resume_frame);
+            pushFrameStackGenerator((struct Nuitka_FrameObject *)asyncgen->m_resume_frame);
+
+            asyncgen->m_resume_frame = NULL;
         }
 
         // Continue the yielder function while preventing recursion.

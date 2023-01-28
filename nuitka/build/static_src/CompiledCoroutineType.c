@@ -341,14 +341,6 @@ static PyObject *Nuitka_YieldFromCoroutineInitial(struct Nuitka_CoroutineObject 
 
 static void Nuitka_SetStopIterationValue(PyObject *value);
 
-static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateFrame(PyThreadState *thread_state) {
-#if PYTHON_VERSION < 0x3b0
-    return thread_state->frame;
-#else
-    return thread_state->cframe->current_frame;
-#endif
-}
-
 // This function is called when sending a value or exception to be handled in the coroutine
 // Note:
 //   Exception arguments are passed for ownership and must be released before returning. The
@@ -396,12 +388,18 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
         PyThreadState *thread_state = PyThreadState_GET();
 
         // Put the coroutine back on the frame stack.
-        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GeneratorPushFrame(thread_state, coroutine->m_resume_frame);
-        coroutine->m_resume_frame = NULL;
+        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(thread_state);
 
         // Consider it as running.
         if (coroutine->m_status == status_Unused) {
             coroutine->m_status = status_Running;
+            assert(coroutine->m_resume_frame == NULL);
+
+        } else {
+            assert(coroutine->m_resume_frame);
+            pushFrameStackGenerator((struct Nuitka_FrameObject *)coroutine->m_resume_frame);
+
+            coroutine->m_resume_frame = NULL;
         }
 
         // Continue the yielder function while preventing recursion.
