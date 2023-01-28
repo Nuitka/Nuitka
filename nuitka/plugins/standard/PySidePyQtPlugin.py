@@ -1039,9 +1039,10 @@ Prefix = .
                 if top_package_name not in self.warned_about:
                     self.info(
                         """\
-Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' encountered, preventing
-its use. As a result an "ImportError" might be given at run time. Uninstall it for full compatible
-behavior with the uncompiled code to debug it."""
+Unwanted import of '%(unwanted)s' that conflicts with '%(binding_name)s' \
+encountered, preventing its inclusion. As a result an "ImportError" might \
+be given at run time. Uninstall the module it for fully compatible \
+behavior with the uncompiled code."""
                         % {
                             "unwanted": top_package_name,
                             "binding_name": self.binding_name,
