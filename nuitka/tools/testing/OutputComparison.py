@@ -133,6 +133,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
         if line.startswith("Nuitka:WARNING: Using very slow fallback for ordered sets"):
             continue
+        if line.startswith("Nuitka:WARNING: On Windows, support for input/output"):
+            continue
+        if line.startswith("Nuitka:WARNING:     Complex topic"):
+            continue
 
         if syntax_error_caret_re.match(line):
             continue
