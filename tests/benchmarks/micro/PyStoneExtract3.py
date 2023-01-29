@@ -23,10 +23,9 @@
 
 LOOPS = 50000
 
-class Record:
 
-    def __init__(self, PtrComp = None, Discr = 0, EnumComp = 0,
-                       IntComp = 0, StringComp = 0):
+class Record:
+    def __init__(self, PtrComp=None, Discr=0, EnumComp=0, IntComp=0, StringComp=0):
         self.PtrComp = PtrComp
         self.Discr = Discr
         self.EnumComp = EnumComp
@@ -34,8 +33,9 @@ class Record:
         self.StringComp = StringComp
 
     def copy(self):
-        return Record(self.PtrComp, self.Discr, self.EnumComp,
-                      self.IntComp, self.StringComp)
+        return Record(
+            self.PtrComp, self.Discr, self.EnumComp, self.IntComp, self.StringComp
+        )
 
 
 def Proc1(PtrParIn):
@@ -55,6 +55,7 @@ def Proc1(PtrParIn):
     NextRecord.PtrComp = None
     return PtrParIn
 
+
 def benchmark(loops):
     global PtrGlb
     global PtrGlbNext
@@ -63,6 +64,7 @@ def benchmark(loops):
 
     for i in xrange(loops):
         PtrGlb = Proc1(PtrGlb)
+
 
 if __name__ == "__main__":
     benchmark(LOOPS)

@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 
+
 def starImportFailure():
     from doctest import *
 
@@ -24,5 +25,6 @@ def starImportFailure():
         print("but it does not")
     except NameError:
         print("and it does")
+
 
 print("Star import needs to respect __all__", starImportFailure())

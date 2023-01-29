@@ -19,8 +19,11 @@
 #
 from __future__ import print_function
 
+import itertools
+
+
 class C(object):
-    def __init__(self, a,b,c,d,e,f):
+    def __init__(self, a, b, c, d, e, f):
         self.a = a
         self.b = b
         self.c = c
@@ -28,22 +31,25 @@ class C(object):
         self.e = e
         self.f = f
 
+
 def calledRepeatedly():
     # force frame
     C
 
     # This is supposed to make a call to a compiled method, which is
     # being optimized separately.
-# construct_begin
+    # construct_begin
     C("some", "random", "values", "to", "check", "call")
     C("some", "other", "values", "to", "check", "call")
     C("some", "new", "values", "to", "check", "call")
 
-# construct_alternative
+    # construct_alternative
     pass
+
+
 # construct_end
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

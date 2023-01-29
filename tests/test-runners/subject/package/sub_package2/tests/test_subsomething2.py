@@ -20,5 +20,6 @@
 
 from .. import SubSomething2
 
+
 def test_func():
     assert SubSomething2.calledByTest2() == (42, 2)

@@ -18,8 +18,10 @@
 #     limitations under the License.
 #
 
+
 def f1():
     yield 1, 2, 3
+
 
 def f2():
     yield 1, 2, 4
@@ -37,6 +39,7 @@ def comparer():
     for i in range(10000):
         # g1 == g2
         g1 == a
+
 
 if __name__ == "__main__":
     comparer()

@@ -20,5 +20,6 @@
 
 import package.Something
 
+
 def test_func():
     assert package.Something.calledByTest() == 42

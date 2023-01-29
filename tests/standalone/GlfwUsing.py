@@ -21,5 +21,4 @@
 
 import glfw
 
-
 # nuitka-skip-unless-imports: glfw

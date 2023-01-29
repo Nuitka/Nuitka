@@ -5,3 +5,5 @@
 print("Hello pyproject world!")
 
 import example1_package
+
+# isort:start

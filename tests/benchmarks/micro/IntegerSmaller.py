@@ -18,12 +18,14 @@
 #     limitations under the License.
 #
 
+
 def comparer():
     a = 3
     b = 4
 
     for i in range(100000):
         a < b
+
 
 if __name__ == "__main__":
     comparer()

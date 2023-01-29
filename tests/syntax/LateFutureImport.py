@@ -19,4 +19,7 @@
 # Not allowed to do future imports that are not the first statements of the
 # module.
 a = 1
+
+# isort:start
+
 from __future__ import print_function

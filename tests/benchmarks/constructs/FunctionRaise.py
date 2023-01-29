@@ -20,25 +20,31 @@
 
 from __future__ import print_function
 
+import itertools
+
 module_var = None
+
 
 def raisy():
     raise TypeError
+
 
 def calledRepeatedly(raisy):
     # Force a frame for now
     module_var
 
-# construct_begin
+    # construct_begin
     try:
         raisy()
     except TypeError:
         pass
-# construct_alternative
+    # construct_alternative
     pass
+
+
 # construct_end
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(raisy)
 

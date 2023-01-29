@@ -30,6 +30,7 @@ import os
 if os.getenv("NUITKA_TEST_USE_IT", "no") == "yes":
     print("Using ImportedButMaybeNotUsed module:")
     import ImportedButMaybeNotUsed
+
     print(ImportedButMaybeNotUsed)
 else:
     print("Not using ImportedButMaybeNotUsed module:")

@@ -27,17 +27,19 @@ LOOPS = 5000000
 __version__ = "1.1"
 
 
-Char1Glob = '\0'
-Char2Glob = '\0'
+Char1Glob = "\0"
+Char2Glob = "\0"
 
 BoolGlob = 0
+
 
 def Proc4():
     global Char2Glob
 
-    BoolLoc = Char1Glob == 'A'
+    BoolLoc = Char1Glob == "A"
     BoolLoc = BoolLoc or BoolGlob
-    Char2Glob = 'B'
+    Char2Glob = "B"
+
 
 def benchmark(loops):
     for i in xrange(loops):

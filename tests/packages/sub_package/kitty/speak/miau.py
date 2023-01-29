@@ -19,5 +19,6 @@
 #
 from __future__ import print_function
 
+
 def speak():
     print("miau")

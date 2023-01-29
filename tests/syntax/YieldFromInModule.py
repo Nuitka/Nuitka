@@ -16,4 +16,4 @@
 #     limitations under the License.
 #
 
-x = (yield from range(8))
+x = yield from range(8)

@@ -23,18 +23,21 @@ def f():
     a = "1"
     b = "2"
 
-    return f'r:{a!r} and a:{a!a} and s:{a!s}'
+    return f"r:{a!r} and a:{a!a} and s:{a!s}"
+
 
 print(f())
 
 # Empty f string fully optimized:
 def f():
-    return f''
+    return f""
+
 
 print(f())
 
 # Text only f string fully optimized:
 def f():
-    return f'some_text'
+    return f"some_text"
+
 
 print(f())

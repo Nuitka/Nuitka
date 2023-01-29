@@ -31,6 +31,7 @@
 from __future__ import print_function
 
 import sys
+
 # Python3 changed module name.
 if str is bytes:
     import Tkinter as tkinter

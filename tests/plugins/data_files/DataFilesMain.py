@@ -27,5 +27,9 @@ import data_files_package
 # nuitka-project: --user-package-configuration-file={MAIN_DIRECTORY}/test_case.nuitka-package.config.yml
 
 
-assert os.path.exists(os.path.join(os.path.dirname(data_files_package.__file__), "lala.txt"))
-assert os.path.exists(os.path.join(os.path.dirname(data_files_package.__file__), "sub_dir/lulu.txt"))
+assert os.path.exists(
+    os.path.join(os.path.dirname(data_files_package.__file__), "lala.txt")
+)
+assert os.path.exists(
+    os.path.join(os.path.dirname(data_files_package.__file__), "sub_dir/lulu.txt")
+)

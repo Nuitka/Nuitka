@@ -17,6 +17,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+
+
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
     def generator():
@@ -33,18 +36,17 @@ def calledRepeatedly():
     exc = GeneratorExit
 
     try:
-# construct_begin
+        # construct_begin
         throw(exc)
-# construct_alternative
+        # construct_alternative
         pass
-# construct_end
+    # construct_end
     except exc:
         pass
 
     return throw, exc
 
 
-import itertools
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

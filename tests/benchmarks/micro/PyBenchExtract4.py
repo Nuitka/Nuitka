@@ -42,5 +42,4 @@ def someFunction(rounds):
         x = c.c
 
 
-
-someFunction(100000);
+someFunction(100000)

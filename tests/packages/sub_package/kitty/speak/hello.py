@@ -17,9 +17,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-def speak():
-    print( "hello kitty" )
 
 # Test Issue#115, in recursing modules, this was misbehaving.
 import types
+
+
+def speak():
+    print("hello kitty")
+
+
 assert type(speak) == types.FunctionType
