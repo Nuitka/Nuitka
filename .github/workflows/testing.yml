@@ -50,6 +50,14 @@ jobs:
           python -m nuitka --module --show-scons --run tests/basics/EmptyModuleTest.py
           python -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
 
+      # This can be used to ssh into GitHub actions if debugging is needed.
+      # - uses: actions/checkout@v2
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
+      #   with:
+      #     ## limits ssh access and adds the ssh public keys of the listed GitHub users
+      #     limit-access-to-users: kayhayen
+
       - name: Run Nuitka test suite
         run: |
           python -m nuitka --version
