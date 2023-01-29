@@ -350,7 +350,7 @@ def isDebugPython():
     return hasattr(sys, "gettotalrefcount")
 
 
-def isPythonValidDigitValue(value):
+def _getFloatDigitBoundaryValue():
     if python_version < 0x270:
         bits_per_digit = 15
     elif python_version < 0x300:
@@ -358,10 +358,19 @@ def isPythonValidDigitValue(value):
     else:
         bits_per_digit = sys.int_info.bits_per_digit
 
-    boundary = (2**bits_per_digit) - 1
+    return (2**bits_per_digit) - 1
 
-    # Note:Digits in long objects do not use 2-complement, but a boolean sign.
-    return -boundary <= value <= boundary
+
+_float_digit_boundary = _getFloatDigitBoundaryValue()
+
+
+def isPythonValidDigitValue(value):
+    """Does the given value fit into a float digit.
+
+    Note: Digits in long objects do not use 2-complement, but a boolean sign.
+    """
+
+    return -_float_digit_boundary <= value <= _float_digit_boundary
 
 
 sizeof_clong = ctypes.sizeof(ctypes.c_long)
