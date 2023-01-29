@@ -3442,6 +3442,13 @@
     patterns:
       - 'data.bin'
 
+- module-name: 'textual'
+  implicit-imports:
+    - depends:
+      - 'pygments.lexers.css'
+      - 'textual.widget'
+      - 'textual.widgets._*'
+
 - module-name: 'thinc.backends.cblas'
   implicit-imports:
     - depends:
