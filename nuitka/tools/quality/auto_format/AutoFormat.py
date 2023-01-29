@@ -400,13 +400,13 @@ def _cleanupRstFmt(filename, effective_filename):
 
 
 warned_clang_format = False
-clang_format_path = None
+_clang_format_path = None
 
 
 def _getClangFormatPath():
     # Using global here, as this is really a singleton, in
     # the form of a module, pylint: disable=global-statement
-    global warned_clang_format, clang_format_path
+    global warned_clang_format, _clang_format_path
 
     # Do not try a second time.
     if warned_clang_format:
@@ -416,28 +416,28 @@ def _getClangFormatPath():
     for candidate in ".vscode", ".vscode-server":
         vs_code_extension_path = os.path.expanduser("~/%s/extensions" % candidate)
 
-        if not clang_format_path and os.path.exists(vs_code_extension_path):
+        if not _clang_format_path and os.path.exists(vs_code_extension_path):
             for extension_path, extension_filename in listDir(vs_code_extension_path):
                 if extension_filename.startswith("ms-vscode.cpptools-"):
                     with withEnvironmentPathAdded(
                         "PATH",
                         os.path.join(extension_path, "LLVM/bin"),
                     ):
-                        clang_format_path = getExecutablePath("clang-format")
+                        _clang_format_path = getExecutablePath("clang-format")
 
                     break
 
     # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
-    if not clang_format_path and isWin32OrPosixWindows():
+    if not _clang_format_path and isWin32OrPosixWindows():
         with withEnvironmentPathAdded(
             "PATH",
             r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
             r"C:\Program Files\LLVM\bin",
         ):
-            clang_format_path = getExecutablePath("clang-format")
+            _clang_format_path = getExecutablePath("clang-format")
 
-    if not clang_format_path:
-        clang_format_path = (
+    if not _clang_format_path:
+        _clang_format_path = (
             getExecutablePath("clang-format-16")
             or getExecutablePath("clang-format-15")
             or getExecutablePath("clang-format-14")
@@ -447,9 +447,9 @@ def _getClangFormatPath():
             or getExecutablePath("clang-format")
         )
 
-    if clang_format_path:
+    if _clang_format_path:
         try:
-            version_output = check_output([clang_format_path, "--version"])
+            version_output = check_output([_clang_format_path, "--version"])
 
             clang_version = int(version_output.split()[2].split(b".")[0])
 
@@ -464,13 +464,13 @@ the recommended extensions installed under your user, as that will then be used 
             general.warning(
                 "failed to execute clang-format version check: %s" % e.stderr
             )
-            clang_format_path = None
+            _clang_format_path = None
 
-    if not clang_format_path and not warned_clang_format:
+    if not _clang_format_path and not warned_clang_format:
         general.warning("Need to install LLVM for C files format.")
         warned_clang_format = True
 
-    return clang_format_path
+    return _clang_format_path
 
 
 def _cleanupClangFormat(filename):
@@ -494,7 +494,10 @@ def _cleanupClangFormat(filename):
 
 
 def _shouldNotFormatCode(filename):
-    parts = os.path.abspath(filename).split(os.path.sep)
+    # return driven with more cases than necessary to group things
+    # pylint:disable=too-many-return-statements
+
+    parts = os.path.normpath(filename).split(os.path.sep)
 
     if "inline_copy" in parts:
         # Our Scons runner should be formatted.
@@ -502,8 +505,9 @@ def _shouldNotFormatCode(filename):
             return False
 
         return True
-
     if "pybench" in parts or filename == "tests/benchmarks/pystone.py":
+        return True
+    if "tests" in parts and parts[1].startswith("CPython"):
         return True
     if ".dist/" in filename:
         return True
@@ -657,22 +661,23 @@ def autoFormatFile(
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
 
         elif is_c or is_cpp:
-            cleanupWindowsNewlines(tmp_filename, effective_filename)
             if not _shouldNotFormatCode(effective_filename):
+                cleanupWindowsNewlines(tmp_filename, effective_filename)
                 _cleanupClangFormat(tmp_filename)
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
         elif is_txt:
-            cleanupWindowsNewlines(tmp_filename, effective_filename)
-            _cleanupTrailingWhitespace(tmp_filename)
-            cleanupWindowsNewlines(tmp_filename, effective_filename)
-
-            if is_rst:
-                _cleanupRstFmt(tmp_filename, effective_filename)
-
-            if is_package_config_yaml:
-                formatYaml(tmp_filename)
+            if not _shouldNotFormatCode(effective_filename):
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
                 _cleanupTrailingWhitespace(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename, effective_filename)
+
+                if is_rst:
+                    _cleanupRstFmt(tmp_filename, effective_filename)
+
+                if is_package_config_yaml:
+                    formatYaml(tmp_filename)
+                    cleanupWindowsNewlines(tmp_filename, effective_filename)
+                    _cleanupTrailingWhitespace(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 
