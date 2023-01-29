@@ -878,6 +878,22 @@ to work."""
 Error, to compile a package, specify its directory but, not the '__init__.py'."""
             )
 
+    if (
+        isWin32Windows()
+        and 0x340 <= python_version < 0x380
+        and not shallDisableConsoleWindow()
+    ):
+        Tracing.general.warning(
+            """\
+On Windows, support for input/output on the console Windows, does \
+not work on non-UTF8 systems, unless Python 3.8 or higher is used \
+but this is %s, so please consider upgrading, or disabling the \
+console window for deployment.
+"""
+            % python_version_str,
+            mnemonic="old-python-windows-console",
+        )
+
 
 def isVerbose():
     """:returns: bool derived from ``--verbose``"""

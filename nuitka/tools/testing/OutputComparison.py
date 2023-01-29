@@ -133,6 +133,10 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
             continue
         if line.startswith("Nuitka:WARNING: Using very slow fallback for ordered sets"):
             continue
+        if line.startswith("Nuitka:WARNING: On Windows, support for input/output"):
+            continue
+        if line.startswith("Nuitka:WARNING:     Complex topic"):
+            continue
 
         if syntax_error_caret_re.match(line):
             continue
@@ -187,6 +191,10 @@ exceeded while calling a Python object' in \
 
         # This is a bug with clang potentially, can't find out why it says that.
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
+            continue
+
+        # This occurs if 32bit libs exist on a 64bit system.
+        if re.match(".*ld: skipping incompatible .* when searching for .*", line):
             continue
 
         # This is for NetBSD and OpenBSD, which seems to build "libpython" so
