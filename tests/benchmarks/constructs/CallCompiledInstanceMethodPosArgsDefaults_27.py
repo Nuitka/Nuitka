@@ -38,9 +38,7 @@ def calledRepeatedly():
     inst.compiled_method()
     # construct_alternative
     pass
-
-
-# construct_end
+    # construct_end
 
 
 for x in itertools.repeat(None, 50000):

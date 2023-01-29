@@ -29,9 +29,7 @@ def calledRepeatedly():
     return module_value2
     # construct_alternative
     return None
-
-
-# construct_end
+    # construct_end
 
 
 for x in itertools.repeat(None, 50000):

@@ -17,7 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from __future__ import print_function
 
 import itertools
@@ -40,9 +39,7 @@ def calledRepeatedly(raisy):
         pass
     # construct_alternative
     pass
-
-
-# construct_end
+    # construct_end
 
 
 for x in itertools.repeat(None, 50000):

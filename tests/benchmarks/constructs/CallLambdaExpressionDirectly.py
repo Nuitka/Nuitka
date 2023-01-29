@@ -31,7 +31,6 @@ def calledRepeatedly():
 
 # construct_end
 
-
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

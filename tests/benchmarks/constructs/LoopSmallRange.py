@@ -35,9 +35,7 @@ def calledRepeatedly():
     # construct_begin
     for x in range(local_value, local_value + 3):
         pass
-
-
-# construct_end
+    # construct_end
 
 
 for x in itertools.repeat(None, 50000):

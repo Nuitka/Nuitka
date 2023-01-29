@@ -40,7 +40,7 @@ def calledRepeatedly():
         throw(exc)
         # construct_alternative
         pass
-    # construct_end
+        # construct_end
     except exc:
         pass
 
