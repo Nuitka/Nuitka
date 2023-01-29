@@ -17,33 +17,35 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_value1 = 5
 
-additiv_global = u'*' * 500
+additiv_global = u"*" * 500
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
     # Make sure we have a local variable s anyway
-    s = u'2'
+    s = u"2"
 
     additiv = additiv_global
 
     s += additiv
-# construct_begin
-    s += u'lala'
-    s += u'lala'
-    s += u'lala'
-    s += u'lala'
-    s += u'lala'
-# construct_end
+    # construct_begin
+    s += u"lala"
+    s += u"lala"
+    s += u"lala"
+    s += u"lala"
+    s += u"lala"
+    # construct_end
     s += additiv
 
     return s
 
-import itertools
+
 for x in itertools.repeat(None, 5000):
     calledRepeatedly()
 

@@ -30,6 +30,8 @@ from __future__ import print_function
 
 # nuitka-project: --noinclude-custom-mode=pydoc:error
 
+# isort:start
+
 # To trigger DLL usage on non-Linux.
 import numpy.core.multiarray
 
@@ -43,9 +45,10 @@ except ImportError:
     print("didn't load numpy.random._bounded_integers")
     pass
 
-import numpy.lib.recfunctions
 
-a = numpy.zeros(4, dtype=[('a', 'i4'), ('b', 'f4,u2'), ('c', 'f4', 2)])
+import numpy.lib.recfunctions  # isort:skip
+
+a = numpy.zeros(4, dtype=[("a", "i4"), ("b", "f4,u2"), ("c", "f4", 2)])
 print("Another numpy usage", numpy.lib.recfunctions.structured_to_unstructured(a))
 
 print("OK.")

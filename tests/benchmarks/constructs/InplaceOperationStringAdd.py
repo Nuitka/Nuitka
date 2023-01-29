@@ -17,36 +17,38 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_value1 = 5
 
-additiv_global = '*' * 1000
+additiv_global = "*" * 1000
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
     # Make sure we have a local variable s anyway
-    s = '2'
+    s = "2"
 
     # Add an unknown, making 's' an unknown.
     additiv = additiv_global
     s += additiv
 
-# construct_begin
+    # construct_begin
     s += additiv
     s += additiv
     s += additiv
     s += additiv
     s += additiv
-# construct_end
+    # construct_end
 
     # Prevent optimization into direct return.
     s += additiv
 
     return s
 
-import itertools
+
 for x in itertools.repeat(None, 10000):
     calledRepeatedly()
 

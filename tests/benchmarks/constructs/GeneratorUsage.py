@@ -17,7 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
+import itertools
 
 
 def calledRepeatedly():
@@ -30,13 +30,13 @@ def calledRepeatedly():
     gen = generator()
 
     x = next(gen)
-# construct_begin
+    # construct_begin
     next(gen)
-# construct_end
+    # construct_end
 
     return x
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

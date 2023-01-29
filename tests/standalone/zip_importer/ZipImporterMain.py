@@ -19,11 +19,16 @@
 #
 # nuitka-project: --standalone
 # nuitka-project: --include-data-file={MAIN_DIRECTORY}/for_import.zip=for_import.zip
-import sys, os
+
+# isort:start
+
+import os
+import sys
 
 zip_filename = os.path.join(os.path.dirname(__file__) or ".", "for_import.zip")
 
 assert os.path.exists(zip_filename)
 sys.path.insert(0, zip_filename)
 
-import zip_module
+# Import after it can work now.
+import zip_module  # isort:skip

@@ -24,10 +24,12 @@ When this import works, locales are there.
 
 # nuitka-project: --standalone
 
+# nuitka-skip-unless-imports: pendulum.locales
+
 from __future__ import print_function
 
-import pendulum.locales
+# isort:start
 
-# nuitka-skip-unless-imports: pendulum.locales
+import pendulum.locales
 
 print("OK")

@@ -19,6 +19,8 @@
 #
 """ Package to be compiled. """
 
+
 def runtest():
     import nose
+
     nose.run("package", "package")

@@ -29,6 +29,7 @@ import sys
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
 # isort:start
+
 from nuitka.tools.release.debian_mentors.__main__ import main
 
 main()

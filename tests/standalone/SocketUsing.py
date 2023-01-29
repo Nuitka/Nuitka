@@ -25,9 +25,11 @@ import signal
 import socket
 import sys
 
+
 # Set up a timeout, seems to happen that below call stalls.
 def onTimeout(_signum, _frame):
     sys.exit(0)
+
 
 # Not available on Windows, but there we didn't see the problem anyway,
 # not going to make this use threading for now.

@@ -17,8 +17,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
-not_all = [1,1,1,1,1,1,1,1,0,1]
+not_all = [1, 1, 1, 1, 1, 1, 1, 1, 0, 1]
+
 
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
@@ -28,16 +30,16 @@ def calledRepeatedly():
     x = next(gen)
 
     # This should abort.
-# construct_begin
+    # construct_begin
     all(gen)
-# construct_end
+    # construct_end
 
     # make sure it is still running.
     y = next(gen)
 
     return x, y
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

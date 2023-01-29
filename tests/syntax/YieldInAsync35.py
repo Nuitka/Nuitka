@@ -16,5 +16,4 @@
 #     limitations under the License.
 #
 async def g():
-   yield from None
-
+    yield from None

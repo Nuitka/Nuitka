@@ -17,6 +17,6 @@
 #
 print("Child2:", __name__)
 
-from . import Child1
+from . import Child1  # isort:skip
 
 print("Value of Child1", Child1.__name__)

@@ -17,26 +17,29 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_value1 = 5
+
 
 class C:
     def __init__(self):
 
-        self.s = '2' * 100000
+        self.s = "2" * 100000
 
     def increment(self):
-        additiv = '*' * 1000
+        additiv = "*" * 1000
 
-# construct_begin
+        # construct_begin
         self.s += additiv
         self.s += additiv
         self.s += additiv
         self.s += additiv
         self.s += additiv
-# construct_end
+        # construct_end
 
         return additiv
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
@@ -46,7 +49,7 @@ def calledRepeatedly():
 
     local_value.increment()
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

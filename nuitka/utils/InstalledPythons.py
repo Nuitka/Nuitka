@@ -20,9 +20,7 @@
 import os
 import sys
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    WindowsError,
-)
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version_str
 

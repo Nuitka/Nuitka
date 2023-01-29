@@ -20,11 +20,14 @@
 
 import os
 
+
 def f1(a):
     pass
 
+
 def f2(a, b, c):
     pass
+
 
 def comparer():
     # This enables tracing in a custom build of mine.
@@ -34,7 +37,8 @@ def comparer():
 
     for i in range(100000):
         # g1 == g2
-        f1(f2 (os.path, os.unlink, os.rename))
+        f1(f2(os.path, os.unlink, os.rename))
+
 
 if __name__ == "__main__":
     comparer()

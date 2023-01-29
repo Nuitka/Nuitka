@@ -19,7 +19,6 @@
 #
 
 
-
 def someFunction():
     def someRaiser():
         raise ValueError
@@ -32,11 +31,13 @@ def someFunction():
 
     return a
 
+
 def catcher():
     for i in range(1000):
         try:
             someFunction()
         except ValueError:
             pass
+
 
 catcher()

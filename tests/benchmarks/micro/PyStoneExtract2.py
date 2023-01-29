@@ -26,12 +26,13 @@ from time import clock
 LOOPS = 5000000
 __version__ = "1.1"
 
-Char1Glob = 'A'
+Char1Glob = "A"
 IntGlob = 8
 
 Ident1 = "lalala"
 
 count = 0
+
 
 def Proc2(IntParIO):
     global count
@@ -40,7 +41,7 @@ def Proc2(IntParIO):
     while 1:
         count += 1
 
-        if Char1Glob == 'A':
+        if Char1Glob == "A":
             IntLoc = IntLoc - 1
             IntParIO = IntLoc - IntGlob
             EnumLoc = Ident1
@@ -48,9 +49,11 @@ def Proc2(IntParIO):
             break
     return IntParIO
 
+
 def benchmark(loops):
     for i in xrange(loops):
         Proc2(17)
+
 
 if __name__ == "__main__":
     benchmark(LOOPS)

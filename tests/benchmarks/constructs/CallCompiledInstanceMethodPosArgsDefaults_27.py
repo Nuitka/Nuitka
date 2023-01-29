@@ -19,24 +19,30 @@
 #
 from __future__ import print_function
 
+import itertools
+
+
 class C:
-    def compiled_method(self, a = 1, b = 2,c = 3,d = 4,e = 5,f = 6):
+    def compiled_method(self, a=1, b=2, c=3, d=4, e=5, f=6):
         return a, b, c, d, e, f
+
 
 def calledRepeatedly():
     inst = C()
 
     # This is supposed to make a call to a compiled method, which is
     # being optimized separately.
-# construct_begin
+    # construct_begin
     inst.compiled_method()
     inst.compiled_method()
     inst.compiled_method()
-# construct_alternative
+    # construct_alternative
     pass
+
+
 # construct_end
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

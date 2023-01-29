@@ -17,8 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 import package.Something
+
 
 def test_func():
     assert package.Something.calledByTest() == 42

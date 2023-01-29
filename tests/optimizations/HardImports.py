@@ -17,8 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys
 import os
+import sys
 
 
 def sysAttributes():
@@ -30,6 +30,7 @@ def sysAttributes():
         sys.platform,
         sys.maxsize,
     )
+
 
 def osAttributes():
     return os.name

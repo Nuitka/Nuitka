@@ -18,4 +18,4 @@
 #     limitations under the License.
 #
 
-print(1 if [1,2] else 2)
+print(1 if [1, 2] else 2)

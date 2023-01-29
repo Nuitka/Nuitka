@@ -17,25 +17,28 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+import sys
+
 module_value1 = "1000"
 module_value2 = "2000"
 
-import sys
+
 loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
+
 
 def calledRepeatedly(value1, value2):
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
-# construct_begin
+    # construct_begin
     if value1 == value2:
         return
-# construct_end
+    # construct_end
 
     return value1, value2
 
 
-import itertools
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(module_value1, module_value2)
 

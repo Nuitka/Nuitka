@@ -19,14 +19,19 @@
 #
 from __future__ import print_function
 
+import itertools
+
+
 def calledRepeatedly():
-# construct_begin
-    return (lambda x : x)(7)
-# construct_alternative
+    # construct_begin
+    return (lambda x: x)(7)
+    # construct_alternative
     return 7
+
+
 # construct_end
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

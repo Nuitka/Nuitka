@@ -19,6 +19,7 @@
 #
 import os
 
+
 class Class3(object):
     pass
 

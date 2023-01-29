@@ -31,9 +31,9 @@ Virtualenv is used to create a clean environment with no outside pollution.
 
 """
 
+import json
 import os
 import sys
-import json
 
 # Find nuitka package relative to us.
 sys.path.insert(

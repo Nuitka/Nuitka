@@ -17,9 +17,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+
 module_value1 = 1000
 module_value2 = None
 module_value3 = None
+
 
 def calledRepeatedly():
     closure_value = module_value1
@@ -31,15 +34,15 @@ def calledRepeatedly():
         # Use writing to global variable as access method.
         global module_value2, module_value3
 
-# construct_begin
+        # construct_begin
         module_value2 = closure_value
-# construct_end
+        # construct_end
 
         module_value3 = closure_value
 
     f()
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

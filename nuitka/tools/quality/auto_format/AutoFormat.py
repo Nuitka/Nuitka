@@ -59,6 +59,30 @@ from nuitka.utils.Utils import isWin32OrPosixWindows
 
 from .YamlFormatter import formatYaml
 
+# black no longer supports Python 2 syntax, and sometimes removes import
+# parts of syntax used in tests
+BLACK_SKIP_LIST = [
+    "tests/basics/ClassesTest.py",
+    "tests/basics/ExecEvalTest.py",
+    "tests/basics/HelloWorldTest_2.py",
+    "tests/basics/OverflowFunctionsTest_2.py",
+    "tests/basics/PrintingTest_2.py",
+    "tests/benchmarks/binary-trees.py",
+    "tests/benchmarks/comparisons/GeneratorFunctionVsGeneratorExpression.py",
+    "tests/benchmarks/constructs/InplaceOperationUnicodeAdd_27.py",
+    "tests/benchmarks/constructs/RichComparisonConditionStrings.py",
+    "tests/programs/syntax_errors/IndentationErroring.py",
+    "tests/syntax/ClosureDel_2.py",
+    "tests/syntax/ExecWithNesting_2.py",
+    "tests/syntax/IndentationError.py",
+    "tests/syntax/StarImportExtra.py",
+    "tests/syntax/SyntaxError.py",
+    "tests/type_inference/Test1.py",
+    "tests/type_inference/Test2.py",
+    "tests/type_inference/Test3.py",
+    "tests/type_inference/Test4.py",
+]
+
 
 def cleanupWindowsNewlines(filename, effective_filename):
     """Remove Windows new-lines from a file.
@@ -292,14 +316,12 @@ def _cleanupImportSortOrder(filename, effective_filename):
         + [
             "-q",  # quiet, but stdout is still garbage
             "--overwrite-in-place",  # avoid using another temp file, this is already on one.
-            "-ot",  # Order imports by type in addition to alphabetically
-            "-m3",  # "vert-hanging"
-            "-tc",  # Trailing commas
-            "-p",  # make sure nuitka is first party package in import sorting.
-            "nuitka",
+            "--order-by-type",  # Order imports by type in addition to alphabetically
+            "--multi-line=VERTICAL_HANGING_INDENT",
+            "--trailing-comma",
+            "--project=nuitka",  # make sure nuitka is first party package in import sorting.
             "--float-to-top",  # move imports to start
-            "-o",
-            "SCons",
+            "--thirdparty=SCons",
             filename,
         ],
         stdout=getNullOutput(),
@@ -480,26 +502,14 @@ def _shouldNotFormatCode(filename):
             return False
 
         return True
-    elif (
-        "tests" in parts
-        and "basics" not in parts
-        and "programs" not in parts
-        and "commercial" not in parts
-        and "distutils" not in parts
-    ):
-        return parts[-1] not in (
-            "run_all.py",
-            "setup.py",
-            "compile_itself.py",
-            "update_doctest_generated.py",
-            "compile_itself.py",
-            "compile_python_modules.py",
-            "compile_extension_modules.py",
-        )
-    elif parts[-1] in ("incbin.h", "hedley.h"):
+
+    if "pybench" in parts or filename == "tests/benchmarks/pystone.py":
         return True
-    else:
-        return False
+    if ".dist/" in filename:
+        return True
+    if parts[-1] in ("incbin.h", "hedley.h"):
+        return True
+    return False
 
 
 def _transferBOM(source_filename, target_filename):
@@ -632,9 +642,18 @@ def autoFormatFile(
                 _cleanupImportSortOrder(tmp_filename, effective_filename)
                 _cleanupPyLintComments(tmp_filename, effective_filename)
 
-                black_call = _getPythonBinaryCall("black")
+                if effective_filename not in BLACK_SKIP_LIST:
+                    black_call = _getPythonBinaryCall("black")
 
-                subprocess.call(black_call + ["-q", "--fast", tmp_filename])
+                    try:
+                        check_call(black_call + ["-q", "--fast", tmp_filename])
+                    except Exception:
+                        print(
+                            "please add black failure to AutoFormat.py",
+                            effective_filename,
+                        )
+                        raise
+
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
 
         elif is_c or is_cpp:
@@ -657,28 +676,24 @@ def autoFormatFile(
 
         _transferBOM(filename, tmp_filename)
 
-        changed = False
-        if old_code != getFileContents(tmp_filename, "rb"):
+    changed = old_code != getFileContents(tmp_filename, "rb")
 
-            if check_only:
-                my_print("%s: FAIL." % filename, style="red")
-            else:
-                if trace:
-                    my_print("Updated %s." % filename)
+    if changed:
+        if check_only:
+            my_print("%s: FAIL." % filename, style="red")
+        else:
+            if trace:
+                my_print("Updated %s." % filename)
 
-                with withPreserveFileMode(filename):
-                    if git_stage:
-                        new_hash_value = putFileHashContent(tmp_filename)
-                        updateFileIndex(git_stage, new_hash_value)
-                        updateWorkingFile(
-                            filename, git_stage["dst_hash"], new_hash_value
-                        )
-                    else:
-                        copyFile(tmp_filename, filename)
+            with withPreserveFileMode(filename):
+                if git_stage:
+                    new_hash_value = putFileHashContent(tmp_filename)
+                    updateFileIndex(git_stage, new_hash_value)
+                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+                else:
+                    copyFile(tmp_filename, filename)
 
-            changed = True
-
-        return changed
+    return changed
 
 
 @contextlib.contextmanager

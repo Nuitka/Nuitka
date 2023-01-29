@@ -17,25 +17,24 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+
 module_value1 = 1000
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
-# construct_begin
-    l = [
-        x
-        for x in
-        range(7)
-    ]
-# construct_alternative
+    # construct_begin
+    l = [x for x in range(7)]
+    # construct_alternative
     l = 1
-# construct_end
+    # construct_end
 
     return l, x
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 
