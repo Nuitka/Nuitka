@@ -2871,6 +2871,24 @@
           - 'dll'
       when: 'win32 and arch_x86'
 
+- module-name: 'sounddevice'
+  dlls:
+    - from_filenames:
+        relative_path: '_sounddevice_data/portaudio-binaries'
+        prefixes:
+          - 'libportaudio64bit'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: '_sounddevice_data/portaudio-binaries'
+        prefixes:
+          - 'libportaudio32bit'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: '_sounddevice_data/portaudio-binaries'
+        prefixes:
+          - 'libportaudio'
+      when: 'macos'
+
 - module-name: 'sparse'
   options:
     checks:
