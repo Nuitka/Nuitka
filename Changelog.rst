@@ -10,6 +10,52 @@ Nuitka blog.
  Nuitka Release 1.5 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Standalone: Added implicit dependencies for ``charset_normalizer``
+   package. Fixed in 1.4.1 already.
+
+-  Standalone: Added platform DLLs for ``sounddevice`` package. Fixed in
+   1.4.1 already.
+
+-  Plugins: The info from Qt bindings about other Qt bindings being
+   suppressed for import, was spawning multiple lines, breaking tests.
+   Merged to a single line until we do text wrap for info messages as
+   well. Fixed in 1.4.1 already.
+
+-  Plugins: Fix ``removeDllDependencies`` was broken and could not
+   longer be used to remove DLLs from inclusion. Fixed in 1.4.1 already.
+
+-  Tests: Ignore ld info output about mismatching architecture libraries
+   being ignored. Fixed in 1.4.1 already.
+
+Organisational
+==============
+
+-  Windows: Using the console on Python 3.4 to 3.7 is not working very
+   well with e.g. many Asian systems. Nuitka fails to setup the encoding
+   for stdin and stdout or this platform. It can then produce exceptions
+   on input or output of unicode data, that doesn't overlap with UTF-8.
+
+   We now inform the user of these older Python with a warning and
+   mnemonic, to either disable the console or to upgrade to Python 3.8
+   or higher, which normally won't be much of an issue for most users.
+   Added in 1.4.1 already.
+
+-  Debugging: Fixup debugging reference count output with Python3.4. For
+   Python 3.11 compatibility tests, actually it was useful to compare
+   with a version that doesn't have coroutines yet. Never tell me,
+   supporting old versions is not good.
+
+-  Deprecating support for Python 3.3, there is no apparent use of this
+   version, and it has gained specific bugs, that are indeed not worth
+   our time. Python 2.6 and Python 2.7 will continue to be supported
+   probably indefinitely.
+
+Summary
+=======
+
 This release is not done yet.
 
 ********************
