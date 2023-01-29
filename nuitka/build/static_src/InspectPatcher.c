@@ -223,8 +223,6 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
 
         bool bool_res = Nuitka_DelModuleString("nuitka_types_patch");
         assert(bool_res != false);
-
-        Py_DECREF(module);
     }
 
 #endif
