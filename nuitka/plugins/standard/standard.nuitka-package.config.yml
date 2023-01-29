@@ -211,6 +211,11 @@
     - depends:
         - 'chainer.distributions.utils'
 
+- module-name: 'charset_normalizer'
+  implicit-imports:
+    - depends:
+        - 'charset_normalizer.md__mypyc'
+
 - module-name: 'clr'
   dlls:
     - from_filenames:
@@ -769,6 +774,11 @@
   implicit-imports:
     - depends:
         - '_cffi_backend'
+
+- module-name: 'IPython.core.oinspect'
+  implicit-imports:
+    - depends:
+        - 'pygments.lexers.python'
 
 - module-name: 'jaraco.text'
   data-files:
@@ -2860,6 +2870,42 @@
         suffixes:
           - 'dll'
       when: 'win32 and arch_x86'
+
+- module-name: 'sounddevice'
+  dlls:
+    - from_filenames:
+        relative_path: '_sounddevice_data/portaudio-binaries'
+        prefixes:
+          - 'libportaudio64bit'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: '_sounddevice_data/portaudio-binaries'
+        prefixes:
+          - 'libportaudio32bit'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: '_sounddevice_data/portaudio-binaries'
+        prefixes:
+          - 'libportaudio'
+      when: 'macos'
+
+- module-name: 'soundfile'
+  dlls:
+    - from_filenames:
+        relative_path: '_soundfile_data'
+        prefixes:
+          - 'libsndfile64bit'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: '_soundfile_data'
+        prefixes:
+          - 'libsndfile32bit'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: '_soundfile_data'
+        prefixes:
+          - 'libsndfile'
+      when: 'macos'
 
 - module-name: 'sparse'
   options:

@@ -349,6 +349,7 @@ static void unsetenv(char const *name) { SetEnvironmentVariableA(name, NULL); }
 static void PRINT_REFCOUNTS(void) {
     PRINT_STRING("REFERENCE counts at program end:\n");
     PRINT_STRING("active | allocated | released\n");
+#if PYTHON_VERSION >= 0x350
     PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
                  count_allocated_Nuitka_Coroutine_Type, count_released_Nuitka_Coroutine_Type);
     PRINT_FORMAT("Compiled Coroutines Wrappers: %d | %d | %d\n", count_active_Nuitka_CoroutineWrapper_Type,
@@ -356,6 +357,7 @@ static void PRINT_REFCOUNTS(void) {
 
     PRINT_FORMAT("Compiled Coroutines AIter Wrappers: %d | %d | %d\n", count_active_Nuitka_AIterWrapper_Type,
                  count_allocated_Nuitka_AIterWrapper_Type, count_released_Nuitka_AIterWrapper_Type);
+#endif
 #if PYTHON_VERSION >= 0x360
     PRINT_FORMAT("Compiled Asyncgen: %d | %d | %d\n", count_active_Nuitka_Asyncgen_Type,
                  count_allocated_Nuitka_Asyncgen_Type, count_released_Nuitka_Asyncgen_Type);
