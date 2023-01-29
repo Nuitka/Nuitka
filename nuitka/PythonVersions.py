@@ -48,6 +48,14 @@ def getPartiallySupportedPythonVersions():
     return ()
 
 
+def getTestExecutionPythonVersions():
+    return (
+        getSupportedPythonVersions()
+        + getPartiallySupportedPythonVersions()
+        + getNotYetSupportedPythonVersions()
+    )
+
+
 # Make somewhat sure we keep these ones consistent
 assert len(
     set(

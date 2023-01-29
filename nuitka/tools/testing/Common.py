@@ -32,11 +32,7 @@ from contextlib import contextmanager
 from optparse import OptionParser
 
 from nuitka.__past__ import subprocess
-from nuitka.PythonVersions import (
-    getPartiallySupportedPythonVersions,
-    getSupportedPythonVersions,
-    isDebugPython,
-)
+from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
@@ -364,6 +360,10 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("310.py") and _python_version < (3, 10):
         return False
 
+    # Skip tests that require Python 3.10 at least.
+    if filename.endswith("311.py") and _python_version < (3, 11):
+        return False
+
     return True
 
 
@@ -379,6 +379,7 @@ def decideNeeds2to3(filename):
             "38.py",
             "39.py",
             "310.py",
+            "311.py",
         )
     )
 
@@ -1657,7 +1658,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
 
         # Accessing the versioned Python3.x binary is also happening.
         if loaded_filename in (
-            "/usr/bin/python3." + version for version in ("5", "6", "7", "8", "9", "10")
+            "/usr/bin/python." + version for version in getTestExecutionPythonVersions()
         ):
             continue
 
@@ -1688,6 +1689,10 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             _python_version[0],
             _python_version[1],
         )
+
+        # TODO: These must all go away, we should not compile from Debian packages at all,
+        # it is warned against, and it really don't matter what wrong files that accesses
+        # or not.
 
         # PySide accesses its directory.
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
@@ -1725,9 +1730,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
         if loaded_basename in (
             "python%s" + supported_version
-            for supported_version in (
-                getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
-            )
+            for supported_version in getTestExecutionPythonVersions()
         ):
             continue
 
@@ -1877,7 +1880,7 @@ def getLocalWebServerDir(base_dir):
     web_dir = os.path.join(getTempDir(), "local-web-server", base_dir)
 
     if _web_server_process is None:
-        web_server_directory_supporting_pythons = ("3.10", "3.9", "3.8", "3.7")
+        web_server_directory_supporting_pythons = ("3.11", "3.10", "3.9", "3.8", "3.7")
 
         web_server_python = findInstalledPython(
             python_versions=web_server_directory_supporting_pythons,
