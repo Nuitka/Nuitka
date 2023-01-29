@@ -33,3 +33,5 @@ assert os.path.exists(
 assert os.path.exists(
     os.path.join(os.path.dirname(data_files_package.__file__), "sub_dir/lulu.txt")
 )
+
+print("OK.")
