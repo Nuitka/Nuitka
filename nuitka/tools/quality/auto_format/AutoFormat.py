@@ -378,6 +378,77 @@ def _cleanupRstFmt(filename, effective_filename):
 
 
 warned_clang_format = False
+clang_format_path = None
+
+
+def _getClangFormatPath():
+    # Using global here, as this is really a singleton, in
+    # the form of a module, pylint: disable=global-statement
+    global warned_clang_format, clang_format_path
+
+    # Do not try a second time.
+    if warned_clang_format:
+        return None
+
+    # Search Visual Code C++ extension for LLVM path.
+    for candidate in ".vscode", ".vscode-server":
+        vs_code_extension_path = os.path.expanduser("~/%s/extensions" % candidate)
+
+        if not clang_format_path and os.path.exists(vs_code_extension_path):
+            for extension_path, extension_filename in listDir(vs_code_extension_path):
+                if extension_filename.startswith("ms-vscode.cpptools-"):
+                    with withEnvironmentPathAdded(
+                        "PATH",
+                        os.path.join(extension_path, "LLVM/bin"),
+                    ):
+                        clang_format_path = getExecutablePath("clang-format")
+
+                    break
+
+    # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
+    if not clang_format_path and isWin32OrPosixWindows():
+        with withEnvironmentPathAdded(
+            "PATH",
+            r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
+            r"C:\Program Files\LLVM\bin",
+        ):
+            clang_format_path = getExecutablePath("clang-format")
+
+    if not clang_format_path:
+        clang_format_path = (
+            getExecutablePath("clang-format-16")
+            or getExecutablePath("clang-format-15")
+            or getExecutablePath("clang-format-14")
+            or getExecutablePath("clang-format-13")
+            or getExecutablePath("clang-format-12")
+            or getExecutablePath("clang-format-12")
+            or getExecutablePath("clang-format")
+        )
+
+    if clang_format_path:
+        try:
+            version_output = check_output([clang_format_path, "--version"])
+
+            clang_version = int(version_output.split()[2].split(b".")[0])
+
+            if clang_version < 12:
+                general.warning(
+                    """\
+You need to install clang-format version 12 or higher. Easiest is to have Visual Code with
+the recommended extensions installed under your user, as that will then be used by default.
+"""
+                )
+        except NuitkaCalledProcessError as e:
+            general.warning(
+                "failed to execute clang-format version check: %s" % e.stderr
+            )
+            clang_format_path = None
+
+    if not clang_format_path and not warned_clang_format:
+        general.warning("Need to install LLVM for C files format.")
+        warned_clang_format = True
+
+    return clang_format_path
 
 
 def _cleanupClangFormat(filename):
@@ -387,44 +458,7 @@ def _cleanupClangFormat(filename):
         filename: What file to re-format.
     """
 
-    # Using global here, as this is really a singleton, in
-    # the form of a module, pylint: disable=global-statement
-    global warned_clang_format
-
-    clang_format_path = (
-        getExecutablePath("clang-format-12")
-        or getExecutablePath("clang-format-12")
-        or getExecutablePath("clang-format-11")
-        or getExecutablePath("clang-format-10")
-        or getExecutablePath("clang-format-9")
-        or getExecutablePath("clang-format-8")
-        or getExecutablePath("clang-format-7")
-        or getExecutablePath("clang-format")
-    )
-
-    # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
-    if not clang_format_path and isWin32OrPosixWindows():
-        with withEnvironmentPathAdded(
-            "PATH",
-            r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
-            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin",
-            r"C:\Program Files\LLVM\bin",
-        ):
-            clang_format_path = getExecutablePath("clang-format")
-
-    # Search Visual Code C++ extension for LLVM path.
-    if not clang_format_path:
-        for extension_path, extension_filename in listDir(
-            os.path.expanduser("~/.vscode-server/extensions")
-        ):
-            if extension_filename.startswith("ms-vscode.cpptools-"):
-                with withEnvironmentPathAdded(
-                    "PATH",
-                    os.path.join(extension_path, "LLVM/bin"),
-                ):
-                    clang_format_path = getExecutablePath("clang-format")
-
-                break
+    clang_format_path = _getClangFormatPath()
 
     if clang_format_path:
         subprocess.call(
@@ -435,10 +469,6 @@ def _cleanupClangFormat(filename):
                 filename,
             ]
         )
-    else:
-        if not warned_clang_format:
-            general.warning("Need to install LLVM for C files format.")
-            warned_clang_format = True
 
 
 def _shouldNotFormatCode(filename):
