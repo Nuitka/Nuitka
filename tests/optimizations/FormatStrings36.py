@@ -17,7 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # Format string with local compile time constants fully optimized:
 def f():
     a = "1"

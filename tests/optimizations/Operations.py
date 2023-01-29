@@ -17,7 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # This test is SPECIAL. Everything in here, MUST be statically optimized,
 # and be a print of a constant, or a function that becomes a return value
 # that is constant.
@@ -59,7 +58,7 @@ def inplaceOperationProduct():
     return x
 
 
-def inplaceOperationExponentiate():
+def inplaceOperationPower():
     x = 2
     x **= 2
     return x
@@ -72,7 +71,7 @@ def inplaceOperationDecrement():
 
 
 #     x //= 5
-def inplaceOperationFloorDivison():
+def inplaceOperationFloorDivision():
     x = 2
     x //= 5
     return x
@@ -102,7 +101,7 @@ def inplaceOperationXor():
     return x
 
 
-def inplaceOperationDivison():
+def inplaceOperationDivision():
     x = 2
     x /= 2
     return x
