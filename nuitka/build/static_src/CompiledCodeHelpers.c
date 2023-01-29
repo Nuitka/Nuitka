@@ -1754,7 +1754,7 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
     return (wchar_t const *)binary_directory;
 }
 
-#if defined(_WIN32) && PYTHON_VERSION < 0x300
+#if defined(_WIN32)
 char const *getBinaryDirectoryHostEncoded(void) {
     static char *binary_directory = NULL;
 
@@ -2000,7 +2000,7 @@ void _initBuiltinOriginalValues(void) {
 #endif
 
 // Used for threading.
-#if PYTHON_VERSION >= 0x300 && !defined(NUITKA_USE_PYCORE_THREADSTATE)
+#if PYTHON_VERSION >= 0x300 && !defined(NUITKA_USE_PYCORE_THREAD_STATE)
 volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
 
