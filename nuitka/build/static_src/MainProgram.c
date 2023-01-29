@@ -101,14 +101,127 @@ static void prepareFrozenModules(void) {
 }
 #endif
 
+#if SYSFLAG_NO_RANDOMIZATION == 1 || SYSFLAG_UNBUFFERED == 1 || defined(_NUITKA_STANDALONE)
+
+#if defined(_WIN32)
+#define environment_char_t wchar_t
+
+static environment_char_t const *getEnvironmentVariable(environment_char_t const *name) {
+    // Max size for environment variables according to docs.
+    wchar_t buffer[32768];
+    buffer[0] = 0;
+
+    // Size must be in bytes apparently, not in characters. Cannot be larger anyway.
+    DWORD res = GetEnvironmentVariableW(name, buffer, 65536);
+
+    if (res == 0 || res > sizeof(buffer)) {
+        return NULL;
+    }
+
+    return wcsdup(buffer);
+}
+
+static void setEnvironmentVariable(environment_char_t const *name, environment_char_t const *value) {
+    DWORD res = SetEnvironmentVariableW(name, value);
+
+    assert(res != 0);
+}
+
+static void unsetEnvironmentVariable(environment_char_t const *name) {
+    DWORD res = SetEnvironmentVariableW(name, NULL);
+
+    assert(res != 0);
+}
+
+#define makeEnvironmentLiteral(x) L##x
+
+#else
+#define environment_char_t char
+
+#define makeEnvironmentLiteral(x) x
+
+static environment_char_t const *getEnvironmentVariable(environment_char_t const *name) { return getenv(name); }
+
+static void setEnvironmentVariable(environment_char_t const *name, environment_char_t const *value) {
+    setenv(name, value, 1);
+}
+
+static void unsetEnvironmentVariable(environment_char_t const *name) { unsetenv(name); }
+
+#endif
+
+static void undoEnvironmentVariable(environment_char_t const *variable_name, environment_char_t const *old_value) {
+    PyObject *os_module = IMPORT_HARD_OS();
+    CHECK_OBJECT(os_module);
+
+    PyObject *os_environ = PyObject_GetAttrString(os_module, "environ");
+    CHECK_OBJECT(os_environ);
+
+#ifdef _WIN32
+    PyObject *variable_name_str = NuitkaUnicode_FromWideChar(variable_name, -1);
+#else
+    PyObject *variable_name_str = Nuitka_String_FromString(variable_name);
+#endif
+    CHECK_OBJECT(variable_name_str);
+
+    if (old_value) {
+        setEnvironmentVariable(variable_name, old_value);
+
+#ifdef _WIN32
+        PyObject *env_value = NuitkaUnicode_FromWideChar(old_value, -1);
+#else
+        PyObject *env_value = Nuitka_String_FromString(old_value);
+#endif
+        CHECK_OBJECT(env_value);
+
+        int res = PyObject_SetItem(os_environ, variable_name_str, env_value);
+
+        if (unlikely(res != 0)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        Py_DECREF(env_value);
+    } else {
+        unsetEnvironmentVariable(variable_name);
+
+        int res = PyObject_DelItem(os_environ, variable_name_str);
+
+        if (unlikely(res != 0)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+    }
+
+    Py_DECREF(variable_name_str);
+    Py_DECREF(os_environ);
+}
+#endif
+
 #ifdef _NUITKA_STANDALONE
 
-static void prepareStandaloneEnvironment(void) {
+#include "pythonrun.h"
 
+static environment_char_t const *old_env_path;
+static environment_char_t const *old_env_pythonhome;
+
+static void prepareStandaloneEnvironment(void) {
     /* Setup environment variables to tell CPython that we would like it to use
      * the provided binary directory as the place to look for DLLs and for
      * extension modules.
      */
+    old_env_path = getEnvironmentVariable(makeEnvironmentLiteral("PATH"));
+    // Remove the PATH during Python init, so it won't pick up stuff from there.
+    setEnvironmentVariable(makeEnvironmentLiteral("PATH"), makeEnvironmentLiteral("/"));
+
+    old_env_pythonhome = getEnvironmentVariable(makeEnvironmentLiteral("PYTHONHOME"));
+
+#if defined(_WIN32)
+    setEnvironmentVariable(makeEnvironmentLiteral("PYTHONHOME"), getBinaryDirectoryWideChars());
+#else
+    setEnvironmentVariable(makeEnvironmentLiteral("PYTHONHOME"), getBinaryDirectoryHostEncoded());
+#endif
+
 #if defined(_WIN32)
     SetDllDirectoryW(getBinaryDirectoryWideChars());
 #endif
@@ -118,11 +231,17 @@ static void prepareStandaloneEnvironment(void) {
     NUITKA_PRINTF_TRACE("main(): Binary dir is %s\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
-#else
+#elif PYTHON_VERSION < 0x370
     wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
     NUITKA_PRINTF_TRACE("main(): Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
+    Py_SetPath(binary_directory);
+
+#endif
+
+#if PYTHON_VERSION >= 0x380 && defined(_WIN32)
+    _Py_path_config.isolated = 1;
 #endif
 }
 
@@ -131,10 +250,19 @@ static void restoreStandaloneEnvironment(void) {
 #if PYTHON_VERSION < 0x300
     PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
     // NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
-#else
+#elif PYTHON_VERSION < 0x370
     PySys_SetPath(getBinaryDirectoryWideChars());
     Py_SetPath(getBinaryDirectoryWideChars());
-    NUITKA_PRINTF_TRACE("Final Py_GetPath is '%ls'.\n", Py_GetPath());
+    // NUITKA_PRINTF_TRACE("Final Py_GetPath is '%ls'.\n", Py_GetPath());
+#endif
+
+#ifdef _NUITKA_EXPERIMENTAL_DUMP_PY_PATH_CONFIG
+    wprintf(L"_Py_path_config.program_full_path='%lS'\n", _Py_path_config.program_full_path);
+    wprintf(L"_Py_path_config.program_name='%lS'\n", _Py_path_config.program_name);
+    wprintf(L"_Py_path_config.prefix='%lS'\n", _Py_path_config.prefix);
+    wprintf(L"_Py_path_config.exec_prefix='%lS'\n", _Py_path_config.exec_prefix);
+    wprintf(L"_Py_path_config.module_search_path='%lS'\n", _Py_path_config.module_search_path);
+    wprintf(L"_Py_path_config.home='%lS'\n", _Py_path_config.home);
 #endif
 }
 
@@ -334,16 +462,6 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
         }
     }
 }
-
-#if defined(_WIN32) && PYTHON_VERSION >= 0x300 && (SYSFLAG_NO_RANDOMIZATION == 1 || SYSFLAG_UNBUFFERED == 1)
-static void setenv(char const *name, char const *value, int overwrite) {
-    assert(overwrite);
-
-    SetEnvironmentVariableA(name, value);
-}
-
-static void unsetenv(char const *name) { SetEnvironmentVariableA(name, NULL); }
-#endif
 
 #if _DEBUG_REFCOUNTS
 static void PRINT_REFCOUNTS(void) {
@@ -587,30 +705,6 @@ static char **getCommandLineToArgvA(char *lpCmdline) {
 int _dowildcard = 0;
 #endif
 
-#if PYTHON_VERSION >= 0x300 && (SYSFLAG_NO_RANDOMIZATION == 1 || SYSFLAG_UNBUFFERED == 1)
-static void undoEnvironmentVariable(char const *variable_name, char const *old_value) {
-    if (old_value) {
-        setenv(variable_name, old_value, 1);
-
-        PyObject *env_value = PyUnicode_FromString(old_value);
-        PyObject *variable_name_str = PyUnicode_FromString(variable_name);
-
-        int res = PyDict_SetItem(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), variable_name_str,
-                                 env_value);
-        assert(res == 0);
-
-        Py_DECREF(env_value);
-        Py_DECREF(variable_name_str);
-    } else {
-        unsetenv(variable_name);
-
-        int res =
-            PyDict_DelItemString(PyObject_GetAttrString(PyImport_ImportModule("os"), "environ"), (char *)variable_name);
-        assert(res == 0);
-    }
-}
-#endif
-
 #if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
 #ifdef _WIN32
 static PyObject *getExpandedTemplatePath(wchar_t const *template_path) {
@@ -764,6 +858,55 @@ static void setInputOutputHandles(void) {
     Py_XDECREF(encoding);
 }
 
+static void Nuitka_Py_Initialize(void) {
+#if PYTHON_VERSION < 0x380
+    Py_Initialize();
+#else
+    PyStatus status = _PyRuntime_Initialize();
+    if (unlikely(status._type != 0)) {
+        Py_ExitStatusException(status);
+    }
+    _PyRuntimeState *runtime = &_PyRuntime;
+
+    assert(!runtime->initialized);
+
+    PyConfig config;
+    _PyConfig_InitCompatConfig(&config);
+
+    assert(orig_argv[0]);
+    PyConfig_SetArgv(&config, orig_argc, orig_argv);
+
+#ifdef _NUITKA_STANDALONE
+    wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
+
+    PyConfig_SetString(&config, &config.executable, orig_argv[0]);
+    PyConfig_SetString(&config, &config.prefix, binary_directory);
+    PyConfig_SetString(&config, &config.exec_prefix, binary_directory);
+    PyConfig_SetString(&config, &config.base_prefix, binary_directory);
+    PyConfig_SetString(&config, &config.base_exec_prefix, binary_directory);
+    PyConfig_SetString(&config, &config.home, binary_directory);
+#if PYTHON_VERSION >= 0x390
+    PyConfig_SetString(&config, &config.platlibdir, binary_directory);
+#endif
+
+    PyWideStringList_Append(&config.module_search_paths, binary_directory);
+    config.module_search_paths_set = 1;
+#endif
+
+    config.install_signal_handlers = 1;
+
+    status = Py_InitializeFromConfig(&config);
+    if (unlikely(status._type != 0)) {
+        Py_ExitStatusException(status);
+    }
+
+#ifdef _NUITKA_STANDALONE
+    assert(wcscmp(config.exec_prefix, binary_directory) == 0);
+#endif
+
+#endif
+}
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -785,8 +928,8 @@ int main(int argc, char **argv) {
     setbuf(stderr, (char *)NULL);
 
 #if PYTHON_VERSION >= 0x300
-    char const *old_env_unbuffered = getenv("PYTHONUNBUFFERED");
-    setenv("PYTHONUNBUFFERED", "1", 1);
+    environment_char_t const *old_env_unbuffered = getEnvironmentVariable(makeEnvironmentLiteral("PYTHONUNBUFFERED"));
+    setEnvironmentVariable(makeEnvironmentLiteral("PYTHONUNBUFFERED"), makeEnvironmentLiteral("1"));
 #endif
 #endif
 
@@ -870,6 +1013,10 @@ int main(int argc, char **argv) {
 #else
 orig_argv = argv;
 #endif
+
+    // Make sure the compiled path of Python is replaced.
+    Py_SetProgramName(orig_argv[0]);
+
     orig_argc = argc;
 
     NUITKA_PRINT_TRACE("main(): Calling initial setCommandLineParameters.");
@@ -890,12 +1037,13 @@ orig_argv = argv;
 #endif
 
 #if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
-    char const *old_env_hash_seed = getenv("PYTHONHASHSEED");
-    setenv("PYTHONHASHSEED", "0", 1);
+    environment_char_t const *old_env_hash_seed = getEnvironmentVariable(makeEnvironmentLiteral("PYTHONHASHSEED"));
+    setEnvironmentVariable(makeEnvironmentLiteral("PYTHONHASHSEED"), makeEnvironmentLiteral("0"));
 #endif
 
     /* Disable CPython warnings if requested to. */
 #if NO_PYTHON_WARNINGS
+    NUITKA_PRINT_TRACE("main(): Disabling Python warnings.");
     {
 #if PYTHON_VERSION >= 0x300
         wchar_t ignore[] = L"ignore";
@@ -927,20 +1075,8 @@ orig_argv = argv;
 #endif
 
     /* Initialize the embedded CPython interpreter. */
-    NUITKA_PRINT_TIMING("main(): Calling Py_Initialize to initialize interpreter.");
-    Py_Initialize();
-
-#if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
-    if (old_env_hash_seed) {
-        undoEnvironmentVariable("PYTHONHASHSEED", old_env_hash_seed);
-    }
-#endif
-
-#if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1
-    if (old_env_unbuffered) {
-        undoEnvironmentVariable("PYTHONUNBUFFERED", old_env_unbuffered);
-    }
-#endif
+    NUITKA_PRINT_TIMING("main(): Calling Nuitka_Py_Initialize to initialize interpreter.");
+    Nuitka_Py_Initialize();
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
@@ -1012,7 +1148,7 @@ orig_argv = argv;
     NUITKA_PRINT_TRACE("main(): Calling patchTracebackDealloc().");
     patchTracebackDealloc();
 
-#ifndef NUITKA_USE_PYCORE_THREADSTATE
+#ifndef NUITKA_USE_PYCORE_THREAD_STATE
     /* Allow to override the ticker value, to remove checks for threads in
      * CPython core from impact on benchmarks. */
     char const *ticker_value = getenv("NUITKA_TICKER");
@@ -1022,6 +1158,7 @@ orig_argv = argv;
     }
 #endif
 
+    NUITKA_PRINT_TRACE("main(): Setting input/output handles.");
     setInputOutputHandles();
 
 #ifdef _NUITKA_STANDALONE
@@ -1066,6 +1203,23 @@ orig_argv = argv;
 #if PYTHON_VERSION >= 0x300
     NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
     patchInspectModule();
+#endif
+
+#if PYTHON_VERSION >= 0x300 && SYSFLAG_NO_RANDOMIZATION == 1
+    NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONHASHSEED' value.");
+    undoEnvironmentVariable(makeEnvironmentLiteral("PYTHONHASHSEED"), old_env_hash_seed);
+#endif
+
+#if PYTHON_VERSION >= 0x300 && SYSFLAG_UNBUFFERED == 1
+    NUITKA_PRINT_TRACE("main(): Reverting to initial 'PYTHONUNBUFFERED' value.");
+    undoEnvironmentVariable(makeEnvironmentLiteral("PYTHONUNBUFFERED"), old_env_unbuffered);
+#endif
+
+#ifdef _NUITKA_STANDALONE
+    // Restore the PATH, so the program can use it.
+    NUITKA_PRINT_TRACE("main(): Reverting to initial 'PATH' value.");
+    undoEnvironmentVariable(makeEnvironmentLiteral("PATH"), old_env_path);
+    // undoEnvironmentVariable("PYTHONHOME", old_env_pythonhome);
 #endif
 
 #if _NUITKA_PROFILE

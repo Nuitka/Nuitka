@@ -79,10 +79,10 @@
 #endif
 
 #if PYTHON_VERSION >= MIN_PYCORE_PYTHON_VERSION
-#define NUITKA_USE_PYCORE_THREADSTATE
+#define NUITKA_USE_PYCORE_THREAD_STATE
 #endif
 
-#ifdef NUITKA_USE_PYCORE_THREADSTATE
+#ifdef NUITKA_USE_PYCORE_THREAD_STATE
 #undef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #undef _PyGC_FINALIZED
@@ -107,6 +107,9 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x380
+#include <cpython/initconfig.h>
+#include <internal/pycore_initconfig.h>
+#include <internal/pycore_pathconfig.h>
 #include <internal/pycore_pyerrors.h>
 #endif
 
@@ -118,9 +121,6 @@ extern _PyRuntimeState _PyRuntime;
 #if PYTHON_VERSION >= 0x3b0
 #include <internal/pycore_frame.h>
 #endif
-
-// TODO: Might be useful too, allows access to Python configuration.
-// #include <internal/pycore_initconfig.h>
 
 #ifndef PY_NOGIL
 #undef PyThreadState_GET
