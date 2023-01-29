@@ -23,6 +23,7 @@ def function():
     class BlockExceptions(object):
         def __enter__(self):
             pass
+
         def __exit__(self, exc, val, tb):
             return True
 
@@ -30,13 +31,22 @@ def function():
     be = BlockExceptions()
 
     for i in xrange(1000):
-        with be: raise error
-        with be: raise error
-        with be: raise error,"something"
-        with be: raise error,"something"
-        with be: raise error,"something"
-        with be: raise error("something")
-        with be: raise error("something")
-        with be: raise error("something")
+        with be:
+            raise error
+        with be:
+            raise error
+        with be:
+            raise error, "something"
+        with be:
+            raise error, "something"
+        with be:
+            raise error, "something"
+        with be:
+            raise error("something")
+        with be:
+            raise error("something")
+        with be:
+            raise error("something")
+
 
 function()

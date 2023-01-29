@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 
+
 def test_from_format(self):
     if sys.version_info >= (3, 3):
         continue

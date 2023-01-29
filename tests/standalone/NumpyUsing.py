@@ -43,9 +43,11 @@ except ImportError:
     print("didn't load numpy.random._bounded_integers")
     pass
 
+# isort:start
+
 import numpy.lib.recfunctions
 
-a = numpy.zeros(4, dtype=[('a', 'i4'), ('b', 'f4,u2'), ('c', 'f4', 2)])
+a = numpy.zeros(4, dtype=[("a", "i4"), ("b", "f4,u2"), ("c", "f4", 2)])
 print("Another numpy usage", numpy.lib.recfunctions.structured_to_unstructured(a))
 
 print("OK.")

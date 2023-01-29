@@ -17,25 +17,28 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+
 module_var = 1
 range_arg = 2
+
 
 def calledRepeatedly():
     global module_var
     c = module_var
 
-    iterator=iter(range(range_arg))
+    iterator = iter(range(range_arg))
 
-# construct_begin
+    # construct_begin
     a, b = iterator
-# construct_alternative
+    # construct_alternative
     a = c
     b = c
-# construct_end
+    # construct_end
 
     return a, b
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

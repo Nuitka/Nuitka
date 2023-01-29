@@ -20,6 +20,7 @@
 """
 
 import sys
+
 import nuitka.Options
 
 nuitka.Options.is_full_compat = False

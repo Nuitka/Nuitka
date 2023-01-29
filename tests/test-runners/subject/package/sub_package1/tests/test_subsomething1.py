@@ -20,5 +20,6 @@
 
 from .. import SubSomething1
 
+
 def test_subfunc1():
     assert SubSomething1.calledByTest1() == (42, 1)

@@ -17,6 +17,8 @@
 #
 print("Child1:", __name__)
 
+# isort:start
+
 from . import Child2
 
 print("Value of Child2", Child2.__name__)

@@ -19,4 +19,6 @@ print(type(__builtins__))
 
 import ErrorExitingModule
 
+# isort:start
+
 print("Should not get here!")

@@ -17,10 +17,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 empty = ()
 
 value = tuple(range(10))
+
 
 def calledRepeatedly(iterable, empty):
     # Force frame
@@ -28,15 +30,15 @@ def calledRepeatedly(iterable, empty):
 
     # We measure making a tuple iterator step or not.
 
-# construct_begin
+    # construct_begin
     y = sum(iterable)
-# construct_alternative
+    # construct_alternative
     y = sum(empty)
-# construct_end
+    # construct_end
 
     return x, y
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(value, empty)
 

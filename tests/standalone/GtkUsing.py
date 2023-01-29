@@ -23,13 +23,14 @@
 
 from __future__ import print_function
 
+import sys
 import warnings
 
 warnings.filterwarnings("ignore", "")
 
-import sys
-import gtk
+# isort:start
 
+import gtk
 import pygtk
 
 # nuitka-skip-unless-imports: pygtk

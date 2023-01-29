@@ -17,14 +17,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+import sys
+
 module_value1 = "1000"
 module_value2 = "2000"
 
-import sys
+
 loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
 
 x = 0
-import itertools
+
 for _x in itertools.repeat(None, loop_count):
     x += 1
     y = x % 2 == 0

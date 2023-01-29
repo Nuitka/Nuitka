@@ -19,7 +19,8 @@
 
 from __future__ import print_function
 
-import os, sys
+import os
+import sys
 
 # Find nuitka package relative to us.
 sys.path.insert(

@@ -23,7 +23,7 @@ import sys
 
 print("__name__ is", __name__)
 
-if sys.version_info[:2] != (3,2):
+if sys.version_info[:2] != (3, 2):
     print("__package__ is", __package__)
 else:
     print("__package__ is correct:", __package__ is None or __package__ == "kitty")
@@ -31,3 +31,5 @@ else:
 print("From sys.modules", sys.modules["kitty"])
 
 from kitty.speak.hello import speak
+
+# isort:start

@@ -20,17 +20,20 @@
 
 x = 1
 
+
 def f():
-    c = x+1
+    c = x + 1
 
     def g():
         return c
 
     return g()
 
+
 def caller():
     for i in range(10000):
         f()
+
 
 if __name__ == "__main__":
     caller()

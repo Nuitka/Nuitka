@@ -17,4 +17,6 @@
 #
 print("package __init__:", __name__)
 
+# isort:start
+
 from . import Child1

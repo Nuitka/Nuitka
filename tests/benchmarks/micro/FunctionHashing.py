@@ -18,16 +18,20 @@
 #     limitations under the License.
 #
 
+
 def f1():
     return 1, 2, 3
 
+
 def f2():
     return 1, 2, 4
+
 
 def hasher():
     a = 0
     for i in range(10000):
         a = hash(f1) == hash(f2)
+
 
 if __name__ == "__main__":
     hasher()

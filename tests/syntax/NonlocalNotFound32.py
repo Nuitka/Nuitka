@@ -16,11 +16,15 @@
 #     limitations under the License.
 #
 
+
 def testNonlocal():
     x = 0
     y = 0
+
     def f():
         nonlocal z
+
     f()
+
 
 testNonlocal()

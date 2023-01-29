@@ -22,12 +22,15 @@
 def f1():
     return 1, 2, 3
 
+
 def f2():
     return 1, 2, 4
+
 
 def comparer():
     for i in range(10000):
         f1 == f2
+
 
 if __name__ == "__main__":
     comparer()

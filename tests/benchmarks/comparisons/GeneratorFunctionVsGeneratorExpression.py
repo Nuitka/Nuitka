@@ -18,6 +18,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import time
 
 b = range(10000)
 
@@ -32,7 +33,6 @@ def getGeneratorExpression():
    return ( i for i in b )
 
 
-import time
 
 start = time.time()
 

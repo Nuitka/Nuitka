@@ -28,7 +28,6 @@ we do it in the same way.
 import os
 import sys
 
-
 # Find nuitka package relative to us.
 sys.path.insert(
     0,

@@ -17,9 +17,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_value1 = list()
 module_value2 = 3000
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
@@ -29,14 +31,14 @@ def calledRepeatedly():
 
     s = module_value1
     s.append
-# construct_begin
+    # construct_begin
     s.append
-# construct_end
+    # construct_end
     s.append
 
     return s, local_value
 
-import itertools
+
 for x in itertools.repeat(None, 25000):
     calledRepeatedly()
 

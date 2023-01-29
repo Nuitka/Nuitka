@@ -16,10 +16,12 @@
 #     limitations under the License.
 #
 
+
 def g():
     for a in range(3):
         yield a
 
     return 7
+
 
 print("Yielder with return value", list(g()))

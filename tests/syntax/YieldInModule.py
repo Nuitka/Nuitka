@@ -16,4 +16,4 @@
 #     limitations under the License.
 #
 
-x = (yield i)
+x = yield i

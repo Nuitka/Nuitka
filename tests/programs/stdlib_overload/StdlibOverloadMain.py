@@ -16,6 +16,9 @@
 #     limitations under the License.
 #
 print("Main importing nearby package")
+
+# isort:start
+
 import pyexpat
 from some_package import normal_importing, star_importing
 
@@ -23,6 +26,7 @@ try:
     print(pyexpat.defined_in_pyexpat)
 except AttributeError:
     print("Must be Python3, where absolute imports are default.")
+
 print("Main importing from package doing star import")
 print("Main importing from package doing normal import")
 

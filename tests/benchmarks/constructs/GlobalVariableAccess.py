@@ -17,19 +17,23 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_value1 = 1000
 module_value2 = 2000
 
+
 def calledRepeatedly():
     module_value1
-# construct_begin
+    # construct_begin
     return module_value2
-# construct_alternative
+    # construct_alternative
     return None
+
+
 # construct_end
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 
