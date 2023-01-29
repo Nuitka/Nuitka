@@ -40,8 +40,6 @@ sys.path.insert(
 
 # isort:start
 
-import subprocess
-
 from nuitka import Options
 from nuitka.__past__ import iter_modules
 from nuitka.importing.Importing import (
@@ -49,21 +47,12 @@ from nuitka.importing.Importing import (
     decideModuleSourceRef,
     locateModule,
 )
-from nuitka.tools.testing.Common import (
-    checkCompilesNotWithCPython,
-    compileLibraryTest,
-    createSearchMode,
-    getPythonArch,
-    getPythonVendor,
-    getTempDir,
-    my_print,
-    setup,
-    test_logger,
-)
+from nuitka.tools.testing.Common import my_print, setup, test_logger
+from nuitka.Tracing import plugins_logger
 from nuitka.tree.SourceHandling import (
+    getSourceCodeDiff,
     readSourceCodeFromFilenameWithInformation,
 )
-from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.ModuleNames import ModuleName
 
 python_version = setup(suite="python_modules", needs_io_encoding=True)
@@ -74,6 +63,8 @@ Options.is_full_compat = False
 
 
 def scanModule(name_space, module_iterator):
+    # plenty details here, pylint: disable=too-many-branches,too-many-locals
+
     from nuitka.tree.TreeHelpers import parseSourceCodeToAst
 
     for module_desc in module_iterator:
@@ -122,7 +113,7 @@ def scanModule(name_space, module_iterator):
             continue
 
         try:
-            ast_tree = parseSourceCodeToAst(
+            parseSourceCodeToAst(
                 source_code=source_code,
                 module_name=module_name,
                 filename=source_filename,
