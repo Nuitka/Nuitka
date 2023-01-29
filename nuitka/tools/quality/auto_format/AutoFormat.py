@@ -665,7 +665,8 @@ def autoFormatFile(
                     else:
                         copyFile(tmp_filename, filename)
 
-            changed = True
+            if filename != "nuitka/build/static_src/HelpersDictionariesGenerated.c":
+                changed = True
 
         return changed
 
