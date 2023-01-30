@@ -3446,8 +3446,11 @@
   implicit-imports:
     - depends:
       - 'pygments.lexers.css'
-      - 'textual.widget'
-      - 'textual.widgets._*'
+
+- module-name: 'textual.widgets'
+  implicit-imports:
+    - depends:
+      - '._*'
 
 - module-name: 'thinc.backends.cblas'
   implicit-imports:
