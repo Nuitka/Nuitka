@@ -3445,12 +3445,12 @@
 - module-name: 'textual'
   implicit-imports:
     - depends:
-      - 'pygments.lexers.css'
+        - 'pygments.lexers.css'
 
 - module-name: 'textual.widgets'
   implicit-imports:
     - depends:
-      - '._*'
+        - '._*'
 
 - module-name: 'thinc.backends.cblas'
   implicit-imports:
