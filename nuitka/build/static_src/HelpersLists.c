@@ -166,7 +166,7 @@ bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
 
 bool LIST_EXTEND(PyObject *target, PyObject *other) {
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(other);
 
@@ -339,7 +339,7 @@ bool LIST_APPEND1(PyObject *target, PyObject *item) {
     return res == 0;
 #else
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(item);
 
@@ -366,7 +366,7 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
     return res == 0;
 #else
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(item);
 
@@ -389,7 +389,7 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
 
 void LIST_CLEAR(PyObject *target) {
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     PyListObject *list = (PyListObject *)target;
 
@@ -637,6 +637,9 @@ static void _Nuitka_ReverseObjectsSlice(PyObject **lo, PyObject **hi) {
 }
 
 void LIST_REVERSE(PyObject *list) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
     PyListObject *list_object = (PyListObject *)list;
 
     if (Py_SIZE(list_object) > 1) {
