@@ -109,8 +109,6 @@ def generateListOperationAppendCode(statement, emit, context):
 
     res_name = context.getBoolResName()
 
-    emit("assert(PyList_Check(%s));" % list_arg_name)
-
     if context.needsCleanup(value_arg_name):
         emit("%s = LIST_APPEND1(%s, %s);" % (res_name, list_arg_name, value_arg_name))
         context.removeCleanupTempName(value_arg_name)
@@ -130,8 +128,6 @@ def generateListOperationAppendCode2(to_name, expression, emit, context):
     list_arg_name, value_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
-
-    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     context.setCurrentSourceCodeReference(expression.getSourceReference())
 
@@ -159,8 +155,6 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
     list_arg_name, value_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
-
-    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     # These give different error messages.
     is_unpack = expression.isExpressionListOperationExtendForUnpack()
@@ -192,8 +186,6 @@ def generateListOperationClearCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert(PyList_Check(%s));" % list_arg_name)
-
     emit("LIST_CLEAR(%s);" % list_arg_name)
 
     getReleaseCode(release_name=list_arg_name, emit=emit, context=context)
@@ -205,8 +197,6 @@ def generateListOperationCopyCode(to_name, expression, emit, context):
     (list_arg_name,) = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
-
-    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "list_copy_result", expression, emit, context
@@ -229,8 +219,6 @@ def generateListOperationReverseCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert(PyList_Check(%s));" % list_arg_name)
-
     emit("LIST_REVERSE(%s);" % list_arg_name)
 
     getReleaseCode(release_name=list_arg_name, emit=emit, context=context)
@@ -242,8 +230,6 @@ def generateListOperationIndex2Code(to_name, expression, emit, context):
     list_arg_name, value_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
-
-    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "list_index_result", expression, emit, context
@@ -265,8 +251,6 @@ def generateListOperationIndex3Code(to_name, expression, emit, context):
     list_arg_name, value_arg_name, start_arg_name = generateChildExpressionsCode(
         expression=expression, emit=emit, context=context
     )
-
-    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "list_index_result", expression, emit, context
@@ -294,8 +278,6 @@ def generateListOperationIndex4Code(to_name, expression, emit, context):
         start_arg_name,
         stop_arg_name,
     ) = generateChildExpressionsCode(expression=expression, emit=emit, context=context)
-
-    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "list_index_result", expression, emit, context
@@ -342,8 +324,6 @@ def generateListOperationInsertCode(to_name, expression, emit, context):
         list_arg_name, index_arg_name, item_arg_name = generateChildExpressionsCode(
             expression=expression, emit=emit, context=context
         )
-
-    emit("assert(PyList_Check(%s));" % list_arg_name)
 
     if is_integer_index:
         emit(
@@ -396,8 +376,6 @@ def generateListOperationCountCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert(PyList_Check(%s));" % list_arg_name)
-
     with withObjectCodeTemporaryAssignment(
         to_name, "list_count_result", expression, emit, context
     ) as result_name:
@@ -445,14 +423,13 @@ def generateListOperationRemoveCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    emit("assert(PyList_Check(%s));" % list_arg_name)
-
     with withObjectCodeTemporaryAssignment(
         to_name, "list_remove_result", expression, emit, context
     ) as result_name:
 
         # TODO: Have a dedicated list helper instead, this could be more efficient,
         # this call is also very bad.
+        emit("assert(PyList_CheckExact(%s));" % list_arg_name)
         emit(
             '%s = PyObject_CallMethod(%s, (char *)"remove", "O", %s);'
             % (result_name, list_arg_name, value_arg_name)
