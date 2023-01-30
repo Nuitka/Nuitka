@@ -308,8 +308,7 @@ static PyObject *getFileList(PyObject *dirname) {
     static PyObject *listdir_func = NULL;
 
     if (listdir_func == NULL) {
-        PyObject *os_module = PyImport_ImportModule("os");
-        listdir_func = PyObject_GetAttrString(os_module, "listdir");
+        listdir_func = PyObject_GetAttrString(IMPORT_HARD_OS(), "listdir");
     }
 
     if (unlikely(listdir_func == NULL)) {
