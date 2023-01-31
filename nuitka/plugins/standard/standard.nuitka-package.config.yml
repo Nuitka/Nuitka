@@ -235,6 +235,12 @@
           - 'ClrLoader'
       when: 'win32 and arch_amd64'
 
+- module-name: 'clvm.version'
+  anti-bloat:
+    - description: 'workaround buggy metadata usage'
+      replacements_plain:
+        '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
+
 - module-name: 'connexion'
   data-files:
     dirs:
@@ -1261,6 +1267,14 @@
       - description: 'pyobjc is not supported before 9.0 or later'
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
+
+- module-name: 'onnxruntime'
+  dlls:
+    - from_filenames:
+        relative_path: 'capi'
+        prefixes:
+          - 'onnxruntime'
+      when: 'win32'
 
 - module-name: 'openapi_spec_validator'
   data-files:
@@ -3482,6 +3496,16 @@
   data-files:
     patterns:
       - 'data.bin'
+
+- module-name: 'textual'
+  implicit-imports:
+    - depends:
+        - 'pygments.lexers.css'
+
+- module-name: 'textual.widgets'
+  implicit-imports:
+    - depends:
+        - '._*'
 
 - module-name: 'thinc.backends.cblas'
   implicit-imports:
