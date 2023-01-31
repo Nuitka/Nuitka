@@ -470,6 +470,11 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
         return NULL;
     }
 
+    PyObject *length = getLengthOfRange(const_int_0, stop, const_int_pos_1);
+    if (unlikely(length == NULL)) {
+        return NULL;
+    }
+
     struct _rangeobject3 *result = (struct _rangeobject3 *)PyObject_New(struct _rangeobject3, &PyRange_Type);
     assert(result != NULL);
 
@@ -479,7 +484,7 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
     result->step = const_int_pos_1;
     Py_INCREF(const_int_pos_1);
 
-    result->length = stop;
+    result->length = length;
     Py_INCREF(stop);
 
     return (PyObject *)result;
