@@ -1268,6 +1268,14 @@
         support_info: 'error'
         when: 'version("pyobjc") < (9,)'
 
+- module-name: 'onnxruntime'
+  dlls:
+    - from_filenames:
+        relative_path: 'capi'
+        prefixes:
+          - 'onnxruntime'
+      when: 'win32'
+
 - module-name: 'openapi_spec_validator'
   data-files:
     dirs:
