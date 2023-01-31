@@ -286,7 +286,7 @@ def _parseSystemCallTraceOutput(logger, command):
             if b"ENOENT" in line:
                 continue
 
-            if line.startswith(b"stat(") and b"S_IFDIR" in line:
+            if line.startswith((b"stat(", b"newfstatat(")) and b"S_IFDIR" in line:
                 continue
 
             result.extend(
