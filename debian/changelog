@@ -1,8 +1,8 @@
-nuitka (1.5~rc1+ds-1) unstable; urgency=medium
+nuitka (1.5~rc2+ds-1) unstable; urgency=medium
 
   * New upstream pre-release.
 
- -- Kay Hayen <kay.hayen@gmail.com>  Thu, 26 Jan 2023 15:24:17 +0100
+ -- Kay Hayen <kay.hayen@gmail.com>  Tue, 31 Jan 2023 06:48:33 +0100
 
 nuitka (1.4.1+ds-1) unstable; urgency=medium
 
