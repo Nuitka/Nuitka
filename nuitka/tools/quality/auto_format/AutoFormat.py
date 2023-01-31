@@ -451,7 +451,13 @@ def _getClangFormatPath():
         try:
             version_output = check_output([_clang_format_path, "--version"])
 
-            clang_version = int(version_output.split()[2].split(b".")[0])
+            try:
+                clang_version = int(version_output.split(b"version ")[1].split(b".")[0])
+            except (ValueError, IndexError, TypeError):
+                general.sysexit(
+                    "Failure to parse this '%s --version' output: %s"
+                    % (_clang_format_path, version_output),
+                )
 
             if clang_version < 12:
                 general.warning(
