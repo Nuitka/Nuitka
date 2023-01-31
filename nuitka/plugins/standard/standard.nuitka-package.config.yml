@@ -235,6 +235,12 @@
           - 'ClrLoader'
       when: 'win32 and arch_amd64'
 
+- module-name: 'clvm.version'
+  anti-bloat:
+    - description: 'workaround buggy metadata usage'
+      replacements_plain:
+        '__version__ = get_distribution(__name__).version': 'raise DistributionNotFound'
+
 - module-name: 'connexion'
   data-files:
     dirs:
