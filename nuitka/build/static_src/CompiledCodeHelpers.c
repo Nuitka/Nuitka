@@ -397,7 +397,6 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
 
     if (unlikely(diff == NULL)) {
         Py_DECREF(step);
-        Py_DECREF(tmp1);
 
         return NULL;
     }
