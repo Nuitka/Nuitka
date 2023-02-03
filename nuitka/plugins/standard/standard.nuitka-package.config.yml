@@ -801,6 +801,21 @@
     - depends:
         - 'jarowinkler._initialize_cpp'
 
+- module-name: 'joblib._dask'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import distributed': 'raise ImportError'
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'joblib._parallel_backends'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'from distributed import get_worker': 'raise ImportError'
+      when: 'not use_dask'
+
 - module-name: 'jsonrpcserver.main'
   data-files:
     patterns:
