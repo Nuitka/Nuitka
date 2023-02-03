@@ -27,11 +27,13 @@ import subprocess
 import sys
 from optparse import OptionParser
 
+from nuitka.PythonVersions import getTestExecutionPythonVersions
 from nuitka.tools.Basics import goHome
 from nuitka.tools.testing.Common import (
     getInstalledPythonVersion,
     getTempDir,
     my_print,
+    test_logger,
     withExtendedExtraOptions,
 )
 from nuitka.utils.Execution import check_call, check_output, getNullOutput
@@ -909,18 +911,11 @@ def main():
                     else:
                         my_print("The CPython3.10 tests are not present, not run.")
 
-    assert (
-        checkExecutableCommand("python2.6")
-        or checkExecutableCommand("python2.7")
-        or checkExecutableCommand("python3.3")
-        or checkExecutableCommand("python3.4")
-        or checkExecutableCommand("python3.5")
-        or checkExecutableCommand("python3.6")
-        or checkExecutableCommand("python3.7")
-        or checkExecutableCommand("python3.8")
-        or checkExecutableCommand("python3.9")
-        or checkExecutableCommand("python3.10")
-    )
+    if not any(
+        checkExecutableCommand("python%s" % python_version)
+        for python_version in getTestExecutionPythonVersions()
+    ):
+        test_logger.sysexit("No Python usable for testing found installed")
 
     if options.debug:
         if checkExecutableCommand("python2.6"):
