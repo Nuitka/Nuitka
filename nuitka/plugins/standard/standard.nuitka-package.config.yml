@@ -55,6 +55,11 @@
         '_get_win_folder_with_pywin32': 'un-callable'
       when: 'not use_pywin32 or not win32'
 
+- module-name: 'apsw'
+  implicit-imports:
+    - depends:
+        - '.shell'
+
 - module-name: 'apt_inst'
   implicit-imports:
     - depends:
