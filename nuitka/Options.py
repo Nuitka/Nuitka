@@ -379,12 +379,18 @@ Error, '--nofollow-import-to' takes only module names or patterns, not directory
     output_filename = getOutputFilename()
 
     if output_filename is not None:
-        if (isStandaloneMode() and not isOnefileMode()) or shallMakeModule():
+        if shallMakeModule():
             Tracing.options_logger.sysexit(
                 """\
-Error, may only specify output filename for acceleration and onefile mode,
-but not for module mode where filenames are mandatory, and not for
-standalone where there is a sane default used inside the dist folder."""
+Error, may not module mode where filenames and modules matching are
+mandatory."""
+            )
+        elif (
+            isStandaloneMode() and os.path.basename(output_filename) != output_filename
+        ):
+            Tracing.options_logger.sysexit(
+                """\
+Error, output filename for standalone cannot contain a directory part."""
             )
 
         output_dir = os.path.dirname(output_filename) or "."
