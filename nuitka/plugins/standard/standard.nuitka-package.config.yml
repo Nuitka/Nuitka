@@ -55,6 +55,11 @@
         '_get_win_folder_with_pywin32': 'un-callable'
       when: 'not use_pywin32 or not win32'
 
+- module-name: 'apsw'
+  implicit-imports:
+    - depends:
+        - '.shell'
+
 - module-name: 'apt_inst'
   implicit-imports:
     - depends:
@@ -795,6 +800,21 @@
   implicit-imports:
     - depends:
         - 'jarowinkler._initialize_cpp'
+
+- module-name: 'joblib._dask'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import distributed': 'raise ImportError'
+        'import dask': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'joblib._parallel_backends'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'from distributed import get_worker': 'raise ImportError'
+      when: 'not use_dask'
 
 - module-name: 'jsonrpcserver.main'
   data-files:

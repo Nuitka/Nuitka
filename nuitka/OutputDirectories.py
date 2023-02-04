@@ -27,7 +27,7 @@ this.
 import os
 
 from nuitka import Options
-from nuitka.utils.FileOperations import makePath
+from nuitka.utils.FileOperations import changeFilenameExtension, makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 
@@ -123,12 +123,18 @@ def getResultFullpath(onefile):
                     getStandaloneDirectoryPath(),
                     os.path.basename(output_filename),
                 )
+        elif Options.isStandaloneMode() and output_filename is not None:
+            result = os.path.join(
+                getStandaloneDirectoryPath(),
+                os.path.basename(output_filename),
+            )
         elif output_filename is not None:
             result = output_filename
-        elif isWin32OrPosixWindows():
-            result += ".exe"
-        elif not Options.shallCreateAppBundle():
+        elif not isWin32OrPosixWindows() and not Options.shallCreateAppBundle():
             result += ".bin"
+
+        if isWin32OrPosixWindows():
+            result = changeFilenameExtension(result, ".exe")
 
     return result
 
