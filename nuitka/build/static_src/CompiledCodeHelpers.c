@@ -359,11 +359,13 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
         nbool_res = RICH_COMPARE_EQ_NBOOL_OBJECT_LONG(step, const_int_0);
 
         if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
+            Py_DECREF(step);
             return NULL;
         }
 
         if (unlikely(nbool_res == NUITKA_BOOL_TRUE)) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "range() arg 3 must not be zero");
+            Py_DECREF(step);
 
             return NULL;
         }
@@ -374,7 +376,7 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
 
     // No distance means we do not have any length to go.
     if (nbool_res != NUITKA_BOOL_FALSE) {
-        Py_XDECREF(step);
+        Py_DECREF(step);
 
         if (unlikely(nbool_res == NUITKA_BOOL_EXCEPTION)) {
             return NULL;
@@ -389,6 +391,7 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
 
     if (unlikely(tmp1 == NULL)) {
         Py_DECREF(step);
+
         return NULL;
     }
 
@@ -397,7 +400,6 @@ static PyObject *getLengthOfRange(PyObject *start, PyObject *stop, PyObject *ste
 
     if (unlikely(diff == NULL)) {
         Py_DECREF(step);
-        Py_DECREF(tmp1);
 
         return NULL;
     }
@@ -472,6 +474,8 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
 
     PyObject *length = getLengthOfRange(const_int_0, stop, const_int_pos_1);
     if (unlikely(length == NULL)) {
+        Py_DECREF(stop);
+
         return NULL;
     }
 
@@ -485,7 +489,6 @@ PyObject *BUILTIN_XRANGE1(PyObject *high) {
     Py_INCREF(const_int_pos_1);
 
     result->length = length;
-    Py_INCREF(stop);
 
     return (PyObject *)result;
 #endif
