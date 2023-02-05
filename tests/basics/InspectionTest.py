@@ -60,8 +60,6 @@ print(
     isinstance(compiledFunction, (int, types.FunctionType)),
 )
 
-print("Compiled spec:", inspect.getargspec(compiledFunction))
-print("Compiled args:", inspect.formatargspec(*inspect.getargspec(compiledFunction)))
 
 # Even this works.
 assert type(compiledFunction) == types.FunctionType
@@ -86,13 +84,6 @@ assert inspect.ismethod(CompiledClass().compiledMethod) is True
 
 assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == (
     sys.version_info < (3,)
-)
-
-
-print("Compiled method:", inspect.getargspec(CompiledClass().compiledMethod))
-print(
-    "Compiled class:",
-    inspect.formatargspec(*inspect.getargspec(CompiledClass().compiledMethod)),
 )
 
 
