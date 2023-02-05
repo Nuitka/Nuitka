@@ -692,6 +692,7 @@
         - 'gevent.local'
         - 'gevent.ssl'
         - 'gevent.events'
+        - 'gevent.signal'
 
 - module-name: 'gevent.pool'
   implicit-imports:
