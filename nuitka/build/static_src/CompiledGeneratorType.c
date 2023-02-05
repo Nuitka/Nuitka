@@ -424,10 +424,6 @@ static void _Nuitka_GeneratorPopFrame(PyThreadState *thread_state, Nuitka_Thread
     thread_state->frame = return_frame;
 #else
     thread_state->cframe->current_frame = return_frame;
-
-    if (return_frame != NULL) {
-        return_frame->previous = NULL;
-    }
 #endif
 
     PRINT_TOP_FRAME("Generator pop exit gives top frame:");
