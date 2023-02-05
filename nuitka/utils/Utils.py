@@ -184,6 +184,14 @@ def isMacOS():
     return getOS() == "Darwin"
 
 
+def hasMacOSIntelSupport():
+    """macOS with either Intel hardware or Rosetta being installed."""
+    return isMacOS() and (
+        getArchitecture() == "x86_64"
+        or os.path.exists("/Library/Apple/usr/lib/libRosettaAot.dylib")
+    )
+
+
 def isNetBSD():
     """The NetBSD OS."""
     return getOS() == "NetBSD"

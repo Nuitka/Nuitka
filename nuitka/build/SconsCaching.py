@@ -38,7 +38,7 @@ from nuitka.utils.FileOperations import (
     makePath,
 )
 from nuitka.utils.Importing import importFromInlineCopy
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import hasMacOSIntelSupport, isMacOS, isWin32Windows
 
 from .SconsProgress import updateSconsProgressBar
 from .SconsUtils import (
@@ -80,7 +80,7 @@ def _getCcacheGuessedPaths(python_prefix):
         yield "/opt/homebrew/bin/ccache"
 
 
-def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downloads):
+def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
     ccache_binary = os.environ.get("NUITKA_CCACHE_BINARY")
 
     # If not provided, search it in PATH and guessed directories.
@@ -115,12 +115,9 @@ def _injectCcache(env, cc_path, python_prefix, target_arch, assume_yes_for_downl
                     reject=None,
                     assume_yes_for_downloads=assume_yes_for_downloads,
                 )
-            elif isMacOS():
-                # TODO: Do not yet have M1 access to create one and 10.14 is minimum
-                # we managed to compile ccache for.
-                if target_arch != "arm64" and tuple(
-                    int(d) for d in platform.release().split(".")
-                ) >= (18, 2):
+            elif hasMacOSIntelSupport():
+                # The 10.14 is the minimum we managed to compile ccache for.
+                if tuple(int(d) for d in platform.release().split(".")) >= (18, 2):
                     url = "https://nuitka.net/ccache/v4.2.1/ccache-4.2.1.zip"
 
                     ccache_binary = getCachedDownload(
@@ -167,7 +164,6 @@ def enableCcache(
     env,
     source_dir,
     python_prefix,
-    target_arch,
     assume_yes_for_downloads,
 ):
     # The ccache needs absolute path, otherwise it will not work.
@@ -213,7 +209,6 @@ def enableCcache(
         env=env,
         cc_path=cc_path,
         python_prefix=python_prefix,
-        target_arch=target_arch,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
