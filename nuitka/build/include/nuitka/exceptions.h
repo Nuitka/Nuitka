@@ -525,7 +525,7 @@ NUITKA_MAY_BE_UNUSED static inline void ATTACH_TRACEBACK_TO_EXCEPTION_VALUE(PyOb
     Py_XDECREF(old);
 }
 
-// Much like PyException_GetTraceback, but does not give a reference.
+// Much like "PyException_GetTraceback", but does not give a reference.
 NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *GET_EXCEPTION_TRACEBACK(PyObject *exception_value) {
     assert(PyExceptionInstance_Check(exception_value));
 
