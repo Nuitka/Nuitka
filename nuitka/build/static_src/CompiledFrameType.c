@@ -692,6 +692,8 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
 #if PYTHON_VERSION >= 0x3b0
     result->m_interpreter_frame.frame_obj = &result->m_frame;
+    result->m_interpreter_frame.owner = 0;
+    result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
     result->m_frame.f_frame = &result->m_interpreter_frame;
 #endif
 
