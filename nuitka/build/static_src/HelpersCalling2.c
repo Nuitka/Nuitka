@@ -7680,6 +7680,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyObject *called, PyObject *const *ar
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
+    CHECK_OBJECT(called);
+
     assert(PyTuple_CheckExact(kw_names));
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
