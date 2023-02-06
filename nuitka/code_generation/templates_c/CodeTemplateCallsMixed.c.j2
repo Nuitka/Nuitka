@@ -30,6 +30,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
     {{ CHECK_OBJECTS(args, args_count) }}
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 

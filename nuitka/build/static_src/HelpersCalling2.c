@@ -7527,6 +7527,7 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyObject *called, PyObject *const *
 
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7603,6 +7604,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7680,9 +7682,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyObject *called, PyObject *const *ar
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
-    CHECK_OBJECT(called);
-
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7769,6 +7770,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7849,6 +7851,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7927,6 +7930,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8013,6 +8017,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8093,6 +8098,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8171,6 +8177,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8257,6 +8264,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8337,6 +8345,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8415,6 +8424,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8501,6 +8511,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8581,6 +8592,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8659,6 +8671,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8745,6 +8758,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8825,6 +8839,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8903,6 +8918,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8989,6 +9005,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9069,6 +9086,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9147,6 +9165,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9233,6 +9252,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9313,6 +9333,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9391,6 +9412,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9477,6 +9499,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9557,6 +9580,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyObject *called, PyObject *const 
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9635,6 +9659,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyObject *called, PyObject *const *ar
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9721,6 +9746,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9801,6 +9827,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyObject *called, PyObject *const
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9879,6 +9906,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyObject *called, PyObject *const *a
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9965,6 +9993,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_a
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
