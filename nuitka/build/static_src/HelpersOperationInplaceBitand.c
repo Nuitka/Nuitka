@@ -33,11 +33,6 @@ static inline bool _INPLACE_OPERATION_BITAND_LONG_LONG(PyObject **operand1, PyOb
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     // Not every code path will make use of all possible results.
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -245,11 +240,6 @@ static inline bool _INPLACE_OPERATION_BITAND_OBJECT_LONG(PyObject **operand1, Py
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -468,11 +458,6 @@ static inline bool _INPLACE_OPERATION_BITAND_LONG_OBJECT(PyObject **operand1, Py
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
@@ -527,11 +512,6 @@ static inline bool _INPLACE_OPERATION_BITAND_INT_INT(PyObject **operand1, PyObje
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     // Not every code path will make use of all possible results.
 #ifdef _MSC_VER
@@ -745,11 +725,6 @@ static inline bool _INPLACE_OPERATION_BITAND_OBJECT_INT(PyObject **operand1, PyO
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -973,11 +948,6 @@ static inline bool _INPLACE_OPERATION_BITAND_INT_OBJECT(PyObject **operand1, PyO
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
@@ -1039,11 +1009,6 @@ static inline bool _INPLACE_OPERATION_BITAND_INT_CLONG(PyObject **operand1, long
     CHECK_OBJECT(*operand1);
     assert(PyInt_CheckExact(*operand1));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     // Not every code path will make use of all possible results.
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1096,11 +1061,6 @@ static inline bool _INPLACE_OPERATION_BITAND_LONG_INT(PyObject **operand1, PyObj
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1167,11 +1127,6 @@ static inline bool _INPLACE_OPERATION_BITAND_INT_LONG(PyObject **operand1, PyObj
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1243,11 +1198,6 @@ static inline bool _INPLACE_OPERATION_BITAND_SET_SET(PyObject **operand1, PyObje
     assert(PySet_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PySet_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     // Not every code path will make use of all possible results.
     NUITKA_MAY_BE_UNUSED PyObject *obj_result;
@@ -1412,11 +1362,6 @@ static inline bool _INPLACE_OPERATION_BITAND_OBJECT_SET(PyObject **operand1, PyO
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PySet_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -1602,11 +1547,6 @@ static inline bool _INPLACE_OPERATION_BITAND_SET_OBJECT(PyObject **operand1, PyO
     assert(PySet_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PySet_Type == type2) {
@@ -1696,11 +1636,6 @@ static inline bool _INPLACE_OPERATION_BITAND_OBJECT_OBJECT(PyObject **operand1, 
         return true;
     }
 #endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
 #if PYTHON_VERSION >= 0x300
