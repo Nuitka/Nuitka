@@ -117,7 +117,7 @@ def getResultFullpath(onefile):
 
         if Options.isOnefileMode() and output_filename is not None:
             if onefile:
-                result = output_filename
+                result = Options.getOutputPath(output_filename)
             else:
                 result = os.path.join(
                     getStandaloneDirectoryPath(),
