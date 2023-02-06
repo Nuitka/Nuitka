@@ -372,12 +372,14 @@ NUITKA_MAY_BE_UNUSED static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateF
 }
 
 NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGenerator(struct Nuitka_FrameObject *frame_object) {
+#if PYTHON_VERSION < 0x3b0
     PyThreadState *thread_state = PyThreadState_GET();
 
     Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(thread_state);
 
-    // Put the generator back on the frame stack.
     Py_XINCREF(return_frame);
+#endif
+    // Put the generator back on the frame stack.
     pushFrameStack(frame_object);
     Py_DECREF(frame_object);
 }
