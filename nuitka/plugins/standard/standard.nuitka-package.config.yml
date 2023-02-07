@@ -221,6 +221,11 @@
     - depends:
         - 'charset_normalizer.md__mypyc'
 
+- module-name: 'chia.ssl.create_ssl'
+  implicit-imports:
+    - depends:
+        - 'mozilla-ca'
+
 - module-name: 'clr'
   dlls:
     - from_filenames:
@@ -1056,6 +1061,11 @@
     - description: 'remove pytest testing framework'
       replacements:
         "imp.find_module('pytest')": "'None'"
+
+- module-name: 'mozilla-ca'
+  data-files:
+    patterns:
+      - '*.pem'
 
 - module-name: 'nacl._sodium'
   implicit-imports:
