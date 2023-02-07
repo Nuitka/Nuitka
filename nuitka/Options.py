@@ -836,7 +836,7 @@ but errors may happen."""
             """\
 Using very slow fallback for ordered sets, please install '%s' \
 PyPI package for best Python compile time performance."""
-            % ("ordered-set" if python_version >= 0x3A0 else "orderedset")
+            % ("ordered-set" if python_version >= 0x370 else "orderedset")
         )
 
     if shallUsePythonDebug() and not isDebugPython():
