@@ -274,94 +274,127 @@ bool renameFile(filename_char_t const *source, filename_char_t const *dest) {
 
 #include "nuitka/checksum_tools.h"
 
-uint32_t getFileCRC32(filename_char_t const *filename) {
 #if defined(_WIN32)
-    FILE_HANDLE file_handle = CreateFileW(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+struct MapFileToMemoryInfo {
+    bool error;
+    unsigned char const *data;
+    HANDLE file_handle;
+    int64_t file_size;
+    HANDLE handle_mapping;
+};
 
-    if (file_handle == NULL) {
-        return 0;
+static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filename) {
+    struct MapFileToMemoryInfo result;
+
+    result.file_handle = CreateFileW(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (result.file_handle == NULL) {
+        result.error = true;
+        return result;
     }
 
-    int64_t file_size = getFileSize(file_handle);
+    result.file_size = getFileSize(result.file_handle);
 
-    HANDLE handle_mapping = CreateFileMappingW(file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
+    result.handle_mapping = CreateFileMappingW(result.file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
 
-    if (handle_mapping == NULL) {
-        CloseHandle(file_handle);
+    if (result.handle_mapping == NULL) {
+        CloseHandle(result.file_handle);
 
-        return 0;
+        result.error = true;
+        return result;
     }
 
-    unsigned char const *data = (unsigned char const *)MapViewOfFile(handle_mapping, FILE_MAP_READ, 0, 0, 0);
+    result.data = (unsigned char const *)MapViewOfFile(result.handle_mapping, FILE_MAP_READ, 0, 0, 0);
 
-    uint32_t result;
+    if (unlikely(result.data == NULL)) {
+        CloseHandle(result.handle_mapping);
+        CloseHandle(result.file_handle);
 
-    if (unlikely(data == NULL)) {
-        result = 0;
-    } else {
-        result = calcCRC32(data, (long)file_size);
-        // Lets use 0 for error indication.
-        if (result == 0) {
-            result = 1;
-        }
-
-        UnmapViewOfFile(data);
+        result.error = true;
+        return result;
     }
 
-    CloseHandle(handle_mapping);
-    CloseHandle(file_handle);
-
+    result.error = false;
     return result;
+}
+
+static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
+    assert(!mapped_file->error);
+
+    UnmapViewOfFile(mapped_file->data);
+    CloseHandle(mapped_file->handle_mapping);
+    CloseHandle(mapped_file->file_handle);
+}
 #else
-    int file_handle = open(filename, O_RDONLY);
 
-    if (file_handle == -1) {
+struct MapFileToMemoryInfo {
+    bool error;
+    unsigned char const *data;
+    int file_handle;
+    int64_t file_size;
+};
+
+static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filename) {
+    struct MapFileToMemoryInfo result;
+
+    result.file_handle = open(filename, O_RDONLY);
+
+    if (unlikely(result.file_handle == -1)) {
+        result.error = true;
+        return result;
+    }
+
+    result.file_size = lseek(result.file_handle, 0, SEEK_END);
+    if (unlikely(result.file_size == -1)) {
+        close(result.file_handle);
+
+        result.error = true;
+        return result;
+    }
+    off_t res = lseek(result.file_handle, 0, SEEK_SET);
+
+    if (unlikely(res == -1)) {
+        close(result.file_handle);
+
+        result.error = true;
+        return result;
+    }
+
+    result.data = (unsigned char const *)mmap(NULL, result.file_size, PROT_READ, MAP_PRIVATE, result.file_handle, 0);
+
+    if (unlikely(result.data == MAP_FAILED)) {
+        close(result.file_handle);
+
+        result.error = true;
+        return result;
+    }
+
+    result.error = false;
+    return result;
+}
+
+static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
+    assert(!mapped_file->error);
+
+    munmap((void *)mapped_file->data, mapped_file->file_size);
+    close(mapped_file->file_handle);
+}
+#endif
+
+uint32_t getFileCRC32(filename_char_t const *filename) {
+    struct MapFileToMemoryInfo mapped_file = mapFileToMemory(filename);
+
+    if (mapped_file.error) {
         return 0;
     }
+    uint32_t result = calcCRC32(mapped_file.data, (long)mapped_file.file_size);
 
-    size_t file_size = lseek(file_handle, 0, SEEK_END);
-    lseek(file_handle, 0, SEEK_SET);
-
-    unsigned char chunk[32768];
-
-    uint32_t crc32 = initCRC32();
-
-    while (file_size > 0) {
-        ssize_t read_bytes = (ssize_t)read(file_handle, chunk, sizeof(chunk));
-
-        if (read_bytes < 0) {
-            close(file_handle);
-            return 0;
-        }
-
-        crc32 = updateCRC32(crc32, chunk, read_bytes);
-
-        file_size -= read_bytes;
+    // Lets reserve "0" value for error indication.
+    if (result == 0) {
+        result = 1;
     }
 
-    crc32 = finalizeCRC32(crc32);
-    uint32_t result = crc32;
-
-    // TODO: Check if mmap is faster and if not, why
-#if 0
-    unsigned char const *data = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, file_handle, 0);
-
-    uint32_t result;
-
-    if (unlikely(data == MAP_FAILED)) {
-        result = 0;
-    } else {
-        result = calcCRC32(data, file_size);
-        // Lets use 0 for error indication.
-        if (result == 0) {
-            result = 1;
-        }
-
-        munmap((void *)data, file_size);
-    }
-#endif
-    close(file_handle);
+    unmapFileFromMemory(&mapped_file);
 
     return result;
-#endif
 }
