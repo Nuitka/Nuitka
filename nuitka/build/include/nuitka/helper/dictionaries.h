@@ -205,6 +205,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
     }
 
 #else
+    // Will be written by Nuitka_PyDictLookupStr in all cases.
     PyObject **value;
     Py_ssize_t found = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value);
     assert(found != DKIX_ERROR);
