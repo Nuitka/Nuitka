@@ -26,10 +26,16 @@ This software was compiled with Nuitka and contains parts of the following softw
 ===================================
 
 Version {{ distribution.metadata["Version"] }} of {{ distribution.metadata["Name"] }} was included and is
-under license {{ distribution.metadata["License"] }}.
+under license "{{ get_distribution_license(distribution) }}".
 
+{% if distribution_modules[distribution] != [distribution.metadata["Name"]] %}
+The contained {{"packages are" if len(distribution_modules[distribution]) > 1 else "package is"}} {{" ,".join(quoted(distribution_modules[distribution]))}}.
+{% endif %}
+
+{% if distribution.read_text("LICENSE.txt") %}
 .. code::
 
-{{ (distribution.read_text("LICENSE.txt") or "") | indent(4, True) }}
+{{ distribution.read_text("LICENSE.txt") | indent(4, True) }}
+{% endif %}
 
 {% endfor %}
