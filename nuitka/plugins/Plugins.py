@@ -29,6 +29,9 @@ The base class in PluginBase will serve as documentation of available.
 
 import inspect
 import os
+import sys
+import traceback
+from contextlib import contextmanager
 from optparse import OptionConflictError, OptionGroup
 
 from nuitka import Options, OutputDirectories
@@ -66,6 +69,27 @@ post_modules = {}
 post_modules_reasons = {}
 fake_modules = {}
 has_active_gui_toolkit_plugin = False
+
+
+@contextmanager
+def withPluginProblemReporting(plugin, template, args):
+    try:
+        yield
+    except Exception:  # Catch all the things, pylint: disable=broad-except
+        traceback.print_exception(*sys.exc_info())
+
+        plugin.sysexit(
+            "Plugin issue while working on '%s'. Please report the bug with the above traceback included."
+            % (template % args)
+        )
+
+
+def withPluginModuleNameProblemReporting(plugin, module_name):
+    return withPluginProblemReporting(plugin, "module '%s'", module_name.asString())
+
+
+def withPluginModuleProblemReporting(plugin, module):
+    return withPluginModuleNameProblemReporting(plugin, module.getFullName())
 
 
 def _addActivePlugin(plugin_class, args, force=False):
@@ -304,6 +328,7 @@ def loadStandardPluginClasses():
 
 class Plugins(object):
     implicit_imports_cache = {}
+    extra_scan_paths_cache = {}
 
     @staticmethod
     def _considerImplicitImports(plugin, module):
@@ -377,7 +402,6 @@ class Plugins(object):
         from nuitka.importing.Importing import getModuleNameAndKindFromFilename
 
         for full_name, module_filename in implicit_imports:
-
             # TODO: The module_kind should be forwarded from previous in the class using locateModule code.
             _module_name2, module_kind = getModuleNameAndKindFromFilename(
                 module_filename
@@ -410,11 +434,29 @@ class Plugins(object):
                 )
 
     @classmethod
-    def getPackageExtraScanPaths(cls, package_name, package_dir):
-        for plugin in getActivePlugins():
+    def _getPackageExtraScanPaths(cls, plugin, package_name, package_dir):
+        with withPluginModuleNameProblemReporting(plugin, package_name):
             for path in plugin.getPackageExtraScanPaths(package_name, package_dir):
                 if os.path.isdir(path):
                     yield path
+
+    @classmethod
+    def getPackageExtraScanPaths(cls, package_name, package_dir):
+        key = package_name
+
+        if key not in cls.extra_scan_paths_cache:
+            cls.extra_scan_paths_cache[key] = ()
+
+            for plugin in getActivePlugins():
+                cls.extra_scan_paths_cache[key] += tuple(
+                    cls._getPackageExtraScanPaths(
+                        plugin=plugin,
+                        package_name=package_name,
+                        package_dir=package_dir,
+                    )
+                )
+
+        return cls.extra_scan_paths_cache[key]
 
     @classmethod
     def considerImplicitImports(cls, module, signal_change):
@@ -422,9 +464,10 @@ class Plugins(object):
             key = (module.getFullName(), plugin)
 
             if key not in cls.implicit_imports_cache:
-                cls.implicit_imports_cache[key] = tuple(
-                    cls._considerImplicitImports(plugin=plugin, module=module)
-                )
+                with withPluginModuleProblemReporting(plugin, module):
+                    cls.implicit_imports_cache[key] = tuple(
+                        cls._considerImplicitImports(plugin=plugin, module=module)
+                    )
 
             cls._reportImplicitImports(
                 plugin=plugin,
@@ -472,7 +515,10 @@ class Plugins(object):
                 continue
 
             for plugin in getActivePlugins():
-                plugin.onCopiedDLL(os.path.join(dist_dir, entry_point.dest_path))
+                dll_path = os.path.join(dist_dir, entry_point.dest_path)
+
+                with withPluginProblemReporting(plugin, "DLL '%s'", dll_path):
+                    plugin.onCopiedDLL(dll_path)
 
     @staticmethod
     def onBeforeCodeParsing():
@@ -538,10 +584,11 @@ class Plugins(object):
                 )
 
         for plugin in getActivePlugins():
-            for entry_point in _iterateExtraBinaries(
-                plugin, plugin.getExtraDlls(module)
-            ):
-                result.append(entry_point)
+            with withPluginModuleProblemReporting(plugin, module):
+                for entry_point in _iterateExtraBinaries(
+                    plugin, plugin.getExtraDlls(module)
+                ):
+                    result.append(entry_point)
 
         return result
 
@@ -1104,7 +1151,6 @@ class Plugins(object):
                 # We order per plugin, but from the plugins, lets just take a dict
                 # and achieve determinism by ordering the files by name.
                 for key, value in sorted(value.items()):
-
                     if (for_onefile and not "onefile_" in key) or (
                         not for_onefile and "onefile_" in key
                     ):
@@ -1322,7 +1368,7 @@ def loadPlugins():
 def addStandardPluginCommandLineOptions(parser):
     loadPlugins()
 
-    for (_plugin_name, (plugin_class, _plugin_detector)) in sorted(
+    for _plugin_name, (plugin_class, _plugin_detector) in sorted(
         plugin_name2plugin_classes.items()
     ):
         if plugin_class.isAlwaysEnabled():
@@ -1369,7 +1415,7 @@ def activatePlugins():
 
     plugin_detectors = OrderedSet()
 
-    for (plugin_name, (plugin_class, plugin_detector)) in sorted(
+    for plugin_name, (plugin_class, plugin_detector) in sorted(
         plugin_name2plugin_classes.items()
     ):
         if plugin_name in Options.getPluginsEnabled():
