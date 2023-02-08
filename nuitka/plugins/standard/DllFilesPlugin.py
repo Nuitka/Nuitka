@@ -177,7 +177,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             yield self._handleDllConfigByCodeResult(
                 filename=filename,
                 full_name=full_name,
-                dest_path=os.path.normpath(dest_path),
+                dest_path=dest_path,
                 executable=dll_config.get("executable", "no") == "yes",
             )
 

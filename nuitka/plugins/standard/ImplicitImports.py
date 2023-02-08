@@ -279,6 +279,7 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 "importlib_resources",
                 "more_itertools",
                 "six",
+                "platformdirs",
             ):
                 yield "pkg_resources._vendor." + part
 
