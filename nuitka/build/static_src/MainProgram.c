@@ -235,7 +235,7 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
     for (int i = 0; i < argc; i++) {
 #if PYTHON_VERSION >= 0x350
         argv_copy[i] = Py_DecodeLocale(argv[i], NULL);
-#elif defined(__APPLE__) && PYTHON_VERSION >= 0x320
+#elif defined(__APPLE__) && PYTHON_VERSION >= 0x300
         argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
 #else
         argv_copy[i] = _Py_char2wchar(argv[i], NULL);
