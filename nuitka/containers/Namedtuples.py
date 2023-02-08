@@ -25,10 +25,10 @@ methods like "asDict".
 from collections import namedtuple
 
 
-def makeNamedtupleClass(name, elements):
+def makeNamedtupleClass(name, element_names):
     # TODO: Have a namedtuple factory that does these things.
 
-    namedtuple_class = namedtuple(name, elements)
+    namedtuple_class = namedtuple(name, element_names)
 
     class DynamicNamedtuple(namedtuple_class):
         __name__ = name
