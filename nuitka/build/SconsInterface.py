@@ -116,7 +116,7 @@ def _getPythonForSconsExePath():
     if python_exe is not None:
         return python_exe
 
-    scons_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
+    scons_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11")
     if not isWin32Windows():
         scons_supported_pythons += ("2.7", "2.6")
 

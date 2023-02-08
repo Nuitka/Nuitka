@@ -980,7 +980,6 @@ if env.gcc_mode and not disable_ccache:
         env=env,
         source_dir=source_dir,
         python_prefix=python_prefix,
-        target_arch=target_arch,
         assume_yes_for_downloads=assume_yes_for_downloads,
     )
 
