@@ -513,7 +513,9 @@ def _shouldNotFormatCode(filename):
         return True
     if "pybench" in parts or filename == "tests/benchmarks/pystone.py":
         return True
-    if "tests" in parts and parts[1].startswith("CPython"):
+    if "mercurial" in parts:
+        return True
+    if "tests" in parts and parts[parts.index("tests") + 1].startswith("CPython"):
         return True
     if ".dist/" in filename:
         return True
