@@ -25,6 +25,7 @@ import os
 import sys
 
 from nuitka import TreeXML
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
 from nuitka.importing.Importing import getPackageSearchPath
@@ -71,10 +72,17 @@ def _getReportInputData():
         for module in getDoneModules()
     )
 
-    module_distributions = dict(
-        (module.getFullName(), getDistributionsFromModuleName(module.getFullName()))
-        for module in getDoneModules()
-    )
+    module_distributions = {}
+    distribution_modules = {}
+    for module in getDoneModules():
+        module_distributions[module.getFullName()] = getDistributionsFromModuleName(
+            module.getFullName()
+        )
+        for _distribution in module_distributions[module.getFullName()]:
+            if _distribution not in distribution_modules:
+                distribution_modules[_distribution] = OrderedSet()
+
+            distribution_modules[_distribution].add(module.getFullName())
 
     module_usages = dict(
         (module.getFullName(), module.getUsedModules()) for module in getDoneModules()
@@ -286,7 +294,40 @@ def writeCompilationReportFromTemplate(
         extensions=("jinja2.ext.do",),
     )
 
-    report_text = template.render(**report_input_data)
+    def get_distribution_license(distribution):
+        license_name = distribution.metadata["License"]
+
+        if license_name == "UNKNOWN":
+            for classifier in (
+                value
+                for (key, value) in distribution.metadata.items()
+                if "Classifier" in key
+            ):
+                parts = [part.strip() for part in classifier.split("::")]
+                if not parts:
+                    continue
+
+                if parts[0] == "License":
+                    license_name = parts[-1]
+                    break
+
+        return license_name
+
+    def quoted(value):
+        if isinstance(value, str):
+            return "'%s'" % value
+        else:
+            return [quoted(element) for element in value]
+
+    report_text = template.render(
+        # Get the license text.
+        get_distribution_license=get_distribution_license,
+        # Quote a list of strings.
+        quoted=quoted,
+        # For checking length of lists.
+        len=len,
+        **report_input_data
+    )
 
     try:
         putTextFileContents(filename=report_filename, contents=report_text)

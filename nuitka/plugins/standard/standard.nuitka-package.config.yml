@@ -221,6 +221,11 @@
     - depends:
         - 'charset_normalizer.md__mypyc'
 
+- module-name: 'chia.ssl.create_ssl'
+  implicit-imports:
+    - depends:
+        - 'mozilla-ca'
+
 - module-name: 'clr'
   dlls:
     - from_filenames:
@@ -692,6 +697,7 @@
         - 'gevent.local'
         - 'gevent.ssl'
         - 'gevent.events'
+        - 'gevent.signal'
 
 - module-name: 'gevent.pool'
   implicit-imports:
@@ -1055,6 +1061,11 @@
     - description: 'remove pytest testing framework'
       replacements:
         "imp.find_module('pytest')": "'None'"
+
+- module-name: 'mozilla-ca'
+  data-files:
+    patterns:
+      - '*.pem'
 
 - module-name: 'nacl._sodium'
   implicit-imports:
@@ -2450,6 +2461,11 @@
         '@jit': ''
       when: 'not use_numba and standalone'
 
+- module-name: 'shapely._geometry_helpers'
+  implicit-imports:
+    - depends:
+        - 'shapely._geos'
+
 - module-name: 'shapely.geometry.base'
   anti-bloat:
     - description: 'remove doctest usage'
@@ -2480,7 +2496,7 @@
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
-      when: 'not anaconda and not win32'
+      when: 'not anaconda and not win32 and version("shapely") < (2,0)'
     # Anaconda or Win32 are forced to specific path.
     - by_code:
         setup_code: 'import shapely.geos'
