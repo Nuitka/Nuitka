@@ -30,6 +30,84 @@ Bug Fixes
 -  Tests: Ignore ld info output about mismatching architecture libraries
    being ignored. Fixed in 1.4.1 already.
 
+-  Fix, assigning methods of lists and calling them that way could crash
+   at runtime. The same was true of dict methods, but had never been
+   observed. Fixed in 1.4.2 already.
+
+-  Standalone: Added DLL dependencies for ``onnxruntime``. Fixed in
+   1.4.2 already.
+
+-  Standalone: Added implicit dependencies for ``textual`` package.
+   Fixed in 1.4.2 already.
+
+-  Fix, boolean tests of lists could be optimized to wrong result when
+   list methods got recognized, due to not annotating the escape during
+   that pass properly. Fixed in 1.4.3 already.
+
+-  Standalone: Added missing implicit dependency of ``apsw``. Fixed in
+   1.4.3 already.
+
+   .. note::
+
+      Currently ``apsw`` only works with manual workarounds and only in
+      limited ways, there is an import level incompatible with
+      ``__init__`` being an extension module, that Nuitka does not yet
+      handle.
+
+-  Python3: Fix, for range arguments that fail to divide there
+   difference, the code would have crashed. Fixed in 1.4.3 already.
+
+-  Standalone: Fix, added support for newer ``pkg_resources`` with
+   another vendored package. Fixed in 1.4.4 already.
+
+-  Standalone: Fix, added support for newer ``shapely`` 2.0 versions.
+   Fixed in 1.4.4 already.
+
+-  Plugins: Fix, some yaml package configurations with DLLs by code
+   didn't work anymore, notably old ``shapely`` 1.7.x versions were
+   affected. Fixed in 1.4.4 already.
+
+-  Fix, for onefile final result the "--output-dir" option was ignored.
+   Fixed in 1.4.4 already.
+
+-  Standalone: Added ``mozilla-ca`` package data file. Fixed in 1.4.4
+   already.
+
+-  Standalone: Fix, added missing implicit dependency for newer
+   ``gevent``. Fixed in 1.4.4 already.
+
+-  Scons: Accept an installed Python 3.11 for Scons execution as well.
+   Fixed in 1.4.4 already.
+
+New Features
+============
+
+-  Reports: Now the details of the used Python version, its flavor, the
+   OS and the architecture are included. This is crucial information for
+   analysis and can make ``--version`` output unnecessary.
+
+-  Reports: License reports now handle ``UNKNOWN`` license by falling
+   back to checking the classifiers, and therefore include the correct
+   license e.g. with ``setuptools``. Also in case no license text is
+   found, do not create an empty block. Added in 1.4.4 already.
+
+-  Reports: In case the distribution name and the contained package
+   names differ, output the list of packages included from a
+   distribution. Added in 1.4.4 already.
+
+-  macOS: Add support for downloading ``ccache`` on arm64 (M1/M2) too.
+   Added in 1.4.4 already.
+
+Optimization
+============
+
+-  Anti-Bloat: Avoid using ``dask`` in ``joblib``.
+
+   .. note::
+
+      Newer versions of ``joblib`` do not currently work yet due to
+      their own form of multiprocessing spawn not being supported yet.
+
 Organisational
 ==============
 
@@ -52,6 +130,13 @@ Organisational
    version, and it has gained specific bugs, that are indeed not worth
    our time. Python 2.6 and Python 2.7 will continue to be supported
    probably indefinitely.
+
+-  Recommend ``ordered-set`` for Python 3.7 to 3.9 as well, as not only
+   for 3.10+ because on Windows, to install ``orderset`` MSVC needs to
+   be installed, whereas ``ordered-set`` has a wheel for ready use.
+
+-  UI: Allow ``--output-filename`` for standalone mode again. Added in
+   1.4.3 already.
 
 Summary
 =======
