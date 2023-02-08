@@ -40,16 +40,20 @@ from nuitka.Options import (
     getCompilationReportTemplates,
 )
 from nuitka.plugins.Plugins import getActivePlugins
+from nuitka.PythonFlavors import getPythonFlavorName
+from nuitka.PythonVersions import python_version_full_str
 from nuitka.Tracing import reports_logger
 from nuitka.utils.Distributions import getDistributionsFromModuleName
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
+from nuitka.utils.Utils import getArchitecture, getOS
 
 
 def _getReportInputData():
     """Collect all information for reporting into a dictionary."""
 
-    # pylint: used with locals for laziness, disable=possibly-unused-variable
+    # used with locals for laziness and these are to populate a dictionary with
+    # many entries, pylint: disable=possibly-unused-variable,too-many-locals
 
     module_names = tuple(module.getFullName() for module in getDoneModules())
 
@@ -94,6 +98,13 @@ def _getReportInputData():
             key=lambda dist: dist.metadata["Name"],
         )
     )
+
+    python_exe = sys.executable
+
+    python_flavor = getPythonFlavorName()
+    python_version = python_version_full_str
+    os_name = getOS()
+    arch_name = getArchitecture()
 
     return dict(
         (var_name, var_value)
@@ -226,14 +237,6 @@ def writeCompilationReport(report_filename, report_input_data):
             # TODO: No reason yet.
         )
 
-    search_path_xml_node = TreeXML.appendTreeElement(
-        root,
-        "search_path",
-    )
-
-    for search_path in getPackageSearchPath(None):
-        TreeXML.appendTreeElement(search_path_xml_node, "path", value=search_path)
-
     options_xml_node = TreeXML.appendTreeElement(
         root,
         "command_line",
@@ -270,6 +273,24 @@ def writeCompilationReport(report_filename, report_input_data):
             name=distribution.metadata["Name"],
             version=distribution.metadata["Version"],
         )
+
+    python_xml_node = TreeXML.appendTreeElement(
+        root,
+        "python",
+        python_exe=report_input_data["python_exe"],
+        python_flavor=report_input_data["python_flavor"],
+        python_version=report_input_data["python_version"],
+        os_name=report_input_data["os_name"],
+        arch_name=report_input_data["arch_name"],
+    )
+
+    search_path_xml_node = TreeXML.appendTreeElement(
+        python_xml_node,
+        "search_path",
+    )
+
+    for search_path in getPackageSearchPath(None):
+        TreeXML.appendTreeElement(search_path_xml_node, "path", value=search_path)
 
     try:
         putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
