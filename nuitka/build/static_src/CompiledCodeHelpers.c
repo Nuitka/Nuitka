@@ -1185,14 +1185,6 @@ void enhancePythonTypes(void) {
 #endif
 }
 
-#ifdef __APPLE__
-#ifdef __cplusplus
-extern "C"
-#endif
-    wchar_t *
-    _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
-#endif
-
 #ifdef __FreeBSD__
 #include <floatingpoint.h>
 #endif
