@@ -51,8 +51,8 @@ class ExpressionImportHardBase(ExpressionBase):
         assert self.finding != "not-found", self.module_name
         assert _module_name == self.module_name, _module_name
 
-    def getUsedModules(self):
-        yield makeModuleUsageAttempt(
+    def getModulesUsageAttempt(self):
+        return makeModuleUsageAttempt(
             module_name=self.module_name,
             filename=self.module_filename,
             module_kind=self.module_kind,
@@ -116,6 +116,9 @@ class ExpressionImportModuleNameHardMaybeExists(ExpressionImportModuleNameHardBa
     def computeExpressionRaw(self, trace_collection):
         trace_collection.onExceptionRaiseExit(AttributeError)
 
+        # Trace the module usage attempt.
+        trace_collection.onModuleUsageAttempt(self.getModulesUsageAttempt())
+
         return self, None, None
 
     @staticmethod
@@ -138,6 +141,9 @@ class ExpressionImportModuleNameHardExists(ExpressionImportModuleNameHardBase):
     def computeExpressionRaw(self, trace_collection):
         if not self.module_guaranteed:
             trace_collection.onExceptionRaiseExit(ImportError)
+
+        # Trace the module usage attempt.
+        trace_collection.onModuleUsageAttempt(self.getModulesUsageAttempt())
 
         # As good as it gets.
         return self, None, None
