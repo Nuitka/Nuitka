@@ -181,14 +181,17 @@ default_ignored_suffixes = (
     ".dll",
     ".dylib",
 )
-if not isMacOS():
-    default_ignored_suffixes += (".DS_Store",)
+
 default_ignored_suffixes += getSharedLibrarySuffixes()
 
 default_ignored_dirs = (
     "__pycache__",
     "site-packages",
 )
+
+default_ignored_filenames = ("py.typed",)
+if not isMacOS():
+    default_ignored_filenames += (".DS_Store",)
 
 
 def makeIncludedDataDirectory(
@@ -206,6 +209,10 @@ def makeIncludedDataDirectory(
     assert isRelativePath(dest_path), dest_path
     assert os.path.isdir(source_path), source_path
 
+    ignore_dirs = tuple(ignore_dirs) + default_ignored_dirs
+    ignore_filenames = tuple(ignore_filenames) + default_ignored_filenames
+    ignore_suffixes = tuple(ignore_suffixes) + default_ignored_suffixes
+
     for filename in getFileList(
         source_path,
         ignore_dirs=ignore_dirs,
@@ -215,11 +222,6 @@ def makeIncludedDataDirectory(
         normalize=normalize,
     ):
         filename_relative = os.path.relpath(filename, source_path)
-
-        if filename_relative.endswith(default_ignored_suffixes):
-            continue
-
-        ignore_dirs = tuple(ignore_dirs) + default_ignored_dirs
 
         filename_dest = os.path.join(dest_path, filename_relative)
 
@@ -308,6 +310,9 @@ def _addIncludedDataFilesFromFileOptions():
             if containsPathElements(rel_path, default_ignored_dirs):
                 continue
 
+            if os.path.basename(rel_path) in default_ignored_filenames:
+                continue
+
             yield makeIncludedDataFile(
                 filename, rel_path, file_reason, tracer=options_logger, tags="user"
             )
@@ -349,6 +354,7 @@ def scanIncludedPackageDataFiles(package_directory):
         package_directory,
         ignore_dirs=default_ignored_dirs,
         ignore_suffixes=default_ignored_suffixes,
+        ignore_filenames=default_ignored_filenames,
     )
 
 

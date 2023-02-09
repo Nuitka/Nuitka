@@ -297,8 +297,7 @@ def getFileList(
         This function descends into directories, but does
         not follow symlinks.
     """
-    # We work with a lot of details here, pylint: disable=too-many-locals
-
+    # We work with a lot of details here
     result = []
 
     # Normalize "ignore_dirs" for better matching.
@@ -317,11 +316,12 @@ def getFileList(
             if ignore_dir in dirnames_normalized:
                 dirnames.remove(ignore_dir)
 
-        # Normalize filenames for better matching.
-        filenames_normalized = [os.path.normcase(filename) for filename in filenames]
-        for ignore_filename in ignore_filenames:
-            if ignore_filename in filenames_normalized:
-                filenames.remove(ignore_filename)
+        # Compare to normalized filenames for better matching.
+        filenames = [
+            filename
+            for filename in filenames
+            if os.path.normcase(filename) not in ignore_filenames
+        ]
 
         for filename in filenames:
             if os.path.normcase(filename).endswith(ignore_suffixes):
