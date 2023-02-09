@@ -1820,6 +1820,11 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 
     PyType_Ready(&Nuitka_Loader_Type);
 
+#ifdef _NUITKA_EXE
+    int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_loader_type", (PyObject *)&Nuitka_Loader_Type);
+    assert(res == 0);
+#endif
+
 #if PYTHON_VERSION >= 0x370
     PyType_Ready(&Nuitka_ResourceReader_Type);
 #endif
