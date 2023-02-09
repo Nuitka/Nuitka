@@ -823,3 +823,30 @@ def generateOsPathIsdirCallCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateOsPathBasenameCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_PATH_BASENAME",
+        arg_desc=(("path_arg", expression.subnode_p),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
+def generateOsListdirCallCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="OS_LISTDIR",
+        arg_desc=(("path_arg", expression.subnode_path),),
+        may_raise=expression.mayRaiseException(BaseException),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        source_ref=expression.getCompatibleSourceReference(),
+        none_null=True,
+        emit=emit,
+        context=context,
+    )
