@@ -941,6 +941,9 @@ class TraceCollectionBase(object):
     def onUsedFunction(self, function_body):
         return self.parent.onUsedFunction(function_body)
 
+    def onModuleUsageAttempt(self, module_usage_attempt):
+        self.parent.onModuleUsageAttempt(module_usage_attempt)
+
 
 class TraceCollectionBranch(CollectionUpdateMixin, TraceCollectionBase):
     __slots__ = ("variable_traces",)
@@ -1083,6 +1086,7 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         "exception_collections",
         "outline_functions",
         "very_trusted_module_variables",
+        "module_usage_attempts",
     )
 
     def __init__(self, module, very_trusted_module_variables):
@@ -1096,6 +1100,8 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
 
         self.very_trusted_module_variables = very_trusted_module_variables
 
+        self.module_usage_attempts = OrderedSet()
+
     def getVeryTrustedModuleVariables(self):
         return self.very_trusted_module_variables
 
@@ -1105,6 +1111,12 @@ class TraceCollectionModule(CollectionStartPointMixin, TraceCollectionBase):
         self.very_trusted_module_variables = very_trusted_module_variables
 
         return result
+
+    def getModuleUsageAttempts(self):
+        return self.module_usage_attempts
+
+    def onModuleUsageAttempt(self, module_usage_attempt):
+        self.module_usage_attempts.add(module_usage_attempt)
 
 
 # TODO: This should not exist, but be part of decision at the time these are collected.

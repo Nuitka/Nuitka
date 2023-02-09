@@ -469,8 +469,8 @@ class ExpressionImportModuleFixed(ExpressionBase):
         else:
             return tshape_module
 
-    def getUsedModules(self):
-        yield makeModuleUsageAttempt(
+    def getModuleUsageAttempt(self):
+        return makeModuleUsageAttempt(
             module_name=self.found_module_name,
             filename=self.found_module_filename,
             finding=self.finding,
@@ -568,6 +568,9 @@ class ExpressionImportModuleHard(
     def computeExpressionRaw(self, trace_collection):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
+
+        # Trace the module usage attempt.
+        trace_collection.onModuleUsageAttempt(self.getModulesUsageAttempt())
 
         return self, None, None
 
@@ -1090,9 +1093,6 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
             return None
 
-    def getUsedModules(self):
-        return self.used_modules
-
     def computeExpression(self, trace_collection):
         # Attempt to recurse if not already done, many cases to consider
         # pylint: disable=too-many-branches
@@ -1103,6 +1103,10 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             else:
                 # If we know it exists, only RuntimeError shall occur.
                 trace_collection.onExceptionRaiseExit(RuntimeError)
+
+            # Trace the module usage attempts.
+            for module_usage_attempt in self.used_modules:
+                trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
             # We stay here.
             return self, None, None
@@ -1118,8 +1122,11 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
             imported_module_name = module_name.getCompileTimeConstant()
 
             module_filename = self._attemptFollow(module_name=imported_module_name)
-
             self.follow_attempted = True
+
+            # Trace the module usage attempts.
+            for module_usage_attempt in self.used_modules:
+                trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
             if type(imported_module_name) in (str, unicode):
                 imported_module_name = resolveModuleName(imported_module_name)
@@ -1212,6 +1219,11 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 assert change_tags == "new_raise", module_name
 
                 return new_node, change_tags, message
+
+        # Trace the module usage attempts, doing it twice will not harm, this
+        # becomes a set.
+        for module_usage_attempt in self.used_modules:
+            trace_collection.onModuleUsageAttempt(module_usage_attempt)
 
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
