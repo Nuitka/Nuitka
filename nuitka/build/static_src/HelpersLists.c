@@ -664,8 +664,8 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 #endif
 
 PyObject *MAKE_LIST(PyObject *iterable) {
-    // TODO: Could create the list with length on 3.4 hint already, however the memory
-    // is not allocated for a 0 sized list yet, so it probably doesn't matter much.
+    // Can leave the size hinting to later functions, because the list is allocated empty without
+    // items, and when then extending, etc. length hints can be used.
     PyObject *list = MAKE_LIST_EMPTY(0);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
