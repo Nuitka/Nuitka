@@ -26,7 +26,6 @@ that need special case, e.g. the registration of the loader class.
 import re
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import withNoDeprecationWarning
 
 
@@ -114,8 +113,7 @@ sys.exit(%(module_name)s.%(main_name)s)
         if module.getFullName() != "pkg_resources":
             return
 
-        if python_version >= 0x300:
-            code = """\
+        code = """\
 from __future__ import absolute_import
 
 import os
@@ -138,10 +136,10 @@ class NuitkaProvider(EggProvider):
         with open(path, 'rb') as stream:
             return stream.read()
 
-register_loader_type(__loader__.__class__, NuitkaProvider)
+register_loader_type(__nuitka_loader_type, NuitkaProvider)
 """
 
-            yield (
-                code,
-                """Registering Nuitka loader with "pkg_resources".""",
-            )
+        yield (
+            code,
+            """Registering Nuitka loader with "pkg_resources".""",
+        )

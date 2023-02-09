@@ -19,4 +19,4 @@ import pyexpat
 
 print("Imported pyexpat, should use our one.")
 
-print([x for x in dir(pyexpat) if x != "__compiled__"])
+print([x for x in dir(pyexpat) if x not in ("__compiled__", "__loader__")])
