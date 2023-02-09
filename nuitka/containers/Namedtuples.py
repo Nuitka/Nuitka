@@ -31,7 +31,6 @@ def makeNamedtupleClass(name, element_names):
     namedtuple_class = namedtuple(name, element_names)
 
     class DynamicNamedtuple(namedtuple_class):
-        __name__ = name
         __qualname__ = name
 
         # Avoids bugs on early Python3.4 and Python3.5 versions.
@@ -39,5 +38,7 @@ def makeNamedtupleClass(name, element_names):
 
         def asDict(self):
             return self._asdict()
+
+    DynamicNamedtuple.__name__ = name
 
     return DynamicNamedtuple
