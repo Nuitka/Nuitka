@@ -43,7 +43,10 @@ def checkFromFunction():
     def displayDict(d):
         if "__loader__" in d:
             d = dict(d)
-            d["__loader__"] = "<__loader__ removed>"
+            if str is bytes:
+                del d["__loader__"]
+            else:
+                d["__loader__"] = "<__loader__ removed>"
 
         if "__file__" in d:
             d = dict(d)

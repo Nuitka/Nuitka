@@ -76,6 +76,7 @@ def getConstantDefaultPopulation():
         "__init__",
         "__cmp__",
         "__iter__",
+        "__loader__",
         # Nuitka specific
         "__compiled__",
         "__nuitka__",
@@ -121,7 +122,7 @@ def getConstantDefaultPopulation():
 
     if python_version >= 0x300:
         # For Python3 modules
-        result += ("__cached__", "__loader__")
+        result += ("__cached__",)
 
         # For Python3 print
         result += ("print", "end", "file")
