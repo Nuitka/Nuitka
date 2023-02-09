@@ -211,6 +211,13 @@ module_typing_trust = {
 module_os_trust = {
     "name": trust_constant,
     "listdir": trust_node,
+    "curdir": trust_constant,
+    "pardir": trust_constant,
+    "sep": trust_constant,
+    "extsep": trust_constant,
+    "altsep": trust_constant,
+    "pathsep": trust_constant,
+    "linesep": trust_constant,
 }
 
 module_os_path_trust = {
