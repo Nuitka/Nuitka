@@ -208,12 +208,22 @@ module_typing_trust = {
     "TYPE_CHECKING": trust_constant,
 }
 
-module_os_trust = {"name": trust_constant}
+module_os_trust = {
+    "name": trust_constant,
+    "listdir": trust_node,
+}
 
-module_os_path_trust = {"exists": trust_node, "isfile": trust_node, "isdir": trust_node}
+module_os_path_trust = {
+    "exists": trust_node,
+    "isfile": trust_node,
+    "isdir": trust_node,
+    "basename": trust_node,
+}
 
 
-module_ctypes_trust = {"CDLL": trust_node}
+module_ctypes_trust = {
+    "CDLL": trust_node,
+}
 
 # module_platform_trust = {"python_implementation": trust_function}
 
@@ -294,7 +304,12 @@ def _checkHardModules():
 
         for attribute_name, trust_value in trust.items():
             if trust_value is trust_node:
-                assert (module_name, attribute_name) in trust_node_factory, (
+                assert (
+                    module_name,
+                    attribute_name,
+                ) in trust_node_factory or os.path.basename(sys.argv[0]).startswith(
+                    "generate-"
+                ), (
                     module_name,
                     attribute_name,
                 )

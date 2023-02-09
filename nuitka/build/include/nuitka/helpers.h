@@ -183,6 +183,12 @@ extern PyObject *OS_PATH_FILE_EXISTS(PyObject *filename);
 extern PyObject *OS_PATH_FILE_ISFILE(PyObject *filename);
 extern PyObject *OS_PATH_FILE_ISDIR(PyObject *filename);
 
+// Small helper to list a directory.
+extern PyObject *OS_LISTDIR(PyObject *path);
+
+// Small helpers to work with filenames.
+extern PyObject *OS_PATH_BASENAME(PyObject *filename);
+
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR(PyObject *value);
 
