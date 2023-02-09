@@ -223,21 +223,43 @@ static char const *_kw_list_joinpath[] = {"child", NULL};
 //        """
 //
 
+// Functions out there, some accept "child", and accept varargs, lets be compatible with both.
+
 static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                      PyObject *kwds) {
 
-    PyObject *child;
+    PyObject *joined;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:joinpath", (char **)_kw_list_joinpath, &child);
+    if (kwds != NULL) {
+        PyObject *child;
 
-    if (unlikely(res == 0)) {
-        return NULL;
-    }
+        int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:joinpath", (char **)_kw_list_joinpath, &child);
 
-    PyObject *joined = JOIN_PATH2(files->m_path, child);
+        if (unlikely(res == 0)) {
+            return NULL;
+        }
 
-    if (unlikely(joined == NULL)) {
-        return NULL;
+        joined = JOIN_PATH2(files->m_path, child);
+
+        if (unlikely(joined == NULL)) {
+            return NULL;
+        }
+    } else {
+        joined = files->m_path;
+        Py_INCREF(joined);
+
+        Py_ssize_t n = PyTuple_GET_SIZE(args);
+        for (Py_ssize_t i = 0; i < n; ++i) {
+            PyObject *child = PyTuple_GET_ITEM(args, i);
+
+            PyObject *old = joined;
+            joined = JOIN_PATH2(joined, child);
+            Py_DECREF(old);
+
+            if (unlikely(joined == NULL)) {
+                return NULL;
+            }
+        }
     }
 
     return Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
