@@ -186,6 +186,13 @@ extern PyObject *OS_PATH_FILE_ISDIR(PyObject *filename);
 // Small helper to list a directory.
 extern PyObject *OS_LISTDIR(PyObject *path);
 
+// Platform standard slash for filenames
+#if defined(_WIN32)
+#define const_platform_sep const_str_backslash
+#else
+#define const_platform_sep const_str_slash
+#endif
+
 // Small helpers to work with filenames.
 extern PyObject *OS_PATH_BASENAME(PyObject *filename);
 
