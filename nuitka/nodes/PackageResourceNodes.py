@@ -90,7 +90,7 @@ class ExpressionImportlibResourcesReadBinaryCall(
 ):
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL"
 
-    python_version_spec = ">= 0x380"
+    python_version_spec = ">= 0x370"
 
     def __init__(self, package, resource, source_ref):
         ExpressionImportlibResourcesReadBinaryCallBase.__init__(
@@ -130,7 +130,7 @@ class ExpressionImportlibResourcesReadTextCall(
 ):
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL"
 
-    python_version_spec = ">= 0x380"
+    python_version_spec = ">= 0x370"
 
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)

@@ -30,12 +30,11 @@ struct Nuitka_ResourceReaderFilesObject {
     /* Python object folklore: */
     PyObject_HEAD
 
-        /* The loader entry, to know this is for one package exactly. */
+        // The loader entry, to know this is for one package exactly.
         struct Nuitka_MetaPathBasedLoaderEntry const *m_loader_entry;
 
-    /* The path relative to the entry, if e.g. joinpath is used. */
+    // The path relative to the entry, if e.g. joinpath is used
     PyObject *m_path;
-    struct Nuitka_MetaPathBasedLoaderEntry const *m_iterating_entry;
 };
 
 static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path);
@@ -71,52 +70,37 @@ static int Nuitka_ResourceReaderFiles_tp_traverse(struct Nuitka_ResourceReaderFi
 //
 //    def iterdir(self):
 //        """
-//        Yield Traversable objects in self
+//        Yield Traversable objects from self
 //        """
 //
 static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                     PyObject *kwds) {
+    PyObject *file_path = _Nuitka_ResourceReaderFiles_GetPath(files);
+    PyObject *file_names = OS_LISTDIR(file_path);
+    Py_DECREF(file_path);
 
-    if (files->m_path == const_str_empty) {
+    PyObject *files_objects = MAKE_LIST_EMPTY(0);
 
-        struct Nuitka_ResourceReaderFilesObject *result =
-            (struct Nuitka_ResourceReaderFilesObject *)Nuitka_ResourceReaderFiles_New(files->m_loader_entry,
-                                                                                      const_str_empty);
-        result->m_iterating_entry = loader_entries;
+    Py_ssize_t n = PyList_GET_SIZE(file_names);
+    for (Py_ssize_t i = 0; i < n; i++) {
+        PyObject *file_name = PyList_GET_ITEM(file_names, i);
+        CHECK_OBJECT(file_name);
 
-        return (PyObject *)result;
-    } else {
-        PyErr_SetNone(PyExc_NotImplementedError);
-        return NULL;
+        PyObject *joined = JOIN_PATH2(files->m_path, file_name);
+        CHECK_OBJECT(joined);
+
+        PyObject *files_object = Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+        bool res = LIST_APPEND1(files_objects, files_object);
+        assert(res);
+
+        CHECK_OBJECT(files_object);
+        Py_DECREF(joined);
     }
-}
 
-// iterator next implementation
-static PyObject *Nuitka_ResourceReaderFiles_tp_iternext(struct Nuitka_ResourceReaderFilesObject *files) {
-    if (files->m_iterating_entry == NULL) {
-        return NULL;
-    }
+    PyObject *result = MAKE_ITERATOR_INFALLIBLE(files_objects);
+    Py_DECREF(files_objects);
 
-    struct Nuitka_MetaPathBasedLoaderEntry const *current = files->m_iterating_entry;
-
-    if (files->m_path == const_str_empty) {
-        while (current != NULL) {
-            char const *current_package_name = strrchr(current->name, '.');
-
-            if (current_package_name != NULL) {
-                if (strncmp(files->m_loader_entry->name, current_package_name, current_package_name - current->name) ==
-                    0) {
-                }
-            }
-
-            current += 1;
-        }
-
-        return NULL;
-    } else {
-        PyErr_SetNone(PyExc_NotImplementedError);
-        return NULL;
-    }
+    return result;
 }
 
 //    def read_bytes(self):
@@ -223,21 +207,42 @@ static char const *_kw_list_joinpath[] = {"child", NULL};
 //        """
 //
 
+// Functions out there, some accept "child", and accept varargs, lets be compatible with both.
+
 static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReaderFilesObject *files, PyObject *args,
                                                      PyObject *kwds) {
 
-    PyObject *child;
+    PyObject *joined = files->m_path;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:joinpath", (char **)_kw_list_joinpath, &child);
+    if (kwds != NULL) {
+        PyObject *child;
 
-    if (unlikely(res == 0)) {
-        return NULL;
-    }
+        int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:joinpath", (char **)_kw_list_joinpath, &child);
 
-    PyObject *joined = JOIN_PATH2(files->m_path, child);
+        if (unlikely(res == 0)) {
+            return NULL;
+        }
 
-    if (unlikely(joined == NULL)) {
-        return NULL;
+        joined = JOIN_PATH2(joined, child);
+
+        if (unlikely(joined == NULL)) {
+            return NULL;
+        }
+    } else {
+        Py_INCREF(joined);
+
+        Py_ssize_t n = PyTuple_GET_SIZE(args);
+        for (Py_ssize_t i = 0; i < n; ++i) {
+            PyObject *child = PyTuple_GET_ITEM(args, i);
+
+            PyObject *old = joined;
+            joined = JOIN_PATH2(joined, child);
+            Py_DECREF(old);
+
+            if (unlikely(joined == NULL)) {
+                return NULL;
+            }
+        }
     }
 
     return Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
@@ -362,7 +367,7 @@ static PyTypeObject Nuitka_ResourceReaderFiles_Type = {
     0,                                                    /* tp_richcompare */
     0,                                                    /* tp_weaklistoffset */
     PyObject_SelfIter,                                    /* tp_iter */
-    (iternextfunc)Nuitka_ResourceReaderFiles_tp_iternext, /* tp_iternext */
+    0,                                                    /* tp_iternext */
     Nuitka_ResourceReaderFiles_methods,                   /* tp_methods */
     0,                                                    /* tp_members */
     Nuitka_ResourceReaderFiles_getset,                    /* tp_getset */
@@ -395,7 +400,6 @@ static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoade
     result->m_loader_entry = entry;
     result->m_path = path;
     Py_INCREF(path);
-    result->m_iterating_entry = NULL;
 
     return (PyObject *)result;
 }

@@ -119,7 +119,7 @@ static PyObject *IMPORT_HARD_OS_PATH(void) {
     static PyObject *os_path = NULL;
 
     if (os_path == NULL) {
-        os_path = PyObject_GetAttrString(IMPORT_HARD_OS(), "path");
+        os_path = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS(), const_str_plain_path);
 
         CHECK_OBJECT(os_path);
     }
@@ -134,7 +134,7 @@ PyObject *OS_PATH_FILE_EXISTS(PyObject *filename) {
         return result;
     }
 
-    PyObject *exists_func = PyObject_GetAttrString(IMPORT_HARD_OS_PATH(), "exists");
+    PyObject *exists_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_exists);
 
     result = CALL_FUNCTION_WITH_SINGLE_ARG(exists_func, filename);
 
@@ -149,7 +149,7 @@ PyObject *OS_PATH_FILE_ISFILE(PyObject *filename) {
         return result;
     }
 
-    PyObject *isfile_func = PyObject_GetAttrString(IMPORT_HARD_OS_PATH(), "isfile");
+    PyObject *isfile_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_isfile);
 
     result = CALL_FUNCTION_WITH_SINGLE_ARG(isfile_func, filename);
 
@@ -164,10 +164,40 @@ PyObject *OS_PATH_FILE_ISDIR(PyObject *filename) {
         return result;
     }
 
-    PyObject *isdir_func = PyObject_GetAttrString(IMPORT_HARD_OS_PATH(), "isdir");
+    PyObject *isdir_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_isdir);
 
     result = CALL_FUNCTION_WITH_SINGLE_ARG(isdir_func, filename);
 
     Py_DECREF(isdir_func);
+    return result;
+}
+
+PyObject *OS_LISTDIR(PyObject *path) {
+    PyObject *result;
+
+    if (TRACE_FILE_LISTDIR(path, &result)) {
+        return result;
+    }
+
+    PyObject *listdir_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS(), const_str_plain_listdir);
+
+    if (path != NULL) {
+        result = CALL_FUNCTION_WITH_SINGLE_ARG(listdir_func, path);
+    } else {
+        result = CALL_FUNCTION_NO_ARGS(listdir_func);
+    }
+
+    Py_DECREF(listdir_func);
+    return result;
+}
+
+PyObject *OS_PATH_BASENAME(PyObject *filename) {
+    CHECK_OBJECT(filename);
+
+    PyObject *basename_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_basename);
+
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(basename_func, filename);
+
+    Py_DECREF(basename_func);
     return result;
 }
