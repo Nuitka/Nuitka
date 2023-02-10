@@ -190,6 +190,7 @@ def readSourceCodeFromFilenameWithInformation(module_name, source_filename):
         source_diff = getSourceCodeDiff(source_code, source_code_modified)
 
         if source_diff:
+            my_print("%s:" % module_name.asString())
             for line in source_diff:
                 my_print(line, end="\n" if not line.startswith("---") else "")
 
