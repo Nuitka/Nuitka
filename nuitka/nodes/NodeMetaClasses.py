@@ -86,7 +86,10 @@ class NodeCheckMetaClass(ABCMeta):
         ), dictionary["__slots__"]
 
         if "python_version_spec" in dictionary:
-            condition = "%s %s" % (python_version, dictionary["python_version_spec"])
+            condition = "%s %s" % (
+                hex(python_version),
+                dictionary["python_version_spec"],
+            )
 
             # We trust our node class files, pylint: disable=eval-used
             if not eval(condition):

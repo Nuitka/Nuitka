@@ -18,8 +18,13 @@
 """ Nodes the represent ways to access os and sys functions. """
 
 
+import os
+
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionNoSideEffectsMixin
 from .HardImportNodesGenerated import (
+    ExpressionOsListdirCallBase,
+    ExpressionOsPathBasenameCallBase,
     ExpressionOsPathExistsCallBase,
     ExpressionOsPathIsdirCallBase,
     ExpressionOsPathIsfileCallBase,
@@ -70,6 +75,33 @@ class ExpressionOsPathIsdirCall(ExpressionOsPathIsdirCallBase):
     kind = "EXPRESSION_OS_PATH_ISDIR_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionOsPathBasenameCall(ExpressionOsPathBasenameCallBase):
+    kind = "EXPRESSION_OS_PATH_BASENAME_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        result = makeConstantRefNode(
+            constant=os.path.basename(self.subnode_p.getCompileTimeConstant()),
+            source_ref=self.source_ref,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.basename' call.",
+        )
+
+
+class ExpressionOsListdirCall(ExpressionOsListdirCallBase):
+    kind = "EXPRESSION_OS_LISTDIR_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # Nothing we can do really
+
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
