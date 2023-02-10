@@ -114,6 +114,11 @@ os_uname_spec = BuiltinParameterSpec(
 os_path_exists_spec = BuiltinParameterSpec("os.path.exists", ("path",), default_count=0)
 os_path_isfile_spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_count=0)
 os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("path",), default_count=0)
+os_path_basename_spec = BuiltinParameterSpec(
+    "os.path.basename", ("p",), default_count=0
+)
+
+os_listdir_spec = BuiltinParameterSpec("os.listdir", ("path",), default_count=1)
 
 ctypes_cdll_since_38_spec = BuiltinParameterSpec(
     "ctypes.CDLL",
