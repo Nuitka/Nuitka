@@ -37,6 +37,7 @@ from nuitka.options.Options import shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.HardImportSpecs import (
+    ctypes_c_int_spec,
     ctypes_cdll_before_38_spec,
     ctypes_cdll_since_38_spec,
     importlib_metadata_backport_distribution_spec,
@@ -88,6 +89,7 @@ from .ChildrenHavingMixins import (
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildHavingSMixin,
+    ChildHavingValueOptionalMixin,
     ChildrenHavingFuncOptionalInputSignatureOptionalAutographOptionalJitCompileOptionalReduceRetracingOptionalExperimentalImplementsOptionalExperimentalAutographOptionsOptionalExperimentalAttributesOptionalExperimentalRelaxShapesOptionalExperimentalCompileOptionalExperimentalFollowTypeHintsOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLastErrorOptionalMixin,
@@ -109,6 +111,88 @@ from .ExpressionShapeMixins import (
 from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 hard_import_node_classes = {}
+
+
+class ExpressionCtypesCIntRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference ctypes.c_int"""
+
+    kind = "EXPRESSION_CTYPES_C_INT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="ctypes",
+            import_name="c_int",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .CtypesNodes import ExpressionCtypesCIntCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionCtypesCIntCall,
+            builtin_spec=ctypes_c_int_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'ctypes.c_int' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionCtypesCIntRef] = ctypes_c_int_spec
+
+
+class ExpressionCtypesCIntCallBase(ChildHavingValueOptionalMixin, ExpressionBase):
+    """Base class for CtypesCIntCall
+
+    Generated boiler plate code from 'HardImportCallNode.py.j2' template.
+    """
+
+    named_children = ("value|optional",)
+
+    __slots__ = ("attempted",)
+
+    spec = ctypes_c_int_spec
+
+    def __init__(self, value, source_ref):
+
+        ChildHavingValueOptionalMixin.__init__(
+            self,
+            value=value,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        self.attempted = False
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not ctypes_c_int_spec.isCompileTimeComputable(
+            (self.subnode_value,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):
