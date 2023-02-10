@@ -49,6 +49,8 @@ from nuitka.specs.HardImportSpecs import (
     importlib_metadata_version_spec,
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_spec,
+    os_listdir_spec,
+    os_path_basename_spec,
     os_path_exists_spec,
     os_path_isdir_spec,
     os_path_isfile_spec,
@@ -66,6 +68,8 @@ from .ChildrenHavingMixins import (
     ChildHavingDistributionNameMixin,
     ChildHavingParamsTupleMixin,
     ChildHavingPathMixin,
+    ChildHavingPathOptionalMixin,
+    ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin,
@@ -1284,6 +1288,172 @@ class ExpressionImportlibResourcesReadTextCallBase(
                     self.subnode_errors,
                 )
             )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionOsListdirRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.listdir"""
+
+    kind = "EXPRESSION_OS_LISTDIR_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="os",
+            import_name="listdir",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsListdirCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsListdirCall,
+            builtin_spec=os_listdir_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.listdir' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionOsListdirRef] = os_listdir_spec
+
+
+class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
+    """Base class for OsListdirCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("path|optional",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_listdir_spec
+
+    def __init__(self, path, source_ref):
+
+        ChildHavingPathOptionalMixin.__init__(
+            self,
+            path=path,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_listdir_spec.isCompileTimeComputable(
+            (self.subnode_path,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionOsPathBasenameRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.path.basename"""
+
+    kind = "EXPRESSION_OS_PATH_BASENAME_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name=os.path.__name__,
+            import_name="basename",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsPathBasenameCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsPathBasenameCall,
+            builtin_spec=os_path_basename_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.path.basename' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionOsPathBasenameRef] = os_path_basename_spec
+
+
+class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
+    """Base class for OsPathBasenameCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("p",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_path_basename_spec
+
+    def __init__(self, p, source_ref):
+
+        ChildHavingPMixin.__init__(
+            self,
+            p=p,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_path_basename_spec.isCompileTimeComputable(
+            (self.subnode_p,)
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 

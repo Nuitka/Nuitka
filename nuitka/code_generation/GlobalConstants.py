@@ -105,6 +105,12 @@ def getConstantDefaultPopulation():
         # File handling
         "/",
         "\\",
+        "path",
+        "basename",
+        "exists",
+        "isdir",
+        "isfile",
+        "listdir",
     ]
 
     # Pickling of instance methods.

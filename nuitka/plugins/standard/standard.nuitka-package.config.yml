@@ -276,6 +276,14 @@
     dirs:
       - 'assets'
 
+- module-name: 'customtkinter.windows.widgets.theme.theme_manager'
+  anti-bloat:
+    - description: 'workaround for file path on non-Windows'
+      replacements_plain:
+        'script_directory, "../../../assets"': 'os.path.normpath(os.path.join(script_directory, "../../../assets"))'
+      # Not necessary on Windows
+      when: 'not win32'
+
 - module-name: 'cv2'
   data-files:
     dirs:

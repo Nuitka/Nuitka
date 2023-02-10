@@ -64,6 +64,31 @@ to analyze the dependencies of Python extension modules.""",
     )
 
 
+def _attemptToFindNotFoundDLL(dll_filename):
+    """Some heuristics and tricks to find DLLs that dependency walker did not find."""
+
+    # Lets attempt to find it on currently loaded DLLs, this typically should
+    # find the Python DLL.
+    currently_loaded_dlls = getWindowsRunningProcessDLLPaths()
+
+    if dll_filename in currently_loaded_dlls:
+        return currently_loaded_dlls[dll_filename]
+
+    # One exception are "PythonXY.DLL", we try to find them from Windows folder.
+    if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
+        dll_filename = os.path.join(
+            os.environ["SYSTEMROOT"],
+            "SysWOW64" if getArchitecture() == "x86_64" else "System32",
+            dll_filename,
+        )
+        dll_filename = os.path.normcase(dll_filename)
+
+        if os.path.exists(dll_filename):
+            return dll_filename
+
+    return None
+
+
 def _parseDependsExeOutput2(lines):
     result = OrderedSet()
 
@@ -92,24 +117,12 @@ def _parseDependsExeOutput2(lines):
         if "E" in line[: line.find("]")]:
             continue
 
-        # Skip missing DLLs, apparently not needed anyway.
+        # Skip missing DLLs, apparently not needed anyway, but we can still
+        # try a few tricks
         if "?" in line[: line.find("]")]:
-            # Let find it on currently loaded DLLs
-            currently_loaded_dll = getWindowsRunningProcessDLLPaths()
+            dll_filename = _attemptToFindNotFoundDLL(dll_filename)
 
-            if dll_filename in currently_loaded_dll:
-                dll_filename = currently_loaded_dll[dll_filename]
-                continue
-
-            # One exception are PythonXY.DLL
-            if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
-                dll_filename = os.path.join(
-                    os.environ["SYSTEMROOT"],
-                    "SysWOW64" if getArchitecture() == "x86_64" else "System32",
-                    dll_filename,
-                )
-                dll_filename = os.path.normcase(dll_filename)
-            else:
+            if dll_filename is None:
                 continue
 
         dll_filename = os.path.abspath(dll_filename)
