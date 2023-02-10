@@ -183,6 +183,15 @@ ctypes_cdll_before_38_spec = BuiltinParameterSpec(
     default_count=4,
 )
 
+# ctypes_c_int = BuiltinParameterSpec(
+#     "ctypes.c_int",
+#     (
+#         "value",
+#     ),
+#     default_count=1,
+#     type_shape=tshape_int
+# )
+
 sys_exit_spec = BuiltinParameterSpecNoKeywords(
     "sys.exit", ("exit_code",), default_count=1
 )
