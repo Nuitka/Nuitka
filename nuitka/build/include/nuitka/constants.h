@@ -134,6 +134,18 @@ extern PyObject **global_constants;
 #define const_str_plain_level global_constants[41]
 // 'read'
 #define const_str_plain_read global_constants[42]
+// 'exists'
+#define const_str_plain_exists global_constants[42]
+// 'isdir'
+#define const_str_plain_isdir global_constants[42]
+// 'isfile'
+#define const_str_plain_isfile global_constants[42]
+// 'listdir'
+#define const_str_plain_listdir global_constants[42]
+// 'basename'
+#define const_str_plain_basename global_constants[42]
+// 'path'
+#define const_str_plain_path global_constants[42]
 // '__newobj__'
 #define const_str_plain___newobj__ global_constants[44]
 // '.'

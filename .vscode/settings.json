@@ -190,6 +190,7 @@
         "ldconfig",
         "libc",
         "libpython",
+        "listdir",
         "lldb",
         "longlong",
         "LPWSTR",
