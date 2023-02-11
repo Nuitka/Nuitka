@@ -10412,7 +10412,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -10636,7 +10636,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -10861,7 +10861,7 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11086,7 +11086,7 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11311,7 +11311,7 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11536,7 +11536,7 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11761,7 +11761,7 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11986,7 +11986,7 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -12211,7 +12211,7 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -12436,7 +12436,7 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -12661,7 +12661,7 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyObject *source, PyObject *attr_name, PyObjec
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
