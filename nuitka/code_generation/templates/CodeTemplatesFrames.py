@@ -64,9 +64,9 @@ assert({{context_identifier}}->m_frame->m_frame.f_back == NULL);
 // Push the new frame as the currently active one, and we should be exclusively
 // owning it.
 {% if context_identifier %}
-pushFrameStackGenerator({{frame_identifier}});
+pushFrameStackGeneratorCompiledFrame({{frame_identifier}});
 {% else %}
-pushFrameStack({{frame_identifier}});
+pushFrameStackCompiledFrame({{frame_identifier}});
 {% endif %}
 assert(Py_REFCNT({{frame_identifier}}) == 2);
 
