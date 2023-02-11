@@ -40,7 +40,7 @@ PyObject *CALL_METHOD_WITH_ARGS{{args_count}}(PyObject *source, PyObject *attr_n
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
