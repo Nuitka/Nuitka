@@ -30,6 +30,10 @@ def generateCtypesCdllCallCode(to_name, expression, emit, context):
     )
 
 
+def generateCtypesCIntCallCode(to_name, expression, emit, context):
+    pass
+
+
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
