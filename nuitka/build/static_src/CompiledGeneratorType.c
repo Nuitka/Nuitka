@@ -482,7 +482,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
             generator->m_status = status_Running;
         } else {
             // Put the generator back on the frame stack.
-            pushFrameStackGenerator(generator->m_frame);
+            pushFrameStackGeneratorCompiledFrame(generator->m_frame);
         }
 
         // Continue the yielder function while preventing recursion.

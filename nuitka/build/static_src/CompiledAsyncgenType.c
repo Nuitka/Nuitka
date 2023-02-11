@@ -306,7 +306,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
             assert(asyncgen->m_resume_frame == NULL);
         } else {
             assert(asyncgen->m_resume_frame);
-            pushFrameStackGenerator((struct Nuitka_FrameObject *)asyncgen->m_resume_frame);
+            pushFrameStackGenerator(asyncgen->m_resume_frame);
 
             asyncgen->m_resume_frame = NULL;
         }
@@ -377,7 +377,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
 
 #ifndef __NUITKA_NO_ASSERT__
         if (return_frame) {
-            assertFrameObject((struct Nuitka_FrameObject *)return_frame);
+            assertThreadFrameObject(return_frame);
         }
 #endif
 

@@ -397,7 +397,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 
         } else {
             assert(coroutine->m_resume_frame);
-            pushFrameStackGenerator((struct Nuitka_FrameObject *)coroutine->m_resume_frame);
+            pushFrameStackGenerator(coroutine->m_resume_frame);
 
             coroutine->m_resume_frame = NULL;
         }
@@ -468,7 +468,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 
 #ifndef __NUITKA_NO_ASSERT__
         if (return_frame) {
-            assertFrameObject((struct Nuitka_FrameObject *)return_frame);
+            assertThreadFrameObject(return_frame);
         }
 #endif
 
