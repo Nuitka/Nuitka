@@ -74,17 +74,15 @@ def _attemptToFindNotFoundDLL(dll_filename):
     if dll_filename in currently_loaded_dlls:
         return currently_loaded_dlls[dll_filename]
 
-    # One exception are "PythonXY.DLL", we try to find them from Windows folder.
-    if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
-        dll_filename = os.path.join(
-            os.environ["SYSTEMROOT"],
-            "SysWOW64" if getArchitecture() == "x86_64" else "System32",
-            dll_filename,
-        )
-        dll_filename = os.path.normcase(dll_filename)
+    dll_filename = os.path.join(
+        os.environ["SYSTEMROOT"],
+        "SysWOW64" if getArchitecture() == "x86_64" else "System32",
+        dll_filename,
+    )
+    dll_filename = os.path.normcase(dll_filename)
 
-        if os.path.exists(dll_filename):
-            return dll_filename
+    if os.path.exists(dll_filename):
+        return dll_filename
 
     return None
 
@@ -120,10 +118,16 @@ def _parseDependsExeOutput2(lines):
         # Skip missing DLLs, apparently not needed anyway, but we can still
         # try a few tricks
         if "?" in line[: line.find("]")]:
-            dll_filename = _attemptToFindNotFoundDLL(dll_filename)
+            # One exception are "PythonXY.DLL", we try to find them from Windows folder.
+            if dll_filename.startswith("python") and dll_filename.endswith(".dll"):
+                dll_filename = _attemptToFindNotFoundDLL(dll_filename)
 
-            if dll_filename is None:
+                if dll_filename is None:
+                    continue
+            else:
                 continue
+
+        assert os.path.basename(dll_filename) != "kernel32.dll"
 
         dll_filename = os.path.abspath(dll_filename)
 
