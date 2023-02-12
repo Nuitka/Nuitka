@@ -1350,6 +1350,12 @@
         - 'osgeo._ogr'
         - 'osgeo._osr'
 
+- module-name: 'overrides.overrides'
+  anti-bloat:
+    - description: 'disable overrides function checking'
+      change_function:
+        '_overrides': "'(lambda method, *args, **kwargs: method)'"
+
 - module-name: 'panda3d'
   data-files:
     dest_path: '.'
