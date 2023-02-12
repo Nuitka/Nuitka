@@ -230,6 +230,7 @@ module_os_path_trust = {
 
 module_ctypes_trust = {
     "CDLL": trust_node,
+    "c_int": trust_node,
 }
 
 # module_platform_trust = {"python_implementation": trust_function}
@@ -277,7 +278,6 @@ hard_modules_trust = {
     "site": {},
     "ctypes.wintypes": {},
     "ctypes.macholib": {},
-    "ctypes.c_int": trust_node,
 }
 
 
