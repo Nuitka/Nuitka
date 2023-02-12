@@ -89,8 +89,33 @@ NUITKA_MAY_BE_UNUSED static void PRINT_COROUTINE_STRING(char const *name, char c
     PRINT_STRING(value);
     PRINT_NEW_LINE();
 }
-
 #endif
+
+static void Nuitka_MarkGeneratorAsFinished(struct Nuitka_GeneratorObject *generator) {
+    generator->m_status = status_Finished;
+
+#if PYTHON_VERSION >= 0x3b0
+    if (generator->m_frame) {
+        generator->m_frame->m_frame_state = FRAME_COMPLETED;
+    }
+#endif
+}
+
+static void Nuitka_MarkGeneratorAsRunning(struct Nuitka_GeneratorObject *generator) {
+    generator->m_running = 1;
+
+    if (generator->m_frame) {
+        Nuitka_Frame_MarkAsExecuting(generator->m_frame);
+    }
+}
+
+static void Nuitka_MarkGeneratorAsNotRunning(struct Nuitka_GeneratorObject *generator) {
+    generator->m_running = 0;
+
+    if (generator->m_frame) {
+        Nuitka_Frame_MarkAsNotExecuting(generator->m_frame);
+    }
+}
 
 static PyObject *Nuitka_Generator_tp_repr(struct Nuitka_GeneratorObject *generator) {
     return Nuitka_String_FromFormat("<compiled_generator object %s at %p>",
@@ -486,7 +511,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
         }
 
         // Continue the yielder function while preventing recursion.
-        generator->m_running = true;
+        Nuitka_MarkGeneratorAsRunning(generator);
 
         // Check for thrown exception, publish it to the generator code.
         if (unlikely(exception_type)) {
@@ -494,10 +519,6 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
             // Transfer exception ownership to published.
             RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
-        }
-
-        if (generator->m_frame) {
-            Nuitka_Frame_MarkAsExecuting(generator->m_frame);
         }
 
 #if _DEBUG_GENERATOR
@@ -527,11 +548,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
             yielded = Nuitka_YieldFromGeneratorNext(generator);
         }
 #endif
-        if (generator->m_frame) {
-            Nuitka_Frame_MarkAsNotExecuting(generator->m_frame);
-        }
-
-        generator->m_running = false;
+        Nuitka_MarkGeneratorAsNotRunning(generator);
 
         thread_state = PyThreadState_GET();
 
@@ -559,7 +576,7 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
             PRINT_CURRENT_EXCEPTION();
             PRINT_NEW_LINE();
 #endif
-            generator->m_status = status_Finished;
+            Nuitka_MarkGeneratorAsFinished(generator);
 
             if (generator->m_frame != NULL) {
 #if PYTHON_VERSION >= 0x340
@@ -699,7 +716,7 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
     if (generator->m_status == status_Unused && value != NULL && value != Py_None) {
         // Buggy CPython 3.10 refuses to allow later usage.
 #if PYTHON_VERSION >= 0x3a0 && PYTHON_VERSION < 0x3a2
-        generator->m_status = status_Finished;
+        Nuitka_MarkGeneratorAsFinished(generator);
 #endif
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started generator");
@@ -956,9 +973,9 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
     if (generator->m_yieldfrom != NULL) {
         if (EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
             // Generators need to close the yield_from.
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             bool res = Nuitka_gen_close_iter(generator->m_yieldfrom);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
 
             if (res == false) {
                 // Release exception, we are done with it now and pick up the new one.
@@ -984,41 +1001,41 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
         if (Nuitka_Generator_Check(generator->m_yieldfrom)) {
             struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)generator->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Generator_throw2".
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             ret = _Nuitka_Generator_throw2(gen, exception_type, exception_value, exception_tb);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
         } else if (PyGen_CheckExact(generator->m_yieldfrom)) {
             PyGenObject *gen = (PyGenObject *)generator->m_yieldfrom;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
 #endif
 #if PYTHON_VERSION >= 0x350
         } else if (Nuitka_Coroutine_Check(generator->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)generator->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
         } else if (Nuitka_CoroutineWrapper_Check(generator->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro =
                 ((struct Nuitka_CoroutineWrapperObject *)generator->m_yieldfrom)->m_coroutine;
 
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
         } else if (PyCoro_CheckExact(generator->m_yieldfrom)) {
             PyGenObject *gen = (PyGenObject *)generator->m_yieldfrom;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
 #endif
 #if PYTHON_VERSION >= 0x360
         } else if (Nuitka_AsyncgenAsend_Check(generator->m_yieldfrom)) {
@@ -1026,9 +1043,9 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
                 ((struct Nuitka_AsyncgenAsendObject *)generator->m_yieldfrom);
 
             // Transferred exception ownership to "_Nuitka_AsyncgenAsend_throw2".
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             ret = _Nuitka_AsyncgenAsend_throw2(asyncgen_asend, exception_type, exception_value, exception_tb);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
 #endif
 #endif
         } else {
@@ -1056,9 +1073,9 @@ static PyObject *_Nuitka_Generator_throw2(struct Nuitka_GeneratorObject *generat
             PRINT_ITEM(coroutine->m_yieldfrom);
             PRINT_NEW_LINE();
 #endif
-            generator->m_running = 1;
+            Nuitka_MarkGeneratorAsRunning(generator);
             ret = PyObject_CallFunctionObjArgs(meth, exception_type, exception_value, exception_tb, NULL);
-            generator->m_running = 0;
+            Nuitka_MarkGeneratorAsNotRunning(generator);
 
             Py_DECREF(meth);
 
@@ -1155,7 +1172,7 @@ throw_here:
 
         RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
 
-        generator->m_status = status_Finished;
+        Nuitka_MarkGeneratorAsFinished(generator);
 
         return NULL;
     }
@@ -1595,7 +1612,7 @@ PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *
     result->m_weakrefs = NULL;
 
     result->m_status = status_Unused;
-    result->m_running = false;
+    result->m_running = 0;
 
     result->m_yield_return_index = 0;
 

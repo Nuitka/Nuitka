@@ -372,6 +372,11 @@ NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObj
 #else
     nuitka_frame->m_generator = generator;
 #endif
+
+    // Mark the frame as executing
+    if (generator) {
+        Nuitka_Frame_MarkAsExecuting(nuitka_frame);
+    }
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame) {
