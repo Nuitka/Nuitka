@@ -184,7 +184,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
 {% else %}
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(
                 PyExc_TypeError,
@@ -212,7 +212,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
 {% else %}
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError,
                 "%s() takes exactly one argument ({{args_count}} given)",
@@ -295,7 +295,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -573,7 +573,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             PyObject *result = func(called, args, {{args_count}}, NULL);
 {% endif %}
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }

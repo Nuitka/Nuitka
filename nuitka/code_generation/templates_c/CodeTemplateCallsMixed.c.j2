@@ -78,7 +78,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
             PyObject *result = func(called, vectorcall_args, {{args_count}}, kw_names);
 {% endif %}
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -140,5 +140,5 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
