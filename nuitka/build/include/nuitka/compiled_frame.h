@@ -349,10 +349,11 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     tstate->cframe->current_frame = tstate->cframe->current_frame->previous;
 
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
-    Py_DECREF(frame_object);
 
     CHECK_OBJECT_X(frame_object->m_frame.f_back);
     Py_CLEAR(frame_object->m_frame.f_back);
+
+    Py_DECREF(frame_object);
 
     frame_object->m_interpreter_frame.previous = NULL;
 #endif
