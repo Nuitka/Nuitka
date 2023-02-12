@@ -79,10 +79,6 @@ STORE_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});
 // Framed code:
 {{codes}}
 
-{% if context_identifier and frame_cache_identifier %}
-Nuitka_Frame_MarkAsNotExecuting({{context_identifier}}->m_frame);
-
-{% endif %}
 {% if context_identifier and is_python3 %}
 // Release exception attached to the frame
 DROP_{{context_identifier.upper()}}_EXCEPTION({{context_identifier}});

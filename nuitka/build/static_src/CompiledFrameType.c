@@ -466,6 +466,19 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
         return NULL;
     }
 
+#if PYTHON_VERSION >= 0x3b0
+    if (frame->m_frame_state == FRAME_COMPLETED) {
+        Nuitka_Frame_tp_clear(frame);
+
+        Py_RETURN_NONE;
+    }
+
+    if (frame->m_frame_state == FRAME_EXECUTING) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
+        return NULL;
+    }
+#endif
+
 #if PYTHON_VERSION >= 0x340
     // For frames that are closed, we also need to close the generator.
     PyObject *f_gen = Nuitka_GetFrameGenerator(frame);
