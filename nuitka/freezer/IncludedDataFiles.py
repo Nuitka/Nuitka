@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
     copyFileWithPermissions,
     getFileContents,
     getFileList,
+    getFileSize,
     isFilenameBelowPath,
     isRelativePath,
     makePath,
@@ -121,6 +122,14 @@ class IncludedDataFile(object):
             return getFileContents(filename=self.source_path, mode="rb")
         elif self.kind == "data_blob":
             return self.data
+        else:
+            assert False
+
+    def getFileSize(self):
+        if self.kind == "data_file":
+            return getFileSize(self.source_path)
+        elif self.kind == "data_blob":
+            return len(self.data)
         else:
             assert False
 
