@@ -84,6 +84,8 @@
     },
     "cSpell.words": [
         "__abstractmethods__",
+        "__aenter__",
+        "__aexit__",
         "__cplusplus",
         "__newobj__",
         "__warningregistry__",
