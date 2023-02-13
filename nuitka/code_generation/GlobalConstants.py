@@ -202,6 +202,10 @@ def getConstantDefaultPopulation():
         if Options.is_debug:
             result.append("__args__")
 
+    if python_version >= 0x3B0:
+        result.append("__aenter__")
+        result.append("__aexit__")
+
     if isWin32Windows():
         result.append("fileno")
 
