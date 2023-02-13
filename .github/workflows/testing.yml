@@ -47,8 +47,15 @@ jobs:
 
       - name: Verbose scons output in compilation
         run: |
-          python -m nuitka --module --show-scons --run tests/basics/EmptyModuleTest.py
-          python -m nuitka --show-scons --run tests/basics/EmptyModuleTest.py
+          python -m nuitka --module --show-scons --run --report=compilation-report-module.xml tests/basics/EmptyModuleTest.py
+          python -m nuitka --show-scons --run --report=compilation-report-exe.xml tests/basics/EmptyModuleTest.py
+
+      - name: Archive compilation reports for empty modules
+        uses: actions/upload-artifact@v3
+        with:
+          name: compilation-reports
+          path: |
+            *.xml
 
       # This can be used to ssh into GitHub actions if debugging is needed.
       # - uses: actions/checkout@v2
