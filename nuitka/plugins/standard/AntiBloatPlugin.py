@@ -453,9 +453,15 @@ which can and should be a top level package and then one choice, "error",
                 if mode == "error":
                     raise NuitkaForbiddenImportEncounter(module_name)
                 if mode == "warning" and (
-                    using_module is None
-                    or not using_module.getFullName().hasNamespace(handled_module_name)
+                    (
+                        using_module is None
+                        or not using_module.getFullName().hasNamespace(
+                            handled_module_name
+                        )
+                    )
+                    and source_ref is not None
                 ):
+
                     self.warning(
                         "Undesirable import of '%s' at '%s' encountered. It may slow down compilation."
                         % (handled_module_name, source_ref.getAsString()),
