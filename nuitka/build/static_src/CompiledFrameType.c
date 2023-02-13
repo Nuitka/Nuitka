@@ -36,15 +36,18 @@ int count_released_frame_cache_instances = 0;
 int count_hit_frame_cache_instances = 0;
 #endif
 
+#if PYTHON_VERSION < 0x3b0
 static PyMemberDef Nuitka_Frame_memberlist[] = {
     {(char *)"f_back", T_OBJECT, offsetof(PyFrameObject, f_back), READONLY | RESTRICTED},
-#if PYTHON_VERSION < 0x3b0
     {(char *)"f_code", T_OBJECT, offsetof(PyFrameObject, f_code), READONLY | RESTRICTED},
     {(char *)"f_builtins", T_OBJECT, offsetof(PyFrameObject, f_builtins), READONLY | RESTRICTED},
     {(char *)"f_globals", T_OBJECT, offsetof(PyFrameObject, f_globals), READONLY | RESTRICTED},
     {(char *)"f_lasti", T_INT, offsetof(PyFrameObject, f_lasti), READONLY | RESTRICTED},
-#endif
     {NULL}};
+
+#else
+#define Nuitka_Frame_memberlist 0
+#endif
 
 #if PYTHON_VERSION < 0x300
 
@@ -252,7 +255,12 @@ static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObje
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka");
     return -1;
 }
+#endif
 
+#if PYTHON_VERSION >= 0x3B0
+static PyObject *Nuitka_Frame_getback(struct Nuitka_FrameObject *frame, void *closure) {
+    return (PyObject *)PyFrame_GetBack(&frame->m_frame);
+}
 #endif
 
 static PyGetSetDef Nuitka_Frame_getsetlist[] = {
@@ -268,6 +276,9 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 #if PYTHON_VERSION >= 0x370
     {(char *)"f_trace_lines", (getter)Nuitka_Frame_gettracelines, (setter)Nuitka_Frame_settracelines, NULL},
     {(char *)"f_trace_opcodes", (getter)Nuitka_Frame_gettraceopcodes, (setter)Nuitka_Frame_settraceopcodes, NULL},
+#endif
+#if PYTHON_VERSION >= 0x3b0
+    {(char *)"f_trace_lines", (getter)Nuitka_Frame_getback, NULL, NULL},
 #endif
     {NULL}};
 
