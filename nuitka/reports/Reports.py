@@ -190,6 +190,7 @@ def writeCompilationReport(report_filename, report_input_data):
                 "data_file",
                 name=included_datafile.dest_path,
                 source=included_datafile.source_path,
+                size=str(included_datafile.getFileSize()),
                 reason=included_datafile.reason,
                 tags=",".join(included_datafile.tags),
             )
@@ -198,6 +199,7 @@ def writeCompilationReport(report_filename, report_input_data):
                 root,
                 "data_blob",
                 name=included_datafile.dest_path,
+                size=str(included_datafile.getFileSize()),
                 reason=included_datafile.reason,
                 tags=",".join(included_datafile.tags),
             )
