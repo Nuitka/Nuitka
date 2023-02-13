@@ -3061,6 +3061,11 @@
         - 'statsmodels.tsa.statespace._smoothers._univariate'
         - 'statsmodels.tsa.statespace._smoothers._univariate_diffuse'
 
+- module-name: 'strawberry'
+  data-files:
+    dirs:
+      - 'static'
+
 - module-name: 'sv_ttk'
   data-files:
     dirs:
