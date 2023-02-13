@@ -1940,8 +1940,8 @@ void _initBuiltinModule(void) {
     Nuitka_BuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
     Nuitka_BuiltinModule_Type.tp_new = PyModule_Type.tp_new;
     Nuitka_BuiltinModule_Type.tp_free = PyModule_Type.tp_free;
-    int ret = PyType_Ready(&Nuitka_BuiltinModule_Type);
-    assert(ret == 0);
+    int res2 = PyType_Ready(&Nuitka_BuiltinModule_Type);
+    assert(res2 >= 0);
 
     // Replace type of builtin module to take over.
     ((PyObject *)builtin_module)->ob_type = &Nuitka_BuiltinModule_Type;
