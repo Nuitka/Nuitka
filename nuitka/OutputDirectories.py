@@ -27,7 +27,7 @@ this.
 import os
 
 from nuitka import Options
-from nuitka.utils.FileOperations import changeFilenameExtension, makePath
+from nuitka.utils.FileOperations import hasFilenameExtension, makePath
 from nuitka.utils.Importing import getSharedLibrarySuffix
 from nuitka.utils.Utils import isWin32OrPosixWindows, isWin32Windows
 
@@ -133,8 +133,8 @@ def getResultFullpath(onefile):
         elif not isWin32OrPosixWindows() and not Options.shallCreateAppBundle():
             result += ".bin"
 
-        if isWin32OrPosixWindows():
-            result = changeFilenameExtension(result, ".exe")
+        if isWin32OrPosixWindows() and not hasFilenameExtension(result, ".exe"):
+            result += ".exe"
 
     return result
 
