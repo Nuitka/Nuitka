@@ -1031,12 +1031,18 @@ PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name) {
 #if PYTHON_VERSION < 0x3B0
     SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
 #else
-    // TODO: Maybe we should have dedicated variations with hard coded attribute names, this doesn't
-    // cover async correctly yet. Currently this is for 4 attributes exactly and it would slightly
-    // accelerate it. Maybe once we generate attribute access code.
+    // TODO: Maybe we should have dedicated variations with the 4 hard coded
+    // attribute names, might save a bit of complexity to large programs not
+    // having to pass constant values in what is a frequent construct.
     if (attr_name == const_str_plain___exit__) {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
             "'%s' object does not support the context manager protocol (missed __exit__ method)", source);
+    } else if (attr_name == const_str_plain___aexit__) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+            "'%s' object does not support the asynchronous context manager protocol (missed __aexit__ method)", source);
+    } else if (attr_name == const_str_plain___aenter__) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the asynchronous context manager protocol",
+                                             source);
     } else {
         SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the context manager protocol", source);
     }
