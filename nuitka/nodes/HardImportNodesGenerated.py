@@ -1,20 +1,3 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
-#
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
-#
-#     Licensed under the Apache License, Version 2.0 (the "License");
-#     you may not use this file except in compliance with the License.
-#     You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#     Unless required by applicable law or agreed to in writing, software
-#     distributed under the License is distributed on an "AS IS" BASIS,
-#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#     See the License for the specific language governing permissions and
-#     limitations under the License.
-#
 # We are not avoiding these in generated code at all
 # pylint: disable=I0021,too-many-lines
 # pylint: disable=I0021,line-too-long
@@ -36,6 +19,7 @@ from nuitka.Options import shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 from nuitka.specs.HardImportSpecs import (
+    ctypes_c_int_spec,
     ctypes_cdll_before_38_spec,
     ctypes_cdll_since_38_spec,
     importlib_metadata_backport_distribution_spec,
@@ -71,6 +55,7 @@ from .ChildrenHavingMixins import (
     ChildHavingPathOptionalMixin,
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
+    ChildHavingValueOptionalMixin,
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin,
@@ -87,6 +72,89 @@ from .ExpressionShapeMixins import (
 from .ImportHardNodes import ExpressionImportModuleNameHardExistsSpecificBase
 
 hard_import_node_classes = {}
+
+
+class ExpressionCtypesCIntRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference ctypes.c_int"""
+
+    kind = "EXPRESSION_CTYPES_C_INT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="ctypes",
+            import_name="c_int",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .CtypesNodes import ExpressionCtypesCIntCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionCtypesCIntCall,
+            builtin_spec=ctypes_c_int_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'ctypes.c_int' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionCtypesCIntRef] = ctypes_c_int_spec
+
+
+class ExpressionCtypesCIntCallBase(ChildHavingValueOptionalMixin, ExpressionBase):
+    """Base class for CtypesCIntCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("value|optional",)
+
+    __slots__ = ("attempted",)
+
+    spec = ctypes_c_int_spec
+
+    def __init__(self, value, source_ref):
+
+        ChildHavingValueOptionalMixin.__init__(
+            self,
+            value=value,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not ctypes_c_int_spec.isCompileTimeComputable(
+            (self.subnode_value,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
 
 
 class ExpressionCtypesCdllRef(ExpressionImportModuleNameHardExistsSpecificBase):

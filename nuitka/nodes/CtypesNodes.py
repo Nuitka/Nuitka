@@ -23,6 +23,7 @@
 from .HardImportNodesGenerated import (
     ExpressionCtypesCdllBefore38CallBase,
     ExpressionCtypesCdllSince38CallBase,
+    ExpressionCtypesCIntCallBase,
 )
 
 
@@ -42,6 +43,18 @@ class ExpressionCtypesCdllBefore38Call(ExpressionCtypesCdllBefore38CallBase):
     """Function reference ctypes.CDLL"""
 
     kind = "EXPRESSION_CTYPES_CDLL_BEFORE38_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # TODO: Locate DLLs and report to freezer
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionCtypesCIntCall(ExpressionCtypesCIntCallBase):
+    """Function reference ctypes.c_int"""
+
+    kind = "EXPRESSION_CTYPES_C_INT_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):
         # TODO: Locate DLLs and report to freezer
