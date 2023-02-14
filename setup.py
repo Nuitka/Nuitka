@@ -430,4 +430,14 @@ Python compiler with full language support and CPython compatibility""",
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
     distclass=BinaryDistribution,
+    extras_require={
+        "all": [
+            "ordered-set; python_version >= '3.10'",
+            "subprocess32; python_version == '2.7'",
+            "zstandard; python_version >= '3.5'",
+        ],
+        "msvc": [
+            "orderedset; python_version >= '3.6' or os.name != 'nt'",
+        ],
+    },
 )
