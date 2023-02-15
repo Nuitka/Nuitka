@@ -107,7 +107,7 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED(PyObject **exception_type,
                                                       PyTracebackObject **exception_traceback) {
     PyThreadState *tstate = PyThreadState_GET();
 
-    return FETCH_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, exception_traceback);
+    FETCH_ERROR_OCCURRED_TSTATE(tstate, exception_type, exception_value, exception_traceback);
 }
 
 // Fetch the current error into object variables.
