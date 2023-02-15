@@ -427,6 +427,14 @@ Python compiler with full language support and CPython compatibility""",
         ],
         "console_scripts": console_scripts,
     },
+    install_requires=[
+        "ordered-set >= 4.1.0; python_version >= '3.7'",
+        "orderedset >= 2.0.3 ; os.name != 'nt' and sys.platform != 'darwin' and python_version < '3.7'",
+        "orderedset >= 2.0.3 ; os.name == 'nt' and python_version >= '3.4' and python_version < '3.7'",
+        "orderedset >= 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'",
+        "subprocess32; python_version == '2.7'",
+        "zstandard; python_version >= '3.5'",
+    ],
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
     distclass=BinaryDistribution,
