@@ -87,7 +87,7 @@ def main():
         needs_re_execution = True
 
     # In case we need to re-execute.
-    if needs_re_execution:
+    if needs_re_execution and 'debugpy' not in sys.modules:
         from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
         # Does not return
