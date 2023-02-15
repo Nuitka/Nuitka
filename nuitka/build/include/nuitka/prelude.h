@@ -47,6 +47,13 @@
 #define initfunc python_initfunc
 #define initstate python_initstate
 
+// Python 3.11 headers give these warnings
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#pragma warning(disable : 4244)
+#endif
+
 /* Include the relevant Python C-API header files. */
 #include "Python.h"
 #include "frameobject.h"
@@ -137,6 +144,10 @@ extern _PyRuntimeState _PyRuntime;
 
 #undef Py_BUILD_CORE
 
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(pop)
 #endif
 
 /* See above. */
