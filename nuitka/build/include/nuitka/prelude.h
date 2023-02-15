@@ -344,8 +344,9 @@ extern PyThreadState *_PyThreadState_Current;
 #endif
 
 #ifndef _NUITKA_FULL_COMPAT
-// Remove useless recursion control guards, we have no need for them or we
-// are achieving deeper recursion anyway.
+// Remove useless recursion control guards, except for testing mode, we do not
+// want them and we have no need for them as we are achieving deeper recursion
+// anyway.
 #undef Py_EnterRecursiveCall
 #define Py_EnterRecursiveCall(arg) (0)
 #undef Py_LeaveRecursiveCall
