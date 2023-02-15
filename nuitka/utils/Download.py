@@ -29,6 +29,17 @@ from .AppDirs import getCacheDir
 from .FileOperations import addFileExecutablePermission, deleteFile, makePath
 
 
+def getDownload(url, download_path):
+    try:
+        urlretrieve(url, download_path)
+    except Exception:  # Any kind of error, pylint: disable=broad-except
+        urlretrieve(url.replace("https://", "http://"), download_path)
+
+
+def getDownloadCacheDir():
+    return os.path.join(getCacheDir(), "downloads")
+
+
 def getCachedDownload(
     url,
     binary,
@@ -40,9 +51,9 @@ def getCachedDownload(
     assume_yes_for_downloads,
 ):
     # Many branches to deal with.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
-    nuitka_download_dir = os.path.join(getCacheDir(), "downloads")
+    nuitka_download_dir = getDownloadCacheDir()
 
     nuitka_download_dir = os.path.join(
         nuitka_download_dir, os.path.basename(binary).replace(".exe", "")
@@ -88,15 +99,12 @@ Proceed and download? [Yes]/No """
             Tracing.general.info("Downloading '%s'." % url)
 
             try:
-                urlretrieve(url, download_path)
+                getDownload(url=url, download_path=download_path)
             except Exception as e:  # Any kind of error, pylint: disable=broad-except
-                try:
-                    urlretrieve(url.replace("https://", "http://"), download_path)
-                except Exception:  # Any kind of error, pylint: disable=broad-except
-                    Tracing.general.sysexit(
-                        "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
-                        % (url, e, download_path)
-                    )
+                Tracing.general.sysexit(
+                    "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
+                    % (url, e, download_path)
+                )
 
     if not os.path.isfile(exe_path) and os.path.isfile(download_path):
         Tracing.general.info("Extracting to '%s'" % exe_path)
