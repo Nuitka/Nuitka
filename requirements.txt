@@ -22,9 +22,12 @@ appdirs
 # For the progress bar to look nicely.
 tqdm; python_version == '2.7' or python_version >= '3.4'
 
-# Faster OrderedSet
-ordered-set; python_version >= "3.10"
-orderedset; python_version >= '3.6' or os.name != "nt"
+# Speed up Nuitka by having this available. On Windows, installing on 2.7 is not
+# working easily, so lets exclude that.
+ordered-set == 4.1.0; python_version >= '3.7'
+orderedset == 2.0.3 ; os.name != 'nt' and sys.platform != 'darwin' and python_version < '3.7'
+orderedset == 2.0.3 ; os.name == 'nt' and python_version >= '3.4' and python_version < '3.7'
+orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
 
 # More capable subprocess.
 subprocess32; python_version == '2.7'
