@@ -398,9 +398,7 @@ The resulting file ``some_module.so`` can then be used instead of
    ``--include-package`` in that case, but for static imports it should
    not be needed.
 
--- note:
-
-.. code::
+.. note::
 
    An extension module can never include other extension modules. You will have to create a wheel for this to be doable.
 
