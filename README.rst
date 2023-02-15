@@ -400,7 +400,8 @@ The resulting file ``some_module.so`` can then be used instead of
 
 .. note::
 
-   An extension module can never include other extension modules. You will have to create a wheel for this to be doable.
+   An extension module can never include other extension modules. You
+   will have to create a wheel for this to be doable.
 
 .. note::
 
