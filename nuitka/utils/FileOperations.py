@@ -824,6 +824,9 @@ def copyFile(source_path, dest_path):
     while 1:
         try:
             shutil.copyfile(source_path, dest_path)
+        except shutil.SameFileError:
+            pass
+       
         except PermissionError as e:
             if e.errno != errno.EACCES:
                 raise
