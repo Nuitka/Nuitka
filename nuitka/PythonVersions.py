@@ -48,6 +48,19 @@ def getPartiallySupportedPythonVersions():
     return ("3.11",)
 
 
+def getZstandardSupportingVersions():
+    result = getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
+
+    # This will crash if we remove versions, but it is more likely to work
+    # with newly supported versions, and to list the ones not supported by
+    # zstandard.
+    result = tuple(
+        version for version in result if version not in ("2.6", "2.7", "3.3", "3.4")
+    )
+
+    return result
+
+
 def getTestExecutionPythonVersions():
     return (
         getSupportedPythonVersions()
@@ -261,7 +274,6 @@ def getSystemPrefixPath():
 
     global _the_sys_prefix  # Cached result, pylint: disable=global-statement
     if _the_sys_prefix is None:
-
         sys_prefix = getattr(
             sys, "real_prefix", getattr(sys, "base_prefix", sys.prefix)
         )
