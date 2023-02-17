@@ -39,7 +39,10 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessingResources
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    getZstandardSupportingVersions,
+    python_version,
+)
 from nuitka.Tracing import onefile_logger, postprocessing_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import areSamePaths, removeDirectory
@@ -109,10 +112,8 @@ def _runOnefileScons(onefile_compression):
 
 
 def getCompressorPython():
-    zstandard_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
-
     compressor_python = findInstalledPython(
-        python_versions=zstandard_supported_pythons,
+        python_versions=getZstandardSupportingVersions(),
         module_name="zstandard",
         module_version="0.15",
     )
