@@ -355,8 +355,6 @@ if sys.version_info >= (3, 7):
     install_requires.append("zstandard >= 0.15")
 if os.name != "nt" and sys.platform != "darwin" and sys.version_info < (3, 7):
     install_requires.append("orderedset >= 2.0.3")
-if os.name == "nt" and (3, 4) >= sys.version_info < (3, 7):
-    install_requires.append("orderedset >= 2.0.3")
 if sys.platform == "darwin" and sys.version_info < (3, 7):
     install_requires.append("orderedset >= 2.0.3")
 
