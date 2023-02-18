@@ -521,6 +521,14 @@ def _shouldNotFormatCode(filename):
         return True
     if parts[-1] in ("incbin.h", "hedley.h"):
         return True
+
+    if filename.endswith(".py"):
+        for line in getFileContentByLine(filename):
+            if "# encoding: nuitka-protection" in line:
+                return True
+
+            break
+
     return False
 
 
