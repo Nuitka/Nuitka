@@ -1724,34 +1724,34 @@ static PyGetSetDef Nuitka_Loader_getsets[] = {{(char *)"__module__", (getter)Nui
 
 PyTypeObject Nuitka_Loader_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "nuitka_module_loader",
-    sizeof(struct Nuitka_LoaderObject),      /* tp_basicsize */
-    0,                                       /* tp_itemsize */
-    (destructor)Nuitka_Loader_tp_dealloc,    /* tp_dealloc */
-    0,                                       /* tp_print */
-    0,                                       /* tp_getattr */
-    0,                                       /* tp_setattr */
-    0,                                       /* tp_reserved */
-    (reprfunc)Nuitka_Loader_tp_repr,         /* tp_repr */
-    0,                                       /* tp_as_number */
-    0,                                       /* tp_as_sequence */
-    0,                                       /* tp_as_mapping */
-    0,                                       /* tp_hash */
-    0,                                       /* tp_call */
-    0,                                       /* tp_str */
-    PyObject_GenericGetAttr,                 /* tp_getattro */
-    0,                                       /* tp_setattro */
-    0,                                       /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, /* tp_flags */
-    0,                                       /* tp_doc */
-    (traverseproc)Nuitka_Loader_tp_traverse, /* tp_traverse */
-    0,                                       /* tp_clear */
-    0,                                       /* tp_richcompare */
-    0,                                       /* tp_weaklistoffset */
-    0,                                       /* tp_iter */
-    0,                                       /* tp_iternext */
-    Nuitka_Loader_methods,                   /* tp_methods */
-    0,                                       /* tp_members */
-    Nuitka_Loader_getsets,                   /* tp_getset */
+    sizeof(struct Nuitka_LoaderObject),      // tp_basicsize
+    0,                                       // tp_itemsize
+    (destructor)Nuitka_Loader_tp_dealloc,    // tp_dealloc
+    0,                                       // tp_print
+    0,                                       // tp_getattr
+    0,                                       // tp_setattr
+    0,                                       // tp_reserved
+    (reprfunc)Nuitka_Loader_tp_repr,         // tp_repr
+    0,                                       // tp_as_number
+    0,                                       // tp_as_sequence
+    0,                                       // tp_as_mapping
+    0,                                       // tp_hash
+    0,                                       // tp_call
+    0,                                       // tp_str
+    0,                                       // tp_getattro (PyObject_GenericGetAttr)
+    0,                                       // tp_setattro
+    0,                                       // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, // tp_flags
+    0,                                       // tp_doc
+    (traverseproc)Nuitka_Loader_tp_traverse, // tp_traverse
+    0,                                       // tp_clear
+    0,                                       // tp_richcompare
+    0,                                       // tp_weaklistoffset
+    0,                                       // tp_iter
+    0,                                       // tp_iternext
+    Nuitka_Loader_methods,                   // tp_methods
+    0,                                       // tp_members
+    Nuitka_Loader_getsets,                   // tp_getset
 };
 
 /* Used by modules to register child loaders for packages. */
@@ -1818,7 +1818,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 
     loader_entries = _loader_entries;
 
-    PyType_Ready(&Nuitka_Loader_Type);
+    Nuitka_PyType_Ready(&Nuitka_Loader_Type, NULL, true, false, false, false, false);
 
 #ifdef _NUITKA_EXE
     int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_loader_type", (PyObject *)&Nuitka_Loader_Type);
@@ -1826,7 +1826,7 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 #endif
 
 #if PYTHON_VERSION >= 0x370
-    PyType_Ready(&Nuitka_ResourceReader_Type);
+    Nuitka_PyType_Ready(&Nuitka_ResourceReader_Type, NULL, true, false, false, false, false);
 #endif
 
     // Register it as a meta path loader.

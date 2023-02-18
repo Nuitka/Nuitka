@@ -409,4 +409,7 @@ extern PyObject *Py_SysVersionInfo;
 
 extern PyObject *MAKE_UNION_TYPE(PyObject *args);
 
+extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
+                                bool self_iter, bool await_self_iter, bool self_aiter);
+
 #endif

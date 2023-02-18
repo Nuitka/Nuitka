@@ -581,8 +581,8 @@ PyTypeObject Nuitka_Frame_Type = {
     0,                                       // tp_hash
     0,                                       // tp_call
     0,                                       // tp_str
-    PyObject_GenericGetAttr,                 // tp_getattro
-    PyObject_GenericSetAttr,                 // tp_setattro
+    0,                                       // tp_getattro (PyObject_GenericGetAttr)
+    0,                                       // tp_setattro (PyObject_GenericSetAttr)
     0,                                       // tp_as_buffer
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, // tp_flags
     0,                                       // tp_doc
@@ -600,8 +600,6 @@ PyTypeObject Nuitka_Frame_Type = {
 };
 
 void _initCompiledFrameType(void) {
-    Nuitka_Frame_Type.tp_base = &PyFrame_Type;
-
     assert(Nuitka_Frame_Type.tp_doc != PyFrame_Type.tp_doc || PyFrame_Type.tp_doc == NULL);
     assert(Nuitka_Frame_Type.tp_traverse != PyFrame_Type.tp_traverse);
     assert(Nuitka_Frame_Type.tp_clear != PyFrame_Type.tp_clear || PyFrame_Type.tp_clear == NULL);
@@ -613,7 +611,6 @@ void _initCompiledFrameType(void) {
     assert(Nuitka_Frame_Type.tp_methods != PyFrame_Type.tp_methods);
     assert(Nuitka_Frame_Type.tp_members != PyFrame_Type.tp_members);
     assert(Nuitka_Frame_Type.tp_getset != PyFrame_Type.tp_getset);
-    assert(Nuitka_Frame_Type.tp_base != PyFrame_Type.tp_base);
     assert(Nuitka_Frame_Type.tp_dict != PyFrame_Type.tp_dict);
     assert(Nuitka_Frame_Type.tp_descr_get != PyFrame_Type.tp_descr_get || PyFrame_Type.tp_descr_get == NULL);
 
@@ -633,7 +630,7 @@ void _initCompiledFrameType(void) {
 #if PYTHON_VERSION >= 0x340
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
 #endif
-    PyType_Ready(&Nuitka_Frame_Type);
+    Nuitka_PyType_Ready(&Nuitka_Frame_Type, &PyFrame_Type, true, true, false, false, false);
 
     // These are to be used interchangeably. Make sure that's true.
     assert(offsetof(struct Nuitka_FrameObject, m_frame) == 0);
