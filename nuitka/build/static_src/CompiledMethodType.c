@@ -477,30 +477,30 @@ PyTypeObject Nuitka_Method_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_method",
     sizeof(struct Nuitka_MethodObject),
     0,
-    (destructor)Nuitka_Method_tp_dealloc, /* tp_dealloc */
+    (destructor)Nuitka_Method_tp_dealloc, // tp_dealloc
 #if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
-    0, /* tp_print */
+    0, // tp_print
 #else
-    offsetof(struct Nuitka_MethodObject, m_vectorcall), /* tp_vectorcall_offset */
+    offsetof(struct Nuitka_MethodObject, m_vectorcall), // tp_vectorcall_offset
 #endif
-    0, /* tp_getattr */
-    0, /* tp_setattr */
+    0, // tp_getattr
+    0, // tp_setattr
 #if PYTHON_VERSION < 0x300
-    (cmpfunc)Nuitka_Method_tp_compare, /* tp_compare */
+    (cmpfunc)Nuitka_Method_tp_compare, // tp_compare
 #else
     0,
 #endif
-    (reprfunc)Nuitka_Method_tp_repr,         /* tp_repr */
-    0,                                       /* tp_as_number */
-    0,                                       /* tp_as_sequence */
-    0,                                       /* tp_as_mapping */
-    (hashfunc)Nuitka_Method_tp_hash,         /* tp_hash */
-    (ternaryfunc)Nuitka_Method_tp_call,      /* tp_call */
-    0,                                       /* tp_str */
-    (getattrofunc)Nuitka_Method_tp_getattro, /* tp_getattro */
-    PyObject_GenericSetAttr,                 /* tp_setattro */
-    0,                                       /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT |                     /* tp_flags */
+    (reprfunc)Nuitka_Method_tp_repr,         // tp_repr
+    0,                                       // tp_as_number
+    0,                                       // tp_as_sequence
+    0,                                       // tp_as_mapping
+    (hashfunc)Nuitka_Method_tp_hash,         // tp_hash
+    (ternaryfunc)Nuitka_Method_tp_call,      // tp_call
+    0,                                       // tp_str
+    (getattrofunc)Nuitka_Method_tp_getattro, // tp_getattro
+    0,                                       // tp_setattro (PyObject_GenericSetAttr)
+    0,                                       // tp_as_buffer
+    Py_TPFLAGS_DEFAULT |                     // tp_flags
 #if PYTHON_VERSION < 0x300
         Py_TPFLAGS_HAVE_WEAKREFS |
 #endif
@@ -508,33 +508,33 @@ PyTypeObject Nuitka_Method_Type = {
         _Py_TPFLAGS_HAVE_VECTORCALL |
 #endif
         Py_TPFLAGS_HAVE_GC,
-    0,                                                /* tp_doc */
-    (traverseproc)Nuitka_Method_tp_traverse,          /* tp_traverse */
-    0,                                                /* tp_clear */
-    (richcmpfunc)Nuitka_Method_tp_richcompare,        /* tp_richcompare */
-    offsetof(struct Nuitka_MethodObject, m_weakrefs), /* tp_weaklistoffset */
-    0,                                                /* tp_iter */
-    0,                                                /* tp_iternext */
-    Nuitka_Method_methods,                            /* tp_methods */
-    Nuitka_Method_members,                            /* tp_members */
-    Nuitka_Method_getsets,                            /* tp_getset */
-    0,                                                /* tp_base */
-    0,                                                /* tp_dict */
-    (descrgetfunc)Nuitka_Method_tp_descr_get,         /* tp_descr_get */
-    0,                                                /* tp_descr_set */
-    0,                                                /* tp_dictoffset */
-    0,                                                /* tp_init */
-    0,                                                /* tp_alloc */
-    Nuitka_Method_tp_new,                             /* tp_new */
-    0,                                                /* tp_free */
-    0,                                                /* tp_is_gc */
-    0,                                                /* tp_bases */
-    0,                                                /* tp_mro */
-    0,                                                /* tp_cache */
-    0,                                                /* tp_subclasses */
-    0,                                                /* tp_weaklist */
-    0,                                                /* tp_del */
-    0                                                 /* tp_version_tag */
+    0,                                                // tp_doc
+    (traverseproc)Nuitka_Method_tp_traverse,          // tp_traverse
+    0,                                                // tp_clear
+    (richcmpfunc)Nuitka_Method_tp_richcompare,        // tp_richcompare
+    offsetof(struct Nuitka_MethodObject, m_weakrefs), // tp_weaklistoffset
+    0,                                                // tp_iter
+    0,                                                // tp_iternext
+    Nuitka_Method_methods,                            // tp_methods
+    Nuitka_Method_members,                            // tp_members
+    Nuitka_Method_getsets,                            // tp_getset
+    0,                                                // tp_base
+    0,                                                // tp_dict
+    (descrgetfunc)Nuitka_Method_tp_descr_get,         // tp_descr_get
+    0,                                                // tp_descr_set
+    0,                                                // tp_dictoffset
+    0,                                                // tp_init
+    0,                                                // tp_alloc
+    Nuitka_Method_tp_new,                             // tp_new
+    0,                                                // tp_free
+    0,                                                // tp_is_gc
+    0,                                                // tp_bases
+    0,                                                // tp_mro
+    0,                                                // tp_cache
+    0,                                                // tp_subclasses
+    0,                                                // tp_weaklist
+    0,                                                // tp_del
+    0                                                 // tp_version_tag
 #if PYTHON_VERSION >= 0x340
     ,
     0 /* tp_finalizer */
@@ -542,9 +542,7 @@ PyTypeObject Nuitka_Method_Type = {
 };
 
 void _initCompiledMethodType(void) {
-    Nuitka_Method_Type.tp_base = &PyMethod_Type;
-
-    PyType_Ready(&Nuitka_Method_Type);
+    Nuitka_PyType_Ready(&Nuitka_Method_Type, &PyMethod_Type, false, true, false, false, false);
 
 #ifdef _NUITKA_PLUGIN_DILL_ENABLED
     // TODO: Move this to a __nuitka__ module maybe

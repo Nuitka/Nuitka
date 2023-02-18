@@ -360,34 +360,34 @@ static PyNumberMethods Nuitka_resource_reader_as_number = {0};
 
 static PyTypeObject Nuitka_ResourceReaderFiles_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "nuitka_resource_reader_files",
-    sizeof(struct Nuitka_ResourceReaderFilesObject),      /* tp_basicsize */
-    0,                                                    /* tp_itemsize */
-    (destructor)Nuitka_ResourceReaderFiles_tp_dealloc,    /* tp_dealloc */
-    0,                                                    /* tp_print */
-    0,                                                    /* tp_getattr */
-    0,                                                    /* tp_setattr */
-    0,                                                    /* tp_reserved */
-    (reprfunc)Nuitka_ResourceReaderFiles_tp_repr,         /* tp_repr */
-    &Nuitka_resource_reader_as_number,                    /* tp_as_number */
-    0,                                                    /* tp_as_sequence */
-    0,                                                    /* tp_as_mapping */
-    0,                                                    /* tp_hash */
-    0,                                                    /* tp_call */
-    (reprfunc)Nuitka_ResourceReaderFiles_tp_str,          /* tp_str */
-    PyObject_GenericGetAttr,                              /* tp_getattro */
-    0,                                                    /* tp_setattro */
-    0,                                                    /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,              /* tp_flags */
-    0,                                                    /* tp_doc */
-    (traverseproc)Nuitka_ResourceReaderFiles_tp_traverse, /* tp_traverse */
-    0,                                                    /* tp_clear */
-    0,                                                    /* tp_richcompare */
-    0,                                                    /* tp_weaklistoffset */
-    PyObject_SelfIter,                                    /* tp_iter */
-    0,                                                    /* tp_iternext */
-    Nuitka_ResourceReaderFiles_methods,                   /* tp_methods */
-    0,                                                    /* tp_members */
-    Nuitka_ResourceReaderFiles_getset,                    /* tp_getset */
+    sizeof(struct Nuitka_ResourceReaderFilesObject),      // tp_basicsize
+    0,                                                    // tp_itemsize
+    (destructor)Nuitka_ResourceReaderFiles_tp_dealloc,    // tp_dealloc
+    0,                                                    // tp_print
+    0,                                                    // tp_getattr
+    0,                                                    // tp_setattr
+    0,                                                    // tp_reserved
+    (reprfunc)Nuitka_ResourceReaderFiles_tp_repr,         // tp_repr
+    &Nuitka_resource_reader_as_number,                    // tp_as_number
+    0,                                                    // tp_as_sequence
+    0,                                                    // tp_as_mapping
+    0,                                                    // tp_hash
+    0,                                                    // tp_call
+    (reprfunc)Nuitka_ResourceReaderFiles_tp_str,          // tp_str
+    0,                                                    // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                    // tp_setattro
+    0,                                                    // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,              // tp_flags
+    0,                                                    // tp_doc
+    (traverseproc)Nuitka_ResourceReaderFiles_tp_traverse, // tp_traverse
+    0,                                                    // tp_clear
+    0,                                                    // tp_richcompare
+    0,                                                    // tp_weaklistoffset
+    0,                                                    // tp_iter (PyObject_SelfIter)
+    0,                                                    // tp_iternext
+    Nuitka_ResourceReaderFiles_methods,                   // tp_methods
+    0,                                                    // tp_members
+    Nuitka_ResourceReaderFiles_getset,                    // tp_getset
 };
 
 static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path) {
@@ -395,12 +395,13 @@ static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoade
 
     static bool init_done = false;
     if (init_done == false) {
-        // We do not really want to write a lot of NULLs just to do this.
+        // We do not really want to write a lot of NULLs just to do this, and
+        // for as long as we do not have C11 everywhere, that is how we have
+        // to do it.
         Nuitka_ResourceReaderFiles_Type.tp_as_number->nb_true_divide =
             (binaryfunc)Nuitka_ResourceReaderFiles_nb_truediv;
 
-        int res = PyType_Ready(&Nuitka_ResourceReaderFiles_Type);
-        assert(res >= 0);
+        Nuitka_PyType_Ready(&Nuitka_ResourceReaderFiles_Type, NULL, true, false, true, false, false);
 
         // Also register our open, which can avoid a temporary file being created.
         PyObject *importlib_resources_module = IMPORT_HARD_IMPORTLIB__RESOURCES();

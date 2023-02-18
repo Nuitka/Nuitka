@@ -249,7 +249,7 @@ static void prepareStandaloneEnvironment(void) {
 
 #endif
 
-#if PYTHON_VERSION >= 0x380 && defined(_WIN32)
+#if PYTHON_VERSION >= 0x380 && PYTHON_VERSION < 0x3b0 && defined(_WIN32)
     _Py_path_config.isolated = 1;
 #endif
 }

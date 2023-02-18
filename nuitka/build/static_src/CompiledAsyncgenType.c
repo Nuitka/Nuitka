@@ -1052,12 +1052,12 @@ static PyMethodDef Nuitka_Asyncgen_methods[] = {{"asend", (PyCFunction)Nuitka_As
                                                 {NULL}};
 
 static PyAsyncMethods Nuitka_Asyncgen_as_async = {
-    0,                               /* am_await */
-    PyObject_SelfIter,               /* am_aiter */
-    (unaryfunc)Nuitka_Asyncgen_anext /* am_anext */
+    0,                               // am_await
+    0,                               // am_aiter (PyObject_SelfIter)
+    (unaryfunc)Nuitka_Asyncgen_anext // am_anext
 #if PYTHON_VERSION >= 0x3a0
     ,
-    (sendfunc)_Nuitka_Asyncgen_amsend /* am_anext */
+    (sendfunc)_Nuitka_Asyncgen_amsend // am_anext
 #endif
 };
 
@@ -1080,53 +1080,53 @@ static PyMemberDef Nuitka_Asyncgen_members[] = {
     {NULL}};
 
 PyTypeObject Nuitka_Asyncgen_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator",          /* tp_name */
-    sizeof(struct Nuitka_AsyncgenObject),                               /* tp_basicsize */
-    sizeof(struct Nuitka_CellObject *),                                 /* tp_itemsize */
-    (destructor)Nuitka_Asyncgen_tp_dealloc,                             /* tp_dealloc */
-    0,                                                                  /* tp_print */
-    0,                                                                  /* tp_getattr */
-    0,                                                                  /* tp_setattr */
-    &Nuitka_Asyncgen_as_async,                                          /* tp_as_async */
-    (reprfunc)Nuitka_Asyncgen_tp_repr,                                  /* tp_repr */
-    0,                                                                  /* tp_as_number */
-    0,                                                                  /* tp_as_sequence */
-    0,                                                                  /* tp_as_mapping */
-    (hashfunc)Nuitka_Asyncgen_tp_hash,                                  /* tp_hash */
-    0,                                                                  /* tp_call */
-    0,                                                                  /* tp_str */
-    PyObject_GenericGetAttr,                                            /* tp_getattro */
-    0,                                                                  /* tp_setattro */
-    0,                                                                  /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE, /* tp_flags */
-    0,                                                                  /* tp_doc */
-    (traverseproc)Nuitka_Asyncgen_tp_traverse,                          /* tp_traverse */
-    0,                                                                  /* tp_clear */
-    0,                                                                  /* tp_richcompare */
-    offsetof(struct Nuitka_AsyncgenObject, m_weakrefs),                 /* tp_weaklistoffset */
-    0,                                                                  /* tp_iter */
-    0,                                                                  /* tp_iternext */
-    Nuitka_Asyncgen_methods,                                            /* tp_methods */
-    Nuitka_Asyncgen_members,                                            /* tp_members */
-    Nuitka_Asyncgen_getsetlist,                                         /* tp_getset */
-    0,                                                                  /* tp_base */
-    0,                                                                  /* tp_dict */
-    0,                                                                  /* tp_descr_get */
-    0,                                                                  /* tp_descr_set */
-    0,                                                                  /* tp_dictoffset */
-    0,                                                                  /* tp_init */
-    0,                                                                  /* tp_alloc */
-    0,                                                                  /* tp_new */
-    0,                                                                  /* tp_free */
-    0,                                                                  /* tp_is_gc */
-    0,                                                                  /* tp_bases */
-    0,                                                                  /* tp_mro */
-    0,                                                                  /* tp_cache */
-    0,                                                                  /* tp_subclasses */
-    0,                                                                  /* tp_weaklist */
-    0,                                                                  /* tp_del */
-    0,                                                                  /* tp_version_tag */
-    (destructor)Nuitka_Asyncgen_tp_finalize,                            /* tp_finalize */
+    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator",          // tp_name
+    sizeof(struct Nuitka_AsyncgenObject),                               // tp_basicsize
+    sizeof(struct Nuitka_CellObject *),                                 // tp_itemsize
+    (destructor)Nuitka_Asyncgen_tp_dealloc,                             // tp_dealloc
+    0,                                                                  // tp_print
+    0,                                                                  // tp_getattr
+    0,                                                                  // tp_setattr
+    &Nuitka_Asyncgen_as_async,                                          // tp_as_async
+    (reprfunc)Nuitka_Asyncgen_tp_repr,                                  // tp_repr
+    0,                                                                  // tp_as_number
+    0,                                                                  // tp_as_sequence
+    0,                                                                  // tp_as_mapping
+    (hashfunc)Nuitka_Asyncgen_tp_hash,                                  // tp_hash
+    0,                                                                  // tp_call
+    0,                                                                  // tp_str
+    0,                                                                  // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                                  // tp_setattro
+    0,                                                                  // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE, // tp_flags
+    0,                                                                  // tp_doc
+    (traverseproc)Nuitka_Asyncgen_tp_traverse,                          // tp_traverse
+    0,                                                                  // tp_clear
+    0,                                                                  // tp_richcompare
+    offsetof(struct Nuitka_AsyncgenObject, m_weakrefs),                 // tp_weaklistoffset
+    0,                                                                  // tp_iter
+    0,                                                                  // tp_iternext
+    Nuitka_Asyncgen_methods,                                            // tp_methods
+    Nuitka_Asyncgen_members,                                            // tp_members
+    Nuitka_Asyncgen_getsetlist,                                         // tp_getset
+    0,                                                                  // tp_base
+    0,                                                                  // tp_dict
+    0,                                                                  // tp_descr_get
+    0,                                                                  // tp_descr_set
+    0,                                                                  // tp_dictoffset
+    0,                                                                  // tp_init
+    0,                                                                  // tp_alloc
+    0,                                                                  // tp_new
+    0,                                                                  // tp_free
+    0,                                                                  // tp_is_gc
+    0,                                                                  // tp_bases
+    0,                                                                  // tp_mro
+    0,                                                                  // tp_cache
+    0,                                                                  // tp_subclasses
+    0,                                                                  // tp_weaklist
+    0,                                                                  // tp_del
+    0,                                                                  // tp_version_tag
+    (destructor)Nuitka_Asyncgen_tp_finalize,                            // tp_finalize
 
 };
 
@@ -1238,43 +1238,43 @@ static int Nuitka_AsyncgenValueWrapper_tp_traverse(struct Nuitka_AsyncgenWrapped
 }
 
 static PyTypeObject Nuitka_AsyncgenValueWrapper_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator_wrapped_value", /* tp_name */
-    sizeof(struct Nuitka_AsyncgenWrappedValueObject),                        /* tp_basicsize */
-    0,                                                                       /* tp_itemsize */
-    (destructor)Nuitka_AsyncgenValueWrapper_tp_dealloc,                      /* tp_dealloc */
-    0,                                                                       /* tp_print */
-    0,                                                                       /* tp_getattr */
-    0,                                                                       /* tp_setattr */
-    0,                                                                       /* tp_as_async */
-    0,                                                                       /* tp_repr */
-    0,                                                                       /* tp_as_number */
-    0,                                                                       /* tp_as_sequence */
-    0,                                                                       /* tp_as_mapping */
-    0,                                                                       /* tp_hash */
-    0,                                                                       /* tp_call */
-    0,                                                                       /* tp_str */
-    PyObject_GenericGetAttr,                                                 /* tp_getattro */
-    0,                                                                       /* tp_setattro */
-    0,                                                                       /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,      /* tp_flags */
-    0,                                                                       /* tp_doc */
-    (traverseproc)Nuitka_AsyncgenValueWrapper_tp_traverse,                   /* tp_traverse */
-    0,                                                                       /* tp_clear */
-    0,                                                                       /* tp_richcompare */
-    0,                                                                       /* tp_weaklistoffset */
-    0,                                                                       /* tp_iter */
-    0,                                                                       /* tp_iternext */
-    0,                                                                       /* tp_methods */
-    0,                                                                       /* tp_members */
-    0,                                                                       /* tp_getset */
-    0,                                                                       /* tp_base */
-    0,                                                                       /* tp_dict */
-    0,                                                                       /* tp_descr_get */
-    0,                                                                       /* tp_descr_set */
-    0,                                                                       /* tp_dictoffset */
-    0,                                                                       /* tp_init */
-    0,                                                                       /* tp_alloc */
-    0,                                                                       /* tp_new */
+    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator_wrapped_value", // tp_name
+    sizeof(struct Nuitka_AsyncgenWrappedValueObject),                        // tp_basicsize
+    0,                                                                       // tp_itemsize
+    (destructor)Nuitka_AsyncgenValueWrapper_tp_dealloc,                      // tp_dealloc
+    0,                                                                       // tp_print
+    0,                                                                       // tp_getattr
+    0,                                                                       // tp_setattr
+    0,                                                                       // tp_as_async
+    0,                                                                       // tp_repr
+    0,                                                                       // tp_as_number
+    0,                                                                       // tp_as_sequence
+    0,                                                                       // tp_as_mapping
+    0,                                                                       // tp_hash
+    0,                                                                       // tp_call
+    0,                                                                       // tp_str
+    0,                                                                       // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                                       // tp_setattro
+    0,                                                                       // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,      // tp_flags
+    0,                                                                       // tp_doc
+    (traverseproc)Nuitka_AsyncgenValueWrapper_tp_traverse,                   // tp_traverse
+    0,                                                                       // tp_clear
+    0,                                                                       // tp_richcompare
+    0,                                                                       // tp_weaklistoffset
+    0,                                                                       // tp_iter
+    0,                                                                       // tp_iternext
+    0,                                                                       // tp_methods
+    0,                                                                       // tp_members
+    0,                                                                       // tp_getset
+    0,                                                                       // tp_base
+    0,                                                                       // tp_dict
+    0,                                                                       // tp_descr_get
+    0,                                                                       // tp_descr_set
+    0,                                                                       // tp_dictoffset
+    0,                                                                       // tp_init
+    0,                                                                       // tp_alloc
+    0,                                                                       // tp_new
 };
 
 // Note: This expects a reference given in value, because that is the
@@ -1663,49 +1663,49 @@ static PyMethodDef Nuitka_AsyncgenAsend_methods[] = {
     {NULL}};
 
 static PyAsyncMethods Nuitka_AsyncgenAsend_as_async = {
-    PyObject_SelfIter, /* am_await */
-    0,                 /* am_aiter */
-    0                  /* am_anext */
+    0, // am_await (PyObject_SelfIter)
+    0, // am_aiter
+    0  // am_anext
 };
 
 static PyTypeObject Nuitka_AsyncgenAsend_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator_asend", /* tp_name */
-    sizeof(struct Nuitka_AsyncgenAsendObject),                       /* tp_basicsize */
-    0,                                                               /* tp_itemsize */
-    (destructor)Nuitka_AsyncgenAsend_tp_dealloc,                     /* tp_dealloc */
-    0,                                                               /* tp_print */
-    0,                                                               /* tp_getattr */
-    0,                                                               /* tp_setattr */
-    &Nuitka_AsyncgenAsend_as_async,                                  /* tp_as_async */
-    (reprfunc)Nuitka_AsyncgenAsend_tp_repr,                          /* tp_repr */
-    0,                                                               /* tp_as_number */
-    0,                                                               /* tp_as_sequence */
-    0,                                                               /* tp_as_mapping */
-    0,                                                               /* tp_hash */
-    0,                                                               /* tp_call */
-    0,                                                               /* tp_str */
-    PyObject_GenericGetAttr,                                         /* tp_getattro */
-    0,                                                               /* tp_setattro */
-    0,                                                               /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,                         /* tp_flags */
-    0,                                                               /* tp_doc */
-    (traverseproc)Nuitka_AsyncgenAsend_tp_traverse,                  /* tp_traverse */
-    0,                                                               /* tp_clear */
-    0,                                                               /* tp_richcompare */
-    0,                                                               /* tp_weaklistoffset */
-    PyObject_SelfIter,                                               /* tp_iter */
-    (iternextfunc)Nuitka_AsyncgenAsend_tp_iternext,                  /* tp_iternext */
-    Nuitka_AsyncgenAsend_methods,                                    /* tp_methods */
-    0,                                                               /* tp_members */
-    0,                                                               /* tp_getset */
-    0,                                                               /* tp_base */
-    0,                                                               /* tp_dict */
-    0,                                                               /* tp_descr_get */
-    0,                                                               /* tp_descr_set */
-    0,                                                               /* tp_dictoffset */
-    0,                                                               /* tp_init */
-    0,                                                               /* tp_alloc */
-    0,                                                               /* tp_new */
+    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator_asend", // tp_name
+    sizeof(struct Nuitka_AsyncgenAsendObject),                       // tp_basicsize
+    0,                                                               // tp_itemsize
+    (destructor)Nuitka_AsyncgenAsend_tp_dealloc,                     // tp_dealloc
+    0,                                                               // tp_print
+    0,                                                               // tp_getattr
+    0,                                                               // tp_setattr
+    &Nuitka_AsyncgenAsend_as_async,                                  // tp_as_async
+    (reprfunc)Nuitka_AsyncgenAsend_tp_repr,                          // tp_repr
+    0,                                                               // tp_as_number
+    0,                                                               // tp_as_sequence
+    0,                                                               // tp_as_mapping
+    0,                                                               // tp_hash
+    0,                                                               // tp_call
+    0,                                                               // tp_str
+    0,                                                               // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                               // tp_setattro
+    0,                                                               // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,                         // tp_flags
+    0,                                                               // tp_doc
+    (traverseproc)Nuitka_AsyncgenAsend_tp_traverse,                  // tp_traverse
+    0,                                                               // tp_clear
+    0,                                                               // tp_richcompare
+    0,                                                               // tp_weaklistoffset
+    0,                                                               // tp_iter (PyObject_SelfIter)
+    (iternextfunc)Nuitka_AsyncgenAsend_tp_iternext,                  // tp_iternext
+    Nuitka_AsyncgenAsend_methods,                                    // tp_methods
+    0,                                                               // tp_members
+    0,                                                               // tp_getset
+    0,                                                               // tp_base
+    0,                                                               // tp_dict
+    0,                                                               // tp_descr_get
+    0,                                                               // tp_descr_set
+    0,                                                               // tp_dictoffset
+    0,                                                               // tp_init
+    0,                                                               // tp_alloc
+    0,                                                               // tp_new
 };
 
 static bool Nuitka_AsyncgenAsend_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_AsyncgenAsend_Type; }
@@ -2053,59 +2053,59 @@ static PyMethodDef Nuitka_AsyncgenAthrow_methods[] = {
     {NULL}};
 
 static PyAsyncMethods Nuitka_AsyncgenAthrow_as_async = {
-    PyObject_SelfIter, /* am_await */
-    0,                 /* am_aiter */
-    0                  /* am_anext */
+    0, // am_await (PyObject_SelfIter)
+    0, // am_aiter
+    0  // am_anext
 };
 
 static PyTypeObject Nuitka_AsyncgenAthrow_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator_athrow", /* tp_name */
-    sizeof(struct Nuitka_AsyncgenAthrowObject),                       /* tp_basicsize */
-    0,                                                                /* tp_itemsize */
-    (destructor)Nuitka_AsyncgenAthrow_dealloc,                        /* tp_dealloc */
-    0,                                                                /* tp_print */
-    0,                                                                /* tp_getattr */
-    0,                                                                /* tp_setattr */
-    &Nuitka_AsyncgenAthrow_as_async,                                  /* tp_as_async */
-    0,                                                                /* tp_repr */
-    0,                                                                /* tp_as_number */
-    0,                                                                /* tp_as_sequence */
-    0,                                                                /* tp_as_mapping */
-    0,                                                                /* tp_hash */
-    0,                                                                /* tp_call */
-    0,                                                                /* tp_str */
-    PyObject_GenericGetAttr,                                          /* tp_getattro */
-    0,                                                                /* tp_setattro */
-    0,                                                                /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,                          /* tp_flags */
-    0,                                                                /* tp_doc */
-    (traverseproc)Nuitka_AsyncgenAthrow_traverse,                     /* tp_traverse */
-    0,                                                                /* tp_clear */
-    0,                                                                /* tp_richcompare */
-    0,                                                                /* tp_weaklistoffset */
-    PyObject_SelfIter,                                                /* tp_iter */
-    (iternextfunc)Nuitka_AsyncgenAthrow_tp_iternext,                  /* tp_iternext */
-    Nuitka_AsyncgenAthrow_methods,                                    /* tp_methods */
-    0,                                                                /* tp_members */
-    0,                                                                /* tp_getset */
-    0,                                                                /* tp_base */
-    0,                                                                /* tp_dict */
-    0,                                                                /* tp_descr_get */
-    0,                                                                /* tp_descr_set */
-    0,                                                                /* tp_dictoffset */
-    0,                                                                /* tp_init */
-    0,                                                                /* tp_alloc */
-    0,                                                                /* tp_new */
-    0,                                                                /* tp_free */
-    0,                                                                /* tp_is_gc */
-    0,                                                                /* tp_bases */
-    0,                                                                /* tp_mro */
-    0,                                                                /* tp_cache */
-    0,                                                                /* tp_subclasses */
-    0,                                                                /* tp_weaklist */
-    0,                                                                /* tp_del */
-    0,                                                                /* tp_version_tag */
-    0,                                                                /* tp_finalize */
+    PyVarObject_HEAD_INIT(NULL, 0) "compiled_async_generator_athrow", // tp_name
+    sizeof(struct Nuitka_AsyncgenAthrowObject),                       // tp_basicsize
+    0,                                                                // tp_itemsize
+    (destructor)Nuitka_AsyncgenAthrow_dealloc,                        // tp_dealloc
+    0,                                                                // tp_print
+    0,                                                                // tp_getattr
+    0,                                                                // tp_setattr
+    &Nuitka_AsyncgenAthrow_as_async,                                  // tp_as_async
+    0,                                                                // tp_repr
+    0,                                                                // tp_as_number
+    0,                                                                // tp_as_sequence
+    0,                                                                // tp_as_mapping
+    0,                                                                // tp_hash
+    0,                                                                // tp_call
+    0,                                                                // tp_str
+    0,                                                                // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                                // tp_setattro
+    0,                                                                // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,                          // tp_flags
+    0,                                                                // tp_doc
+    (traverseproc)Nuitka_AsyncgenAthrow_traverse,                     // tp_traverse
+    0,                                                                // tp_clear
+    0,                                                                // tp_richcompare
+    0,                                                                // tp_weaklistoffset
+    0,                                                                // tp_iter (PyObject_SelfIter)
+    (iternextfunc)Nuitka_AsyncgenAthrow_tp_iternext,                  // tp_iternext
+    Nuitka_AsyncgenAthrow_methods,                                    // tp_methods
+    0,                                                                // tp_members
+    0,                                                                // tp_getset
+    0,                                                                // tp_base
+    0,                                                                // tp_dict
+    0,                                                                // tp_descr_get
+    0,                                                                // tp_descr_set
+    0,                                                                // tp_dictoffset
+    0,                                                                // tp_init
+    0,                                                                // tp_alloc
+    0,                                                                // tp_new
+    0,                                                                // tp_free
+    0,                                                                // tp_is_gc
+    0,                                                                // tp_bases
+    0,                                                                // tp_mro
+    0,                                                                // tp_cache
+    0,                                                                // tp_subclasses
+    0,                                                                // tp_weaklist
+    0,                                                                // tp_del
+    0,                                                                // tp_version_tag
+    0,                                                                // tp_finalize
 };
 
 static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncgen, PyObject *args) {
@@ -2136,9 +2136,7 @@ static PyObject *Nuitka_AsyncgenAthrow_New(struct Nuitka_AsyncgenObject *asyncge
 
 static void _initCompiledAsyncgenTypes(void) {
 
-    Nuitka_Asyncgen_Type.tp_base = &PyAsyncGen_Type;
-
-    PyType_Ready(&Nuitka_Asyncgen_Type);
+    Nuitka_PyType_Ready(&Nuitka_Asyncgen_Type, &PyAsyncGen_Type, true, false, false, false, true);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Asyncgen_Type.tp_doc != PyAsyncGen_Type.tp_doc || PyAsyncGen_Type.tp_doc == NULL);
@@ -2172,7 +2170,7 @@ static void _initCompiledAsyncgenTypes(void) {
     assert(Nuitka_Asyncgen_Type.tp_del != PyAsyncGen_Type.tp_del || PyAsyncGen_Type.tp_del == NULL);
     assert(Nuitka_Asyncgen_Type.tp_finalize != PyAsyncGen_Type.tp_finalize || PyAsyncGen_Type.tp_finalize == NULL);
 
-    PyType_Ready(&Nuitka_AsyncgenAsend_Type);
-    PyType_Ready(&Nuitka_AsyncgenAthrow_Type);
-    PyType_Ready(&Nuitka_AsyncgenValueWrapper_Type);
+    Nuitka_PyType_Ready(&Nuitka_AsyncgenAsend_Type, NULL, true, false, true, true, false);
+    Nuitka_PyType_Ready(&Nuitka_AsyncgenAthrow_Type, NULL, true, false, true, true, false);
+    Nuitka_PyType_Ready(&Nuitka_AsyncgenValueWrapper_Type, NULL, false, false, false, false, false);
 }
