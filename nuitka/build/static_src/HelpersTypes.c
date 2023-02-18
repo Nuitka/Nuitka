@@ -138,3 +138,45 @@ int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject 
     return PyObject_IsSubclass(derived, cls);
 }
 #endif
+
+// Our wrapper for "PyType_Ready" that takes care of trying to avoid DLL entry
+// points for generic attributes.
+void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
+                         bool self_iter, bool await_self_iter, bool self_aiter) {
+    assert(type->tp_base == NULL);
+
+    type->tp_base = base;
+
+    if (generic_get_attr) {
+        assert(type->tp_getattro == NULL);
+        type->tp_getattro = PyObject_GenericGetAttr;
+    }
+
+    if (generic_set_attr) {
+        assert(type->tp_setattro == NULL);
+        type->tp_setattro = PyObject_GenericSetAttr;
+    }
+
+    if (self_iter) {
+        assert(type->tp_iter == NULL);
+        type->tp_iter = PyObject_SelfIter;
+    }
+
+#if PYTHON_VERSION >= 0x350
+    if (await_self_iter) {
+        assert(type->tp_as_async->am_await == NULL);
+        type->tp_as_async->am_await = PyObject_SelfIter;
+    }
+
+    if (self_aiter) {
+        assert(type->tp_as_async->am_aiter == NULL);
+        type->tp_as_async->am_aiter = PyObject_SelfIter;
+    }
+#else
+    assert(!await_self_iter);
+    assert(!self_aiter);
+#endif
+
+    int res = PyType_Ready(type);
+    assert(res >= 0);
+}
