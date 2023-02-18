@@ -1435,71 +1435,72 @@ static PyAsyncMethods Nuitka_Generator_as_async = {
     NULL, /* am_await */
     NULL, /* am_aiter */
     NULL, /* am_anext */
-    NULL  // TODO: have this too, (sendfunc)_Nuitka_Generator_amsend /* am_anext */
+    // TODO: have this too, (sendfunc)_Nuitka_Generator_amsend
+    NULL /* am_anext */
 };
 #endif
 
 #include <structmember.h>
 
 PyTypeObject Nuitka_Generator_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "compiled_generator", /* tp_name */
-    sizeof(struct Nuitka_GeneratorObject),               /* tp_basicsize */
-    sizeof(struct Nuitka_CellObject *),                  /* tp_itemsize */
-    (destructor)Nuitka_Generator_tp_dealloc,             /* tp_dealloc */
-    0,                                                   /* tp_print */
-    0,                                                   /* tp_getattr */
-    0,                                                   /* tp_setattr */
+    PyVarObject_HEAD_INIT(NULL, 0) "compiled_generator", // tp_name
+    sizeof(struct Nuitka_GeneratorObject),               // tp_basicsize
+    sizeof(struct Nuitka_CellObject *),                  // tp_itemsize
+    (destructor)Nuitka_Generator_tp_dealloc,             // tp_dealloc
+    0,                                                   // tp_print
+    0,                                                   // tp_getattr
+    0,                                                   // tp_setattr
 #if PYTHON_VERSION < 0x3a0
-    0, /* tp_as_async */
+    0, // tp_as_async
 #else
-    &Nuitka_Generator_as_async, /* tp_as_async */
+    &Nuitka_Generator_as_async, // tp_as_async
 #endif
-    (reprfunc)Nuitka_Generator_tp_repr, /* tp_repr */
-    0,                                  /* tp_as_number */
-    0,                                  /* tp_as_sequence */
-    0,                                  /* tp_as_mapping */
-    (hashfunc)Nuitka_Generator_tp_hash, /* tp_hash */
-    0,                                  /* tp_call */
-    0,                                  /* tp_str */
-    PyObject_GenericGetAttr,            /* tp_getattro */
-    0,                                  /* tp_setattro */
-    0,                                  /* tp_as_buffer */
+    (reprfunc)Nuitka_Generator_tp_repr, // tp_repr
+    0,                                  // tp_as_number
+    0,                                  // tp_as_sequence
+    0,                                  // tp_as_mapping
+    (hashfunc)Nuitka_Generator_tp_hash, // tp_hash
+    0,                                  // tp_call
+    0,                                  // tp_str
+    0,                                  // tp_getattro (PyObject_GenericGetAttr)
+    0,                                  // tp_setattro
+    0,                                  // tp_as_buffer
 #if PYTHON_VERSION < 0x340
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
 #else
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE,
 #endif
-    /* tp_flags */
-    0,                                                   /* tp_doc */
-    (traverseproc)Nuitka_Generator_tp_traverse,          /* tp_traverse */
-    0,                                                   /* tp_clear */
-    0,                                                   /* tp_richcompare */
-    offsetof(struct Nuitka_GeneratorObject, m_weakrefs), /* tp_weaklistoffset */
-    PyObject_SelfIter,                                   /* tp_iter */
-    (iternextfunc)Nuitka_Generator_tp_iternext,          /* tp_iternext */
-    Nuitka_Generator_methods,                            /* tp_methods */
-    NULL,                                                /* tp_members */
-    Nuitka_Generator_getsetlist,                         /* tp_getset */
-    0,                                                   /* tp_base */
-    0,                                                   /* tp_dict */
-    0,                                                   /* tp_descr_get */
-    0,                                                   /* tp_descr_set */
-    0,                                                   /* tp_dictoffset */
-    0,                                                   /* tp_init */
-    0,                                                   /* tp_alloc */
-    0,                                                   /* tp_new */
-    0,                                                   /* tp_free */
-    0,                                                   /* tp_is_gc */
-    0,                                                   /* tp_bases */
-    0,                                                   /* tp_mro */
-    0,                                                   /* tp_cache */
-    0,                                                   /* tp_subclasses */
-    0,                                                   /* tp_weaklist */
-    0,                                                   /* tp_del */
-    0                                                    /* tp_version_tag */
+    // tp_flags
+    0,                                                   // tp_doc
+    (traverseproc)Nuitka_Generator_tp_traverse,          // tp_traverse
+    0,                                                   // tp_clear
+    0,                                                   // tp_richcompare
+    offsetof(struct Nuitka_GeneratorObject, m_weakrefs), // tp_weaklistoffset
+    0,                                                   // tp_iter (PyObject_SelfIter)
+    (iternextfunc)Nuitka_Generator_tp_iternext,          // tp_iternext
+    Nuitka_Generator_methods,                            // tp_methods
+    NULL,                                                // tp_members
+    Nuitka_Generator_getsetlist,                         // tp_getset
+    0,                                                   // tp_base
+    0,                                                   // tp_dict
+    0,                                                   // tp_descr_get
+    0,                                                   // tp_descr_set
+    0,                                                   // tp_dictoffset
+    0,                                                   // tp_init
+    0,                                                   // tp_alloc
+    0,                                                   // tp_new
+    0,                                                   // tp_free
+    0,                                                   // tp_is_gc
+    0,                                                   // tp_bases
+    0,                                                   // tp_mro
+    0,                                                   // tp_cache
+    0,                                                   // tp_subclasses
+    0,                                                   // tp_weaklist
+    0,                                                   // tp_del
+    0                                                    // tp_version_tag
 #if PYTHON_VERSION >= 0x340
     ,
-    (destructor)Nuitka_Generator_tp_finalizer /* tp_finalize */
+    (destructor)Nuitka_Generator_tp_finalizer // tp_finalize
 #endif
 };
 
@@ -1511,9 +1512,7 @@ static void _initCompiledAsyncgenTypes();
 #endif
 
 void _initCompiledGeneratorType(void) {
-    Nuitka_Generator_Type.tp_base = &PyGen_Type;
-
-    PyType_Ready(&Nuitka_Generator_Type);
+    Nuitka_PyType_Ready(&Nuitka_Generator_Type, &PyGen_Type, true, false, true, false, false);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Generator_Type.tp_doc != PyGen_Type.tp_doc || PyGen_Type.tp_doc == NULL);

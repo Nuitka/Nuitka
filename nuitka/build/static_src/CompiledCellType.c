@@ -187,45 +187,45 @@ static PyGetSetDef Nuitka_Cell_getsetlist[] = {
 
 PyTypeObject Nuitka_Cell_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_cell",
-    sizeof(struct Nuitka_CellObject),   /* tp_basicsize */
-    0,                                  /* tp_itemsize */
-    (destructor)Nuitka_Cell_tp_dealloc, /* tp_dealloc */
-    0,                                  /* tp_print */
-    0,                                  /* tp_getattr */
-    0,                                  /* tp_setattr */
+    sizeof(struct Nuitka_CellObject),   // tp_basicsize
+    0,                                  // tp_itemsize
+    (destructor)Nuitka_Cell_tp_dealloc, // tp_dealloc
+    0,                                  // tp_print
+    0,                                  // tp_getattr
+    0,                                  // tp_setattr
 #if PYTHON_VERSION < 0x300
-    (cmpfunc)Nuitka_Cell_tp_compare, /* tp_compare */
+    (cmpfunc)Nuitka_Cell_tp_compare, // tp_compare
 #else
-    0,                          /* tp_reserved */
+    0,                          // tp_reserved
 #endif
-    (reprfunc)Nuitka_Cell_tp_repr,           /* tp_repr */
-    0,                                       /* tp_as_number */
-    0,                                       /* tp_as_sequence */
-    0,                                       /* tp_as_mapping */
-    0,                                       /* tp_hash */
-    0,                                       /* tp_call */
-    0,                                       /* tp_str */
-    PyObject_GenericGetAttr,                 /* tp_getattro */
-    0,                                       /* tp_setattro */
-    0,                                       /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, /* tp_flags */
-    0,                                       /* tp_doc */
-    (traverseproc)Nuitka_Cell_tp_traverse,   /* tp_traverse */
-    (inquiry)Nuitka_Cell_tp_clear,           /* tp_clear */
+    (reprfunc)Nuitka_Cell_tp_repr,           // tp_repr
+    0,                                       // tp_as_number
+    0,                                       // tp_as_sequence
+    0,                                       // tp_as_mapping
+    0,                                       // tp_hash
+    0,                                       // tp_call
+    0,                                       // tp_str
+    0,                                       // tp_getattro (PyObject_GenericGetAttr)
+    0,                                       // tp_setattro
+    0,                                       // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, // tp_flags
+    0,                                       // tp_doc
+    (traverseproc)Nuitka_Cell_tp_traverse,   // tp_traverse
+    (inquiry)Nuitka_Cell_tp_clear,           // tp_clear
 #if PYTHON_VERSION < 0x300
-    0, /* tp_richcompare */
+    0, // tp_richcompare
 #else
-    Nuitka_Cell_tp_richcompare, /* tp_richcompare */
+    Nuitka_Cell_tp_richcompare, // tp_richcompare
 #endif
-    0,                      /* tp_weaklistoffset */
-    0,                      /* tp_iter */
-    0,                      /* tp_iternext */
-    0,                      /* tp_methods */
-    0,                      /* tp_members */
-    Nuitka_Cell_getsetlist, /* tp_getset */
+    0,                      // tp_weaklistoffset
+    0,                      // tp_iter
+    0,                      // tp_iternext
+    0,                      // tp_methods
+    0,                      // tp_members
+    Nuitka_Cell_getsetlist, // tp_getset
 };
 
-void _initCompiledCellType(void) { PyType_Ready(&Nuitka_Cell_Type); }
+void _initCompiledCellType(void) { Nuitka_PyType_Ready(&Nuitka_Cell_Type, NULL, true, false, false, false, false); }
 
 struct Nuitka_CellObject *Nuitka_Cell_Empty(void) {
     struct Nuitka_CellObject *result;
