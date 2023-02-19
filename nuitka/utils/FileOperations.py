@@ -40,7 +40,13 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     raw_input,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import general, my_print, options_logger
+from nuitka.Tracing import (
+    flushStandardOutputs,
+    general,
+    my_print,
+    options_logger,
+    printLine,
+)
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -801,13 +807,20 @@ def queryUser(question, choices, default, default_non_interactive):
     assert default in choices, (default, choices)
     assert default_non_interactive in choices, (default, choices)
 
-    prompt = "%s? (%s)" % (
+    prompt = "%s? %s : " % (
         question,
-        "/".join(choice.upper() if choice == default else choice for choice in choices),
+        "/".join(
+            "[%s]" % choice.title() if choice == default else choice.title()
+            for choice in choices
+        ),
     )
 
+    # Integrates with progress bar by closing it.
+    printLine(prompt, end="")
+    flushStandardOutputs()
+
     try:
-        reply = raw_input(prompt) or default
+        reply = raw_input() or default
     except EOFError:
         reply = default_non_interactive
 

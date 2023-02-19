@@ -23,10 +23,15 @@ Mostly used on Windows, for dependency walker and ccache binaries.
 import os
 
 from nuitka import Tracing
-from nuitka.__past__ import raw_input, urlretrieve
+from nuitka.__past__ import urlretrieve
 
 from .AppDirs import getCacheDir
-from .FileOperations import addFileExecutablePermission, deleteFile, makePath
+from .FileOperations import (
+    addFileExecutablePermission,
+    deleteFile,
+    makePath,
+    queryUser,
+)
 
 
 def getDownload(url, download_path):
@@ -72,27 +77,22 @@ def getCachedDownload(
 
     if not os.path.isfile(download_path) and not os.path.isfile(exe_path):
         if assume_yes_for_downloads:
-            reply = "y"
+            reply = "yes"
         else:
-            Tracing.printLine(
-                """\
+            reply = queryUser(
+                question="""\
 %s
 
 Is it OK to download and put it in '%s'.
 
-No installer needed, cached, one time question.
-
-Proceed and download? [Yes]/No """
-                % (message, nuitka_download_dir)
+Fully automatic, cached. Proceed and download"""
+                % (message, nuitka_download_dir),
+                choices=("yes", "no"),
+                default="yes",
+                default_non_interactive="no",
             )
-            Tracing.flushStandardOutputs()
 
-            try:
-                reply = raw_input()
-            except EOFError:
-                reply = "no"
-
-        if reply.lower() in ("no", "n"):
+        if reply != "yes":
             if reject is not None:
                 Tracing.general.sysexit(reject)
         else:
