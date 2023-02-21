@@ -726,8 +726,8 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
 
 
 def makeHelperCalls():
-    filename_c = "nuitka/build/static_src/HelpersCalling2.c"
-    filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
+    filename_c = "nuitka/build/static_src/HelpersCallingGenerated.c"
+    filename_h = "nuitka/build/include/nuitka/helper/calling_generated.h"
 
     with withFileOpenedAndAutoFormatted(filename_c) as output_c:
         with withFileOpenedAndAutoFormatted(filename_h) as output_h:
