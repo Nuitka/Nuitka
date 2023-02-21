@@ -67,4 +67,13 @@ static inline bool hasTypeGenericGetAttr(PyTypeObject *type) {
 #endif
 }
 
+static inline bool hasTypeGenericSetAttr(PyTypeObject *type) {
+#if PYTHON_VERSION >= 0x3b0
+    // TODO: Big performance loss here
+    return false;
+#else
+    return type->tp_setattro == PyObject_GenericSetAttr;
+#endif
+}
+
 #endif

@@ -854,7 +854,7 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
     PyTypeObject *type = Py_TYPE(target);
 
 #if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
-    if (type->tp_setattro == PyObject_GenericSetAttr) {
+    if (hasTypeGenericSetAttr(type)) {
         return SET_ATTRIBUTE_GENERIC(type, target, attr_name, value);
     }
 #endif
