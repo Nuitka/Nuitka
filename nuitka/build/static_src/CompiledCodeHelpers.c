@@ -45,6 +45,10 @@ static void _initBuiltinTypeMethods(void) {
     _initListBuiltinMethods();
 }
 
+#if PYTHON_VERSION >= 0x3b0
+#include "HelpersAllocator.c"
+#endif
+
 #include "HelpersBuiltin.c"
 #include "HelpersBytes.c"
 #include "HelpersClasses.c"
