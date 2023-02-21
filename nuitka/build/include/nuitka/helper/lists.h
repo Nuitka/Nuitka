@@ -72,4 +72,21 @@ extern PyObject *MAKE_LIST(PyObject *iterable);
 
 extern bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other);
 
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LIST_REPEATED(Py_ssize_t size, PyObject *element) {
+    PyObject *result = MAKE_LIST_EMPTY(size);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    for (Py_ssize_t i = 0; i < size; i++) {
+        Py_INCREF(element);
+        PyList_SET_ITEM(result, i, element);
+    }
+
+    return result;
+}
+
+#include "lists_generated.h"
+
 #endif

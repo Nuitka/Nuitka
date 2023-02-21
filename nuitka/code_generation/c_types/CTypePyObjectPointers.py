@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.__past__ import iterItems
+from nuitka.__past__ import iterItems, xrange
 from nuitka.code_generation.ErrorCodes import (
     getErrorExitBoolCode,
     getReleaseCode,
@@ -49,6 +49,10 @@ from nuitka.code_generation.templates.CodeTemplatesVariables import (
 from nuitka.Constants import getConstantValueGuide, isMutable
 
 from .CTypeBases import CTypeBase
+
+# Need to run "bin/generate-specialized-c-code" when changing these values.
+make_list_constant_direct_threshold = 4
+make_list_constant_hinted_threshold = 13
 
 
 class CPythonPyObjectPtrBase(CTypeBase):
@@ -227,9 +231,32 @@ class CPythonPyObjectPtrBase(CTypeBase):
                     )
                     ref_count = 1
                 else:
-                    code = "LIST_COPY(%s)" % context.getConstantCode(
-                        constant, deep_check=False
-                    )
+                    constant_size = len(constant)
+
+                    if constant_size > 1 and all(
+                        constant[i] is constant[0] for i in xrange(1, len(constant))
+                    ):
+                        code = "MAKE_LIST_REPEATED(%s, %s)" % (
+                            constant_size,
+                            context.getConstantCode(constant[0], deep_check=False),
+                        )
+                    elif constant_size < make_list_constant_direct_threshold:
+                        code = "MAKE_LIST%d(%s)" % (
+                            constant_size,
+                            ",".join(
+                                context.getConstantCode(constant[i], deep_check=False)
+                                for i in xrange(constant_size)
+                            ),
+                        )
+                    elif constant_size < make_list_constant_hinted_threshold:
+                        code = "MAKE_LIST%d(%s)" % (
+                            constant_size,
+                            context.getConstantCode(constant, deep_check=False),
+                        )
+                    else:
+                        code = "LIST_COPY(%s)" % context.getConstantCode(
+                            constant, deep_check=False
+                        )
                     ref_count = 1
             else:
                 # TODO: For the zero elements list, maybe have a dedicated function, which
