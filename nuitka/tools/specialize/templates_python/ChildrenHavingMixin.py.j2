@@ -413,6 +413,23 @@ class {{mixin_name}}({{base_class}}):
         """Must be overloaded for non-final node."""
 {% endif %}
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """ Collect variable reads and writes of child nodes."""
+
+{% for named_child in named_children %}
+{% if named_children_types.get(named_child) == "optional" %}
+        subnode_{{named_child}} = self.subnode_{{named_child}}
+
+        if subnode_{{named_child}} is not None:
+            self.subnode_{{named_child}}.collectVariableAccesses(emit_read, emit_write)
+{% elif named_children_types.get(named_child) == "tuple" %}
+        for element in self.subnode_{{named_child}}:
+            element.collectVariableAccesses(emit_read, emit_write)
+{% else  %}
+        self.subnode_{{named_child}}.collectVariableAccesses(emit_read, emit_write)
+{% endif %}
+{% endfor %}
+
 # Assign the names that are easier to import with a stable name.
 {% for node_class_name in intended_for %}
 {% if base_class in ("ExpressionBase", "StatementBase") %}

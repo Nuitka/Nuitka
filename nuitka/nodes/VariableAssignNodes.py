@@ -276,6 +276,10 @@ class StatementAssignmentVariableMixin(object):
 
         return self, None, None
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        emit_write(self.variable)
+        self.subnode_source.collectVariableAccesses(emit_read, emit_write)
+
     @abstractmethod
     def hasVeryTrustedValue(self):
         """Does this assignment node have a very trusted value."""
