@@ -31,9 +31,10 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import recursion_logger
 from nuitka.utils.FileOperations import listDir
+from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
-from .Importing import getModuleNameAndKindFromFilename, locateModule
+from .Importing import locateModule
 
 
 def _recurseTo(module_name, module_filename, module_kind):
@@ -200,11 +201,6 @@ def _decideRecursion(module_filename, module_name, module_kind, extra_recursion)
     )
 
 
-def considerFilename(module_filename):
-    module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
-    return None if module_kind == "extension" else module_filename, module_name
-
-
 def isSameModulePath(path1, path2):
     if os.path.basename(path1) == "__init__.py":
         path1 = os.path.dirname(path1)
@@ -325,28 +321,30 @@ def checkPluginSinglePath(plugin_filename, module_package):
 def checkPluginPath(plugin_filename, module_package):
     if Options.isShowInclusion():
         recursion_logger.info(
-            "Checking top level path '%s' '%s'." % (plugin_filename, module_package)
+            "Checking top level inclusion path '%s' '%s'."
+            % (plugin_filename, module_package)
         )
 
-    plugin_info = considerFilename(module_filename=plugin_filename)
+    # Files and package directories are handled here.
+    if os.path.isfile(plugin_filename) or Importing.isPackageDir(plugin_filename):
+        checkPluginSinglePath(plugin_filename, module_package=module_package)
+    # This effectively only covers files known to not be packages due to name
+    # or older Python version.
+    elif os.path.isdir(plugin_filename):
+        for sub_path, sub_filename in listDir(plugin_filename):
+            assert sub_filename != "__init__.py"
 
-    if plugin_info is not None:
-        # File or package makes a difference, handle that
-        if os.path.isfile(plugin_info[0]) or Importing.isPackageDir(plugin_info[0]):
-            checkPluginSinglePath(plugin_filename, module_package=module_package)
-        elif os.path.isdir(plugin_info[0]):
-            for sub_path, sub_filename in listDir(plugin_info[0]):
-                assert sub_filename != "__init__.py"
+            if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
+                checkPluginSinglePath(sub_path, module_package=None)
+                continue
 
-                if Importing.isPackageDir(sub_path) or sub_path.endswith(".py"):
+            for suffix in getSharedLibrarySuffixes():
+                if sub_path.endswith(suffix):
                     checkPluginSinglePath(sub_path, module_package=None)
-        else:
-            recursion_logger.warning(
-                "Failed to include module from '%s'." % plugin_info[0]
-            )
+
     else:
         recursion_logger.warning(
-            "Failed to recurse to directory '%s'." % plugin_filename
+            "Failed to include module from '%s'." % plugin_filename
         )
 
 
