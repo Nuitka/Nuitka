@@ -36,6 +36,10 @@ from nuitka.code_generation.BinaryOperationHelperDefinitions import (
     getSpecializedBinaryOperations,
     parseTypesFromHelper,
 )
+from nuitka.code_generation.c_types.CTypePyObjectPointers import (
+    make_list_constant_direct_threshold,
+    make_list_constant_hinted_threshold,
+)
 from nuitka.code_generation.CallCodes import (
     getQuickCallCode,
     getQuickMethodCallCode,
@@ -806,6 +810,51 @@ def makeHelperCalls():
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
 
+def makeHelperLists():
+    filename_c = "nuitka/build/static_src/HelpersListsGenerated.c"
+    filename_h = "nuitka/build/include/nuitka/helper/lists_generated.h"
+
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                assert args[0] != "extern "
+                writeLine(output_h, *args)
+
+            def emit_c(*args):
+                writeLine(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            template = getTemplateC(
+                "nuitka.code_generation", "CodeTemplateMakeListSmall.c.j2"
+            )
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit)
+
+            for args_count in range(1, make_list_constant_direct_threshold):
+                code = template.render(args_count=args_count)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
+
+            template = getTemplateC(
+                "nuitka.code_generation", "CodeTemplateMakeListHinted.c.j2"
+            )
+
+            for args_count in range(
+                make_list_constant_direct_threshold, make_list_constant_hinted_threshold
+            ):
+                code = template.render(args_count=args_count)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
+
+
 def _makeHelperBuiltinTypeAttributes(
     type_prefix, type_name, python2_methods, python3_methods, emit_c, emit_h
 ):
@@ -1227,6 +1276,7 @@ def main():
     makeHelpersImportHard()
 
     makeHelperCalls()
+    makeHelperLists()
 
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")
