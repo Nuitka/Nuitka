@@ -33,7 +33,7 @@ orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
 subprocess32; python_version == '2.7'
 
 # Onefile compression
-zstandard; python_version >= '3.5'
+zstandard >= 0.15; python_version >= '3.5'
 
 # Plugins need that, but there is an inline copy for old versions too.
 pyyaml; python_version == '2.7' or python_version >= '3.6'

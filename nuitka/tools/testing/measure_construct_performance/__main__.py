@@ -100,7 +100,7 @@ def main():
         sys.exit("Error, nuitka binary '%s' not found." % nuitka)
 
     diff_filename = options.diff_filename
-    if diff_filename is not None:
+    if diff_filename:
         diff_filename = os.path.abspath(diff_filename)
 
     setup(silent=True, go_main=False)

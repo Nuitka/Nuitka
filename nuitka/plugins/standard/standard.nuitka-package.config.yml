@@ -777,6 +777,14 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'imagej'
+  anti-bloat:
+    - description: 'compile time resolve version metadata'
+      # This is necessary, because they have a function that prevents compile
+      # time from seeing it. We might later force those to be inlined instead.
+      replacements:
+        'sj.get_version("pyimagej")': 'repr(version("pyimagej"))'
+
 - module-name: 'importlib_metadata'
   anti-bloat:
     - description: 'remove useless metadata usage'
@@ -829,6 +837,13 @@
       replacements_plain:
         'from distributed import get_worker': 'raise ImportError'
       when: 'not use_dask'
+
+- module-name: 'jpype'
+  data-files:
+    dest_path: './jpype'
+    patterns:
+      - '../org.jpype.jar'
+    when: 'anaconda'
 
 - module-name: 'jsonrpcserver.main'
   data-files:
@@ -2394,6 +2409,14 @@
   data-files:
     patterns:
       - 'VERSION'
+
+- module-name: 'scyjava'
+  anti-bloat:
+    - description: 'compile time resolve version metadata'
+      # This is necessary, because they have a function that prevents compile
+      # time from seeing it. We might later force those to be inlined instead.
+      replacements:
+        'get_version("scyjava")': 'repr(version("scyjava"))'
 
 - module-name: 'seaborn.external.docscrape'
   anti-bloat:
