@@ -68,6 +68,9 @@ class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
     def mayRaiseException(exception_type):
         return False
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointValueRefBase = (
@@ -184,6 +187,12 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
         return any(
             value.mayRaiseException(exception_type) for value in self.subnode_args
         )
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_args:
+            element.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -361,6 +370,20 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
             )
         )
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_args:
+            element.collectVariableAccesses(emit_read, emit_write)
+        subnode_name = self.subnode_name
+
+        if subnode_name is not None:
+            self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        subnode_path = self.subnode_path
+
+        if subnode_path is not None:
+            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionImportErrorBase = (
@@ -479,6 +502,12 @@ class ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_callable_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_sentinel.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinIter2Base = ChildrenHavingCallableArgSentinelFinalMixin
@@ -596,6 +625,12 @@ class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
             value.mayRaiseException(exception_type) for value in self.subnode_elements
         )
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_elements:
+            element.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointsValueRefBase = (
@@ -698,6 +733,11 @@ class ChildHavingExpressionAttributeNameMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionAttributeLookupBase = ChildHavingExpressionAttributeNameMixin
@@ -795,6 +835,11 @@ class ChildHavingListArgNoRaiseMixin(ExpressionBase):
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -926,6 +971,12 @@ class ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_item.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionListOperationAppendBase = ChildrenHavingListArgItemNoRaiseMixin
@@ -1050,6 +1101,12 @@ class ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
             exception_type
         ) or self.subnode_value.mayRaiseException(exception_type)
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionListOperationCountBase = ChildrenHavingListArgValueFinalNoRaiseMixin
@@ -1165,6 +1222,12 @@ class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
             value.mayRaiseException(exception_type) for value in self.subnode_pairs
         )
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_pairs:
+            element.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase = (
@@ -1261,6 +1324,11 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
