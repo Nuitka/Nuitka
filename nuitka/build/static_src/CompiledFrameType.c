@@ -799,7 +799,16 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     PyObject *lnotab = const_str_empty;
 #else
     PyObject *code = const_bytes_empty;
+#if PYTHON_VERSION < 0x3b0
     PyObject *lnotab = const_bytes_empty;
+#else
+    static PyObject *lnotab = NULL;
+    if (lnotab == NULL) {
+        lnotab = PyBytes_FromStringAndSize("\x80\x00\xd8\x04\x08\x80"
+                                           "D",
+                                           7);
+    }
+#endif
 #endif
 
     // For Python 3.11 this value is checked, even if not used.
