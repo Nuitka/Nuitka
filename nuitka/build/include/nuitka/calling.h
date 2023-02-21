@@ -106,9 +106,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyObject *funct
 // Call built-in functions with using defaulted values.
 extern PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args);
 
-#include "nuitka/helper/calling2.h"
-
 // For abstract class instantiation error message, during call.
 extern void formatCannotInstantiateAbstractClass(PyTypeObject *type);
+
+#include "nuitka/helper/calling_generated.h"
 
 #endif
