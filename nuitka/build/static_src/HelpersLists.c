@@ -708,3 +708,5 @@ PyObject *MAKE_LIST(PyObject *iterable) {
     return list;
 #endif
 }
+
+#include "HelpersListsGenerated.c"
