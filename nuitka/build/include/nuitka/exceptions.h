@@ -43,10 +43,8 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *GET_ERROR_OCCURRED(void) {
     return tstate->curexc_type;
 }
 
-// Clear error, which likely set.
-NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(void) {
-    PyThreadState *tstate = PyThreadState_GET();
-
+// Clear error, which likely set, similar to _PyErr_Clear(tstate)
+NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED_TSTATE(PyThreadState *tstate) {
     PyObject *old_type = tstate->curexc_type;
     PyObject *old_value = tstate->curexc_value;
     PyObject *old_tb = tstate->curexc_traceback;
@@ -58,6 +56,13 @@ NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(void) {
     Py_XDECREF(old_type);
     Py_XDECREF(old_value);
     Py_XDECREF(old_tb);
+}
+
+// Clear error, which likely set, similar to PyErr_Clear()
+NUITKA_MAY_BE_UNUSED static inline void CLEAR_ERROR_OCCURRED(void) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    CLEAR_ERROR_OCCURRED_TSTATE(tstate);
 }
 
 // Clear error, which is not likely set. This is about bugs from CPython,

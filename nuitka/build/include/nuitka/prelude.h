@@ -127,6 +127,7 @@ extern _PyRuntimeState _PyRuntime;
 
 #if PYTHON_VERSION >= 0x3b0
 #include <internal/pycore_frame.h>
+#include <internal/pycore_gc.h>
 #endif
 
 #ifndef PY_NOGIL
