@@ -205,6 +205,9 @@ class StatementDelVariableBase(StatementBase):
 
         return self, None, None
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        emit_write(self.variable)
+
 
 class StatementDelVariableTolerant(StatementDelVariableBase):
     """Deleting a variable.
