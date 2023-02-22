@@ -23,6 +23,7 @@ to use.
 """
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    tshape_bool,
     tshape_bytes,
     tshape_dict,
     tshape_str,
@@ -116,6 +117,12 @@ os_path_isfile_spec = BuiltinParameterSpec("os.path.isfile", ("path",), default_
 os_path_isdir_spec = BuiltinParameterSpec("os.path.isdir", ("path",), default_count=0)
 os_path_basename_spec = BuiltinParameterSpec(
     "os.path.basename", ("p",), default_count=0
+)
+os_path_abspath_spec = BuiltinParameterSpec(
+    "os.path.abspath", ("path",), default_count=0
+)
+os_path_isabs_spec = BuiltinParameterSpec(
+    "os.path.isabs", ("s",), default_count=0, type_shape=tshape_bool
 )
 
 os_listdir_spec = BuiltinParameterSpec("os.listdir", ("path",), default_count=1)
