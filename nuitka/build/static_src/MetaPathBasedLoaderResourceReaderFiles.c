@@ -40,7 +40,22 @@ struct Nuitka_ResourceReaderFilesObject {
 static PyObject *Nuitka_ResourceReaderFiles_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry, PyObject *path);
 
 static PyObject *_Nuitka_ResourceReaderFiles_GetPath(struct Nuitka_ResourceReaderFilesObject const *files) {
-    return JOIN_PATH2(getModuleDirectory(files->m_loader_entry), files->m_path);
+    // Allow for absolute paths, TODO: Too lazy to have OS_PATH_JOIN at this
+    // time also not clearly how early JOIN2 is used, i.e. do we have importing
+    // available for it.
+
+    PyObject *is_abs = OS_PATH_ISABS(files->m_path);
+    PyObject *result;
+    if (is_abs == Py_True) {
+        result = files->m_path;
+        Py_INCREF(result);
+    } else {
+        result = JOIN_PATH2(getModuleDirectory(files->m_loader_entry), files->m_path);
+    }
+
+    Py_DECREF(is_abs);
+
+    return result;
 }
 
 static void Nuitka_ResourceReaderFiles_tp_dealloc(struct Nuitka_ResourceReaderFilesObject *files) {
@@ -52,7 +67,8 @@ static void Nuitka_ResourceReaderFiles_tp_dealloc(struct Nuitka_ResourceReaderFi
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_repr(struct Nuitka_ResourceReaderFilesObject *files) {
-    return PyUnicode_FromFormat("<nuitka_resource_reader_files for '%s'>", files->m_loader_entry->name);
+    return PyUnicode_FromFormat("<nuitka_resource_reader_files for package '%s' file %R>", files->m_loader_entry->name,
+                                files->m_path);
 }
 
 static PyObject *Nuitka_ResourceReaderFiles_tp_str(struct Nuitka_ResourceReaderFilesObject *files) {
@@ -236,7 +252,13 @@ static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReade
             PyObject *child = PyTuple_GET_ITEM(args, i);
 
             PyObject *old = joined;
-            joined = JOIN_PATH2(joined, child);
+            if (old == const_str_empty) {
+                joined = child;
+                Py_INCREF(child);
+            } else {
+                joined = JOIN_PATH2(joined, child);
+            }
+
             Py_DECREF(old);
 
             if (unlikely(joined == NULL)) {
@@ -317,6 +339,18 @@ static PyObject *Nuitka_ResourceReaderFiles_fspath(struct Nuitka_ResourceReaderF
     return _Nuitka_ResourceReaderFiles_GetPath(files);
 }
 
+static PyObject *Nuitka_ResourceReaderFiles_absolute(struct Nuitka_ResourceReaderFilesObject *files) {
+    PyObject *path = _Nuitka_ResourceReaderFiles_GetPath(files);
+
+    PyObject *abspath = OS_PATH_ABSPATH(path);
+
+    if (unlikely(abspath == NULL)) {
+        return NULL;
+    }
+
+    return Nuitka_ResourceReaderFiles_New(files->m_loader_entry, abspath);
+}
+
 static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
     {"iterdir", (PyCFunction)Nuitka_ResourceReaderFiles_iterdir, METH_NOARGS, NULL},
     {"read_bytes", (PyCFunction)Nuitka_ResourceReaderFiles_read_bytes, METH_NOARGS, NULL},
@@ -328,6 +362,7 @@ static PyMethodDef Nuitka_ResourceReaderFiles_methods[] = {
     {"__enter__", (PyCFunction)Nuitka_ResourceReaderFiles_enter, METH_NOARGS, NULL},
     {"__exit__", (PyCFunction)Nuitka_ResourceReaderFiles_exit, METH_VARARGS, NULL},
     {"__fspath__", (PyCFunction)Nuitka_ResourceReaderFiles_fspath, METH_NOARGS, NULL},
+    {"absolute", (PyCFunction)Nuitka_ResourceReaderFiles_absolute, METH_NOARGS, NULL},
 
     // Nuitka specific, for "importlib.resource.as_file" overload.
     {"as_file", (PyCFunction)Nuitka_ResourceReaderFiles_as_file, METH_NOARGS, NULL},

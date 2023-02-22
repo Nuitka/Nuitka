@@ -148,6 +148,10 @@ extern PyObject **global_constants;
 #define const_str_plain_listdir global_constants[42]
 // 'basename'
 #define const_str_plain_basename global_constants[42]
+// 'abspath'
+#define const_str_plain_abspath global_constants[42]
+// 'isabs'
+#define const_str_plain_isabs global_constants[42]
 // 'path'
 #define const_str_plain_path global_constants[42]
 // '__newobj__'
