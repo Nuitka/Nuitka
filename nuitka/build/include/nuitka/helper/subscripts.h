@@ -20,14 +20,23 @@
 
 extern PyObject *STRING_FROM_CHAR(unsigned char c);
 
+#if PYTHON_VERSION >= 0x3b0
+static void formatNotSubscriptableTypeError(PyObject *type) {
+    SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "type '%s' is not subscriptable",
+                                        ((PyTypeObject *)type)->tp_name);
+}
+#endif
+
 static void formatNotSubscriptableError(PyObject *source) {
     SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
 #if PYTHON_VERSION < 0x270
         "'%s' object is unsubscriptable",
-#elif PYTHON_VERSION >= 0x300 || PYTHON_VERSION <= 0x272
+#elif PYTHON_VERSION <= 0x272
         "'%s' object is not subscriptable",
-#else
+#elif PYTHON_VERSION < 0x300
         "'%s' object has no attribute '__getitem__'",
+#else
+        "'%s' object is not subscriptable",
 #endif
         source);
 }
@@ -158,6 +167,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, P
 
                 return result;
             }
+
+            // Different error against types for Python3.11+
+#if PYTHON_VERSION >= 0x3b0
+            formatNotSubscriptableTypeError(source);
+            return NULL;
+#endif
         }
 #endif
 
@@ -220,6 +235,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
             Py_DECREF(meth);
             return result;
         }
+
+        // Different error against types for Python3.11+
+#if PYTHON_VERSION >= 0x3b0
+        formatNotSubscriptableTypeError(source);
+        return NULL;
+#endif
     }
 #endif
 
