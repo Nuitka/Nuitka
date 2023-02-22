@@ -50,8 +50,10 @@ from nuitka.specs.HardImportSpecs import (
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_spec,
     os_listdir_spec,
+    os_path_abspath_spec,
     os_path_basename_spec,
     os_path_exists_spec,
+    os_path_isabs_spec,
     os_path_isdir_spec,
     os_path_isfile_spec,
     os_uname_spec,
@@ -71,6 +73,7 @@ from .ChildrenHavingMixins import (
     ChildHavingPathOptionalMixin,
     ChildHavingPMixin,
     ChildHavingRequirementsTupleMixin,
+    ChildHavingSMixin,
     ChildrenHavingGroupNameOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin,
     ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin,
@@ -80,6 +83,7 @@ from .ChildrenHavingMixins import (
 )
 from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
     ExpressionBytesShapeExactMixin,
     ExpressionDictShapeExactMixin,
     ExpressionStrShapeExactMixin,
@@ -1390,6 +1394,89 @@ class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
         return True
 
 
+class ExpressionOsPathAbspathRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.path.abspath"""
+
+    kind = "EXPRESSION_OS_PATH_ABSPATH_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name=os.path.__name__,
+            import_name="abspath",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsPathAbspathCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsPathAbspathCall,
+            builtin_spec=os_path_abspath_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.path.abspath' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionOsPathAbspathRef] = os_path_abspath_spec
+
+
+class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
+    """Base class for OsPathAbspathCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("path",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_path_abspath_spec
+
+    def __init__(self, path, source_ref):
+
+        ChildHavingPathMixin.__init__(
+            self,
+            path=path,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_path_abspath_spec.isCompileTimeComputable(
+            (self.subnode_path,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
 class ExpressionOsPathBasenameRef(ExpressionImportModuleNameHardExistsSpecificBase):
     """Function reference os.path.basename"""
 
@@ -1537,6 +1624,91 @@ class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
     def computeExpression(self, trace_collection):
         if self.attempted or not os_path_exists_spec.isCompileTimeComputable(
             (self.subnode_path,)
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionOsPathIsabsRef(ExpressionImportModuleNameHardExistsSpecificBase):
+    """Function reference os.path.isabs"""
+
+    kind = "EXPRESSION_OS_PATH_ISABS_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name=os.path.__name__,
+            import_name="isabs",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .OsSysNodes import ExpressionOsPathIsabsCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionOsPathIsabsCall,
+            builtin_spec=os_path_isabs_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'os.path.isabs' recognized.",
+        )
+
+
+hard_import_node_classes[ExpressionOsPathIsabsRef] = os_path_isabs_spec
+
+
+class ExpressionOsPathIsabsCallBase(
+    ExpressionBoolShapeExactMixin, ChildHavingSMixin, ExpressionBase
+):
+    """Base class for OsPathIsabsCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("s",)
+
+    __slots__ = ("attempted",)
+
+    spec = os_path_isabs_spec
+
+    def __init__(self, s, source_ref):
+
+        ChildHavingSMixin.__init__(
+            self,
+            s=s,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if self.attempted or not os_path_isabs_spec.isCompileTimeComputable(
+            (self.subnode_s,)
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
 

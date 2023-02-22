@@ -195,6 +195,8 @@ extern PyObject *OS_LISTDIR(PyObject *path);
 
 // Small helpers to work with filenames.
 extern PyObject *OS_PATH_BASENAME(PyObject *filename);
+extern PyObject *OS_PATH_ABSPATH(PyObject *filename);
+extern PyObject *OS_PATH_ISABS(PyObject *filename);
 
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR(PyObject *value);
