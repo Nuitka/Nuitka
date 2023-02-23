@@ -904,6 +904,8 @@ static void Nuitka_Py_Initialize(void) {
 
     config.install_signal_handlers = 1;
 
+    NUITKA_PRINT_TIMING("Nuitka_Py_Initialize(): Calling Py_InitializeFromConfig.");
+
     status = Py_InitializeFromConfig(&config);
     if (unlikely(status._type != 0)) {
         Py_ExitStatusException(status);
