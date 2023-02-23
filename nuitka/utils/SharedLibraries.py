@@ -37,6 +37,7 @@ from .Execution import (
 )
 from .FileOperations import (
     addFileExecutablePermission,
+    changeFilenameExtension,
     copyFile,
     getFileList,
     makeContainingPath,
@@ -635,6 +636,17 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
 
         rpath = os.path.join("$ORIGIN", *([".."] * count))
         setSharedLibraryRPATH(target_filename, rpath)
+
+    if isWin32Windows() and Options.is_debug:
+        pdb_filename = changeFilenameExtension(path=source_path, extension=".pdb")
+
+        if os.path.exists(pdb_filename):
+            copyFile(
+                source_path=pdb_filename,
+                dest_path=changeFilenameExtension(
+                    path=target_filename, extension=".pdb"
+                ),
+            )
 
     if executable:
         addFileExecutablePermission(target_filename)
