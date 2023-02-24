@@ -17,15 +17,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-[build-system]
-# Note: For test purposes, Nuitka is referenced by path, should be "nuitka" in
-# normal projects.
-requires = ["setuptools>=42", "wheel", "file:../../..", "toml"]
-build-backend = "nuitka.distutils.Build"
+import re
 
-[nuitka]
-# Note: These are not recommended, but they make it obvious to have effect that
-# can be seen, namely using clang in the compilation output. This also uses both
-# supported forms for assigning a boolean option of Nuitka.
-show-scons = true
-clang = ""
+print(re.sub("venv_(nuitka|cpython)", "venv_xxxxx", __file__))
+
+
+def main():
+    pass
