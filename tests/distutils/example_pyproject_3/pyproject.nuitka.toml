@@ -23,9 +23,12 @@
 requires = ["setuptools>=42", "wheel", "file:../../..", "toml"]
 build-backend = "nuitka.distutils.Build"
 
-[nuitka]
-# Note: These are not recommended, but they make it obvious to have effect that
-# can be seen, namely using clang in the compilation output. This also uses both
-# supported forms for assigning a boolean option of Nuitka.
-show-scons = true
-clang = ""
+[project]
+name = "some_namespace.some_package"
+version = "0.0.1"
+
+[project.scripts]
+runner="some_namespace.some_package.sub_package:main"
+
+[tool.setuptools.packages.find]
+include = ["some_namespace.some_package*"]
