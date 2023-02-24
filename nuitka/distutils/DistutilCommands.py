@@ -95,7 +95,7 @@ class build(distutils.command.build.build):
 
         self._build(os.path.abspath(self.build_lib))
 
-    def _find_to_build(self):
+    def _findBuildTasks(self):
         """
         Helper for _build
         Returns list containing bool (is_package) and module_names
@@ -194,20 +194,20 @@ class build(distutils.command.build.build):
         # Search in the build directory preferably.
         addMainScriptDirectory(main_package_dir)
 
-        for is_package, module_name in self._find_to_build():
+        for is_package, module_name in self._findBuildTasks():
             module_name, main_filename, _module_kind, finding = locateModule(
                 module_name=module_name,
                 parent_package=None,
                 level=0,
             )
 
-            package = module_name.getPackageName()
+            package_name = module_name.getPackageName()
 
             # Check expectations, e.g. do not compile built-in modules.
             assert finding == "absolute", finding
 
-            if package is not None:
-                output_dir = os.path.join(build_lib, package.asPath())
+            if package_name is not None:
+                output_dir = os.path.join(build_lib, package_name.asPath())
             else:
                 output_dir = build_lib
 
@@ -222,11 +222,15 @@ class build(distutils.command.build.build):
                 "--remove-output",
             ]
 
-            if is_package:
-                command.append("--include-package=%s" % module_name)
-
+            if package_name is not None:
+                include_package_name = module_name.splitPackageName()[1]
             else:
-                command.append("--include-module=%s" % module_name)
+                include_package_name = module_name
+
+            if is_package:
+                command.append("--include-package=%s" % include_package_name)
+            else:
+                command.append("--include-module=%s" % include_package_name)
 
             toml_filename = os.environ.get("NUITKA_TOML_FILE")
             if toml_filename:
