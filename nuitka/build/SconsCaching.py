@@ -359,6 +359,7 @@ def checkCachingSuccess(source_dir):
                     "preprocessed_cache_hit",
                     "preprocessed_cache_miss",
                     "primary_storage_miss",
+                    "called_for_link",
                 ):
                     continue
                 if result == "primary_storage_hit":
