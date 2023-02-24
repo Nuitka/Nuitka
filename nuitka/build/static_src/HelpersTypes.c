@@ -139,22 +139,30 @@ int Nuitka_Object_IsSubclass(PyThreadState *tstate, PyObject *derived, PyObject 
 }
 #endif
 
+getattrofunc PyObject_GenericGetAttr_resolved;
+setattrofunc PyObject_GenericSetAttr_resolved;
+
 // Our wrapper for "PyType_Ready" that takes care of trying to avoid DLL entry
 // points for generic attributes.
 void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
                          bool self_iter, bool await_self_iter, bool self_aiter) {
     assert(type->tp_base == NULL);
 
+    PyObject_GenericGetAttr_resolved = PyBaseObject_Type.tp_getattro;
+    PyObject_GenericSetAttr_resolved = PyBaseObject_Type.tp_setattro;
+    assert(PyObject_GenericGetAttr_resolved == PyObject_GenericGetAttr);
+    assert(PyObject_GenericSetAttr_resolved == PyObject_GenericSetAttr);
+
     type->tp_base = base;
 
     if (generic_get_attr) {
         assert(type->tp_getattro == NULL);
-        type->tp_getattro = PyObject_GenericGetAttr;
+        type->tp_getattro = PyObject_GenericGetAttr_resolved;
     }
 
     if (generic_set_attr) {
         assert(type->tp_setattro == NULL);
-        type->tp_setattro = PyObject_GenericSetAttr;
+        type->tp_setattro = PyObject_GenericSetAttr_resolved;
     }
 
     if (self_iter) {
