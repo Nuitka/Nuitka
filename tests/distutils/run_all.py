@@ -22,7 +22,7 @@
 """ Runner for distutils integration
 
 Tests for example packages demonstrating that wheel creation with Nuitka
-is compatible to normal packaging.
+is compatible to standard packaging tools.
 
 """
 
@@ -81,7 +81,7 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            my_print("Consider distutils example:", filename)
+            my_print("Consider distutils example: '%s'" % filename, style="blue")
 
             py3_only_examples = ("example_3", "nested_namespaces")
             if python_version < (3,) and (
@@ -92,7 +92,7 @@ def main():
 
             if filename == "example_pyproject_2":
                 reportSkip(
-                    "Skipped, 'poetry' based pyproject is now working for now",
+                    "Skipped, 'poetry' based pyproject is not working for now",
                     ".",
                     filename,
                 )
