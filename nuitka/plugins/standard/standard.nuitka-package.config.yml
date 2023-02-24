@@ -3176,10 +3176,16 @@
         sys.modules["tensorflow.compat.v2"] = compat.v2
         sys.modules["tensorflow.compat.v1.logging"] = compat.v1.logging
         sys.modules["tensorflow.compat.v2.experimental"] = compat.v2.experimental
+        sys.modules["tensorflow.keras"] = keras
+        sys.modules["tensorflow.keras.layers"] = keras.layers
+        sys.modules["tensorflow.keras.activations"] = keras.activations
+        sys.modules["tensorflow.keras.models"] = keras.models
+
   implicit-imports:
     - depends:
         - 'tensorboard'
         - 'tensorflow_estimator'
+        - 'keras.api._v2.keras'
 
 - module-name: 'tensorflow._api.v1.compat.v2'
   anti-bloat:
