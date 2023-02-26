@@ -289,7 +289,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
 
     result.file_handle = CreateFileW(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-    if (result.file_handle == NULL) {
+    if (result.file_handle == INVALID_HANDLE_VALUE) {
         result.error = true;
         result.error_code = GetLastError();
         return result;
