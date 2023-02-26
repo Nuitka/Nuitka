@@ -120,34 +120,48 @@
 // For tracing outputs if enabled at compile time.
 #include "nuitka/tracing.h"
 
-static void printError(char const *message) {
+#ifdef _WIN32
+typedef DWORD error_code_t;
+static inline error_code_t getCurrentErrorCode(void) { return GetLastError(); }
+#else
+typedef int error_code_t;
+static inline error_code_t getCurrentErrorCode(void) { return errno; }
+#endif
+
+static void printError(char const *message, error_code_t error_code) {
 #if defined(_WIN32)
     LPCTSTR err_buffer;
 
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-                  GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
+                  error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
 
     puts(message);
     puts(err_buffer);
 #else
+    printf("%s: %s\n", message, strerror(error_code));
     perror(message);
 #endif
 }
 
 static void fatalError(char const *message) {
-    printError(message);
-    abort();
+    puts(message);
+    exit(2);
 }
 
-static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand temporary files."); }
+static void fatalIOError(char const *message, error_code_t error_code) {
+    printError(message, error_code);
+    exit(2);
+}
+
+// Failure to expand the template for where to extract to.
+static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand target path."); }
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
 
-static void fatalErrorFindAttachedData(void) { fatalError("Error, couldn't find attached data."); }
-
-    fatalIOError(buffer, error_code);
+static void fatalErrorFindAttachedData(error_code_t error_code) {
+    fatalIOError("Error, couldn't find attached data.", error_code);
 }
 
 static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find attached data header."); }
@@ -155,12 +169,11 @@ static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find a
 // Left over data in attached payload should not happen.
 static void fatalErrorReadAttachedData(void) { fatalError("Error, couldn't read attached data."); }
 
+// Out of memory error.
 static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
 
-// TODO: Make use of this on other platforms as well.
-#if defined(_WIN32)
-static void fatalErrorChild(void) { fatalError("Error, couldn't launch child."); }
-#endif
+// Could not launch child process.
+static void fatalErrorChild(char const *message, error_code_t error_code) { fatalIOError(message, error_code); }
 
 #if defined(_WIN32)
 static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
@@ -248,7 +261,7 @@ static void initPayloadData(void) {
     exe_file_mapped = mapFileToMemory(getBinaryPath());
 
     if (exe_file_mapped.error) {
-        fatalErrorFindAttachedData();
+        fatalErrorFindAttachedData(exe_file_mapped.error_code);
     }
 
     payload_data = exe_file_mapped.data;
@@ -638,7 +651,7 @@ static void cleanupChildProcess(bool send_sigint) {
             BOOL res = GenerateConsoleCtrlEvent(CTRL_C_EVENT, GetProcessId(handle_process));
 
             if (res == false) {
-                printError("Failed to send CTRL-C to child process.");
+                printError("Failed to send CTRL-C to child process.", GetLastError());
                 // No error exit is done, we still want to cleanup when it does exit
             }
 #else
@@ -802,8 +815,7 @@ int main(int argc, char **argv) {
 #if defined(_WIN32)
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
     if (bool_res == false) {
-        printError("Error, failed to register signal handler.");
-        return 1;
+        fatalError("Error, failed to register signal handler.");
     }
 #else
     signal(SIGINT, ourConsoleCtrlHandler);
@@ -875,18 +887,18 @@ int main(int argc, char **argv) {
     readChunk(&header, sizeof(header));
 
     if (header[0] != 'K' || header[1] != 'A') {
-        fatalErrorFindAttachedData();
+        fatalErrorHeaderAttachedData();
     }
 
 // The 'X' stands for no compression, 'Y' is compressed, handle that.
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     if (header[2] != 'Y') {
-        fatalErrorFindAttachedData();
+        fatalErrorHeaderAttachedData();
     }
     initZSTD();
 #else
     if (header[2] != 'X') {
-        fatalErrorFindAttachedData();
+        fatalErrorHeaderAttachedData();
     }
 #endif
 
@@ -995,7 +1007,7 @@ int main(int argc, char **argv) {
             int res = fstat(fd, &stat_buffer);
 
             if (res == -1) {
-                printError("fstat");
+                printError("fstat", errno);
             }
 
             // User shall be able to execute if at least.
@@ -1013,7 +1025,7 @@ int main(int argc, char **argv) {
             res = fchmod(fd, stat_buffer.st_mode);
 
             if (res == -1) {
-                printError("fchmod");
+                printError("fchmod", errno);
             }
         }
 #endif
@@ -1066,7 +1078,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");
 
     if (bool_res == false) {
-        fatalErrorChild();
+        fatalErrorChild("Error, couldn't launch child.", GetLastError());
     }
 
     CloseHandle(pi.hThread);
@@ -1107,30 +1119,34 @@ int main(int argc, char **argv) {
 
     cleanupChildProcess(false);
 #else
+    pid_t pid = fork();
     int exit_code;
 
-    pid_t pid = fork();
-
     if (pid < 0) {
-        printError("fork");
-        exit_code = 2;
+        int error_code = errno;
+
+        cleanupChildProcess(false);
+
+        fatalErrorChild("Error, couldn't launch child (fork).", error_code);
     } else if (pid == 0) {
+        // Child process
         execv(first_filename, argv);
 
-        printError("exec failed");
-        exit_code = 2;
+        fatalErrorChild("Error, couldn't launch child (exec).", errno);
     } else {
+        // Onefile bootstrap process
         handle_process = pid;
+
         int status;
         int res = waitpid_retried(handle_process, &status, false);
 
         if (res == -1 && errno != ECHILD) {
             exit_code = 2;
-            cleanupChildProcess(false);
         } else {
             exit_code = WEXITSTATUS(status);
-            cleanupChildProcess(false);
         }
+
+        cleanupChildProcess(false);
     }
 
 #endif

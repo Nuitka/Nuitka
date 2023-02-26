@@ -277,6 +277,7 @@ bool renameFile(filename_char_t const *source, filename_char_t const *dest) {
 #if defined(_WIN32)
 struct MapFileToMemoryInfo {
     bool error;
+    DWORD error_code;
     unsigned char const *data;
     HANDLE file_handle;
     int64_t file_size;
@@ -290,6 +291,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
 
     if (result.file_handle == NULL) {
         result.error = true;
+        result.error_code = GetLastError();
         return result;
     }
 
@@ -298,23 +300,29 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     result.handle_mapping = CreateFileMappingW(result.file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
 
     if (result.handle_mapping == NULL) {
+        result.error = true;
+        result.error_code = GetLastError();
+
         CloseHandle(result.file_handle);
 
-        result.error = true;
         return result;
     }
 
     result.data = (unsigned char const *)MapViewOfFile(result.handle_mapping, FILE_MAP_READ, 0, 0, 0);
 
     if (unlikely(result.data == NULL)) {
+        result.error = true;
+        result.error_code = GetLastError();
+
         CloseHandle(result.handle_mapping);
         CloseHandle(result.file_handle);
 
-        result.error = true;
         return result;
     }
 
     result.error = false;
+    result.error_code = 0;
+
     return result;
 }
 
@@ -329,6 +337,7 @@ static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
 
 struct MapFileToMemoryInfo {
     bool error;
+    int error_code;
     unsigned char const *data;
     int file_handle;
     int64_t file_size;
@@ -341,31 +350,38 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
 
     if (unlikely(result.file_handle == -1)) {
         result.error = true;
+        result.error_code = errno;
         return result;
     }
 
     result.file_size = lseek(result.file_handle, 0, SEEK_END);
     if (unlikely(result.file_size == -1)) {
+        result.error = true;
+        result.error_code = errno;
+
         close(result.file_handle);
 
-        result.error = true;
         return result;
     }
     off_t res = lseek(result.file_handle, 0, SEEK_SET);
 
     if (unlikely(res == -1)) {
+        result.error = true;
+        result.error_code = errno;
+
         close(result.file_handle);
 
-        result.error = true;
         return result;
     }
 
     result.data = (unsigned char const *)mmap(NULL, result.file_size, PROT_READ, MAP_PRIVATE, result.file_handle, 0);
 
     if (unlikely(result.data == MAP_FAILED)) {
+        result.error = true;
+        result.error_code = errno;
+
         close(result.file_handle);
 
-        result.error = true;
         return result;
     }
 
