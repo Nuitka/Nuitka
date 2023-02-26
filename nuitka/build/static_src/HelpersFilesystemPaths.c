@@ -288,7 +288,8 @@ struct MapFileToMemoryInfo {
 static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filename) {
     struct MapFileToMemoryInfo result;
 
-    result.file_handle = CreateFileW(filename, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    result.file_handle = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                     NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (result.file_handle == INVALID_HANDLE_VALUE) {
         result.error = true;
