@@ -160,8 +160,11 @@ static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expa
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
 
-static void fatalErrorFindAttachedData(error_code_t error_code) {
-    fatalIOError("Error, couldn't find attached data.", error_code);
+static void fatalErrorFindAttachedData(char const *erroring_function, error_code_t error_code) {
+    char buffer[1024] = "Error, couldn't find attached data:";
+    appendStringSafe(buffer, erroring_function, sizeof(buffer));
+
+    fatalIOError(buffer, error_code);
 }
 
 static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find attached data header."); }
@@ -261,7 +264,7 @@ static void initPayloadData(void) {
     exe_file_mapped = mapFileToMemory(getBinaryPath());
 
     if (exe_file_mapped.error) {
-        fatalErrorFindAttachedData(exe_file_mapped.error_code);
+        fatalErrorFindAttachedData(exe_file_mapped.erroring_function, exe_file_mapped.error_code);
     }
 
     payload_data = exe_file_mapped.data;

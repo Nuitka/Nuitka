@@ -278,6 +278,7 @@ bool renameFile(filename_char_t const *source, filename_char_t const *dest) {
 struct MapFileToMemoryInfo {
     bool error;
     DWORD error_code;
+    char const *erroring_function;
     unsigned char const *data;
     HANDLE file_handle;
     int64_t file_size;
@@ -292,16 +293,29 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (result.file_handle == INVALID_HANDLE_VALUE) {
         result.error = true;
         result.error_code = GetLastError();
+        result.erroring_function = "CreateFileW";
+
         return result;
     }
 
     result.file_size = getFileSize(result.file_handle);
+
+    if (result.file_size == -1) {
+        result.error = true;
+        result.error_code = GetLastError();
+        result.erroring_function = "GetFileSize";
+
+        CloseHandle(result.file_handle);
+
+        return result;
+    }
 
     result.handle_mapping = CreateFileMappingW(result.file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
 
     if (result.handle_mapping == NULL) {
         result.error = true;
         result.error_code = GetLastError();
+        result.erroring_function = "CreateFileMappingW";
 
         CloseHandle(result.file_handle);
 
@@ -313,6 +327,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (unlikely(result.data == NULL)) {
         result.error = true;
         result.error_code = GetLastError();
+        result.erroring_function = "MapViewOfFile";
 
         CloseHandle(result.handle_mapping);
         CloseHandle(result.file_handle);
@@ -338,6 +353,7 @@ static void unmapFileFromMemory(struct MapFileToMemoryInfo *mapped_file) {
 struct MapFileToMemoryInfo {
     bool error;
     int error_code;
+    char const *erroring_function;
     unsigned char const *data;
     int file_handle;
     int64_t file_size;
@@ -351,6 +367,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (unlikely(result.file_handle == -1)) {
         result.error = true;
         result.error_code = errno;
+        result.erroring_function = "open";
         return result;
     }
 
@@ -358,6 +375,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (unlikely(result.file_size == -1)) {
         result.error = true;
         result.error_code = errno;
+        result.erroring_function = "lseek";
 
         close(result.file_handle);
 
@@ -368,6 +386,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (unlikely(res == -1)) {
         result.error = true;
         result.error_code = errno;
+        result.erroring_function = "lseek";
 
         close(result.file_handle);
 
@@ -379,6 +398,7 @@ static struct MapFileToMemoryInfo mapFileToMemory(filename_char_t const *filenam
     if (unlikely(result.data == MAP_FAILED)) {
         result.error = true;
         result.error_code = errno;
+        result.erroring_function = "mmap";
 
         close(result.file_handle);
 
