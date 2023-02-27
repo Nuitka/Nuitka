@@ -806,14 +806,14 @@ For bug reporting, it is very much recommended to provide the report.
  Typical Problems
 ******************
 
-Virus scanners
-==============
+Windows Virus scanners
+======================
 
-Binaries compiled with default settings of Nuitka and no further actions
-taken might be recognized by some AV vendors as malware. This is
-avoidable, but only in Nuitka commercial there is actual support and
-instructions for how to do it, seeing this as a typical commercial only
-need. https://nuitka.net/doc/commercial.html
+Binaries compiled on Windows with default settings of Nuitka and no
+further actions taken might be recognized by some AV vendors as malware.
+This is avoidable, but only in Nuitka commercial there is actual support
+and instructions for how to do it, seeing this as a typical commercial
+only need. https://nuitka.net/doc/commercial.html
 
 Memory issues and compiler bugs
 ===============================
