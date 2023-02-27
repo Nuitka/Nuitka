@@ -257,6 +257,16 @@ covered. With Python 2.x these are not run. Default is %default.""",
     )
 
     parser.add_option(
+        "--skip-cpython311-tests",
+        action="store_false",
+        dest="cpython311",
+        default=True,
+        help="""\
+The standard CPython3.11 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default.""",
+    )
+
+    parser.add_option(
         "--skip-other-cpython-tests",
         action="store_true",
         dest="cpython_no_other",
@@ -377,6 +387,15 @@ Do not use Python3.10 even if available on the system. Default is %default.""",
     )
 
     parser.add_option(
+        "--no-python3.11",
+        action="store_true",
+        dest="no311",
+        default=False,
+        help="""\
+Do not use Python3.11 even if available on the system. Default is %default.""",
+    )
+
+    parser.add_option(
         "--coverage",
         action="store_true",
         dest="coverage",
@@ -440,6 +459,8 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.no39 = True
         if sys.version_info[0:2] != (3, 10):
             options.no310 = True
+        if sys.version_info[0:2] != (3, 11):
+            options.no311 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2, 6):
@@ -464,6 +485,8 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
             options.cpython39 = False
         if sys.version_info[0:2] != (3, 10):
             options.cpython310 = False
+        if sys.version_info[0:2] != (3, 11):
+            options.cpython311 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -477,6 +500,7 @@ Enforce the use of MinGW64 on Windows. Defaults to off.""",
         options.cpython38 = False
         options.cpython39 = False
         options.cpython310 = False
+        options.cpython311 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -910,6 +934,17 @@ def main():
                             executeSubTest("./tests/CPython310/run_all.py search")
                     else:
                         my_print("The CPython3.10 tests are not present, not run.")
+
+            # Running the Python 3.11 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if options.cpython311:
+                    if os.path.exists("./tests/CPython311/run_all.py"):
+                        with withExtendedExtraOptions(
+                            *getExtraFlags(where, "311tests", flags)
+                        ):
+                            executeSubTest("./tests/CPython311/run_all.py search")
+                    else:
+                        my_print("The CPython3.11 tests are not present, not run.")
 
     if not any(
         checkExecutableCommand("python%s" % python_version)

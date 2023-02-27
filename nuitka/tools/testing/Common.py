@@ -22,6 +22,7 @@ import atexit
 import gc
 import hashlib
 import os
+import re
 import shutil
 import signal
 import sys
@@ -360,7 +361,7 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("310.py") and _python_version < (3, 10):
         return False
 
-    # Skip tests that require Python 3.10 at least.
+    # Skip tests that require Python 3.11 at least.
     if filename.endswith("311.py") and _python_version < (3, 11):
         return False
 
@@ -368,20 +369,7 @@ def decideFilenameVersionSkip(filename):
 
 
 def decideNeeds2to3(filename):
-    return _python_version >= (3,) and not filename.endswith(
-        (
-            "32.py",
-            "33.py",
-            "34.py",
-            "35.py",
-            "36.py",
-            "37.py",
-            "38.py",
-            "39.py",
-            "310.py",
-            "311.py",
-        )
-    )
+    return _python_version >= (3,) and not re.match(r".*3\d+\.py", filename)
 
 
 def _removeCPythonTestSuiteDir():
