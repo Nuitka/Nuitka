@@ -860,6 +860,7 @@ def getSpecVersions(spec_module):
             (0x380, "38"),
             (0x390, "39"),
             (0x3A0, "310"),
+            (0x3B0, "311"),
         ):
             if "since_%s" % str_version in spec_name:
                 python_criterion = ">= 0x%x" % version

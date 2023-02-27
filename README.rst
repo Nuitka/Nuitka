@@ -13,7 +13,7 @@ license, requirements, credits, etc.
 Nuitka is **the** Python compiler. It is written in Python. It is a
 seamless replacement or extension to the Python interpreter and compiles
 **every** construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8,
-3.9, 3.10 have, when itself run with that Python version.
+3.9, 3.10, 3.11 have, when itself run with that Python version.
 
 It then executes uncompiled code and compiled code together in an
 extremely compatible manner.
@@ -62,7 +62,8 @@ Requirements
    -  On Windows the ``clang-cl`` compiler on Windows can be used if
       provided by the Visual Studio installer.
 
--  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10
+-  Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10,
+   3.11
 
    .. important::
 
@@ -120,8 +121,8 @@ Requirements
       work, it's checked against. And on macOS "pyenv" likely does
       **not** work.
 
--  Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows (32/64
-   bits).
+-  Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows
+   (32bits/64 bits/ARM).
 
    Others may work as well. The portability is expected to be generally
    good, but the e.g. Scons usage may have to be adapted. Make sure to
@@ -153,9 +154,9 @@ Requirements
    (the community editions work just fine).
 
    The latest version is recommended but not required. On the other hand,
-   there is no need to except pre-Windows 10 support, and they might work
-   for you, but support of these configurations is only available to
-   commercial users.
+   there is no need to except to support pre-Windows 10 versions, and they
+   might work for you, but support of these configurations is only
+   available to commercial users.
 
 Command Line
 ============
@@ -1257,11 +1258,14 @@ installing Visual C runtime libraries before executing a Nuitka
 standalone compiled program.
 
 Depending on the used C compiler, you'll need the following redist
-versions:
+versions on the target machines. However notice that compilation using
+the 14.3 based version is recommended.
 
 +------------------+-------------+-------------------------------+
 | Visual C version | Redist Year | CPython                       |
 +==================+=============+===============================+
+| 14.3             | 2022        | 3.11                          |
++------------------+-------------+-------------------------------+
 | 14.2             | 2019        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10 |
 +------------------+-------------+-------------------------------+
 | 14.1             | 2017        | 3.5, 3.6, 3.7, 3.8            |
@@ -1275,11 +1279,11 @@ versions:
 
 When using MingGW64, you'll need the following redist versions:
 
-+------------------+-------------+-------------------------------+
-| MingGW64 version | Redist Year | CPython                       |
-+==================+=============+===============================+
-| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10 |
-+------------------+-------------+-------------------------------+
++------------------+-------------+-------------------------------------+
+| MingGW64 version | Redist Year | CPython                             |
++==================+=============+=====================================+
+| 8.1.0            | 2015        | 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11 |
++------------------+-------------+-------------------------------------+
 
 Once the corresponding runtime libraries are installed on the target
 system, you may remove all ``api-ms-crt-*.dll`` files from your Nuitka
