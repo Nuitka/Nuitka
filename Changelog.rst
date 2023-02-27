@@ -79,6 +79,57 @@ Bug Fixes
 -  Scons: Accept an installed Python 3.11 for Scons execution as well.
    Fixed in 1.4.4 already.
 
+-  Python3.7: Some ``importlib.resource`` nodes asserted against use in
+   3.7, expecting it to be 3.8 or higher, but this interface is present
+   in 3.7 already. Fixed in 1.4.5 already.
+
+-  Standalone: Fix, Python DLLs installed to the Windows system folder
+   were not included, causing the result to be not portable. Fixed in
+   1.4.5 already.
+
+-  Python3.9+: Fix, ``metadata.resources`` files method ``joinpath`` is
+   some contexts is expected to accept variable number of arguments.
+   Fixed in 1.4.5 already.
+
+-  Standalone: Workaround for ``customtkinter`` data files on
+   non-Windows. Fixed in 1.4.5 already.
+
+-  Standalone: Added support for ``overrides`` package. Fixed in 1.4.6
+   already.
+
+-  Standalone: Added data files for ``strawberry`` package. Fixed in
+   1.4.7 already.
+
+-  Fix, anti-bloat plugin caused crashes when attempting to warn about
+   packages coming from ``--include-package`` by the user. Fixed in
+   1.4.7 already.
+
+-  Windows: Fix, main program filenames with an extra dot apart from the
+   ``.py`` suffix, had the part beyond that wrongly trimmed. Fixed in
+   1.4.7 already.
+
+-  Fix, list methods didn't properly annotated value escape during their
+   optimization, which could lead to wrong optimization for boolean
+   tests. Fixed in 1.4.7 already.
+
+-  Standalone: Added support for ``imagej``, ``scyjava``, ``jpype``
+   packages. Fixed in 1.4.8 already.
+
+-  Fix, using ``--include-package`` on extension module names was not
+   working. Fixed in 1.4.8 already.
+
+-  Standalone: Added support for ``tensorflow.keras`` namespace as well.
+
+-  Distutils: Fix namespace packages were not including their contained
+   modules properly with regards to ``__file__`` properties, making
+   relative file access impossible.
+
+-  Onefile: On Windows the onefile binary did lock itself, which could
+   fail with certain types of AV software. This is now avoided.
+
+-  Accessing files using the top level ``metadata.resources`` files
+   object was not working properly, this is now supported too.
+
 New Features
 ============
 
@@ -95,11 +146,39 @@ New Features
    names differ, output the list of packages included from a
    distribution. Added in 1.4.4 already.
 
+-  Reports: Include data file sizes in report. Added in 1.4.7 already.
+
 -  macOS: Add support for downloading ``ccache`` on arm64 (M1/M2) too.
    Added in 1.4.4 already.
 
+-  UI: Allow ``--output-filename`` for standalone mode again. Added in
+   1.4.3 already.
+
+-  Standalone: Improved isolation with Python 3.8 or higher. Using new
+   init mechanisms of Python, we now achieve that the scan for
+   ``pyvenv.cfg`` on the computer is not done.
+
+-  Python2: Expose ``__loader__`` for modules and register with
+   ``pkg_resources`` too which expects these to be present for custom
+   resource handling.
+
+-  Python3.9+: The ``metadata.resources`` files objects method
+   ``iterdir`` was not implemented yet. Fixed in 1.4.5 already.
+
+-  Python3.9+: The ``metadata.resources`` files objects method
+   ``absolute`` was not implemented yet.
+
 Optimization
 ============
+
+-  Onefile: Use memory mapping for calculating the checksum of files on
+   all platforms. This is faster and simpler code. So far it had only be
+   done this way on Windows, but other platforms also benefit a lot from
+   it.
+
+-  Onefile: Use memory mapping for accessing the payload rather than
+   file operations. This avoids differences to macOS payload handling
+   and is much faster too.
 
 -  Anti-Bloat: Avoid using ``dask`` in ``joblib``.
 
@@ -108,8 +187,67 @@ Optimization
       Newer versions of ``joblib`` do not currently work yet due to
       their own form of multiprocessing spawn not being supported yet.
 
+-  Added support for ``os.listdir`` and ``os.path.basename``. Added in
+   1.4.5 already for use in implementing the ``iterdir`` method, but
+   they are also now optimized by themselves.
+
+-  Added support for trusted constant values of the ``os`` module. These
+   are ``curdir``, ``pardir``, ``sep``, ``extsep``, ``altsep``,
+   ``pathsep``, ``linesep`` which may enable some minor compile time
+   optimization to happen and completes this aspect of the ``os``
+   module.
+
+-  Faster ``digit`` size checks for ``float`` code generation.
+
+-  Faster ``list`` operations due to using ``PyList_CheckExact``
+   everywhere this is applicable, this mostly makes debug operations
+   faster, but also deep copying list values, or extending lists with
+   iterables, etc.
+
+-  Optimization: Collect module usages of the given module during its
+   abstract execution. This avoids a full tree visit afterwards only to
+   find them. It is much cheaper to collect them while we go over the
+   tree. This enhances the scalability of large compilations by ca. 5%.
+
+-  Optimization: Faster determination of loop variables. Rather than
+   using a generic visitor, we use the children having generator codes
+   to add traversal code that emits relevant variables to the user
+   directly.
+
+-  Cache extra search paths in order to avoid repeated directory
+   operations as these are known to be slow at times.
+
+-  Standalone: Do not include ``py.typed`` data files, these indicator
+   files are for IDEs, but not needed at run time ever.
+
+-  Make sure that the generic attribute code optimization is also
+   effective in cases where a Python DLL is used. Previously this was
+   only guaranteed to be used with static libpython.
+
+-  Faster list constant usage
+
+   Small immutable constants get their own code that is much faster for
+   small sizes.
+
+   Medium sized lists get code that just is hinted the size, but takes
+   items from a source list, still a lot faster.
+
+   For repeated lists where all elements are the same, we use a
+   dedicated helper for all sizes, that is even faster except for small
+   ones with LTO enabled, where the C compiler may already do that
+   effectively.
+
 Organisational
 ==============
+
+-  Project: Require the useful stuff for installation of Nuitka already.
+   These are things we cannot inline really, but otherwise will
+   frequently be warned about, e.g. ``zstandard`` for onefile and
+   ``ordered-set`` for fast operation, but we do not require packages
+   that might fail to install.
+
+-  User Manual: Added section about virus scanners and how to avoid
+   false reports.
 
 -  Windows: Using the console on Python 3.4 to 3.7 is not working very
    well with e.g. many Asian systems. Nuitka fails to setup the encoding
@@ -135,8 +273,98 @@ Organisational
    for 3.10+ because on Windows, to install ``orderset`` MSVC needs to
    be installed, whereas ``ordered-set`` has a wheel for ready use.
 
--  UI: Allow ``--output-filename`` for standalone mode again. Added in
-   1.4.3 already.
+-  Actually zstandard requirement is for a minimal version, added that
+   to the requirement files.
+
+-  Debugging: Lets not reexecute Nuitka in case if we are debugging it
+   from Visual Code.
+
+-  Debugging: Include the ``.pdb`` files in Windows standalone mode for
+   proper C tracebacks should that be necessary.
+
+-  UI: Detect the GitHub flavor of Python as well.
+
+-  Quality: Check the ``clang-format`` version to avoid older ones with
+   bugs that made it switch whitespace for one file. Using the one from
+   Visual Code C extension is a good idea, since it will often be
+   available. Running the checks on newer Ubuntu GitHub Actions runner
+   to have the correct version available.
+
+-  Quality: Updated the version of ``rstfmt`` and ``isort`` to the
+   latest versions.
+
+-  GitHub: Added commented out section for enabling ``ssh`` login, which
+   we occasionally need to git bisect problems specific to GitHub Python
+   flavor.
+
+-  Plugins: Report problematic plugin name with module name or DLL name
+   when these raise exceptions.
+
+-  Use ``ordered-set`` package for Python3.7+ rather than only
+   Python3.10+ because it doesn't need any build dependency on Windows.
+
+-  UI: When showing source changes, also display the module name with
+   the changed code.
+
+-  UI: Use function intended for user query when asking about downloads
+   too.
+
+-  UI: Do not report usage of ``ccache`` for linking from newer version,
+   that is not relevant.
+
+-  Onefile: Make sure we have proper error codes when reporting IO
+   errors.
+
+Cleanups
+========
+
+-  The ``delvewheel`` plugin was still using a ``zmq`` class name from
+   its original implementation, adapted that.
+
+-  Use common template for generator frames as well. This made them also
+   work with 3.11, by avoiding duplication.
+
+-  Applied code formatting to many more files in ``tests``, etc.
+
+-  Removed a few micro benchmarks that are instead to be covered by
+   construct based tests now.
+
+-  Enhanced code generation for specialized in-place operations to avoid
+   unused code for operations that do not have any shortcuts where the
+   operation would be actual in-place of a reference count 1 object.
+
+-  Better code generation for module variable in-place operations with
+   proper indentation and no repeated calls.
+
+-  Plugins: Use the ``namedtuple`` factory that we created for
+   informational tuples from plugins as well.
+
+-  Make details of download utils module more accessible for better
+   reuse.
+
+-  Remove last remaining Python 3.2 version check in C code, for us this
+   is just Python3 with 3.2 being unsupported.
+
+-  Cleanup, name generated call helper file properly, indicating that it
+   is a generated file.
+
+Tests
+=====
+
+-  Made the CPython3.10 test suite largely executable with Python 3.11
+   and running that with CI now.
+
+-  Allow measuring constructs without writing the code diff again. Was
+   crashing when no filename was given.
+
+-  Make Python3.11 test execution recognized by generally accepting
+   partially supported versions to execute the tests with.
+
+-  Tests: Handle also ``newfstat`` directory checks in file usage scan.
+   This are used on newer Linux systems.
+
+-  GitHub: In actions use ``--report`` for coverage and upload the
+   reports as artifacts.
 
 Summary
 =======
