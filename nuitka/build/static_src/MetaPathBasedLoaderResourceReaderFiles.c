@@ -267,17 +267,30 @@ static PyObject *Nuitka_ResourceReaderFiles_joinpath(struct Nuitka_ResourceReade
         }
     }
 
-    return Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+    PyObject *result = Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+
+    Py_DECREF(joined);
+
+    return result;
 }
 
 PyObject *Nuitka_ResourceReaderFiles_nb_truediv(struct Nuitka_ResourceReaderFilesObject *files, PyObject *arg) {
-    PyObject *joined = JOIN_PATH2(files->m_path, arg);
+    PyObject *joined;
+
+    if (files->m_path == const_str_empty) {
+        joined = arg;
+        Py_INCREF(arg);
+    } else {
+        joined = JOIN_PATH2(files->m_path, arg);
+    }
 
     if (unlikely(joined == NULL)) {
         return NULL;
     }
 
-    return Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+    PyObject *result = Nuitka_ResourceReaderFiles_New(files->m_loader_entry, joined);
+
+    return result;
 }
 
 //    @abc.abstractmethod
