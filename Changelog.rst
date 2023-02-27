@@ -133,6 +133,10 @@ Bug Fixes
 New Features
 ============
 
+-  Added experimental support for Python 3.11, for 3.10 language level
+   code it should be fully usable, but the ``CPython311`` test suite has
+   not even been started to check newly added or changed features.
+
 -  Reports: Now the details of the used Python version, its flavor, the
    OS and the architecture are included. This is crucial information for
    analysis and can make ``--version`` output unnecessary.
