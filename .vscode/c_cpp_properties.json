@@ -91,7 +91,7 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x3A0"
+                "PYTHON_VERSION=0x3a0"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
