@@ -23,9 +23,9 @@ import os
 import shutil
 import sys
 
+from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
-from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.Tracing import my_print
 from nuitka.Version import getNuitkaVersion
 

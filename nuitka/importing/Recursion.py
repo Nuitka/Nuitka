@@ -282,7 +282,11 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
     if module_kind == "extension" and not Options.isStandaloneMode():
         recursion_logger.warning(
-            "Cannot include '%s' unless using at least standalone mode."
+            """\
+Cannot include extension module '%s' unless using at least standalone mode, \
+where they would be copied. In this mode, extension modules are not part of \
+the compiled result, and therefore asking to include them makes no sense.
+"""
             % module_name.asString()
         )
 

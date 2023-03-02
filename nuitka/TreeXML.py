@@ -86,12 +86,12 @@ except ImportError:
 
 # TODO: Use the writer to create the XML we output. That should be more
 # scalable and/or faster.
-try:
-    import lxml.xmlfile  # pylint: disable=I0021,import-error
-
-    xml_writer = lxml.xmlfile
-except ImportError:
-    xml_writer = None
+# try:
+#     from lxml import (
+#         xmlfile as xml_writer,  # pylint: disable=I0021,import-error,unused-import
+#     )
+# except ImportError:
+#     xml_writer = None
 
 
 def toBytes(tree, indent=True):
@@ -108,7 +108,16 @@ def toString(tree):
 
 
 def fromString(text):
-    return xml_module.parse(StringIO(text)).getroot()
+    return fromFile(StringIO(text))
+
+
+def fromFile(file_handle, use_lxml=False):
+    if use_lxml:
+        from lxml import etree  # pylint: disable=I0021,import-error
+
+        return etree.parse(file_handle).getroot()
+    else:
+        return xml_module.parse(file_handle).getroot()
 
 
 def appendTreeElement(parent, *args, **kwargs):
