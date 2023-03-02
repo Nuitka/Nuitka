@@ -48,7 +48,7 @@ from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import areSamePaths, removeDirectory
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Signing import addMacOSCodeSignature
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
 
 
 def packDistFolderToOnefile(dist_dir):
@@ -135,6 +135,7 @@ def runOnefileCompressor(
     compressor_python, dist_dir, onefile_output_filename, start_binary
 ):
     file_checksums = not isOnefileTempDirMode()
+    win_path_sep = isWin32OrPosixWindows()
 
     if compressor_python is None or areSamePaths(
         compressor_python.getPythonExe(), sys.executable
@@ -149,6 +150,7 @@ def runOnefileCompressor(
             start_binary=start_binary,
             expect_compression=compressor_python is not None,
             file_checksums=file_checksums,
+            win_path_sep=win_path_sep,
         )
     else:
         onefile_compressor_path = os.path.normpath(
@@ -177,6 +179,7 @@ def runOnefileCompressor(
                     onefile_output_filename,
                     start_binary,
                     str(file_checksums),
+                    str(win_path_sep),
                 ],
                 shell=False,
             )
