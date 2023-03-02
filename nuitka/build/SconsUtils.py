@@ -258,6 +258,9 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
     # Modules count, determines if this is a large compilation.
     env.module_count = getArgumentInt("module_count", 0)
 
+    # Target arch for some decisions
+    env.target_arch = target_arch
+
     _enableExperimentalSettings(env, experimental)
 
     return env
@@ -652,6 +655,8 @@ def getLinkerArch(target_arch, mingw_mode):
         if win_target:
             if target_arch == "x86_64":
                 _linker_arch = "pei-x86-64"
+            elif target_arch == "arm64":
+                _linker_arch = "pei-arm64"
             else:
                 _linker_arch = "pei-i386"
         else:
