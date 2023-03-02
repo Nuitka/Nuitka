@@ -25,14 +25,13 @@ import sys
 from contextlib import contextmanager
 
 from nuitka.__past__ import unicode
+from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_call, executeProcess
 from nuitka.utils.FileOperations import (
     getDirectoryRealPath,
     removeDirectory,
     withDirectoryChange,
 )
-
-from .Common import my_print
 
 
 class Virtualenv(object):
