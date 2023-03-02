@@ -1009,8 +1009,7 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
                 result,
                 "new_statements",  # TODO: More appropriate tag maybe.
                 """\
-Replaced call to created function body '%s' with direct \
-function call."""
+Replaced call to created function body '%s' with direct function call."""
                 % self.getName(),
             )
 
