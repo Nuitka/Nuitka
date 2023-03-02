@@ -92,8 +92,9 @@ def _enableC11Settings(env):
     if env.clangcl_mode:
         c11_mode = True
     elif env.msvc_mode:
-        # TODO: Make this experimental mode the default.
-        c11_mode = (
+        # TODO: Make this experimental mode the default, on ARM64 at least it
+        # seems even required.
+        c11_mode = env.target_arch == "arm64" or (
             env.windows_sdk_version >= (10, 0, 19041, 0)
             and "msvc_c11" in env.experimental_flags
         )
@@ -332,7 +333,9 @@ C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
                 )
 
                 if clang_mode:
-                    env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
+                    env["CC"] = os.path.join(
+                        os.path.dirname(compiler_path), "clang.exe"
+                    )
 
         if env["CC"] is None:
             raiseNoCompilerFoundErrorExit()
