@@ -124,7 +124,7 @@ def getInstalledPythonRegistryPaths(python_version):
 
     for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
         for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
-            for suffix in "", "-32":
+            for suffix in "", "-32", "-arm64":
                 try:
                     key = winreg.OpenKey(
                         hkey_branch,
