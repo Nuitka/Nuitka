@@ -44,6 +44,7 @@ sys.path.insert(
 
 import subprocess
 
+from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.testing.Common import (
     createSearchMode,
     decideFilenameVersionSkip,
@@ -52,7 +53,6 @@ from nuitka.tools.testing.Common import (
     setup,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
-from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import copyFile, deleteFile, removeDirectory
 
 
