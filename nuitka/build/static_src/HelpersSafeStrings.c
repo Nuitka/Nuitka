@@ -141,13 +141,24 @@ void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size) 
 
 static bool appendStringCSIDLPathW(wchar_t *target, int csidl_id, size_t buffer_size) {
     wchar_t path_buffer[MAX_PATH];
-
+#if !defined(_M_ARM64)
     int res = SHGetFolderPathW(NULL, csidl_id, NULL, 0, path_buffer);
 
     if (res != S_OK) {
         return false;
     }
+#else
+    DWORD res = 0;
+    if (csidl_id == CSIDL_PROFILE) {
+        res = GetEnvironmentVariableW(L"USERPROFILE", path_buffer, sizeof(path_buffer));
+    } else if (csidl_id == CSIDL_LOCAL_APPDATA) {
+        res = GetEnvironmentVariableW(L"LOCALAPPDATA", path_buffer, sizeof(path_buffer));
+    }
 
+    if (res == 0 || res > sizeof(path_buffer)) {
+        return false;
+    }
+#endif
     appendWStringSafeW(target, path_buffer, buffer_size);
 
     return true;
