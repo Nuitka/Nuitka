@@ -695,8 +695,10 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if env.disable_console:
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    # For shell API usage to lookup app folders we need this.
-    if env.msvc_mode:
+    # For shell API usage to lookup app folders we need this. Note that on Windows ARM
+    # we didn't manage to have a "shell32.lib" that is not considered corrupt, so we
+    # have to do this.
+    if env.msvc_mode and env.target_arch != "arm64":
         env.Append(LIBS=["Shell32"])
 
     # Since Fedora 36, the system Python will not link otherwise.
