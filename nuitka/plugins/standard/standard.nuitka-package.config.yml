@@ -2199,21 +2199,42 @@
 - module-name: 'rapidfuzz'
   implicit-imports:
     - depends:
+        - '.utils_py'
         - '.utils_cpp'
+        - '.fuzz_py'
         - '.fuzz_cpp'
+        - '.process_cdist_py'
         - '.process_cdist_cpp'
+        - '.process_py'
         - '.process_cpp'
+        - '.string_metric_py'
         - '.string_metric_cpp'
 
 - module-name: 'rapidfuzz.distance'
   implicit-imports:
     - depends:
+        - '._initialize_py'
         - '._initialize_cpp'
+        - '.Hamming_py'
         - '.Hamming_cpp'
+        - '.Indel_py'
         - '.Indel_cpp'
+        - '.LCSseq_py'
         - '.LCSseq_cpp'
+        - '.Levenshtein_py'
         - '.Levenshtein_cpp'
+        - '.DamerauLevenshtein_py'
         - '.DamerauLevenshtein_cpp'
+        - '.OSA_cpp'
+        - '.OSA_py'
+        - '.Jaro_py'
+        - '.Jaro_cpp'
+        - '.JaroWinkler_py'
+        - '.JaroWinkler_cpp'
+        - '.Postfix_py'
+        - '.Postfix_cpp'
+        - '.Prefix_py'
+        - '.Prefix_cpp'
 
 - module-name: 'rdkit'
   anti-bloat:
