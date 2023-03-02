@@ -98,6 +98,7 @@ _ARCH_TO_CANONICAL = {
 # Note 2017 Express uses Hostx86 even if it's on 64-bit Windows,
 # not reflected in this table.
 _HOST_TARGET_TO_CL_DIR_GREATER_THAN_14 = {
+    ("arm64","arm64")  : ("Hostarm64","arm64"),
     ("amd64","amd64")  : ("Hostx64","x64"),
     ("amd64","x86")    : ("Hostx64","x86"),
     ("amd64","arm")    : ("Hostx64","arm"),
@@ -130,6 +131,7 @@ _HOST_TARGET_TO_CL_DIR = {
 # Targets that already look like a pair are pseudo targets that
 # effectively mean to skip whatever the host was specified as.
 _HOST_TARGET_TO_BAT_ARCH_GT14 = {
+    ("arm64", "arm64"): "vcvarsarm64.bat",
     ("amd64", "amd64"): "vcvars64.bat",
     ("amd64", "x86"): "vcvarsamd64_x86.bat",
     ("amd64", "x86_amd64"): "vcvarsx86_amd64.bat",
@@ -169,6 +171,8 @@ _HOST_TARGET_ARCH_TO_BAT_ARCH = {
     ("x86", "x86_arm64"): "x86_arm64",  # since 14.1
     ("amd64", "x86_arm"): "x86_arm",      # since 14.0
     ("amd64", "x86_arm64"): "x86_arm64",  # since 14.1
+    ("arm64", "arm64"): "arm64_arm64",  # since 14.3
+
 }
 
 _CL_EXE_NAME = 'cl.exe'
@@ -537,6 +541,7 @@ def find_batch_file(env,msvc_version,host_arch,target_arch):
             if os.path.exists(sdk_bat_file_path):
                 debug('sdk_bat_file_path:%s' % sdk_bat_file_path)
                 return (batfilename, use_arg, sdk_bat_file_path)
+
     return (batfilename, use_arg, None)
 
 
@@ -690,6 +695,7 @@ def get_installed_vcs(env=None):
         debug('trying to find VC %s' % ver)
         try:
             VC_DIR = find_vc_pdir(env, ver)
+
             if VC_DIR:
                 debug('found VC %s' % ver)
                 if _check_cl_exists_in_vc_dir(env, VC_DIR, ver):
