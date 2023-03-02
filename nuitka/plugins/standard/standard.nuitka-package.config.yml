@@ -1397,6 +1397,7 @@
       replacements_plain:
         'from pandas.util._tester import test': ''
         'import pandas.testing': ''
+        'from pandas import testing': 'testing = None'
         'from pandas import api, arrays, errors, io, plotting, testing': 'from pandas import api, arrays, errors, io, plotting'
 
 - module-name: 'pandas._libs'
