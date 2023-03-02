@@ -320,17 +320,19 @@ C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
             )
-            addToPATH(env, os.path.dirname(compiler_path), prefix=True)
 
-            env = createEnvironment(
-                mingw_mode=True,
-                msvc_version=None,
-                target_arch=target_arch,
-                experimental=env.experimental_flags,
-            )
+            if compiler_path is not None:
+                addToPATH(env, os.path.dirname(compiler_path), prefix=True)
 
-            if clang_mode:
-                env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
+                env = createEnvironment(
+                    mingw_mode=True,
+                    msvc_version=None,
+                    target_arch=target_arch,
+                    experimental=env.experimental_flags,
+                )
+
+                if clang_mode:
+                    env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
 
         if env["CC"] is None:
             raiseNoCompilerFoundErrorExit()
