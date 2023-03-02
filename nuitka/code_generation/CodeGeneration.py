@@ -519,13 +519,14 @@ def _generateModuleCode(module, data_filename):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
-        # Constant function returners get no code.
-        (
-            is_constant_returning,
-            _constant_return_value,
-        ) = function_body.getConstantReturnValue()
-        if is_constant_returning:
-            continue
+        if function_body.needsCreation():
+            # Constant function returners get no code.
+            (
+                is_constant_returning,
+                _constant_return_value,
+            ) = function_body.getConstantReturnValue()
+            if is_constant_returning:
+                continue
 
         function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
