@@ -114,7 +114,12 @@ Disable Anti-Virus, e.g. Windows Defender for build folders. Retrying after a se
 
 
 def attachOnefilePayload(
-    dist_dir, onefile_output_filename, start_binary, expect_compression, file_checksums
+    dist_dir,
+    onefile_output_filename,
+    start_binary,
+    expect_compression,
+    file_checksums,
+    win_path_sep,
 ):
     # Somewhat detail rich, pylint: disable=too-many-locals,too-many-statements
     compression_indicator, compressor = getCompressorFunction(
@@ -154,6 +159,12 @@ def attachOnefilePayload(
                     item=filename_relative,
                     update=False,
                 )
+
+                # Might be changing from POSIX to Win32 Python on Windows.
+                if win_path_sep:
+                    filename_relative = filename_relative.replace("/", "\\")
+                else:
+                    filename_relative = filename_relative.replace("\\", "/")
 
                 filename_encoded = (filename_relative + "\0").encode(filename_encoding)
 
@@ -235,6 +246,7 @@ def main():
     onefile_output_filename = sys.argv[2]
     start_binary = os.path.normpath(sys.argv[3])  # Might switch from MSYS2 to CPython
     file_checksums = sys.argv[4] == "True"
+    win_path_sep = sys.argv[5] == "True"
 
     if os.environ.get("NUITKA_PROGRESS_BAR") == "1":
         enableProgressBar()
@@ -246,6 +258,7 @@ def main():
         # We wouldn't be here, if that was not the case.
         expect_compression=True,
         file_checksums=file_checksums,
+        win_path_sep=win_path_sep,
     )
 
     sys.exit(0)
