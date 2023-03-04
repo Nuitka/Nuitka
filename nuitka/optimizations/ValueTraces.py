@@ -241,6 +241,13 @@ class ValueTraceBase(object):
         """Node to use for iteration decisions."""
         return None
 
+    @staticmethod
+    def getDictInValue(key):
+        """Value to use for dict in decisions."""
+
+        # virtual method, pylint: disable=unused-argument
+        return None
+
 
 class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
@@ -566,6 +573,10 @@ class ValueTraceAssign(ValueTraceBase):
 
     def getIterationSourceNode(self):
         return self.assign_node.subnode_source
+
+    def getDictInValue(self, key):
+        """Value to use for dict in decisions."""
+        return self.assign_node.subnode_source.getExpressionDictInConstant(key)
 
 
 class ValueTraceAssignUnescapable(ValueTraceAssign):

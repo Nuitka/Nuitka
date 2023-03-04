@@ -1302,6 +1302,26 @@ class ExpressionDictOperationInNotInUncertainMixin(object):
         if self.known_hashable_key is None:
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        if self.subnode_key.isCompileTimeConstant():
+            truth_value = self.subnode_dict_arg.getExpressionDictInConstant(
+                self.subnode_key.getCompileTimeConstant()
+            )
+
+            if truth_value is not None:
+                # TODO: Ugly that this code is not drawing from derived class methods.
+                if "NOT" in self.kind:
+                    truth_value = not truth_value
+
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeConstantReplacementNode(
+                        constant=truth_value, node=self, user_provided=True
+                    ),
+                    old_node=self,
+                    side_effects=self.getVisitableNodes(),
+                )
+
+                return result, "new_constant", "Predicted dict 'in' truth value"
+
         return self, None, None
 
     def mayRaiseException(self, exception_type):
