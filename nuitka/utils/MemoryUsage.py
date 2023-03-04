@@ -102,14 +102,18 @@ class MemoryWatch(object):
         return self.stop - self.start
 
 
-memory_infos = OrderedDict()
+_memory_infos = OrderedDict()
+
+
+def getMemoryInfos():
+    return _memory_infos
 
 
 def collectMemoryUsageValue(memory_usage_name):
-    assert memory_usage_name not in memory_infos
-    memory_infos[memory_usage_name] = getOwnProcessMemoryUsage()
+    assert memory_usage_name not in _memory_infos
+    _memory_infos[memory_usage_name] = getOwnProcessMemoryUsage()
 
-    return memory_infos[memory_usage_name]
+    return _memory_infos[memory_usage_name]
 
 
 def formatMemoryUsageValue(value):
