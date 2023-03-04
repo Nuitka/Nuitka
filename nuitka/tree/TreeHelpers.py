@@ -503,7 +503,7 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
         result = StatementsFrameFunction(
             statements=statements, code_object=code_object, source_ref=source_ref
         )
-    elif provider.isExpressionClassBody():
+    elif provider.isExpressionClassBodyBase():
         result = StatementsFrameClass(
             statements=statements,
             code_object=code_object,

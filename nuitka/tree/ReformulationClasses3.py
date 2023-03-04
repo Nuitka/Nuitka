@@ -33,7 +33,7 @@ from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
-    ExpressionClassBody,
+    ExpressionClassBodyP3,
     ExpressionSelectMetaclass,
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
@@ -144,7 +144,7 @@ def buildClassNode3(provider, node, source_ref):
     )
     tmp_prepared = provider.allocateTempVariable(temp_scope=temp_scope, name="prepared")
 
-    class_creation_function = ExpressionClassBody(
+    class_creation_function = ExpressionClassBodyP3(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 

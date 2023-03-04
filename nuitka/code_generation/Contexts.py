@@ -880,7 +880,7 @@ class PythonFunctionContext(
     def __repr__(self):
         return "<%s for %s '%s'>" % (
             self.__class__.__name__,
-            "function" if not self.function.isExpressionClassBody() else "class",
+            "function" if not self.function.isExpressionClassBodyBase() else "class",
             self.function.getName(),
         )
 

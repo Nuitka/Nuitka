@@ -253,7 +253,7 @@ def buildFunctionNode(provider, node, source_ref):
     if (
         python_version < 0x300
         and node.name == "__new__"
-        and provider.isExpressionClassBody()
+        and provider.isExpressionClassBodyBase()
     ):
         _injectDecorator(
             decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref
@@ -263,14 +263,14 @@ def buildFunctionNode(provider, node, source_ref):
     if (
         python_version >= 0x360
         and node.name == "__init_subclass__"
-        and provider.isExpressionClassBody()
+        and provider.isExpressionClassBodyBase()
     ):
         _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
     if (
         python_version >= 0x370
         and node.name == "__class_getitem__"
-        and provider.isExpressionClassBody()
+        and provider.isExpressionClassBodyBase()
     ):
         _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
