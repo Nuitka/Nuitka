@@ -46,6 +46,7 @@ from nuitka.Tracing import reports_logger
 from nuitka.utils.Distributions import getDistributionsFromModuleName
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
+from nuitka.utils.MemoryUsage import getMemoryInfos
 from nuitka.utils.Utils import getArchitecture, getOS
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
@@ -99,6 +100,8 @@ def _getReportInputData():
             key=lambda dist: dist.metadata["Name"],
         )
     )
+
+    memory_infos = getMemoryInfos()
 
     python_exe = sys.executable
 
@@ -190,6 +193,17 @@ def _addModulesToReport(root, report_input_data):
             )
 
 
+def _addMemoryInfosToReport(performance_xml_node, memory_infos):
+    for key, value in memory_infos.items():
+        # Only top level values for now.
+        if type(value) is not int:
+            continue
+
+        TreeXML.appendTreeElement(
+            performance_xml_node, "memory_usage", name=key, value=str(value)
+        )
+
+
 def writeCompilationReport(report_filename, report_input_data):
     """Write the compilation report in XML format."""
     # Many details, pylint: disable=too-many-branches,too-many-locals
@@ -201,6 +215,14 @@ def writeCompilationReport(report_filename, report_input_data):
     )
 
     _addModulesToReport(root, report_input_data)
+
+    if report_input_data["memory_infos"]:
+        performance_xml_node = TreeXML.appendTreeElement(
+            root,
+            "performance",
+        )
+
+        _addMemoryInfosToReport(performance_xml_node, report_input_data["memory_infos"])
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
