@@ -96,3 +96,7 @@ dict_update_spec = BuiltinParameterSpecSinglePosArgStarDictArgs(
     dict_star_arg="pairs",
     type_shape=tshape_none,
 )
+
+dict_fromkeys_spec = DictMethodSpec(
+    "fromkeys", arg_names=("iterable", "value"), default_count=1, type_shape=tshape_dict
+)

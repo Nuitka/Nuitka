@@ -396,7 +396,7 @@ extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 // Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyObject *dict);
 
-// Python dictionary clear, empty a dictionary.
+// Python dictionary clear, empties the dictionary.
 extern void DICT_CLEAR(PyObject *dict);
 
 // Replacement for PyDict_Next that is faster (to call).

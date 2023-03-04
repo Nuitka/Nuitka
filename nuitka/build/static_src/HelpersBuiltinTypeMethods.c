@@ -450,6 +450,7 @@ static void _initUnicodeBuiltinMethods(void) {
 }
 static PyObject *dict_builtin_clear = NULL;
 static PyObject *dict_builtin_copy = NULL;
+PyObject *dict_builtin_fromkeys = NULL;
 static PyObject *dict_builtin_get = NULL;
 #if PYTHON_VERSION < 0x300
 static PyObject *dict_builtin_has_key = NULL;
@@ -482,6 +483,7 @@ static PyObject *dict_builtin_viewvalues = NULL;
 static void _initDictBuiltinMethods(void) {
     dict_builtin_clear = PyObject_GetAttrString((PyObject *)&PyDict_Type, "clear");
     dict_builtin_copy = PyObject_GetAttrString((PyObject *)&PyDict_Type, "copy");
+    dict_builtin_fromkeys = PyObject_GetAttrString((PyObject *)&PyDict_Type, "fromkeys");
     dict_builtin_get = PyObject_GetAttrString((PyObject *)&PyDict_Type, "get");
 #if PYTHON_VERSION < 0x300
     dict_builtin_has_key = PyObject_GetAttrString((PyObject *)&PyDict_Type, "has_key");
