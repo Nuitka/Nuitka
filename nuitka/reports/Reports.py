@@ -47,6 +47,7 @@ from nuitka.utils.Distributions import getDistributionsFromModuleName
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.Utils import getArchitecture, getOS
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 
 def _getReportInputData():
@@ -105,6 +106,9 @@ def _getReportInputData():
     python_version = python_version_full_str
     os_name = getOS()
     arch_name = getArchitecture()
+
+    nuitka_version = getNuitkaVersion()
+    nuitka_commercial_version = getCommercialVersion() or "not installed"
 
     return dict(
         (var_name, var_value)
@@ -190,7 +194,11 @@ def writeCompilationReport(report_filename, report_input_data):
     """Write the compilation report in XML format."""
     # Many details, pylint: disable=too-many-branches,too-many-locals
 
-    root = TreeXML.Element("nuitka-compilation-report")
+    root = TreeXML.Element(
+        "nuitka-compilation-report",
+        nuitka_version=report_input_data["nuitka_version"],
+        nuitka_commercial_version=report_input_data["nuitka_commercial_version"],
+    )
 
     _addModulesToReport(root, report_input_data)
 
