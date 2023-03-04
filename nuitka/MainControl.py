@@ -819,12 +819,12 @@ def compileTree():
     if not Options.shallOnlyExecCCompilerCall():
         general.info("Generating source code for C backend compiler.")
 
-        if Options.isShowProgress() or Options.isShowMemory():
-            general.info(
-                "Total memory usage before generating C code: {memory}:".format(
-                    memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
-                )
-            )
+        MemoryUsage.reportMemoryUsage(
+            "before_c_code_generation",
+            "Total memory usage before generating C code:"
+            if Options.isShowProgress() or Options.isShowMemory()
+            else None,
+        )
 
         # Now build the target language code for the whole tree.
         makeSourceDirectory()
@@ -847,12 +847,12 @@ def compileTree():
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
             general.sysexit("Error, no previous build directory exists.")
 
-    if Options.isShowProgress() or Options.isShowMemory():
-        general.info(
-            "Total memory usage before running scons: {memory}:".format(
-                memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
-            )
-        )
+    MemoryUsage.reportMemoryUsage(
+        "before_running_scons",
+        "Total memory usage before running scons"
+        if Options.isShowProgress() or Options.isShowMemory()
+        else None,
+    )
 
     if Options.isShowMemory():
         InstanceCounters.printStats()
