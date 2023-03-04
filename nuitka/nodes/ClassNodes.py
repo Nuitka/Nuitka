@@ -28,18 +28,16 @@ from .ChildrenHavingMixins import (
     ChildrenHavingMetaclassBasesMixin,
 )
 from .ExpressionBases import ExpressionBase
+from .ExpressionShapeMixins import ExpressionDictShapeExactMixin
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .LocalsScopes import getLocalsDictHandle
 from .OutlineNodes import ExpressionOutlineFunctionBase
 
 
-class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBase):
+class ExpressionClassBodyBase(ExpressionOutlineFunctionBase):
     kind = "EXPRESSION_CLASS_BODY"
 
-    __slots__ = ("needs_annotations_dict", "doc")
-
-    if python_version >= 0x340:
-        __slots__ += ("qualname_setup",)
+    __slots__ = ("doc",)
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionOutlineFunctionBase.__init__(
@@ -51,24 +49,17 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
             source_ref=source_ref,
         )
 
-        MarkNeedsAnnotationsMixin.__init__(self)
-
         self.doc = doc
-
-        # Force creation with proper type.
-        if python_version >= 0x300:
-            locals_kind = "python3_class"
-        else:
-            locals_kind = "python2_class"
 
         self.locals_scope = getLocalsDictHandle(
             "locals_%s_%d" % (self.getCodeName(), source_ref.getLineNumber()),
-            locals_kind,
+            self.locals_kind,
             self,
         )
 
-        if python_version >= 0x340:
-            self.qualname_setup = None
+    @staticmethod
+    def isExpressionClassBodyBase():
+        return True
 
     def getDetails(self):
         return {
@@ -119,7 +110,8 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
             self.taken.add(result)
             return result
 
-    def markAsDirectlyCalled(self):
+    @staticmethod
+    def markAsDirectlyCalled():
         pass
 
     def getChildQualname(self, function_name):
@@ -139,6 +131,50 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunctionBa
         return True
 
 
+# TODO: Have a variation that knows dict shape or not statically.
+class ExpressionClassBodyP3(MarkNeedsAnnotationsMixin, ExpressionClassBodyBase):
+    kind = "EXPRESSION_CLASS_BODY_P3"
+
+    __slots__ = ("needs_annotations_dict",)
+
+    if python_version >= 0x340:
+        __slots__ += ("qualname_setup",)
+
+    # Force creation with proper type.
+    locals_kind = "python3_class"
+
+    def __init__(self, provider, name, doc, source_ref):
+        ExpressionClassBodyBase.__init__(
+            self,
+            provider=provider,
+            name=name,
+            doc=doc,
+            source_ref=source_ref,
+        )
+
+        MarkNeedsAnnotationsMixin.__init__(self)
+
+        if python_version >= 0x340:
+            self.qualname_setup = None
+
+
+class ExpressionClassBodyP2(ExpressionDictShapeExactMixin, ExpressionClassBodyBase):
+    kind = "EXPRESSION_CLASS_BODY_P2"
+
+    __slots__ = ()
+
+    locals_kind = "python2_class"
+
+    def __init__(self, provider, name, doc, source_ref):
+        ExpressionClassBodyBase.__init__(
+            self,
+            provider=provider,
+            name=name,
+            doc=doc,
+            source_ref=source_ref,
+        )
+
+
 class ExpressionSelectMetaclass(ChildrenHavingMetaclassBasesMixin, ExpressionBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
@@ -154,11 +190,21 @@ class ExpressionSelectMetaclass(ChildrenHavingMetaclassBasesMixin, ExpressionBas
         ExpressionBase.__init__(self, source_ref)
 
     def computeExpression(self, trace_collection):
+        if self.subnode_bases.isExpressionConstantTupleEmptyRef():
+            return (
+                self.subnode_metaclass,
+                "new_expression",
+                "Metaclass selection without bases is trivial.",
+            )
+
         # TODO: Meta class selection is very computable, and should be done, but we need
         # dictionary tracing for that.
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return not self.subnode_bases.isExpressionConstantTupleEmptyRef()
 
 
 class ExpressionBuiltinType3(ChildrenExpressionBuiltinType3Mixin, ExpressionBase):

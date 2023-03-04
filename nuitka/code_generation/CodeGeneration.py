@@ -377,7 +377,7 @@ def generateFunctionBodyCode(function_body, context):
         function_context = Contexts.PythonGeneratorObjectContext(
             parent=context, function=function_body
         )
-    elif function_body.isExpressionClassBody():
+    elif function_body.isExpressionClassBodyBase():
         function_context = Contexts.PythonFunctionDirectContext(
             parent=context, function=function_body
         )
@@ -450,7 +450,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
         )
 
-    elif function_body.isExpressionClassBody():
+    elif function_body.isExpressionClassBodyBase():
         function_code = getFunctionCode(
             context=function_context,
             function_identifier=function_identifier,
@@ -834,7 +834,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline
-        "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_BODY_P2": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_BODY_P3": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
