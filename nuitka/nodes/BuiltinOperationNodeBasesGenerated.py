@@ -26,7 +26,7 @@
 
 WARNING, this code is GENERATED. Modify the template BuiltinOperationNodeBases.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
 spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
@@ -36,6 +36,7 @@ from abc import abstractmethod
 from .ChildrenHavingMixins import (
     ChildHavingBytesArgMixin,
     ChildHavingDictArgMixin,
+    ChildHavingIterableMixin,
     ChildHavingStrArgMixin,
     ChildrenHavingBytesArgCharsMixin,
     ChildrenHavingBytesArgEncodingErrorsMixin,
@@ -64,6 +65,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingDictArgIterablePairsTupleMixin,
     ChildrenHavingDictArgKeyDefaultMixin,
     ChildrenHavingDictArgKeyMixin,
+    ChildrenHavingIterableValueMixin,
     ChildrenHavingStrArgArgsTuplePairsTupleMixin,
     ChildrenHavingStrArgCharsMixin,
     ChildrenHavingStrArgEncodingErrorsMixin,
@@ -2130,6 +2132,38 @@ class ExpressionStrOperationFormatmapBase(ChildHavingStrArgMixin, ExpressionBase
     @abstractmethod
     def mayRaiseExceptionOperation(self):
         """Does the operation part raise an exception possibly."""
+
+
+class ExpressionDictOperationFromkeys3Base(
+    ExpressionDictShapeExactMixin, ChildrenHavingIterableValueMixin, ExpressionBase
+):
+    named_children = (
+        "iterable",
+        "value",
+    )
+
+    def __init__(self, iterable, value, source_ref):
+        ChildrenHavingIterableValueMixin.__init__(
+            self,
+            iterable=iterable,
+            value=value,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+
+class ExpressionDictOperationFromkeys2Base(
+    ExpressionDictShapeExactMixin, ChildHavingIterableMixin, ExpressionBase
+):
+    named_children = ("iterable",)
+
+    def __init__(self, iterable, source_ref):
+        ChildHavingIterableMixin.__init__(
+            self,
+            iterable=iterable,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
 
 
 class ExpressionDictOperationGet3Base(

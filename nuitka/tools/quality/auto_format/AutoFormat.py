@@ -556,6 +556,7 @@ def autoFormatFile(
     limit_python=False,
     limit_c=False,
     limit_rst=False,
+    ignore_errors=False,
 ):
     """Format source code with external tools
 
@@ -667,12 +668,13 @@ def autoFormatFile(
 
                     try:
                         check_call(black_call + ["-q", "--fast", tmp_filename])
-                    except Exception:
-                        print(
-                            "please add black failure to AutoFormat.py",
-                            effective_filename,
+                    except Exception:  # Catch all the things, pylint: disable=broad-except
+                        tools_logger.warning(
+                            "Problem formatting for '%s'." % effective_filename
                         )
-                        raise
+
+                        if not ignore_errors:
+                            raise
 
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
 
@@ -718,7 +720,7 @@ def autoFormatFile(
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoFormatted(filename):
+def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
     my_print("Auto-format '%s' ..." % filename)
 
     tmp_filename = filename + ".tmp"
@@ -726,16 +728,21 @@ def withFileOpenedAndAutoFormatted(filename):
         yield output
 
     autoFormatFile(
-        filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
+        filename=tmp_filename,
+        git_stage=None,
+        effective_filename=filename,
+        trace=False,
+        ignore_errors=ignore_errors,
     )
 
-    # No idea why, but this helps.
+    # TODO: No idea why, but this helps. Would be nice to become able to remove it though.
     if os.name == "nt":
         autoFormatFile(
             filename=tmp_filename,
             git_stage=None,
             effective_filename=filename,
             trace=False,
+            ignore_errors=ignore_errors,
         )
 
     shutil.copy(tmp_filename, filename)

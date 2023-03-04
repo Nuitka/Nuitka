@@ -26,7 +26,7 @@
 
 WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
 spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
@@ -72,6 +72,7 @@ from nuitka.specs.BuiltinBytesOperationSpecs import (
 from nuitka.specs.BuiltinDictOperationSpecs import (
     dict_clear_spec,
     dict_copy_spec,
+    dict_fromkeys_spec,
     dict_get_spec,
     dict_has_key_spec,
     dict_items_spec,
@@ -216,6 +217,9 @@ from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
     ExpressionDictOperationClear,
     ExpressionDictOperationCopy,
+    ExpressionDictOperationFromkeys2,
+    ExpressionDictOperationFromkeys3,
+    ExpressionDictOperationFromkeysRef,
     ExpressionDictOperationGet2,
     ExpressionDictOperationGet3,
     ExpressionDictOperationHaskey,
@@ -2653,6 +2657,128 @@ class ExpressionAttributeLookupStrFormatmap(
 
 
 attribute_typed_classes.add(ExpressionAttributeLookupStrFormatmap)
+
+
+class ExpressionAttributeLookupFixedFromkeys(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value 'fromkeys' of an object.
+
+    Typically code like: source.fromkeys
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_FROMKEYS"
+    attribute_name = "fromkeys"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if subnode_expression.isExpressionConstantTypeDictRef():
+            return (
+                ExpressionDictOperationFromkeysRef(source_ref=self.source_ref),
+                "new_expression",
+                "Reference to 'dict.fromkeys' resolved.",
+            )
+        if subnode_expression.hasShapeDictionaryExact():
+            return trace_collection.computedExpressionResult(
+                expression=ExpressionAttributeLookupDictFromkeys(
+                    expression=subnode_expression, source_ref=self.source_ref
+                ),
+                change_tags="new_expression",
+                change_desc="Attribute lookup 'fromkeys' on dict shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="fromkeys",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="fromkeys"
+        )
+
+    def onContentEscapes(self, trace_collection):
+        self.subnode_expression.onContentEscapes(trace_collection)
+
+
+attribute_classes["fromkeys"] = ExpressionAttributeLookupFixedFromkeys
+
+
+class ExpressionAttributeLookupDictFromkeys(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedFromkeys
+):
+    """Attribute 'fromkeys' lookup on a dict value.
+
+    Typically code like: some_dict.fromkeys
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_DICT_FROMKEYS"
+    attribute_name = "fromkeys"
+
+    # There is nothing to compute for it as a value.
+    # TODO: Enable this once we can also say removal of knowable for an argument.
+    # auto_compute_handling = "final,no_raise"
+
+    def computeExpression(self, trace_collection):
+        # Cannot be used to modify the dict.
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, dict_arg, trace_collection):
+        def wrapExpressionDictOperationFromkeys(iterable, value, source_ref):
+            if value is not None:
+                return ExpressionDictOperationFromkeys3(
+                    iterable=iterable, value=value, source_ref=source_ref
+                )
+            else:
+                return ExpressionDictOperationFromkeys2(
+                    iterable=iterable, source_ref=source_ref
+                )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # Make sure we wait with knowing if the content is safe to use until its time.
+        call_node.onContentEscapes(trace_collection)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationFromkeys,
+            builtin_spec=dict_fromkeys_spec,
+        )
+
+        result = wrapExpressionWithNodeSideEffects(old_node=dict_arg, new_node=result)
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'fromkeys' of dictionary recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        dict_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, dict_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupDictFromkeys)
 
 
 class ExpressionAttributeLookupFixedGet(ExpressionAttributeLookupFixedBase):

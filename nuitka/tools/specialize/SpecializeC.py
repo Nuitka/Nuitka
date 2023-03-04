@@ -864,7 +864,10 @@ def _makeHelperBuiltinTypeAttributes(
         return "%s_builtin_%s" % (type_prefix, method_name)
 
     for method_name in sorted(set(python2_methods + python3_methods)):
-        is_public = method_name in ("format",)
+        is_public = method_name in (
+            "format",
+            "fromkeys",
+        )
 
         if method_name in python2_methods and method_name not in python3_methods:
             emit_c("#if PYTHON_VERSION < 0x300")
