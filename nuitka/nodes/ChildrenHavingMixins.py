@@ -26,7 +26,7 @@
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
 spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
@@ -281,7 +281,8 @@ class ChildHavingBodyOptionalMixin(object):
 
     # This is generated for use in
     #   ExpressionAsyncgenObjectBody
-    #   ExpressionClassBody
+    #   ExpressionClassBodyP2
+    #   ExpressionClassBodyP3
     #   ExpressionCoroutineObjectBody
     #   ExpressionFunctionBody
     #   ExpressionFunctionPureBody
@@ -394,7 +395,8 @@ class ChildHavingBodyOptionalMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionAsyncgenObjectBodyMixin = ChildHavingBodyOptionalMixin
-ChildrenExpressionClassBodyMixin = ChildHavingBodyOptionalMixin
+ChildrenExpressionClassBodyP2Mixin = ChildHavingBodyOptionalMixin
+ChildrenExpressionClassBodyP3Mixin = ChildHavingBodyOptionalMixin
 ChildrenExpressionCoroutineObjectBodyMixin = ChildHavingBodyOptionalMixin
 ChildrenExpressionFunctionBodyMixin = ChildHavingBodyOptionalMixin
 ChildrenExpressionFunctionPureBodyMixin = ChildHavingBodyOptionalMixin
@@ -6237,6 +6239,7 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupBytesZfill
     #   ExpressionAttributeLookupDictClear
     #   ExpressionAttributeLookupDictCopy
+    #   ExpressionAttributeLookupDictFromkeys
     #   ExpressionAttributeLookupDictGet
     #   ExpressionAttributeLookupDictHaskey
     #   ExpressionAttributeLookupDictItems
@@ -6267,6 +6270,7 @@ class ChildHavingExpressionMixin(object):
     #   ExpressionAttributeLookupFixedFind
     #   ExpressionAttributeLookupFixedFormat
     #   ExpressionAttributeLookupFixedFormatmap
+    #   ExpressionAttributeLookupFixedFromkeys
     #   ExpressionAttributeLookupFixedGet
     #   ExpressionAttributeLookupFixedHaskey
     #   ExpressionAttributeLookupFixedIndex
@@ -6506,6 +6510,7 @@ ChildrenExpressionAttributeLookupBytesUpperMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupBytesZfillMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictClearMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictCopyMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupDictFromkeysMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictGetMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictHaskeyMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupDictItemsMixin = ChildHavingExpressionMixin
@@ -6536,6 +6541,7 @@ ChildrenExpressionAttributeLookupFixedExtendMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedFindMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedFormatMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedFormatmapMixin = ChildHavingExpressionMixin
+ChildrenExpressionAttributeLookupFixedFromkeysMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedGetMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedHaskeyMixin = ChildHavingExpressionMixin
 ChildrenExpressionAttributeLookupFixedIndexMixin = ChildHavingExpressionMixin
@@ -8451,6 +8457,221 @@ class ChildrenHavingInstanceClassesMixin(object):
 
 # Assign the names that are easier to import with a stable name.
 ChildrenExpressionBuiltinIsinstanceMixin = ChildrenHavingInstanceClassesMixin
+
+
+class ChildHavingIterableMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionDictOperationFromkeys2
+
+    def __init__(
+        self,
+        iterable,
+    ):
+        iterable.parent = self
+
+        self.subnode_iterable = iterable
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (self.subnode_iterable,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("iterable", self.subnode_iterable),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_iterable
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_iterable = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "iterable": self.subnode_iterable.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_iterable.finalize()
+        del self.subnode_iterable
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = trace_collection.onExpression(self.subnode_iterable)
+
+        if expression.willRaiseAnyException():
+            return (
+                expression,
+                "new_raise",
+                lambda: "For '%s' the child expression '%s' will raise."
+                % (self.getChildNameNice(), expression.getChildNameNice()),
+            )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionDictOperationFromkeys2Mixin = ChildHavingIterableMixin
+
+
+class ChildrenHavingIterableValueMixin(object):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionDictOperationFromkeys3
+
+    def __init__(
+        self,
+        iterable,
+        value,
+    ):
+        iterable.parent = self
+
+        self.subnode_iterable = iterable
+
+        value.parent = self
+
+        self.subnode_value = value
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_iterable,
+            self.subnode_value,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("iterable", self.subnode_iterable),
+            ("value", self.subnode_value),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_iterable
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_iterable = new_node
+
+            return
+
+        value = self.subnode_value
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_value = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "iterable": self.subnode_iterable.makeClone(),
+            "value": self.subnode_value.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_iterable.finalize()
+        del self.subnode_iterable
+        self.subnode_value.finalize()
+        del self.subnode_value
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(trace_collection)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_iterable.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ChildrenExpressionDictOperationFromkeys3Mixin = ChildrenHavingIterableValueMixin
 
 
 class ChildrenHavingIteratorDefaultMixin(object):

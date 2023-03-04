@@ -23,6 +23,7 @@ from nuitka import Options
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
+from .CallCodes import getCallCodePosArgsQuick
 from .CodeHelpers import (
     assignConstantNoneResult,
     decideConversionCheckNeeded,
@@ -663,6 +664,51 @@ def generateDictOperationValuesCode(to_name, expression, emit, context):
         emit=emit,
         context=context,
     )
+
+
+def generateDictOperationFromkeysRefCode(to_name, expression, emit, context):
+    # TODO: Could also be done with generic code derived from a method object.
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_fromkeys_function_ref", expression, emit, context
+    ) as result_name:
+        emit("%s = dict_builtin_fromkeys;" % result_name)
+
+
+def generateDictOperationFromkeys2Code(to_name, expression, emit, context):
+    (iterable_name,) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_fromkeys_value", expression, emit, context
+    ) as result_name:
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name="dict_builtin_fromkeys",
+            expression=expression,
+            arg_names=(iterable_name,),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateDictOperationFromkeys3Code(to_name, expression, emit, context):
+    (iterable_name, value_name) = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "dict_fromkeys_value", expression, emit, context
+    ) as result_name:
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name="dict_builtin_fromkeys",
+            expression=expression,
+            arg_names=(iterable_name, value_name),
+            emit=emit,
+            context=context,
+        )
 
 
 def generateDictOperationItervaluesCode(to_name, expression, emit, context):

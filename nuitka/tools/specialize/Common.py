@@ -36,8 +36,7 @@ def writeLine(output, *args):
 python2_dict_methods = (  # we have full coverage for all methods
     "clear",
     "copy",
-    # This is actually a static method, not useful to call on on instance
-    # "fromkeys",
+    "fromkeys",
     "get",
     "has_key",
     "items",
@@ -59,8 +58,7 @@ python3_dict_methods = (
     # see Python2 methods, these are only less
     "clear",
     "copy",
-    # This is actually a static method, not useful to call on on instance
-    # "fromkeys",
+    "fromkeys",
     "get",
     "items",
     "keys",
