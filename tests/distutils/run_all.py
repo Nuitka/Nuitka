@@ -203,7 +203,9 @@ def main():
                         source_path=os.path.join(case_dir, "pyproject.nuitka.toml"),
                         dest_path=os.path.join(case_dir, "pyproject.toml"),
                     )
-                    venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
+                    venv.runCommand(
+                        commands=['cd "%s"' % case_dir, "python -m build -w"]
+                    )
                     deleteFile(
                         os.path.join(case_dir, "pyproject.toml"), must_exist=True
                     )
