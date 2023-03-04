@@ -17,12 +17,21 @@
 #
 from __future__ import print_function
 
+import importlib
 import pkgutil
 
 import some_package.sub_package1.SomeModuleC
 import some_package.sub_package1.SomeModuleD
 import some_package.sub_package2.SomeModuleA
 import some_package.sub_package2.SomeModuleB
+
+# Use the original "__file__" value normally, at least one case warns
+# about things with filename included, but for pkgutil iteration, make
+# sure we do not see original Python dirs.
+
+# nuitka-project: --file-reference-choice=runtime
+
+# nuitka-project: --follow-imports
 
 print("Checking with 'pkg_util.iter_modules' what was included:")
 pkg = __import__("some_package")
@@ -33,7 +42,7 @@ for r in it:
     print(r[1], r[2])
 
     if r[2]:
-        sub_pkg = __import__("some_package." + r[1])
+        sub_pkg = importlib.import_module("some_package." + r[1])
         for r2 in pkgutil.iter_modules(sub_pkg.__path__):
             print("  ", r2[1], r2[2])
 
