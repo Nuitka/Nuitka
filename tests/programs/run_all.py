@@ -112,14 +112,6 @@ def main():
 
         extra_flags.append("--follow-imports")
 
-        # Use the original "__file__" value normally, at least one case warns
-        # about things with filename included, but for pkgutil iteration, make
-        # sure we do not see original Python dirs.
-        if filename != "pkgutil_itermodules":
-            extra_flags.append("--file-reference-choice=original")
-        else:
-            extra_flags.append("--file-reference-choice=runtime")
-
         # Run it as a package and also as directory.
         if filename == "package_program":
             # Not really supported for 2.6
