@@ -157,7 +157,7 @@ class ExpressionFunctionBodyBase(
         current = self
 
         while not current.isCompiledPythonModule():
-            if current.isExpressionClassBody():
+            if current.isExpressionClassBodyBase():
                 return current
 
             current = current.getParentVariableProvider()
@@ -293,7 +293,7 @@ class ExpressionFunctionBodyBase(
             # dict access.
             if (
                 python_version < 0x300
-                and not entry_point.isExpressionClassBody()
+                and not entry_point.isExpressionClassBodyBase()
                 and not entry_point.isPythonMainModule()
                 and result.isModuleVariable()
                 and entry_point.isUnoptimized()

@@ -404,6 +404,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionClassBodyBase():
+        return False
+
+    @staticmethod
     def isExpressionImportModuleNameHard():
         return False
 
