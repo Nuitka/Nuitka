@@ -178,3 +178,10 @@ min_signed_long = long(-(2 ** (8 * 8 - 1) - 1) - 1)
 print("Small long", min_signed_long, type(min_signed_long))
 min_signed_long = long(-(2 ** (8 * 4 - 1) - 1) - 1)
 print("Small long", min_signed_long, type(min_signed_long))
+
+try:
+    type_prepare = type.__prepare__
+except AttributeError:
+    print("Python2 has no type.__prepare__")
+else:
+    print("Type prepare", type_prepare)
