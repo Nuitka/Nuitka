@@ -101,7 +101,7 @@ class StatementsFrameBase(StatementsSequence):
     def getGuardMode(self):
         provider = self.getParentVariableProvider()
 
-        while provider.isExpressionClassBody():
+        while provider.isExpressionClassBodyBase():
             provider = provider.getParentVariableProvider()
 
         if provider.isCompiledPythonModule():
@@ -150,7 +150,7 @@ class StatementsFrameBase(StatementsSequence):
 
         is_optimized = (
             not entry_point.isCompiledPythonModule()
-            and not entry_point.isExpressionClassBody()
+            and not entry_point.isExpressionClassBodyBase()
             and not entry_point.isUnoptimized()
         )
 
@@ -158,7 +158,10 @@ class StatementsFrameBase(StatementsSequence):
 
         new_locals = not provider.isCompiledPythonModule() and (
             python_version < 0x340
-            or (not provider.isExpressionClassBody() and not provider.isUnoptimized())
+            or (
+                not provider.isExpressionClassBodyBase()
+                and not provider.isUnoptimized()
+            )
         )
 
         self.code_object.setFlagNewLocalsValue(new_locals)

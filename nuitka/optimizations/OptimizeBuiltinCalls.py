@@ -805,7 +805,7 @@ if python_version < 0x300:
                     tried,
                     makeStatementReturn(
                         expression=ExpressionBuiltinExecfile(
-                            in_class_body=node.getParentVariableProvider().isExpressionClassBody(),
+                            in_class_body=node.getParentVariableProvider().isExpressionClassBodyBase(),
                             source_code=makeCallNode(
                                 makeExpressionAttributeLookup(
                                     expression=ExpressionBuiltinOpenP2(
@@ -1141,7 +1141,7 @@ def super_extractor(node):
             type_arg_owner = class_variable.getOwner()
             if type_arg_owner is provider or not (
                 type_arg_owner.isExpressionFunctionBody()
-                or type_arg_owner.isExpressionClassBody()
+                or type_arg_owner.isExpressionClassBodyBase()
             ):
                 return makeRaiseExceptionReplacementExpression(
                     expression=node,

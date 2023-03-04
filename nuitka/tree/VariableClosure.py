@@ -93,7 +93,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         source_ref,
                     )
 
-                if node.isExpressionClassBody() and non_local_name == "__class__":
+                if node.isExpressionClassBodyBase() and non_local_name == "__class__":
                     pass
                 else:
                     node.getLocalsScope().registerClosureVariable(variable)
@@ -105,7 +105,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         if node.qualname_setup is not None:
             provider = node.getParentVariableProvider()
 
-            if node.isExpressionClassBody():
+            if node.isExpressionClassBodyBase():
                 class_variable_name, qualname_assign = node.qualname_setup
 
                 if provider.hasProvidedVariable(class_variable_name):
@@ -145,7 +145,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
     @staticmethod
     def _shouldUseLocalsDict(provider, variable_name):
-        return provider.isExpressionClassBody() and (
+        return provider.isExpressionClassBodyBase() and (
             not provider.hasProvidedVariable(variable_name)
             or provider.getProvidedVariable(variable_name).getOwner() is provider
         )
@@ -273,7 +273,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         if node.isExpressionVariableNameRef():
             provider = node.provider
 
-            if provider.isExpressionClassBody():
+            if provider.isExpressionClassBodyBase():
                 if node.needsFallback():
                     variable = provider.getVariableForReference(
                         variable_name=node.getVariableName()
@@ -320,9 +320,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             self._handleNonLocal(node)
 
             self._handleQualnameSetup(node)
-        elif node.isExpressionClassBody():
-            if python_version >= 0x300:
-                self._handleNonLocal(node)
+        elif node.isExpressionClassBodyP3():
+            self._handleNonLocal(node)
 
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
@@ -382,7 +381,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             if not was_taken and variable.getOwner() is not provider:
                 parent_provider = provider.getParentVariableProvider()
 
-                while parent_provider.isExpressionClassBody():
+                while parent_provider.isExpressionClassBodyBase():
                     parent_provider = parent_provider.getParentVariableProvider()
 
                 if (
