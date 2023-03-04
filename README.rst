@@ -900,43 +900,25 @@ Manual Python File Loading
 --------------------------
 
 A very frequent pattern with private code is that it scans plugin
-directories of some kind, and uses ``os.listdir``, checks filenames, and
-then opens a file and does ``exec`` on them. This approach is working
-for Python code, but for compiled code, you should use this much cleaner
-approach, that works for pure Python code and is a lot less vulnerable.
+directories of some kind, and e.g. uses ``os.listdir``, then considers
+Python filenames, and then opens a file and does ``exec`` on them. This
+approach is working for Python code, but for compiled code, you should
+use this much cleaner approach, that works for pure Python code and is a
+lot less vulnerable.
 
 .. code:: python
 
-   # Using a package name, to locate the plugins, but this can actually
-   # be also a directory.
+   # Using a package name, to locate the plugins. This is also a sane
+   # way to organize them into a directory.
    scan_path = scan_package.__path__
 
    for item in pkgutil.iter_modules(scan_path):
+      importlib.import_module(scan_package.__name__ + "." + item.name)
+
       # You may want to do it recursively, but we don't do this here in
-      # this example.
+      # this example. If you want to, handle that in this kind of branch.
       if item.ispkg:
-         continue
-
-      # The loader object knows how to do it.
-      module_loader = item.module_finder.find_module(item.name)
-
-      # Ignore bytecode only left overs. Deleted files can cause
-      # these things, so we just ignore it. Not every load has a
-      # filename, so we need to catch that error.
-      try:
-         if module_loader.get_filename().endswith(".pyc"):
-            continue
-      except AttributeError:
-         # Not a bytecode loader, but e.g. extension module, which is OK in case
-         # it was compiled with Nuitka.
-         pass
-
-      plugin_module = module_loader.load_module(item.name)
-
-      # At least for Python2, this is not set properly, but we use it for package
-      # data loading, so this manual patching up allows these to use proper methods
-      # for loading their stuff as well.
-      plugin_module.__package__ = scan_package.__name__
+         ...
 
 Missing data files in standalone
 ================================
