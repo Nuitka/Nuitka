@@ -1107,11 +1107,8 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
     completeVariableClosures(module)
 
     if Options.isShowMemory():
-        memory_watch.finish()
-
-        memory_logger.info(
-            "Memory usage changed loading module '%s': %s"
-            % (module.getFullName(), memory_watch.asStr())
+        memory_watch.finish(
+            "Memory usage changed loading module '%s'" % module.getFullName()
         )
 
 
