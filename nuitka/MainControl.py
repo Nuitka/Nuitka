@@ -72,7 +72,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
-from nuitka.utils import InstanceCounters, MemoryUsage
+from nuitka.utils import InstanceCounters
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
@@ -87,6 +87,7 @@ from nuitka.utils.FileOperations import (
     resetDirectory,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
@@ -819,7 +820,7 @@ def compileTree():
     if not Options.shallOnlyExecCCompilerCall():
         general.info("Generating source code for C backend compiler.")
 
-        MemoryUsage.reportMemoryUsage(
+        reportMemoryUsage(
             "before_c_code_generation",
             "Total memory usage before generating C code:"
             if Options.isShowProgress() or Options.isShowMemory()
@@ -847,7 +848,7 @@ def compileTree():
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
             general.sysexit("Error, no previous build directory exists.")
 
-    MemoryUsage.reportMemoryUsage(
+    reportMemoryUsage(
         "before_running_scons",
         "Total memory usage before running scons"
         if Options.isShowProgress() or Options.isShowMemory()
@@ -932,6 +933,13 @@ def main():
         )
     )
 
+    reportMemoryUsage(
+        "after_launch",
+        "Total memory usage before processing:"
+        if Options.isShowProgress() or Options.isShowMemory()
+        else None,
+    )
+
     _setupFromMainFilenames()
 
     addIncludedDataFilesFromFileOptions()
@@ -966,7 +974,7 @@ def main():
 
     if Options.shallNotDoExecCCompilerCall():
         if Options.isShowMemory():
-            MemoryUsage.showMemoryTrace()
+            showMemoryTrace()
 
         sys.exit(0)
 
