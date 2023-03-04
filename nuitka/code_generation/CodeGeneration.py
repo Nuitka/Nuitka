@@ -118,6 +118,9 @@ from .DictCodes import (
     generateDictionaryCreationCode,
     generateDictOperationClearCode,
     generateDictOperationCopyCode,
+    generateDictOperationFromkeys2Code,
+    generateDictOperationFromkeys3Code,
+    generateDictOperationFromkeysRefCode,
     generateDictOperationGet2Code,
     generateDictOperationGet3Code,
     generateDictOperationInCode,
@@ -709,7 +712,11 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_SLICE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_XRANGE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF": generateConstantReferenceCode,
-        "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_DICT_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_SET_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_LIST_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
         "EXPRESSION_CONSTANT_UNION_TYPE": generateConstantReferenceCode,
@@ -755,6 +762,8 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_UPDATE2": generateDictOperationUpdate2Code,
         "EXPRESSION_DICT_OPERATION_UPDATE3": generateDictOperationUpdate3Code,
         "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS": generateDictOperationUpdate3Code,
+        "EXPRESSION_DICT_OPERATION_FROMKEYS2": generateDictOperationFromkeys2Code,
+        "EXPRESSION_DICT_OPERATION_FROMKEYS3": generateDictOperationFromkeys3Code,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
@@ -922,6 +931,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_LISTDIR_CALL": generateOsListdirCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
+        # TODO: Should have all of these generically or not. This one is required for now.
+        "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
     }
 )
 
