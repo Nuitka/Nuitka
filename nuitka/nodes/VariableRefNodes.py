@@ -221,6 +221,9 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
 
         return in_node, tags, message
 
+    def getExpressionDictInConstant(self, value):
+        return self.variable_trace.getDictInValue(value)
+
     def computeExpressionSetSubscript(
         self, set_node, subscript, value_node, trace_collection
     ):

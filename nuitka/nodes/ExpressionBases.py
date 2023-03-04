@@ -89,6 +89,11 @@ class ExpressionBase(NodeBase):
         return False, None
 
     @staticmethod
+    def isMappingWithConstantStringKeys():
+        """Is this a mapping with constant string keys. Used for call optimization."""
+        return False
+
+    @staticmethod
     def isKnownToBeIterable(count):
         """Can be iterated at all (count is None) or exactly count times.
 
