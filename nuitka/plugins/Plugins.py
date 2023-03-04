@@ -338,8 +338,8 @@ class Plugins(object):
             for v in value:
                 if type(v) in (tuple, list):
                     plugin.sysexit(
-                        "Plugin %r needs to be change to only return modules names, not %r (for %s)"
-                        % (plugin.plugin_name, v, module.getFullName().asString())
+                        "Plugin '%s' needs to be change to only return modules names, not %r (for module '%s')"
+                        % (plugin.plugin_name, v, module.getFullName())
                     )
 
                 if inspect.isgenerator(v):
@@ -350,8 +350,8 @@ class Plugins(object):
 
                 if not checkModuleName(v):
                     plugin.sysexit(
-                        "Plugin %r returned an invalid module name, not %r (for %s)"
-                        % (plugin, v, module.getFullName().asString())
+                        "Plugin '%s' returned an invalid module name, not %r (for module '%s')"
+                        % (plugin, v, module.getFullName())
                     )
 
                 yield ModuleName(v)

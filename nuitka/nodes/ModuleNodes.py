@@ -790,7 +790,8 @@ class UncompiledPythonModule(PythonModuleBase):
     def setUsedModules(self, used_modules):
         self.used_modules = used_modules
 
-    def startTraversal(self):
+    @staticmethod
+    def startTraversal():
         pass
 
 
@@ -953,7 +954,8 @@ class PythonExtensionModule(PythonModuleBase):
     def getFilename(self):
         return self.source_ref.getFilename()
 
-    def startTraversal(self):
+    @staticmethod
+    def startTraversal():
         pass
 
     def isTechnical(self):
