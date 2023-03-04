@@ -548,6 +548,9 @@ class ExpressionConstantDictRef(
 
         return True
 
+    def getExpressionDictInConstant(self, value):
+        return value in self.constant
+
 
 class EmptyContainerMixin(object):
     __slots__ = ()
@@ -1255,19 +1258,23 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
         return tshape_type
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        from nuitka.optimizations.OptimizeBuiltinCalls import (
-            computeBuiltinCall,
-        )
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        new_node, tags, message = computeBuiltinCall(
-            builtin_name=self.constant.__name__, call_node=call_node
-        )
+        if call_kw is not None and not call_kw.isMappingWithConstantStringKeys():
+            return call_node, None, None
+        else:
+            from nuitka.optimizations.OptimizeBuiltinCalls import (
+                computeBuiltinCall,
+            )
 
-        return new_node, tags, message
+            new_node, tags, message = computeBuiltinCall(
+                builtin_name=self.constant.__name__, call_node=call_node
+            )
+
+            return new_node, tags, message
 
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection

@@ -31,6 +31,8 @@ _missing_operations = OrderedSet()
 
 _missing_trust = OrderedDict()
 
+_missing_overloads = OrderedDict()
+
 _error_for_missing = False
 # _error_for_missing = True
 
@@ -65,6 +67,13 @@ def doMissingOptimizationReport():
         else:
             optimization_logger.info(message)
 
+    for method_name, node in _missing_overloads.items():
+        message = "Missing %s overload for %s" % (method_name, node)
+        if _error_for_missing:
+            optimization_logger.warning(message)
+        else:
+            optimization_logger.info(message)
+
 
 def onMissingHelper(helper_name, source_ref):
     if source_ref:
@@ -87,3 +96,10 @@ def onMissingTrust(operation, source_ref, *args):
         _missing_trust[key] = OrderedSet()
 
     _missing_trust[key].add(source_ref)
+
+
+def onMissingOverload(method_name, node):
+    if method_name not in _missing_overloads:
+        _missing_overloads[method_name] = OrderedSet()
+
+    _missing_overloads[method_name].add(node.kind)

@@ -268,6 +268,13 @@ class ExpressionDictShapeExactMixin(
             constant=dict, node=self, user_provided=False
         )
 
+    # TODO: Make it really abstract to force all to take benefit of it.
+    # @abstractmethod
+    @staticmethod
+    def getExpressionDictInConstant(value):
+        # pylint: disable=unused-argument
+        return None
+
 
 class ExpressionListShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
