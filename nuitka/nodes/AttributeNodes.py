@@ -324,7 +324,11 @@ class ExpressionAttributeCheck(ChildHavingExpressionMixin, ExpressionBase):
             # If source has side effects, they must be evaluated.
             result = wrapExpressionWithNodeSideEffects(new_node=result, old_node=source)
 
-            return result, "new_constant", "Attribute check has been pre-computed."
+            return (
+                result,
+                "new_constant",
+                "Attribute check has been pre-computed to '%s'." % has_attribute,
+            )
 
         # Attribute check is implemented by getting an attribute.
         if source.mayRaiseExceptionAttributeLookup(BaseException, self.attribute_name):
