@@ -549,7 +549,7 @@ def splitPath(path):
 
 
 def getFilenameExtension(path):
-    """Get the filename extension.
+    """Get the filename extension (dot included)
 
     Note: The extension is case normalized, i.e. it may actually be ".TXT"
     rather than ".txt", use "changeFilenameExtension" if you want to replace
