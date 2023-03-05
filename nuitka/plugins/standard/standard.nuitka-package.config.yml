@@ -777,6 +777,13 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'imageio.core.imopen'
+  implicit-imports:
+    - depends:
+        - 'imageio.plugins.pillow_legacy'
+        - 'imageio.plugins.freeimage'
+        - 'imageio.plugins.simpleitk'
+
 - module-name: 'imagej'
   anti-bloat:
     - description: 'compile time resolve version metadata'
