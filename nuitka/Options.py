@@ -57,6 +57,7 @@ from nuitka.utils.FileOperations import (
     openTextFile,
     resolveShellPatternToFilenames,
 )
+from nuitka.utils.Images import checkIconUsage
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
 from nuitka.utils.Utils import (
     getArchitecture,
@@ -433,6 +434,8 @@ it before using it: '%s' (from --output-filename='%s')."""
                 "Error, icon path '%s' does not exist." % icon_path
             )
 
+        checkIconUsage(logger=Tracing.options_logger, icon_path=icon_path)
+
         if getWindowsIconExecutablePath():
             Tracing.options_logger.sysexit(
                 "Error, can only use icons from template executable or from icon files, but not both."
@@ -441,7 +444,7 @@ it before using it: '%s' (from --output-filename='%s')."""
     icon_exe_path = getWindowsIconExecutablePath()
     if icon_exe_path is not None and not os.path.exists(icon_exe_path):
         Tracing.options_logger.sysexit(
-            "Error, icon path '%s' does not exist." % icon_exe_path
+            "Error, icon path executable '%s' does not exist." % icon_exe_path
         )
 
     if isMacOS() and not shallCreateAppBundle() and shallDisableConsoleWindow():
