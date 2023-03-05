@@ -309,7 +309,7 @@ def _cleanupImportSortOrder(filename, effective_filename):
         start_index = parts.index("# isort:start")
         contents = "\n".join(parts[start_index + 1 :]) + "\n"
 
-        putTextFileContents(filename, contents=contents)
+        putTextFileContents(filename, contents=contents, encoding="utf8")
 
     check_call(
         isort_call
@@ -328,11 +328,11 @@ def _cleanupImportSortOrder(filename, effective_filename):
     )
 
     if start_index is not None:
-        contents = getFileContents(filename)
+        contents = getFileContents(filename, encoding="utf8")
 
         contents = "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
 
-        putTextFileContents(filename, contents=contents)
+        putTextFileContents(filename, contents=contents, encoding="utf8")
 
 
 def _cleanupRstFmt(filename, effective_filename):
