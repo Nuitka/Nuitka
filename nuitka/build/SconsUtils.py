@@ -586,6 +586,8 @@ def createDefinitionsFile(source_dir, filename, definitions):
 
             if type(value) is int or key.endswith(("_BOOL", "_INT")):
                 f.write("#define %s %s\n" % (key, value))
+            elif type(value) in (str, unicode) and key.endswith("_WIDE_STRING"):
+                f.write("#define %s L%s\n" % (key, makeCLiteral(value)))
             else:
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))
 
