@@ -81,7 +81,9 @@ BLACK_SKIP_LIST = [
     "tests/type_inference/Test2.py",
     "tests/type_inference/Test3.py",
     "tests/type_inference/Test4.py",
+    "tests/benchmarks/pystone.py",
 ]
+BLACK_SKIP_LIST = [os.path.normpath(path) for path in BLACK_SKIP_LIST]
 
 
 def cleanupWindowsNewlines(filename, effective_filename):
@@ -216,7 +218,7 @@ def _cleanupPyLintComments(filename, effective_filename):
     new_code = re.sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
-        putTextFileContents(filename, new_code)
+        putTextFileContents(filename, new_code, encoding="utf8")
 
 
 def _cleanupImportRelative(filename, effective_filename):
@@ -233,14 +235,14 @@ def _cleanupImportRelative(filename, effective_filename):
     if not package_name.startswith("nuitka."):
         return
 
-    source_code = getFileContents(filename)
+    source_code = getFileContents(filename, encoding="utf8")
     updated_code = re.sub(
         r"from %s import" % package_name, "from . import", source_code
     )
     updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
     if source_code != updated_code:
-        putTextFileContents(filename, contents=updated_code)
+        putTextFileContents(filename, contents=updated_code, encoding="utf8")
 
 
 _binary_calls = {}
@@ -326,6 +328,8 @@ def _cleanupImportSortOrder(filename, effective_filename):
         ],
         stdout=getNullOutput(),
     )
+
+    cleanupWindowsNewlines(filename, effective_filename)
 
     if start_index is not None:
         contents = getFileContents(filename, encoding="utf8")
@@ -511,7 +515,7 @@ def _shouldNotFormatCode(filename):
             return False
 
         return True
-    if "pybench" in parts or filename == "tests/benchmarks/pystone.py":
+    if "pybench" in parts:
         return True
     if "mercurial" in parts:
         return True
