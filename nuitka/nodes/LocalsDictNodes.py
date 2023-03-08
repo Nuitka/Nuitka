@@ -358,9 +358,9 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
     may_raise_set = python_version >= 0x300
 
-    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
-
     def postInitNode(self):
+        # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+
         self.variable = self.locals_scope.getLocalsDictVariable(
             variable_name=self.variable_name
         )

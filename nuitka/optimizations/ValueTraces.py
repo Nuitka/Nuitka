@@ -248,6 +248,10 @@ class ValueTraceBase(object):
         # virtual method, pylint: disable=unused-argument
         return None
 
+    @staticmethod
+    def inhibitsClassScopeForwardPropagation():
+        return True
+
 
 class ValueTraceUnassignedBase(ValueTraceBase):
     __slots__ = ()
@@ -289,6 +293,9 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
 
     @staticmethod
     def isTraceThatNeedsEscape():
+        return False
+
+    def inhibitsClassScopeForwardPropagation(self):
         return False
 
 
@@ -577,6 +584,9 @@ class ValueTraceAssign(ValueTraceBase):
     def getDictInValue(self, key):
         """Value to use for dict in decisions."""
         return self.assign_node.subnode_source.getExpressionDictInConstant(key)
+
+    def inhibitsClassScopeForwardPropagation(self):
+        return self.assign_node.subnode_source.mayHaveSideEffects()
 
 
 class ValueTraceAssignUnescapable(ValueTraceAssign):
