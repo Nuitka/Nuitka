@@ -622,6 +622,18 @@ builtin_divmod_spec = BuiltinParameterSpecNoKeywords(
 def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=None):
     # Many cases to deal with, pylint: disable=too-many-branches
 
+    # TODO: Special hack for type.__prepare__(*args, **kwargs) to work with even
+    # unknown dictionaries.
+
+    if (
+        builtin_spec.getStarListArgumentName()
+        and builtin_spec.getStarDictArgumentName() == "kwargs"
+        and not builtin_spec.getArgumentNames()
+    ):
+        return builtin_class(
+            node.subnode_args, node.subnode_kwargs, source_ref=node.getSourceReference()
+        )
+
     try:
         kw = node.subnode_kwargs
 
@@ -700,3 +712,94 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=No
         result.setCompatibleSourceReference(node.getCompatibleSourceReference())
 
     return result
+
+
+class BuiltinMethodParameterSpecBase(BuiltinParameterSpec):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        name,
+        arg_names=(),
+        default_count=0,
+        list_star_arg=None,
+        dict_star_arg=None,
+        pos_only_args=(),
+        kw_only_args=(),
+        type_shape=None,
+    ):
+        BuiltinParameterSpec.__init__(
+            self,
+            name="bytes." + name,
+            arg_names=arg_names,
+            default_count=default_count,
+            list_star_arg=list_star_arg,
+            dict_star_arg=dict_star_arg,
+            pos_only_args=pos_only_args,
+            kw_only_args=kw_only_args,
+            type_shape=type_shape,
+        )
+
+
+class BuiltinMethodParameterSpecNoKeywordsBase(BuiltinParameterSpecNoKeywords):
+    __slots__ = ()
+
+    # For overload
+    method_prefix = None
+
+    def __init__(
+        self,
+        name,
+        arg_names=(),
+        default_count=0,
+        list_star_arg=None,
+        dict_star_arg=None,
+        pos_only_args=(),
+        kw_only_args=(),
+        type_shape=None,
+    ):
+        BuiltinParameterSpecNoKeywords.__init__(
+            self,
+            name=self.method_prefix + "." + name,
+            arg_names=arg_names,
+            default_count=default_count,
+            list_star_arg=list_star_arg,
+            dict_star_arg=dict_star_arg,
+            pos_only_args=pos_only_args,
+            kw_only_args=kw_only_args,
+            type_shape=type_shape,
+        )
+
+    if Options.is_full_compat:
+
+        def getKeywordRefusalText(self):
+            assert "." in self.name, self.name
+
+            if self.method_prefix == "bytes":
+                type_example_value = "b''"
+            elif self.method_prefix == "str":
+                type_example_value = "''"
+            elif self.method_prefix == "unicode":
+                type_example_value = "u''"
+            elif self.method_prefix == "dict":
+                type_example_value = "{}"
+            elif self.method_prefix == "list":
+                type_example_value = "[]"
+            elif self.method_prefix == "type":
+                type_example_value = "type"
+            else:
+                return "%s() takes no keyword arguments" % self.name
+
+            try:
+                eval(  # These are harmless calls, pylint: disable=eval-used
+                    "%s.%s(x=1)" % (type_example_value, self.name.split(".")[-1])
+                )
+            except TypeError as e:
+                return str(e)
+            else:
+                assert False, self.name
+
+    else:
+
+        def getKeywordRefusalText(self):
+            return "%s() takes no keyword arguments" % self.name

@@ -26,6 +26,7 @@ from nuitka.specs import BuiltinParameterSpecs
 from .ChildrenHavingMixins import (
     ChildHavingValueMixin,
     ChildrenExpressionBuiltinBytearray3Mixin,
+    ChildrenExpressionTypeOperationPrepareMixin,
     ChildrenHavingValueOptionalEncodingOptionalErrorsOptionalMixin,
 )
 from .ConstantRefNodes import makeConstantRefNode
@@ -410,4 +411,33 @@ class ExpressionConstantUnionType(CompileTimeConstantExpressionBase):
 
     def computeExpressionRaw(self, trace_collection):
         # Nothing much to do.
+        return self, None, None
+
+
+class ExpressionTypeOperationPrepare(
+    ChildrenExpressionTypeOperationPrepareMixin, ExpressionBase
+):
+    kind = "EXPRESSION_TYPE_OPERATION_PREPARE"
+
+    named_children = ("type_arg", "args|optional", "kwargs|optional")
+
+    def __init__(self, type_arg, args, kwargs, source_ref):
+        ChildrenExpressionTypeOperationPrepareMixin.__init__(
+            self, type_arg=type_arg, args=args, kwargs=kwargs
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def computeExpression(self, trace_collection):
+        if self.subnode_type_arg.isExpressionConstantTypeTypeRef():
+            result = makeConstantReplacementNode(
+                constant={}, node=self, user_provided=False
+            )
+
+            return (
+                result,
+                "new_constant",
+                "Predicted result 'type.__prepare__' as empty dict.",
+            )
+
         return self, None, None

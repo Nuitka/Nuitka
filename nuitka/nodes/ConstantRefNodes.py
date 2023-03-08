@@ -1389,6 +1389,17 @@ class ExpressionConstantTypeTupleRef(
         ExpressionConstantTypeRef.__init__(self, constant=tuple, source_ref=source_ref)
 
 
+class ExpressionConstantTypeTypeRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_TYPE_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(self, constant=type, source_ref=source_ref)
+
+
 def makeConstantRefNode(constant, source_ref, user_provided=False):
     # This is dispatching per constant value and types, every case
     # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
@@ -1550,6 +1561,8 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             return ExpressionConstantTypeTupleRef(source_ref=source_ref)
         if constant is list:
             return ExpressionConstantTypeListRef(source_ref=source_ref)
+        if constant is type:
+            return ExpressionConstantTypeTypeRef(source_ref=source_ref)
 
         return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
     elif constant_type is xrange:

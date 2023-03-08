@@ -26,8 +26,8 @@
 
 WARNING, this code is GENERATED. Modify the template AttributeNodeFixed.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem prepare remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key kwargs maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
 
@@ -142,9 +142,11 @@ from nuitka.specs.BuiltinStrOperationSpecs import (
     str_upper_spec,
     str_zfill_spec,
 )
+from nuitka.specs.BuiltinTypeOperationSpecs import type___prepare___spec
 
 from .AttributeLookupNodes import ExpressionAttributeLookupFixedBase
 from .AttributeNodes import makeExpressionAttributeLookup
+from .BuiltinTypeNodes import ExpressionTypeOperationPrepare
 from .BytesNodes import (
     ExpressionBytesOperationCapitalize,
     ExpressionBytesOperationCenter2,
@@ -332,6 +334,114 @@ from .StrNodes import (
 
 attribute_classes = {}
 attribute_typed_classes = set()
+
+
+class ExpressionAttributeLookupFixedPrepare(ExpressionAttributeLookupFixedBase):
+    """Looking up an attribute value '__prepare__' of an object.
+
+    Typically code like: source.__prepare__
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_FIXED_PREPARE"
+    attribute_name = "__prepare__"
+
+    def computeExpression(self, trace_collection):
+        subnode_expression = self.subnode_expression
+
+        if str is not bytes and subnode_expression.hasShapeTypeExact():
+            result = ExpressionAttributeLookupTypePrepare(
+                expression=subnode_expression, source_ref=self.source_ref
+            )
+
+            return trace_collection.computedExpressionResult(
+                expression=result,
+                change_tags="new_expression",
+                change_desc="Attribute lookup '__prepare__' on type shape resolved.",
+            )
+
+        return subnode_expression.computeExpressionAttribute(
+            lookup_node=self,
+            attribute_name="__prepare__",
+            trace_collection=trace_collection,
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+            exception_type=exception_type, attribute_name="__prepare__"
+        )
+
+
+attribute_classes["__prepare__"] = ExpressionAttributeLookupFixedPrepare
+
+
+class ExpressionAttributeLookupTypePrepare(
+    SideEffectsFromChildrenMixin, ExpressionAttributeLookupFixedPrepare
+):
+    """Attribute '__prepare__' lookup on a type value.
+
+    Typically code like: some_type.__prepare__
+    """
+
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP_TYPE_PREPARE"
+    attribute_name = "__prepare__"
+
+    # There is nothing to compute for it as a value.
+    # TODO: Enable this once we can also say removal of knowable for an argument.
+    # auto_compute_handling = "final,no_raise"
+
+    def computeExpression(self, trace_collection):
+        # Cannot be used to modify the type.
+        return self, None, None
+
+    @staticmethod
+    def _computeExpressionCall(call_node, type_arg, trace_collection):
+        def wrapExpressionTypeOperationPrepare(args, kwargs, source_ref):
+            return ExpressionTypeOperationPrepare(
+                type_arg=type_arg, args=args, kwargs=kwargs, source_ref=source_ref
+            )
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        # Make sure we wait with knowing if the content is safe to use until its time.
+        call_node.onContentEscapes(trace_collection)
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionTypeOperationPrepare,
+            builtin_spec=type___prepare___spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to '__prepare__' of type recognized.",
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        return self._computeExpressionCall(
+            call_node, self.subnode_expression, trace_collection
+        )
+
+    def computeExpressionCallViaVariable(
+        self, call_node, variable_ref_node, call_args, call_kw, trace_collection
+    ):
+        type_node = makeExpressionAttributeLookup(
+            expression=variable_ref_node,
+            attribute_name="__self__",
+            # TODO: Would be nice to have the real source reference here, but it feels
+            # a bit expensive.
+            source_ref=variable_ref_node.source_ref,
+        )
+
+        return self._computeExpressionCall(call_node, type_node, trace_collection)
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type)
+
+
+attribute_typed_classes.add(ExpressionAttributeLookupTypePrepare)
 
 
 class ExpressionAttributeLookupFixedAppend(ExpressionAttributeLookupFixedBase):

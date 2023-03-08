@@ -281,6 +281,15 @@ python3_list_methods = (
     "sort",
 )
 
+python2_type_methods = (
+    # TODO: Totally incomplete
+)
+
+python3_type_methods = (
+    # TODO: Totally incomplete
+    "__prepare__",
+)
+
 
 def getMethodVariations(spec_module, shape_name, method_name, must_exist=False):
     spec_name = shape_name.split("_")[-1] + "_" + method_name + "_spec"

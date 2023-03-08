@@ -24,57 +24,21 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 )
 
 from .BuiltinParameterSpecs import (
-    BuiltinParameterSpec,
-    BuiltinParameterSpecNoKeywords,
+    BuiltinMethodParameterSpecBase,
+    BuiltinMethodParameterSpecNoKeywordsBase,
 )
 
 
-class ListMethodSpecNoKeywords(BuiltinParameterSpecNoKeywords):
+class ListMethodSpecNoKeywords(BuiltinMethodParameterSpecNoKeywordsBase):
     __slots__ = ()
 
-    def __init__(
-        self,
-        name,
-        arg_names=(),
-        default_count=0,
-        type_shape=None,
-    ):
-        BuiltinParameterSpecNoKeywords.__init__(
-            self,
-            name="list." + name,
-            arg_names=arg_names,
-            default_count=default_count,
-            list_star_arg=None,
-            dict_star_arg=None,
-            pos_only_args=(),
-            kw_only_args=(),
-            type_shape=type_shape,
-        )
+    method_prefix = "list"
 
 
-class ListMethodSpec(BuiltinParameterSpec):
+class ListMethodSpec(BuiltinMethodParameterSpecBase):
     __slots__ = ()
 
-    def __init__(
-        self,
-        name,
-        arg_names=(),
-        default_count=0,
-        list_star_arg=None,
-        dict_star_arg=None,
-        type_shape=None,
-    ):
-        BuiltinParameterSpec.__init__(
-            self,
-            name="list." + name,
-            arg_names=arg_names,
-            default_count=default_count,
-            list_star_arg=list_star_arg,
-            dict_star_arg=dict_star_arg,
-            pos_only_args=(),
-            kw_only_args=(),
-            type_shape=type_shape,
-        )
+    method_prefix = "list"
 
 
 # Python3 only

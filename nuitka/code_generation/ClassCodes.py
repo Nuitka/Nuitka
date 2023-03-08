@@ -23,11 +23,12 @@ of the metaclass remains as specific.
 
 from nuitka.PythonVersions import python_version
 
+from .AttributeCodes import getAttributeLookupCode
 from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
-from .ErrorCodes import getErrorExitCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode
 
 
 def generateSelectMetaclassCode(to_name, expression, emit, context):
@@ -107,6 +108,48 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
         getErrorExitCode(
             check_name=value_name,
             release_names=(type_name, object_name),
+            emit=emit,
+            context=context,
+        )
+
+        context.addCleanupTempName(value_name)
+
+
+def generateTypeOperationPrepareCode(to_name, expression, emit, context):
+    type_name, args_name, kwargs_name = generateChildExpressionsCode(
+        expression=expression, emit=emit, context=context
+    )
+
+    prepare_func_name = context.allocateTempName("prepare_func")
+
+    getAttributeLookupCode(
+        to_name=prepare_func_name,
+        source_name=type_name,
+        attribute_name="__prepare__",
+        # Types have it.
+        needs_check=False,
+        emit=emit,
+        context=context,
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "prepare_value", expression, emit, context
+    ) as value_name:
+        emit(
+            "%s = CALL_FUNCTION(%s, %s, %s);"
+            % (
+                value_name,
+                prepare_func_name,
+                "const_tuple_empty" if args_name is None else args_name,
+                "NULL" if kwargs_name is None else kwargs_name,
+            )
+        )
+
+        getReleaseCode(release_name=prepare_func_name, emit=emit, context=context)
+
+        getErrorExitCode(
+            check_name=value_name,
+            release_names=(type_name, args_name, kwargs_name),
             emit=emit,
             context=context,
         )
