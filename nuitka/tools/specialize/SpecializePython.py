@@ -39,6 +39,7 @@ import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinListOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
+import nuitka.specs.BuiltinTypeOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
 from nuitka.nodes.ImportNodes import hard_modules_non_stdlib
@@ -62,10 +63,12 @@ from .Common import (
     python2_dict_methods,
     python2_list_methods,
     python2_str_methods,
+    python2_type_methods,
     python3_bytes_methods,
     python3_dict_methods,
     python3_list_methods,
     python3_str_methods,
+    python3_type_methods,
     withFileOpenedAndAutoFormatted,
     writeLine,
 )
@@ -233,6 +236,14 @@ processTypeShapeAttribute(
     python2_list_methods,
     python3_list_methods,
 )
+
+processTypeShapeAttribute(
+    "tshape_type",
+    nuitka.specs.BuiltinTypeOperationSpecs,
+    python2_type_methods,
+    python3_type_methods,
+)
+
 
 attribute_shape_empty = {}
 
