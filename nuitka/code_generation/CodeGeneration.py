@@ -84,6 +84,7 @@ from .ClassCodes import (
     generateBuiltinSuper1Code,
     generateBuiltinSuperCode,
     generateSelectMetaclassCode,
+    generateTypeOperationPrepareCode,
 )
 from .CodeHelpers import addExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import (
@@ -717,6 +718,7 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_LIST_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_TYPE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
         "EXPRESSION_CONSTANT_UNION_TYPE": generateConstantReferenceCode,
@@ -933,6 +935,7 @@ addExpressionDispatchDict(
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
         # TODO: Should have all of these generically or not. This one is required for now.
         "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
+        "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
     }
 )
 
