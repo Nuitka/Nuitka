@@ -329,49 +329,20 @@ class LocalsDictHandle(LocalsDictHandleBase):
         return tshape_unknown
 
     def _considerPropagation(self, trace_collection):
-        self.complete = True
-
-        propagate = True
-
         for variable in self.variables.values():
             for variable_trace in variable.traces:
-                if variable_trace.isAssignTrace():
-                    # For assign traces we want the value to not have a side effect,
-                    # then we can push it down the line. TODO: Once temporary
-                    # variables and dictionary building allows for unset values
-                    # remove this
-                    if (
-                        variable_trace.getAssignNode().subnode_source.mayHaveSideEffects()
-                    ):
-                        propagate = False
-                        break
-                elif variable_trace.isDeletedTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isMergeTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isUninitializedTrace():
-                    pass
-                elif variable_trace.isUnknownTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isEscapeTrace():
-                    propagate = False
-                    break
-                else:
-                    assert False, (variable, variable_trace)
+                if variable_trace.inhibitsClassScopeForwardPropagation():
+                    return False
 
-        if propagate:
-            trace_collection.signalChange(
-                "var_usage",
-                self.owner.getSourceReference(),
-                message="Forward propagage locals dictionary.",
-            )
+        trace_collection.signalChange(
+            "var_usage",
+            self.owner.getSourceReference(),
+            message="Forward propagate locals dictionary.",
+        )
 
-            self.markForLocalsDictPropagation()
+        self.markForLocalsDictPropagation()
 
-        return propagate
+        return True
 
 
 class LocalsMappingHandle(LocalsDictHandle):
