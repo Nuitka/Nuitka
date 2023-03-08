@@ -101,39 +101,52 @@ def generateDelAttributeCode(statement, emit, context):
         )
 
 
+def getAttributeLookupCode(
+    to_name, source_name, attribute_name, needs_check, emit, context
+):
+    if attribute_name == "__dict__":
+        emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(%s);" % (to_name, source_name))
+    elif attribute_name == "__class__":
+        emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(%s);" % (to_name, source_name))
+    else:
+        emit(
+            "%s = LOOKUP_ATTRIBUTE(%s, %s);"
+            % (to_name, source_name, context.getConstantCode(attribute_name))
+        )
+
+    getErrorExitCode(
+        check_name=to_name,
+        release_name=source_name,
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
+    )
+
+    context.addCleanupTempName(to_name)
+
+
 def generateAttributeLookupCode(to_name, expression, emit, context):
     (source_name,) = generateChildExpressionsCode(
-        expression=expression, emit=emit, context=context
+        expression=expression,
+        emit=emit,
+        context=context,
     )
 
     attribute_name = expression.getAttributeName()
 
-    needs_check = expression.subnode_expression.mayRaiseExceptionAttributeLookup(
-        exception_type=BaseException, attribute_name=attribute_name
-    )
-
     with withObjectCodeTemporaryAssignment(
         to_name, "attribute_value", expression, emit, context
     ) as value_name:
-        if attribute_name == "__dict__":
-            emit("%s = LOOKUP_ATTRIBUTE_DICT_SLOT(%s);" % (value_name, source_name))
-        elif attribute_name == "__class__":
-            emit("%s = LOOKUP_ATTRIBUTE_CLASS_SLOT(%s);" % (value_name, source_name))
-        else:
-            emit(
-                "%s = LOOKUP_ATTRIBUTE(%s, %s);"
-                % (value_name, source_name, context.getConstantCode(attribute_name))
-            )
-
-        getErrorExitCode(
-            check_name=value_name,
-            release_name=source_name,
-            needs_check=needs_check,
+        getAttributeLookupCode(
+            to_name=value_name,
+            source_name=source_name,
+            attribute_name=attribute_name,
+            needs_check=expression.subnode_expression.mayRaiseExceptionAttributeLookup(
+                exception_type=BaseException, attribute_name=attribute_name
+            ),
             emit=emit,
             context=context,
         )
-
-        context.addCleanupTempName(value_name)
 
 
 def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit, context):
