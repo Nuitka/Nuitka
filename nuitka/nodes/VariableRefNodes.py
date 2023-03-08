@@ -387,10 +387,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             "owner": self.variable.getOwner().getCodeName(),
         }
 
-    @staticmethod
-    def isExpressionTempVariableRef():
-        return True
-
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
         assert cls is ExpressionVariableRef, cls
@@ -704,6 +700,10 @@ class ExpressionTempVariableRef(
 
     def getDetails(self):
         return {"variable": self.variable}
+
+    @staticmethod
+    def isExpressionTempVariableRef():
+        return True
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
