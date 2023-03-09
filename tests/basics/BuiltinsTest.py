@@ -75,8 +75,10 @@ def someFunctionWritingLocalsContainingExec():
 
 
 print("Testing locals():")
-print(someFunctionWritingLocals())
-print(someFunctionWritingLocalsContainingExec())
+print("writing to locals():", someFunctionWritingLocals())
+print(
+    "writing to locals() with exec() usage:", someFunctionWritingLocalsContainingExec()
+)
 
 
 def displayDict(d):
