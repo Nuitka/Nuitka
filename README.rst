@@ -978,6 +978,25 @@ It's also driven by a configuration file, ``anti-bloat.yml`` that you
 can contribute to, removing typical bloat from packages. Feel free to
 enhance it and make PRs towards Nuitka with it.
 
+Standalone: Finding files
+=========================
+
+The standard code that normally works, also works, you should refer to
+``os.path.dirname(__file__)`` or use all the packages like ``pkgutil``,
+``pkg_resources``, ``importlib.resources`` to locate data files near the
+standalone binary.
+
+.. important::
+
+   What you should **not** do, is use the current directory
+   ``os.getcwd``, or assume that this is the script directory, e.g. with
+   paths like ``data/``.
+
+   If you did that, it was never good code. Links, to a program,
+   launching from another directory, etc. will all fail in bad ways. Do
+   not make assumptions about the directory your program is started
+   from.
+
 Onefile: Finding files
 ======================
 
@@ -998,21 +1017,6 @@ which you expect to be inside the onefile binary, access them like this.
    open(os.path.join(os.path.dirname(sys.argv[0]), "user-provided-file.txt"))
    # This will find a file *inside* your onefile.exe
    open(os.path.join(os.path.dirname(__file__), "user-provided-file.txt"))
-
-Standalone: Finding files
--------------------------
-
-The standard code that normally works, also works, you should refer to
-``os.path.dirname(__file__)`` or use all the packages like ``pkgutil``,
-``pkg_resources``, ``importlib.resources`` to locate data files near the
-standalone binary.
-
-.. important::
-
-   What you should **not** do, is use the current directory
-   ``os.getcwd``, assuming that this is the script directory, that is
-   not generally true, and was never good code. Links, to a program,
-   etc. will all fail in bad ways.
 
 Windows Programs without console give no errors
 ===============================================
