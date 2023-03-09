@@ -868,6 +868,13 @@
       replacements_plain:
         'from keras.testing_infra.test_utils import layer_test': ''
 
+- module-name: 'keras.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import display': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'kivy'
   data-files:
     dirs:
@@ -3573,6 +3580,13 @@
       replacements:
         'distutils_version.LooseVersion': "'str'"
         'from distutils import version as distutils_version': ''
+
+- module-name: 'tensorflow.python.keras.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import display': 'raise ImportError'
+      when: 'not use_ipython'
 
 - module-name: 'tensorflow.python.ops.distributions.distribution'
   anti-bloat:
