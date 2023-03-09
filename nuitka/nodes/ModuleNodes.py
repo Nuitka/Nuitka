@@ -583,13 +583,11 @@ class CompiledPythonModule(
         was_complete = not self.locals_scope.complete
 
         def markAsComplete(body, trace_collection):
-            if (
-                body.locals_scope is not None
-                and body.locals_scope.isMarkedForPropagation()
-            ):
-                body.locals_scope = None
-
             if body.locals_scope is not None:
+                # Make sure the propagated stuff releases memory.
+                if body.locals_scope.isMarkedForPropagation():
+                    body.locals_scope.onPropagationComplete()
+
                 body.locals_scope.markAsComplete(trace_collection)
 
         def markEntryPointAsComplete(body):

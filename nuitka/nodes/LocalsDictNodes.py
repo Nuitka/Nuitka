@@ -29,6 +29,7 @@ from nuitka.tree.TreeHelpers import makeStatementsSequence
 from .ChildrenHavingMixins import ChildHavingFallbackMixin
 from .ConditionalNodes import ExpressionConditional
 from .ExpressionBases import ExpressionBase
+from .GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
 from .NodeBases import StatementBase
 from .StatementBasesGenerated import (
     StatementLocalsDictOperationSetBase,
@@ -94,9 +95,12 @@ class ExpressionLocalsVariableRefOrFallback(ChildHavingFallbackMixin, Expression
             return replacement.computeExpressionRaw(trace_collection)
 
         # TODO: Split exec locals variable references out to distinct node type.
-        no_exec = not self.locals_scope.isUnoptimizedFunctionScope()
+        no_exec = (
+            not self.locals_scope.isUnoptimizedFunctionScope()
+            and not self.locals_scope.isPreventedPropagation()
+        )
 
-        # if we can be sure if doesn't have a value set, go to the fallback directly.
+        # If we can be sure it doesn't have a value set, go to the fallback directly.
         if no_exec and self.variable_trace.mustNotHaveValue():
             return trace_collection.computedExpressionResultRaw(
                 self.subnode_fallback,
@@ -247,7 +251,10 @@ class ExpressionLocalsVariableRef(ExpressionBase):
         }
 
     def getDetailsForDisplay(self):
-        return {"variable_name": self.getVariableName()}
+        return {
+            "locals_scope": self.locals_scope.getCodeName(),
+            "variable_name": self.getVariableName(),
+        }
 
     def getVariableName(self):
         return self.variable.getName()
@@ -355,11 +362,9 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
 
     __slots__ = ("variable", "variable_version", "variable_trace")
 
-    # TODO: Specialize for Python3 maybe to save attribute for Python2.
-    may_raise_set = python_version >= 0x300
+    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     def postInitNode(self):
-        # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
         self.variable = self.locals_scope.getLocalsDictVariable(
             variable_name=self.variable_name
@@ -375,6 +380,12 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     def getDetails(self):
         return {
             "locals_scope": self.locals_scope,
+            "variable_name": self.getVariableName(),
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "locals_scope": self.locals_scope.getCodeName(),
             "variable_name": self.getVariableName(),
         }
 
@@ -423,15 +434,30 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
             variable=self.variable, version=self.variable_version, assign_node=self
         )
 
-        if self.may_raise_set:
+        if not self.locals_scope.hasShapeDictionaryExact():
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
-    def mayRaiseException(self, exception_type):
-        return self.may_raise_set or self.subnode_source.mayRaiseException(
-            exception_type
-        )
+    if python_version >= 0x300:
+
+        def mayRaiseException(self, exception_type):
+            return (
+                not self.locals_scope.hasShapeDictionaryExact()
+                or self.subnode_source.mayRaiseException(exception_type)
+            )
+
+        def mayRaiseExceptionOperation(self):
+            return not self.locals_scope.hasShapeDictionaryExact()
+
+    else:
+
+        def mayRaiseException(self, exception_type):
+            return self.subnode_source.mayRaiseException(exception_type)
+
+        @staticmethod
+        def mayRaiseExceptionOperation():
+            return False
 
     @staticmethod
     def getStatementNiceName():
@@ -476,8 +502,14 @@ class StatementLocalsDictOperationDel(StatementBase):
 
     def getDetails(self):
         return {
-            "variable_name": self.getVariableName(),
             "locals_scope": self.locals_scope,
+            "variable_name": self.getVariableName(),
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "locals_scope": self.locals_scope.getCodeName(),
+            "variable_name": self.getVariableName(),
         }
 
     def getVariableName(self):
@@ -569,6 +601,8 @@ class StatementSetLocals(StatementSetLocalsMixin, StatementSetLocalsBase):
         return self.subnode_new_locals.mayRaiseException(exception_type)
 
     def computeStatementOperation(self, trace_collection):
+        self.locals_scope.setTypeShape(self.subnode_new_locals.getTypeShape())
+
         if self.locals_scope.isMarkedForPropagation():
             self.finalize()
 
@@ -618,6 +652,15 @@ Forward propagating locals.""",
         return "locals dictionary init statement"
 
 
+class ExpressionLocalsDictRef(ExpressionBuiltinLocalsRef):
+    kind = "EXPRESSION_LOCALS_DICT_REF"
+
+    # Only way we use it.
+    @staticmethod
+    def isFinalUseOfLocals():
+        return True
+
+
 class StatementReleaseLocals(StatementBase):
     kind = "STATEMENT_RELEASE_LOCALS"
 
@@ -657,6 +700,11 @@ class StatementReleaseLocals(StatementBase):
 
     def getDetails(self):
         return {"locals_scope": self.locals_scope}
+
+    def getDetailsForDisplay(self):
+        return {
+            "locals_scope": self.locals_scope.getCodeName(),
+        }
 
     def getLocalsScope(self):
         return self.locals_scope
