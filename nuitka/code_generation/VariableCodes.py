@@ -217,14 +217,13 @@ def getPickedCType(variable, context):
         else:
             shapes = variable.getTypeShapes()
 
-            if len(shapes) > 1:
+            if len(shapes) != 1:
                 # Avoiding this for now, but we will have to use our enum
                 # based code variants, either generated or hard coded in
                 # the future.
-                return CTypePyObjectPtr
-
-            r = shapes.pop().getCType()
-            return r
+                result = CTypePyObjectPtr
+            else:
+                result = shapes.pop().getCType()
 
     elif context.isForDirectCall():
         if variable.isSharedTechnically():
