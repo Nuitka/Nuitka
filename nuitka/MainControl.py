@@ -904,7 +904,7 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
     sys.exit(error_message)
 
 
-def main():
+def _main():
     """Main program flow of Nuitka
 
     At this point, options will be parsed already, Nuitka will be executing
@@ -1055,7 +1055,7 @@ not use compiled code while it exists."""
 
     general.info("Successfully created '%s'." % final_filename)
 
-    writeCompilationReports()
+    writeCompilationReports(aborted=False)
 
     run_filename = OutputDirectories.getResultRunFilename(
         onefile=Options.isOnefileMode()
@@ -1081,3 +1081,14 @@ not use compiled code while it exists."""
                 "Execute it by launching '%s', the batch file needs to set environment."
                 % run_filename
             )
+
+
+def main():
+    try:
+        _main()
+    finally:
+        if sys.exc_info() != (None, None, None):
+            try:
+                writeCompilationReports(aborted=True)
+            except BaseException as e:  # Catch all the things, pylint: disable=broad-except
+                general.warning("Report writing prevented by exception %s" % e)

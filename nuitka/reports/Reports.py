@@ -23,6 +23,7 @@ These reports are in XML form, and with Jinja2 templates in any form you like.
 
 import os
 import sys
+import traceback
 
 from nuitka import TreeXML
 from nuitka.containers.OrderedSets import OrderedSet
@@ -51,7 +52,7 @@ from nuitka.utils.Utils import getArchitecture, getOS
 from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 
-def _getReportInputData():
+def _getReportInputData(aborted):
     """Collect all information for reporting into a dictionary."""
 
     # used with locals for laziness and these are to populate a dictionary with
@@ -112,6 +113,10 @@ def _getReportInputData():
 
     nuitka_version = getNuitkaVersion()
     nuitka_commercial_version = getCommercialVersion() or "not installed"
+
+    nuitka_aborted = aborted
+
+    nuitka_exception = sys.exc_info()
 
     return dict(
         (var_name, var_value)
@@ -208,11 +213,31 @@ def writeCompilationReport(report_filename, report_input_data):
     """Write the compilation report in XML format."""
     # Many details, pylint: disable=too-many-branches,too-many-locals
 
+    if not report_input_data["nuitka_aborted"]:
+        completion = "yes"
+    elif report_input_data["nuitka_exception"][0] is KeyboardInterrupt:
+        completion = "interrupted"
+    elif report_input_data["nuitka_exception"][0] is SystemExit:
+        completion = "error (%s)" % report_input_data["nuitka_exception"][1].code
+    else:
+        completion = "exception"
+
     root = TreeXML.Element(
         "nuitka-compilation-report",
         nuitka_version=report_input_data["nuitka_version"],
         nuitka_commercial_version=report_input_data["nuitka_commercial_version"],
+        completion=completion,
     )
+
+    if completion == "exception":
+        exception_xml_node = TreeXML.appendTreeElement(
+            root,
+            "exception",
+            exception_type=str(sys.exc_info()[0].__name__),
+            exception_value=str(sys.exc_info()[1]),
+        )
+
+        exception_xml_node.text = "\n" + traceback.format_exc()
 
     _addModulesToReport(root, report_input_data)
 
@@ -395,12 +420,12 @@ def writeCompilationReportFromTemplate(
         )
 
 
-def writeCompilationReports():
+def writeCompilationReports(aborted):
     report_filename = getCompilationReportFilename()
     template_specs = getCompilationReportTemplates()
 
     if report_filename or template_specs:
-        report_input_data = _getReportInputData()
+        report_input_data = _getReportInputData(aborted)
 
         if report_filename:
             writeCompilationReport(
