@@ -648,6 +648,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_REF": generateBuiltinLocalsRefCode,
+        "EXPRESSION_LOCALS_DICT_REF": generateBuiltinLocalsRefCode,
         "EXPRESSION_BUILTIN_GLOBALS": generateBuiltinGlobalsCode,
         "EXPRESSION_BUILTIN_SUPER0": generateBuiltinSuperCode,
         "EXPRESSION_BUILTIN_SUPER2": generateBuiltinSuperCode,
