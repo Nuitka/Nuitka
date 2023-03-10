@@ -144,6 +144,7 @@
         "distutils",
         "Doxygen",
         "dpkg",
+        "dtrace",
         "dtruss",
         "dunder",
         "DYLD",

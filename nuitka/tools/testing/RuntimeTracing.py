@@ -38,6 +38,8 @@ from nuitka.utils.Execution import (
 from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Utils import isFreeBSD, isMacOS, isWin32Windows
 
+from .Common import traceExecutedCommand
+
 
 def _getRuntimeTraceOfLoadedFilesWin32(logger, command, required):
     path = command[0]
@@ -83,9 +85,8 @@ def _getRuntimeTraceOfLoadedFilesWin32(logger, command, required):
     return result
 
 
-def _parseSystemCallTraceOutput(logger, command):
+def _takeSystemCallTraceOutput(logger, path, command):
     tracing_tool = command[0] if command[0] != "sudo" else command[1]
-    path = command[1] if command[0] != "sudo" else command[2]
 
     result = []
 
@@ -93,7 +94,12 @@ def _parseSystemCallTraceOutput(logger, command):
     # tests may fail otherwise due to unexpected libs being loaded
     # spell-checker: ignore ENOENT
     with withEnvironmentVarOverridden("LD_PRELOAD", None):
-        _stdout_strace, stderr_strace, exit_strace = executeProcess(command)
+        if os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0":
+            traceExecutedCommand("Tracing with:", command)
+
+        _stdout_strace, stderr_strace, exit_strace = executeProcess(
+            command, stdin=False, timeout=5 * 60
+        )
 
         if exit_strace != 0:
             if str is not bytes:
@@ -101,6 +107,9 @@ def _parseSystemCallTraceOutput(logger, command):
 
             logger.warning(stderr_strace)
             logger.sysexit("Failed to run '%s'." % tracing_tool)
+
+        if b"dtrace: system integrity protection is on" in stderr_strace:
+            logger.sysexit("System integrity protection prevents system call tracing.")
 
         with open(path + "." + tracing_tool, "wb") as f:
             f.write(stderr_strace)
@@ -144,11 +153,10 @@ Error, needs 'dtruss' on your system to scan used libraries."""
 Error, needs 'sudo' on your system to scan used libraries."""
         )
 
-    command = ("sudo", "dtruss", "-t", "open", os.path.abspath(command[0])) + tuple(
-        command[1:]
-    )
+    binary_path = os.path.abspath(command[0])
+    command = ("sudo", "dtruss", "-t", "open", binary_path) + tuple(command[1:])
 
-    return _parseSystemCallTraceOutput(logger, command)
+    return _takeSystemCallTraceOutput(logger=logger, command=command, path=binary_path)
 
 
 def _getRuntimeTraceOfLoadedFilesStrace(logger, command):
@@ -158,15 +166,42 @@ def _getRuntimeTraceOfLoadedFilesStrace(logger, command):
 Error, needs 'strace' on your system to scan used libraries."""
         )
 
+    binary_path = os.path.abspath(command[0])
+
     command = (
         "strace",
         "-e",
         "file",
         "-s4096",  # Some paths are truncated in output otherwise
-        os.path.abspath(command[0]),
+        binary_path,
     ) + tuple(command[1:])
 
-    return _parseSystemCallTraceOutput(logger, command)
+    return _takeSystemCallTraceOutput(logger=logger, command=command, path=binary_path)
+
+
+_supports_taking_runtime_traces = None
+
+
+def doesSupportTakingRuntimeTrace():
+    if not isMacOS():
+        return True
+
+    # singleton, pylint: disable=global-statement
+    global _supports_taking_runtime_traces
+
+    if _supports_taking_runtime_traces is None:
+        command = ("sudo", "dtruss", "-t", "open", "echo")
+
+        _stdout, stderr, exit_code = executeProcess(
+            command, stdin=False, timeout=5 * 60
+        )
+
+        _supports_taking_runtime_traces = (
+            exit_code == 0
+            and b"dtrace: system integrity protection is on" not in stderr
+        )
+
+    return _supports_taking_runtime_traces
 
 
 def getRuntimeTraceOfLoadedFiles(logger, command, required=False):
