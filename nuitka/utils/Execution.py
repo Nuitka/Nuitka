@@ -397,7 +397,9 @@ def createProcess(
     return process
 
 
-def executeProcess(command, env=None, stdin=False, shell=False, external_cwd=False):
+def executeProcess(
+    command, env=None, stdin=False, shell=False, external_cwd=False, timeout=None
+):
     process = createProcess(
         command=command, env=env, stdin=stdin, shell=shell, external_cwd=external_cwd
     )
@@ -408,6 +410,12 @@ def executeProcess(command, env=None, stdin=False, shell=False, external_cwd=Fal
         process_input = stdin
     else:
         process_input = None
+
+    kw_args = {}
+    if timeout is not None:
+        # Apply timeout if possible.
+        if "timeout" in subprocess.Popen.communicate.__code__.co_varnames:
+            kw_args["timeout"] = timeout
 
     stdout, stderr = process.communicate(input=process_input)
     exit_code = process.wait()
