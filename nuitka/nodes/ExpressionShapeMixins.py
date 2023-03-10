@@ -96,7 +96,7 @@ class ExpressionSpecificDerivedMixinBase(object):
         return False
 
     @staticmethod
-    def hasShapeFrozesetExact():
+    def hasShapeFrozensetExact():
         return False
 
     @staticmethod
@@ -381,7 +381,7 @@ class ExpressionTupleShapeExactMixin(
         return tshape_tuple
 
     @staticmethod
-    def hasShapeSetExact():
+    def hasShapeTupleExact():
         return True
 
     @staticmethod

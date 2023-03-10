@@ -41,6 +41,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
+    tshape_bool,
     tshape_bytes,
     tshape_dict,
     tshape_list,
@@ -925,6 +926,10 @@ class ExpressionBase(NodeBase):
     def hasShapeBytesExact(self):
         """Does an expression have exactly a bytes shape."""
         return self.getTypeShape() is tshape_bytes
+
+    def hasShapeBoolExact(self):
+        """Does an expression have exactly a bool shape."""
+        return self.getTypeShape() is tshape_bool
 
     @staticmethod
     def hasVeryTrustedValue():
