@@ -833,7 +833,7 @@ def reportSkip(reason, dirname, filename):
     case = os.path.join(dirname, filename)
     case = os.path.normpath(case)
 
-    my_print("Skipped, %s (%s)." % (case, reason))
+    test_logger.info("Skipped, %s (%s)." % (case, reason))
 
 
 def executeReferenceChecked(
@@ -1906,3 +1906,7 @@ def getLocalWebServerDir(base_dir):
         atexit.register(killWebServerProcess)
 
     return web_dir
+
+
+def traceExecutedCommand(description, command):
+    my_print(description, ":", *command, style="pink")
