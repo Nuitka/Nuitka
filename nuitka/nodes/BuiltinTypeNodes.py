@@ -179,6 +179,13 @@ class ExpressionBuiltinBool(ExpressionBoolShapeExactMixin, ExpressionBuiltinType
                 "Predicted truth value of built-in bool argument",
             )
 
+        if value.hasShapeBoolExact():
+            return (
+                value,
+                "new_expression",
+                "Eliminated boolean conversion of boolean value.",
+            )
+
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
     def mayRaiseException(self, exception_type):
