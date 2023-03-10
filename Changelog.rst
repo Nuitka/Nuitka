@@ -13306,7 +13306,7 @@ Bug Fixes
 -  Compatibility: The name mangling inside classes also needs to be
    applied to global variables.
 
--  Fix, proving ``clang++`` for ``CXX`` was mistakingly thinking of it
+-  Fix, providing ``clang++`` for ``CXX`` was mistakenly thinking of it
    as a ``g++`` and making version checks on it.
 
 -  Python3: Declaring ``__class__`` global is now a ``SyntaxError``
