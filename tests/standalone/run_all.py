@@ -48,15 +48,18 @@ from nuitka.tools.testing.Common import (
     checkRequirements,
     compareWithCPython,
     createSearchMode,
-    decideFilenameVersionSkip,
     displayFileContents,
     displayFolderContents,
     displayRuntimeTraces,
     reportSkip,
+    scanDirectoryForTestCases,
     setup,
     test_logger,
 )
-from nuitka.tools.testing.RuntimeTracing import getRuntimeTraceOfLoadedFiles
+from nuitka.tools.testing.RuntimeTracing import (
+    doesSupportTakingRuntimeTrace,
+    getRuntimeTraceOfLoadedFiles,
+)
 from nuitka.utils.FileOperations import removeDirectory
 from nuitka.utils.Timing import TimerReport
 from nuitka.utils.Utils import isMacOS, isWin32Windows
@@ -80,17 +83,10 @@ def main():
 
     search_mode = createSearchMode()
 
-    for filename in sorted(os.listdir(".")):
-        if not filename.endswith(".py"):
-            continue
-
-        if not decideFilenameVersionSkip(filename):
-            continue
-
+    for filename in scanDirectoryForTestCases("."):
         active = search_mode.consider(dirname=None, filename=filename)
 
         if not active:
-            test_logger.info("Skipping %s" % filename)
             continue
 
         extra_flags = [
@@ -254,29 +250,34 @@ def main():
             filename[:-3] + (".exe" if os.name == "nt" else ".bin"),
         )
 
-        # Then use "strace" on the result.
-        with TimerReport(
-            "Determining run time loaded files took %.2f", logger=test_logger
-        ):
-            loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger, command=[binary_filename]
+        try:
+            if not doesSupportTakingRuntimeTrace():
+                test_logger.info("Runtime traces are not possible on this machine.")
+                continue
+
+            # Then use "strace" on the result.
+            with TimerReport(
+                "Determining run time loaded files took %.2f", logger=test_logger
+            ):
+                loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                    logger=test_logger, command=[binary_filename]
+                )
+
+            illegal_accesses = checkLoadedFileAccesses(
+                loaded_filenames=loaded_filenames, current_dir=os.getcwd()
             )
 
-        illegal_accesses = checkLoadedFileAccesses(
-            loaded_filenames=loaded_filenames, current_dir=os.getcwd()
-        )
+            if illegal_accesses:
+                displayError(None, filename)
+                displayRuntimeTraces(test_logger, binary_filename)
 
-        if illegal_accesses:
-            displayError(None, filename)
-            displayRuntimeTraces(test_logger, binary_filename)
+                test_logger.warning(
+                    "Should not access these file(s): '%r'." % illegal_accesses
+                )
 
-            test_logger.warning(
-                "Should not access these file(s): '%r'." % illegal_accesses
-            )
-
-            search_mode.onErrorDetected(1)
-
-        removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
+                search_mode.onErrorDetected(1)
+        finally:
+            removeDirectory(filename[:-3] + ".dist", ignore_errors=True)
 
     search_mode.finish()
 

@@ -38,6 +38,7 @@ from nuitka.tools.testing.Common import (
     getTestingCPythonOutputsCacheDir,
     killProcessGroup,
     test_logger,
+    traceExecutedCommand,
     withPythonPathChange,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
@@ -587,7 +588,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
         pdb_filename = exe_filename[:-4] + ".pdb"
 
     if trace_command:
-        my_print("CPython command:", *cpython_cmd)
+        traceExecutedCommand("CPython command", cpython_cmd)
 
     if comparison_mode:
         cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(
@@ -620,7 +621,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".format
 
     if not two_step_execution:
         if trace_command:
-            my_print("Nuitka command:", nuitka_cmd)
+            traceExecutedCommand("Nuitka command", nuitka_cmd)
 
         # Try a couple of times for permission denied, on Windows it can
         # be transient.
