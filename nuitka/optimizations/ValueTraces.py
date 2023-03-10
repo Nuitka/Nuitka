@@ -208,6 +208,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def hasShapeBoolExact():
+        return False
+
+    @staticmethod
     def getTruthValue():
         return None
 
@@ -553,6 +557,9 @@ class ValueTraceAssign(ValueTraceBase):
 
     def hasShapeUnicodeExact(self):
         return self.assign_node.subnode_source.hasShapeUnicodeExact()
+
+    def hasShapeBoolExact(self):
+        return self.assign_node.subnode_source.hasShapeBoolExact()
 
     def getTruthValue(self):
         return self.assign_node.subnode_source.getTruthValue()
