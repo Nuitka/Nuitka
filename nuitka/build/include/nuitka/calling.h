@@ -23,8 +23,14 @@
 #include "nuitka/prelude.h"
 #endif
 
+// For exception test formatting and call code mostly.
+extern char const *GET_CALLABLE_NAME(PyObject *object);
+extern char const *GET_CALLABLE_DESC(PyObject *object);
+extern char const *GET_CLASS_NAME(PyObject *klass);
+extern char const *GET_INSTANCE_CLASS_NAME(PyObject *instance);
+
 // Also used in generated helper code.
-NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject *result) {
+NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject *callable, PyObject *result) {
     if (result == NULL) {
         if (unlikely(!ERROR_OCCURRED())) {
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error from call");
@@ -39,8 +45,11 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject
 
 #if PYTHON_VERSION < 0x3a0
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with error set from call");
-#else
+#elif PYTHON_VERSION < 0x3b0
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "result with exception set from call");
+#else
+            SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_SystemError, "%s() returned a result with an exception set",
+                                                GET_CALLABLE_NAME(callable));
 #endif
             return NULL;
         }
@@ -75,7 +84,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, P
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(function_object, result);
 }
 
 // Function call variant with no arguments provided at all.
@@ -97,15 +106,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyObject *funct
 // Call built-in functions with using defaulted values.
 extern PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args);
 
-#include "nuitka/helper/calling2.h"
-
-// For exception test formatting and call code mostly.
-extern char const *GET_CALLABLE_NAME(PyObject *object);
-extern char const *GET_CALLABLE_DESC(PyObject *object);
-extern char const *GET_CLASS_NAME(PyObject *klass);
-extern char const *GET_INSTANCE_CLASS_NAME(PyObject *instance);
-
 // For abstract class instantiation error message, during call.
 extern void formatCannotInstantiateAbstractClass(PyTypeObject *type);
+
+#include "nuitka/helper/calling_generated.h"
 
 #endif

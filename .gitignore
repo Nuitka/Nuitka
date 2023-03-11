@@ -26,6 +26,7 @@ __pycache__/
 *.optimization.log
 *.inclusion.log
 *.strace
+*.dtruss
 *.nuitka-pgo
 .mypy_cache
 *.egg-info

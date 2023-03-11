@@ -18,6 +18,11 @@
 #ifndef __NUITKA_ALLOCATOR_H__
 #define __NUITKA_ALLOCATOR_H__
 
+/* This file is included from another C file, help IDEs to still parse it on its own. */
+#ifdef __IDE_ONLY__
+#include "nuitka/prelude.h"
+#endif
+
 #if PYTHON_VERSION >= 0x380
 // Need to make Py_DECREF a macro again that doesn't call an API
 static inline void _Nuitka_Py_DECREF(PyObject *ob) {
@@ -101,32 +106,12 @@ static inline int Nuitka_PyType_HasFeature(PyTypeObject *type, unsigned long fea
 
 #if PYTHON_VERSION >= 0x3b0
 
-#include <internal/pycore_gc.h>
-typedef struct _gc_runtime_state GCState;
-
-#define AS_GC(o) ((PyGC_Head *)(((char *)(o)) - sizeof(PyGC_Head)))
-
-static inline bool HAS_ERROR_OCCURRED(PyThreadState *tstate);
-
-static void Nuitka_PyObject_GC_Link(PyObject *op) {
-    PyGC_Head *g = AS_GC(op);
-    assert(((uintptr_t)g & (sizeof(uintptr_t) - 1)) == 0); // g must be correctly aligned
-
-    PyThreadState *tstate = _PyThreadState_GET();
-    GCState *gcstate = &tstate->interp->gc;
-    g->_gc_next = 0;
-    g->_gc_prev = 0;
-    gcstate->generations[0].count++;
-    if (gcstate->generations[0].count > gcstate->generations[0].threshold && gcstate->enabled &&
-        gcstate->generations[0].threshold && !gcstate->collecting && !HAS_ERROR_OCCURRED(tstate)) {
-        PyGC_Collect();
-    }
-}
-
 static inline size_t Nuitka_PyType_PreHeaderSize(PyTypeObject *tp) {
     return _PyType_IS_GC(tp) * sizeof(PyGC_Head) +
            Nuitka_PyType_HasFeature(tp, Py_TPFLAGS_MANAGED_DICT) * 2 * sizeof(PyObject *);
 }
+
+extern void Nuitka_PyObject_GC_Link(PyObject *op);
 
 static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t nitems) {
     // There is always a sentinel now, therefore add one
@@ -140,6 +125,7 @@ static PyObject *Nuitka_PyType_AllocNoTrackVar(PyTypeObject *type, Py_ssize_t ni
     assert(alloc);
     PyObject *obj = (PyObject *)(alloc + pre_size);
 
+    assert(pre_size);
     if (pre_size) {
         ((PyObject **)alloc)[0] = NULL;
         ((PyObject **)alloc)[1] = NULL;

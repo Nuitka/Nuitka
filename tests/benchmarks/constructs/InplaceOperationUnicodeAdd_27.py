@@ -17,6 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_value1 = 5
 
@@ -43,7 +44,6 @@ def calledRepeatedly():
 
     return s
 
-import itertools
 for x in itertools.repeat(None, 5000):
     calledRepeatedly()
 

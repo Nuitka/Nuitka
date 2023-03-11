@@ -21,6 +21,26 @@
             "intelliSenseMode": "msvc-x64"
         },
         {
+            "name": "Win32-Py311",
+            "includePath": [
+                "${workspaceFolder}/nuitka/build/include",
+                "${workspaceFolder}/nuitka/build/inline_copy/zstd",
+                "C:\\Python311\\Include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__IDE_ONLY__",
+                "PYTHON_VERSION=0x3a0"
+            ],
+            "windowsSdkVersion": "10.0.19041.0",
+            "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.31.31103/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "msvc-x64"
+        },
+        {
             "name": "Win32-Py310",
             "includePath": [
                 "${workspaceFolder}/nuitka/build/include",
@@ -71,7 +91,7 @@
                 "UNICODE",
                 "_UNICODE",
                 "__IDE_ONLY__",
-                "PYTHON_VERSION=0x3A0"
+                "PYTHON_VERSION=0x3a0"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
@@ -115,7 +135,8 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "${default}"
-        }
+        },
+
     ],
     "version": 4
 }

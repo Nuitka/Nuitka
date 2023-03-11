@@ -59,6 +59,7 @@ from .shapes.BuiltinTypeShapes import (
     tshape_str_or_unicode,
     tshape_str_or_unicode_derived,
     tshape_tuple,
+    tshape_type,
     tshape_unicode,
     tshape_unicode_derived,
 )
@@ -95,7 +96,7 @@ class ExpressionSpecificDerivedMixinBase(object):
         return False
 
     @staticmethod
-    def hasShapeFrozesetExact():
+    def hasShapeFrozensetExact():
         return False
 
     @staticmethod
@@ -268,6 +269,13 @@ class ExpressionDictShapeExactMixin(
             constant=dict, node=self, user_provided=False
         )
 
+    # TODO: Make it really abstract to force all to take benefit of it.
+    # @abstractmethod
+    @staticmethod
+    def getExpressionDictInConstant(value):
+        # pylint: disable=unused-argument
+        return None
+
 
 class ExpressionListShapeExactMixin(
     ExpressionIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
@@ -373,7 +381,7 @@ class ExpressionTupleShapeExactMixin(
         return tshape_tuple
 
     @staticmethod
-    def hasShapeSetExact():
+    def hasShapeTupleExact():
         return True
 
     @staticmethod
@@ -808,6 +816,34 @@ class ExpressionSliceShapeExactMixin(
     @staticmethod
     def getKnownAttributeValue(attribute_name):
         return getattr(the_empty_slice, attribute_name)
+
+    @staticmethod
+    def isKnownToBeHashable():
+        return False
+
+
+class ExpressionTypeShapeExactMixin(
+    ExpressionNonIterableTypeShapeMixin, ExpressionSpecificExactMixinBase
+):
+    """Mixin for nodes with exact 'type' shape."""
+
+    __slots__ = ()
+
+    @staticmethod
+    def getTypeShape():
+        return tshape_type
+
+    @staticmethod
+    def hasShapeTypeExact():
+        return True
+
+    @staticmethod
+    def isKnownToHaveAttribute(attribute_name):
+        return hasattr(type, attribute_name)
+
+    @staticmethod
+    def getKnownAttributeValue(attribute_name):
+        return getattr(type, attribute_name)
 
     @staticmethod
     def isKnownToBeHashable():

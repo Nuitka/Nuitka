@@ -195,6 +195,8 @@ extern PyObject *OS_LISTDIR(PyObject *path);
 
 // Small helpers to work with filenames.
 extern PyObject *OS_PATH_BASENAME(PyObject *filename);
+extern PyObject *OS_PATH_ABSPATH(PyObject *filename);
+extern PyObject *OS_PATH_ISABS(PyObject *filename);
 
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR(PyObject *value);
@@ -362,10 +364,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
 // Get the binary directory was wide characters.
 extern wchar_t const *getBinaryDirectoryWideChars(void);
 
-#if !defined(_WIN32) || PYTHON_VERSION < 0x300
-// Get the binary directory, translated to native path
+// Get the binary directory, translated to ANSI/native path
 extern char const *getBinaryDirectoryHostEncoded(void);
-#endif
 
 #if _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(void);
@@ -410,5 +410,8 @@ extern PyObject *Py_SysVersionInfo;
 #include "nuitka/python_pgo.h"
 
 extern PyObject *MAKE_UNION_TYPE(PyObject *args);
+
+extern void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_get_attr, bool generic_set_attr,
+                                bool self_iter, bool await_self_iter, bool self_aiter);
 
 #endif

@@ -19,4 +19,4 @@
 #
 """ Small Python2 only test that demonstrates the hex encoding to work. """
 
-print("4B4159".decode("hex")) # Should output "KAY"
+print("4B4159".decode("hex"))  # Should output "KAY"

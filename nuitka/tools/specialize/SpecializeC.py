@@ -36,6 +36,10 @@ from nuitka.code_generation.BinaryOperationHelperDefinitions import (
     getSpecializedBinaryOperations,
     parseTypesFromHelper,
 )
+from nuitka.code_generation.c_types.CTypePyObjectPointers import (
+    make_list_constant_direct_threshold,
+    make_list_constant_hinted_threshold,
+)
 from nuitka.code_generation.CallCodes import (
     getQuickCallCode,
     getQuickMethodCallCode,
@@ -726,8 +730,8 @@ def makeHelperImportModuleHard(template, module_name, emit_h, emit_c, emit):
 
 
 def makeHelperCalls():
-    filename_c = "nuitka/build/static_src/HelpersCalling2.c"
-    filename_h = "nuitka/build/include/nuitka/helper/calling2.h"
+    filename_c = "nuitka/build/static_src/HelpersCallingGenerated.c"
+    filename_h = "nuitka/build/include/nuitka/helper/calling_generated.h"
 
     with withFileOpenedAndAutoFormatted(filename_c) as output_c:
         with withFileOpenedAndAutoFormatted(filename_h) as output_h:
@@ -806,6 +810,51 @@ def makeHelperCalls():
                 emit_h(getTemplateCodeDeclaredFunction(code))
 
 
+def makeHelperLists():
+    filename_c = "nuitka/build/static_src/HelpersListsGenerated.c"
+    filename_h = "nuitka/build/include/nuitka/helper/lists_generated.h"
+
+    with withFileOpenedAndAutoFormatted(filename_c) as output_c:
+        with withFileOpenedAndAutoFormatted(filename_h) as output_h:
+
+            def emit_h(*args):
+                assert args[0] != "extern "
+                writeLine(output_h, *args)
+
+            def emit_c(*args):
+                writeLine(output_c, *args)
+
+            def emit(*args):
+                emit_h(*args)
+                emit_c(*args)
+
+            template = getTemplateC(
+                "nuitka.code_generation", "CodeTemplateMakeListSmall.c.j2"
+            )
+
+            emitGenerationWarning(emit, template.name)
+
+            emitIDE(emit)
+
+            for args_count in range(1, make_list_constant_direct_threshold):
+                code = template.render(args_count=args_count)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
+
+            template = getTemplateC(
+                "nuitka.code_generation", "CodeTemplateMakeListHinted.c.j2"
+            )
+
+            for args_count in range(
+                make_list_constant_direct_threshold, make_list_constant_hinted_threshold
+            ):
+                code = template.render(args_count=args_count)
+
+                emit_c(code)
+                emit_h(getTemplateCodeDeclaredFunction(code))
+
+
 def _makeHelperBuiltinTypeAttributes(
     type_prefix, type_name, python2_methods, python3_methods, emit_c, emit_h
 ):
@@ -815,7 +864,10 @@ def _makeHelperBuiltinTypeAttributes(
         return "%s_builtin_%s" % (type_prefix, method_name)
 
     for method_name in sorted(set(python2_methods + python3_methods)):
-        is_public = method_name in ("format",)
+        is_public = method_name in (
+            "format",
+            "fromkeys",
+        )
 
         if method_name in python2_methods and method_name not in python3_methods:
             emit_c("#if PYTHON_VERSION < 0x300")
@@ -1227,6 +1279,7 @@ def main():
     makeHelpersImportHard()
 
     makeHelperCalls()
+    makeHelperLists()
 
     makeHelpersBinaryOperation("-", "SUB")
     makeHelpersBinaryOperation("*", "MULT")

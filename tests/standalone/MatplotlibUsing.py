@@ -24,6 +24,7 @@ import matplotlib  # pylint:disable=unused-import
 # nuitka-skip-unless-imports: matplotlib
 
 # nuitka-project: --standalone
+# nuitka-project: --enable-plugin=no-qt
 
 # Make sure, the usual bad ones are not included with anti-bloat.
 

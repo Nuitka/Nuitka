@@ -1112,13 +1112,11 @@ def getQuickMethodDescriptorCallCode(args_count):
 
 
 def getTemplateCodeDeclaredFunction(code):
-    return "extern " + code.strip().splitlines()[0].strip().replace(" {", ";").replace(
-        " {", ";"
-    ).replace("static ", "").replace("inline ", "").replace(
-        "HEDLEY_NEVER_INLINE ", ""
-    ).replace(
-        "__BINARY", "BINARY"
-    ).replace(
+    code = code.strip().split("{", 1)[0] + ";"
+
+    return "extern " + code.replace(" {", ";").replace("static ", "").replace(
+        "inline ", ""
+    ).replace("HEDLEY_NEVER_INLINE ", "").replace("__BINARY", "BINARY").replace(
         "_BINARY", "BINARY"
     ).replace(
         "__INPLACE", "INPLACE"

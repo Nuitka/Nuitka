@@ -116,22 +116,6 @@ def generateBuiltinGlobalsCode(to_name, expression, emit, context):
         )
 
 
-def _getLocalVariableList(provider):
-    if provider.isExpressionFunctionBody():
-        include_closure = not provider.isUnoptimized()
-    elif provider.isExpressionClassBody():
-        include_closure = False
-    else:
-        include_closure = True
-
-    return [
-        variable
-        for variable in provider.getProvidedVariables()
-        if not variable.isModuleVariable()
-        if (include_closure or variable.getOwner() is provider)
-    ]
-
-
 def _getVariableDictUpdateCode(
     target_name, variable, variable_trace, initial, is_dict, emit, context
 ):

@@ -24,11 +24,15 @@ that is the child of the dictionary creation.
 
 
 from nuitka import Constants
+from nuitka.specs.BuiltinDictOperationSpecs import dict_fromkeys_spec
+from nuitka.specs.BuiltinParameterSpecs import extractBuiltinArgs
 
 from .AttributeNodes import makeExpressionAttributeLookup
 from .BuiltinOperationNodeBasesGenerated import (
     ExpressionDictOperationClearBase,
     ExpressionDictOperationCopyBase,
+    ExpressionDictOperationFromkeys2Base,
+    ExpressionDictOperationFromkeys3Base,
     ExpressionDictOperationGet2Base,
     ExpressionDictOperationGet3Base,
     ExpressionDictOperationHaskeyBase,
@@ -59,7 +63,7 @@ from .ConstantRefNodes import (
     ExpressionConstantDictEmptyRef,
     makeConstantRefNode,
 )
-from .ExpressionBases import ExpressionBase
+from .ExpressionBases import ExpressionBase, ExpressionNoSideEffectsMixin
 from .ExpressionShapeMixins import (
     ExpressionBoolShapeExactMixin,
     ExpressionDictShapeExactMixin,
@@ -1302,6 +1306,26 @@ class ExpressionDictOperationInNotInUncertainMixin(object):
         if self.known_hashable_key is None:
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        if self.subnode_key.isCompileTimeConstant():
+            truth_value = self.subnode_dict_arg.getExpressionDictInConstant(
+                self.subnode_key.getCompileTimeConstant()
+            )
+
+            if truth_value is not None:
+                # TODO: Ugly that this code is not drawing from derived class methods.
+                if "NOT" in self.kind:
+                    truth_value = not truth_value
+
+                result = wrapExpressionWithSideEffects(
+                    new_node=makeConstantReplacementNode(
+                        constant=truth_value, node=self, user_provided=True
+                    ),
+                    old_node=self,
+                    side_effects=self.getVisitableNodes(),
+                )
+
+                return result, "new_constant", "Predicted dict 'in' truth value"
+
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -1378,3 +1402,107 @@ class ExpressionDictOperationHaskey(
         )
 
         self.known_hashable_key = None
+
+
+class ExpressionDictOperationFromkeys2(ExpressionDictOperationFromkeys2Base):
+    kind = "EXPRESSION_DICT_OPERATION_FROMKEYS2"
+
+    def computeExpression(self, trace_collection):
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        if self.subnode_iterable.isCompileTimeConstant():
+            # TODO: Could be assert against it being None with a compile time constant,
+            # we will usually be able to tell?
+            if None is not self.subnode_iterable.getIterationLength() < 256:
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: dict.fromkeys(
+                        self.subnode_iterable.getCompileTimeConstant()
+                    ),
+                    description="Computed 'dict.fromkeys' with constant value.",
+                )
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_iterable.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return None is not self.subnode_iterable.getIterationLength() < 256
+
+
+class ExpressionDictOperationFromkeys3(ExpressionDictOperationFromkeys3Base):
+    kind = "EXPRESSION_DICT_OPERATION_FROMKEYS3"
+
+    def computeExpression(self, trace_collection):
+        if self.mayRaiseExceptionOperation():
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        if (
+            self.subnode_iterable.isCompileTimeConstant()
+            and self.subnode_value.isCompileTimeConstant()
+        ):
+            # TODO: Could be assert against it being None with a compile time constant,
+            # we will usually be able to tell?
+            if None is not self.subnode_iterable.getIterationLength() < 256:
+                return trace_collection.getCompileTimeComputationResult(
+                    node=self,
+                    computation=lambda: dict.fromkeys(
+                        self.subnode_iterable.getCompileTimeConstant(),
+                        self.subnode_value.getCompileTimeConstant(),
+                    ),
+                    description="Computed 'dict.fromkeys' with constant values.",
+                )
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_iterable.mayRaiseException(exception_type)
+            or self.subnode_value.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+        )
+
+    def mayRaiseExceptionOperation(self):
+        return None is not self.subnode_iterable.getIterationLength() < 256
+
+
+class ExpressionDictOperationFromkeysRef(ExpressionNoSideEffectsMixin, ExpressionBase):
+    kind = "EXPRESSION_DICT_OPERATION_FROMKEYS_REF"
+
+    def finalize(self):
+        del self.parent
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        def wrapExpressionDictOperationFromkeys(iterable, value, source_ref):
+            if value is None:
+                return ExpressionDictOperationFromkeys2(
+                    iterable=iterable, source_ref=source_ref
+                )
+            else:
+                return ExpressionDictOperationFromkeys3(
+                    iterable=iterable, value=value, source_ref=source_ref
+                )
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=wrapExpressionDictOperationFromkeys,
+            builtin_spec=dict_fromkeys_spec,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Call to 'dict.fromkeys' recognized.",
+        )

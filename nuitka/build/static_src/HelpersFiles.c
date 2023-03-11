@@ -201,3 +201,25 @@ PyObject *OS_PATH_BASENAME(PyObject *filename) {
     Py_DECREF(basename_func);
     return result;
 }
+
+PyObject *OS_PATH_ABSPATH(PyObject *filename) {
+    CHECK_OBJECT(filename);
+
+    PyObject *abspath_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_abspath);
+
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(abspath_func, filename);
+
+    Py_DECREF(abspath_func);
+    return result;
+}
+
+PyObject *OS_PATH_ISABS(PyObject *filename) {
+    CHECK_OBJECT(filename);
+
+    PyObject *isabs_func = LOOKUP_ATTRIBUTE(IMPORT_HARD_OS_PATH(), const_str_plain_isabs);
+
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(isabs_func, filename);
+
+    Py_DECREF(isabs_func);
+    return result;
+}

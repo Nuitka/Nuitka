@@ -763,6 +763,17 @@ options that use less memory. For use on embedded machines. Use this in
 case of out of memory problems. Defaults to off.""",
 )
 
+debug_group.add_option(
+    "--create-environment-from-report",
+    action="store",
+    dest="create_environment_from_report",
+    default="",
+    require_compiling=False,
+    help="""\
+Create a new virtualenv in that non-existing path from the report file given with
+e.g. '--report=compilation-report.xml'. Default not done.""",
+)
+
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -1006,8 +1017,10 @@ tracing_group.add_option(
     metavar="REPORT_FILENAME",
     default=None,
     help="""\
-Report module, data files, compilation, plugin, etc. details in an XML output file. This is also
-super useful for issue reporting. Default is off.""",
+Report module, data files, compilation, plugin, etc. details in an XML output file. This
+is also super useful for issue reporting. These reports can e.g. be used to re-create
+the environment easily using it with '--create-environment-from-report', but contain a
+lot of information. Default is off.""",
 )
 
 tracing_group.add_option(
@@ -1786,6 +1799,19 @@ Error, need filename argument with python module or main program."""
         from nuitka.tools.scanning.DisplayPackageData import displayPackageData
 
         displayPackageData(options.list_package_data)
+        sys.exit(0)
+
+    if options.create_environment_from_report:
+        from nuitka.tools.environments.CreateEnvironment import (
+            createEnvironmentFromReport,
+        )
+
+        createEnvironmentFromReport(
+            environment_folder=os.path.expanduser(
+                options.create_environment_from_report
+            ),
+            report_filename=os.path.expanduser(options.compilation_report_filename),
+        )
         sys.exit(0)
 
     if not options.immediate_execution and len(positional_args) > 1:

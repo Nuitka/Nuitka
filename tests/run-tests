@@ -34,10 +34,11 @@ sys.path.insert(
             os.path.dirname(__file__),
             "..",
         )
-    )
+    ),
 )
 
 # isort:start
 
 from nuitka.tools.testing.run_nuitka_tests.__main__ import main
+
 main()

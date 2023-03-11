@@ -21,8 +21,8 @@
 
 """
 
-import sys
 import os
+import sys
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.

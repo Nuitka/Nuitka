@@ -39,13 +39,16 @@ from nuitka.Options import (
 from nuitka.OutputDirectories import getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessingResources
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    getZstandardSupportingVersions,
+    python_version,
+)
 from nuitka.Tracing import onefile_logger, postprocessing_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 from nuitka.utils.FileOperations import areSamePaths, removeDirectory
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Signing import addMacOSCodeSignature
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
 
 
 def packDistFolderToOnefile(dist_dir):
@@ -109,10 +112,8 @@ def _runOnefileScons(onefile_compression):
 
 
 def getCompressorPython():
-    zstandard_supported_pythons = ("3.5", "3.6", "3.7", "3.8", "3.9", "3.10")
-
     compressor_python = findInstalledPython(
-        python_versions=zstandard_supported_pythons,
+        python_versions=getZstandardSupportingVersions(),
         module_name="zstandard",
         module_version="0.15",
     )
@@ -134,6 +135,7 @@ def runOnefileCompressor(
     compressor_python, dist_dir, onefile_output_filename, start_binary
 ):
     file_checksums = not isOnefileTempDirMode()
+    win_path_sep = isWin32OrPosixWindows()
 
     if compressor_python is None or areSamePaths(
         compressor_python.getPythonExe(), sys.executable
@@ -148,6 +150,7 @@ def runOnefileCompressor(
             start_binary=start_binary,
             expect_compression=compressor_python is not None,
             file_checksums=file_checksums,
+            win_path_sep=win_path_sep,
         )
     else:
         onefile_compressor_path = os.path.normpath(
@@ -176,6 +179,7 @@ def runOnefileCompressor(
                     onefile_output_filename,
                     start_binary,
                     str(file_checksums),
+                    str(win_path_sep),
                 ],
                 shell=False,
             )

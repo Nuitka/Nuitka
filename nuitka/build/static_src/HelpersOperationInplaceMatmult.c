@@ -34,11 +34,6 @@ static inline bool _INPLACE_OPERATION_MATMULT_LONG_LONG(PyObject **operand1, PyO
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -80,11 +75,6 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_LONG(PyObject **operand1, P
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -171,11 +161,6 @@ static inline bool _INPLACE_OPERATION_MATMULT_LONG_OBJECT(PyObject **operand1, P
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     PyTypeObject *type2 = Py_TYPE(operand2);
 
 #ifdef _MSC_VER
@@ -255,11 +240,6 @@ static inline bool _INPLACE_OPERATION_MATMULT_FLOAT_FLOAT(PyObject **operand1, P
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -297,11 +277,6 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_FLOAT(PyObject **operand1, 
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -383,11 +358,6 @@ static inline bool _INPLACE_OPERATION_MATMULT_FLOAT_OBJECT(PyObject **operand1, 
     CHECK_OBJECT(*operand1);
     assert(PyFloat_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type2 = Py_TYPE(operand2);
 
@@ -515,11 +485,6 @@ static inline bool _INPLACE_OPERATION_MATMULT_OBJECT_OBJECT(PyObject **operand1,
         return false;
     }
 #endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
     }

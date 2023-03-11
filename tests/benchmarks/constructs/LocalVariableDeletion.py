@@ -17,9 +17,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+
 module_value1 = 1000
 module_value2 = None
 module_value3 = None
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
@@ -33,9 +36,9 @@ def calledRepeatedly():
     module_value2 = local_value
 
     if module_value2 is None:
-# construct_begin
+        # construct_begin
         del local_value
-# construct_end
+        # construct_end
 
         another_local_value = module_value3
 
@@ -44,7 +47,7 @@ def calledRepeatedly():
     local_value = module_value3
     return local_value
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

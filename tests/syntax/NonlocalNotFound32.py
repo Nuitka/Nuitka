@@ -15,12 +15,14 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 def testNonlocal():
     x = 0
     y = 0
+
     def f():
         nonlocal z
+
     f()
+
 
 testNonlocal()

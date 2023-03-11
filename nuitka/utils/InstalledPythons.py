@@ -20,9 +20,7 @@
 import os
 import sys
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    WindowsError,
-)
+from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version_str
 
@@ -126,7 +124,7 @@ def getInstalledPythonRegistryPaths(python_version):
 
     for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
         for arch_key in (0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY):
-            for suffix in "", "-32":
+            for suffix in "", "-32", "-arm64":
                 try:
                     key = winreg.OpenKey(
                         hkey_branch,

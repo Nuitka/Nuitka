@@ -19,14 +19,17 @@
 #
 from __future__ import print_function
 
-exec("""
+import itertools
+
+exec(
+    """
 def python_func(a,b,c,d,e,f):
     pass
-""")
-
-a = (
-   1, 2, 3, 4, 5
+"""
 )
+
+a = (1, 2, 3, 4, 5)
+
 
 def calledRepeatedly(python_f):
     # This is supposed to make a call to a non-compiled function, which is
@@ -35,15 +38,15 @@ def calledRepeatedly(python_f):
     # Force a frame for now.
     args = a
 
-# construct_begin
+    # construct_begin
     python_f(3, *args)
-# construct_alternative
+    # construct_alternative
     pass
-# construct_end
+    # construct_end
 
     return python_f, args
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(python_func)
 

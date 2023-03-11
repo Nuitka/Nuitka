@@ -25,7 +25,7 @@ source code comments with Developer Manual sections.
 from nuitka.nodes.AttributeNodes import makeExpressionAttributeLookup
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinAnonymousRef
 from nuitka.nodes.CallNodes import makeExpressionCall
-from nuitka.nodes.ClassNodes import ExpressionClassBody
+from nuitka.nodes.ClassNodes import ExpressionClassBodyP2
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import ExpressionConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -76,7 +76,7 @@ def buildClassNode2(provider, node, source_ref):
     # according to Developer Manual, and it's very detailed, pylint: disable=too-many-locals
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
-    function_body = ExpressionClassBody(
+    function_body = ExpressionClassBodyP2(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 

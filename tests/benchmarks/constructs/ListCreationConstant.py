@@ -17,20 +17,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
-x = 1
 
-def f():
-    c = x+1
+def calledRepeatedly():
+    # construct_begin
+    l = [50, 51, 52, 53, 54, 55, 56, 57]
+    # construct_alternative
+    l = 1
+    # construct_end
 
-    def g():
-        return c
+    return l
 
-    return g()
 
-def caller():
-    for i in range(10000):
-        f()
+for x in itertools.repeat(None, 50000):
+    calledRepeatedly()
 
-if __name__ == "__main__":
-    caller()
+print("OK.")
