@@ -1778,6 +1778,8 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/System/Library/CoreService",
                 "/System/Library/Frameworks/CoreFoundation.framework",
                 "/System/Library/dyld",
+                "/AppleInternal",
+                "/System/Volumes/Preboot",
                 "/usr/lib/system/",
             ):
                 if isFilenameSameAsOrBelowPath(ignored_dir, loaded_filename):
