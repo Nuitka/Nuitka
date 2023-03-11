@@ -823,7 +823,10 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
             context.setExceptionEscape(old_exception_target)
 
-        getLabelCode(return_target, emit)
+        # TODO: An outline that cannot return, could be converted probably into
+        # something else, maybe mere side effects.
+        if expression.subnode_body.mayReturn():
+            getLabelCode(return_target, emit)
 
     # Restore previous "return" handling.
     context.setReturnTarget(old_return_target)
