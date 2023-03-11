@@ -92,7 +92,7 @@ def _takeSystemCallTraceOutput(logger, path, command):
 
     # Ensure executable is not polluted with third party stuff,
     # tests may fail otherwise due to unexpected libs being loaded
-    # spell-checker: ignore ENOENT
+    # spell-checker: ignore ENOENT,write_nocancel
     with withEnvironmentVarOverridden("LD_PRELOAD", None):
         if os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0":
             traceExecutedCommand("Tracing with:", command)
@@ -126,6 +126,9 @@ def _takeSystemCallTraceOutput(logger, path, command):
             if b"ENOENT" in line:
                 continue
 
+            if line.startswith((b"write(", b"write_nocancel(")):
+                continue
+
             if line.startswith((b"stat(", b"newfstatat(")) and b"S_IFDIR" in line:
                 continue
 
@@ -154,7 +157,7 @@ Error, needs 'sudo' on your system to scan used libraries."""
         )
 
     binary_path = os.path.abspath(command[0])
-    command = ("sudo", "dtruss", "-t", "open", binary_path) + tuple(command[1:])
+    command = ("sudo", "dtruss", binary_path) + tuple(command[1:])
 
     return _takeSystemCallTraceOutput(logger=logger, command=command, path=binary_path)
 
@@ -186,11 +189,16 @@ def doesSupportTakingRuntimeTrace():
     if not isMacOS():
         return True
 
+    # Python2 hangs calling dtruss for no good reason, probably a bug in
+    # subprocess32 with Python2 that we do not care about.
+    if str is bytes:
+        return False
+
     # singleton, pylint: disable=global-statement
     global _supports_taking_runtime_traces
 
     if _supports_taking_runtime_traces is None:
-        command = ("sudo", "dtruss", "-t", "open", "echo")
+        command = ("sudo", "dtruss", "echo")
 
         _stdout, stderr, exit_code = executeProcess(
             command, stdin=False, timeout=5 * 60
