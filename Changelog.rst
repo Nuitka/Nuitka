@@ -42,8 +42,8 @@ Bug Fixes
 -  Plugins: Fix ``removeDllDependencies`` was broken and could not
    longer be used to remove DLLs from inclusion. Fixed in 1.4.1 already.
 
--  Tests: Ignore ld info output about mismatching architecture libraries
-   being ignored. Fixed in 1.4.1 already.
+-  Tests: Ignore ``ld`` info output about mismatching architecture
+   libraries being ignored. Fixed in 1.4.1 already.
 
 -  Fix, assigning methods of lists and calling them that way could crash
    at runtime. The same was true of dict methods, but had never been
