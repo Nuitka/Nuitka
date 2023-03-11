@@ -55,7 +55,10 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import (
+    makeStatementReleaseVariable,
+    makeStatementsReleaseVariables,
+)
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3
@@ -370,15 +373,14 @@ def buildClassNode2(provider, node, source_ref):
         )
     )
 
-    final = (
-        makeStatementReleaseVariable(variable=tmp_class, source_ref=source_ref),
-        makeStatementReleaseVariable(variable=tmp_bases, source_ref=source_ref),
-        makeStatementReleaseVariable(variable=tmp_class_dict, source_ref=source_ref),
-        makeStatementReleaseVariable(variable=tmp_metaclass, source_ref=source_ref),
-    )
-
     return makeTryFinallyStatement(
-        provider=function_body, tried=statements, final=final, source_ref=source_ref
+        provider=function_body,
+        tried=statements,
+        final=makeStatementsReleaseVariables(
+            variables=(tmp_class, tmp_bases, tmp_class_dict, tmp_metaclass),
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
     )
 
 
