@@ -282,7 +282,11 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
     if module_kind == "extension" and not Options.isStandaloneMode():
         recursion_logger.warning(
-            "Cannot include '%s' unless using at least standalone mode."
+            """\
+Cannot include extension module '%s' unless using at least standalone mode, \
+where they would be copied. In this mode, extension modules are not part of \
+the compiled result, and therefore asking to include them makes no sense.
+"""
             % module_name.asString()
         )
 
@@ -385,9 +389,9 @@ def _addParentPackageUsages(using_module, module_name, signal_change, source_ref
             recursion_logger.sysexit(
                 "Error, failed to locate parent package file for '%s' parent of '%s' (used by '%s') module (%s)"
                 % (
-                    parent_package_name.asString(),
-                    module_name.asString(),
-                    using_module.getFullName().asString(),
+                    parent_package_name,
+                    module_name,
+                    using_module.getFullName(),
                     finding,
                 )
             )
@@ -470,7 +474,7 @@ def considerUsedModules(module, signal_change):
                 "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
                 % (
                     e,
-                    module.getFullName().asString(),
+                    module.getFullName(),
                     used_module.source_ref.getAsString(),
                 )
             )
@@ -480,5 +484,5 @@ def considerUsedModules(module, signal_change):
     except NuitkaForbiddenImportEncounter as e:
         recursion_logger.sysexit(
             "Error, forbidden import of '%s' done implicitly by module '%s'."
-            % (e, module.getFullName().asString())
+            % (e, module.getFullName())
         )

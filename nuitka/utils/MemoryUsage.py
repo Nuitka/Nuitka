@@ -19,7 +19,8 @@
 
 """
 
-from nuitka.Tracing import printLine
+from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.Tracing import memory_logger, printLine
 
 from .Utils import isMacOS, isWin32Windows
 
@@ -80,10 +81,42 @@ def getOwnProcessMemoryUsage():
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * factor
 
 
-def getHumanReadableProcessMemoryUsage(value=None):
-    if value is None:
-        value = getOwnProcessMemoryUsage()
+def getHumanReadableProcessMemoryUsage():
+    return formatMemoryUsageValue(getOwnProcessMemoryUsage())
 
+
+class MemoryWatch(object):
+    def __init__(self):
+        self.start = getOwnProcessMemoryUsage()
+        self.stop = None
+
+    def finish(self, message):
+        self.stop = getOwnProcessMemoryUsage()
+
+        _logMemoryInfo(message, self.value())
+
+    def asStr(self):
+        return formatMemoryUsageValue(self.value())
+
+    def value(self):
+        return self.stop - self.start
+
+
+_memory_infos = OrderedDict()
+
+
+def getMemoryInfos():
+    return _memory_infos
+
+
+def collectMemoryUsageValue(memory_usage_name):
+    assert memory_usage_name not in _memory_infos
+    _memory_infos[memory_usage_name] = getOwnProcessMemoryUsage()
+
+    return _memory_infos[memory_usage_name]
+
+
+def formatMemoryUsageValue(value):
     if abs(value) < 1024 * 1014:
         return "%.2f KB (%d bytes)" % (value / 1024.0, value)
     elif abs(value) < 1024 * 1014 * 1024:
@@ -94,16 +127,15 @@ def getHumanReadableProcessMemoryUsage(value=None):
         return "%d bytes" % value
 
 
-class MemoryWatch(object):
-    def __init__(self):
-        self.start = getOwnProcessMemoryUsage()
-        self.stop = None
+def _logMemoryInfo(message, memory_usage):
+    if message:
+        memory_logger.info("%s: %s" % (message, formatMemoryUsageValue(memory_usage)))
 
-    def finish(self):
-        self.stop = getOwnProcessMemoryUsage()
 
-    def asStr(self):
-        return getHumanReadableProcessMemoryUsage(self.stop - self.start)
+def reportMemoryUsage(identifier, message):
+    memory_usage = collectMemoryUsageValue(identifier)
+
+    _logMemoryInfo(message, memory_usage)
 
 
 def startMemoryTracing():

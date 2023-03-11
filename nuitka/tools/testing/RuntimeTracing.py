@@ -28,22 +28,17 @@ import os
 import re
 import sys
 
-from nuitka.__past__ import subprocess
-from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.DependsExe import getDependsExePath, parseDependsExeOutput
-from nuitka.Options import isExperimental
 from nuitka.utils.Execution import (
     callProcess,
+    executeProcess,
     isExecutableCommand,
     withEnvironmentVarOverridden,
 )
-from nuitka.utils.FileOperations import (
-    deleteFile,
-    getFileContentByLine,
-    putTextFileContents,
-    withTemporaryFile,
-)
+from nuitka.utils.FileOperations import deleteFile
 from nuitka.utils.Utils import isFreeBSD, isMacOS, isWin32Windows
+
+from .Common import traceExecutedCommand
 
 
 def _getRuntimeTraceOfLoadedFilesWin32(logger, command, required):
@@ -90,179 +85,21 @@ def _getRuntimeTraceOfLoadedFilesWin32(logger, command, required):
     return result
 
 
-def _getRuntimeTraceOfLoadedFilesMacOSWithFsUsage(logger, command):
-    # Very many details due to parsing fs_usage and micro managing
-    # processes.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
-
-    path = command[0]
-
-    if not isExecutableCommand("fs_usage"):
-        logger.sysexit(
-            """\
-Error, needs 'fs_usage' on your system to scan used libraries."""
-        )
-
-    with withTemporaryFile() as run_binary_file:
-        runner_filename = run_binary_file.name
-
-        putTextFileContents(
-            runner_filename,
-            r"""
-import os, sys
-# Inform about our pid.
-sys.stdout.write(str(os.getpid()) + "\n")
-sys.stdout.flush()
-# Wait for confirmation
-sys.stdin.readline()
-command = list(%s)
-command.insert(0, command[0])
-os.execl(*command)
-"""
-            % repr(command),
-        )
-
-        run_command = (sys.executable, runner_filename)
-        logger.info(" ".join(run_command), style="pink")
-
-        # Need to do it more manually, to catch pid
-        process = subprocess.Popen(
-            args=run_command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
-        process_pid = int(process.stdout.readline())
-
-    trace_command = ("sudo", "fs_usage", "-f", "filesys", "-w", str(process_pid))
-
-    with withTemporaryFile() as trace_temp_file:
-        trace_filename = trace_temp_file.name
-
-        logger.info(" ".join(trace_command), style="pink")
-
-        trace_process = subprocess.Popen(
-            args=trace_command,
-            stdout=trace_temp_file,
-        )
-
-        # Try to be more sure it started tracing before we launch.
-        import time
-
-        time.sleep(2)
-
-        # Tell the process to continue now that tracing is active.
-        process.stdin.write(b"go\n")
-        logger.info(" ".join(command), style="pink")
-
-        # Now the process can be normally executed.
-        _stdout_process, stderr_process = process.communicate()
-        process.wait()
-        exit_process = process.returncode
-
-        if exit_process != 0:
-            if str is not bytes:
-                stderr_process = stderr_process.decode("utf8")
-
-            logger.warning(stderr_process)
-            logger.sysexit("Failed to run '%s'." % path)
-
-        # Allow fs_trace to do its thing.
-        try:
-            trace_process.communicate(timeout=2)
-        except subprocess.TimeoutExpired:
-            pass
-
-        # Launched with sudo, we need to kill with sudo too.
-        callProcess(("sudo", "kill", "-TERM", str(trace_process.pid)))
-        trace_process.communicate()
-
-        result = OrderedSet()
-
-        process_dir = os.getcwd()
-
-        for line in getFileContentByLine(trace_filename):
-            parts = line.split()
-
-            system_call_name = parts[1]
-
-            if system_call_name == "open":
-                filename = parts[4]
-            elif system_call_name == "stat64":
-                if "]" in line:
-                    filename = line[line.find("]") :].split()[1]
-                else:
-                    filename = parts[2]
-            elif system_call_name == "lstat64":
-                if "]" in line:
-                    filename = line[line.find("]") :].split()[1]
-                else:
-                    filename = parts[2]
-            elif system_call_name == "readlink":
-                filename = line[line.find("]") :].split()[1]
-            elif system_call_name.startswith("chdir"):
-                process_dir = parts[2]
-            elif system_call_name.startswith("RdData"):
-                continue
-            elif system_call_name.startswith("RdMeta"):
-                continue
-            elif system_call_name in (
-                "getattrlist",
-                "getdirentries64",
-                "fstatfs64",
-                "ioctl",
-                "fstat64",
-                "access",
-                "fsgetpath",
-                "close",
-                "lseek",
-                "read",
-                "write",
-                "pread",
-                "fcntl",
-                "mmap",
-                "exit",
-            ):
-                continue
-
-            else:
-                assert False, (system_call_name, line)
-
-            assert not filename.startswith("["), line
-            assert not filename.startswith("("), line
-
-            assert "LC_TIME" not in filename, line
-
-            # Strange ones, stat without filename or in "/".
-            if filename.startswith("private/"):
-                continue
-            if filename.startswith("0.00"):
-                continue
-
-            filename = os.path.join(process_dir, filename)
-
-            result.add(filename)
-
-    return result
-
-
-def _parseSystemCallTraceOutput(logger, command):
+def _takeSystemCallTraceOutput(logger, path, command):
     tracing_tool = command[0] if command[0] != "sudo" else command[1]
-    path = command[1] if command[0] != "sudo" else command[2]
 
     result = []
 
     # Ensure executable is not polluted with third party stuff,
     # tests may fail otherwise due to unexpected libs being loaded
-    # spell-checker: ignore ENOENT
+    # spell-checker: ignore ENOENT,write_nocancel
     with withEnvironmentVarOverridden("LD_PRELOAD", None):
-        process = subprocess.Popen(
-            args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+        if os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0":
+            traceExecutedCommand("Tracing with:", command)
 
-        _stdout_strace, stderr_strace = process.communicate()
-        exit_strace = process.returncode
+        _stdout_strace, stderr_strace, exit_strace = executeProcess(
+            command, stdin=False, timeout=5 * 60
+        )
 
         if exit_strace != 0:
             if str is not bytes:
@@ -271,11 +108,14 @@ def _parseSystemCallTraceOutput(logger, command):
             logger.warning(stderr_strace)
             logger.sysexit("Failed to run '%s'." % tracing_tool)
 
+        if b"dtrace: system integrity protection is on" in stderr_strace:
+            logger.sysexit("System integrity protection prevents system call tracing.")
+
         with open(path + "." + tracing_tool, "wb") as f:
             f.write(stderr_strace)
 
         for line in stderr_strace.split(b"\n"):
-            if process.returncode != 0:
+            if exit_strace != 0:
                 logger.my_print(line)
 
             if not line:
@@ -286,7 +126,10 @@ def _parseSystemCallTraceOutput(logger, command):
             if b"ENOENT" in line:
                 continue
 
-            if line.startswith(b"stat(") and b"S_IFDIR" in line:
+            if line.startswith((b"write(", b"write_nocancel(")):
+                continue
+
+            if line.startswith((b"stat(", b"newfstatat(")) and b"S_IFDIR" in line:
                 continue
 
             result.extend(
@@ -313,11 +156,10 @@ Error, needs 'dtruss' on your system to scan used libraries."""
 Error, needs 'sudo' on your system to scan used libraries."""
         )
 
-    command = ("sudo", "dtruss", "-t", "open", os.path.abspath(command[0])) + tuple(
-        command[1:]
-    )
+    binary_path = os.path.abspath(command[0])
+    command = ("sudo", "dtruss", binary_path) + tuple(command[1:])
 
-    return _parseSystemCallTraceOutput(logger, command)
+    return _takeSystemCallTraceOutput(logger=logger, command=command, path=binary_path)
 
 
 def _getRuntimeTraceOfLoadedFilesStrace(logger, command):
@@ -327,15 +169,47 @@ def _getRuntimeTraceOfLoadedFilesStrace(logger, command):
 Error, needs 'strace' on your system to scan used libraries."""
         )
 
+    binary_path = os.path.abspath(command[0])
+
     command = (
         "strace",
         "-e",
         "file",
         "-s4096",  # Some paths are truncated in output otherwise
-        os.path.abspath(command[0]),
+        binary_path,
     ) + tuple(command[1:])
 
-    return _parseSystemCallTraceOutput(logger, command)
+    return _takeSystemCallTraceOutput(logger=logger, command=command, path=binary_path)
+
+
+_supports_taking_runtime_traces = None
+
+
+def doesSupportTakingRuntimeTrace():
+    if not isMacOS():
+        return True
+
+    # Python2 hangs calling dtruss for no good reason, probably a bug in
+    # subprocess32 with Python2 that we do not care about.
+    if str is bytes:
+        return False
+
+    # singleton, pylint: disable=global-statement
+    global _supports_taking_runtime_traces
+
+    if _supports_taking_runtime_traces is None:
+        command = ("sudo", "dtruss", "echo")
+
+        _stdout, stderr, exit_code = executeProcess(
+            command, stdin=False, timeout=5 * 60
+        )
+
+        _supports_taking_runtime_traces = (
+            exit_code == 0
+            and b"dtrace: system integrity protection is on" not in stderr
+        )
+
+    return _supports_taking_runtime_traces
 
 
 def getRuntimeTraceOfLoadedFiles(logger, command, required=False):
@@ -357,16 +231,8 @@ def getRuntimeTraceOfLoadedFiles(logger, command, required=False):
         result = _getRuntimeTraceOfLoadedFilesWin32(
             logger=logger, command=command, required=required
         )
-    elif isMacOS():
-        if isExecutableCommand("dtruss") and not isExperimental("macos-use-fs_trace"):
-            result = _getRuntimeTraceOfLoadedFilesDtruss(logger=logger, command=command)
-        else:
-            result = _getRuntimeTraceOfLoadedFilesMacOSWithFsUsage(
-                logger=logger, command=command
-            )
-
-    elif isFreeBSD():
-        # On FreeBSD, we can use dtruss, which is similar to strace.
+    elif isMacOS() or isFreeBSD():
+        # On macOS and FreeBSD, we can use dtruss, which is similar to strace.
         result = _getRuntimeTraceOfLoadedFilesDtruss(logger=logger, command=command)
     elif os.name == "posix":
         result = _getRuntimeTraceOfLoadedFilesStrace(logger=logger, command=command)

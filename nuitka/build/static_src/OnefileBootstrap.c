@@ -18,7 +18,7 @@
 /* The main program for onefile bootstrap.
  *
  * It needs to unpack the attached files and and then loads and executes
- * the compiled program.
+ * the compiled program as a separate process.
  *
  * spell-checker: ignore _wrename,SHFILEOPSTRUCTW,FOF_NOCONFIRMATION,FOF_NOERRORUI
  * spell-checker: ignore HRESULT,HINSTANCE,lpUnkcaller,MAKELANGID,SUBLANG
@@ -120,41 +120,63 @@
 // For tracing outputs if enabled at compile time.
 #include "nuitka/tracing.h"
 
-static void printError(char const *message) {
+#ifdef _WIN32
+typedef DWORD error_code_t;
+static inline error_code_t getCurrentErrorCode(void) { return GetLastError(); }
+#else
+typedef int error_code_t;
+static inline error_code_t getCurrentErrorCode(void) { return errno; }
+#endif
+
+static void printError(char const *message, error_code_t error_code) {
 #if defined(_WIN32)
     LPCTSTR err_buffer;
 
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-                  GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
+                  error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
 
     puts(message);
     puts(err_buffer);
 #else
+    printf("%s: %s\n", message, strerror(error_code));
     perror(message);
 #endif
 }
 
 static void fatalError(char const *message) {
-    printError(message);
-    abort();
+    puts(message);
+    exit(2);
 }
 
-static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand temporary files."); }
+static void fatalIOError(char const *message, error_code_t error_code) {
+    printError(message, error_code);
+    exit(2);
+}
+
+// Failure to expand the template for where to extract to.
+static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expand target path."); }
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
 
-static void fatalErrorFindAttachedData(void) { fatalError("Error, couldn't find attached data."); }
+static void fatalErrorFindAttachedData(char const *erroring_function, error_code_t error_code) {
+    char buffer[1024] = "Error, couldn't find attached data:";
+    appendStringSafe(buffer, erroring_function, sizeof(buffer));
 
+    fatalIOError(buffer, error_code);
+}
+
+static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find attached data heder."); }
+
+// Left over data in attached payload should not happen.
 static void fatalErrorReadAttachedData(void) { fatalError("Error, couldn't read attached data."); }
 
+// Out of memory error.
 static void fatalErrorMemory(void) { fatalError("Error, couldn't allocate memory."); }
 
-// TODO: Make use of this on other platforms as well.
-#if defined(_WIN32)
-static void fatalErrorChild(void) { fatalError("Error, couldn't launch child."); }
-#endif
+// Could not launch child process.
+static void fatalErrorChild(char const *message, error_code_t error_code) { fatalIOError(message, error_code); }
 
 #if defined(_WIN32)
 static void appendWCharSafeW(wchar_t *target, wchar_t c, size_t buffer_size) {
@@ -208,6 +230,10 @@ static void setEnvironVar(char const *var_name, char const *value) {
 #endif
 }
 
+static unsigned char const *payload_data = NULL;
+static unsigned char const *payload_current = NULL;
+static size_t stream_end_pos;
+
 #ifdef _NUITKA_PAYLOAD_FROM_MACOS_SECTION
 
 #include <mach-o/ldsyms.h>
@@ -215,21 +241,38 @@ static void setEnvironVar(char const *var_name, char const *value) {
 static unsigned char *findMacOSBinarySection(void) {
     const struct mach_header *header = &_mh_execute_header;
 
-    unsigned long *size;
-    return getsectdata("payload", "payload", &size) + (uintptr_t)header;
-}
+    unsigned long section_size;
 
-static unsigned char *payload_data = NULL;
-static unsigned char *payload_current = NULL;
+    unsigned char *result = getsectdata("payload", "payload", &section_size) + (uintptr_t)header;
+    stream_end_pos = (size_t)section_size;
+
+    return result;
+}
 
 static void initPayloadData(void) {
     payload_data = findMacOSBinarySection();
     payload_current = payload_data;
 }
+
+static void closePayloadData(void) {}
+
 #else
-// Note: Made payload file handle global until we properly abstracted compression.
-static FILE_HANDLE exe_file;
-#define _NUITKA_PAYLOAD_FILE_BASED
+
+static struct MapFileToMemoryInfo exe_file_mapped;
+
+static void initPayloadData(void) {
+    exe_file_mapped = mapFileToMemory(getBinaryPath());
+
+    if (exe_file_mapped.error) {
+        fatalErrorFindAttachedData(exe_file_mapped.erroring_function, exe_file_mapped.error_code);
+    }
+
+    payload_data = exe_file_mapped.data;
+    payload_current = payload_data;
+}
+
+static void closePayloadData(void) { unmapFileFromMemory(&exe_file_mapped); }
+
 #endif
 
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
@@ -266,40 +309,15 @@ static void releaseZSTD(void) {
 
 #endif
 
-static size_t stream_end_pos;
-
-static size_t getPosition(void) {
-#ifdef _NUITKA_PAYLOAD_FILE_BASED
-#if defined(_WIN32)
-    return SetFilePointer(exe_file, 0, NULL, FILE_CURRENT);
-#else
-    return ftell(exe_file);
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+static size_t getPosition(void) { return payload_current - payload_data; }
 #endif
-#else
-    return payload_current - payload_data;
-#endif
-}
 
 static void readChunk(void *buffer, size_t size) {
     // printf("Reading %d\n", size);
 
-#ifdef _NUITKA_PAYLOAD_FILE_BASED
-    bool bool_res = readFileChunk(exe_file, buffer, size);
-
-    if (bool_res == false) {
-        fatalErrorReadAttachedData();
-    }
-#else
     memcpy(buffer, payload_current, size);
     payload_current += size;
-#endif
-}
-
-static unsigned long long readSizeValue(void) {
-    unsigned long long result;
-    readChunk(&result, sizeof(unsigned long long));
-
-    return result;
 }
 
 static void readPayloadChunk(void *buffer, size_t size) {
@@ -628,7 +646,7 @@ static void cleanupChildProcess(bool send_sigint) {
     if (handle_process != 0) {
 
         if (send_sigint) {
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+#if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
             puts("Sending CTRL-C to child\n");
 #endif
 
@@ -636,7 +654,7 @@ static void cleanupChildProcess(bool send_sigint) {
             BOOL res = GenerateConsoleCtrlEvent(CTRL_C_EVENT, GetProcessId(handle_process));
 
             if (res == false) {
-                printError("Failed to send CTRL-C to child process.");
+                printError("Failed to send CTRL-C to child process.", GetLastError());
                 // No error exit is done, we still want to cleanup when it does exit
             }
 #else
@@ -793,15 +811,14 @@ int main(int argc, char **argv) {
         fatalErrorSpec(pattern);
     }
 
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+#if defined(_NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING)
     wprintf(L"payload path: '%lS'\n", payload_path);
 #endif
 
 #if defined(_WIN32)
     bool_res = SetConsoleCtrlHandler(ourConsoleCtrlHandler, true);
     if (bool_res == false) {
-        printError("Error, failed to register signal handler.");
-        return 1;
+        fatalError("Error, failed to register signal handler.");
     }
 #else
     signal(SIGINT, ourConsoleCtrlHandler);
@@ -813,22 +830,8 @@ int main(int argc, char **argv) {
 
     NUITKA_PRINT_TIMING("ONEFILE: Unpacking payload.");
 
-#if defined(_NUITKA_PAYLOAD_FILE_BASED)
-#if defined(_WIN32)
-    exe_file = CreateFileW(getBinaryPath(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    if (exe_file == INVALID_HANDLE_VALUE) {
-#else
-    exe_file = fopen(getBinaryPath(), "rb");
-    if (exe_file == NULL) {
-#endif
-        printError("Error, failed to access unpacked executable.");
-        return 1;
-    }
-#else
     initPayloadData();
-#endif
 
-#if defined(_NUITKA_PAYLOAD_FILE_BASED)
 #if defined(_WIN32)
     /* if an application is signed, the signature is at the end of the file
        where we normally expect the start position of out container.
@@ -852,75 +855,65 @@ int main(int argc, char **argv) {
             }
             UnMapAndLoad(&loaded_image);
         }
+
         free(exe_filename_a);
     }
 
-    DWORD res;
+    off_t size_end_offset;
 
     if (cert_table_addr == 0) {
-        res = SetFilePointer(exe_file, -8, NULL, FILE_END);
+        size_end_offset = (off_t)exe_file_mapped.file_size;
     } else {
-        res = SetFilePointer(exe_file, cert_table_addr - 8, NULL, FILE_BEGIN);
+        size_end_offset = (off_t)cert_table_addr;
     }
-
-    if (res == INVALID_SET_FILE_POINTER) {
-        fatalErrorFindAttachedData();
-    }
-#else
-    int res = fseek(exe_file, -8, SEEK_END);
-    if (res != 0) {
-        fatalErrorFindAttachedData();
-    }
+#elif !defined(_NUITKA_PAYLOAD_FROM_MACOS_SECTION)
+    const off_t size_end_offset = exe_file_mapped.file_size;
 #endif
-    stream_end_pos = getPosition();
 
-    unsigned long long payload_size = readSizeValue();
-    unsigned long long start_pos = stream_end_pos - payload_size;
+#if !defined(_NUITKA_PAYLOAD_FROM_MACOS_SECTION)
+    NUITKA_PRINT_TIMING("ONEFILE: Determining payload start position.");
 
-    // printf("Payload size at %lld\n", payload_size);
-    // printf("Start at %lld\n", start_pos);
-    // printf("Start at %ld\n", (LONG)start_pos);
+    unsigned long long payload_size;
+    memcpy(&payload_size, payload_data + size_end_offset - sizeof(payload_size), sizeof(payload_size));
 
-    // The start offset won't exceed LONG.
-#if defined(_WIN32)
-    res = SetFilePointer(exe_file, (LONG)start_pos, NULL, FILE_BEGIN);
-    if (res == INVALID_SET_FILE_POINTER) {
-        fatalErrorFindAttachedData();
-    }
-#else
-    res = fseek(exe_file, start_pos, SEEK_SET);
-    if (res != 0) {
-        fatalErrorFindAttachedData();
-    }
+    unsigned long long start_pos = exe_file_mapped.file_size - sizeof(payload_size) - payload_size;
+
+    payload_current += start_pos;
+    payload_data += start_pos;
+
+    stream_end_pos = size_end_offset - sizeof(payload_size) - start_pos;
 #endif
-#endif
+
+    NUITKA_PRINT_TIMING("ONEFILE: Checking header for compression.");
 
     char header[3];
     readChunk(&header, sizeof(header));
 
     if (header[0] != 'K' || header[1] != 'A') {
-        fatalErrorFindAttachedData();
+        fatalErrorHeaderAttachedData();
     }
 
 // The 'X' stands for no compression, 'Y' is compressed, handle that.
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
     if (header[2] != 'Y') {
-        fatalErrorFindAttachedData();
+        fatalErrorHeaderAttachedData();
     }
     initZSTD();
 #else
     if (header[2] != 'X') {
-        fatalErrorFindAttachedData();
+        fatalErrorHeaderAttachedData();
     }
 #endif
 
     static filename_char_t first_filename[1024] = {0};
 
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
+    NUITKA_PRINT_TIMING("ONEFILE: Splash screen.");
+
     initSplashScreen();
 #endif
 
-    // printf("Entering decompression loop:");
+    NUITKA_PRINT_TIMING("ONEFILE: Entering decompression.");
 
 #if _NUITKA_ONEFILE_TEMP_BOOL == 1
     payload_created = true;
@@ -1017,7 +1010,7 @@ int main(int argc, char **argv) {
             int res = fstat(fd, &stat_buffer);
 
             if (res == -1) {
-                printError("fstat");
+                printError("fstat", errno);
             }
 
             // User shall be able to execute if at least.
@@ -1035,7 +1028,7 @@ int main(int argc, char **argv) {
             res = fchmod(fd, stat_buffer.st_mode);
 
             if (res == -1) {
-                printError("fchmod");
+                printError("fchmod", errno);
             }
         }
 #endif
@@ -1047,9 +1040,9 @@ int main(int argc, char **argv) {
         }
     }
 
-#if defined(_NUITKA_PAYLOAD_FILE_BASED)
-    closeFile(exe_file);
-#endif
+    NUITKA_PRINT_TIMING("ONEFILE: Finishing decompression, cleanup payload.");
+
+    closePayloadData();
 
 #ifdef _NUITKA_AUTO_UPDATE_BOOL
     exe_file_updatable = true;
@@ -1088,7 +1081,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");
 
     if (bool_res == false) {
-        fatalErrorChild();
+        fatalErrorChild("Error, couldn't launch child.", GetLastError());
     }
 
     CloseHandle(pi.hThread);
@@ -1129,30 +1122,34 @@ int main(int argc, char **argv) {
 
     cleanupChildProcess(false);
 #else
+    pid_t pid = fork();
     int exit_code;
 
-    pid_t pid = fork();
-
     if (pid < 0) {
-        printError("fork");
-        exit_code = 2;
+        int error_code = errno;
+
+        cleanupChildProcess(false);
+
+        fatalErrorChild("Error, couldn't launch child (fork).", error_code);
     } else if (pid == 0) {
+        // Child process
         execv(first_filename, argv);
 
-        printError("exec failed");
-        exit_code = 2;
+        fatalErrorChild("Error, couldn't launch child (exec).", errno);
     } else {
+        // Onefile bootstrap process
         handle_process = pid;
+
         int status;
         int res = waitpid_retried(handle_process, &status, false);
 
         if (res == -1 && errno != ECHILD) {
             exit_code = 2;
-            cleanupChildProcess(false);
         } else {
             exit_code = WEXITSTATUS(status);
-            cleanupChildProcess(false);
         }
+
+        cleanupChildProcess(false);
     }
 
 #endif

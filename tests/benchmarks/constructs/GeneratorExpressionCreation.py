@@ -17,21 +17,23 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+
 
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
-# construct_begin
+    # construct_begin
     gen = (x for x in range(3))
-# construct_alternative
-    gen = iter((1,2,3))
-# construct_end
+    # construct_alternative
+    gen = iter((1, 2, 3))
+    # construct_end
 
     x = next(gen)
     next(gen)
 
     return x
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

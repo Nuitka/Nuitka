@@ -55,4 +55,31 @@ extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK(PyObject *variable_name);
 #if PYTHON_VERSION < 0x340
 extern PyObject *GET_MODULE_VARIABLE_VALUE_FALLBACK_IN_FUNCTION(PyObject *variable_name);
 #endif
+
+// In case of DLL usage, this avoids looking up the symbol from it.
+extern getattrofunc PyObject_GenericGetAttr_resolved;
+
+// Avoid repeated code, this checks if a type has the standard implementation, then
+// we can just try and do the same in slightly faster ways.
+static inline bool hasTypeGenericGetAttr(PyTypeObject *type) {
+#if PYTHON_VERSION >= 0x3b0
+    // TODO: Big performance loss here
+    return false;
+#else
+    return type->tp_getattro == PyObject_GenericGetAttr_resolved;
+#endif
+}
+
+// In case of DLL usage, this avoids looking up the symbol from it.
+extern setattrofunc PyObject_GenericSetAttr_resolved;
+
+static inline bool hasTypeGenericSetAttr(PyTypeObject *type) {
+#if PYTHON_VERSION >= 0x3b0
+    // TODO: Big performance loss here
+    return false;
+#else
+    return type->tp_setattro == PyObject_GenericSetAttr_resolved;
+#endif
+}
+
 #endif

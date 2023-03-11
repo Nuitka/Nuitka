@@ -18,53 +18,21 @@
 """Unicode operation specs, Python2 only. """
 
 from .BuiltinParameterSpecs import (
-    BuiltinParameterSpec,
-    BuiltinParameterSpecNoKeywords,
+    BuiltinMethodParameterSpecBase,
+    BuiltinMethodParameterSpecNoKeywordsBase,
 )
 
 
-class UnicodeMethodSpecNoKeywords(BuiltinParameterSpecNoKeywords):
+class UnicodeMethodSpecNoKeywords(BuiltinMethodParameterSpecNoKeywordsBase):
     __slots__ = ()
 
-    def __init__(
-        self,
-        name,
-        arg_names=(),
-        default_count=0,
-    ):
-        BuiltinParameterSpecNoKeywords.__init__(
-            self,
-            name="unicode." + name,
-            arg_names=arg_names,
-            default_count=default_count,
-            list_star_arg=None,
-            dict_star_arg=None,
-            pos_only_args=(),
-            kw_only_args=(),
-        )
+    method_prefix = "unicode"
 
 
-class UnicodeMethodSpec(BuiltinParameterSpec):
+class UnicodeMethodSpec(BuiltinMethodParameterSpecBase):
     __slots__ = ()
 
-    def __init__(
-        self,
-        name,
-        arg_names=(),
-        default_count=0,
-        list_star_arg=None,
-        dict_star_arg=None,
-    ):
-        BuiltinParameterSpec.__init__(
-            self,
-            name="unicode." + name,
-            arg_names=arg_names,
-            default_count=default_count,
-            list_star_arg=list_star_arg,
-            dict_star_arg=dict_star_arg,
-            pos_only_args=(),
-            kw_only_args=(),
-        )
+    method_prefix = "unicode"
 
 
 unicode_join_spec = UnicodeMethodSpecNoKeywords("join", arg_names=("iterable",))

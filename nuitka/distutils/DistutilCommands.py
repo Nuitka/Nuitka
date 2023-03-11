@@ -52,6 +52,23 @@ def setupNuitkaDistutilsCommands(dist, keyword, value):
     dist.cmdclass["bdist_wheel"] = bdist_nuitka
 
 
+# TODO: Duplicated from test code, should be in utils probably.
+def addToPythonPath(python_path, in_front=False):
+    if type(python_path) in (tuple, list):
+        python_path = os.pathsep.join(python_path)
+
+    if python_path:
+        if "PYTHONPATH" in os.environ:
+            if in_front:
+                os.environ["PYTHONPATH"] = (
+                    python_path + os.pathsep + os.environ["PYTHONPATH"]
+                )
+            else:
+                os.environ["PYTHONPATH"] += os.pathsep + python_path
+        else:
+            os.environ["PYTHONPATH"] = python_path
+
+
 # Class name enforced by distutils, must match the command name.
 # Required by distutils, used as command name, pylint: disable=invalid-name
 class build(distutils.command.build.build):
@@ -95,7 +112,7 @@ class build(distutils.command.build.build):
 
         self._build(os.path.abspath(self.build_lib))
 
-    def _find_to_build(self):
+    def _findBuildTasks(self):
         """
         Helper for _build
         Returns list containing bool (is_package) and module_names
@@ -180,8 +197,13 @@ class build(distutils.command.build.build):
     def _build(self, build_lib):
         # High complexity, pylint: disable=too-many-branches,too-many-locals
 
-        # Nuitka wants the main package by filename, probably we should stop
-        # needing that.
+        # Remove Python code from build folder, that's our job now.
+        for root, _, filenames in os.walk(build_lib):
+            for filename in filenames:
+                fullpath = os.path.join(root, filename)
+
+                if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
+                    os.unlink(fullpath)
 
         old_dir = os.getcwd()
         os.chdir(build_lib)
@@ -194,20 +216,22 @@ class build(distutils.command.build.build):
         # Search in the build directory preferably.
         addMainScriptDirectory(main_package_dir)
 
-        for is_package, module_name in self._find_to_build():
+        for is_package, module_name in self._findBuildTasks():
+            # Nuitka wants the main package by filename, probably we should stop
+            # needing that.
             module_name, main_filename, _module_kind, finding = locateModule(
                 module_name=module_name,
                 parent_package=None,
                 level=0,
             )
 
-            package = module_name.getPackageName()
+            package_name = module_name.getPackageName()
 
             # Check expectations, e.g. do not compile built-in modules.
             assert finding == "absolute", finding
 
-            if package is not None:
-                output_dir = os.path.join(build_lib, package.asPath())
+            if package_name is not None:
+                output_dir = os.path.join(build_lib, package_name.asPath())
             else:
                 output_dir = build_lib
 
@@ -222,11 +246,19 @@ class build(distutils.command.build.build):
                 "--remove-output",
             ]
 
-            if is_package:
-                command.append("--include-package=%s" % module_name)
+            if package_name is not None:
+                package_part, include_package_name = module_name.splitModuleBasename()
 
+                addToPythonPath(
+                    os.path.join(main_package_dir, package_part.asPath()), in_front=True
+                )
             else:
-                command.append("--include-module=%s" % module_name)
+                include_package_name = module_name
+
+            if is_package:
+                command.append("--include-package=%s" % include_package_name)
+            else:
+                command.append("--include-module=%s" % include_package_name)
 
             toml_filename = os.environ.get("NUITKA_TOML_FILE")
             if toml_filename:
@@ -263,13 +295,6 @@ class build(distutils.command.build.build):
             wheel_logger.info(
                 "Finished compilation of '%s'." % module_name.asString(), style="green"
             )
-
-            for root, _, filenames in os.walk(build_lib):
-                for filename in filenames:
-                    fullpath = os.path.join(root, filename)
-
-                    if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
-                        os.unlink(fullpath)
 
         self.build_lib = build_lib
 

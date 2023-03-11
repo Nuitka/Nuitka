@@ -17,8 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 from .. import SubSomething2
+
 
 def test_func():
     assert SubSomething2.calledByTest2() == (42, 2)

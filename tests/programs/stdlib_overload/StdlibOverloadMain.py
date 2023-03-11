@@ -16,8 +16,9 @@
 #     limitations under the License.
 #
 print("Main importing nearby package")
-import pyexpat
-from some_package import normal_importing, star_importing
+
+import pyexpat  # isort:skip
+from some_package import normal_importing, star_importing  # isort:skip
 
 try:
     print(pyexpat.defined_in_pyexpat)

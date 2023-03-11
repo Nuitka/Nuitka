@@ -22,6 +22,7 @@ import atexit
 import gc
 import hashlib
 import os
+import re
 import shutil
 import signal
 import sys
@@ -32,11 +33,7 @@ from contextlib import contextmanager
 from optparse import OptionParser
 
 from nuitka.__past__ import subprocess
-from nuitka.PythonVersions import (
-    getPartiallySupportedPythonVersions,
-    getSupportedPythonVersions,
-    isDebugPython,
-)
+from nuitka.PythonVersions import getTestExecutionPythonVersions, isDebugPython
 from nuitka.Tracing import OurLogger, my_print
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.AppDirs import getCacheDir
@@ -364,23 +361,15 @@ def decideFilenameVersionSkip(filename):
     if filename.endswith("310.py") and _python_version < (3, 10):
         return False
 
+    # Skip tests that require Python 3.11 at least.
+    if filename.endswith("311.py") and _python_version < (3, 11):
+        return False
+
     return True
 
 
 def decideNeeds2to3(filename):
-    return _python_version >= (3,) and not filename.endswith(
-        (
-            "32.py",
-            "33.py",
-            "34.py",
-            "35.py",
-            "36.py",
-            "37.py",
-            "38.py",
-            "39.py",
-            "310.py",
-        )
-    )
+    return _python_version >= (3,) and not re.match(r".*3\d+\.py", filename)
 
 
 def _removeCPythonTestSuiteDir():
@@ -844,7 +833,7 @@ def reportSkip(reason, dirname, filename):
     case = os.path.join(dirname, filename)
     case = os.path.normpath(case)
 
-    my_print("Skipped, %s (%s)." % (case, reason))
+    test_logger.info("Skipped, %s (%s)." % (case, reason))
 
 
 def executeReferenceChecked(
@@ -1624,11 +1613,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Loading from home directories is OK too.
-        if (
-            loaded_filename.startswith("/home/")
-            or loaded_filename.startswith("/data/")
-            or loaded_filename.startswith("/root/")
-            or loaded_filename in ("/home", "/data", "/root")
+        if any(
+            isFilenameSameAsOrBelowPath(path, loaded_filename)
+            for path in ("/home", "/data", "/root", "/Users")
         ):
             continue
 
@@ -1657,7 +1644,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
 
         # Accessing the versioned Python3.x binary is also happening.
         if loaded_filename in (
-            "/usr/bin/python3." + version for version in ("5", "6", "7", "8", "9", "10")
+            "/usr/bin/python." + version for version in getTestExecutionPythonVersions()
         ):
             continue
 
@@ -1688,6 +1675,10 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             _python_version[0],
             _python_version[1],
         )
+
+        # TODO: These must all go away, we should not compile from Debian packages at all,
+        # it is warned against, and it really don't matter what wrong files that accesses
+        # or not.
 
         # PySide accesses its directory.
         if loaded_filename == os.path.join(lib_prefix_dir, "dist-packages/PySide"):
@@ -1725,9 +1716,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
         if loaded_basename in (
             "python%s" + supported_version
-            for supported_version in (
-                getSupportedPythonVersions() + getPartiallySupportedPythonVersions()
-            )
+            for supported_version in getTestExecutionPythonVersions()
         ):
             continue
 
@@ -1769,6 +1758,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "libcrypto.1.0.0.dylib",
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
+            "libffi.dylib",
         ):
             continue
 
@@ -1787,6 +1777,8 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/System/Library/CoreService",
                 "/System/Library/Frameworks/CoreFoundation.framework",
                 "/System/Library/dyld",
+                "/AppleInternal",
+                "/System/Volumes/Preboot",
                 "/usr/lib/system/",
             ):
                 if isFilenameSameAsOrBelowPath(ignored_dir, loaded_filename):
@@ -1877,7 +1869,7 @@ def getLocalWebServerDir(base_dir):
     web_dir = os.path.join(getTempDir(), "local-web-server", base_dir)
 
     if _web_server_process is None:
-        web_server_directory_supporting_pythons = ("3.10", "3.9", "3.8", "3.7")
+        web_server_directory_supporting_pythons = ("3.11", "3.10", "3.9", "3.8", "3.7")
 
         web_server_python = findInstalledPython(
             python_versions=web_server_directory_supporting_pythons,
@@ -1915,3 +1907,7 @@ def getLocalWebServerDir(base_dir):
         atexit.register(killWebServerProcess)
 
     return web_dir
+
+
+def traceExecutedCommand(description, command):
+    my_print(description, ":", *command, style="pink")

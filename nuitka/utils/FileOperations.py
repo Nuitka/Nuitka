@@ -40,7 +40,13 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     raw_input,
 )
 from nuitka.PythonVersions import python_version
-from nuitka.Tracing import general, my_print, options_logger
+from nuitka.Tracing import (
+    flushStandardOutputs,
+    general,
+    my_print,
+    options_logger,
+    printLine,
+)
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
@@ -297,8 +303,7 @@ def getFileList(
         This function descends into directories, but does
         not follow symlinks.
     """
-    # We work with a lot of details here, pylint: disable=too-many-locals
-
+    # We work with a lot of details here
     result = []
 
     # Normalize "ignore_dirs" for better matching.
@@ -317,11 +322,12 @@ def getFileList(
             if ignore_dir in dirnames_normalized:
                 dirnames.remove(ignore_dir)
 
-        # Normalize filenames for better matching.
-        filenames_normalized = [os.path.normcase(filename) for filename in filenames]
-        for ignore_filename in ignore_filenames:
-            if ignore_filename in filenames_normalized:
-                filenames.remove(ignore_filename)
+        # Compare to normalized filenames for better matching.
+        filenames = [
+            filename
+            for filename in filenames
+            if os.path.normcase(filename) not in ignore_filenames
+        ]
 
         for filename in filenames:
             if os.path.normcase(filename).endswith(ignore_suffixes):
@@ -543,7 +549,7 @@ def splitPath(path):
 
 
 def getFilenameExtension(path):
-    """Get the filename extension.
+    """Get the filename extension (dot included)
 
     Note: The extension is case normalized, i.e. it may actually be ".TXT"
     rather than ".txt", use "changeFilenameExtension" if you want to replace
@@ -801,13 +807,20 @@ def queryUser(question, choices, default, default_non_interactive):
     assert default in choices, (default, choices)
     assert default_non_interactive in choices, (default, choices)
 
-    prompt = "%s? (%s)" % (
+    prompt = "%s? %s : " % (
         question,
-        "/".join(choice.upper() if choice == default else choice for choice in choices),
+        "/".join(
+            "[%s]" % choice.title() if choice == default else choice.title()
+            for choice in choices
+        ),
     )
 
+    # Integrates with progress bar by closing it.
+    printLine(prompt, end="")
+    flushStandardOutputs()
+
     try:
-        reply = raw_input(prompt) or default
+        reply = raw_input() or default
     except EOFError:
         reply = default_non_interactive
 

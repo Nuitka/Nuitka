@@ -27,6 +27,9 @@ from abc import abstractmethod
 
 from nuitka import Options
 from nuitka.__past__ import long
+
+# TODO: Probably should separate building reports out.
+from nuitka.code_generation.Reports import onMissingOverload
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.PythonVersions import python_version
 
@@ -38,10 +41,12 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
+    tshape_bool,
     tshape_bytes,
     tshape_dict,
     tshape_list,
     tshape_str,
+    tshape_type,
     tshape_unicode,
 )
 from .shapes.StandardShapes import tshape_unknown
@@ -87,6 +92,11 @@ class ExpressionBase(NodeBase):
         """Return known value used for compile time comparison. The "None" value indicates unknown."""
 
         return False, None
+
+    @staticmethod
+    def isMappingWithConstantStringKeys():
+        """Is this a mapping with constant string keys. Used for call optimization."""
+        return False
 
     @staticmethod
     def isKnownToBeIterable(count):
@@ -861,8 +871,29 @@ class ExpressionBase(NodeBase):
         """
         return None
 
+    def getExpressionDictInConstant(self, value):
+        """Value that the dict "in" operation would give, if known.
+
+        This is only called for values with known dict type shape. And those
+        nodes who are known to do it, have to overload it.
+        """
+
+        # Virtual method, pylint: disable=unused-argument
+
+        # We want to have them all overloaded, so lets report cases where that
+        # has not been happening.
+        if Options.is_debug:
+            onMissingOverload(method_name="getExpressionDictInConstant", node=self)
+
+        return None
+
     def hasShapeTrustedAttributes(self):
         return self.getTypeShape().hasShapeTrustedAttributes()
+
+    def hasShapeTypeExact(self):
+        """Does a node have exactly a 'type' shape."""
+
+        return self.getTypeShape() is tshape_type
 
     def hasShapeListExact(self):
         """Does a node have exactly a list shape."""
@@ -896,15 +927,14 @@ class ExpressionBase(NodeBase):
         """Does an expression have exactly a bytes shape."""
         return self.getTypeShape() is tshape_bytes
 
+    def hasShapeBoolExact(self):
+        """Does an expression have exactly a bool shape."""
+        return self.getTypeShape() is tshape_bool
+
     @staticmethod
     def hasVeryTrustedValue():
         """Trust that value will not be overwritten from the outside."""
         return False
-
-    @staticmethod
-    def getUsedModules():
-        """Nodes should indicate modules that they (attempted to) use here."""
-        return ()
 
 
 class ExpressionNoSideEffectsMixin(object):

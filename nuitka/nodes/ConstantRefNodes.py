@@ -548,6 +548,9 @@ class ExpressionConstantDictRef(
 
         return True
 
+    def getExpressionDictInConstant(self, value):
+        return value in self.constant
+
 
 class EmptyContainerMixin(object):
     __slots__ = ()
@@ -1255,19 +1258,23 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
         return tshape_type
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-        from nuitka.optimizations.OptimizeBuiltinCalls import (
-            computeBuiltinCall,
-        )
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        new_node, tags, message = computeBuiltinCall(
-            builtin_name=self.constant.__name__, call_node=call_node
-        )
+        if call_kw is not None and not call_kw.isMappingWithConstantStringKeys():
+            return call_node, None, None
+        else:
+            from nuitka.optimizations.OptimizeBuiltinCalls import (
+                computeBuiltinCall,
+            )
 
-        return new_node, tags, message
+            new_node, tags, message = computeBuiltinCall(
+                builtin_name=self.constant.__name__, call_node=call_node
+            )
+
+            return new_node, tags, message
 
     def computeExpressionCallViaVariable(
         self, call_node, variable_ref_node, call_args, call_kw, trace_collection
@@ -1296,25 +1303,101 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
         return True
 
 
-class ExpressionConstantTypeSubscriptableRef(ExpressionConstantTypeRef):
-    kind = "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF"
-
+class ExpressionConstantTypeSubscriptableMixin(object):
     __slots__ = ()
 
-    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
-        if subscript.isCompileTimeConstant():
-            return trace_collection.getCompileTimeComputationResult(
-                node=lookup_node,
-                computation=lambda: self.getCompileTimeConstant()[
-                    subscript.getCompileTimeConstant()
-                ],
-                description="Subscript of subscriptable type with constant value.",
-            )
+    if python_version >= 0x390:
 
-        # TODO: Not true, in fact these should become GenericAlias always.
-        trace_collection.onExceptionRaiseExit(BaseException)
+        def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
+            if subscript.isCompileTimeConstant():
+                return trace_collection.getCompileTimeComputationResult(
+                    node=lookup_node,
+                    computation=lambda: self.getCompileTimeConstant()[
+                        subscript.getCompileTimeConstant()
+                    ],
+                    description="Subscript of subscriptable type with constant value.",
+                )
 
-        return lookup_node, None, None
+            # TODO: Not true, in fact these should become GenericAlias always.
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return lookup_node, None, None
+
+
+class ExpressionConstantConcreteTypeMixin(object):
+    __slots__ = ()
+
+    @staticmethod
+    def getDetails():
+        return {}
+
+
+class ExpressionConstantTypeDictRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_DICT_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(self, constant=dict, source_ref=source_ref)
+
+
+class ExpressionConstantTypeSetRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_SET_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(self, constant=set, source_ref=source_ref)
+
+
+class ExpressionConstantTypeFrozensetRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(
+            self, constant=frozenset, source_ref=source_ref
+        )
+
+
+class ExpressionConstantTypeListRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_LIST_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(self, constant=list, source_ref=source_ref)
+
+
+class ExpressionConstantTypeTupleRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_TUPLE_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(self, constant=tuple, source_ref=source_ref)
+
+
+class ExpressionConstantTypeTypeRef(
+    ExpressionConstantConcreteTypeMixin,
+    ExpressionConstantTypeSubscriptableMixin,
+    ExpressionConstantTypeRef,
+):
+    kind = "EXPRESSION_CONSTANT_TYPE_TYPE_REF"
+
+    def __init__(self, source_ref):
+        ExpressionConstantTypeRef.__init__(self, constant=type, source_ref=source_ref)
 
 
 def makeConstantRefNode(constant, source_ref, user_provided=False):
@@ -1468,16 +1551,18 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
             source_ref=source_ref,
         )
     elif constant_type is type:
-        if python_version >= 0x390 and constant in (
-            set,
-            frozenset,
-            tuple,
-            list,
-            dict,
-        ):
-            return ExpressionConstantTypeSubscriptableRef(
-                constant=constant, source_ref=source_ref
-            )
+        if constant is dict:
+            return ExpressionConstantTypeDictRef(source_ref=source_ref)
+        if constant is set:
+            return ExpressionConstantTypeSetRef(source_ref=source_ref)
+        if constant is frozenset:
+            return ExpressionConstantTypeFrozensetRef(source_ref=source_ref)
+        if constant is tuple:
+            return ExpressionConstantTypeTupleRef(source_ref=source_ref)
+        if constant is list:
+            return ExpressionConstantTypeListRef(source_ref=source_ref)
+        if constant is type:
+            return ExpressionConstantTypeTypeRef(source_ref=source_ref)
 
         return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
     elif constant_type is xrange:

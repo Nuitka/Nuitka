@@ -31,9 +31,9 @@ import functools
 import inspect
 import os
 import sys
-from collections import namedtuple
 
 from nuitka.__past__ import getMetaClassBase
+from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import (
     decodeDataFileTags,
@@ -1030,9 +1030,9 @@ except ImportError:
 
         feedback = [line for line in feedback if line != "-" * 27]
 
-        NamedTupleResult = namedtuple(info_name, keys)
+        NamedtupleResultClass = makeNamedtupleClass(info_name, keys)
 
-        self._runtime_information_cache[info_name] = NamedTupleResult(
+        self._runtime_information_cache[info_name] = NamedtupleResultClass(
             *(ast.literal_eval(value) for value in feedback)
         )
 

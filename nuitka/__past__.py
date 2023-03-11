@@ -78,9 +78,7 @@ else:
     from urllib.request import urlretrieve
 
 if str is bytes:
-    from cStringIO import (  # Python2 code, pylint: disable=import-error
-        StringIO,
-    )
+    from cStringIO import StringIO  # Python2 code, pylint: disable=import-error
 else:
     from io import StringIO
 

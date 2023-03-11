@@ -77,7 +77,7 @@ def wrapEvalGlobalsAndLocals(
 
     post_statements = []
 
-    if provider.isExpressionClassBody():
+    if provider.isExpressionClassBodyBase():
         post_statements.append(
             StatementLocalsDictSync(
                 locals_scope=locals_scope,

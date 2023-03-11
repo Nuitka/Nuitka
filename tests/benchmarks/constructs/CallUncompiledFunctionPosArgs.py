@@ -19,27 +19,32 @@
 #
 from __future__ import print_function
 
-exec("""
+import itertools
+
+exec(
+    """
 def python_func(a,b,c,d,e,f):
     pass
-""")
+"""
+)
+
 
 def calledRepeatedly():
     # This is supposed to make a call to a non-compiled function, which is
     # being optimized separately.
     python_f = python_func
 
-# construct_begin
+    # construct_begin
     python_f("some", "random", "values", "to", "check", "call")
     python_f("some", "other", "values", "to", "check", "call")
     python_f("some", "new", "values", "to", "check", "call")
-# construct_alternative
+    # construct_alternative
     pass
-# construct_end
+    # construct_end
 
     return python_f
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

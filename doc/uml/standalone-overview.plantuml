@@ -1,0 +1,42 @@
+@startuml
+!theme spacelab
+
+rectangle "Python Installation" as Python {
+    rectangle "site-packages" as sp {
+
+        Rectangle certifi {
+            (ca.cert)
+            (__init__.py)
+            (__main__.py)
+            (core.py)
+
+        }
+        Rectangle (requests {
+            (__init__.py)
+
+        }
+
+    }
+
+    (python binary) --> (python core dll)
+    (python binary) --> (python stdlib)
+    (python binary) --> sp
+}
+
+rectangle "Standalone Distribution" as Standalone {
+    Rectangle "main.exe" as main {
+        (compiled Python code)
+        (stdlib bytecode)
+    }
+
+    ("main exe") --> (DLLs on disk)
+    ("main exe") --> (extension modules on disk)
+    ("main exe") --> (data files on disk)
+
+    (certifi/ca.cert) --> "is" (data files)
+}
+
+Python -d-^ "compilation" Standalone
+
+
+@enduml

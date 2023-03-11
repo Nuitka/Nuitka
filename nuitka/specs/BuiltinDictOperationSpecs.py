@@ -26,36 +26,15 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 )
 
 from .BuiltinParameterSpecs import (
-    BuiltinParameterSpecNoKeywords,
+    BuiltinMethodParameterSpecBase,
     BuiltinParameterSpecSinglePosArgStarDictArgs,
 )
 
 
-class DictMethodSpec(BuiltinParameterSpecNoKeywords):
+class DictMethodSpec(BuiltinMethodParameterSpecBase):
     __slots__ = ()
 
-    def __init__(
-        self,
-        name,
-        arg_names=(),
-        default_count=0,
-        list_star_arg=None,
-        dict_star_arg=None,
-        pos_only_args=(),
-        kw_only_args=(),
-        type_shape=None,
-    ):
-        BuiltinParameterSpecNoKeywords.__init__(
-            self,
-            name="dict." + name,
-            arg_names=arg_names,
-            default_count=default_count,
-            list_star_arg=list_star_arg,
-            dict_star_arg=dict_star_arg,
-            pos_only_args=pos_only_args,
-            kw_only_args=kw_only_args,
-            type_shape=type_shape,
-        )
+    method_prefix = "dict"
 
 
 dict_copy_spec = DictMethodSpec("copy", type_shape=tshape_dict)
@@ -95,4 +74,8 @@ dict_update_spec = BuiltinParameterSpecSinglePosArgStarDictArgs(
     list_star_arg="iterable",
     dict_star_arg="pairs",
     type_shape=tshape_none,
+)
+
+dict_fromkeys_spec = DictMethodSpec(
+    "fromkeys", arg_names=("iterable", "value"), default_count=1, type_shape=tshape_dict
 )

@@ -17,8 +17,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
+
 module_value1 = module_value2 = module_value3 = module_value4 = 1000
 module_key1 = module_key2 = module_key3 = module_key4 = 1000
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently), and use local
@@ -33,20 +36,30 @@ def calledRepeatedly():
     dict_val3 = module_value3
     dict_val4 = module_value4
 
-# construct_begin
+    # construct_begin
     l = {
-        dict_key1 : dict_val1,
-        dict_key2 : dict_val2,
-        dict_key3 : dict_val3,
-        dict_key4 : dict_val4
+        dict_key1: dict_val1,
+        dict_key2: dict_val2,
+        dict_key3: dict_val3,
+        dict_key4: dict_val4,
     }
-# construct_alternative
+    # construct_alternative
     l = 1
-# construct_end
+    # construct_end
 
-    return l, dict_val1, dict_val2, dict_val3, dict_val4, dict_key1, dict_key2, dict_key3, dict_key4
+    return (
+        l,
+        dict_val1,
+        dict_val2,
+        dict_val3,
+        dict_val4,
+        dict_key1,
+        dict_key2,
+        dict_key3,
+        dict_key4,
+    )
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

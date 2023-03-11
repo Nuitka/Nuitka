@@ -208,6 +208,10 @@ class ValueTraceBase(object):
         return False
 
     @staticmethod
+    def hasShapeBoolExact():
+        return False
+
+    @staticmethod
     def getTruthValue():
         return None
 
@@ -240,6 +244,17 @@ class ValueTraceBase(object):
     def getIterationSourceNode():
         """Node to use for iteration decisions."""
         return None
+
+    @staticmethod
+    def getDictInValue(key):
+        """Value to use for dict in decisions."""
+
+        # virtual method, pylint: disable=unused-argument
+        return None
+
+    @staticmethod
+    def inhibitsClassScopeForwardPropagation():
+        return True
 
 
 class ValueTraceUnassignedBase(ValueTraceBase):
@@ -282,6 +297,9 @@ class ValueTraceUninitialized(ValueTraceUnassignedBase):
 
     @staticmethod
     def isTraceThatNeedsEscape():
+        return False
+
+    def inhibitsClassScopeForwardPropagation(self):
         return False
 
 
@@ -540,6 +558,9 @@ class ValueTraceAssign(ValueTraceBase):
     def hasShapeUnicodeExact(self):
         return self.assign_node.subnode_source.hasShapeUnicodeExact()
 
+    def hasShapeBoolExact(self):
+        return self.assign_node.subnode_source.hasShapeBoolExact()
+
     def getTruthValue(self):
         return self.assign_node.subnode_source.getTruthValue()
 
@@ -566,6 +587,13 @@ class ValueTraceAssign(ValueTraceBase):
 
     def getIterationSourceNode(self):
         return self.assign_node.subnode_source
+
+    def getDictInValue(self, key):
+        """Value to use for dict in decisions."""
+        return self.assign_node.subnode_source.getExpressionDictInConstant(key)
+
+    def inhibitsClassScopeForwardPropagation(self):
+        return self.assign_node.subnode_source.mayHaveSideEffects()
 
 
 class ValueTraceAssignUnescapable(ValueTraceAssign):

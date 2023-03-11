@@ -40,18 +40,20 @@ class CTypeModuleDictVariable(CTypeBase):
         if inplace:
             orig_name = context.getInplaceLeftName()
 
-            emit("if (%s != %s) {" % (orig_name, tmp_name))
-
             emit(
-                "UPDATE_STRING_DICT_INPLACE(moduledict_%s, (Nuitka_StringObject *)%s, %s);"
-                % (
-                    context.getModuleCodeName(),
-                    context.getConstantCode(constant=value_name.code_name),
-                    tmp_name,
-                )
+                """\
+if (%(orig_name)s != %(tmp_name)s) {
+    UPDATE_STRING_DICT_INPLACE(moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(variable_name_str)s, %(tmp_name)s);
+}"""
+                % {
+                    "orig_name": orig_name,
+                    "tmp_name": tmp_name,
+                    "module_identifier": context.getModuleCodeName(),
+                    "variable_name_str": context.getConstantCode(
+                        constant=value_name.code_name
+                    ),
+                }
             )
-
-            emit("}")
 
         else:
             emit(

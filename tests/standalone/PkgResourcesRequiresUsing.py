@@ -42,7 +42,6 @@ else:
     __version__ = get_distribution("lxml").parsed_version
     print("pkg_resources gives parsed version", __version__)
 
-import sys
 
 try:
     from importlib.metadata import version

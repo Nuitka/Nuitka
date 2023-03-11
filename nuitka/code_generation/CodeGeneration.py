@@ -84,6 +84,7 @@ from .ClassCodes import (
     generateBuiltinSuper1Code,
     generateBuiltinSuperCode,
     generateSelectMetaclassCode,
+    generateTypeOperationPrepareCode,
 )
 from .CodeHelpers import addExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import (
@@ -118,6 +119,9 @@ from .DictCodes import (
     generateDictionaryCreationCode,
     generateDictOperationClearCode,
     generateDictOperationCopyCode,
+    generateDictOperationFromkeys2Code,
+    generateDictOperationFromkeys3Code,
+    generateDictOperationFromkeysRefCode,
     generateDictOperationGet2Code,
     generateDictOperationGet3Code,
     generateDictOperationInCode,
@@ -282,8 +286,10 @@ from .PackageResourceCodes import (
     generateImportlibResourcesReadBinaryCallCode,
     generateImportlibResourcesReadTextCallCode,
     generateOsListdirCallCode,
+    generateOsPathAbspathCallCode,
     generateOsPathBasenameCallCode,
     generateOsPathExistsCallCode,
+    generateOsPathIsabsCallCode,
     generateOsPathIsdirCallCode,
     generateOsPathIsfileCallCode,
     generateOsUnameCallCode,
@@ -375,7 +381,7 @@ def generateFunctionBodyCode(function_body, context):
         function_context = Contexts.PythonGeneratorObjectContext(
             parent=context, function=function_body
         )
-    elif function_body.isExpressionClassBody():
+    elif function_body.isExpressionClassBodyBase():
         function_context = Contexts.PythonFunctionDirectContext(
             parent=context, function=function_body
         )
@@ -448,7 +454,7 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables=function_body.getClosureVariables(),
         )
 
-    elif function_body.isExpressionClassBody():
+    elif function_body.isExpressionClassBodyBase():
         function_code = getFunctionCode(
             context=function_context,
             function_identifier=function_identifier,
@@ -517,13 +523,14 @@ def _generateModuleCode(module, data_filename):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
-        # Constant function returners get no code.
-        (
-            is_constant_returning,
-            _constant_return_value,
-        ) = function_body.getConstantReturnValue()
-        if is_constant_returning:
-            continue
+        if function_body.needsCreation():
+            # Constant function returners get no code.
+            (
+                is_constant_returning,
+                _constant_return_value,
+            ) = function_body.getConstantReturnValue()
+            if is_constant_returning:
+                continue
 
         function_code, function_decl = generateFunctionBodyCode(
             function_body=function_body, context=context
@@ -641,6 +648,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_LOCALS_COPY": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED": generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_REF": generateBuiltinLocalsRefCode,
+        "EXPRESSION_LOCALS_DICT_REF": generateBuiltinLocalsRefCode,
         "EXPRESSION_BUILTIN_GLOBALS": generateBuiltinGlobalsCode,
         "EXPRESSION_BUILTIN_SUPER0": generateBuiltinSuperCode,
         "EXPRESSION_BUILTIN_SUPER2": generateBuiltinSuperCode,
@@ -706,7 +714,12 @@ addExpressionDispatchDict(
         "EXPRESSION_CONSTANT_SLICE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_XRANGE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF": generateConstantReferenceCode,
-        "EXPRESSION_CONSTANT_TYPE_SUBSCRIPTABLE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_DICT_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_SET_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_FROZENSET_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_LIST_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_TUPLE_REF": generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TYPE_TYPE_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_BYTEARRAY_REF": generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_GENERIC_ALIAS": generateConstantGenericAliasCode,
         "EXPRESSION_CONSTANT_UNION_TYPE": generateConstantReferenceCode,
@@ -752,6 +765,8 @@ addExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_UPDATE2": generateDictOperationUpdate2Code,
         "EXPRESSION_DICT_OPERATION_UPDATE3": generateDictOperationUpdate3Code,
         "EXPRESSION_DICT_OPERATION_UPDATE_PAIRS": generateDictOperationUpdate3Code,
+        "EXPRESSION_DICT_OPERATION_FROMKEYS2": generateDictOperationFromkeys2Code,
+        "EXPRESSION_DICT_OPERATION_FROMKEYS3": generateDictOperationFromkeys3Code,
         "EXPRESSION_FUNCTION_CREATION": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CREATION_OLD": generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL": generateFunctionCallCode,
@@ -831,7 +846,8 @@ addExpressionDispatchDict(
         "EXPRESSION_OUTLINE_BODY": generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION": generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline
-        "EXPRESSION_CLASS_BODY": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_BODY_P2": generateFunctionOutlineCode,
+        "EXPRESSION_CLASS_BODY_P3": generateFunctionOutlineCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP_FOR_UNPACK": generateSubscriptLookupCode,
         "EXPRESSION_SUBSCRIPT_CHECK": generateSubscriptCheckCode,
@@ -913,9 +929,14 @@ addExpressionDispatchDict(
         "EXPRESSION_OS_PATH_ISFILE_CALL": generateOsPathIsfileCallCode,
         "EXPRESSION_OS_PATH_ISDIR_CALL": generateOsPathIsdirCallCode,
         "EXPRESSION_OS_PATH_BASENAME_CALL": generateOsPathBasenameCallCode,
+        "EXPRESSION_OS_PATH_ABSPATH_CALL": generateOsPathAbspathCallCode,
+        "EXPRESSION_OS_PATH_ISABS_CALL": generateOsPathIsabsCallCode,
         "EXPRESSION_OS_LISTDIR_CALL": generateOsListdirCallCode,
         "EXPRESSION_MATCH_ARGS": generateMatchArgsCode,
         "EXPRESSION_STR_OPERATION_FORMAT": generateStrFormatMethodCode,
+        # TODO: Should have all of these generically or not. This one is required for now.
+        "EXPRESSION_DICT_OPERATION_FROMKEYS_REF": generateDictOperationFromkeysRefCode,
+        "EXPRESSION_TYPE_OPERATION_PREPARE": generateTypeOperationPrepareCode,
     }
 )
 

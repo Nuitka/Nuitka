@@ -26,8 +26,8 @@
 
 WARNING, this code is GENERATED. Modify the template ChildrenHavingMixin.py.j2 instead!
 
-spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
-spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
+spell-checker: ignore append capitalize casefold center clear copy count decode encode endswith expandtabs extend find format formatmap fromkeys get haskey index insert isalnum isalpha isascii isdecimal isdigit isidentifier islower isnumeric isprintable isspace istitle isupper items iteritems iterkeys itervalues join keys ljust lower lstrip maketrans partition pop popitem prepare remove replace reverse rfind rindex rjust rpartition rsplit rstrip setdefault sort split splitlines startswith strip swapcase title translate update upper values viewitems viewkeys viewvalues zfill
+spell-checker: ignore args chars count default delete encoding end errors fillchar index item iterable keepends key kwargs maxsplit new old pairs prefix sep start stop sub suffix table tabsize value width
 """
 
 
@@ -67,6 +67,9 @@ class NoChildHavingFinalNoRaiseMixin(ExpressionBase):
     @staticmethod
     def mayRaiseException(exception_type):
         return False
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
 
 
 # Assign the names that are easier to import with a stable name.
@@ -184,6 +187,12 @@ class ChildHavingArgsTupleFinalNoRaiseMixin(ExpressionBase):
         return any(
             value.mayRaiseException(exception_type) for value in self.subnode_args
         )
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_args:
+            element.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -361,6 +370,20 @@ class ChildrenHavingArgsTupleNameOptionalPathOptionalFinalNoRaiseMixin(Expressio
             )
         )
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_args:
+            element.collectVariableAccesses(emit_read, emit_write)
+        subnode_name = self.subnode_name
+
+        if subnode_name is not None:
+            self.subnode_name.collectVariableAccesses(emit_read, emit_write)
+        subnode_path = self.subnode_path
+
+        if subnode_path is not None:
+            self.subnode_path.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinMakeExceptionImportErrorBase = (
@@ -479,6 +502,12 @@ class ChildrenHavingCallableArgSentinelFinalMixin(ExpressionBase):
         trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_callable_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_sentinel.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionBuiltinIter2Base = ChildrenHavingCallableArgSentinelFinalMixin
@@ -596,6 +625,12 @@ class ChildHavingElementsTupleFinalNoRaiseMixin(ExpressionBase):
             value.mayRaiseException(exception_type) for value in self.subnode_elements
         )
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_elements:
+            element.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportEntryPointsValueRefBase = (
@@ -698,6 +733,11 @@ class ChildHavingExpressionAttributeNameMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_expression.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionAttributeLookupBase = ChildHavingExpressionAttributeNameMixin
@@ -795,6 +835,11 @@ class ChildHavingListArgNoRaiseMixin(ExpressionBase):
     @abstractmethod
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.
@@ -926,6 +971,12 @@ class ChildrenHavingListArgItemNoRaiseMixin(ExpressionBase):
     def computeExpression(self, trace_collection):
         """Must be overloaded for non-final node."""
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_item.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionListOperationAppendBase = ChildrenHavingListArgItemNoRaiseMixin
@@ -1050,6 +1101,12 @@ class ChildrenHavingListArgValueFinalNoRaiseMixin(ExpressionBase):
             exception_type
         ) or self.subnode_value.mayRaiseException(exception_type)
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_list_arg.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionListOperationCountBase = ChildrenHavingListArgValueFinalNoRaiseMixin
@@ -1165,6 +1222,12 @@ class ChildHavingPairsTupleFinalNoRaiseMixin(ExpressionBase):
             value.mayRaiseException(exception_type) for value in self.subnode_pairs
         )
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        for element in self.subnode_pairs:
+            element.collectVariableAccesses(emit_read, emit_write)
+
 
 # Assign the names that are easier to import with a stable name.
 ExpressionImportlibMetadataBackportSelectableGroupsValueRefBase = (
@@ -1261,6 +1324,11 @@ class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
 
     def mayRaiseException(self, exception_type):
         return self.subnode_value.mayRaiseException(exception_type)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_value.collectVariableAccesses(emit_read, emit_write)
 
 
 # Assign the names that are easier to import with a stable name.

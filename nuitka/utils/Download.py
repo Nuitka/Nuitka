@@ -23,10 +23,26 @@ Mostly used on Windows, for dependency walker and ccache binaries.
 import os
 
 from nuitka import Tracing
-from nuitka.__past__ import raw_input, urlretrieve
+from nuitka.__past__ import urlretrieve
 
 from .AppDirs import getCacheDir
-from .FileOperations import addFileExecutablePermission, deleteFile, makePath
+from .FileOperations import (
+    addFileExecutablePermission,
+    deleteFile,
+    makePath,
+    queryUser,
+)
+
+
+def getDownload(url, download_path):
+    try:
+        urlretrieve(url, download_path)
+    except Exception:  # Any kind of error, pylint: disable=broad-except
+        urlretrieve(url.replace("https://", "http://"), download_path)
+
+
+def getDownloadCacheDir():
+    return os.path.join(getCacheDir(), "downloads")
 
 
 def getCachedDownload(
@@ -40,9 +56,9 @@ def getCachedDownload(
     assume_yes_for_downloads,
 ):
     # Many branches to deal with.
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
-    nuitka_download_dir = os.path.join(getCacheDir(), "downloads")
+    nuitka_download_dir = getDownloadCacheDir()
 
     nuitka_download_dir = os.path.join(
         nuitka_download_dir, os.path.basename(binary).replace(".exe", "")
@@ -61,42 +77,34 @@ def getCachedDownload(
 
     if not os.path.isfile(download_path) and not os.path.isfile(exe_path):
         if assume_yes_for_downloads:
-            reply = "y"
+            reply = "yes"
         else:
-            Tracing.printLine(
-                """\
+            reply = queryUser(
+                question="""\
 %s
 
 Is it OK to download and put it in '%s'.
 
-No installer needed, cached, one time question.
-
-Proceed and download? [Yes]/No """
-                % (message, nuitka_download_dir)
+Fully automatic, cached. Proceed and download"""
+                % (message, nuitka_download_dir),
+                choices=("yes", "no"),
+                default="yes",
+                default_non_interactive="no",
             )
-            Tracing.flushStandardOutputs()
 
-            try:
-                reply = raw_input()
-            except EOFError:
-                reply = "no"
-
-        if reply.lower() in ("no", "n"):
+        if reply != "yes":
             if reject is not None:
                 Tracing.general.sysexit(reject)
         else:
             Tracing.general.info("Downloading '%s'." % url)
 
             try:
-                urlretrieve(url, download_path)
+                getDownload(url=url, download_path=download_path)
             except Exception as e:  # Any kind of error, pylint: disable=broad-except
-                try:
-                    urlretrieve(url.replace("https://", "http://"), download_path)
-                except Exception:  # Any kind of error, pylint: disable=broad-except
-                    Tracing.general.sysexit(
-                        "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
-                        % (url, e, download_path)
-                    )
+                Tracing.general.sysexit(
+                    "Failed to download '%s' due to '%s'. Contents should manually be copied to '%s'."
+                    % (url, e, download_path)
+                )
 
     if not os.path.isfile(exe_path) and os.path.isfile(download_path):
         Tracing.general.info("Extracting to '%s'" % exe_path)
@@ -144,9 +152,16 @@ def getCachedDownloadedMinGW64(target_arch, assume_yes_for_downloads):
     if target_arch == "x86_64":
         url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-x86_64-posix-seh-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
         binary = r"mingw64\bin\gcc.exe"
-    else:
+    elif target_arch == "x86":
         url = "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.3.0-14.0.3-10.0.0-msvcrt-r3/winlibs-i686-posix-dwarf-gcc-11.3.0-llvm-14.0.3-mingw-w64msvcrt-10.0.0-r3.zip"
         binary = r"mingw32\bin\gcc.exe"
+    elif target_arch == "arm64":
+        url = None
+    else:
+        assert False, target_arch
+
+    if url is None:
+        return None
 
     gcc_binary = getCachedDownload(
         url=url,

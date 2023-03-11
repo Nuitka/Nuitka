@@ -36,15 +36,18 @@ int count_released_frame_cache_instances = 0;
 int count_hit_frame_cache_instances = 0;
 #endif
 
+#if PYTHON_VERSION < 0x3b0
 static PyMemberDef Nuitka_Frame_memberlist[] = {
     {(char *)"f_back", T_OBJECT, offsetof(PyFrameObject, f_back), READONLY | RESTRICTED},
-#if PYTHON_VERSION < 0x3b0
     {(char *)"f_code", T_OBJECT, offsetof(PyFrameObject, f_code), READONLY | RESTRICTED},
     {(char *)"f_builtins", T_OBJECT, offsetof(PyFrameObject, f_builtins), READONLY | RESTRICTED},
     {(char *)"f_globals", T_OBJECT, offsetof(PyFrameObject, f_globals), READONLY | RESTRICTED},
     {(char *)"f_lasti", T_INT, offsetof(PyFrameObject, f_lasti), READONLY | RESTRICTED},
-#endif
     {NULL}};
+
+#else
+#define Nuitka_Frame_memberlist 0
+#endif
 
 #if PYTHON_VERSION < 0x300
 
@@ -252,7 +255,12 @@ static int Nuitka_Frame_settraceopcodes(struct Nuitka_FrameObject *frame, PyObje
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka");
     return -1;
 }
+#endif
 
+#if PYTHON_VERSION >= 0x3B0
+static PyObject *Nuitka_Frame_getback(struct Nuitka_FrameObject *frame, void *closure) {
+    return (PyObject *)PyFrame_GetBack(&frame->m_frame);
+}
 #endif
 
 static PyGetSetDef Nuitka_Frame_getsetlist[] = {
@@ -268,6 +276,9 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 #if PYTHON_VERSION >= 0x370
     {(char *)"f_trace_lines", (getter)Nuitka_Frame_gettracelines, (setter)Nuitka_Frame_settracelines, NULL},
     {(char *)"f_trace_opcodes", (getter)Nuitka_Frame_gettraceopcodes, (setter)Nuitka_Frame_settraceopcodes, NULL},
+#endif
+#if PYTHON_VERSION >= 0x3b0
+    {(char *)"f_trace_lines", (getter)Nuitka_Frame_getback, NULL, NULL},
 #endif
     {NULL}};
 
@@ -466,6 +477,19 @@ static PyObject *Nuitka_Frame_clear(struct Nuitka_FrameObject *frame) {
         return NULL;
     }
 
+#if PYTHON_VERSION >= 0x3b0
+    if (frame->m_frame_state == FRAME_COMPLETED) {
+        Nuitka_Frame_tp_clear(frame);
+
+        Py_RETURN_NONE;
+    }
+
+    if (frame->m_frame_state == FRAME_EXECUTING) {
+        SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "cannot clear an executing frame");
+        return NULL;
+    }
+#endif
+
 #if PYTHON_VERSION >= 0x340
     // For frames that are closed, we also need to close the generator.
     PyObject *f_gen = Nuitka_GetFrameGenerator(frame);
@@ -557,8 +581,8 @@ PyTypeObject Nuitka_Frame_Type = {
     0,                                       // tp_hash
     0,                                       // tp_call
     0,                                       // tp_str
-    PyObject_GenericGetAttr,                 // tp_getattro
-    PyObject_GenericSetAttr,                 // tp_setattro
+    0,                                       // tp_getattro (PyObject_GenericGetAttr)
+    0,                                       // tp_setattro (PyObject_GenericSetAttr)
     0,                                       // tp_as_buffer
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, // tp_flags
     0,                                       // tp_doc
@@ -576,8 +600,6 @@ PyTypeObject Nuitka_Frame_Type = {
 };
 
 void _initCompiledFrameType(void) {
-    Nuitka_Frame_Type.tp_base = &PyFrame_Type;
-
     assert(Nuitka_Frame_Type.tp_doc != PyFrame_Type.tp_doc || PyFrame_Type.tp_doc == NULL);
     assert(Nuitka_Frame_Type.tp_traverse != PyFrame_Type.tp_traverse);
     assert(Nuitka_Frame_Type.tp_clear != PyFrame_Type.tp_clear || PyFrame_Type.tp_clear == NULL);
@@ -589,7 +611,6 @@ void _initCompiledFrameType(void) {
     assert(Nuitka_Frame_Type.tp_methods != PyFrame_Type.tp_methods);
     assert(Nuitka_Frame_Type.tp_members != PyFrame_Type.tp_members);
     assert(Nuitka_Frame_Type.tp_getset != PyFrame_Type.tp_getset);
-    assert(Nuitka_Frame_Type.tp_base != PyFrame_Type.tp_base);
     assert(Nuitka_Frame_Type.tp_dict != PyFrame_Type.tp_dict);
     assert(Nuitka_Frame_Type.tp_descr_get != PyFrame_Type.tp_descr_get || PyFrame_Type.tp_descr_get == NULL);
 
@@ -609,7 +630,7 @@ void _initCompiledFrameType(void) {
 #if PYTHON_VERSION >= 0x340
     assert(Nuitka_Frame_Type.tp_finalize != PyFrame_Type.tp_finalize || PyFrame_Type.tp_finalize == NULL);
 #endif
-    PyType_Ready(&Nuitka_Frame_Type);
+    Nuitka_PyType_Ready(&Nuitka_Frame_Type, &PyFrame_Type, true, true, false, false, false);
 
     // These are to be used interchangeably. Make sure that's true.
     assert(offsetof(struct Nuitka_FrameObject, m_frame) == 0);
@@ -692,6 +713,8 @@ static struct Nuitka_FrameObject *_MAKE_COMPILED_FRAME(PyCodeObject *code, PyObj
 
 #if PYTHON_VERSION >= 0x3b0
     result->m_interpreter_frame.frame_obj = &result->m_frame;
+    result->m_interpreter_frame.owner = 0;
+    result->m_interpreter_frame.prev_instr = _PyCode_CODE(code);
     result->m_frame.f_frame = &result->m_interpreter_frame;
 #endif
 
@@ -776,7 +799,16 @@ PyCodeObject *makeCodeObject(PyObject *filename, int line, int flags, PyObject *
     PyObject *lnotab = const_str_empty;
 #else
     PyObject *code = const_bytes_empty;
+#if PYTHON_VERSION < 0x3b0
     PyObject *lnotab = const_bytes_empty;
+#else
+    static PyObject *lnotab = NULL;
+    if (lnotab == NULL) {
+        lnotab = PyBytes_FromStringAndSize("\x80\x00\xd8\x04\x08\x80"
+                                           "D",
+                                           7);
+    }
+#endif
 #endif
 
     // For Python 3.11 this value is checked, even if not used.

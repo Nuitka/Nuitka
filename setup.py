@@ -346,6 +346,18 @@ with open("README.rst", "rb") as input_file:
         ".. image:: doc/images/Nuitka-Logo-Symbol.png\n", ""
     )
 
+install_requires = []
+if sys.version_info >= (3, 7):
+    install_requires.append("ordered-set >= 4.1.0")
+if sys.version_info[:2] == (2, 7):
+    install_requires.append("subprocess32")
+if sys.version_info >= (3, 7):
+    install_requires.append("zstandard >= 0.15")
+if os.name != "nt" and sys.platform != "darwin" and sys.version_info < (3, 7):
+    install_requires.append("orderedset >= 2.0.3")
+if sys.platform == "darwin" and sys.version_info < (3, 7):
+    install_requires.append("orderedset >= 2.0.3")
+
 setup(
     name="Nuitka",
     license="Apache License, Version 2.0",
@@ -377,6 +389,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         # We depend on CPython.
         "Programming Language :: Python :: Implementation :: CPython",
         # We generate C intermediate code and implement part of the
@@ -427,6 +440,7 @@ Python compiler with full language support and CPython compatibility""",
         ],
         "console_scripts": console_scripts,
     },
+    install_requires=install_requires,
     # As we do version specific hacks for installed inline copies, make the
     # wheel version and platform specific.
     distclass=BinaryDistribution,

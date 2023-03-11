@@ -404,6 +404,10 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     @staticmethod
+    def isExpressionClassBodyBase():
+        return False
+
+    @staticmethod
     def isExpressionImportModuleNameHard():
         return False
 
@@ -430,6 +434,9 @@ class NodeBase(NodeMetaClassBase):
         """
 
         return ()
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
 
     @staticmethod
     def getName():

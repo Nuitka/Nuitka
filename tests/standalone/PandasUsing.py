@@ -19,8 +19,6 @@
 #
 """ Low coverage Pandas importing test. """
 
-import pandas as pd
-
 # nuitka-skip-unless-imports: pandas
 
 # nuitka-project: --standalone
@@ -33,5 +31,9 @@ import pandas as pd
 # scipy.lib._docscrape insists on it, and seems not easy to get
 # rid of.
 ## nuitka-project: --noinclude-custom-mode=pydoc:error
+
+# isort:start
+
+import pandas as pd
 
 print(pd.__version__)

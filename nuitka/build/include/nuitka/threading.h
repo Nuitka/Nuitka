@@ -26,7 +26,7 @@ extern volatile int _Py_Ticker;
 #define _Py_CheckInterval 20
 #endif
 
-#ifdef NUITKA_USE_PYCORE_THREADSTATE
+#ifdef NUITKA_USE_PYCORE_THREAD_STATE
 
 #if PYTHON_VERSION < 0x380
 // Signals pending got their own indicator only in 3.8, covered by calls to do before.

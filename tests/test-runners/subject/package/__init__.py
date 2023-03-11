@@ -18,9 +18,10 @@
 #     limitations under the License.
 #
 """ Package to be compiled. """
+from . import user_provided
+
 
 def runtest():
     import nose
-    nose.run("package", "package")
 
-from . import user_provided
+    nose.run("package", "package")

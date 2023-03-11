@@ -17,41 +17,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+]
 
+[project]
+name = "some_namespace.some_package"
+version = "0.0.1"
 
-def someFunction(rounds):
-    # define functions
-    def f(a,b,c,d = 1,e = 2,f = 3):
-        return f
+[project.scripts]
+runner="some_namespace.some_package.sub_package:main"
 
-    args = 1,2
-    kwargs = dict(c = 3,d = 4,e = 5)
-
-    # do calls
-    for i in xrange(rounds):
-        f(a = i,b = i,c = i)
-        f(f = i,e = i,d = i,c = 2,b = i,a = 3)
-        f(1,b = i,**kwargs)
-        f(*args,**kwargs)
-
-        f(a = i,b = i,c = i)
-        f(f = i,e = i,d = i,c = 2,b = i,a = 3)
-        f(1,b = i,**kwargs)
-        f(*args,**kwargs)
-
-        f(a = i,b = i,c = i)
-        f(f = i,e = i,d = i,c = 2,b = i,a = 3)
-        f(1,b = i,**kwargs)
-        f(*args,**kwargs)
-
-        f(a = i,b = i,c = i)
-        f(f = i,e = i,d = i,c = 2,b = i,a = 3)
-        f(1,b = i,**kwargs)
-        f(*args,**kwargs)
-
-        f(a = i,b = i,c = i)
-        f(f = i,e = i,d = i,c = 2,b = i,a = 3)
-        f(1,b = i,**kwargs)
-        f(*args,**kwargs)
-
-someFunction(10000);
+[tool.setuptools.packages.find]
+include = ["some_namespace.some_package*", "runner"]

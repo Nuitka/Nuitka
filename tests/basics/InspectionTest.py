@@ -28,7 +28,10 @@ import types
 def displayDict(d, remove_keys=()):
     if "__loader__" in d:
         d = dict(d)
-        d["__loader__"] = "<__loader__ removed>"
+        if str is bytes:
+            del d["__loader__"]
+        else:
+            d["__loader__"] = "<__loader__ removed>"
 
     if "__file__" in d:
         d = dict(d)
@@ -60,8 +63,6 @@ print(
     isinstance(compiledFunction, (int, types.FunctionType)),
 )
 
-print("Compiled spec:", inspect.getargspec(compiledFunction))
-print("Compiled args:", inspect.formatargspec(*inspect.getargspec(compiledFunction)))
 
 # Even this works.
 assert type(compiledFunction) == types.FunctionType
@@ -86,13 +87,6 @@ assert inspect.ismethod(CompiledClass().compiledMethod) is True
 
 assert bool(type(CompiledClass.compiledMethod) == types.MethodType) == (
     sys.version_info < (3,)
-)
-
-
-print("Compiled method:", inspect.getargspec(CompiledClass().compiledMethod))
-print(
-    "Compiled class:",
-    inspect.formatargspec(*inspect.getargspec(CompiledClass().compiledMethod)),
 )
 
 

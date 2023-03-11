@@ -180,7 +180,13 @@ class {{class_name}}(
 {% else %}
 {% set dict_operation_arg_types = {} %}
 {% endif %}
-{% set dict_operation_mixin_name = addChildrenMixin(True, False, class_name, ("dict_arg",) + arg_names, dict_operation_arg_types, {}) %}
+{% if dict_operation_static %}
+{% set dict_operation_arg_names = arg_names %}
+{% else %}
+{% set dict_operation_arg_names = ("dict_arg",) + arg_names %}
+{% endif %}
+
+{% set dict_operation_mixin_name = addChildrenMixin(True, False, class_name, dict_operation_arg_names, dict_operation_arg_types, {}) %}
 from .ChildrenHavingMixins import {{dict_operation_mixin_name}}
 
 class {{class_name}}(
@@ -189,8 +195,8 @@ class {{class_name}}(
 {% endfor %}
     {{dict_operation_mixin_name}},
     ExpressionBase):
-    named_children = ("dict_arg",
-{% for named_child in arg_names %}
+    named_children = (
+{% for named_child in dict_operation_arg_names %}
 {% if named_child in dict_operation_arg_types %}
         "{{named_child}}|{{dict_operation_arg_types[named_child]}}",
 {% else %}
@@ -199,10 +205,10 @@ class {{class_name}}(
 {% endfor %}
     )
 
-    def __init__(self, dict_arg,
-{{formatArgs(arg_names, starting=True, finishing=False)}} source_ref):
-        {{dict_operation_mixin_name}}.__init__(self, dict_arg = dict_arg,
-{% for named_child in arg_names %}
+    def __init__(self,
+{{formatArgs(dict_operation_arg_names, starting=True, finishing=False)}} source_ref):
+        {{dict_operation_mixin_name}}.__init__(self,
+{% for named_child in dict_operation_arg_names %}
             {{named_child}} = {{named_child}},
 {% endfor %}
         )
@@ -223,6 +229,7 @@ class {{class_name}}(
 {% set dict_operation_node_arg_mapping = attribute_shape_node_arg_mapping.get((attribute_name, "tshape_dict")) %}
 {% set dict_operation_empty = attribute_shape_empty.get((attribute_name, "tshape_dict"), "None") %}
 {% set dict_operation_mixin_classes = attribute_shape_operations_mixin_classes.get((attribute_name, "tshape_dict"), ()) %}
+{% set dict_operation_static = attribute_shape_static.get((attribute_name, "tshape_dict")) %}
 
 {% else %}
 {% set dict_shape = 0 %}
