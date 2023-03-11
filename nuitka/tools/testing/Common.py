@@ -1613,11 +1613,9 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             continue
 
         # Loading from home directories is OK too.
-        if (
-            loaded_filename.startswith("/home/")
-            or loaded_filename.startswith("/data/")
-            or loaded_filename.startswith("/root/")
-            or loaded_filename in ("/home", "/data", "/root")
+        if any(
+            isFilenameSameAsOrBelowPath(path, loaded_filename)
+            for path in ("/home", "/data", "/root", "/Users")
         ):
             continue
 
@@ -1760,6 +1758,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             "libcrypto.1.0.0.dylib",
             "libssl.1.0.0.dylib",
             "libcrypto.1.1.dylib",
+            "libffi.dylib",
         ):
             continue
 
