@@ -27,6 +27,7 @@ import sys
 # from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
+
 class NuitkaPluginForTesting(NuitkaPluginBase):
     plugin_name = __name__.split(".")[-1]
 
@@ -46,7 +47,7 @@ class NuitkaPluginForTesting(NuitkaPluginBase):
             action="store_true",
             dest="trace_my_plugin",
             default=False,
-            help="This is show in help output."
+            help="This is show in help output.",
         )
 
     def onModuleSourceCode(self, module_name, source_code):
@@ -56,6 +57,6 @@ class NuitkaPluginForTesting(NuitkaPluginBase):
             self.info(" Calls to 'math' module:")
             for i, l in enumerate(source_code.splitlines()):
                 if "math." in l:
-                    self.info(" %i: %s" % (i+1, l))
+                    self.info(" %i: %s" % (i + 1, l))
             self.info("")
         return source_code

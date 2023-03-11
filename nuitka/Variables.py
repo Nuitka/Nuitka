@@ -173,7 +173,7 @@ class Variable(getMetaClassBase("Variable")):
 
             while user is not owner and (
                 (user.isExpressionFunctionBody() and not user.needsCreation())
-                or user.isExpressionClassBody()
+                or user.isExpressionClassBodyBase()
             ):
                 user = user.getParentVariableProvider()
 

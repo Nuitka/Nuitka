@@ -45,6 +45,32 @@ int count_allocated_Nuitka_AIterWrapper_Type = 0;
 int count_released_Nuitka_AIterWrapper_Type = 0;
 #endif
 
+static void Nuitka_MarkCoroutineAsFinished(struct Nuitka_CoroutineObject *coroutine) {
+    coroutine->m_status = status_Finished;
+
+#if PYTHON_VERSION >= 0x3b0
+    if (coroutine->m_frame) {
+        coroutine->m_frame->m_frame_state = FRAME_COMPLETED;
+    }
+#endif
+}
+
+static void Nuitka_MarkCoroutineAsRunning(struct Nuitka_CoroutineObject *coroutine) {
+    coroutine->m_running = 1;
+
+    if (coroutine->m_frame) {
+        Nuitka_Frame_MarkAsExecuting(coroutine->m_frame);
+    }
+}
+
+static void Nuitka_MarkCoroutineAsNotRunning(struct Nuitka_CoroutineObject *coroutine) {
+    coroutine->m_running = 0;
+
+    if (coroutine->m_frame) {
+        Nuitka_Frame_MarkAsNotExecuting(coroutine->m_frame);
+    }
+}
+
 static PyObject *_Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing,
                                         PyObject *exception_type, PyObject *exception_value,
                                         PyTracebackObject *exception_tb);
@@ -341,14 +367,6 @@ static PyObject *Nuitka_YieldFromCoroutineInitial(struct Nuitka_CoroutineObject 
 
 static void Nuitka_SetStopIterationValue(PyObject *value);
 
-static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateFrame(PyThreadState *thread_state) {
-#if PYTHON_VERSION < 0x3b0
-    return thread_state->frame;
-#else
-    return thread_state->cframe->current_frame;
-#endif
-}
-
 // This function is called when sending a value or exception to be handled in the coroutine
 // Note:
 //   Exception arguments are passed for ownership and must be released before returning. The
@@ -396,16 +414,22 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
         PyThreadState *thread_state = PyThreadState_GET();
 
         // Put the coroutine back on the frame stack.
-        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GeneratorPushFrame(thread_state, coroutine->m_resume_frame);
-        coroutine->m_resume_frame = NULL;
+        Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(thread_state);
 
         // Consider it as running.
         if (coroutine->m_status == status_Unused) {
             coroutine->m_status = status_Running;
+            assert(coroutine->m_resume_frame == NULL);
+
+        } else {
+            assert(coroutine->m_resume_frame);
+            pushFrameStackGenerator(coroutine->m_resume_frame);
+
+            coroutine->m_resume_frame = NULL;
         }
 
         // Continue the yielder function while preventing recursion.
-        coroutine->m_running = true;
+        Nuitka_MarkCoroutineAsRunning(coroutine);
 
         // Check for thrown exception, publish it to the coroutine code.
         if (unlikely(exception_type)) {
@@ -413,10 +437,6 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 
             // Transfer exception ownership to published.
             RESTORE_ERROR_OCCURRED(exception_type, exception_value, exception_tb);
-        }
-
-        if (coroutine->m_frame) {
-            Nuitka_Frame_MarkAsExecuting(coroutine->m_frame);
         }
 
 #if _DEBUG_COROUTINE
@@ -441,11 +461,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
             yielded = Nuitka_YieldFromCoroutineNext(coroutine);
         }
 
-        if (coroutine->m_frame) {
-            Nuitka_Frame_MarkAsNotExecuting(coroutine->m_frame);
-        }
-
-        coroutine->m_running = false;
+        Nuitka_MarkCoroutineAsNotRunning(coroutine);
 
         thread_state = PyThreadState_GET();
 
@@ -470,7 +486,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 
 #ifndef __NUITKA_NO_ASSERT__
         if (return_frame) {
-            assertFrameObject((struct Nuitka_FrameObject *)return_frame);
+            assertThreadFrameObject(return_frame);
         }
 #endif
 
@@ -483,7 +499,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
             PRINT_CURRENT_EXCEPTION();
             PRINT_NEW_LINE();
 #endif
-            coroutine->m_status = status_Finished;
+            Nuitka_MarkCoroutineAsFinished(coroutine);
 
             if (coroutine->m_frame != NULL) {
                 Nuitka_SetFrameGenerator(coroutine->m_frame, NULL);
@@ -715,9 +731,9 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
     if (coroutine->m_yieldfrom != NULL) {
         if (EXCEPTION_MATCH_BOOL_SINGLE(exception_type, PyExc_GeneratorExit)) {
             // Coroutines need to close the yield_from.
-            coroutine->m_running = 1;
+            Nuitka_MarkCoroutineAsRunning(coroutine);
             bool res = Nuitka_gen_close_iter(coroutine->m_yieldfrom);
-            coroutine->m_running = 0;
+            Nuitka_MarkCoroutineAsNotRunning(coroutine);
 
             if (res == false) {
                 // Release exception, we are done with it now and pick up the new one.
@@ -743,41 +759,41 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
         if (Nuitka_Generator_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_GeneratorObject *gen = ((struct Nuitka_GeneratorObject *)coroutine->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Generator_throw2".
-            coroutine->m_running = 1;
+            Nuitka_MarkCoroutineAsRunning(coroutine);
             ret = _Nuitka_Generator_throw2(gen, exception_type, exception_value, exception_tb);
-            coroutine->m_running = 0;
+            Nuitka_MarkCoroutineAsNotRunning(coroutine);
         } else if (Nuitka_Coroutine_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)coroutine->m_yieldfrom);
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
-            coroutine->m_running = 1;
+            Nuitka_MarkCoroutineAsRunning(coroutine);
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
-            coroutine->m_running = 0;
+            Nuitka_MarkCoroutineAsNotRunning(coroutine);
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
         } else if (PyGen_CheckExact(coroutine->m_yieldfrom) || PyCoro_CheckExact(coroutine->m_yieldfrom)) {
             PyGenObject *gen = (PyGenObject *)coroutine->m_yieldfrom;
 
             // Transferred exception ownership to "Nuitka_UncompiledGenerator_throw".
-            coroutine->m_running = 1;
+            Nuitka_MarkCoroutineAsRunning(coroutine);
             ret = Nuitka_UncompiledGenerator_throw(gen, 1, exception_type, exception_value, exception_tb);
-            coroutine->m_running = 0;
+            Nuitka_MarkCoroutineAsNotRunning(coroutine);
 #endif
         } else if (Nuitka_CoroutineWrapper_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_CoroutineObject *coro =
                 ((struct Nuitka_CoroutineWrapperObject *)coroutine->m_yieldfrom)->m_coroutine;
 
             // Transferred exception ownership to "_Nuitka_Coroutine_throw2".
-            coroutine->m_running = 1;
+            Nuitka_MarkCoroutineAsRunning(coroutine);
             ret = _Nuitka_Coroutine_throw2(coro, true, exception_type, exception_value, exception_tb);
-            coroutine->m_running = 0;
+            Nuitka_MarkCoroutineAsNotRunning(coroutine);
 #if PYTHON_VERSION >= 0x360
         } else if (Nuitka_AsyncgenAsend_Check(coroutine->m_yieldfrom)) {
             struct Nuitka_AsyncgenAsendObject *asyncgen_asend =
                 ((struct Nuitka_AsyncgenAsendObject *)coroutine->m_yieldfrom);
 
             // Transferred exception ownership to "_Nuitka_AsyncgenAsend_throw2".
-            coroutine->m_running = 1;
+            Nuitka_MarkCoroutineAsRunning(coroutine);
             ret = _Nuitka_AsyncgenAsend_throw2(asyncgen_asend, exception_type, exception_value, exception_tb);
-            coroutine->m_running = 0;
+            Nuitka_MarkCoroutineAsNotRunning(coroutine);
 #endif
         } else {
             PyObject *meth = PyObject_GetAttr(coroutine->m_yieldfrom, const_str_plain_throw);
@@ -804,9 +820,9 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
             PRINT_ITEM(coroutine->m_yieldfrom);
             PRINT_NEW_LINE();
 #endif
-            coroutine->m_running = 1;
+            Nuitka_MarkCoroutineAsRunning(coroutine);
             ret = PyObject_CallFunctionObjArgs(meth, exception_type, exception_value, exception_tb, NULL);
-            coroutine->m_running = 0;
+            Nuitka_MarkCoroutineAsNotRunning(coroutine);
 
             Py_DECREF(meth);
 
@@ -930,7 +946,7 @@ throw_here:
         PRINT_NEW_LINE();
 #endif
 
-        coroutine->m_status = status_Finished;
+        Nuitka_MarkCoroutineAsFinished(coroutine);
 
         return NULL;
     }
@@ -1177,53 +1193,53 @@ static PyAsyncMethods Nuitka_Coroutine_as_async = {
 };
 
 PyTypeObject Nuitka_Coroutine_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "compiled_coroutine",                /* tp_name */
-    sizeof(struct Nuitka_CoroutineObject),                              /* tp_basicsize */
-    sizeof(struct Nuitka_CellObject *),                                 /* tp_itemsize */
-    (destructor)Nuitka_Coroutine_tp_dealloc,                            /* tp_dealloc */
-    0,                                                                  /* tp_print */
-    0,                                                                  /* tp_getattr */
-    0,                                                                  /* tp_setattr */
-    &Nuitka_Coroutine_as_async,                                         /* tp_as_async */
-    (reprfunc)Nuitka_Coroutine_tp_repr,                                 /* tp_repr */
-    0,                                                                  /* tp_as_number */
-    0,                                                                  /* tp_as_sequence */
-    0,                                                                  /* tp_as_mapping */
-    (hashfunc)Nuitka_Coroutine_tp_hash,                                 /* tp_hash */
-    0,                                                                  /* tp_call */
-    0,                                                                  /* tp_str */
-    PyObject_GenericGetAttr,                                            /* tp_getattro */
-    0,                                                                  /* tp_setattro */
-    0,                                                                  /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE, /* tp_flags */
-    0,                                                                  /* tp_doc */
-    (traverseproc)Nuitka_Coroutine_tp_traverse,                         /* tp_traverse */
-    0,                                                                  /* tp_clear */
-    0,                                                                  /* tp_richcompare */
-    offsetof(struct Nuitka_CoroutineObject, m_weakrefs),                /* tp_weaklistoffset */
-    0,                                                                  /* tp_iter */
-    0,                                                                  /* tp_iternext */
-    Nuitka_Coroutine_methods,                                           /* tp_methods */
-    Nuitka_Coroutine_members,                                           /* tp_members */
-    Nuitka_Coroutine_getsetlist,                                        /* tp_getset */
-    0,                                                                  /* tp_base */
-    0,                                                                  /* tp_dict */
-    0,                                                                  /* tp_descr_get */
-    0,                                                                  /* tp_descr_set */
-    0,                                                                  /* tp_dictoffset */
-    0,                                                                  /* tp_init */
-    0,                                                                  /* tp_alloc */
-    0,                                                                  /* tp_new */
-    0,                                                                  /* tp_free */
-    0,                                                                  /* tp_is_gc */
-    0,                                                                  /* tp_bases */
-    0,                                                                  /* tp_mro */
-    0,                                                                  /* tp_cache */
-    0,                                                                  /* tp_subclasses */
-    0,                                                                  /* tp_weaklist */
-    0,                                                                  /* tp_del */
-    0,                                                                  /* tp_version_tag */
-    (destructor)Nuitka_Coroutine_tp_finalize,                           /* tp_finalize */
+    PyVarObject_HEAD_INIT(NULL, 0) "compiled_coroutine",                // tp_name
+    sizeof(struct Nuitka_CoroutineObject),                              // tp_basicsize
+    sizeof(struct Nuitka_CellObject *),                                 // tp_itemsize
+    (destructor)Nuitka_Coroutine_tp_dealloc,                            // tp_dealloc
+    0,                                                                  // tp_print
+    0,                                                                  // tp_getattr
+    0,                                                                  // tp_setattr
+    &Nuitka_Coroutine_as_async,                                         // tp_as_async
+    (reprfunc)Nuitka_Coroutine_tp_repr,                                 // tp_repr
+    0,                                                                  // tp_as_number
+    0,                                                                  // tp_as_sequence
+    0,                                                                  // tp_as_mapping
+    (hashfunc)Nuitka_Coroutine_tp_hash,                                 // tp_hash
+    0,                                                                  // tp_call
+    0,                                                                  // tp_str
+    0,                                                                  // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                                  // tp_setattro
+    0,                                                                  // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_FINALIZE, // tp_flags
+    0,                                                                  // tp_doc
+    (traverseproc)Nuitka_Coroutine_tp_traverse,                         // tp_traverse
+    0,                                                                  // tp_clear
+    0,                                                                  // tp_richcompare
+    offsetof(struct Nuitka_CoroutineObject, m_weakrefs),                // tp_weaklistoffset
+    0,                                                                  // tp_iter
+    0,                                                                  // tp_iternext
+    Nuitka_Coroutine_methods,                                           // tp_methods
+    Nuitka_Coroutine_members,                                           // tp_members
+    Nuitka_Coroutine_getsetlist,                                        // tp_getset
+    0,                                                                  // tp_base
+    0,                                                                  // tp_dict
+    0,                                                                  // tp_descr_get
+    0,                                                                  // tp_descr_set
+    0,                                                                  // tp_dictoffset
+    0,                                                                  // tp_init
+    0,                                                                  // tp_alloc
+    0,                                                                  // tp_new
+    0,                                                                  // tp_free
+    0,                                                                  // tp_is_gc
+    0,                                                                  // tp_bases
+    0,                                                                  // tp_mro
+    0,                                                                  // tp_cache
+    0,                                                                  // tp_subclasses
+    0,                                                                  // tp_weaklist
+    0,                                                                  // tp_del
+    0,                                                                  // tp_version_tag
+    (destructor)Nuitka_Coroutine_tp_finalize,                           // tp_finalize
 };
 
 static void Nuitka_CoroutineWrapper_tp_dealloc(struct Nuitka_CoroutineWrapperObject *cw) {
@@ -1297,43 +1313,43 @@ static PyMethodDef Nuitka_CoroutineWrapper_methods[] = {
 
 PyTypeObject Nuitka_CoroutineWrapper_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_coroutine_wrapper",
-    sizeof(struct Nuitka_CoroutineWrapperObject),      /* tp_basicsize */
-    0,                                                 /* tp_itemsize */
-    (destructor)Nuitka_CoroutineWrapper_tp_dealloc,    /* tp_dealloc */
-    0,                                                 /* tp_print */
-    0,                                                 /* tp_getattr */
-    0,                                                 /* tp_setattr */
-    0,                                                 /* tp_as_async */
-    (reprfunc)Nuitka_CoroutineWrapper_tp_repr,         /* tp_repr */
-    0,                                                 /* tp_as_number */
-    0,                                                 /* tp_as_sequence */
-    0,                                                 /* tp_as_mapping */
-    0,                                                 /* tp_hash */
-    0,                                                 /* tp_call */
-    0,                                                 /* tp_str */
-    PyObject_GenericGetAttr,                           /* tp_getattro */
-    0,                                                 /* tp_setattro */
-    0,                                                 /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,           /* tp_flags */
-    0,                                                 /* tp_doc */
-    (traverseproc)Nuitka_CoroutineWrapper_tp_traverse, /* tp_traverse */
-    0,                                                 /* tp_clear */
-    0,                                                 /* tp_richcompare */
-    0,                                                 /* tp_weaklistoffset */
-    PyObject_SelfIter,                                 /* tp_iter */
-    (iternextfunc)Nuitka_CoroutineWrapper_tp_iternext, /* tp_iternext */
-    Nuitka_CoroutineWrapper_methods,                   /* tp_methods */
-    0,                                                 /* tp_members */
-    0,                                                 /* tp_getset */
-    0,                                                 /* tp_base */
-    0,                                                 /* tp_dict */
-    0,                                                 /* tp_descr_get */
-    0,                                                 /* tp_descr_set */
-    0,                                                 /* tp_dictoffset */
-    0,                                                 /* tp_init */
-    0,                                                 /* tp_alloc */
-    0,                                                 /* tp_new */
-    0,                                                 /* tp_free */
+    sizeof(struct Nuitka_CoroutineWrapperObject),      // tp_basicsize
+    0,                                                 // tp_itemsize
+    (destructor)Nuitka_CoroutineWrapper_tp_dealloc,    // tp_dealloc
+    0,                                                 // tp_print
+    0,                                                 // tp_getattr
+    0,                                                 // tp_setattr
+    0,                                                 // tp_as_async
+    (reprfunc)Nuitka_CoroutineWrapper_tp_repr,         // tp_repr
+    0,                                                 // tp_as_number
+    0,                                                 // tp_as_sequence
+    0,                                                 // tp_as_mapping
+    0,                                                 // tp_hash
+    0,                                                 // tp_call
+    0,                                                 // tp_str
+    0,                                                 // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                 // tp_setattro
+    0,                                                 // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,           // tp_flags
+    0,                                                 // tp_doc
+    (traverseproc)Nuitka_CoroutineWrapper_tp_traverse, // tp_traverse
+    0,                                                 // tp_clear
+    0,                                                 // tp_richcompare
+    0,                                                 // tp_weaklistoffset
+    0,                                                 // tp_iter (PyObject_SelfIter)
+    (iternextfunc)Nuitka_CoroutineWrapper_tp_iternext, // tp_iternext
+    Nuitka_CoroutineWrapper_methods,                   // tp_methods
+    0,                                                 // tp_members
+    0,                                                 // tp_getset
+    0,                                                 // tp_base
+    0,                                                 // tp_dict
+    0,                                                 // tp_descr_get
+    0,                                                 // tp_descr_set
+    0,                                                 // tp_dictoffset
+    0,                                                 // tp_init
+    0,                                                 // tp_alloc
+    0,                                                 // tp_new
+    0,                                                 // tp_free
 };
 
 #if PYTHON_VERSION >= 0x3b0
@@ -1451,7 +1467,7 @@ PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *
     result->m_weakrefs = NULL;
 
     result->m_status = status_Unused;
-    result->m_running = false;
+    result->m_running = 0;
     result->m_awaiting = false;
 
     result->m_yield_return_index = 0;
@@ -1672,50 +1688,50 @@ static void Nuitka_AIterWrapper_dealloc(struct Nuitka_AIterWrapper *aw) {
 }
 
 static PyAsyncMethods Nuitka_AIterWrapper_as_async = {
-    PyObject_SelfIter, /* am_await */
-    0,                 /* am_aiter */
-    0                  /* am_anext */
+    0, // am_await (PyObject_SelfIter)
+    0, // am_aiter
+    0  // am_anext
 };
 
 PyTypeObject Nuitka_AIterWrapper_Type = {
     PyVarObject_HEAD_INIT(NULL, 0) "compiled_aiter_wrapper",
-    sizeof(struct Nuitka_AIterWrapper),      /* tp_basicsize */
-    0,                                       /* tp_itemsize */
-    (destructor)Nuitka_AIterWrapper_dealloc, /* destructor tp_dealloc */
-    0,                                       /* tp_print */
-    0,                                       /* tp_getattr */
-    0,                                       /* tp_setattr */
-    &Nuitka_AIterWrapper_as_async,           /* tp_as_async */
-    (reprfunc)Nuitka_AIterWrapper_tp_repr,   /* tp_repr */
-    0,                                       /* tp_as_number */
-    0,                                       /* tp_as_sequence */
-    0,                                       /* tp_as_mapping */
-    0,                                       /* tp_hash */
-    0,                                       /* tp_call */
-    0,                                       /* tp_str */
-    PyObject_GenericGetAttr,                 /* tp_getattro */
-    0,                                       /* tp_setattro */
-    0,                                       /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, /* tp_flags */
-    "A wrapper object for '__aiter__' backwards compatibility.",
-    (traverseproc)Nuitka_AIterWrapper_traverse, /* tp_traverse */
-    0,                                          /* tp_clear */
-    0,                                          /* tp_richcompare */
-    0,                                          /* tp_weaklistoffset */
-    PyObject_SelfIter,                          /* tp_iter */
-    (iternextfunc)Nuitka_AIterWrapper_iternext, /* tp_iternext */
-    0,                                          /* tp_methods */
-    0,                                          /* tp_members */
-    0,                                          /* tp_getset */
-    0,                                          /* tp_base */
-    0,                                          /* tp_dict */
-    0,                                          /* tp_descr_get */
-    0,                                          /* tp_descr_set */
-    0,                                          /* tp_dictoffset */
-    0,                                          /* tp_init */
-    0,                                          /* tp_alloc */
-    0,                                          /* tp_new */
-    0,                                          /* tp_free */
+    sizeof(struct Nuitka_AIterWrapper),                          // tp_basicsize
+    0,                                                           // tp_itemsize
+    (destructor)Nuitka_AIterWrapper_dealloc,                     // tp_dealloc
+    0,                                                           // tp_print
+    0,                                                           // tp_getattr
+    0,                                                           // tp_setattr
+    &Nuitka_AIterWrapper_as_async,                               // tp_as_async
+    (reprfunc)Nuitka_AIterWrapper_tp_repr,                       // tp_repr
+    0,                                                           // tp_as_number
+    0,                                                           // tp_as_sequence
+    0,                                                           // tp_as_mapping
+    0,                                                           // tp_hash
+    0,                                                           // tp_call
+    0,                                                           // tp_str
+    0,                                                           // tp_getattro (PyObject_GenericGetAttr)
+    0,                                                           // tp_setattro
+    0,                                                           // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,                     // tp_flags
+    "A wrapper object for '__aiter__' backwards compatibility.", // tp_doc
+    (traverseproc)Nuitka_AIterWrapper_traverse,                  // tp_traverse
+    0,                                                           // tp_clear
+    0,                                                           // tp_richcompare
+    0,                                                           // tp_weaklistoffset
+    0,                                                           // tp_iter (PyObject_SelfIter)
+    (iternextfunc)Nuitka_AIterWrapper_iternext,                  // tp_iternext
+    0,                                                           // tp_methods
+    0,                                                           // tp_members
+    0,                                                           // tp_getset
+    0,                                                           // tp_base
+    0,                                                           // tp_dict
+    0,                                                           // tp_descr_get
+    0,                                                           // tp_descr_set
+    0,                                                           // tp_dictoffset
+    0,                                                           // tp_init
+    0,                                                           // tp_alloc
+    0,                                                           // tp_new
+    0,                                                           // tp_free
 };
 
 static PyObject *Nuitka_AIterWrapper_New(PyObject *aiter) {
@@ -1862,9 +1878,7 @@ PyObject *ASYNC_ITERATOR_NEXT(PyObject *value) {
 }
 
 static void _initCompiledCoroutineTypes(void) {
-    Nuitka_Coroutine_Type.tp_base = &PyCoro_Type;
-
-    PyType_Ready(&Nuitka_Coroutine_Type);
+    Nuitka_PyType_Ready(&Nuitka_Coroutine_Type, &PyCoro_Type, true, false, false, false, false);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Coroutine_Type.tp_doc != PyCoro_Type.tp_doc || PyCoro_Type.tp_doc == NULL);
@@ -1878,7 +1892,6 @@ static void _initCompiledCoroutineTypes(void) {
     assert(Nuitka_Coroutine_Type.tp_methods != PyCoro_Type.tp_methods);
     assert(Nuitka_Coroutine_Type.tp_members != PyCoro_Type.tp_members);
     assert(Nuitka_Coroutine_Type.tp_getset != PyCoro_Type.tp_getset);
-    assert(Nuitka_Coroutine_Type.tp_base != PyCoro_Type.tp_base);
     assert(Nuitka_Coroutine_Type.tp_dict != PyCoro_Type.tp_dict);
     assert(Nuitka_Coroutine_Type.tp_descr_get != PyCoro_Type.tp_descr_get || PyCoro_Type.tp_descr_get == NULL);
 
@@ -1897,10 +1910,10 @@ static void _initCompiledCoroutineTypes(void) {
     assert(Nuitka_Coroutine_Type.tp_del != PyCoro_Type.tp_del || PyCoro_Type.tp_del == NULL);
     assert(Nuitka_Coroutine_Type.tp_finalize != PyCoro_Type.tp_finalize || PyCoro_Type.tp_finalize == NULL);
 
-    PyType_Ready(&Nuitka_CoroutineWrapper_Type);
+    Nuitka_PyType_Ready(&Nuitka_CoroutineWrapper_Type, NULL, true, false, true, false, false);
 
 #if PYTHON_VERSION >= 0x352
-    PyType_Ready(&Nuitka_AIterWrapper_Type);
+    Nuitka_PyType_Ready(&Nuitka_AIterWrapper_Type, NULL, true, false, true, true, false);
 #endif
 }
 

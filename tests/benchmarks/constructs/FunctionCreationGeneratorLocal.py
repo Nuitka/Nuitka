@@ -17,22 +17,24 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_var = None
 
+
 def calledRepeatedly():
     # We measure making a local function that will remain unused.
-# construct_begin
+    # construct_begin
     def empty():
         yield 1
-# construct_alternative
+
+    # construct_alternative
     empty = 1
-# construct_end
+    # construct_end
 
     return empty
 
 
-import itertools
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

@@ -33,11 +33,6 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_FLOAT(PyObject **operand1, PyObj
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -366,11 +361,6 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_FLOAT(PyObject **operand1, PyOb
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -711,11 +701,6 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_OBJECT(PyObject **operand1, PyOb
     assert(PyFloat_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyFloat_Type == type2) {
@@ -894,11 +879,6 @@ static inline bool _INPLACE_OPERATION_POW_LONG_LONG(PyObject **operand1, PyObjec
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     // Not every code path will make use of all possible results.
 #ifdef _MSC_VER
@@ -1107,11 +1087,6 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_LONG(PyObject **operand1, PyObj
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -1331,11 +1306,6 @@ static inline bool _INPLACE_OPERATION_POW_LONG_OBJECT(PyObject **operand1, PyObj
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyLong_Type == type2) {
@@ -1390,11 +1360,6 @@ static inline bool _INPLACE_OPERATION_POW_INT_INT(PyObject **operand1, PyObject 
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     // Not every code path will make use of all possible results.
 #ifdef _MSC_VER
@@ -1678,11 +1643,6 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_INT(PyObject **operand1, PyObje
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     PyTypeObject *type1 = Py_TYPE(*operand1);
 
@@ -1977,11 +1937,6 @@ static inline bool _INPLACE_OPERATION_POW_INT_OBJECT(PyObject **operand1, PyObje
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
     PyTypeObject *type2 = Py_TYPE(operand2);
 
     if (&PyInt_Type == type2) {
@@ -2114,11 +2069,6 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_LONG(PyObject **operand1, PyObje
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2186,11 +2136,6 @@ static inline bool _INPLACE_OPERATION_POW_LONG_FLOAT(PyObject **operand1, PyObje
     assert(PyLong_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2267,11 +2212,6 @@ static inline bool _INPLACE_OPERATION_POW_FLOAT_INT(PyObject **operand1, PyObjec
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2337,11 +2277,6 @@ static inline bool _INPLACE_OPERATION_POW_INT_FLOAT(PyObject **operand1, PyObjec
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyFloat_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2415,11 +2350,6 @@ static inline bool _INPLACE_OPERATION_POW_LONG_INT(PyObject **operand1, PyObject
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
 
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4101)
@@ -2485,11 +2415,6 @@ static inline bool _INPLACE_OPERATION_POW_INT_LONG(PyObject **operand1, PyObject
     assert(PyInt_CheckExact(*operand1));
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -2673,11 +2598,6 @@ static inline bool _INPLACE_OPERATION_POW_OBJECT_OBJECT(PyObject **operand1, PyO
         return false;
     }
 #endif
-
-    if (Py_REFCNT(*operand1) == 1) {
-        // We more or less own the operand, so we might re-use its storage and
-        // execute stuff in-place.
-    }
 
     if (Py_TYPE(*operand1) == Py_TYPE(operand2)) {
         if (PyFloat_CheckExact(operand2)) {

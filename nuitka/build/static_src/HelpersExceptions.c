@@ -95,8 +95,13 @@ void FORMAT_UNBOUND_CLOSURE_ERROR(PyObject **exception_type, PyObject **exceptio
     *exception_type = PyExc_NameError;
     Py_INCREF(*exception_type);
 
-    *exception_value = Nuitka_String_FromFormat("free variable '%s' referenced before assignment in enclosing scope",
-                                                Nuitka_String_AsString_Unchecked(variable_name));
+#if PYTHON_VERSION < 0x3b0
+    char const *message = "free variable '%s' referenced before assignment in enclosing scope";
+#else
+    char const *message = "cannot access free variable '%s' where it is not associated with a value in enclosing scope";
+#endif
+
+    *exception_value = Nuitka_String_FromFormat(message, Nuitka_String_AsString_Unchecked(variable_name));
     CHECK_OBJECT(*exception_value);
 }
 

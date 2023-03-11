@@ -15,8 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # Not allowed to do future imports that are not the first statements of the
 # module.
+
 a = 1
-from __future__ import print_function
+
+from __future__ import print_function  # isort:skip

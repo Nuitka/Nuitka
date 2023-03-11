@@ -17,26 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import re
 
-
-
-def someFunction():
-    def someRaiser():
-        raise ValueError
-
-    try:
-        someRaiser()
-        a = 0
-    finally:
-        a = 1
-
-    return a
-
-def catcher():
-    for i in range(1000):
-        try:
-            someFunction()
-        except ValueError:
-            pass
-
-catcher()
+print(re.sub("venv_(nuitka|cpython)", "venv_xxxxx", __file__))

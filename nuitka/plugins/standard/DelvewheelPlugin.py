@@ -29,7 +29,7 @@ from nuitka.utils.FileOperations import getFileList
 # spell-checker: ignore delvewheel,pyzmq
 
 
-class NuitkaPluginZmq(NuitkaPluginBase):
+class NuitkaPluginDelvewheel(NuitkaPluginBase):
     """This class represents the main logic of the delvewheel plugin.
 
     This is a plugin to ensure that delvewheel DLLs are loading properly in

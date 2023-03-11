@@ -387,3 +387,5 @@ void formatCannotInstantiateAbstractClass(PyTypeObject *type) {
 
     Py_DECREF(joined);
 }
+
+#include "HelpersCallingGenerated.c"

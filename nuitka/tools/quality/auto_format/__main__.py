@@ -111,9 +111,17 @@ Defaults to off.""",
             autoFormatFile(desc["src_path"], git_stage=desc)
     else:
         if not positional_args:
-            positional_args = ["bin", "nuitka", "setup.py", "tests/*/run_all.py"]
+            positional_args = [
+                "bin",
+                "lib",
+                "misc",
+                "nuitka",
+                "rpm",
+                "setup.py",
+                "tests",
+            ]
 
-        my_print("Working on:", positional_args)
+        my_print("Working on:", ", ".join(positional_args))
 
         positional_args = sum(
             (
@@ -139,6 +147,8 @@ Defaults to off.""",
                 ),
             )
         )
+        if options.verbose:
+            my_print("Selected:", ", ".join(filenames))
 
         if not filenames:
             tools_logger.sysexit("No files found.")

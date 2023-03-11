@@ -72,7 +72,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
-from nuitka.utils import InstanceCounters, MemoryUsage
+from nuitka.utils import InstanceCounters
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
@@ -87,6 +87,7 @@ from nuitka.utils.FileOperations import (
     resetDirectory,
 )
 from nuitka.utils.Importing import getSharedLibrarySuffix
+from nuitka.utils.MemoryUsage import reportMemoryUsage, showMemoryTrace
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.ReExecute import callExecProcess, reExecuteNuitka
 from nuitka.utils.StaticLibraries import getSystemStaticLibPythonPath
@@ -819,12 +820,12 @@ def compileTree():
     if not Options.shallOnlyExecCCompilerCall():
         general.info("Generating source code for C backend compiler.")
 
-        if Options.isShowProgress() or Options.isShowMemory():
-            general.info(
-                "Total memory usage before generating C code: {memory}:".format(
-                    memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
-                )
-            )
+        reportMemoryUsage(
+            "before_c_code_generation",
+            "Total memory usage before generating C code:"
+            if Options.isShowProgress() or Options.isShowMemory()
+            else None,
+        )
 
         # Now build the target language code for the whole tree.
         makeSourceDirectory()
@@ -847,12 +848,12 @@ def compileTree():
         if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
             general.sysexit("Error, no previous build directory exists.")
 
-    if Options.isShowProgress() or Options.isShowMemory():
-        general.info(
-            "Total memory usage before running scons: {memory}:".format(
-                memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
-            )
-        )
+    reportMemoryUsage(
+        "before_running_scons",
+        "Total memory usage before running scons"
+        if Options.isShowProgress() or Options.isShowMemory()
+        else None,
+    )
 
     if Options.isShowMemory():
         InstanceCounters.printStats()
@@ -903,7 +904,7 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
     sys.exit(error_message)
 
 
-def main():
+def _main():
     """Main program flow of Nuitka
 
     At this point, options will be parsed already, Nuitka will be executing
@@ -930,6 +931,13 @@ def main():
             python_version_str,
             getCommercialVersion() or "not installed",
         )
+    )
+
+    reportMemoryUsage(
+        "after_launch",
+        "Total memory usage before processing:"
+        if Options.isShowProgress() or Options.isShowMemory()
+        else None,
     )
 
     _setupFromMainFilenames()
@@ -966,7 +974,7 @@ def main():
 
     if Options.shallNotDoExecCCompilerCall():
         if Options.isShowMemory():
-            MemoryUsage.showMemoryTrace()
+            showMemoryTrace()
 
         sys.exit(0)
 
@@ -1047,7 +1055,7 @@ not use compiled code while it exists."""
 
     general.info("Successfully created '%s'." % final_filename)
 
-    writeCompilationReports()
+    writeCompilationReports(aborted=False)
 
     run_filename = OutputDirectories.getResultRunFilename(
         onefile=Options.isOnefileMode()
@@ -1073,3 +1081,14 @@ not use compiled code while it exists."""
                 "Execute it by launching '%s', the batch file needs to set environment."
                 % run_filename
             )
+
+
+def main():
+    try:
+        _main()
+    finally:
+        if sys.exc_info() != (None, None, None):
+            try:
+                writeCompilationReports(aborted=True)
+            except BaseException as e:  # Catch all the things, pylint: disable=broad-except
+                general.warning("Report writing prevented by exception %s" % e)

@@ -1,0 +1,38 @@
+@startuml
+!theme spacelab
+
+actor user
+
+rectangle company {
+
+rectangle development {
+    rectangle team {
+        actor deployer
+        actor developer
+        actor tester
+    }
+    rectangle artifacts {
+        (report)
+        (binaries)
+
+    }
+    developer "changes" ^--^ (source code)
+    deployer "compiles" ^-- (source code)
+    deployer "uses" --^ (nuitka)
+    (source code) --^ (nuitka)
+    tester "runs from" ^-- (binaries)
+    deployer "releases" --^ (binaries)
+    deployer "checks" ^-- (report)
+    (nuitka) "produces" --^ (binaries)
+    (report) "produces" ^-- (nuitka)
+    (binaries) -u-^ "deployes"  server
+}
+
+
+rectangle server {
+    (downloads)
+    user "downloads" -d- (downloads)
+}
+
+}
+@enduml

@@ -20,7 +20,6 @@
 Python3 only, Python2 has no bytes, but only str
 """
 
-from nuitka import Options
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
     tshape_bool,
     tshape_bytes,
@@ -31,71 +30,21 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 )
 
 from .BuiltinParameterSpecs import (
-    BuiltinParameterSpec,
-    BuiltinParameterSpecNoKeywords,
+    BuiltinMethodParameterSpecBase,
+    BuiltinMethodParameterSpecNoKeywordsBase,
 )
 
 
-# TODO: Should be shared, this is duplicate for other types currently.
-class MethodKeywordErrorCompatibilityMixin(object):
-    def getKeywordRefusalText(self):
-        if Options.is_full_compat:
-            assert "." in self.name, self.name
-
-            try:
-                eval(  # These are harmless calls, pylint: disable=eval-used
-                    "b''.%s(x=1)" % self.name.split(".")[-1]
-                )
-            except TypeError as e:
-                return str(e)
-            else:
-                assert False, self.name
-        else:
-            return "%s() takes no keyword arguments" % self.name
-
-
-class BytesMethodSpecNoKeywords(
-    MethodKeywordErrorCompatibilityMixin, BuiltinParameterSpecNoKeywords
-):
+class BytesMethodSpecNoKeywords(BuiltinMethodParameterSpecNoKeywordsBase):
     __slots__ = ()
 
-    def __init__(self, name, arg_names=(), default_count=0, type_shape=None):
-        BuiltinParameterSpecNoKeywords.__init__(
-            self,
-            name="bytes." + name,
-            arg_names=arg_names,
-            default_count=default_count,
-            list_star_arg=None,
-            dict_star_arg=None,
-            pos_only_args=(),
-            kw_only_args=(),
-            type_shape=type_shape,
-        )
+    method_prefix = "bytes"
 
 
-class BytesMethodSpec(BuiltinParameterSpec):
+class BytesMethodSpec(BuiltinMethodParameterSpecBase):
     __slots__ = ()
 
-    def __init__(
-        self,
-        name,
-        arg_names=(),
-        default_count=0,
-        list_star_arg=None,
-        dict_star_arg=None,
-        type_shape=None,
-    ):
-        BuiltinParameterSpec.__init__(
-            self,
-            name="bytes." + name,
-            arg_names=arg_names,
-            default_count=default_count,
-            list_star_arg=list_star_arg,
-            dict_star_arg=dict_star_arg,
-            pos_only_args=(),
-            kw_only_args=(),
-            type_shape=type_shape,
-        )
+    method_prefix = "bytes"
 
 
 bytes_decode_spec = BytesMethodSpec(

@@ -104,6 +104,12 @@ class ExpressionSideEffects(
     def getTruthValue(self):
         return self.subnode_expression.getTruthValue()
 
+    def mayRaiseException(self, exception_type):
+        return self.subnode_expression.mayRaiseException(exception_type) or any(
+            side_effect.mayRaiseException(exception_type)
+            for side_effect in self.subnode_side_effects
+        )
+
     def computeExpressionDrop(self, statement, trace_collection):
         # Side effects can  become statements.
 

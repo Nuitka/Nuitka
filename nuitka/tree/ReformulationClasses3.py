@@ -33,7 +33,7 @@ from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
-    ExpressionClassBody,
+    ExpressionClassBodyP3,
     ExpressionSelectMetaclass,
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
@@ -60,9 +60,9 @@ from nuitka.nodes.FunctionNodes import (
     makeExpressionFunctionCall,
     makeExpressionFunctionCreation,
 )
-from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
 from nuitka.nodes.ListOperationNodes import ExpressionListOperationExtend
 from nuitka.nodes.LocalsDictNodes import (
+    ExpressionLocalsDictRef,
     StatementLocalsDictOperationSet,
     StatementReleaseLocals,
     StatementSetLocals,
@@ -144,7 +144,7 @@ def buildClassNode3(provider, node, source_ref):
     )
     tmp_prepared = provider.allocateTempVariable(temp_scope=temp_scope, name="prepared")
 
-    class_creation_function = ExpressionClassBody(
+    class_creation_function = ExpressionClassBodyP3(
         provider=provider, name=node.name, doc=class_doc, source_ref=source_ref
     )
 
@@ -154,6 +154,7 @@ def buildClassNode3(provider, node, source_ref):
     class_variable = class_locals_scope.getLocalVariable(
         owner=class_creation_function, variable_name="__class__"
     )
+
     class_locals_scope.registerProvidedVariable(class_variable)
 
     class_variable_ref = ExpressionVariableRef(
@@ -319,7 +320,7 @@ def buildClassNode3(provider, node, source_ref):
                             user_provided=True,
                         ),
                         makeBasesRef(),
-                        ExpressionBuiltinLocalsRef(
+                        ExpressionLocalsDictRef(
                             locals_scope=locals_scope, source_ref=source_ref
                         ),
                     ),

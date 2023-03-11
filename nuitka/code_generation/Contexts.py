@@ -880,7 +880,7 @@ class PythonFunctionContext(
     def __repr__(self):
         return "<%s for %s '%s'>" % (
             self.__class__.__name__,
-            "function" if not self.function.isExpressionClassBody() else "class",
+            "function" if not self.function.isExpressionClassBodyBase() else "class",
             self.function.getName(),
         )
 
@@ -906,10 +906,12 @@ class PythonFunctionDirectContext(PythonFunctionContext):
     def getContextObjectName():
         return None
 
-    def isForDirectCall(self):
+    @staticmethod
+    def isForDirectCall():
         return True
 
-    def isForCreatedFunction(self):
+    @staticmethod
+    def isForCreatedFunction():
         return False
 
 
@@ -917,10 +919,12 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     def _makeVariableStorage(self):
         return VariableStorage(heap_name="%s_heap" % self.getContextObjectName())
 
-    def isForDirectCall(self):
+    @staticmethod
+    def isForDirectCall():
         return False
 
-    def isForCreatedFunction(self):
+    @staticmethod
+    def isForCreatedFunction():
         return False
 
     @staticmethod
@@ -951,10 +955,12 @@ class PythonFunctionCreatedContext(PythonFunctionContext):
     def getContextObjectName():
         return None
 
-    def isForDirectCall(self):
+    @staticmethod
+    def isForDirectCall():
         return False
 
-    def isForCreatedFunction(self):
+    @staticmethod
+    def isForCreatedFunction():
         return True
 
 

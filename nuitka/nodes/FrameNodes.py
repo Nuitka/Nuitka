@@ -101,7 +101,7 @@ class StatementsFrameBase(StatementsSequence):
     def getGuardMode(self):
         provider = self.getParentVariableProvider()
 
-        while provider.isExpressionClassBody():
+        while provider.isExpressionClassBodyBase():
             provider = provider.getParentVariableProvider()
 
         if provider.isCompiledPythonModule():
@@ -150,7 +150,7 @@ class StatementsFrameBase(StatementsSequence):
 
         is_optimized = (
             not entry_point.isCompiledPythonModule()
-            and not entry_point.isExpressionClassBody()
+            and not entry_point.isExpressionClassBodyBase()
             and not entry_point.isUnoptimized()
         )
 
@@ -158,7 +158,10 @@ class StatementsFrameBase(StatementsSequence):
 
         new_locals = not provider.isCompiledPythonModule() and (
             python_version < 0x340
-            or (not provider.isExpressionClassBody() and not provider.isUnoptimized())
+            or (
+                not provider.isExpressionClassBodyBase()
+                and not provider.isUnoptimized()
+            )
         )
 
         self.code_object.setFlagNewLocalsValue(new_locals)
@@ -274,6 +277,12 @@ class StatementsFrameBase(StatementsSequence):
     def hasStructureMember(self):
         """Does the frame have a structure associated, like e.g. generator objects need."""
 
+    def getStructureMember(self):
+        """Get the frame structure member code name, generator, coroutine, asyncgen."""
+        assert not self.hasStructureMember()
+
+        return None
+
 
 class StatementsFrameModule(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_MODULE"
@@ -358,14 +367,26 @@ class StatementsFrameGenerator(StatementsFrameGeneratorBase):
         def needsExceptionFramePreservation():
             return False
 
+    @staticmethod
+    def getStructureMember():
+        return "generator"
+
 
 class StatementsFrameCoroutine(StatementsFrameGeneratorBase):
     kind = "STATEMENTS_FRAME_COROUTINE"
 
     python_version_spec = ">= 0x350"
 
+    @staticmethod
+    def getStructureMember():
+        return "coroutine"
+
 
 class StatementsFrameAsyncgen(StatementsFrameGeneratorBase):
     kind = "STATEMENTS_FRAME_ASYNCGEN"
 
     python_version_spec = ">= 0x360"
+
+    @staticmethod
+    def getStructureMember():
+        return "asyncgen"

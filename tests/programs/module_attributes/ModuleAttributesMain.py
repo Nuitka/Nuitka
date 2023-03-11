@@ -33,7 +33,10 @@ def displayDict(d):
     del d["__builtins__"]
 
     if "__loader__" in d:
-        d["__loader__"] = "<__loader__ removed>"
+        if str is bytes:
+            del d["__loader__"]
+        else:
+            d["__loader__"] = "<__loader__ removed>"
 
     if "__file__" in d:
         d["__file__"] = "<__file__ removed>"

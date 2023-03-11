@@ -34,16 +34,8 @@ from nuitka.Progress import (
     reportProgressBar,
     setupProgressBar,
 )
-from nuitka.Tracing import (
-    general,
-    memory_logger,
-    optimization_logger,
-    progress_logger,
-)
-from nuitka.utils.MemoryUsage import (
-    MemoryWatch,
-    getHumanReadableProcessMemoryUsage,
-)
+from nuitka.Tracing import general, optimization_logger, progress_logger
+from nuitka.utils.MemoryUsage import MemoryWatch, reportMemoryUsage
 from nuitka.utils.Timing import TimerReport
 
 from . import Graphs
@@ -141,11 +133,8 @@ def optimizeCompiledPythonModule(module):
         touched = True
 
     if Options.isShowProgress() and Options.isShowMemory():
-        memory_watch.finish()
-
-        memory_logger.info(
-            "Memory usage changed during optimization of '%s': %s"
-            % (module.getFullName(), memory_watch.asStr())
+        memory_watch.finish(
+            "Memory usage changed during optimization of '%s'" % (module.getFullName())
         )
 
     considerUsedModules(module=module, signal_change=signalChange)
@@ -239,11 +228,15 @@ after that.""".format(
     )
 
     if Options.isShowProgress() and Options.isShowMemory():
-        output = "Memory usage {memory}:".format(
-            memory=getHumanReadableProcessMemoryUsage()
+        reportMemoryUsage(
+            "optimization/%d/%s" % (pass_count, current_module.getFullName()),
+            (
+                "Total memory usage before optimizing module '%s'"
+                % current_module.getFullName()
+            )
+            if Options.isShowProgress() or Options.isShowMemory()
+            else None,
         )
-
-        memory_logger.info(output)
 
 
 def _traceProgressModuleEnd(current_module):

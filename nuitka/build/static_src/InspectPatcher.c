@@ -223,8 +223,6 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
 
         bool bool_res = Nuitka_DelModuleString("nuitka_types_patch");
         assert(bool_res != false);
-
-        Py_DECREF(module);
     }
 
 #endif
@@ -315,7 +313,7 @@ PyTracebackObject *MAKE_TRACEBACK(struct Nuitka_FrameObject *frame, int lineno) 
     result->tb_frame = (PyFrameObject *)frame;
     Py_INCREF(frame);
 
-    result->tb_lasti = 0;
+    result->tb_lasti = -1;
     result->tb_lineno = lineno;
 
     Nuitka_GC_Track(result);

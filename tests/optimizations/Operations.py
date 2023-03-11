@@ -17,7 +17,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 # This test is SPECIAL. Everything in here, MUST be statically optimized,
 # and be a print of a constant, or a function that becomes a return value
 # that is constant.
@@ -30,14 +29,14 @@ print(False or dict)
 print(type(Ellipsis))
 print("a" in "abba")
 print("a" not in "abba")
-print(len("a"*10000))
-print(len(10000*"a"))
-print(len((1,) *20000))
-print(len(20000*(1,)))
-print(len([1]*30000))
-print(len(30000*[1]))
-print(len(unicode("a")*40000))
-print(len(40000*unicode("a")))
+print(len("a" * 10000))
+print(len(10000 * "a"))
+print(len((1,) * 20000))
+print(len(20000 * (1,)))
+print(len([1] * 30000))
+print(len(30000 * [1]))
+print(len(unicode("a") * 40000))
+print(len(40000 * unicode("a")))
 
 
 # For operations, we use function return values of local variables that will
@@ -46,53 +45,63 @@ def simpleAssignment():
     x = 2
     return x
 
+
 def inplaceOperationIncrement():
     x = 2
     x += 1
     return x
+
 
 def inplaceOperationProduct():
     x = 2
     x *= 2
     return x
 
-def inplaceOperationExponentiate():
+
+def inplaceOperationPower():
     x = 2
     x **= 2
     return x
+
 
 def inplaceOperationDecrement():
     x = 2
     x -= 8
     return x
 
+
 #     x //= 5
-def inplaceOperationFloorDivison():
+def inplaceOperationFloorDivision():
     x = 2
     x //= 5
     return x
+
 
 def inplaceOperationModulus():
     x = 2
     x %= 3
     return x
 
+
 def inplaceOperationAnd():
     x = 2
     x &= 2
     return x
+
 
 def inplaceOperationOr():
     x = 2
     x |= 5
     return x
 
+
 def inplaceOperationXor():
     x = 2
     x ^= 1
     return x
 
-def inplaceOperationDivison():
+
+def inplaceOperationDivision():
     x = 2
     x /= 2
     return x

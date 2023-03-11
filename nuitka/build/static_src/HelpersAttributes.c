@@ -121,7 +121,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -147,26 +147,57 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
             }
         }
 
-        Py_ssize_t dictoffset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
-        if (dictoffset != 0) {
-            // Negative dictionary offsets have special meaning.
-            if (dictoffset < 0) {
-                Py_ssize_t tsize;
-                size_t size;
+// TODO: This is what Python 3.11 requires us to add.
+#if PYTHON_VERSION >= 0x3b0 && 0
+        if ((type->tp_flags & Py_TPFLAGS_MANAGED_DICT) && *_PyObject_ValuesPointer(source)) {
+            PyObject **dictptr;
 
-                tsize = ((PyVarObject *)source)->ob_size;
-                if (tsize < 0) {
-                    tsize = -tsize;
+            PyDictValues **values_ptr = _PyObject_ValuesPointer(source);
+
+            // TODO: Seems we would benefit by knowing this on the outside.
+            if (PyUnicode_CheckExact(attr_name)) {
+                assert(*_PyObject_DictPointer(source) == NULL);
+                PyObject *result = _PyObject_GetInstanceAttribute(source, *values_ptr, attr_name);
+                if (result != NULL) {
+                    return result;
                 }
-                size = _PyObject_VAR_SIZE(type, tsize);
+            } else {
+                dictptr = _PyObject_DictPointer(source);
+                assert(dictptr != NULL && *dictptr == NULL);
 
-                dictoffset += (long)size;
+                *dictptr = dict = _PyObject_MakeDictFromInstanceAttributes(source, *values_ptr);
+                if (unlikely(dict == NULL)) {
+                    return NULL;
+                }
+                *values_ptr = NULL;
             }
+        }
+#endif
 
-            PyObject **dictptr = (PyObject **)((char *)source + dictoffset);
-            dict = *dictptr;
+        if (dict == NULL) {
+            Py_ssize_t dict_offset = type->tp_dictoffset;
+
+            if (dict_offset != 0) {
+
+                // Negative dictionary offsets have special meaning.
+                if (dict_offset < 0) {
+                    Py_ssize_t tsize;
+                    size_t size;
+
+                    tsize = ((PyVarObject *)source)->ob_size;
+                    if (tsize < 0) {
+                        tsize = -tsize;
+                    }
+                    size = _PyObject_VAR_SIZE(type, tsize);
+
+                    dict_offset += (long)size;
+                }
+
+                PyObject **dictptr = (PyObject **)((char *)source + dict_offset);
+                dict = *dictptr;
+            }
         }
 
         if (dict != NULL) {
@@ -243,7 +274,7 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
 #else
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -360,7 +391,7 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
 #else
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
                 return NULL;
@@ -525,7 +556,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
 #else
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -823,7 +854,7 @@ bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value) {
     PyTypeObject *type = Py_TYPE(target);
 
 #if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
-    if (type->tp_setattro == PyObject_GenericSetAttr) {
+    if (hasTypeGenericSetAttr(type)) {
         return SET_ATTRIBUTE_GENERIC(type, target, attr_name, value);
     }
 #endif
@@ -997,7 +1028,25 @@ PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name) {
         }
     }
 
+#if PYTHON_VERSION < 0x3B0
     SET_CURRENT_EXCEPTION_TYPE0_VALUE0(PyExc_AttributeError, attr_name);
+#else
+    // TODO: Maybe we should have dedicated variations with the 4 hard coded
+    // attribute names, might save a bit of complexity to large programs not
+    // having to pass constant values in what is a frequent construct.
+    if (attr_name == const_str_plain___exit__) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+            "'%s' object does not support the context manager protocol (missed __exit__ method)", source);
+    } else if (attr_name == const_str_plain___aexit__) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
+            "'%s' object does not support the asynchronous context manager protocol (missed __aexit__ method)", source);
+    } else if (attr_name == const_str_plain___aenter__) {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the asynchronous context manager protocol",
+                                             source);
+    } else {
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'%s' object does not support the context manager protocol", source);
+    }
+#endif
     return NULL;
 }
 

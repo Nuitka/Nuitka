@@ -19,7 +19,8 @@
 #
 # nuitka-project: --standalone
 
-import glfw
-
-
 # nuitka-skip-unless-imports: glfw
+
+# isort:start
+
+import glfw

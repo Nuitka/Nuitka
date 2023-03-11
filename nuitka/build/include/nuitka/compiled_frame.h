@@ -42,10 +42,12 @@ typedef _PyInterpreterFrame Nuitka_ThreadStateFrameType;
 // Print a description of given frame objects in frame debug mode
 #if _DEBUG_FRAME
 extern void PRINT_TOP_FRAME(char const *prefix);
+extern void PRINT_PYTHON_FRAME(char const *prefix, PyFrameObject *frame);
 extern void PRINT_COMPILED_FRAME(char const *prefix, struct Nuitka_FrameObject *frame);
 extern void PRINT_INTERPRETER_FRAME(char const *prefix, Nuitka_ThreadStateFrameType *frame);
 #else
 #define PRINT_TOP_FRAME(prefix)
+#define PRINT_PYTHON_FRAME(prefix, frame)
 #define PRINT_COMPILED_FRAME(prefix, frame)
 #define PRINT_INTERPRETER_FRAME(prefix, frame)
 #endif
@@ -160,6 +162,15 @@ inline static PyCodeObject *Nuitka_Frame_GetCodeObject(PyFrameObject *frame) {
 #endif
 }
 
+inline static void assertPythonFrameObject(PyFrameObject *frame_object) {
+
+    // TODO: Need to do this manually, as this is making frame caching code
+    // vulnerable to mistakes, but so far the compiled frame type is private
+    // assert(PyObject_IsInstance((PyObject *)frame_object, (PyObject *)&PyFrame_Type));
+
+    CHECK_CODE_OBJECT(Nuitka_Frame_GetCodeObject(frame_object));
+}
+
 inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
     CHECK_OBJECT(frame_object);
 
@@ -167,7 +178,19 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
     // vulnerable to mistakes, but so far the compiled frame type is private
     // assert(PyObject_IsInstance((PyObject *)frame_object, (PyObject *)&PyFrame_Type));
 
-    CHECK_CODE_OBJECT(Nuitka_Frame_GetCodeObject(&frame_object->m_frame));
+    assertPythonFrameObject(&frame_object->m_frame);
+}
+
+inline static void assertThreadFrameObject(Nuitka_ThreadStateFrameType *frame) {
+#if PYTHON_VERSION < 0x3B0
+    assertPythonFrameObject(frame);
+#else
+    // For uncompiled frames of Python 3.11 these often do not exist. TODO: Figure
+    // out what to check or how to know it's a compiled one.
+    if (frame->frame_obj) {
+        assertPythonFrameObject(frame->frame_obj);
+    }
+#endif
 }
 
 // Mark frame as currently executed. Starting with Python 3.4 that means it
@@ -175,6 +198,19 @@ inline static void assertFrameObject(struct Nuitka_FrameObject *frame_object) {
 // this is a no-op. Using a define to spare the compile from inlining an empty
 // function.
 #if PYTHON_VERSION >= 0x340
+
+#if PYTHON_VERSION < 0x3b0
+
+static inline void Nuitka_PythonFrame_MarkAsExecuting(PyFrameObject *frame) {
+#if PYTHON_VERSION >= 0x3a0
+    frame->f_state = FRAME_EXECUTING;
+#else
+    frame->f_executing = 1;
+#endif
+}
+
+#endif
+
 static inline void Nuitka_Frame_MarkAsExecuting(struct Nuitka_FrameObject *frame) {
     CHECK_OBJECT(frame);
 #if PYTHON_VERSION >= 0x3b0
@@ -202,6 +238,7 @@ static inline void Nuitka_Frame_MarkAsNotExecuting(struct Nuitka_FrameObject *fr
 }
 #else
 #define Nuitka_Frame_MarkAsNotExecuting(frame) ;
+#define Nuitka_PythonFrame_MarkAsExecuting(frame) ;
 #endif
 
 #if PYTHON_VERSION >= 0x340
@@ -217,61 +254,67 @@ static inline bool Nuitka_Frame_IsExecuting(struct Nuitka_FrameObject *frame) {
 }
 #endif
 
+#if PYTHON_VERSION >= 0x3B0
+NUITKA_MAY_BE_UNUSED inline static void pushFrameStackInterpreterFrame(_PyInterpreterFrame *interpreter_frame) {
+    PyThreadState *tstate = PyThreadState_GET();
+
+    _PyInterpreterFrame *old = tstate->cframe->current_frame;
+    interpreter_frame->previous = old;
+    tstate->cframe->current_frame = interpreter_frame;
+
+    if (old != NULL && interpreter_frame->frame_obj) {
+        interpreter_frame->frame_obj->f_back = old->frame_obj;
+        Py_XINCREF(old->frame_obj);
+    }
+}
+#else
 // Put frame at the top of the frame stack and mark as executing.
-NUITKA_MAY_BE_UNUSED inline static void pushFrameStack(struct Nuitka_FrameObject *frame_object) {
+NUITKA_MAY_BE_UNUSED inline static void pushFrameStackPythonFrame(PyFrameObject *frame_object) {
     PRINT_TOP_FRAME("Normal push entry top frame:");
     PRINT_COMPILED_FRAME("Pushing:", frame_object);
 
     // Make sure it's healthy.
-    assertFrameObject(frame_object);
-
-    // We don't allow frame objects where this is not true.
-    assert(frame_object->m_frame.f_back == NULL);
+    assertPythonFrameObject(frame_object);
 
     // Look at current frame, "old" is the one previously active.
     PyThreadState *tstate = PyThreadState_GET();
 
-#if PYTHON_VERSION < 0x3b0
     PyFrameObject *old = tstate->frame;
     CHECK_OBJECT_X(old);
 
-#if _DEBUG_FRAME
     if (old) {
+        assertPythonFrameObject(old);
         CHECK_CODE_OBJECT(old->f_code);
     }
-#endif
 
     // No recursion with identical frames allowed, assert against it.
-    assert(old != &frame_object->m_frame);
+    assert(old != frame_object);
 
     // Push the new frame as the currently active one.
-    tstate->frame = (PyFrameObject *)frame_object;
+    tstate->frame = frame_object;
 
     // Transfer ownership of old frame.
     if (old != NULL) {
-        assertFrameObject((struct Nuitka_FrameObject *)old);
 
-        frame_object->m_frame.f_back = old;
+        frame_object->f_back = old;
     }
 
-    Nuitka_Frame_MarkAsExecuting(frame_object);
+    Nuitka_PythonFrame_MarkAsExecuting(frame_object);
     Py_INCREF(frame_object);
 
-#else
-    _PyInterpreterFrame *old = tstate->cframe->current_frame;
-    frame_object->m_interpreter_frame.previous = old;
-    tstate->cframe->current_frame = &frame_object->m_interpreter_frame;
+    PRINT_TOP_FRAME("Normal push exit top frame:");
+}
+#endif
 
-    if (old != NULL) {
-        frame_object->m_frame.f_back = old->frame_obj;
-        Py_XINCREF(old->frame_obj);
-    }
+NUITKA_MAY_BE_UNUSED inline static void pushFrameStackCompiledFrame(struct Nuitka_FrameObject *frame_object) {
+#if PYTHON_VERSION < 0x3b0
+    pushFrameStackPythonFrame(&frame_object->m_frame);
+#else
+    pushFrameStackInterpreterFrame(&frame_object->m_interpreter_frame);
 
     Nuitka_Frame_MarkAsExecuting(frame_object);
     Py_INCREF(frame_object);
 #endif
-
-    PRINT_TOP_FRAME("Normal push exit top frame:");
 }
 
 NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
@@ -306,10 +349,11 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack(void) {
     tstate->cframe->current_frame = tstate->cframe->current_frame->previous;
 
     Nuitka_Frame_MarkAsNotExecuting(frame_object);
-    Py_DECREF(frame_object);
 
     CHECK_OBJECT_X(frame_object->m_frame.f_back);
     Py_CLEAR(frame_object->m_frame.f_back);
+
+    Py_DECREF(frame_object);
 
     frame_object->m_interpreter_frame.previous = NULL;
 #endif
@@ -329,6 +373,11 @@ NUITKA_MAY_BE_UNUSED static void Nuitka_SetFrameGenerator(struct Nuitka_FrameObj
 #else
     nuitka_frame->m_generator = generator;
 #endif
+
+    // Mark the frame as executing
+    if (generator) {
+        Nuitka_Frame_MarkAsExecuting(nuitka_frame);
+    }
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *Nuitka_GetFrameGenerator(struct Nuitka_FrameObject *nuitka_frame) {
@@ -365,6 +414,37 @@ NUITKA_MAY_BE_UNUSED static PyObject **Nuitka_GetCodeVarNames(PyCodeObject *code
 
 // Attach locals to a frame object. TODO: Upper case, this is for generated code only.
 extern void Nuitka_Frame_AttachLocals(struct Nuitka_FrameObject *frame, char const *type_description, ...);
+
+NUITKA_MAY_BE_UNUSED static Nuitka_ThreadStateFrameType *_Nuitka_GetThreadStateFrame(PyThreadState *thread_state) {
+#if PYTHON_VERSION < 0x3b0
+    return thread_state->frame;
+#else
+    return thread_state->cframe->current_frame;
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGenerator(Nuitka_ThreadStateFrameType *frame_object) {
+#if PYTHON_VERSION < 0x3b0
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    Nuitka_ThreadStateFrameType *return_frame = _Nuitka_GetThreadStateFrame(thread_state);
+
+    Py_XINCREF(return_frame);
+    // Put the generator back on the frame stack.
+    pushFrameStackPythonFrame(frame_object);
+    Py_DECREF(frame_object);
+#else
+    pushFrameStackInterpreterFrame(frame_object);
+#endif
+}
+
+NUITKA_MAY_BE_UNUSED inline static void pushFrameStackGeneratorCompiledFrame(struct Nuitka_FrameObject *frame_object) {
+#if PYTHON_VERSION < 0x3b0
+    pushFrameStackGenerator(&frame_object->m_frame);
+#else
+    pushFrameStackGenerator(&frame_object->m_interpreter_frame);
+#endif
+}
 
 // Codes used for type_description.
 #define NUITKA_TYPE_DESCRIPTION_NULL 'N'

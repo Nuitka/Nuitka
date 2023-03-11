@@ -34,13 +34,14 @@ import urllib3
 # nuitka-skip-unless-imports: urllib3,ssl
 
 if str is bytes:
-    # running on python2, pylint: disable=import-error,I0021
-    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-#running on python3
+    # running on python2, pylint: disable=I0021,import-error
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 else:
-    from http.server import HTTPServer, BaseHTTPRequestHandler
+    # running on python3
+    from http.server import BaseHTTPRequestHandler, HTTPServer
 
 started = False
+
 
 def runHTTPServer():
     class myServer(BaseHTTPRequestHandler):

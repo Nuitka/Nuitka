@@ -264,7 +264,7 @@ def getNameReferenceErrorCode(variable_name, condition, emit, context):
     if python_version < 0x340:
         owner = context.getOwner()
 
-        if not owner.isCompiledPythonModule() and not owner.isExpressionClassBody():
+        if not owner.isCompiledPythonModule() and not owner.isExpressionClassBodyBase():
             helper_code = "FORMAT_GLOBAL_NAME_ERROR"
 
     (

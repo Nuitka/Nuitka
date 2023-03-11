@@ -23,6 +23,7 @@ These reports are in XML form, and with Jinja2 templates in any form you like.
 
 import os
 import sys
+import traceback
 
 from nuitka import TreeXML
 from nuitka.containers.OrderedSets import OrderedSet
@@ -40,16 +41,22 @@ from nuitka.Options import (
     getCompilationReportTemplates,
 )
 from nuitka.plugins.Plugins import getActivePlugins
+from nuitka.PythonFlavors import getPythonFlavorName
+from nuitka.PythonVersions import python_version_full_str
 from nuitka.Tracing import reports_logger
 from nuitka.utils.Distributions import getDistributionsFromModuleName
 from nuitka.utils.FileOperations import putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
+from nuitka.utils.MemoryUsage import getMemoryInfos
+from nuitka.utils.Utils import getArchitecture, getOS
+from nuitka.Version import getCommercialVersion, getNuitkaVersion
 
 
-def _getReportInputData():
+def _getReportInputData(aborted):
     """Collect all information for reporting into a dictionary."""
 
-    # pylint: used with locals for laziness, disable=possibly-unused-variable
+    # used with locals for laziness and these are to populate a dictionary with
+    # many entries, pylint: disable=possibly-unused-variable,too-many-locals
 
     module_names = tuple(module.getFullName() for module in getDoneModules())
 
@@ -94,6 +101,22 @@ def _getReportInputData():
             key=lambda dist: dist.metadata["Name"],
         )
     )
+
+    memory_infos = getMemoryInfos()
+
+    python_exe = sys.executable
+
+    python_flavor = getPythonFlavorName()
+    python_version = python_version_full_str
+    os_name = getOS()
+    arch_name = getArchitecture()
+
+    nuitka_version = getNuitkaVersion()
+    nuitka_commercial_version = getCommercialVersion() or "not installed"
+
+    nuitka_aborted = aborted
+
+    nuitka_exception = sys.exc_info()
 
     return dict(
         (var_name, var_value)
@@ -175,13 +198,56 @@ def _addModulesToReport(root, report_input_data):
             )
 
 
+def _addMemoryInfosToReport(performance_xml_node, memory_infos):
+    for key, value in memory_infos.items():
+        # Only top level values for now.
+        if type(value) is not int:
+            continue
+
+        TreeXML.appendTreeElement(
+            performance_xml_node, "memory_usage", name=key, value=str(value)
+        )
+
+
 def writeCompilationReport(report_filename, report_input_data):
     """Write the compilation report in XML format."""
     # Many details, pylint: disable=too-many-branches,too-many-locals
 
-    root = TreeXML.Element("nuitka-compilation-report")
+    if not report_input_data["nuitka_aborted"]:
+        completion = "yes"
+    elif report_input_data["nuitka_exception"][0] is KeyboardInterrupt:
+        completion = "interrupted"
+    elif report_input_data["nuitka_exception"][0] is SystemExit:
+        completion = "error (%s)" % report_input_data["nuitka_exception"][1].code
+    else:
+        completion = "exception"
+
+    root = TreeXML.Element(
+        "nuitka-compilation-report",
+        nuitka_version=report_input_data["nuitka_version"],
+        nuitka_commercial_version=report_input_data["nuitka_commercial_version"],
+        completion=completion,
+    )
+
+    if completion == "exception":
+        exception_xml_node = TreeXML.appendTreeElement(
+            root,
+            "exception",
+            exception_type=str(sys.exc_info()[0].__name__),
+            exception_value=str(sys.exc_info()[1]),
+        )
+
+        exception_xml_node.text = "\n" + traceback.format_exc()
 
     _addModulesToReport(root, report_input_data)
+
+    if report_input_data["memory_infos"]:
+        performance_xml_node = TreeXML.appendTreeElement(
+            root,
+            "performance",
+        )
+
+        _addMemoryInfosToReport(performance_xml_node, report_input_data["memory_infos"])
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
@@ -228,14 +294,6 @@ def writeCompilationReport(report_filename, report_input_data):
             # TODO: No reason yet.
         )
 
-    search_path_xml_node = TreeXML.appendTreeElement(
-        root,
-        "search_path",
-    )
-
-    for search_path in getPackageSearchPath(None):
-        TreeXML.appendTreeElement(search_path_xml_node, "path", value=search_path)
-
     options_xml_node = TreeXML.appendTreeElement(
         root,
         "command_line",
@@ -272,6 +330,24 @@ def writeCompilationReport(report_filename, report_input_data):
             name=distribution.metadata["Name"],
             version=distribution.metadata["Version"],
         )
+
+    python_xml_node = TreeXML.appendTreeElement(
+        root,
+        "python",
+        python_exe=report_input_data["python_exe"],
+        python_flavor=report_input_data["python_flavor"],
+        python_version=report_input_data["python_version"],
+        os_name=report_input_data["os_name"],
+        arch_name=report_input_data["arch_name"],
+    )
+
+    search_path_xml_node = TreeXML.appendTreeElement(
+        python_xml_node,
+        "search_path",
+    )
+
+    for search_path in getPackageSearchPath(None):
+        TreeXML.appendTreeElement(search_path_xml_node, "path", value=search_path)
 
     try:
         putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
@@ -344,12 +420,12 @@ def writeCompilationReportFromTemplate(
         )
 
 
-def writeCompilationReports():
+def writeCompilationReports(aborted):
     report_filename = getCompilationReportFilename()
     template_specs = getCompilationReportTemplates()
 
     if report_filename or template_specs:
-        report_input_data = _getReportInputData()
+        report_input_data = _getReportInputData(aborted)
 
         if report_filename:
             writeCompilationReport(
