@@ -1564,6 +1564,9 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
         if constant is type:
             return ExpressionConstantTypeTypeRef(source_ref=source_ref)
 
+        # TODO: Need to get rid of these, and be sure we have complete coverage for
+        # code generation of all types. This lets constants be created that may not
+        # work. Needed for isExperimental("assume-type-complete") to be workable.
         return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
     elif constant_type is xrange:
         return ExpressionConstantXrangeRef(
