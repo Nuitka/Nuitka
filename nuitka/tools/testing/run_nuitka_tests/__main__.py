@@ -606,6 +606,8 @@ def main():
             return False
         if command == "python3.10" and options.no310:
             return False
+        if command == "python3.11" and options.no311:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -628,6 +630,8 @@ def main():
         if command == "python3.9" and sys.version_info[0:2] == (3, 9):
             return True
         if command == "python3.10" and sys.version_info[0:2] == (3, 10):
+            return True
+        if command == "python3.11" and sys.version_info[0:2] == (3, 11):
             return True
 
         path = os.environ["PATH"]
@@ -1012,6 +1016,11 @@ def main():
         execute_tests("python3.10-nodebug", "python3.10", "")
     else:
         my_print("Cannot execute tests with Python 3.10, disabled or not installed.")
+
+    if checkExecutableCommand("python3.11"):
+        execute_tests("python3.11-nodebug", "python3.11", "")
+    else:
+        my_print("Cannot execute tests with Python 3.11, disabled or not installed.")
 
     if options.coverage:
         publishCoverageData()
