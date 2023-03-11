@@ -25,6 +25,7 @@ will then know it's limited after the fact.
 """
 
 from nuitka.Builtins import builtin_names
+from nuitka.Options import isExperimental
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -43,7 +44,10 @@ from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .ExpressionBasesGenerated import ExpressionSubtypeCheckBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
-from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    wrapExpressionWithNodeSideEffects,
+)
 from .shapes.BuiltinTypeShapes import tshape_type
 
 
@@ -58,21 +62,34 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
         if type_shape is not None:
             type_name = type_shape.getTypeName()
 
-            if type_name is not None and type_name in __builtins__:
-                result = ExpressionBuiltinRef(
-                    builtin_name=type_name, source_ref=value.getSourceReference()
-                )
+            if type_name is not None:
+                if isExperimental("assume-type-complete") and hasattr(
+                    type_shape, "typical_value"
+                ):
+                    result = makeConstantReplacementNode(
+                        constant=type(getattr(type_shape, "typical_value")),
+                        node=self,
+                        user_provided=False,
+                    )
+                elif type_name in __builtins__:
+                    result = ExpressionBuiltinRef(
+                        builtin_name=type_name, source_ref=value.getSourceReference()
+                    )
+                else:
+                    result = None
 
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=result, old_node=value
-                )
+                # TODO: Does this even happen to be not None
+                if result is not None:
+                    result = wrapExpressionWithNodeSideEffects(
+                        new_node=result, old_node=value
+                    )
 
-                return (
-                    result,
-                    "new_builtin",
-                    "Replaced predictable type lookup with builtin type '%s'."
-                    % (type_name),
-                )
+                    return (
+                        result,
+                        "new_builtin",
+                        "Replaced predictable type lookup with builtin type '%s'."
+                        % (type_name),
+                    )
 
         if value.isCompileTimeConstant():
             # The above code is supposed to catch these in a better way.
