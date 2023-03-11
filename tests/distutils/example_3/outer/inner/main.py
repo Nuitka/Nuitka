@@ -20,5 +20,5 @@
 def main():
     print("Hello example 3 world!")
     import outer.inner
-    print("Imported", outer.inner)
 
+    print("Imported", outer.inner)

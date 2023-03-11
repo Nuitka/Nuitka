@@ -25,6 +25,7 @@ But since Nuitka resolves them at compile time, no issue should happen.
 # nuitka-project: --standalone
 
 import warnings
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 try:
@@ -34,9 +35,15 @@ except ImportError:
 else:
     print("Type of importlib.metadata.entry_points", type(entry_points()))
     try:
-        print("Type of importlib.metadata.entry_points subscript", type(entry_points()["console_scripts"]))
+        print(
+            "Type of importlib.metadata.entry_points subscript",
+            type(entry_points()["console_scripts"]),
+        )
         print("There are %d entry points" % len(entry_points()["console_scripts"]))
-        print("Example entry point", sorted(entry_points()["console_scripts"], key=lambda e: e.name)[0])
+        print(
+            "Example entry point",
+            sorted(entry_points()["console_scripts"], key=lambda e: e.name)[0],
+        )
     except KeyError:
         pass
 
@@ -47,12 +54,21 @@ except ImportError:
 else:
     print("Type of importlib_metadata.entry_points", type(entry_points()))
     try:
-        print("Type of importlib_metadata.entry_points subscript", type(entry_points()["console_scripts"]))
+        print(
+            "Type of importlib_metadata.entry_points subscript",
+            type(entry_points()["console_scripts"]),
+        )
         print("There are %d entry points" % len(entry_points()["console_scripts"]))
-        print("Example entry point", sorted(entry_points()["console_scripts"], key=lambda e: e.name)[0])
+        print(
+            "Example entry point",
+            sorted(entry_points()["console_scripts"], key=lambda e: e.name)[0],
+        )
     except KeyError:
         pass
     try:
-        print("Example group from importlib_metadata.entry_points element", sorted(entry_points().groups)[0])
+        print(
+            "Example group from importlib_metadata.entry_points element",
+            sorted(entry_points().groups)[0],
+        )
     except (IndexError, AttributeError):
         pass

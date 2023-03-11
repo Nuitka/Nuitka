@@ -19,5 +19,6 @@
 #
 import sys
 
+
 def sysOptionalAttribute():
     return sys.maxint, sys.subversion

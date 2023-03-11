@@ -92,8 +92,9 @@ def _enableC11Settings(env):
     if env.clangcl_mode:
         c11_mode = True
     elif env.msvc_mode:
-        # TODO: Make this experimental mode the default.
-        c11_mode = (
+        # TODO: Make this experimental mode the default, on ARM64 at least it
+        # seems even required.
+        c11_mode = env.target_arch == "arm64" or (
             env.windows_sdk_version >= (10, 0, 19041, 0)
             and "msvc_c11" in env.experimental_flags
         )
@@ -320,17 +321,21 @@ C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
                 target_arch=target_arch,
                 assume_yes_for_downloads=assume_yes_for_downloads,
             )
-            addToPATH(env, os.path.dirname(compiler_path), prefix=True)
 
-            env = createEnvironment(
-                mingw_mode=True,
-                msvc_version=None,
-                target_arch=target_arch,
-                experimental=env.experimental_flags,
-            )
+            if compiler_path is not None:
+                addToPATH(env, os.path.dirname(compiler_path), prefix=True)
 
-            if clang_mode:
-                env["CC"] = os.path.join(os.path.dirname(compiler_path), "clang.exe")
+                env = createEnvironment(
+                    mingw_mode=True,
+                    msvc_version=None,
+                    target_arch=target_arch,
+                    experimental=env.experimental_flags,
+                )
+
+                if clang_mode:
+                    env["CC"] = os.path.join(
+                        os.path.dirname(compiler_path), "clang.exe"
+                    )
 
         if env["CC"] is None:
             raiseNoCompilerFoundErrorExit()
@@ -693,8 +698,10 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         if env.disable_console:
             env.Append(CPPDEFINES=["_NUITKA_WINMAIN_ENTRY_POINT"])
 
-    # For shell API usage to lookup app folders we need this.
-    if env.msvc_mode:
+    # For shell API usage to lookup app folders we need this. Note that on Windows ARM
+    # we didn't manage to have a "shell32.lib" that is not considered corrupt, so we
+    # have to do this.
+    if env.msvc_mode and env.target_arch != "arm64":
         env.Append(LIBS=["Shell32"])
 
     # Since Fedora 36, the system Python will not link otherwise.

@@ -132,7 +132,6 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import (
     general,
-    memory_logger,
     optimization_logger,
     plugins_logger,
     recursion_logger,
@@ -426,7 +425,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         # variable as well, but it's not changing visibility of implicit "__class__" of
         # functions, and as such it will just not be registered.
         if (
-            provider.isExpressionClassBody()
+            provider.isExpressionClassBodyBase()
             and closure_variable.getName() == "__class__"
         ):
             if python_version < 0x340:
@@ -454,7 +453,7 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
     ):
         parameter_provider = parameter_provider.getParentVariableProvider()
 
-    if parameter_provider.isExpressionClassBody():
+    if parameter_provider.isExpressionClassBodyBase():
         parameter_names = ()
     else:
         parameter_names = parameter_provider.getParameters().getParameterNames()
@@ -531,7 +530,7 @@ def buildAttributeNode(provider, node, source_ref):
 
 
 def buildReturnNode(provider, node, source_ref):
-    if provider.isExpressionClassBody() or provider.isCompiledPythonModule():
+    if provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function", source_ref.atColumnNumber(node.col_offset)
         )
@@ -1107,11 +1106,8 @@ def createModuleTree(module, source_ref, ast_tree, is_main):
     completeVariableClosures(module)
 
     if Options.isShowMemory():
-        memory_watch.finish()
-
-        memory_logger.info(
-            "Memory usage changed loading module '%s': %s"
-            % (module.getFullName(), memory_watch.asStr())
+        memory_watch.finish(
+            "Memory usage changed loading module '%s'" % module.getFullName()
         )
 
 

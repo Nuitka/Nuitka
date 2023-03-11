@@ -24,9 +24,14 @@
 
 from __future__ import print_function
 
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtCore import QSettings
-from PyQt5.QtCore import QMetaObject, QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import (
+    QCoreApplication,
+    QMetaObject,
+    QObject,
+    QSettings,
+    pyqtSignal,
+    pyqtSlot,
+)
 
 # This test is playing with configuration settings and checking that works.
 

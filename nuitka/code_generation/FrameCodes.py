@@ -21,7 +21,6 @@ This is about frame stacks and their management. There are different kinds
 of frames for different uses.
 """
 
-from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Jinja2 import renderTemplateFromString
 
@@ -34,7 +33,6 @@ from .LabelCodes import getGotoCode, getLabelCode
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesFrames import (
     template_frame_attach_locals,
-    template_frame_guard_generator,
     template_frame_guard_generator_exception_handler,
     template_frame_guard_generator_return_handler,
     template_frame_guard_normal_exception_handler,
@@ -144,6 +142,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         # Python3 it is actually not a stub of empty code.
 
         getFrameGuardGeneratorCode(
+            frame_node=statement_sequence,
             code_identifier=code_identifier,
             codes=local_emit.codes,
             parent_exception_exit=parent_exception_exit,
@@ -306,7 +305,7 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
     else:
         assert False, frame_node
 
-    context_identifier = context.getContextObjectName()
+    context_identifier = frame_node.getStructureMember()
 
     emit(
         renderTemplateFromString(
@@ -321,6 +320,7 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
             frame_exit_code=frame_exit_code,
             context_identifier=context_identifier,
             is_python34_or_later=python_version >= 0x340,
+            is_python3=python_version >= 0x300,
         )
     )
 
@@ -366,6 +366,7 @@ Py_CLEAR(%(frame_identifier)s->m_frame.f_locals);
 
 
 def getFrameGuardGeneratorCode(
+    frame_node,
     code_identifier,
     codes,
     parent_exception_exit,
@@ -384,7 +385,7 @@ def getFrameGuardGeneratorCode(
         exception_lineno,
     ) = context.variable_storage.getExceptionVariableDescriptions()
 
-    context_identifier = context.getContextObjectName()
+    context_identifier = frame_node.getStructureMember()
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
@@ -393,62 +394,44 @@ def getFrameGuardGeneratorCode(
         frame_identifier.code_name
     )
 
-    if not isExperimental("new-generator-frames"):
-        emit(
-            template_frame_guard_generator
-            % {
-                "context_identifier": context_identifier,
-                "generator_kind": context_identifier.upper(),
-                "frame_cache_identifier": frame_cache_identifier,
-                "code_identifier": code_identifier,
-                "locals_size": getFrameLocalsStorageSize(
-                    context.getFrameVariableTypeDescriptions()
-                ),
-                "codes": indented(codes, 0),
-                "module_identifier": getModuleAccessCode(context),
-                "no_exception_exit": no_exception_exit,
-            }
-        )
-    else:
+    make_frame_code = (
+        """MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
+        % {
+            "code_identifier": code_identifier,
+            "module_identifier": getModuleAccessCode(context),
+            "locals_size": getFrameLocalsStorageSize(
+                context.getFrameVariableTypeDescriptions()
+            ),
+        }
+    )
+    is_generator = True
 
-        make_frame_code = (
-            """MAKE_FUNCTION_FRAME(%(code_identifier)s, %(module_identifier)s, %(locals_size)s)"""
-            % {
-                "code_identifier": code_identifier,
-                "module_identifier": getModuleAccessCode(context),
-                "locals_size": getFrameLocalsStorageSize(
-                    context.getFrameVariableTypeDescriptions()
-                ),
-            }
-        )
-        is_generator = True
+    frame_init_code = ""
+    frame_exit_code = ""
 
-        frame_init_code = ""
-        frame_exit_code = ""
-
-        emit(
-            renderTemplateFromString(
-                template_frame_guard_normal_main_block,
-                frame_identifier=frame_identifier,
-                frame_cache_identifier=frame_cache_identifier,
-                context_identifier=context_identifier,
-                codes=indented(codes, 0),
-                no_exception_exit=no_exception_exit,
-                needs_preserve=False,  # TODO: Clears stuff
-                make_frame_code=make_frame_code,
-                frame_init_code=frame_init_code,
-                frame_exit_code=frame_exit_code,
-                is_generator=is_generator,
-                is_python34_or_later=python_version >= 0x340,
-            )
+    emit(
+        renderTemplateFromString(
+            template_frame_guard_normal_main_block,
+            frame_identifier=frame_identifier,
+            frame_cache_identifier=frame_cache_identifier,
+            context_identifier=context_identifier,
+            codes=indented(codes, 0),
+            no_exception_exit=no_exception_exit,
+            needs_preserve=False,  # TODO: Clears stuff
+            make_frame_code=make_frame_code,
+            frame_init_code=frame_init_code,
+            frame_exit_code=frame_exit_code,
+            is_generator=is_generator,
+            is_python34_or_later=python_version >= 0x340,
+            is_python3=python_version >= 0x300,
         )
+    )
 
     if frame_return_exit is not None:
         emit(
             template_frame_guard_generator_return_handler
             % {
                 "context_identifier": context_identifier,
-                "frame_identifier": "%s->m_frame" % context_identifier,
                 "return_exit": parent_return_exit,
                 "frame_return_exit": frame_return_exit,
             }

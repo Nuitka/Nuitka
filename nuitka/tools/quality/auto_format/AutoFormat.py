@@ -59,6 +59,32 @@ from nuitka.utils.Utils import isWin32OrPosixWindows
 
 from .YamlFormatter import formatYaml
 
+# black no longer supports Python 2 syntax, and sometimes removes import
+# parts of syntax used in tests
+BLACK_SKIP_LIST = [
+    "tests/basics/ClassesTest.py",
+    "tests/basics/ExecEvalTest.py",
+    "tests/basics/HelloWorldTest_2.py",
+    "tests/basics/OverflowFunctionsTest_2.py",
+    "tests/basics/PrintingTest_2.py",
+    "tests/benchmarks/binary-trees.py",
+    "tests/benchmarks/comparisons/GeneratorFunctionVsGeneratorExpression.py",
+    "tests/benchmarks/constructs/InplaceOperationUnicodeAdd_27.py",
+    "tests/benchmarks/constructs/RichComparisonConditionStrings.py",
+    "tests/programs/syntax_errors/IndentationErroring.py",
+    "tests/syntax/ClosureDel_2.py",
+    "tests/syntax/ExecWithNesting_2.py",
+    "tests/syntax/IndentationError.py",
+    "tests/syntax/StarImportExtra.py",
+    "tests/syntax/SyntaxError.py",
+    "tests/type_inference/Test1.py",
+    "tests/type_inference/Test2.py",
+    "tests/type_inference/Test3.py",
+    "tests/type_inference/Test4.py",
+    "tests/benchmarks/pystone.py",
+]
+BLACK_SKIP_LIST = [os.path.normpath(path) for path in BLACK_SKIP_LIST]
+
 
 def cleanupWindowsNewlines(filename, effective_filename):
     """Remove Windows new-lines from a file.
@@ -192,7 +218,7 @@ def _cleanupPyLintComments(filename, effective_filename):
     new_code = re.sub(r"(pylint\: disable=)\s*(.*)", replacer, new_code, flags=re.M)
 
     if new_code != old_code:
-        putTextFileContents(filename, new_code)
+        putTextFileContents(filename, new_code, encoding="utf8")
 
 
 def _cleanupImportRelative(filename, effective_filename):
@@ -209,14 +235,14 @@ def _cleanupImportRelative(filename, effective_filename):
     if not package_name.startswith("nuitka."):
         return
 
-    source_code = getFileContents(filename)
+    source_code = getFileContents(filename, encoding="utf8")
     updated_code = re.sub(
         r"from %s import" % package_name, "from . import", source_code
     )
     updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
     if source_code != updated_code:
-        putTextFileContents(filename, contents=updated_code)
+        putTextFileContents(filename, contents=updated_code, encoding="utf8")
 
 
 _binary_calls = {}
@@ -285,32 +311,32 @@ def _cleanupImportSortOrder(filename, effective_filename):
         start_index = parts.index("# isort:start")
         contents = "\n".join(parts[start_index + 1 :]) + "\n"
 
-        putTextFileContents(filename, contents=contents)
+        putTextFileContents(filename, contents=contents, encoding="utf8")
 
     check_call(
         isort_call
         + [
             "-q",  # quiet, but stdout is still garbage
             "--overwrite-in-place",  # avoid using another temp file, this is already on one.
-            "-ot",  # Order imports by type in addition to alphabetically
-            "-m3",  # "vert-hanging"
-            "-tc",  # Trailing commas
-            "-p",  # make sure nuitka is first party package in import sorting.
-            "nuitka",
+            "--order-by-type",  # Order imports by type in addition to alphabetically
+            "--multi-line=VERTICAL_HANGING_INDENT",
+            "--trailing-comma",
+            "--project=nuitka",  # make sure nuitka is first party package in import sorting.
             "--float-to-top",  # move imports to start
-            "-o",
-            "SCons",
+            "--thirdparty=SCons",
             filename,
         ],
         stdout=getNullOutput(),
     )
 
+    cleanupWindowsNewlines(filename, effective_filename)
+
     if start_index is not None:
-        contents = getFileContents(filename)
+        contents = getFileContents(filename, encoding="utf8")
 
         contents = "\n".join(parts[: start_index + 1]) + "\n\n" + contents.lstrip("\n")
 
-        putTextFileContents(filename, contents=contents)
+        putTextFileContents(filename, contents=contents, encoding="utf8")
 
 
 def _cleanupRstFmt(filename, effective_filename):
@@ -378,6 +404,83 @@ def _cleanupRstFmt(filename, effective_filename):
 
 
 warned_clang_format = False
+_clang_format_path = None
+
+
+def _getClangFormatPath():
+    # Using global here, as this is really a singleton, in
+    # the form of a module, pylint: disable=global-statement
+    global warned_clang_format, _clang_format_path
+
+    # Do not try a second time.
+    if warned_clang_format:
+        return None
+
+    # Search Visual Code C++ extension for LLVM path.
+    for candidate in ".vscode", ".vscode-server":
+        vs_code_extension_path = os.path.expanduser("~/%s/extensions" % candidate)
+
+        if not _clang_format_path and os.path.exists(vs_code_extension_path):
+            for extension_path, extension_filename in listDir(vs_code_extension_path):
+                if extension_filename.startswith("ms-vscode.cpptools-"):
+                    with withEnvironmentPathAdded(
+                        "PATH",
+                        os.path.join(extension_path, "LLVM/bin"),
+                    ):
+                        _clang_format_path = getExecutablePath("clang-format")
+
+                    break
+
+    # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
+    if not _clang_format_path and isWin32OrPosixWindows():
+        with withEnvironmentPathAdded(
+            "PATH",
+            r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
+            r"C:\Program Files\LLVM\bin",
+        ):
+            _clang_format_path = getExecutablePath("clang-format")
+
+    if not _clang_format_path:
+        _clang_format_path = (
+            getExecutablePath("clang-format-16")
+            or getExecutablePath("clang-format-15")
+            or getExecutablePath("clang-format-14")
+            or getExecutablePath("clang-format-13")
+            or getExecutablePath("clang-format-12")
+            or getExecutablePath("clang-format-12")
+            or getExecutablePath("clang-format")
+        )
+
+    if _clang_format_path:
+        try:
+            version_output = check_output([_clang_format_path, "--version"])
+
+            try:
+                clang_version = int(version_output.split(b"version ")[1].split(b".")[0])
+            except (ValueError, IndexError, TypeError):
+                general.sysexit(
+                    "Failure to parse this '%s --version' output: %s"
+                    % (_clang_format_path, version_output),
+                )
+
+            if clang_version < 12:
+                general.warning(
+                    """\
+You need to install clang-format version 12 or higher. Easiest is to have Visual Code with
+the recommended extensions installed under your user, as that will then be used by default.
+"""
+                )
+        except NuitkaCalledProcessError as e:
+            general.warning(
+                "failed to execute clang-format version check: %s" % e.stderr
+            )
+            _clang_format_path = None
+
+    if not _clang_format_path and not warned_clang_format:
+        general.warning("Need to install LLVM for C files format.")
+        warned_clang_format = True
+
+    return _clang_format_path
 
 
 def _cleanupClangFormat(filename):
@@ -387,44 +490,7 @@ def _cleanupClangFormat(filename):
         filename: What file to re-format.
     """
 
-    # Using global here, as this is really a singleton, in
-    # the form of a module, pylint: disable=global-statement
-    global warned_clang_format
-
-    clang_format_path = (
-        getExecutablePath("clang-format-12")
-        or getExecutablePath("clang-format-12")
-        or getExecutablePath("clang-format-11")
-        or getExecutablePath("clang-format-10")
-        or getExecutablePath("clang-format-9")
-        or getExecutablePath("clang-format-8")
-        or getExecutablePath("clang-format-7")
-        or getExecutablePath("clang-format")
-    )
-
-    # Extra ball on Windows, check default installations paths in MSVC and LLVM too.
-    if not clang_format_path and isWin32OrPosixWindows():
-        with withEnvironmentPathAdded(
-            "PATH",
-            r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\bin",
-            r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin",
-            r"C:\Program Files\LLVM\bin",
-        ):
-            clang_format_path = getExecutablePath("clang-format")
-
-    # Search Visual Code C++ extension for LLVM path.
-    if not clang_format_path:
-        for extension_path, extension_filename in listDir(
-            os.path.expanduser("~/.vscode-server/extensions")
-        ):
-            if extension_filename.startswith("ms-vscode.cpptools-"):
-                with withEnvironmentPathAdded(
-                    "PATH",
-                    os.path.join(extension_path, "LLVM/bin"),
-                ):
-                    clang_format_path = getExecutablePath("clang-format")
-
-                break
+    clang_format_path = _getClangFormatPath()
 
     if clang_format_path:
         subprocess.call(
@@ -435,14 +501,13 @@ def _cleanupClangFormat(filename):
                 filename,
             ]
         )
-    else:
-        if not warned_clang_format:
-            general.warning("Need to install LLVM for C files format.")
-            warned_clang_format = True
 
 
 def _shouldNotFormatCode(filename):
-    parts = os.path.abspath(filename).split(os.path.sep)
+    # return driven with more cases than necessary to group things
+    # pylint:disable=too-many-return-statements
+
+    parts = os.path.normpath(filename).split(os.path.sep)
 
     if "inline_copy" in parts:
         # Our Scons runner should be formatted.
@@ -450,26 +515,25 @@ def _shouldNotFormatCode(filename):
             return False
 
         return True
-    elif (
-        "tests" in parts
-        and "basics" not in parts
-        and "programs" not in parts
-        and "commercial" not in parts
-        and "distutils" not in parts
-    ):
-        return parts[-1] not in (
-            "run_all.py",
-            "setup.py",
-            "compile_itself.py",
-            "update_doctest_generated.py",
-            "compile_itself.py",
-            "compile_python_modules.py",
-            "compile_extension_modules.py",
-        )
-    elif parts[-1] in ("incbin.h", "hedley.h"):
+    if "pybench" in parts:
         return True
-    else:
-        return False
+    if "mercurial" in parts:
+        return True
+    if "tests" in parts and parts[parts.index("tests") + 1].startswith("CPython"):
+        return True
+    if ".dist/" in filename:
+        return True
+    if parts[-1] in ("incbin.h", "hedley.h"):
+        return True
+
+    if filename.endswith(".py"):
+        for line in getFileContentByLine(filename):
+            if "# encoding: nuitka-protection" in line:
+                return True
+
+            break
+
+    return False
 
 
 def _transferBOM(source_filename, target_filename):
@@ -496,6 +560,7 @@ def autoFormatFile(
     limit_python=False,
     limit_c=False,
     limit_rst=False,
+    ignore_errors=False,
 ):
     """Format source code with external tools
 
@@ -602,57 +667,64 @@ def autoFormatFile(
                 _cleanupImportSortOrder(tmp_filename, effective_filename)
                 _cleanupPyLintComments(tmp_filename, effective_filename)
 
-                black_call = _getPythonBinaryCall("black")
+                if effective_filename not in BLACK_SKIP_LIST:
+                    black_call = _getPythonBinaryCall("black")
 
-                subprocess.call(black_call + ["-q", "--fast", tmp_filename])
+                    try:
+                        check_call(black_call + ["-q", "--fast", tmp_filename])
+                    except Exception:  # Catch all the things, pylint: disable=broad-except
+                        tools_logger.warning(
+                            "Problem formatting for '%s'." % effective_filename
+                        )
+
+                        if not ignore_errors:
+                            raise
+
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
 
         elif is_c or is_cpp:
-            cleanupWindowsNewlines(tmp_filename, effective_filename)
             if not _shouldNotFormatCode(effective_filename):
+                cleanupWindowsNewlines(tmp_filename, effective_filename)
                 _cleanupClangFormat(tmp_filename)
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
         elif is_txt:
-            cleanupWindowsNewlines(tmp_filename, effective_filename)
-            _cleanupTrailingWhitespace(tmp_filename)
-            cleanupWindowsNewlines(tmp_filename, effective_filename)
-
-            if is_rst:
-                _cleanupRstFmt(tmp_filename, effective_filename)
-
-            if is_package_config_yaml:
-                formatYaml(tmp_filename)
+            if not _shouldNotFormatCode(effective_filename):
                 cleanupWindowsNewlines(tmp_filename, effective_filename)
                 _cleanupTrailingWhitespace(tmp_filename)
+                cleanupWindowsNewlines(tmp_filename, effective_filename)
+
+                if is_rst:
+                    _cleanupRstFmt(tmp_filename, effective_filename)
+
+                if is_package_config_yaml:
+                    formatYaml(tmp_filename)
+                    cleanupWindowsNewlines(tmp_filename, effective_filename)
+                    _cleanupTrailingWhitespace(tmp_filename)
 
         _transferBOM(filename, tmp_filename)
 
-        changed = False
-        if old_code != getFileContents(tmp_filename, "rb"):
+    changed = old_code != getFileContents(tmp_filename, "rb")
 
-            if check_only:
-                my_print("%s: FAIL." % filename, style="red")
-            else:
-                if trace:
-                    my_print("Updated %s." % filename)
+    if changed:
+        if check_only:
+            my_print("%s: FAIL." % filename, style="red")
+        else:
+            if trace:
+                my_print("Updated %s." % filename)
 
-                with withPreserveFileMode(filename):
-                    if git_stage:
-                        new_hash_value = putFileHashContent(tmp_filename)
-                        updateFileIndex(git_stage, new_hash_value)
-                        updateWorkingFile(
-                            filename, git_stage["dst_hash"], new_hash_value
-                        )
-                    else:
-                        copyFile(tmp_filename, filename)
+            with withPreserveFileMode(filename):
+                if git_stage:
+                    new_hash_value = putFileHashContent(tmp_filename)
+                    updateFileIndex(git_stage, new_hash_value)
+                    updateWorkingFile(filename, git_stage["dst_hash"], new_hash_value)
+                else:
+                    copyFile(tmp_filename, filename)
 
-            changed = True
-
-        return changed
+    return changed
 
 
 @contextlib.contextmanager
-def withFileOpenedAndAutoFormatted(filename):
+def withFileOpenedAndAutoFormatted(filename, ignore_errors=False):
     my_print("Auto-format '%s' ..." % filename)
 
     tmp_filename = filename + ".tmp"
@@ -660,16 +732,21 @@ def withFileOpenedAndAutoFormatted(filename):
         yield output
 
     autoFormatFile(
-        filename=tmp_filename, git_stage=None, effective_filename=filename, trace=False
+        filename=tmp_filename,
+        git_stage=None,
+        effective_filename=filename,
+        trace=False,
+        ignore_errors=ignore_errors,
     )
 
-    # No idea why, but this helps.
+    # TODO: No idea why, but this helps. Would be nice to become able to remove it though.
     if os.name == "nt":
         autoFormatFile(
             filename=tmp_filename,
             git_stage=None,
             effective_filename=filename,
             trace=False,
+            ignore_errors=ignore_errors,
         )
 
     shutil.copy(tmp_filename, filename)

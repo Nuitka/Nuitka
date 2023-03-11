@@ -17,30 +17,18 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+[build-system]
+# Note: For test purposes, Nuitka is referenced by path, should be "nuitka" in
+# normal projects.
+requires = ["setuptools>=42", "wheel", "file:../../..", "toml"]
+build-backend = "nuitka.distutils.Build"
 
+[project]
+name = "some_namespace.some_package"
+version = "0.0.1"
 
-def someFunction(rounds):
-    class c:
-        pass
+[project.scripts]
+runner="some_namespace.some_package.sub_package:main"
 
-    # do calls
-    for i in xrange(rounds):
-        c.a = 2
-        c.b = 3
-        c.c = 4
-
-        x = c.a
-        x = c.b
-        x = c.c
-
-        c.a = 2
-        c.b = 3
-        c.c = 4
-
-        x = c.a
-        x = c.b
-        x = c.c
-
-
-
-someFunction(100000);
+[tool.setuptools.packages.find]
+include = ["some_namespace.some_package*"]

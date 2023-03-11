@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 def strangeLambdaGeneratorExpression():
-    x = ((yield) for i in (1,2) if (yield))
+    x = ((yield) for i in (1, 2) if (yield))
 
     print("Strange lambda generator expression")
     print(list(x))

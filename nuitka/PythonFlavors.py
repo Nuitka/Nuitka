@@ -236,6 +236,12 @@ def isCPythonOfficialPackage():
     return False
 
 
+def isGithubActionsPython():
+    return os.environ.get(
+        "GITHUB_ACTIONS", ""
+    ) == "true" and getSystemPrefixPath().startswith("/opt/hostedtoolcache/Python")
+
+
 def getPythonFlavorName():
     """For output to the user only."""
     # return driven, pylint: disable=too-many-branches,too-many-return-statements
@@ -264,5 +270,7 @@ def getPythonFlavorName():
         return "Android Termux"
     elif isCPythonOfficialPackage():
         return "CPython Official"
+    elif isGithubActionsPython():
+        return "GitHub Actions Python"
     else:
         return "Unknown"

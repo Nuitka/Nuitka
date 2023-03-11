@@ -40,44 +40,38 @@ sys.path.insert(
 
 # isort:start
 
-import subprocess
-
-from nuitka.tools.testing.Common import (
-    checkCompilesNotWithCPython,
-    compileLibraryTest,
-    createSearchMode,
-    getPythonArch,
-    getPythonVendor,
-    getTempDir,
-    my_print,
-    setup,
-    test_logger
-)
-from nuitka.utils.Importing import getSharedLibrarySuffix
-
-from nuitka.__past__ import iter_modules
-from nuitka.importing.Importing import locateModule, addMainScriptDirectory, decideModuleSourceRef
 from nuitka import Options
+from nuitka.__past__ import iter_modules
+from nuitka.importing.Importing import (
+    addMainScriptDirectory,
+    decideModuleSourceRef,
+    locateModule,
+)
+from nuitka.tools.testing.Common import my_print, setup, test_logger
+from nuitka.Tracing import plugins_logger
+from nuitka.tree.SourceHandling import (
+    getSourceCodeDiff,
+    readSourceCodeFromFilenameWithInformation,
+)
+from nuitka.utils.ModuleNames import ModuleName
 
 python_version = setup(suite="python_modules", needs_io_encoding=True)
 
-from nuitka.utils.ModuleNames import ModuleName
-
-from nuitka.tree.SourceHandling import (
-    readSourceCodeFromFilenameWithInformation,
-)
 
 addMainScriptDirectory("/doesnotexist")
 Options.is_full_compat = False
 
+
 def scanModule(name_space, module_iterator):
+    # plenty details here, pylint: disable=too-many-branches,too-many-locals
+
     from nuitka.tree.TreeHelpers import parseSourceCodeToAst
 
     for module_desc in module_iterator:
         if name_space is None:
-            module_name=ModuleName(module_desc.name)
+            module_name = ModuleName(module_desc.name)
         else:
-            module_name=name_space.getChildNamed(module_desc.name)
+            module_name = name_space.getChildNamed(module_desc.name)
 
         try:
             _module_name, module_filename, finding = locateModule(
@@ -119,7 +113,7 @@ def scanModule(name_space, module_iterator):
             continue
 
         try:
-            ast_tree = parseSourceCodeToAst(
+            parseSourceCodeToAst(
                 source_code=source_code,
                 module_name=module_name,
                 filename=source_filename,
@@ -158,8 +152,10 @@ def scanModule(name_space, module_iterator):
         if module_desc.ispkg:
             scanModule(module_name, iter_modules([module_filename]))
 
+
 def main():
     scanModule(None, iter_modules())
+
 
 if __name__ == "__main__":
     main()

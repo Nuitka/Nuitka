@@ -17,6 +17,6 @@
 #
 print(type(__builtins__))
 
-import ErrorExitingModule
+import ErrorExitingModule  # isort:skip
 
 print("Should not get here!")

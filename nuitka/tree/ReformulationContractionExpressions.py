@@ -45,6 +45,7 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationSetKeyValue,
 )
 from nuitka.nodes.FrameNodes import (
+    StatementsFrameAsyncgen,
     StatementsFrameFunction,
     StatementsFrameGenerator,
 )
@@ -339,9 +340,11 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         ),
     )
 
+    frame_node_class = StatementsFrameAsyncgen if is_async else StatementsFrameGenerator
+
     code_body.setChildBody(
         makeStatementsSequenceFromStatement(
-            statement=StatementsFrameGenerator(
+            statement=frame_node_class(
                 statements=mergeStatements(statements, False),
                 code_object=code_object,
                 source_ref=source_ref,

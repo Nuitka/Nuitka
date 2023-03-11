@@ -50,10 +50,10 @@ Version History:
                 of different versions can't be compared directly.
 
 """
+from time import clock
 
 LOOPS = 50000
 
-from time import clock
 
 __version__ = "1.1"
 

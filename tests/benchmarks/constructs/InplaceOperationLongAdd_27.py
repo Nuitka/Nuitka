@@ -17,32 +17,34 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
-module_value1 = 5L
-module_value2 = 3L
+module_value1 = 5l
+module_value2 = 3l
+
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
     # Make sure we have a local variable x anyway
-    s = 2L
+    s = 2l
 
     local_value = module_value1
 
     s += module_value1
-# construct_begin
-    s += 1000L
-    s += 1000L
-    s += 1000L
-    s += 1000L
-    s += 1000L
-# construct_end
+    # construct_begin
+    s += 1000l
+    s += 1000l
+    s += 1000l
+    s += 1000l
+    s += 1000l
+    # construct_end
     s += module_value2
 
     return s
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

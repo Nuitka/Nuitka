@@ -22,7 +22,7 @@
 """ Runner for distutils integration
 
 Tests for example packages demonstrating that wheel creation with Nuitka
-is compatible to normal packaging.
+is compatible to standard packaging tools.
 
 """
 
@@ -44,6 +44,7 @@ sys.path.insert(
 
 import subprocess
 
+from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.testing.Common import (
     createSearchMode,
     decideFilenameVersionSkip,
@@ -52,7 +53,6 @@ from nuitka.tools.testing.Common import (
     setup,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
-from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import copyFile, deleteFile, removeDirectory
 
 
@@ -81,7 +81,7 @@ def main():
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
-            my_print("Consider distutils example:", filename)
+            my_print("Consider distutils example: '%s'" % filename, style="blue")
 
             py3_only_examples = ("example_3", "nested_namespaces")
             if python_version < (3,) and (
@@ -92,7 +92,7 @@ def main():
 
             if filename == "example_pyproject_2":
                 reportSkip(
-                    "Skipped, 'poetry' based pyproject is now working for now",
+                    "Skipped, 'poetry' based pyproject is not working for now",
                     ".",
                     filename,
                 )
@@ -203,7 +203,9 @@ def main():
                         source_path=os.path.join(case_dir, "pyproject.nuitka.toml"),
                         dest_path=os.path.join(case_dir, "pyproject.toml"),
                     )
-                    venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
+                    venv.runCommand(
+                        commands=['cd "%s"' % case_dir, "python -m build -w"]
+                    )
                     deleteFile(
                         os.path.join(case_dir, "pyproject.toml"), must_exist=True
                     )

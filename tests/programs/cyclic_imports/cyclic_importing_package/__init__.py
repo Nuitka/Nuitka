@@ -17,4 +17,4 @@
 #
 print("package __init__:", __name__)
 
-from . import Child1
+from . import Child1  # isort:skip

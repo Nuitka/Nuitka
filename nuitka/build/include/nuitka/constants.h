@@ -72,8 +72,12 @@ extern PyObject **global_constants;
 #define const_str_plain___path__ global_constants[19]
 // '__enter__'
 #define const_str_plain___enter__ global_constants[20]
+// '__aenter__'
+#define const_str_plain___aenter__ global_constants[20]
 // '__exit__'
 #define const_str_plain___exit__ global_constants[21]
+// '__aexit__'
+#define const_str_plain___aexit__ global_constants[21]
 // '__builtins__'
 #define const_str_plain___builtins__ global_constants[22]
 // '__all__'
@@ -144,6 +148,10 @@ extern PyObject **global_constants;
 #define const_str_plain_listdir global_constants[42]
 // 'basename'
 #define const_str_plain_basename global_constants[42]
+// 'abspath'
+#define const_str_plain_abspath global_constants[42]
+// 'isabs'
+#define const_str_plain_isabs global_constants[42]
 // 'path'
 #define const_str_plain_path global_constants[42]
 // '__newobj__'

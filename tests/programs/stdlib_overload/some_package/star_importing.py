@@ -25,10 +25,10 @@ from .pyexpat import *  # pylint: disable=unused-wildcard-import,wildcard-import
 
 print("some_package.star_importing, doing the star import")
 
-print("Before", sorted(x for x in dir() if x != "__compiled__"))
+print("Before", sorted(x for x in dir() if x not in ("__compiled__", "__loader__")))
 
 
 lala = 1
-print("After", sorted(x for x in dir() if x != "__compiled__"))
+print("After", sorted(x for x in dir() if x not in ("__compiled__", "__loader__")))
 
 print("Finished")

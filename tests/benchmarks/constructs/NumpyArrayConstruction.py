@@ -19,24 +19,26 @@
 #
 from __future__ import print_function
 
+import itertools
+
 # nuitka-project: --nofollow-import-to=numpy
 import numpy
 
-
 g = 6
+
 
 def calledRepeatedly():
     # This is supposed to make a call to a numpy function, which is
     # being optimized separately.
-# construct_begin
+    # construct_begin
     x = numpy.array([[1, 2, 3], [4, 5, 6]], numpy.int32)
-# construct_alternative
+    # construct_alternative
     x = numpy.array, numpy.int32
-# construct_end
+    # construct_end
 
     return x
 
-import itertools
+
 for x in itertools.repeat(None, 20000):
     calledRepeatedly()
 

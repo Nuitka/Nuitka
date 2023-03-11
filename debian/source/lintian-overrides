@@ -11,10 +11,12 @@ nuitka source: newer-standards-version
 # the relatively ancient Python releases.
 nuitka source: ancient-python-version-field
 
-# Our include directory for C is named after the project.
-# TODO: This doesn't work, no idea why.
-# nuitka source: repeated-path-segment nuitka usr/lib/python3/dist-packages/nuitka/build/include/nuitka/
+# We have generated code with sometimes bizarre length of identifiers
+nuitka source: very-long-line-length-in-source-file
 
 # We are really working with compat level up to what we say, but we
 # want to build with distributions that don't have it.
-package-needs-versioned-debhelper-build-depends
+nuitka source: package-needs-versioned-debhelper-build-depends
+
+# Our include directory for C is named after the project.
+nuitka: repeated-path-segment nuitka usr/lib/python3/dist-packages/nuitka/build/include/nuitka/

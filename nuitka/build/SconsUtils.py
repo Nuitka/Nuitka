@@ -258,6 +258,9 @@ def createEnvironment(mingw_mode, msvc_version, target_arch, experimental):
     # Modules count, determines if this is a large compilation.
     env.module_count = getArgumentInt("module_count", 0)
 
+    # Target arch for some decisions
+    env.target_arch = target_arch
+
     _enableExperimentalSettings(env, experimental)
 
     return env
@@ -583,6 +586,8 @@ def createDefinitionsFile(source_dir, filename, definitions):
 
             if type(value) is int or key.endswith(("_BOOL", "_INT")):
                 f.write("#define %s %s\n" % (key, value))
+            elif type(value) in (str, unicode) and key.endswith("_WIDE_STRING"):
+                f.write("#define %s L%s\n" % (key, makeCLiteral(value)))
             else:
                 f.write("#define %s %s\n" % (key, makeCLiteral(value)))
 
@@ -594,7 +599,13 @@ def getMsvcVersionString(env):
 
 
 def getMsvcVersion(env):
+    assert env.msvc_mode
+
     value = getMsvcVersionString(env)
+
+    # TODO: Workaround for prompt being used.
+    if value is None:
+        value = os.environ.get("VCToolsVersion", "14.3").rsplit(".", 1)[0]
 
     value = value.replace("exp", "")
     return float(value)
@@ -652,6 +663,8 @@ def getLinkerArch(target_arch, mingw_mode):
         if win_target:
             if target_arch == "x86_64":
                 _linker_arch = "pei-x86-64"
+            elif target_arch == "arm64":
+                _linker_arch = "pei-arm64"
             else:
                 _linker_arch = "pei-i386"
         else:

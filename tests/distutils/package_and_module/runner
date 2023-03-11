@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
-import some_package # contains some_module
-import some_module
+import some_package  # contains some_module isort:skip
+import some_module  # isort:skip

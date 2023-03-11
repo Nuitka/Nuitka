@@ -190,6 +190,7 @@ def readSourceCodeFromFilenameWithInformation(module_name, source_filename):
         source_diff = getSourceCodeDiff(source_code, source_code_modified)
 
         if source_diff:
+            my_print("%s:" % module_name.asString())
             for line in source_diff:
                 my_print(line, end="\n" if not line.startswith("---") else "")
 
@@ -248,6 +249,8 @@ def checkPythonVersionFromCode(source_code):
             result = 0x3A0 > python_version >= 0x390
         elif basename == "python3.10":
             result = 0x3B0 > python_version >= 0x3A0
+        elif basename == "python3.11":
+            result = 0x3C0 > python_version >= 0x3B0
         else:
             result = None
 

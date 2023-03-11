@@ -84,7 +84,7 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
 
         accessor_code = bytecode_accessor.getBlobDataCode(
             data=code_data,
-            name="bytecode of module '%s'" % module.getFullName().asString(),
+            name="bytecode of module '%s'" % module.getFullName(),
         )
 
         return template_metapath_loader_bytecode_module_entry % {
@@ -160,7 +160,7 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
 
         accessor_code = bytecode_accessor.getBlobDataCode(
             data=code_data,
-            name="bytecode of module '%s'" % uncompiled_module.getFullName().asString(),
+            name="bytecode of module '%s'" % uncompiled_module.getFullName(),
         )
 
         frozen_defs.append(

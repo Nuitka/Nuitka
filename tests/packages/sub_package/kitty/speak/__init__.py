@@ -17,9 +17,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-try:
-    print("__loader__ present:", __loader__ is not None)
-except NameError:
-    print("No __loader__ found, OK for Python2")
-
 print("OK,", __name__, "loaded.")

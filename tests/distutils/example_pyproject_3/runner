@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+"""Runner for example project."""
+
+print("Hello pyproject world!")
+
+# Lets do the actual work after the print.
+import some_namespace.some_package.sub_package  # isort:skip

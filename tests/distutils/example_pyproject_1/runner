@@ -4,4 +4,5 @@
 
 print("Hello pyproject world!")
 
-import example1_package
+# Lets do the actual work after the print.
+import example1_package  # isort:skip
