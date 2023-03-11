@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 1.5 (Draft)
-****************************
+********************
+ Nuitka Release 1.5
+********************
 
 This release contains the long awaited 3.11 support, even if only on an
 experimental level. This means where 3.10 code is used, it is expected
