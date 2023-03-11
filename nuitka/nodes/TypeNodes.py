@@ -40,6 +40,7 @@ from .ChildrenHavingMixins import (
     ChildrenHavingInstanceClassesMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
+from .ExpressionBasesGenerated import ExpressionSubtypeCheckBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
@@ -300,4 +301,21 @@ class ExpressionTypeCheck(
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict, but I am not aware of
         # 100% true Python equivalent at this time.
+        return self, None, None
+
+
+class ExpressionSubtypeCheck(
+    ExpressionBoolShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ExpressionSubtypeCheckBase,
+):
+    kind = "EXPRESSION_SUBTYPE_CHECK"
+
+    named_children = ("left", "right")
+
+    auto_compute_handling = "final,no_raise"
+
+    def computeExpression(self, trace_collection):
+        # TODO: This needs to check the MRO and can assume the type nature, since it's only coming
+        # from re-formulations that guarantee that.
         return self, None, None

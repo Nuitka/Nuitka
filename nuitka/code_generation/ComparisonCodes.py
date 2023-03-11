@@ -436,7 +436,7 @@ def generateBuiltinIssubclassCode(to_name, expression, emit, context):
 
 
 def generateTypeCheckCode(to_name, expression, emit, context):
-    cls_name = context.allocateTempName("issubclass_cls")
+    cls_name = context.allocateTempName("type_check_cls")
 
     generateExpressionCode(
         to_name=cls_name,
