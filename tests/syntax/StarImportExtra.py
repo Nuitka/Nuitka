@@ -17,6 +17,6 @@
 #
 
 try:
-    from sys import not_there, *
+    from sys import not_there, * # isort:skip
 except Exception as e:
     print( "Star import with extra stuff not present gave", e )

@@ -594,7 +594,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     """Python3.6 annotation assignment."""
     # There are many cases to deal with here.
 
-    if provider.isCompiledPythonModule() or provider.isExpressionClassBody():
+    if provider.isCompiledPythonModule() or provider.isExpressionClassBodyBase():
         provider.markAsNeedsAnnotationsDictionary()
 
     # Evaluate the right hand side first, so it can get names provided
@@ -633,7 +633,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     # they are ignored like comments.
     if variable_name is not None:
         if not hasPythonFlagNoAnnotations() and (
-            provider.isExpressionClassBody() or provider.isCompiledPythonModule()
+            provider.isExpressionClassBodyBase() or provider.isCompiledPythonModule()
         ):
             annotation = buildAnnotationNode(provider, node.annotation, source_ref)
 

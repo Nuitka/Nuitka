@@ -57,8 +57,13 @@ def printSeparator(level=0):
     print("    " * level, "*" * 10)
 
 
-def printLine(*what):
-    print(*what)
+def printLine(*what, **kwargs):
+    is_atty = sys.stdout.isatty()
+
+    if progress and is_atty:
+        progress.close()
+
+    print(*what, **kwargs)
 
 
 def printError(message):

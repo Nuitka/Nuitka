@@ -39,6 +39,7 @@ import nuitka.specs.BuiltinBytesOperationSpecs
 import nuitka.specs.BuiltinDictOperationSpecs
 import nuitka.specs.BuiltinListOperationSpecs
 import nuitka.specs.BuiltinStrOperationSpecs
+import nuitka.specs.BuiltinTypeOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
 from nuitka.nodes.ImportNodes import hard_modules_non_stdlib
@@ -62,10 +63,12 @@ from .Common import (
     python2_dict_methods,
     python2_list_methods,
     python2_str_methods,
+    python2_type_methods,
     python3_bytes_methods,
     python3_dict_methods,
     python3_list_methods,
     python3_str_methods,
+    python3_type_methods,
     withFileOpenedAndAutoFormatted,
     writeLine,
 )
@@ -98,6 +101,9 @@ attribute_shape_args = {}
 # How to test for argument name presence
 attribute_shape_arg_tests = {}
 
+# Some methods are static, but we still do them
+attribute_shape_static = {}
+
 # Translations for node names.
 node_factory_translations = {}
 
@@ -126,7 +132,7 @@ def _getMixinForShape(shape):
 
 
 def processTypeShapeAttribute(
-    shape_name, spec_module, python2_methods, python3_methods
+    shape_name, spec_module, python2_methods, python3_methods, staticmethod_names=()
 ):
     for method_name in python2_methods:
         attribute_information.setdefault(method_name, set()).add(shape_name)
@@ -157,6 +163,7 @@ def processTypeShapeAttribute(
         if present:
             attribute_shape_args[key] = tuple(arg_names)
             attribute_shape_arg_tests[key] = arg_tests
+            attribute_shape_static[key] = method_name in staticmethod_names
 
             if len(arg_counts) > 1:
                 attribute_shape_variations[key] = arg_counts
@@ -192,6 +199,7 @@ def processTypeShapeAttribute(
         if present:
             attribute_shape_args[key] = tuple(arg_names)
             attribute_shape_arg_tests[key] = arg_tests
+            attribute_shape_static[key] = method_name in staticmethod_names
 
             if len(arg_counts) > 1:
                 attribute_shape_variations[key] = arg_counts
@@ -204,6 +212,7 @@ processTypeShapeAttribute(
     nuitka.specs.BuiltinDictOperationSpecs,
     python2_dict_methods,
     python3_dict_methods,
+    ("fromkeys",),
 )
 
 
@@ -227,6 +236,14 @@ processTypeShapeAttribute(
     python2_list_methods,
     python3_list_methods,
 )
+
+processTypeShapeAttribute(
+    "tshape_type",
+    nuitka.specs.BuiltinTypeOperationSpecs,
+    python2_type_methods,
+    python3_type_methods,
+)
+
 
 attribute_shape_empty = {}
 
@@ -328,7 +345,9 @@ def makeAttributeNodes():
         template_name="AttributeNodeFixed.py.j2",
     )
 
-    with withFileOpenedAndAutoFormatted(filename_python) as output_python:
+    with withFileOpenedAndAutoFormatted(
+        filename_python, ignore_errors=True
+    ) as output_python:
 
         def emit(*args):
             writeLine(output_python, *args)
@@ -368,6 +387,7 @@ def makeAttributeNodes():
                 attribute_shape_args=attribute_shape_args,
                 attribute_shape_arg_tests=attribute_shape_arg_tests,
                 attribute_shape_empty=attribute_shape_empty,
+                attribute_shape_static=attribute_shape_static,
                 formatArgs=formatArgs,
                 formatCallArgs=formatCallArgs,
                 translateNodeClassName=translateNodeClassName,
@@ -388,7 +408,9 @@ def makeBuiltinOperationNodes():
         template_name="BuiltinOperationNodeBases.py.j2",
     )
 
-    with withFileOpenedAndAutoFormatted(filename_python) as output_python:
+    with withFileOpenedAndAutoFormatted(
+        filename_python, ignore_errors=True
+    ) as output_python:
 
         def emit(*args):
             writeLine(output_python, *args)
@@ -410,6 +432,7 @@ def makeBuiltinOperationNodes():
                 attribute_shape_args=attribute_shape_args,
                 attribute_shape_arg_tests=attribute_shape_arg_tests,
                 attribute_shape_empty=attribute_shape_empty,
+                attribute_shape_static=attribute_shape_static,
                 attribute_shape_operations_mixin_classes=attribute_shape_operations_mixin_classes,
                 formatArgs=formatArgs,
                 formatCallArgs=formatCallArgs,
@@ -717,11 +740,11 @@ def makeChildrenHavingMixinNodes():
     mixins_done = set()
 
     with withFileOpenedAndAutoFormatted(
-        filename_python
+        filename_python, ignore_errors=True
     ) as output_python, withFileOpenedAndAutoFormatted(
-        filename_python2
+        filename_python2, ignore_errors=True
     ) as output_python2, withFileOpenedAndAutoFormatted(
-        filename_python3
+        filename_python3, ignore_errors=True
     ) as output_python3:
 
         def emit1(*args):
@@ -860,6 +883,7 @@ def getSpecVersions(spec_module):
             (0x380, "38"),
             (0x390, "39"),
             (0x3A0, "310"),
+            (0x3B0, "311"),
         ):
             if "since_%s" % str_version in spec_name:
                 python_criterion = ">= 0x%x" % version
@@ -904,7 +928,9 @@ def makeHardImportNodes():
         template_name="HardImportCallNode.py.j2",
     )
 
-    with withFileOpenedAndAutoFormatted(filename_python) as output_python:
+    with withFileOpenedAndAutoFormatted(
+        filename_python, ignore_errors=True
+    ) as output_python:
 
         def emit(*args):
             writeLine(output_python, *args)

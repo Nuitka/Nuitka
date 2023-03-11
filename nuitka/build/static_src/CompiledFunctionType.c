@@ -506,28 +506,28 @@ static PyMethodDef Nuitka_Function_methods[] = {{"__reduce__", (PyCFunction)Nuit
 static PyObject *Nuitka_Function_tp_call(struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw);
 
 PyTypeObject Nuitka_Function_Type = {
-    PyVarObject_HEAD_INIT(NULL, 0) "compiled_function", /* tp_name */
-    sizeof(struct Nuitka_FunctionObject),               /* tp_basicsize */
-    sizeof(struct Nuitka_CellObject *),                 /* tp_itemsize */
-    (destructor)Nuitka_Function_tp_dealloc,             /* tp_dealloc */
+    PyVarObject_HEAD_INIT(NULL, 0) "compiled_function", // tp_name
+    sizeof(struct Nuitka_FunctionObject),               // tp_basicsize
+    sizeof(struct Nuitka_CellObject *),                 // tp_itemsize
+    (destructor)Nuitka_Function_tp_dealloc,             // tp_dealloc
 #if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_SLOT)
-    0, /* tp_print */
+    0, // tp_print
 #else
-    offsetof(struct Nuitka_FunctionObject, m_vectorcall), /* tp_vectorcall_offset */
+    offsetof(struct Nuitka_FunctionObject, m_vectorcall), // tp_vectorcall_offset
 #endif
-    0,                                    /* tp_getattr */
-    0,                                    /* tp_setattr */
-    0,                                    /* tp_compare */
-    (reprfunc)Nuitka_Function_tp_repr,    /* tp_repr */
-    0,                                    /* tp_as_number */
-    0,                                    /* tp_as_sequence */
-    0,                                    /* tp_as_mapping */
-    (hashfunc)Nuitka_Function_tp_hash,    /* tp_hash */
-    (ternaryfunc)Nuitka_Function_tp_call, /* tp_call */
-    0,                                    /* tp_str */
-    PyObject_GenericGetAttr,              /* tp_getattro */
-    0,                                    /* tp_setattro */
-    0,                                    /* tp_as_buffer */
+    0,                                    // tp_getattr
+    0,                                    // tp_setattr
+    0,                                    // tp_compare
+    (reprfunc)Nuitka_Function_tp_repr,    // tp_repr
+    0,                                    // tp_as_number
+    0,                                    // tp_as_sequence
+    0,                                    // tp_as_mapping
+    (hashfunc)Nuitka_Function_tp_hash,    // tp_hash
+    (ternaryfunc)Nuitka_Function_tp_call, // tp_call
+    0,                                    // tp_str
+    0,                                    // tp_getattro (PyObject_GenericGetAttr)
+    0,                                    // tp_setattro
+    0,                                    // tp_as_buffer
     Py_TPFLAGS_DEFAULT |
 #if PYTHON_VERSION < 0x300
         Py_TPFLAGS_HAVE_WEAKREFS |
@@ -535,44 +535,42 @@ PyTypeObject Nuitka_Function_Type = {
 #if PYTHON_VERSION >= 0x380
         _Py_TPFLAGS_HAVE_VECTORCALL | Py_TPFLAGS_METHOD_DESCRIPTOR |
 #endif
-        Py_TPFLAGS_HAVE_GC,                             /* tp_flags */
-    0,                                                  /* tp_doc */
-    (traverseproc)Nuitka_Function_tp_traverse,          /* tp_traverse */
-    0,                                                  /* tp_clear */
-    0,                                                  /* tp_richcompare */
-    offsetof(struct Nuitka_FunctionObject, m_weakrefs), /* tp_weaklistoffset */
-    0,                                                  /* tp_iter */
-    0,                                                  /* tp_iternext */
-    Nuitka_Function_methods,                            /* tp_methods */
-    0,                                                  /* tp_members */
-    Nuitka_Function_getset,                             /* tp_getset */
-    0,                                                  /* tp_base */
-    0,                                                  /* tp_dict */
-    Nuitka_Function_descr_get,                          /* tp_descr_get */
-    0,                                                  /* tp_descr_set */
-    offsetof(struct Nuitka_FunctionObject, m_dict),     /* tp_dictoffset */
-    0,                                                  /* tp_init */
-    0,                                                  /* tp_alloc */
-    0,                                                  /* tp_new */
-    0,                                                  /* tp_free */
-    0,                                                  /* tp_is_gc */
-    0,                                                  /* tp_bases */
-    0,                                                  /* tp_mro */
-    0,                                                  /* tp_cache */
-    0,                                                  /* tp_subclasses */
-    0,                                                  /* tp_weaklist */
-    0,                                                  /* tp_del */
-    0                                                   /* tp_version_tag */
+        Py_TPFLAGS_HAVE_GC,                             // tp_flags
+    0,                                                  // tp_doc
+    (traverseproc)Nuitka_Function_tp_traverse,          // tp_traverse
+    0,                                                  // tp_clear
+    0,                                                  // tp_richcompare
+    offsetof(struct Nuitka_FunctionObject, m_weakrefs), // tp_weaklistoffset
+    0,                                                  // tp_iter
+    0,                                                  // tp_iternext
+    Nuitka_Function_methods,                            // tp_methods
+    0,                                                  // tp_members
+    Nuitka_Function_getset,                             // tp_getset
+    0,                                                  // tp_base
+    0,                                                  // tp_dict
+    Nuitka_Function_descr_get,                          // tp_descr_get
+    0,                                                  // tp_descr_set
+    offsetof(struct Nuitka_FunctionObject, m_dict),     // tp_dictoffset
+    0,                                                  // tp_init
+    0,                                                  // tp_alloc
+    0,                                                  // tp_new
+    0,                                                  // tp_free
+    0,                                                  // tp_is_gc
+    0,                                                  // tp_bases
+    0,                                                  // tp_mro
+    0,                                                  // tp_cache
+    0,                                                  // tp_subclasses
+    0,                                                  // tp_weaklist
+    0,                                                  // tp_del
+    0                                                   // tp_version_tag
 #if PYTHON_VERSION >= 0x340
     ,
-    0 /* tp_finalizer */
+    0 // tp_finalizer
 #endif
 };
 
 void _initCompiledFunctionType(void) {
-    Nuitka_Function_Type.tp_base = &PyFunction_Type;
-
-    PyType_Ready(&Nuitka_Function_Type);
+    Nuitka_PyType_Ready(&Nuitka_Function_Type, &PyFunction_Type, true, false, false, false, false);
 
     // Be a paranoid subtype of uncompiled function, we want nothing shared.
     assert(Nuitka_Function_Type.tp_doc != PyFunction_Type.tp_doc);
@@ -586,7 +584,6 @@ void _initCompiledFunctionType(void) {
     assert(Nuitka_Function_Type.tp_methods != PyFunction_Type.tp_methods);
     assert(Nuitka_Function_Type.tp_members != PyFunction_Type.tp_members);
     assert(Nuitka_Function_Type.tp_getset != PyFunction_Type.tp_getset);
-    assert(Nuitka_Function_Type.tp_base != PyFunction_Type.tp_base);
     assert(Nuitka_Function_Type.tp_dict != PyFunction_Type.tp_dict);
     assert(Nuitka_Function_Type.tp_descr_get != PyFunction_Type.tp_descr_get);
 

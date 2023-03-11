@@ -44,21 +44,23 @@ sys.path.insert(
 # isort:start
 
 from nuitka.tools.testing.Common import (
-    addExtendedExtraOptions,
     checkLoadedFileAccesses,
     checkRequirements,
     compareWithCPython,
     createSearchMode,
-    decideFilenameVersionSkip,
     displayFileContents,
     displayRuntimeTraces,
     reportSkip,
+    scanDirectoryForTestCases,
     setup,
     test_logger,
 )
-from nuitka.tools.testing.RuntimeTracing import getRuntimeTraceOfLoadedFiles
+from nuitka.tools.testing.RuntimeTracing import (
+    doesSupportTakingRuntimeTrace,
+    getRuntimeTraceOfLoadedFiles,
+)
 from nuitka.utils.Timing import TimerReport
-from nuitka.utils.Utils import isLinux, isMacOS
+from nuitka.utils.Utils import isMacOS
 
 
 def displayError(dirname, filename):
@@ -73,22 +75,10 @@ def main():
 
     search_mode = createSearchMode()
 
-    if isLinux():
-        addExtendedExtraOptions(
-            "--linux-onefile-icon=../../doc/Logo/Nuitka-Logo-Symbol.svg"
-        )
-
-    for filename in sorted(os.listdir(".")):
-        if not filename.endswith(".py"):
-            continue
-
-        if not decideFilenameVersionSkip(filename):
-            continue
-
+    for filename in scanDirectoryForTestCases("."):
         active = search_mode.consider(dirname=None, filename=filename)
 
         if not active:
-            test_logger.info("Skipping %s" % filename)
             continue
 
         extra_flags = [
@@ -153,32 +143,42 @@ def main():
 
         binary_filename = filename[:-3] + (".exe" if os.name == "nt" else ".bin")
 
-        if filename == "KeyboardInterruptTest.py":
-            continue
+        try:
+            if not doesSupportTakingRuntimeTrace():
+                test_logger.info("Runtime traces are not possible on this machine.")
+                continue
+            # This test case requires a kill, so kill it there.
+            if filename == "KeyboardInterruptTest.py":
+                test_logger.info(
+                    "Runtime traces are not taken for case that needs killing."
+                )
+                continue
 
-        # Then use "strace" on the result.
-        with TimerReport(
-            "Determining run time loaded files took %.2f", logger=test_logger
-        ):
-            loaded_filenames = getRuntimeTraceOfLoadedFiles(
-                logger=test_logger, command=[binary_filename]
+            # Then use "strace" on the result.
+            with TimerReport(
+                "Determining run time loaded files took %.2f", logger=test_logger
+            ):
+                loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                    logger=test_logger, command=[binary_filename]
+                )
+
+            illegal_accesses = checkLoadedFileAccesses(
+                loaded_filenames=loaded_filenames, current_dir=os.getcwd()
             )
 
-        illegal_accesses = checkLoadedFileAccesses(
-            loaded_filenames=loaded_filenames, current_dir=os.getcwd()
-        )
+            if illegal_accesses:
+                displayError(None, filename)
+                displayRuntimeTraces(test_logger, binary_filename)
 
-        if illegal_accesses:
-            displayError(None, filename)
-            displayRuntimeTraces(test_logger, binary_filename)
+                test_logger.warning(
+                    "Should not access these file(s): '%s'."
+                    % ",".join(illegal_accesses)
+                )
 
-            test_logger.warning(
-                "Should not access these file(s): '%s'." % ",".join(illegal_accesses)
-            )
+                search_mode.onErrorDetected(1)
 
-            search_mode.onErrorDetected(1)
-
-        os.unlink(binary_filename)
+        finally:
+            os.unlink(binary_filename)
 
     search_mode.finish()
 

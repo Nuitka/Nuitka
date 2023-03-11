@@ -1,15 +1,13 @@
 #     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Python test originally created or extracted from other peoples work. The
-#     parts from me are licensed as below. It is at least Free Software where
-#     it's copied from other people. In these cases, that will normally be
-#     indicated.
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
 #     You may obtain a copy of the License at
 #
-#         http://www.apache.org/licenses/LICENSE-2.0
+#        http://www.apache.org/licenses/LICENSE-2.0
 #
 #     Unless required by applicable law or agreed to in writing, software
 #     distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,24 +15,20 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+"""Type operation specs. """
 
-import os
 
-def f1(a):
-    pass
+from .BuiltinParameterSpecs import BuiltinMethodParameterSpecBase
 
-def f2(a, b, c):
-    pass
 
-def comparer():
-    # This enables tracing in a custom build of mine.
-    a = 1
-    o = oct
-    o(a)
+class TypeMethodSpec(BuiltinMethodParameterSpecBase):
+    """Method spec of exactly the `type` built-in value/type."""
 
-    for i in range(100000):
-        # g1 == g2
-        f1(f2 (os.path, os.unlink, os.rename))
+    __slots__ = ()
 
-if __name__ == "__main__":
-    comparer()
+    method_prefix = "type"
+
+
+type___prepare___spec = TypeMethodSpec(
+    name="__prepare__", list_star_arg="args", dict_star_arg="kwargs"
+)

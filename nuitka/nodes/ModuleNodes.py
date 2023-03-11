@@ -31,7 +31,6 @@ from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
-from nuitka.tree.Operations import DetectUsedModules, visitTree
 from nuitka.tree.SourceHandling import readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import getFileContentByLine
@@ -475,19 +474,14 @@ class CompiledPythonModule(
         self.used_modules = None
 
     def getUsedModules(self):
-        if self.used_modules is None:
-            visitor = DetectUsedModules()
-            visitTree(tree=self, visitor=visitor)
-            self.used_modules = visitor.getUsedModules()
-
-        return self.used_modules
+        return self.trace_collection.getModuleUsageAttempts()
 
     def addUsedFunction(self, function_body):
         assert function_body in self.subnode_functions, function_body
 
         assert (
             function_body.isExpressionFunctionBody()
-            or function_body.isExpressionClassBody()
+            or function_body.isExpressionClassBodyBase()
             or function_body.isExpressionGeneratorObjectBody()
             or function_body.isExpressionCoroutineObjectBody()
             or function_body.isExpressionAsyncgenObjectBody()
@@ -589,13 +583,11 @@ class CompiledPythonModule(
         was_complete = not self.locals_scope.complete
 
         def markAsComplete(body, trace_collection):
-            if (
-                body.locals_scope is not None
-                and body.locals_scope.isMarkedForPropagation()
-            ):
-                body.locals_scope = None
-
             if body.locals_scope is not None:
+                # Make sure the propagated stuff releases memory.
+                if body.locals_scope.isMarkedForPropagation():
+                    body.locals_scope.onPropagationComplete()
+
                 body.locals_scope.markAsComplete(trace_collection)
 
         def markEntryPointAsComplete(body):
@@ -796,7 +788,8 @@ class UncompiledPythonModule(PythonModuleBase):
     def setUsedModules(self, used_modules):
         self.used_modules = used_modules
 
-    def startTraversal(self):
+    @staticmethod
+    def startTraversal():
         pass
 
 
@@ -959,7 +952,8 @@ class PythonExtensionModule(PythonModuleBase):
     def getFilename(self):
         return self.source_ref.getFilename()
 
-    def startTraversal(self):
+    @staticmethod
+    def startTraversal():
         pass
 
     def isTechnical(self):

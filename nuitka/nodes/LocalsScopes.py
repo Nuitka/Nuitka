@@ -19,6 +19,7 @@
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaOptimizationError
+from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import (
     counted_del,
     counted_init,
@@ -74,11 +75,12 @@ class LocalsDictHandleBase(object):
 
     __slots__ = (
         "locals_name",
-        # TODO: Specialize what the kinds really use.
+        # TODO: Specialize what the kinds really use what.
         "variables",
         "local_variables",
         "providing",
         "mark_for_propagation",
+        "prevented_propagation",
         "propagation",
         "owner",
         "complete",
@@ -96,7 +98,8 @@ class LocalsDictHandleBase(object):
         self.local_variables = {}
         self.providing = OrderedDict()
 
-        # Can this be eliminated through replacement of temporary variables
+        # Can this be eliminated through replacement of temporary variables, or has
+        # e.g. the use of locals prevented this, which it should in classes.
         self.mark_for_propagation = False
 
         self.propagation = None
@@ -232,6 +235,14 @@ class LocalsDictHandleBase(object):
 
         return self.local_variables[variable_name]
 
+    @staticmethod
+    def preventLocalsDictPropagation():
+        pass
+
+    @staticmethod
+    def isPreventedPropagation():
+        return False
+
     def markForLocalsDictPropagation(self):
         self.mark_for_propagation = True
 
@@ -286,6 +297,10 @@ class LocalsDictHandleBase(object):
     def _considerPropagation(trace_collection):
         """For overload by scope type. Check if this can be replaced."""
 
+    def onPropagationComplete(self):
+        self.variables = {}
+        self.mark_for_propagation = False
+
     def _considerUnusedUserLocalVariables(self, trace_collection):
         """Check scope for unused variables."""
 
@@ -329,65 +344,86 @@ class LocalsDictHandle(LocalsDictHandleBase):
         return tshape_unknown
 
     def _considerPropagation(self, trace_collection):
-        self.complete = True
-
-        propagate = True
+        if not self.variables:
+            return
 
         for variable in self.variables.values():
             for variable_trace in variable.traces:
-                if variable_trace.isAssignTrace():
-                    # For assign traces we want the value to not have a side effect,
-                    # then we can push it down the line. TODO: Once temporary
-                    # variables and dictionary building allows for unset values
-                    # remove this
-                    if (
-                        variable_trace.getAssignNode().subnode_source.mayHaveSideEffects()
-                    ):
-                        propagate = False
-                        break
-                elif variable_trace.isDeletedTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isMergeTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isUninitializedTrace():
-                    pass
-                elif variable_trace.isUnknownTrace():
-                    propagate = False
-                    break
-                elif variable_trace.isEscapeTrace():
-                    propagate = False
-                    break
-                else:
-                    assert False, (variable, variable_trace)
+                if variable_trace.inhibitsClassScopeForwardPropagation():
+                    return
 
-        if propagate:
-            trace_collection.signalChange(
-                "var_usage",
-                self.owner.getSourceReference(),
-                message="Forward propagage locals dictionary.",
-            )
+        trace_collection.signalChange(
+            "var_usage",
+            self.owner.getSourceReference(),
+            message="Forward propagate locals dictionary.",
+        )
 
-            self.markForLocalsDictPropagation()
-
-        return propagate
+        self.markForLocalsDictPropagation()
 
 
 class LocalsMappingHandle(LocalsDictHandle):
     """Locals dict of a Python3 class with a mapping."""
 
-    __slots__ = ()
+    __slots__ = ("type_shape",)
 
-    @staticmethod
-    def getTypeShape():
+    # TODO: Removable condition once Python 3.3 support is dropped.
+    if python_version >= 0x340:
+        __slots__ += ("prevented_propagation",)
+
+    def __init__(self, locals_name, owner):
+        LocalsDictHandle.__init__(self, locals_name=locals_name, owner=owner)
+
+        self.type_shape = tshape_unknown
+
+        if python_version >= 0x340:
+            self.prevented_propagation = False
+
+    def getTypeShape(self):
         # TODO: Make mapping available for this.
-        return tshape_unknown
+        return self.type_shape
 
-    @staticmethod
-    def hasShapeDictionaryExact():
-        # TODO: Keep in sync with getTypeShape being calculated eventually.
-        return False
+    def setTypeShape(self, type_shape):
+        self.type_shape = type_shape
+
+    def hasShapeDictionaryExact(self):
+        return self.type_shape is tshape_dict
+
+    if python_version >= 0x340:
+
+        def markAsComplete(self, trace_collection):
+            # For this run, it cannot be done yet.
+            if self.prevented_propagation:
+                # False alarm, this is available.
+                self.prevented_propagation = False
+                return
+
+            self.complete = True
+
+        def preventLocalsDictPropagation(self):
+            self.prevented_propagation = True
+
+        def isPreventedPropagation(self):
+            return self.prevented_propagation
+
+    def _considerPropagation(self, trace_collection):
+        if not self.variables:
+            return
+
+        if self.type_shape is not tshape_dict:
+            return
+
+        for variable in self.variables.values():
+            for variable_trace in variable.traces:
+                if variable_trace.inhibitsClassScopeForwardPropagation():
+                    return
+
+        trace_collection.signalChange(
+            "var_usage",
+            self.owner.getSourceReference(),
+            message="Forward propagate locals dictionary.",
+        )
+
+        self.markForLocalsDictPropagation()
 
     @staticmethod
     def isClassScope():

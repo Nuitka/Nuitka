@@ -45,6 +45,10 @@ static void _initBuiltinTypeMethods(void) {
     _initListBuiltinMethods();
 }
 
+#if PYTHON_VERSION >= 0x3b0
+#include "HelpersAllocator.c"
+#endif
+
 #include "HelpersBuiltin.c"
 #include "HelpersBytes.c"
 #include "HelpersClasses.c"
@@ -913,7 +917,9 @@ void _PRINT_EXCEPTION(PyObject *exception_type, PyObject *exception_value, PyTra
 #else
 void _PRINT_EXCEPTION(PyObject *exception_value) {
     PyObject *exception_type = exception_value ? PyExceptionInstance_Class(exception_value) : NULL;
-    PyTracebackObject *exception_tb = exception_value ? GET_EXCEPTION_TRACEBACK(exception_value) : NULL;
+    PyTracebackObject *exception_tb = (exception_value && PyExceptionInstance_Check(exception_value))
+                                          ? GET_EXCEPTION_TRACEBACK(exception_value)
+                                          : NULL;
 #endif
     PRINT_REPR(exception_type);
     if (exception_type) {
@@ -1182,14 +1188,6 @@ void enhancePythonTypes(void) {
     PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
 #endif
 }
-
-#ifdef __APPLE__
-#ifdef __cplusplus
-extern "C"
-#endif
-    wchar_t *
-    _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
-#endif
 
 #ifdef __FreeBSD__
 #include <floatingpoint.h>
@@ -1757,7 +1755,7 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
     return (wchar_t const *)binary_directory;
 }
 
-#if defined(_WIN32) && PYTHON_VERSION < 0x300
+#if defined(_WIN32)
 char const *getBinaryDirectoryHostEncoded(void) {
     static char *binary_directory = NULL;
 
@@ -1946,8 +1944,8 @@ void _initBuiltinModule(void) {
     Nuitka_BuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
     Nuitka_BuiltinModule_Type.tp_new = PyModule_Type.tp_new;
     Nuitka_BuiltinModule_Type.tp_free = PyModule_Type.tp_free;
-    int ret = PyType_Ready(&Nuitka_BuiltinModule_Type);
-    assert(ret == 0);
+    int res2 = PyType_Ready(&Nuitka_BuiltinModule_Type);
+    assert(res2 >= 0);
 
     // Replace type of builtin module to take over.
     ((PyObject *)builtin_module)->ob_type = &Nuitka_BuiltinModule_Type;
@@ -1955,7 +1953,6 @@ void _initBuiltinModule(void) {
 }
 
 #include "HelpersCalling.c"
-#include "HelpersCalling2.c"
 
 PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
     CHECK_OBJECT(relative);
@@ -2003,7 +2000,7 @@ void _initBuiltinOriginalValues(void) {
 #endif
 
 // Used for threading.
-#if PYTHON_VERSION >= 0x300 && !defined(NUITKA_USE_PYCORE_THREADSTATE)
+#if PYTHON_VERSION >= 0x300 && !defined(NUITKA_USE_PYCORE_THREAD_STATE)
 volatile int _Py_Ticker = _Py_CheckInterval;
 #endif
 

@@ -221,6 +221,9 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
 
         return in_node, tags, message
 
+    def getExpressionDictInConstant(self, value):
+        return self.variable_trace.getDictInValue(value)
+
     def computeExpressionSetSubscript(
         self, set_node, subscript, value_node, trace_collection
     ):
@@ -383,10 +386,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             "variable_name": self.variable.getName(),
             "owner": self.variable.getOwner().getCodeName(),
         }
-
-    @staticmethod
-    def isExpressionTempVariableRef():
-        return True
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
@@ -601,6 +600,9 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
 
         return None, None, None
 
+    def collectVariableAccesses(self, emit_read, emit_write):
+        emit_read(self.variable)
+
     def hasShapeListExact(self):
         return (
             self.variable_trace is not None and self.variable_trace.hasShapeListExact()
@@ -621,6 +623,11 @@ Replaced read-only module attribute '__spec__' with module attribute reference."
         return (
             self.variable_trace is not None
             and self.variable_trace.hasShapeUnicodeExact()
+        )
+
+    def hasShapeBoolExact(self):
+        return (
+            self.variable_trace is not None and self.variable_trace.hasShapeBoolExact()
         )
 
     def getTruthValue(self):
@@ -698,6 +705,10 @@ class ExpressionTempVariableRef(
 
     def getDetails(self):
         return {"variable": self.variable}
+
+    @staticmethod
+    def isExpressionTempVariableRef():
+        return True
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):

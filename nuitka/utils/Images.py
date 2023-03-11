@@ -19,7 +19,30 @@
 
 """
 
-from .FileOperations import hasFilenameExtension
+from .FileOperations import getFilenameExtension, hasFilenameExtension
+from .Utils import isMacOS, isWin32Windows
+
+
+def checkIconUsage(logger, icon_path):
+    icon_format = getFilenameExtension(icon_path)
+
+    if icon_format != ".icns" and isMacOS():
+        needs_conversion = True
+    elif icon_format != ".ico" and isWin32Windows():
+        needs_conversion = True
+    else:
+        needs_conversion = False
+
+    if needs_conversion:
+        try:
+            import imageio  # pylint: disable=I0021,import-error,unused-import
+        except ImportError:
+            logger.sysexit(
+                """\
+Need to install 'imageio' to let automatically convert the non native \
+icon image (%s) in file in '%s'."""
+                % (icon_format[1:].upper(), icon_path)
+            )
 
 
 def convertImageToIconFormat(logger, image_filename, converted_icon_filename):
@@ -29,19 +52,14 @@ def convertImageToIconFormat(logger, image_filename, converted_icon_filename):
     # Limit to supported icon formats.
     assert hasFilenameExtension(converted_icon_filename, (".ico", ".icns")), icon_format
 
-    try:
-        import imageio
-    except ImportError:
-        logger.sysexit(
-            "Need to install 'imageio' to automatically convert non-%s icon image file in '%s'."
-            % (icon_format, image_filename)
-        )
+    # Avoid importing unless actually used.
+    import imageio  # pylint: disable=I0021,import-error
 
     try:
         image = imageio.imread(image_filename)
     except ValueError:
         logger.sysexit(
-            "Unsupported file format for imageio in '%s', use e.g. PNG files."
+            "Unsupported file format for 'imageio' in '%s', use e.g. PNG or other supported file formats instead."
             % image_filename
         )
 

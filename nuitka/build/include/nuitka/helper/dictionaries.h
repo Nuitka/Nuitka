@@ -205,6 +205,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY(PyDictObject *dict, Nuitka_S
     }
 
 #else
+    // Will be written by Nuitka_PyDictLookupStr in all cases.
     PyObject **value;
     Py_ssize_t found = Nuitka_PyDictLookupStr(dict, (PyObject *)key, hash, &value);
     assert(found != DKIX_ERROR);
@@ -395,7 +396,7 @@ extern PyObject *DICT_VIEWITEMS(PyObject *dict);
 // Python dictionary copy, return a shallow copy of a dictionary.
 extern PyObject *DICT_COPY(PyObject *dict);
 
-// Python dictionary clear, empty a dictionary.
+// Python dictionary clear, empties the dictionary.
 extern void DICT_CLEAR(PyObject *dict);
 
 // Replacement for PyDict_Next that is faster (to call).

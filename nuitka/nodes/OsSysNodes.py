@@ -24,8 +24,10 @@ from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionNoSideEffectsMixin
 from .HardImportNodesGenerated import (
     ExpressionOsListdirCallBase,
+    ExpressionOsPathAbspathCallBase,
     ExpressionOsPathBasenameCallBase,
     ExpressionOsPathExistsCallBase,
+    ExpressionOsPathIsabsCallBase,
     ExpressionOsPathIsdirCallBase,
     ExpressionOsPathIsfileCallBase,
     ExpressionOsUnameCallBase,
@@ -93,6 +95,33 @@ class ExpressionOsPathBasenameCall(ExpressionOsPathBasenameCallBase):
             result,
             "new_expression",
             "Compile time resolved 'os.path.basename' call.",
+        )
+
+
+class ExpressionOsPathAbspathCall(ExpressionOsPathAbspathCallBase):
+    kind = "EXPRESSION_OS_PATH_ABSPATH_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        # Nothing we can do really
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionOsPathIsabsCall(ExpressionOsPathIsabsCallBase):
+    kind = "EXPRESSION_OS_PATH_ISABS_CALL"
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        result = makeConstantRefNode(
+            constant=os.path.isabs(self.subnode_s.getCompileTimeConstant()),
+            source_ref=self.source_ref,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Compile time resolved 'os.path.isabs' call.",
         )
 
 

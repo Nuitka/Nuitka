@@ -83,8 +83,6 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
         # Just inform the collection that all escaped.
         self.variable_traces = trace_collection.onLocalsUsage(self.locals_scope)
 
-        trace_collection.onLocalsDictEscaped(self.locals_scope)
-
         return self, None, None
 
 
@@ -98,6 +96,10 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
     def getLocalsScope(self):
         return self.locals_scope
+
+    # For overload.
+    def isFinalUseOfLocals(self):
+        return self.parent.isStatementReturn()
 
     def computeExpressionRaw(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
@@ -127,8 +129,9 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
             return result, "new_expression", "Propagated locals dictionary reference."
 
-        # Just inform the collection that all escaped unless it is abortative.
-        if not self.getParent().isStatementReturn():
+        # Just inform the collection that all escaped unless it is aborting or for
+        # a locals dict.
+        if not self.isFinalUseOfLocals():
             trace_collection.onLocalsUsage(locals_scope=self.locals_scope)
 
         return self, None, None

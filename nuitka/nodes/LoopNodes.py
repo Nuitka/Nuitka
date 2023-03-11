@@ -22,8 +22,8 @@ statements for it. These re-formulations require that optimization of loops has
 to be very general, yet the node type for loop, becomes very simple.
 """
 
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
-from nuitka.tree.Extractions import getVariablesWrittenOrRead
 
 from .NodeBases import StatementBase
 from .shapes.StandardShapes import tshape_unknown, tshape_unknown_loop
@@ -123,7 +123,10 @@ class StatementLoop(StatementLoopBase):
         # about that if we are in the first iteration, later we # will have more
         # precise knowledge.
         if self.loop_variables is None:
-            self.loop_variables = getVariablesWrittenOrRead(loop_body)
+            self.loop_variables = OrderedSet()
+            loop_body.collectVariableAccesses(
+                self.loop_variables.add, self.loop_variables.add
+            )
 
             all_first_pass = True
         else:

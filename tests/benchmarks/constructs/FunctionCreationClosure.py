@@ -17,27 +17,28 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import itertools
 
 module_var = None
+
 
 def calledRepeatedly(x):
     # Force a local frame for now
     module_var
 
-# construct_begin
+    # construct_begin
     def empty():
         return x
 
-# construct_alternative
+    # construct_alternative
     def empty():
         return module_var
 
-# construct_end
+    # construct_end
 
     return empty, x
 
 
-import itertools
 for x in itertools.repeat(None, 50000):
     calledRepeatedly(x)
 

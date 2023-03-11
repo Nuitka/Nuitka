@@ -16,5 +16,5 @@
 #     limitations under the License.
 #
 async def gen():
-   yield 1
-   return 2
+    yield 1
+    return 2

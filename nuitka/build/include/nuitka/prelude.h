@@ -47,6 +47,13 @@
 #define initfunc python_initfunc
 #define initstate python_initstate
 
+// Python 3.11 headers give these warnings
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#pragma warning(disable : 4244)
+#endif
+
 /* Include the relevant Python C-API header files. */
 #include "Python.h"
 #include "frameobject.h"
@@ -79,10 +86,10 @@
 #endif
 
 #if PYTHON_VERSION >= MIN_PYCORE_PYTHON_VERSION
-#define NUITKA_USE_PYCORE_THREADSTATE
+#define NUITKA_USE_PYCORE_THREAD_STATE
 #endif
 
-#ifdef NUITKA_USE_PYCORE_THREADSTATE
+#ifdef NUITKA_USE_PYCORE_THREAD_STATE
 #undef Py_BUILD_CORE
 #define Py_BUILD_CORE
 #undef _PyGC_FINALIZED
@@ -107,6 +114,9 @@ extern _PyRuntimeState _PyRuntime;
 #endif
 
 #if PYTHON_VERSION >= 0x380
+#include <cpython/initconfig.h>
+#include <internal/pycore_initconfig.h>
+#include <internal/pycore_pathconfig.h>
 #include <internal/pycore_pyerrors.h>
 #endif
 
@@ -117,10 +127,8 @@ extern _PyRuntimeState _PyRuntime;
 
 #if PYTHON_VERSION >= 0x3b0
 #include <internal/pycore_frame.h>
+#include <internal/pycore_gc.h>
 #endif
-
-// TODO: Might be useful too, allows access to Python configuration.
-// #include <internal/pycore_initconfig.h>
 
 #ifndef PY_NOGIL
 #undef PyThreadState_GET
@@ -137,6 +145,10 @@ extern _PyRuntimeState _PyRuntime;
 
 #undef Py_BUILD_CORE
 
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(pop)
 #endif
 
 /* See above. */
@@ -333,8 +345,9 @@ extern PyThreadState *_PyThreadState_Current;
 #endif
 
 #ifndef _NUITKA_FULL_COMPAT
-// Remove useless recursion control guards, we have no need for them or we
-// are achieving deeper recursion anyway.
+// Remove useless recursion control guards, except for testing mode, we do not
+// want them and we have no need for them as we are achieving deeper recursion
+// anyway.
 #undef Py_EnterRecursiveCall
 #define Py_EnterRecursiveCall(arg) (0)
 #undef Py_LeaveRecursiveCall

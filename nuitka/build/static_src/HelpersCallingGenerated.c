@@ -121,7 +121,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         } else if (unlikely(flags & METH_O)) {
             SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (0 given)",
                                                 ((PyCFunctionObject *)called)->m_ml->ml_name);
@@ -168,7 +168,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -342,7 +342,7 @@ PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, NULL, 0, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -483,7 +483,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         } else if (flags & METH_VARARGS) {
             // Recursion guard is not strictly necessary, as we already have
             // one on our way to here.
@@ -530,7 +530,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -722,7 +722,7 @@ PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 1, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -869,7 +869,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         } else if (flags & METH_VARARGS) {
             // Recursion guard is not strictly necessary, as we already have
             // one on our way to here.
@@ -908,7 +908,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -1090,7 +1090,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 1, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -1267,7 +1267,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -1452,7 +1452,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 2, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -1628,7 +1628,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -1803,7 +1803,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 2, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -1980,7 +1980,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -2165,7 +2165,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 3, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -2341,7 +2341,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -2516,7 +2516,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 3, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -2693,7 +2693,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -2878,7 +2878,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 4, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -3054,7 +3054,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -3229,7 +3229,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 4, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -3406,7 +3406,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -3591,7 +3591,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 5, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -3767,7 +3767,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -3942,7 +3942,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 5, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -4119,7 +4119,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -4304,7 +4304,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 6, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -4480,7 +4480,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -4655,7 +4655,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 6, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -4832,7 +4832,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -5017,7 +5017,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 7, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -5193,7 +5193,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -5368,7 +5368,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 7, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -5545,7 +5545,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -5730,7 +5730,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 8, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -5906,7 +5906,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -6081,7 +6081,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 8, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -6258,7 +6258,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -6443,7 +6443,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 9, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -6619,7 +6619,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -6794,7 +6794,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 9, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -6971,7 +6971,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -7156,7 +7156,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10(PyObject *called, PyObject *const *args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 10, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -7332,7 +7332,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
             Py_LeaveRecursiveCall();
 #endif
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_UNCOMPILED_FUNCTION_CALL_OPT)
@@ -7507,7 +7507,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10(PyObject *called, PyObject *pos_args) {
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 10, NULL);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -7527,6 +7527,7 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyObject *called, PyObject *const *
 
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7551,7 +7552,7 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyObject *called, PyObject *const *
         if (likely(func != NULL)) {
             PyObject *result = func(called, kw_values, 0, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -7597,12 +7598,13 @@ PyObject *CALL_FUNCTION_WITH_NO_ARGS_KWSPLIT(PyObject *called, PyObject *const *
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7627,7 +7629,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 1, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -7674,13 +7676,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7710,7 +7713,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 1, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -7758,7 +7761,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS1_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -7767,6 +7770,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 1);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7796,7 +7800,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 1, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -7841,12 +7845,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS1_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7871,7 +7876,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 2, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -7918,13 +7923,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -7954,7 +7960,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 2, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8002,7 +8008,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS2_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -8011,6 +8017,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 2);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8040,7 +8047,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 2, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8085,12 +8092,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS2_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8115,7 +8123,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 3, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8162,13 +8170,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8198,7 +8207,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 3, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8246,7 +8255,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS3_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -8255,6 +8264,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 3);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8284,7 +8294,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 3, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8329,12 +8339,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS3_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8359,7 +8370,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 4, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8406,13 +8417,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8442,7 +8454,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 4, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8490,7 +8502,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS4_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -8499,6 +8511,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 4);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8528,7 +8541,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 4, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8573,12 +8586,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS4_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8603,7 +8617,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 5, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8650,13 +8664,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8686,7 +8701,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 5, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8734,7 +8749,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS5_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -8743,6 +8758,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 5);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8772,7 +8788,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 5, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8817,12 +8833,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS5_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8847,7 +8864,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 6, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8894,13 +8911,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -8930,7 +8948,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 6, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -8978,7 +8996,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS6_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -8987,6 +9005,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 6);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9016,7 +9035,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 6, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9061,12 +9080,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS6_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9091,7 +9111,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 7, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9138,13 +9158,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9174,7 +9195,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 7, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9222,7 +9243,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS7_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -9231,6 +9252,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 7);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9260,7 +9282,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 7, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9305,12 +9327,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS7_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9335,7 +9358,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 8, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9382,13 +9405,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9418,7 +9442,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 8, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9466,7 +9490,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS8_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -9475,6 +9499,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 8);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9504,7 +9529,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 8, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9549,12 +9574,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS8_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9579,7 +9605,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyObject *called, PyObject *const 
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 9, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9626,13 +9652,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_VECTORCALL(PyObject *called, PyObject *const 
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                            PyObject *kw_names) {
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9662,7 +9689,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyObject *called, PyObject *const *ar
 
             PyObject *result = func(called, vectorcall_args, 9, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9710,7 +9737,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS9_KWSPLIT(PyObject *called, PyObject *const *ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                               PyObject *kw_names) {
@@ -9719,6 +9746,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyObject *called, PyObject *pos_ar
     CHECK_OBJECTS(args, 9);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9748,7 +9776,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyObject *called, PyObject *pos_ar
 
             PyObject *result = func(called, vectorcall_args, 9, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9793,12 +9821,13 @@ PyObject *CALL_FUNCTION_WITH_POSARGS9_KWSPLIT(PyObject *called, PyObject *pos_ar
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyObject *called, PyObject *const *args, PyObject *kw_names) {
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9823,7 +9852,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyObject *called, PyObject *const
         if (likely(func != NULL)) {
             PyObject *result = func(called, args, 10, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9870,13 +9899,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_VECTORCALL(PyObject *called, PyObject *const
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyObject *called, PyObject *const *args, PyObject *const *kw_values,
                                             PyObject *kw_names) {
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9906,7 +9936,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyObject *called, PyObject *const *a
 
             PyObject *result = func(called, vectorcall_args, 10, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -9954,7 +9984,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS10_KWSPLIT(PyObject *called, PyObject *const *a
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_args, PyObject *const *kw_values,
                                                PyObject *kw_names) {
@@ -9963,6 +9993,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_a
     CHECK_OBJECTS(args, 10);
     CHECK_OBJECT(kw_names);
     assert(PyTuple_CheckExact(kw_names));
+    CHECK_OBJECT(called);
 
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kw_names);
 
@@ -9992,7 +10023,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_a
 
             PyObject *result = func(called, vectorcall_args, 10, kw_names);
 
-            return Nuitka_CheckFunctionResult(result);
+            return Nuitka_CheckFunctionResult(called, result);
         }
 #endif
     }
@@ -10037,7 +10068,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS10_KWSPLIT(PyObject *called, PyObject *pos_a
 
     Py_LeaveRecursiveCall();
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 }
 PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
     PyObject *const *args = &arg; // For easier code compatibility.
@@ -10050,7 +10081,7 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
     assert(func != NULL);
     PyObject *result = func(called, args, 1, NULL);
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 #else
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
@@ -10064,7 +10095,7 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
 
         PyObject *result = (*method)(self, NULL);
 
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     } else if ((flags & METH_O)) {
         SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (1 given)",
                                             method_def->ml_name);
@@ -10104,7 +10135,7 @@ PyObject *CALL_METHODDESCR_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
             Py_DECREF(pos_args);
         }
 #endif
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     }
 
 #if 0
@@ -10133,7 +10164,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyObject *called, PyObject *const *args) {
     assert(func != NULL);
     PyObject *result = func(called, args, 2, NULL);
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 #else
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
@@ -10147,14 +10178,14 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyObject *called, PyObject *const *args) {
 
         PyObject *result = (*method)(self, NULL);
 
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     } else if (unlikely(flags & METH_O)) {
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
 
         PyObject *result = (*method)(self, args[1]);
 
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     } else if (flags & METH_VARARGS) {
         PyCFunction method = method_def->ml_meth;
         PyObject *self = args[0];
@@ -10190,7 +10221,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS2(PyObject *called, PyObject *const *args) {
             Py_DECREF(pos_args);
         }
 #endif
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     }
 
 #if 0
@@ -10219,7 +10250,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyObject *called, PyObject *const *args) {
     assert(func != NULL);
     PyObject *result = func(called, args, 3, NULL);
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 #else
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
@@ -10233,7 +10264,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyObject *called, PyObject *const *args) {
 
         PyObject *result = (*method)(self, NULL);
 
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     } else if (unlikely(flags & METH_O)) {
         SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (3 given)",
                                             method_def->ml_name);
@@ -10273,7 +10304,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS3(PyObject *called, PyObject *const *args) {
             Py_DECREF(pos_args);
         }
 #endif
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     }
 
 #if 0
@@ -10302,7 +10333,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyObject *called, PyObject *const *args) {
     assert(func != NULL);
     PyObject *result = func(called, args, 4, NULL);
 
-    return Nuitka_CheckFunctionResult(result);
+    return Nuitka_CheckFunctionResult(called, result);
 #else
     PyMethodDescrObject *called_descr = (PyMethodDescrObject *)called;
     PyMethodDef *method_def = called_descr->d_method;
@@ -10316,7 +10347,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyObject *called, PyObject *const *args) {
 
         PyObject *result = (*method)(self, NULL);
 
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     } else if (unlikely(flags & METH_O)) {
         SET_CURRENT_EXCEPTION_TYPE0_FORMAT1(PyExc_TypeError, "%s() takes exactly one argument (4 given)",
                                             method_def->ml_name);
@@ -10356,7 +10387,7 @@ PyObject *CALL_METHODDESCR_WITH_ARGS4(PyObject *called, PyObject *const *args) {
             Py_DECREF(pos_args);
         }
 #endif
-        return Nuitka_CheckFunctionResult(result);
+        return Nuitka_CheckFunctionResult(called, result);
     }
 
 #if 0
@@ -10381,7 +10412,7 @@ PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attr_name) {
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -10605,7 +10636,7 @@ PyObject *CALL_METHOD_WITH_SINGLE_ARG(PyObject *source, PyObject *attr_name, PyO
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -10830,7 +10861,7 @@ PyObject *CALL_METHOD_WITH_ARGS2(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11055,7 +11086,7 @@ PyObject *CALL_METHOD_WITH_ARGS3(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11280,7 +11311,7 @@ PyObject *CALL_METHOD_WITH_ARGS4(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11505,7 +11536,7 @@ PyObject *CALL_METHOD_WITH_ARGS5(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11730,7 +11761,7 @@ PyObject *CALL_METHOD_WITH_ARGS6(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -11955,7 +11986,7 @@ PyObject *CALL_METHOD_WITH_ARGS7(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -12180,7 +12211,7 @@ PyObject *CALL_METHOD_WITH_ARGS8(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -12405,7 +12436,7 @@ PyObject *CALL_METHOD_WITH_ARGS9(PyObject *source, PyObject *attr_name, PyObject
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {
@@ -12630,7 +12661,7 @@ PyObject *CALL_METHOD_WITH_ARGS10(PyObject *source, PyObject *attr_name, PyObjec
 
     PyTypeObject *type = Py_TYPE(source);
 
-    if (type->tp_getattro == PyObject_GenericGetAttr) {
+    if (hasTypeGenericGetAttr(type)) {
         // Unfortunately this is required, although of cause rarely necessary.
         if (unlikely(type->tp_dict == NULL)) {
             if (unlikely(PyType_Ready(type) < 0)) {

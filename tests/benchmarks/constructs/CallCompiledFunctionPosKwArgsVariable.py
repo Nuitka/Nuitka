@@ -19,11 +19,16 @@
 #
 from __future__ import print_function
 
-def compiled_func(a,b,c,d,e,f):
+import itertools
+
+
+def compiled_func(a, b, c, d, e, f):
     return a, b, c, d, e, f
+
 
 def getUnknownValue():
     return 8
+
 
 def calledRepeatedly():
     a = getUnknownValue()
@@ -37,17 +42,17 @@ def calledRepeatedly():
 
     # This is supposed to make a call to a compiled function, which is
     # being optimized separately.
-# construct_begin
+    # construct_begin
     compiled_f(a, b, c, d=d, e=e, f=f)
     compiled_f(a, c, b, d=d, e=e, f=f)
     compiled_f(a, b, c, d=d, e=e, f=f)
-# construct_alternative
+    # construct_alternative
     pass
-# construct_end
+    # construct_end
 
     return compiled_f
 
-import itertools
+
 for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 

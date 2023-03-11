@@ -21,18 +21,20 @@
 
 """
 
+# nuitka-skip-unless-imports: pygtk
+
+
 from __future__ import print_function
 
+# Disable warnings from subsequent imports
 import warnings
 
 warnings.filterwarnings("ignore", "")
 
-import sys
+# isort:start
+
 import gtk
-
 import pygtk
-
-# nuitka-skip-unless-imports: pygtk
 
 pygtk.require("2.0")
 

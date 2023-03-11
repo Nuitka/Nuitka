@@ -28,8 +28,10 @@ from __future__ import print_function
 
 import os
 
+
 def getPathEnd(filename, elements):
     return os.path.sep.join(filename.split(os.path.sep)[-elements:])
+
 
 def main():
 
@@ -43,7 +45,6 @@ def main():
         print("FILE from name", getPathEnd(__file__, 2))
     except NameError as e:
         print("No __file__ name", str(e))
-
 
     # We do not optimize through globals()
     try:

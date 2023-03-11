@@ -166,7 +166,7 @@ bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
 
 bool LIST_EXTEND(PyObject *target, PyObject *other) {
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(other);
 
@@ -339,7 +339,7 @@ bool LIST_APPEND1(PyObject *target, PyObject *item) {
     return res == 0;
 #else
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(item);
 
@@ -366,7 +366,7 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
     return res == 0;
 #else
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     CHECK_OBJECT(item);
 
@@ -389,7 +389,7 @@ bool LIST_APPEND0(PyObject *target, PyObject *item) {
 
 void LIST_CLEAR(PyObject *target) {
     CHECK_OBJECT(target);
-    assert(PyList_Check(target));
+    assert(PyList_CheckExact(target));
 
     PyListObject *list = (PyListObject *)target;
 
@@ -637,6 +637,9 @@ static void _Nuitka_ReverseObjectsSlice(PyObject **lo, PyObject **hi) {
 }
 
 void LIST_REVERSE(PyObject *list) {
+    CHECK_OBJECT(list);
+    assert(PyList_CheckExact(list));
+
     PyListObject *list_object = (PyListObject *)list;
 
     if (Py_SIZE(list_object) > 1) {
@@ -661,8 +664,8 @@ static bool allocateListItems(PyListObject *list, Py_ssize_t size) {
 #endif
 
 PyObject *MAKE_LIST(PyObject *iterable) {
-    // TODO: Could create the list with length on 3.4 hint already, however the memory
-    // is not allocated for a 0 sized list yet, so it probably doesn't matter much.
+    // Can leave the size hinting to later functions, because the list is allocated empty without
+    // items, and when then extending, etc. length hints can be used.
     PyObject *list = MAKE_LIST_EMPTY(0);
 
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
@@ -705,3 +708,5 @@ PyObject *MAKE_LIST(PyObject *iterable) {
     return list;
 #endif
 }
+
+#include "HelpersListsGenerated.c"

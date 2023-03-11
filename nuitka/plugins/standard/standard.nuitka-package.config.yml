@@ -777,6 +777,13 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'imageio.core.imopen'
+  implicit-imports:
+    - depends:
+        - 'imageio.plugins.pillow_legacy'
+        - 'imageio.plugins.freeimage'
+        - 'imageio.plugins.simpleitk'
+
 - module-name: 'imagej'
   anti-bloat:
     - description: 'compile time resolve version metadata'
@@ -860,6 +867,13 @@
     - description: 'remove keras testing tools reference'
       replacements_plain:
         'from keras.testing_infra.test_utils import layer_test': ''
+
+- module-name: 'keras.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import display': 'raise ImportError'
+      when: 'not use_ipython'
 
 - module-name: 'kivy'
   data-files:
@@ -1397,6 +1411,7 @@
       replacements_plain:
         'from pandas.util._tester import test': ''
         'import pandas.testing': ''
+        'from pandas import testing': 'testing = None'
         'from pandas import api, arrays, errors, io, plotting, testing': 'from pandas import api, arrays, errors, io, plotting'
 
 - module-name: 'pandas._libs'
@@ -2199,21 +2214,42 @@
 - module-name: 'rapidfuzz'
   implicit-imports:
     - depends:
+        - '.utils_py'
         - '.utils_cpp'
+        - '.fuzz_py'
         - '.fuzz_cpp'
+        - '.process_cdist_py'
         - '.process_cdist_cpp'
+        - '.process_py'
         - '.process_cpp'
+        - '.string_metric_py'
         - '.string_metric_cpp'
 
 - module-name: 'rapidfuzz.distance'
   implicit-imports:
     - depends:
+        - '._initialize_py'
         - '._initialize_cpp'
+        - '.Hamming_py'
         - '.Hamming_cpp'
+        - '.Indel_py'
         - '.Indel_cpp'
+        - '.LCSseq_py'
         - '.LCSseq_cpp'
+        - '.Levenshtein_py'
         - '.Levenshtein_cpp'
+        - '.DamerauLevenshtein_py'
         - '.DamerauLevenshtein_cpp'
+        - '.OSA_cpp'
+        - '.OSA_py'
+        - '.Jaro_py'
+        - '.Jaro_cpp'
+        - '.JaroWinkler_py'
+        - '.JaroWinkler_cpp'
+        - '.Postfix_py'
+        - '.Postfix_cpp'
+        - '.Prefix_py'
+        - '.Prefix_cpp'
 
 - module-name: 'rdkit'
   anti-bloat:
@@ -3176,10 +3212,16 @@
         sys.modules["tensorflow.compat.v2"] = compat.v2
         sys.modules["tensorflow.compat.v1.logging"] = compat.v1.logging
         sys.modules["tensorflow.compat.v2.experimental"] = compat.v2.experimental
+        sys.modules["tensorflow.keras"] = keras
+        sys.modules["tensorflow.keras.layers"] = keras.layers
+        sys.modules["tensorflow.keras.activations"] = keras.activations
+        sys.modules["tensorflow.keras.models"] = keras.models
+
   implicit-imports:
     - depends:
         - 'tensorboard'
         - 'tensorflow_estimator'
+        - 'keras.api._v2.keras'
 
 - module-name: 'tensorflow._api.v1.compat.v2'
   anti-bloat:
@@ -3538,6 +3580,13 @@
       replacements:
         'distutils_version.LooseVersion': "'str'"
         'from distutils import version as distutils_version': ''
+
+- module-name: 'tensorflow.python.keras.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import display': 'raise ImportError'
+      when: 'not use_ipython'
 
 - module-name: 'tensorflow.python.ops.distributions.distribution'
   anti-bloat:
