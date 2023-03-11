@@ -10,6 +10,15 @@ Nuitka blog.
  Nuitka Release 1.5 (Draft)
 ****************************
 
+This release contains the long awaited 3.11 support, even if only on an
+experimental level. This means where 3.10 code is used, it is expected
+to work equally well, but the Python 3.11 specific new features have yet
+been done.
+
+There is plenty of new features in Nuitka, e.g. much enhanced reports,
+Windows ARM native compilation support, and the usual slew of anti-bloat
+updates, and newly supported packages.
+
 Bug Fixes
 =========
 
@@ -130,12 +139,36 @@ Bug Fixes
 -  Accessing files using the top level ``metadata.resources`` files
    object was not working properly, this is now supported too.
 
+-  MSYS2: Make sure mixing POSIX and Windows slashes causes no issues by
+   hard-coding the onefile archive to use the subsystem slash rather
+   than what MSYS prefers to use internally.
+
+-  Standalone: Added missing dependencies of newer ``imageio``.
+
+-  Fix, side effect nodes didn't annotate their non-exception raising
+   nature properly, if that was the case.
+
 New Features
 ============
 
 -  Added experimental support for Python 3.11, for 3.10 language level
    code it should be fully usable, but the ``CPython311`` test suite has
    not even been started to check newly added or changed features.
+
+-  Windows: Support for native Python on Windows ARM64, which needs 3.11
+   or higher, but standalone and therefore onefile do not yet work, due
+   to lack of any form of binary dependency analysis tool.
+
+   This platform is relatively new in Python and generally. For the time
+   being standalone and onefile should be done with Intel based Python,
+   they would also be ARM64 only, whereas 32/64 Bit binaries can be run
+   on all Windows ARM platforms.
+
+-  Reports: Write compilation report even in case of Nuitka being
+   interrupted or crashing. This then includes the exception, and a
+   status like ``completed`` or ``interrupted``. At this time this
+   happens only when ``--report=`` was specified, but in the future we
+   will likely write one in case of Nuitka crashes.
 
 -  Reports: Now the details of the used Python version, its flavor, the
    OS and the architecture are included. This is crucial information for
@@ -152,6 +185,8 @@ New Features
 
 -  Reports: Include data file sizes in report. Added in 1.4.7 already.
 
+-  Reports: Include memory usage into the compilation report as well.
+
 -  macOS: Add support for downloading ``ccache`` on arm64 (M1/M2) too.
    Added in 1.4.4 already.
 
@@ -160,7 +195,8 @@ New Features
 
 -  Standalone: Improved isolation with Python 3.8 or higher. Using new
    init mechanisms of Python, we now achieve that the scan for
-   ``pyvenv.cfg`` on the computer is not done.
+   ``pyvenv.cfg`` on in current directory and above is not done, using
+   it will be unwanted.
 
 -  Python2: Expose ``__loader__`` for modules and register with
    ``pkg_resources`` too which expects these to be present for custom
@@ -171,6 +207,12 @@ New Features
 
 -  Python3.9+: The ``metadata.resources`` files objects method
    ``absolute`` was not implemented yet.
+
+-  Added experimental ability to create virtualenv from an existing
+   compilation report with new ``--create-environment-from-report``
+   option. It attempts to create a requirements file with the used
+   packages and their versions. However, sometimes it seems not to be
+   possible to due to conflicts.
 
 Optimization
 ============
@@ -191,6 +233,28 @@ Optimization
       Newer versions of ``joblib`` do not currently work yet due to
       their own form of multiprocessing spawn not being supported yet.
 
+-  Anti-Bloat: Adapt for newer ``pandas`` package.
+
+-  Anti-Bloat: Remove more ``IPython`` usages in newer tensorflow.
+
+-  Use dedicated class bodies for Python2 and Python3, with the former
+   has a static dict type shape, and with Python3 this needs to be
+   traced in order to tell what the meta class put in there.
+
+-  Compile time optimize dict ``in``/``not in`` and ``dict.has_key``
+   operations statically where the keys of a dict are known. As a
+   result, the class declarations of Python3 no longer created code for
+   both branches, the one with ``metaclass =`` in the class declaration
+   and without. That means also a big scalability improvement.
+
+-  For the Python3 class bodies, the usage of ``locals()`` was not
+   recognized as not locally escaping all the variables, leading to
+   variable traces where each class variable was marked as escaped for
+   no good reason.
+
+-  Added support for ``dict.fromkeys`` method, making the code
+   generation understand and handle static methods as well.
+
 -  Added support for ``os.listdir`` and ``os.path.basename``. Added in
    1.4.5 already for use in implementing the ``iterdir`` method, but
    they are also now optimized by themselves.
@@ -201,7 +265,8 @@ Optimization
    optimization to happen and completes this aspect of the ``os``
    module.
 
--  Faster ``digit`` size checks for ``float`` code generation.
+-  Faster ``digit`` size checks during ``float`` code generation for
+   better compile time performance.
 
 -  Faster ``list`` operations due to using ``PyList_CheckExact``
    everywhere this is applicable, this mostly makes debug operations
@@ -241,6 +306,35 @@ Optimization
    ones with LTO enabled, where the C compiler may already do that
    effectively.
 
+-  Added optimization for ``os.path.abspath`` and ``os.path.isabs``
+   which of course have not as much potential for compile time
+   optimization, but we needed them for providing ``.absolute()`` for
+   the meta path loader files implementation.
+
+-  Faster class dictionary propagation decision. Instead of checking for
+   trace types, let the trace object decide. Also abort immediately on
+   first inhibit, rather than checking all variables. This improves
+   Python2 compile time, and Python3 where this code is now starting to
+   get used when the class dictionary is shown to have ``dict`` type.
+
+-  Specialize type method ``__prepare__`` which is used in the Python3
+   re-formation of class bodies to initialize the class dictionary.
+   Where the metaclass is resolved, we can use this to decide that the
+   standard empty dictionary is used statically, enabling class
+   dictionary propagation for best scalability.
+
+   At this time this only happens with classes without bases, but we
+   expect to soon do this with all compile time known base classes. At
+   this time, these optimization to become effective, we need to
+   optimize meta class selection from bases classes, as well as
+   modification of base classes with ``__mro_entries__`` methods.
+
+-  The ``bool`` built-in on boolean values is now optimized away.
+
+   Since it's used also for conditions being extracted, this is actually
+   somewhat relevant, since it could keep code alive in side effects at
+   least for no good reason and this allows a proper reduction.
+
 Organisational
 ==============
 
@@ -252,6 +346,12 @@ Organisational
 
 -  User Manual: Added section about virus scanners and how to avoid
    false reports.
+
+-  User Manual: Enhanced description for plugin module loading, the old
+   code was too complicated and actually working only for a mode of
+   including plugin code that is discouraged.
+
+-  User Manual: Fix section for standalone finding files on wrong level.
 
 -  Windows: Using the console on Python 3.4 to 3.7 is not working very
    well with e.g. many Asian systems. Nuitka fails to setup the encoding
@@ -319,6 +419,22 @@ Organisational
 -  Onefile: Make sure we have proper error codes when reporting IO
    errors.
 
+-  MSVC: Detect a version for developer prompts too. This version is
+   needed for use in enabling version specific features.
+
+-  Started UML diagrams with ``plantuml`` that will need to be completed
+   before using them in then new and more visual parts of Nuitka
+   documentation.
+
+-  UI: Check icon conversion capability at start of compilation rather
+   than error exiting at the very end informing the user about required
+   ``imageio`` packages to convert to native icons.
+
+-  Quality: Enhanced autoformat on Windows, which was susceptible to
+   tools introducing Windows new lines before other steps were
+   performed, that then could be confused, also enforcing use of UTF-8
+   encoding when working with Nuitka source code for formatting.
+
 Cleanups
 ========
 
@@ -364,16 +480,59 @@ Tests
 -  Make Python3.11 test execution recognized by generally accepting
    partially supported versions to execute the tests with.
 
--  Tests: Handle also ``newfstat`` directory checks in file usage scan.
-   This are used on newer Linux systems.
+-  Handle also ``newfstat`` directory checks in file usage scan. This
+   are used on newer Linux systems.
 
 -  GitHub: In actions use ``--report`` for coverage and upload the
    reports as artifacts.
 
+-  Use ``no-qt`` plugin to avoid warnings in ``matplotlib`` test rather
+   than disabling the warnings about Qt bindings.
+
+-  macOS: Detect if the machine can take runtime traces, which on Apple
+   Silicon by default it cannot.
+
+-  macOS: Cover all APIs for file tracing, rather than just one for
+   extended coverage.
+
+-  Fix, distutils test was not installing the built wheels, but source
+   archive and therefore compiling that second time.
+
+-  For the ``pyproject.toml`` using tests, Nuitka was always downloaded
+   from PyPI rather than using the version under test.
+
 Summary
 =======
 
-This release is not done yet.
+With this release an important new avenue for scalability has been
+started. While for Python2 class bodies were very often reduced to just
+that dictionary creation, with Python3 that was not the case, due to the
+many new complexities, and while this release makes a start, we will be
+able to continue this path towards much more scalable class creation
+codes. And while the performance does not really matter all that much
+for these, knowing these, will ultimately lead us to "compiled classes"
+as our own type, and "compiled objects" that may well perform much
+faster.
+
+Already now, the enhancements to class creation codes will result in
+smaller binaries, but much more is expected the more this is completed.
+
+The majority of the work was of course to become Python3.11 compatible,
+and unfortunately the attribute lookups are not as optimized as for 3.10
+yet, which may cause disappointing results for performance initially. We
+will need to complete that before benchmarks will make much sense.
+
+For the next release, full Python 3.11 support is planned. I believe it
+should be usable. Problems with 3.11 may get hotfixes, but ultimately
+the develop version is probably the one to recommend when using 3.11
+with Nuitka, as there will be the whole set of fixes, since not
+everything will be ported back.
+
+The new reports should be used in bug reporting soon. We foresee that
+for issue reports, these may well become mandatory. Together with the
+ability to create a virtualenv from the reports, this may make
+reproducing issues a breeze, but first tries on complex projects were
+also highlighting that it may not be as simple.
 
 ********************
  Nuitka Release 1.4
@@ -434,8 +593,8 @@ Bug Fixes
 -  Python3.10+: Fix, was not supporting ``match`` cases where an
    alternative had no condition associated. Fixed in 1.3.5 already.
 
--  Windows: Identify ARM64 architecture Python properly. We do not yet
-   support it, but we should report it properly and some package
+-  Windows: Identify Windows ARM architecture Python properly. We do not
+   yet support it, but we should report it properly and some package
    configurations are already taking it already into account. Fixed in
    1.3.5 already.
 
