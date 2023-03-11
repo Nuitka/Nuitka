@@ -25,6 +25,9 @@ import some_package.sub_package1.SomeModuleD
 import some_package.sub_package2.SomeModuleA
 import some_package.sub_package2.SomeModuleB
 
+# nuitka-skip-unless-imports: importlib
+
+
 # Use the original "__file__" value normally, at least one case warns
 # about things with filename included, but for pkgutil iteration, make
 # sure we do not see original Python dirs.
