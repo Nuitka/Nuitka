@@ -76,7 +76,10 @@ from nuitka.nodes.VariableNameNodes import (
     StatementDelVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import (
+    makeStatementReleaseVariable,
+    makeStatementsReleaseVariables,
+)
 from nuitka.Options import hasPythonFlagNoAnnotations, isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general
@@ -908,16 +911,9 @@ def _buildInplaceAssignSubscriptNode(
         makeTryFinallyStatement(
             provider=provider,
             tried=statements,
-            final=(
-                makeStatementReleaseVariable(
-                    variable=tmp_variable1, source_ref=source_ref
-                ),
-                makeStatementReleaseVariable(
-                    variable=tmp_variable2, source_ref=source_ref
-                ),
-                makeStatementReleaseVariable(
-                    variable=tmp_variable3, source_ref=source_ref
-                ),
+            final=makeStatementsReleaseVariables(
+                variables=(tmp_variable1, tmp_variable2, tmp_variable3),
+                source_ref=source_ref,
             ),
             source_ref=source_ref,
         ),

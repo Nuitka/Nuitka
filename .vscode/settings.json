@@ -203,6 +203,7 @@
         "Matmult",
         "mdef",
         "metaclass",
+        "metaclasses",
         "METH_NOARGS",
         "METH_VARARGS",
         "MSVC",
