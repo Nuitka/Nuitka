@@ -1356,6 +1356,32 @@
     dirs:
       - 'resources/schemas'
 
+- module-name: 'openvino'
+  data-files:
+    dirs:
+      - 'libs'
+
+- module-name: 'openvino.inference_engine'
+  dlls:
+    - from_filenames:
+        relative_path: '../libs'
+        prefixes:
+          - ''
+
+  implicit-imports:
+    - depends:
+        - 'openvino.inference_engine.ie_api'
+
+- module-name: 'openvino.inference_engine.constants'
+  implicit-imports:
+    - depends:
+        - 'numpy'
+
+- module-name: 'openvino.inference_engine.ie_api'
+  implicit-imports:
+    - depends:
+        - 'openvino.inference_engine.constants'
+
 - module-name: 'orderedmultidict'
   anti-bloat:
     - description: 'remove manual version file import'
