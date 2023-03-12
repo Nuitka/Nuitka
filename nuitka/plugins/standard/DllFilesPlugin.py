@@ -73,7 +73,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             if dest_path is None:
                 dest_path = os.path.join(full_name.asPath(), "..", relative_path)
 
-        dll_dir = os.path.join(module_directory, relative_path)
+        dll_dir = os.path.normpath(os.path.join(module_directory, relative_path))
 
         if os.path.exists(dll_dir):
             exe = dll_config.get("executable", "no") == "yes"
