@@ -54,7 +54,7 @@ from nuitka.tree.SourceHandling import (
     readSourceCodeFromFilenameWithInformation,
 )
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import areSamePaths
+from nuitka.utils.FileOperations import areInSamePaths, areSamePaths
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
@@ -673,10 +673,6 @@ def copyDllsUsed(dist_dir, standalone_entry_points):
     )
 
 
-def _decideTargetPath(dll_filename):
-    return os.path.basename(dll_filename)
-
-
 def _detectUsedDLLs(standalone_entry_point, source_dir):
     binary_filename = standalone_entry_point.source_path
     try:
@@ -699,10 +695,25 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
         used_dlls = tuple(OrderedSet(used_dlls) - OrderedSet(removed_dlls))
 
         for used_dll in used_dlls:
+            # TODO: If used by a DLL from the same folder, put it there,
+            # otherwise top level, but for now this is limited to the case where
+            # it is required that way only, because it broke other things.
+            if standalone_entry_point.package_name == "openvino" and areInSamePaths(
+                standalone_entry_point.source_path, used_dll
+            ):
+                dest_path = os.path.normpath(
+                    os.path.join(
+                        os.path.dirname(standalone_entry_point.dest_path),
+                        os.path.basename(used_dll),
+                    )
+                )
+            else:
+                dest_path = os.path.basename(used_dll)
+
             dll_entry_point = makeDllEntryPoint(
                 logger=inclusion_logger,
                 source_path=used_dll,
-                dest_path=_decideTargetPath(used_dll),
+                dest_path=dest_path,
                 package_name=standalone_entry_point.package_name,
                 reason="Used by '%s'" % standalone_entry_point.dest_path,
             )
