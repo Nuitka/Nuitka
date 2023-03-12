@@ -20,7 +20,7 @@
 """
 
 import sys
-from types import BuiltinFunctionType, FunctionType, GeneratorType
+from types import BuiltinFunctionType, FunctionType, GeneratorType, ModuleType
 
 from nuitka.__past__ import builtins
 from nuitka.containers.OrderedDicts import OrderedDict
@@ -178,6 +178,9 @@ def _getAnonBuiltins():
 
     anon_names["code"] = type(_getAnonBuiltins.__code__)
     anon_codes["code"] = "&PyCode_Type"
+
+    anon_names["module"] = ModuleType
+    anon_codes["module"] = "&PyModule_Type"
 
     if python_version < 0x300:
         # There are only there for Python2,
