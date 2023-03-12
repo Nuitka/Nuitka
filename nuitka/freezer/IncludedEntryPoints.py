@@ -61,6 +61,9 @@ def _makeIncludedEntryPoint(
 
     assert type(executable) is bool, executable
 
+    # Make sure outside code uses sane paths only.
+    assert source_path == os.path.normpath(source_path), source_path
+
     return IncludedEntryPoint(
         logger,
         kind,
