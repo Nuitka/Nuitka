@@ -96,15 +96,34 @@ def areSamePaths(path1, path2):
     Notes:
 
         Case differences ignored on platforms where that is the
-        norm, and with it normalized, and turned absolute paths, it
-        becomes a mere string compare after that.
-        is no differences.
+        norm, and with it normalized, and turned absolute paths, and
+        even short paths, it then becomes a mere string compare after that.
     """
 
-    path1 = os.path.normcase(os.path.abspath(os.path.normpath(path1)))
-    path2 = os.path.normcase(os.path.abspath(os.path.normpath(path2)))
+    path1 = os.path.abspath(os.path.normpath(path1))
+    path2 = os.path.abspath(os.path.normpath(path2))
+
+    if os.path.exists(path1):
+        path1 = getExternalUsePath(path1)
+        path2 = getExternalUsePath(path2)
+
+    path1 = os.path.normcase(path1)
+    path2 = os.path.normcase(path2)
 
     return path1 == path2
+
+
+def areInSamePaths(path1, path2):
+    """Decide if two paths are in the same directory
+
+    Args:
+        path1: First path
+        path2: Second path
+
+    Returns:
+        Boolean value indicating if the two paths point into the
+        same directory."""
+    return areSamePaths(os.path.dirname(path1), os.path.dirname(path2))
 
 
 def haveSameFileContents(path1, path2):
