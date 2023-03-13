@@ -39,6 +39,17 @@
                             "type": "string"
                         }
                     },
+                    "include-pyi-file": {
+                        "type": "string",
+                        "oneOf": [
+                            {
+                                "const": "yes"
+                            },
+                            {
+                                "const": "no"
+                            }
+                        ]
+                    },
                     "when": {
                         "type": "string"
                     }
