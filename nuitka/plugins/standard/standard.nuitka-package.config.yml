@@ -777,6 +777,13 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'huggingface_hub._login'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import ipywidgets.widgets as widgets': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'imageio.core.imopen'
   implicit-imports:
     - depends:
@@ -1348,6 +1355,32 @@
   data-files:
     dirs:
       - 'resources/schemas'
+
+- module-name: 'openvino'
+  data-files:
+    dirs:
+      - 'libs'
+
+- module-name: 'openvino.inference_engine'
+  dlls:
+    - from_filenames:
+        relative_path: '../libs'
+        prefixes:
+          - ''
+
+  implicit-imports:
+    - depends:
+        - 'openvino.inference_engine.ie_api'
+
+- module-name: 'openvino.inference_engine.constants'
+  implicit-imports:
+    - depends:
+        - 'numpy'
+
+- module-name: 'openvino.inference_engine.ie_api'
+  implicit-imports:
+    - depends:
+        - 'openvino.inference_engine.constants'
 
 - module-name: 'orderedmultidict'
   anti-bloat:
@@ -2602,6 +2635,7 @@
       - 'data'
     patterns:
       - 'io/_plugins/fits_plugin*.ini'
+    include-pyi-file: 'yes'
 
 - module-name: 'skimage._shared'
   implicit-imports:
@@ -2617,6 +2651,20 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
+- module-name: 'skimage.data'
+  data-files:
+    include-pyi-file: 'yes'
+  implicit-imports:
+    - depends:
+        - '._fetchers'
+
+- module-name: 'skimage.data._fetchers'
+  anti-bloat:
+    - description: 'remove pytest testing framework'
+      replacements_plain:
+        "'PYTEST_CURRENT_TEST' in os.environ": 'False'
+      when: 'not use_pytest'
 
 - module-name: 'skimage.draw'
   implicit-imports:
@@ -2650,6 +2698,10 @@
   implicit-imports:
     - depends:
         - 'skimage.feature._orb_descriptor_positions'
+
+- module-name: 'skimage.filters'
+  data-files:
+    include-pyi-file: 'yes'
 
 - module-name: 'skimage.filters.rank'
   implicit-imports:
@@ -2706,6 +2758,10 @@
         - 'skimage.measure._pnpoly'
 
 - module-name: 'skimage.morphology'
+  data-files:
+    patterns:
+      - '*.npy'
+
   implicit-imports:
     - depends:
         - 'skimage.morphology._convex_hull'
