@@ -157,6 +157,9 @@ def isFedoraBasedLinux():
 
 def isAndroidBasedLinux():
     # spell-checker: ignore googlesource
+    if not isLinux():
+        return False
+
     return "ANDROID_ARGUMENT" in os.environ or "android.googlesource.com" in sys.version
 
 
