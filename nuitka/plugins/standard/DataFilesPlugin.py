@@ -27,6 +27,7 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
 from nuitka.utils.FileOperations import (
+    changeFilenameExtension,
     getFileList,
     resolveShellPatternToFilenames,
 )
@@ -141,6 +142,30 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                         tags="config",
                     )
 
+        include_pyi_file = data_file_config.get("include-pyi-file")
+
+        if include_pyi_file == "yes":
+            pyi_filename = changeFilenameExtension(
+                path=module.getCompileTimeFilename(), extension=".pyi"
+            )
+
+            if os.path.exists(pyi_filename):
+                if (
+                    module.isCompiledPythonPackage()
+                    or module.isUncompiledPythonPackage()
+                ):
+                    module_path = module_name.asPath()
+                else:
+                    module_path = os.path.dirname(module_name.asPath())
+
+                yield self.makeIncludedDataFile(
+                    source_path=pyi_filename,
+                    dest_path=os.path.join(module_path, os.path.basename(pyi_filename)),
+                    reason="runtime required '.pyi' file for '%s'"
+                    % module_name.asString(),
+                    tags="config",
+                )
+
     def considerDataFiles(self, module):
         full_name = module.getFullName()
 
@@ -154,7 +179,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     yield included_data_file
 
         # TODO: Until the data files are a list and support features to do similar, namely
-        # to look up via package data files.
+        # to look up via package data interface "pkgutil.get_data" rather than file scan.
         if full_name == "lib2to3.pygram" and isDebianPackagePython():
             yield self.makeIncludedGeneratedDataFile(
                 data=pkgutil.get_data("lib2to3", "Grammar.txt"),
