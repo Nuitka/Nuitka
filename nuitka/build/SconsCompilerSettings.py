@@ -46,6 +46,7 @@ from .SconsUtils import (
     getLinkerArch,
     getMsvcVersion,
     getMsvcVersionString,
+    isClangName,
     isGccName,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
@@ -60,23 +61,29 @@ from .SconsUtils import (
 
 def _detectWindowsSDK(env):
     # Check if there is a Windows SDK installed.
-    if env.msvc_mode or env.clangcl_mode:
-        if "WindowsSDKVersion" not in env:
-            if "WindowsSDKVersion" in os.environ:
-                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
-            else:
-                windows_sdk_version = None
+    if "WindowsSDKVersion" not in env:
+        if "WindowsSDKVersion" in os.environ:
+            windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
         else:
-            windows_sdk_version = env["WindowsSDKVersion"]
+            windows_sdk_version = None
+    else:
+        windows_sdk_version = env["WindowsSDKVersion"]
 
-        if not windows_sdk_version:
-            scons_logger.sysexit(
-                "Error, the Windows SDK must be installed in Visual Studio."
-            )
-
+    if windows_sdk_version:
         scons_details_logger.info("Using Windows SDK '%s'." % windows_sdk_version)
 
         env.windows_sdk_version = tuple(int(x) for x in windows_sdk_version.split("."))
+    else:
+        scons_logger.warning(
+            """\
+Windows SDK must be installed in Visual Studio for it to \
+be usable with Nuitka. Use the Visual Studio installer for \
+adding it."""
+        )
+
+        env.windows_sdk_version = None
+
+    return env.windows_sdk_version
 
 
 def _enableC11Settings(env):
@@ -246,6 +253,18 @@ def checkWindowsCompilerFound(
         # will of course still match.
         if env.msys2_mingw_python and compiler_path.endswith("/usr/bin/gcc.exe"):
             compiler_path = None
+
+        if compiler_path is not None:
+            the_cc_name = os.path.basename(compiler_path)
+
+            if (
+                not isGccName(the_cc_name)
+                and not isClangName(the_cc_name)
+                and _detectWindowsSDK(env) is None
+            ):
+                # This will trigger using it to use our own gcc in branch below.
+                compiler_path = None
+                env["CC"] = None
 
         # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
         if compiler_path is not None:
@@ -517,7 +536,6 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         job_count=job_count,
     )
 
-    _detectWindowsSDK(env)
     _enableC11Settings(env)
 
     if env.gcc_mode:
