@@ -43,8 +43,11 @@ from nuitka.utils.FileOperations import (
 )
 from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.MacOSApp import createPlistInfoFile
-from nuitka.utils.SharedLibraries import callInstallNameTool
-from nuitka.utils.Utils import isMacOS, isWin32Windows
+from nuitka.utils.SharedLibraries import (
+    callInstallNameTool,
+    convertRPathToRunPath,
+)
+from nuitka.utils.Utils import isAndroidBasedLinux, isMacOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
     RT_GROUP_ICON,
     RT_ICON,
@@ -293,6 +296,8 @@ def executePostProcessing():
     These are in part required steps, not usable after failure.
     """
 
+    # Lots of cases to deal with, pylint: disable=too-many-branches
+
     result_filename = OutputDirectories.getResultFullpath(onefile=False)
 
     if not os.path.exists(result_filename):
@@ -371,6 +376,9 @@ def executePostProcessing():
 
         if os.path.exists(candidate):
             os.unlink(candidate)
+
+    if isAndroidBasedLinux() and not Options.shallMakeModule():
+        convertRPathToRunPath(result_filename)
 
     # Might have to create a CMD file, potentially with debugger run.
     if Options.shallCreateCmdFileForExecution():
