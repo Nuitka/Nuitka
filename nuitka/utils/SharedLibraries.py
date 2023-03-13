@@ -353,6 +353,11 @@ def _filterPatchelfErrorOutput(stderr):
     return None, stderr
 
 
+_patchelf_usage = """\
+Error, needs 'patchelf' on your system, to modify 'RPATH' settings that \
+need to be updated."""
+
+
 def _setSharedLibraryRPATHElf(filename, rpath):
     # patchelf --set-rpath "$ORIGIN/path/to/library" <executable>
     with withEnvironmentVarOverridden("LANG", "C"):
@@ -360,9 +365,7 @@ def _setSharedLibraryRPATHElf(filename, rpath):
             logger=postprocessing_logger,
             command=("patchelf", "--set-rpath", rpath, filename),
             stderr_filter=_filterPatchelfErrorOutput,
-            absence_message="""\
-Error, needs 'patchelf' on your system, due to 'RPATH' settings that need to be
-set.""",
+            absence_message=_patchelf_usage,
         )
 
 
@@ -735,3 +738,19 @@ def getWindowsRunningProcessDLLPaths():
         result[os.path.basename(filename)] = filename
 
     return result
+
+
+def convertRPathToRunPath(filename):
+    """Change a DT_RPATH to DT_RUNPATH
+
+    On Android this seems required, because the linker doesn't support the one
+    created by default.
+    """
+
+    with withEnvironmentVarOverridden("LANG", "C"):
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("patchelf", "--shrink-rpath", filename),
+            stderr_filter=_filterPatchelfErrorOutput,
+            absence_message=_patchelf_usage,
+        )
