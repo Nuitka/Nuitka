@@ -777,6 +777,13 @@
     - depends:
         - 'h5py.utils'
 
+- module-name: 'huggingface_hub._login'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import ipywidgets.widgets as widgets': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'imageio.core.imopen'
   implicit-imports:
     - depends:
