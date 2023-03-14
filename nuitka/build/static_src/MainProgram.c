@@ -768,58 +768,94 @@ static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
 }
 #endif
 
-static void setInputOutputHandles(void) {
-    /* At least on Windows, we support disabling the console via linker flag, but now
-       need to provide the NUL standard file handles manually in this case. */
-#if defined(_WIN32) && PYTHON_VERSION >= 0x300
-    PyObject *encoding = Nuitka_String_FromString("utf-8");
-#else
-    PyObject *encoding = NULL;
+static bool shallSetOutputHandleToNull(char const *name) {
+#if NUITKA_FORCED_STDOUT_NULL_BOOL
+    if (strcmp(name, "stdout") == 0) {
+        return true;
+    }
 #endif
+
+#if NUITKA_FORCED_STDERR_NULL_BOOL
+    if (strcmp(name, "stderr") == 0) {
+        return true;
+    }
+#endif
+
+    PyObject *sys_std_handle = Nuitka_SysGetObject(name);
+    if (sys_std_handle == NULL || sys_std_handle == Py_None) {
+        return true;
+    }
+
+    return false;
+}
+
+static void setStdinHandle(PyObject *stdin_file) {
+
+    CHECK_OBJECT(stdin_file);
+    Nuitka_SysSetObject("stdin", stdin_file);
+
+#ifdef _WIN32
+    setStdFileHandleNumber(STD_INPUT_HANDLE, stdin_file);
+#endif
+}
+
+static void setStdoutHandle(PyObject *stdout_file) {
+    CHECK_OBJECT(stdout_file);
+    Nuitka_SysSetObject("stdout", stdout_file);
+
+#ifdef _WIN32
+    setStdFileHandleNumber(STD_OUTPUT_HANDLE, stdout_file);
+#endif
+}
+
+static void setStderrHandle(PyObject *stderr_file) {
+    CHECK_OBJECT(stderr_file);
+
+    Nuitka_SysSetObject("stderr", stderr_file);
+
+#ifdef _WIN32
+    setStdFileHandleNumber(STD_ERROR_HANDLE, stderr_file);
+#endif
+}
+
+static void setInputOutputHandles(void) {
+    // We support disabling the stdout/stderr through options as well as
+    // building for GUI on Windows, which has inputs disabled by default, this
+    // code repairs that by setting or forcing them to "os.devnull"
+    // input/outputs
+
+    // This defaults to "utf-8" internally. We may add an argument of use
+    // platform ones in the future.
+    PyObject *encoding = NULL;
 
     {
-        PyObject *nul_filename = Nuitka_String_FromString("NUL:");
+#if defined(_WIN32)
+        PyObject *devnull_filename = Nuitka_String_FromString("NUL:");
+#else
+        PyObject *devnull_filename = Nuitka_String_FromString("/dev/null");
+#endif
 
-        PyObject *sys_stdin = Nuitka_SysGetObject("stdin");
-        if (sys_stdin == NULL || sys_stdin == Py_None) {
+        if (shallSetOutputHandleToNull("stdin")) {
             // CPython core requires stdin to be buffered due to methods usage, and it won't matter
             // here much.
-            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(nul_filename, "r", true, encoding);
+            PyObject *stdin_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "r", true, encoding);
 
-            CHECK_OBJECT(stdin_file);
-            Nuitka_SysSetObject("stdin", stdin_file);
-
-#ifdef _WIN32
-            setStdFileHandleNumber(STD_INPUT_HANDLE, stdin_file);
-#endif
+            setStdinHandle(stdin_file);
         }
 
-        PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
-        if (sys_stdout == NULL || sys_stdout == Py_None) {
-            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false, encoding);
+        if (shallSetOutputHandleToNull("stdout")) {
+            PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "w", false, encoding);
 
-            CHECK_OBJECT(stdout_file);
-            Nuitka_SysSetObject("stdout", stdout_file);
-
-#ifdef _WIN32
-            setStdFileHandleNumber(STD_OUTPUT_HANDLE, stdout_file);
-#endif
+            setStdoutHandle(stdout_file);
         }
 
-        PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
-        if (sys_stderr == NULL || sys_stderr == Py_None) {
-            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(nul_filename, "w", false, encoding);
+        if (shallSetOutputHandleToNull("stderr")) {
+            PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(devnull_filename, "w", false, encoding);
 
-            CHECK_OBJECT(stderr_file);
-
-            Nuitka_SysSetObject("stderr", stderr_file);
-
-#ifdef _WIN32
-            setStdFileHandleNumber(STD_ERROR_HANDLE, stderr_file);
-#endif
+            setStderrHandle(stderr_file);
         }
 
-        Py_DECREF(nul_filename);
+        Py_DECREF(devnull_filename);
     }
 
 #if defined(NUITKA_FORCED_STDOUT_PATH)
@@ -835,12 +871,16 @@ static void setInputOutputHandles(void) {
             Py_Exit(1);
         }
 
-        Nuitka_SysSetObject("stdout", stdout_file);
-
-#ifdef _WIN32
-        setStdFileHandleNumber(STD_OUTPUT_HANDLE, stdout_file);
-#endif
+        setStdoutHandle(stdout_file);
     }
+#endif
+
+#if NUITKA_FORCED_STDOUT_NONE_BOOL
+    setStdoutHandle(Py_None);
+#endif
+
+#if NUITKA_FORCED_STDERR_NONE_BOOL
+    setStderrHandle(Py_None);
 #endif
 
 #if defined(NUITKA_FORCED_STDERR_PATH)
@@ -856,11 +896,7 @@ static void setInputOutputHandles(void) {
             Py_Exit(1);
         }
 
-        Nuitka_SysSetObject("stderr", stderr_file);
-
-#ifdef _WIN32
-        setStdFileHandleNumber(STD_ERROR_HANDLE, stderr_file);
-#endif
+        setStderrHandle(stderr_file);
     }
 #endif
 

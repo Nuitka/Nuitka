@@ -63,6 +63,16 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
             return NULL;
         }
 
+        PyObject *encoding_default = NULL;
+
+        if (encoding == NULL) {
+            if (encoding_default == NULL) {
+                encoding_default = Nuitka_String_FromString("utf-8");
+            }
+
+            encoding = encoding_default;
+        }
+
         PyObject *args[] = {binary_stream, encoding, Py_None, Py_None, Py_False, Py_True};
 
         result = CALL_FUNCTION_WITH_ARGS6(_io_module_text_io_wrapper, args);
