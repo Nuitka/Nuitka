@@ -1615,7 +1615,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
         # Loading from home directories is OK too.
         if any(
             isFilenameSameAsOrBelowPath(path, loaded_filename)
-            for path in ("/home", "/data", "/root", "/Users")
+            for path in ("/home", "/data", "/root", "/Users", "/Library/Preferences")
         ):
             continue
 
