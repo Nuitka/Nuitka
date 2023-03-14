@@ -535,8 +535,12 @@ Currently these expanded tokens are available:
 +-------------+-----------------------------------------------------------+----------------------------------+
 | %HOME%      | Home directory for the user.                              | /home/somebody                   |
 +-------------+-----------------------------------------------------------+----------------------------------+
+| %NONE%      | When provided for file outputs, ``None`` is used          | see notice below                 |
++-------------+-----------------------------------------------------------+----------------------------------+
+| %NULL%      | When provided for file outputs, ``os.devnull`` is used    | see notice below                 |
++-------------+-----------------------------------------------------------+----------------------------------+
 
-.. note::
+.. important::
 
    It is your responsibility to make the path provided unique, on
    Windows a running program will be locked, and while using a fixed
@@ -547,6 +551,21 @@ Currently these expanded tokens are available:
    path unique, and this is mainly intended for use cases, where e.g.
    you want things to reside in a place you choose or abide your naming
    conventions.
+
+.. important::
+
+   For disabling output and stderr with ``--force-stdout-spec`` and
+   ``--force-stderr-spec`` the values ``%NONE%`` and ``%NULL%`` achieve
+   it, but with different effect. With ``%NONE%``the corresponding
+   handle becomes ``None``. As a result e.g. ``sys.stdout`` will be
+   ``None`` which is different from ``%NULL%`` where it will be backed
+   by a file pointing to ``os.devnull``, i.e. you can write to it.
+
+   With ``%NONE%`` you may get ``RuntimeError: lost sys.stdout`` in case
+   it does get used, with ``%NULL%`` that never happens. However, some
+   libraries handle this as input for their logging mechanism, and on
+   Windows this is how you are compatible with ``pythonw.exe`` which is
+   behaving like ``%NONE%``.
 
 Use Case 5 - Setuptools Wheels
 ==============================
@@ -803,6 +822,14 @@ These reports carry all the detail information, e.g. when a module was
 attempted to be imported, but not found, you can see where that happens.
 For bug reporting, it is very much recommended to provide the report.
 
+Version Information
+===================
+
+You can attach copyright and trademark information, company name,
+product name, and so on to your compilation. This is then used in
+version information for the created binary on Windows, or application
+bundle on macOS. If you find something that it's lacking, let us know.
+
 ******************
  Typical Problems
 ******************
@@ -1022,9 +1049,9 @@ Windows Programs without console give no errors
 ===============================================
 
 For debugging purposes, remove ``--disable-console`` or use the options
-``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec`` with
-paths as documented for ``--onefile-tempdir-spec`` above. These can be
-relative to the program or absolute, so you can see the outputs given.
+``--force-stdout-spec`` and ``--force-stderr-spec`` with paths as
+documented for ``--onefile-tempdir-spec`` above. These can be relative
+to the program or absolute, so you can see the outputs given.
 
 Deep copying uncompiled functions
 =================================

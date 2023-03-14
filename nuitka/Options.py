@@ -89,7 +89,33 @@ is_report_missing = None
 is_verbose = None
 
 
-def checkPathSpec(value, arg_name):
+def checkPathSpec(value, arg_name, allow_disable):
+    if "%NONE%" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '%%NONE%%' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "%NONE%":
+            Tracing.options_logger.sysexit(
+                "Using value '%%NONE%%' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
+    if "%NULL%" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '%%NULL%%' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "%NULL%":
+            Tracing.options_logger.sysexit(
+                "Using value '%%NULL%%' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
     if "%COMPANY%" in value and not getCompanyName():
         Tracing.options_logger.sysexit(
             "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
@@ -125,7 +151,11 @@ start of '%s=%s', using it in the middle is not allowed."""
 
 
 def _checkOnefileTargetSpec():
-    checkPathSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
+    checkPathSpec(
+        options.onefile_tempdir_spec,
+        arg_name="--onefile-tempdir-spec",
+        allow_disable=False,
+    )
 
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
         Tracing.options_logger.sysexit(
@@ -319,6 +349,16 @@ def parseArgs():
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
+
+    if options.force_stdout_spec:
+        checkPathSpec(
+            options.force_stdout_spec, "--force-stdout-spec", allow_disable=True
+        )
+
+    if options.force_stderr_spec:
+        checkPathSpec(
+            options.force_stderr_spec, "--force-stderr-spec", allow_disable=True
+        )
 
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
