@@ -32,7 +32,7 @@ from .c_types.CTypeBooleans import CTypeBool
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .CodeHelperSelection import selectCodeHelper
 from .ComparisonHelperDefinitions import (
     getNonSpecializedComparisonOperations,
@@ -458,6 +458,32 @@ def generateTypeCheckCode(to_name, expression, emit, context):
 
     to_name.getCType().emitAssignmentCodeFromBoolCondition(
         to_name=to_name, condition="%s != 0" % res_name, emit=emit
+    )
+
+
+def generateSubtypeCheckCode(to_name, expression, emit, context):
+    left_name, right_name = generateChildExpressionsCode(
+        expression=expression,
+        emit=emit,
+        context=context,
+    )
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
+    res_name = context.getBoolResName()
+
+    emit(
+        "%s = Nuitka_Type_IsSubtype((PyTypeObject *)%s, (PyTypeObject *)%s);"
+        % (res_name, left_name, right_name)
+    )
+
+    getReleaseCodes(
+        release_names=(left_name, right_name),
+        emit=emit,
+        context=context,
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition=res_name, emit=emit
     )
 
 

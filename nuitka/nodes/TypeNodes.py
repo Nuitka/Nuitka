@@ -15,12 +15,10 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" The type1 node.
+""" The type nodes.
 
-This one just determines types. It's great for optimization. We may be able to
-predict its value, but knowing it. In that case, we have a built-in name
-reference for that type to convert to, or when checking the result of it, we
-will then know it's limited after the fact.
+These ones deal with types and they are great for optimization. We need to know
+them, their relationship or check for them in re-formulations.
 
 """
 
