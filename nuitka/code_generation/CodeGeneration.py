@@ -94,6 +94,7 @@ from .ComparisonCodes import (
     generateMatchTypeCheckMappingCode,
     generateMatchTypeCheckSequenceCode,
     generateRichComparisonExpressionCode,
+    generateSubtypeCheckCode,
     generateTypeCheckCode,
 )
 from .ConditionalCodes import (
@@ -656,6 +657,7 @@ addExpressionDispatchDict(
         "EXPRESSION_BUILTIN_ISINSTANCE": generateBuiltinIsinstanceCode,
         "EXPRESSION_BUILTIN_ISSUBCLASS": generateBuiltinIssubclassCode,
         "EXPRESSION_TYPE_CHECK": generateTypeCheckCode,
+        "EXPRESSION_SUBTYPE_CHECK": generateSubtypeCheckCode,
         "EXPRESSION_MATCH_TYPE_CHECK_SEQUENCE": generateMatchTypeCheckSequenceCode,
         "EXPRESSION_MATCH_TYPE_CHECK_MAPPING": generateMatchTypeCheckMappingCode,
         "EXPRESSION_BUILTIN_DIR1": generateBuiltinDir1Code,

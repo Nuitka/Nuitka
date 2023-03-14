@@ -887,13 +887,15 @@ def getClassSelectMetaClassHelper():
         inline_const_args=False,  # TODO: Allow this.
     )
 
-    metaclass_variable = result.getVariableForAssignment(variable_name="bases")
+    metaclass_variable = result.getVariableForAssignment(variable_name="metaclass")
+    bases_variable = result.getVariableForAssignment(variable_name="bases")
 
     temp_scope = None
 
     tmp_winner_variable = result.allocateTempVariable(temp_scope, "winner")
     tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
     tmp_item_variable = result.allocateTempVariable(temp_scope, "base")
+    tmp_item_type_variable = result.allocateTempVariable(temp_scope, "base_type")
 
     # For non-types, the metaclass cannot be overruled by bases.
     non_type_case = StatementReturn(
@@ -919,13 +921,23 @@ def getClassSelectMetaClassHelper():
             handler_body=StatementLoopBreak(source_ref=internal_source_ref),
             source_ref=internal_source_ref,
         ),
+        makeStatementAssignmentVariable(
+            variable=tmp_item_type_variable,
+            source=ExpressionBuiltinType1(
+                value=ExpressionTempVariableRef(
+                    variable=tmp_item_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        ),
         makeStatementConditional(
             condition=ExpressionSubtypeCheck(
                 left=ExpressionTempVariableRef(
                     variable=tmp_winner_variable, source_ref=internal_source_ref
                 ),
                 right=ExpressionTempVariableRef(
-                    variable=tmp_item_variable, source_ref=internal_source_ref
+                    variable=tmp_item_type_variable, source_ref=internal_source_ref
                 ),
                 source_ref=internal_source_ref,
             ),
@@ -933,7 +945,7 @@ def getClassSelectMetaClassHelper():
             no_branch=makeStatementConditional(
                 condition=ExpressionSubtypeCheck(
                     left=ExpressionTempVariableRef(
-                        variable=tmp_item_variable, source_ref=internal_source_ref
+                        variable=tmp_item_type_variable, source_ref=internal_source_ref
                     ),
                     right=ExpressionTempVariableRef(
                         variable=tmp_winner_variable, source_ref=internal_source_ref
@@ -943,7 +955,7 @@ def getClassSelectMetaClassHelper():
                 yes_branch=makeStatementAssignmentVariable(
                     variable=tmp_winner_variable,
                     source=ExpressionTempVariableRef(
-                        variable=tmp_item_variable, source_ref=internal_source_ref
+                        variable=tmp_item_type_variable, source_ref=internal_source_ref
                     ),
                     source_ref=internal_source_ref,
                 ),
@@ -954,7 +966,7 @@ def getClassSelectMetaClassHelper():
         ),
     )
 
-    type_case = (
+    type_case = makeStatementsSequenceFromStatements(
         makeStatementAssignmentVariable(
             variable=tmp_winner_variable,
             source=ExpressionVariableRef(
@@ -962,7 +974,17 @@ def getClassSelectMetaClassHelper():
             ),
             source_ref=internal_source_ref,
         ),
-        type_loop_body,
+        makeStatementAssignmentVariable(
+            variable=tmp_iter_variable,
+            source=ExpressionBuiltinIter1(
+                value=ExpressionVariableRef(
+                    variable=bases_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        ),
+        StatementLoop(loop_body=type_loop_body, source_ref=internal_source_ref),
         StatementReturn(
             expression=ExpressionTempVariableRef(
                 variable=tmp_winner_variable, source_ref=internal_source_ref
@@ -993,6 +1015,7 @@ def getClassSelectMetaClassHelper():
                         tmp_winner_variable,
                         tmp_iter_variable,
                         tmp_item_variable,
+                        tmp_item_type_variable,
                     ),
                     source_ref=internal_source_ref,
                 ),
