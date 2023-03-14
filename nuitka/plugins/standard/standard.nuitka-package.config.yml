@@ -926,6 +926,11 @@
         prefixes:
           - 'lib_lightgbm'
 
+- module-name: 'lightning_fabric'
+  data-files:
+    patterns:
+      - 'version.info'
+
 - module-name: 'llvmlite.binding.analysis'
   anti-bloat:
     - description: 'remove IPython reference'
@@ -2137,6 +2142,11 @@
         relative_path: 'runtime'
         prefixes:
           - 'Python.Runtime'
+
+- module-name: 'pytorch_lightning'
+  data-files:
+    patterns:
+      - 'version.info'
 
 - module-name: 'pytorch_lightning.utilities.imports'
   anti-bloat:
