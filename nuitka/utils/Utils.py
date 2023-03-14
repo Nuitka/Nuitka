@@ -160,7 +160,7 @@ def isAndroidBasedLinux():
     if not isLinux():
         return False
 
-    return "ANDROID_ARGUMENT" in os.environ or "android.googlesource.com" in sys.version
+    return "ANDROID_ROOT" in os.environ or "android.googlesource.com" in sys.version
 
 
 def isWin32Windows():
