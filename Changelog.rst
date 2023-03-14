@@ -10,6 +10,55 @@ Nuitka blog.
  Nuitka Release 1.6 (Draft)
 ****************************
 
+Bug fixes
+=========
+
+-  The new dict ``in`` optimization was compile time crashing on code
+   where the dictionary shaped value checked for a key was actually an
+   conditional expression ``some_dict if condition else other_dict``.
+   Fixed in 1.5.1 already.
+
+-  Standalone: Added support for ``openvino``. This also required to
+   make sure to keep used DLLs and their dependencies in the same
+   folder. Before they were put on the top level. Fixed in 1.5.1
+   already.
+
+-  Android: Convert ``RPATH`` to ``RUNPATH`` such that standalone
+   binaries need no ``LD_LIBRARY_PATH`` guidance anymore. Fixed in 1.5.1
+   already.
+
+-  Standalone: Added support for newer ``skimage``. Fixed in 1.5.1
+   already.
+
+New Features
+============
+
+-  Plugins: Added ``include-pyi-file`` flag to data-files section. If
+   provided, the ``.pyi`` file belonging to a specific module is
+   included. Some packages, e.g. ``skimage`` depend at runtime on them.
+   For data file options and configuration, these files are excluded,
+   but this is now the way to force their inclusion. Added in 1.5.1
+   already.
+
+Optimization
+============
+
+-  Anti-Bloat: Remove ``IPython`` usage in ``huggingface_hub`` package.
+   Added in 1.5.1 already.
+
+-  Added support for module type as a constant value. We want to add all
+   types we have shapes for to allow better ``type(x)`` optimization.
+   This is only the start.
+
+Organisational
+==============
+
+-  Windows: When MSVC doesn't have WindowsSDK, just don't use it, and
+   proceed, to e.g. allow fallback to winlibs gcc.
+
+-  User Manual: The code to update benchmark numbers as giving was
+   actually wrong. Fixed in 1.5.1 already.
+
 This release is not done yet.
 
 ********************
