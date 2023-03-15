@@ -910,7 +910,11 @@ static void Nuitka_Py_Initialize(void) {
     _PyConfig_InitCompatConfig(&config);
 
     assert(orig_argv[0]);
-    PyConfig_SetArgv(&config, orig_argc, orig_argv);
+    status = PyConfig_SetArgv(&config, orig_argc, orig_argv);
+
+    if (PyStatus_Exception(status)) {
+        Py_ExitStatusException(status);
+    }
 
 #ifdef _NUITKA_STANDALONE
     wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
