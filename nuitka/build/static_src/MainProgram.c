@@ -904,7 +904,7 @@ static void setInputOutputHandles(void) {
 }
 
 static void Nuitka_Py_Initialize(void) {
-#if PYTHON_VERSION < 0x380
+#if PYTHON_VERSION < 0x380 || defined(_NUITKA_EXPERIMENTAL_OLD_PY_INITIALIZE)
     Py_Initialize();
 #else
     PyStatus status = _PyRuntime_Initialize();
