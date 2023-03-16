@@ -150,8 +150,6 @@ void Nuitka_PyType_Ready(PyTypeObject *type, PyTypeObject *base, bool generic_ge
 
     PyObject_GenericGetAttr_resolved = PyBaseObject_Type.tp_getattro;
     PyObject_GenericSetAttr_resolved = PyBaseObject_Type.tp_setattro;
-    assert(PyObject_GenericGetAttr_resolved == PyObject_GenericGetAttr);
-    assert(PyObject_GenericSetAttr_resolved == PyObject_GenericSetAttr);
 
     type->tp_base = base;
 

@@ -784,6 +784,13 @@
         'import ipywidgets.widgets as widgets': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'huggingface_hub.commands.user'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import ipywidgets.widgets as widgets': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'imageio.core.imopen'
   implicit-imports:
     - depends:
@@ -925,6 +932,11 @@
     - from_filenames:
         prefixes:
           - 'lib_lightgbm'
+
+- module-name: 'lightning_fabric'
+  data-files:
+    patterns:
+      - 'version.info'
 
 - module-name: 'llvmlite.binding.analysis'
   anti-bloat:
@@ -2137,6 +2149,11 @@
         relative_path: 'runtime'
         prefixes:
           - 'Python.Runtime'
+
+- module-name: 'pytorch_lightning'
+  data-files:
+    patterns:
+      - 'version.info'
 
 - module-name: 'pytorch_lightning.utilities.imports'
   anti-bloat:
