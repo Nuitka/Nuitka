@@ -41,25 +41,32 @@ up to here:
   not work" when nothing actually works for you. You ought to also read the User
   Manual and check that your setup is actually supported already.
 
-* Also supply a [Short, Self Contained, Correct, Example](https://sscce.org/)
+* Also supply a Short, Self Contained, Correct, Example
 
-  That demonstrates the issue i.e a small piece of code which reproduces
-  the issue and can be run with out any other (or as few as possible)
-  external dependencies. Issues without this may get rejected without much
-  consideration.
+  That demonstrates the issue i.e a small piece of code which reproduces the
+  issue and can be run with out any other (or as few as possible) external
+  dependencies. Issues without this may will likely be rejected without much
+  consideration. Often this can be as simple as importing a package, if this
+  is a packaging issue, try that first.
 
   Pointers to repositories with usage of ``pipenv`` are very welcome, archives
   with examples are too. This must be only source code, binaries are not used
-  ever by us.
+  ever by us. But beware, that e.g. we cannot click around and stuff. Still do
+  an effort to make the usage obvious. Having a compile script in the repo is
+  perfect.
 
 * Provide in your issue the Nuitka options used
 
   Ideally use the `# nuitka-project:` options feature in the code, so options
-  and example code go along. Alternatively state the command line. Do not use
-  `--onefile` if the issue also happens with `--standalone`. Minimize the use
-  of options as far as you can, please.
+  and example code go along. Alternatively state the command line.
 
   [Nuitka Options in the code](https://nuitka.net/doc/user-manual.html#nuitka-options-in-the-code)
+
+* Avoid unnecessary options
+
+  Do not use `--onefile` if the issue also happens with `--standalone`. Minimize
+  the use of options as far as you can, please. Do not disable outputs with
+  `--quiet` and do not disable warnings.
 
 * Note if this is a regression
 
@@ -96,6 +103,7 @@ Some things are not welcome, please consider it.
 * Do *not* report against factory version
 
   Unless you were asked to test it there, it is frequently very broken, and
-  there is only noise to be had.
+  there is only noise to be had. Telling me about it on Discord would be a
+  better idea.
 
 * Do *not* let this template remain part of the issue, it's noise.
