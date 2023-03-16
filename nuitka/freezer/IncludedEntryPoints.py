@@ -31,6 +31,7 @@ from nuitka.Options import getShallNotIncludeDllFilePatterns, isShowInclusion
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    hasFilenameExtension,
     haveSameFileContents,
     isRelativePath,
 )
@@ -63,6 +64,9 @@ def _makeIncludedEntryPoint(
 
     # Make sure outside code uses sane paths only.
     assert source_path == os.path.normpath(source_path), source_path
+
+    # Avoid obvious mistakes, these files won't be binaries or DLL ever, right?
+    assert not hasFilenameExtension(path=source_path, extensions=(".qml", ".json"))
 
     return IncludedEntryPoint(
         logger,
