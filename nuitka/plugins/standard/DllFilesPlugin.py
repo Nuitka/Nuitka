@@ -170,7 +170,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
 
         if not filename:
             self.warning(
-                """
+                """\
 DLL configuration by filename code for '%s' did not give a result. Either \
 conditions are missing, or this version of the module needs treatment added."""
                 % full_name.asString()
