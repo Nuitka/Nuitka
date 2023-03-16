@@ -639,7 +639,7 @@ def commentArgs():
         if "PYTHON" not in os.environ:
             Tracing.general.warning(
                 """\
-The Python version '%s' is not officially supported by Nuitka '%s', \
+The Python version '%s' is only experimentally supported by Nuitka '%s', \
 but an upcoming release will change that. In the mean time use Python \
 version '%s' instead or newer Nuitka."""
                 % (
