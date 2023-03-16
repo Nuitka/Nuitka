@@ -373,6 +373,7 @@ import %(binding_name)s.QtCore
             ".qmltypes",
             ".js",
             ".jsc",
+            ".json",
             ".png",
             ".ttf",
             ".metainfo",
