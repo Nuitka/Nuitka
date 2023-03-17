@@ -301,6 +301,9 @@ def main():
 
     if "--standalone" in project_options:
         standalone_mode = True
+    if "--onefile" in project_options:
+        standalone_mode = True
+        onefile_mode = True
 
     # In coverage mode, we don't want to execute, and to do this only in one mode,
     # we enable two step execution, which splits running the binary from the actual

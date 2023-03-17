@@ -908,12 +908,13 @@ class Plugins(object):
         contributing_plugins = OrderedSet()
 
         for plugin in getActivePlugins():
-            new_source_code = plugin.onModuleSourceCode(module_name, source_code)
-            if new_source_code is not None and new_source_code != source_code:
-                source_code = new_source_code
-                contributing_plugins.add(plugin)
+            with withPluginModuleNameProblemReporting(plugin, module_name):
+                new_source_code = plugin.onModuleSourceCode(module_name, source_code)
+                if new_source_code is not None and new_source_code != source_code:
+                    source_code = new_source_code
+                    contributing_plugins.add(plugin)
 
-            assert type(source_code) is str
+                assert type(source_code) is str
 
         return source_code, contributing_plugins
 
