@@ -28,7 +28,7 @@ import os
 import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
-from nuitka.build.SconsUtils import getSconsReportValue
+from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
 from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
@@ -1023,6 +1023,8 @@ def _main():
     if Options.isRemoveBuildDir():
         general.info("Removing build directory '%s'." % source_dir)
 
+        # Make sure the scons report is cached before deleting it.
+        readSconsReport(source_dir)
         removeDirectory(path=source_dir, ignore_errors=False)
         assert not os.path.exists(source_dir)
     else:
