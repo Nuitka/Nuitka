@@ -43,9 +43,11 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     getMainProgramFilename,
     my_print,
+    reportSkip,
     setup,
     withPythonPathChange,
 )
+from nuitka.Version import getCommercialVersion
 
 
 def main():
@@ -91,6 +93,13 @@ def main():
 
         if active:
             my_print("Consider output of recursively compiled program:", filename)
+
+            if filename in ("code_signing",):
+                if getCommercialVersion() is None:
+                    reportSkip(
+                        "Plugin only available in Nuitka commercial", ".", filename
+                    )
+                    continue
 
             filename_main = getMainProgramFilename(filename)
 
