@@ -282,11 +282,7 @@ static ZSTD_inBuffer input = {NULL, 0, 0};
 static ZSTD_outBuffer output = {NULL, 0, 0};
 
 static void initZSTD(void) {
-    size_t const input_buffer_size = ZSTD_DStreamInSize();
-    input.src = malloc(input_buffer_size);
-    if (input.src == NULL) {
-        fatalErrorMemory();
-    }
+    input.src = NULL;
 
     size_t const output_buffer_size = ZSTD_DStreamOutSize();
     output.dst = malloc(output_buffer_size);
@@ -303,7 +299,6 @@ static void initZSTD(void) {
 static void releaseZSTD(void) {
     ZSTD_freeDCtx(dest_ctx);
 
-    free((void *)input.src);
     free(output.dst);
 }
 
@@ -319,6 +314,17 @@ static void readChunk(void *buffer, size_t size) {
     memcpy(buffer, payload_current, size);
     payload_current += size;
 }
+
+#if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
+static void const *readChunkPointer(size_t size) {
+    // printf("Reading %d\n", size);
+
+    void const *result = payload_current;
+    payload_current += size;
+
+    return result;
+}
+#endif
 
 static void readPayloadChunk(void *buffer, size_t size) {
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
@@ -389,7 +395,7 @@ static void readPayloadChunk(void *buffer, size_t size) {
             to_read = payload_available;
         }
 
-        readChunk((void *)input.src, to_read);
+        input.src = readChunkPointer(to_read);
         input.pos = 0;
         input.size = to_read;
 
