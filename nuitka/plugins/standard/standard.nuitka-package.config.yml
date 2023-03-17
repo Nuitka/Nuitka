@@ -1206,7 +1206,7 @@
         filename_code: |
           [os.path.join(library_path, filename)
            for filename in os.listdir(library_path)
-           if filename.startswith(library_prefix)] if os.path.isdir(library_prefix) else []
+           if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
       dest_path: '.'
       when: 'anaconda'
 
