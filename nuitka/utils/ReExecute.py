@@ -87,6 +87,8 @@ def reExecuteNuitka(pgo_filename):
 
     if pgo_filename is not None:
         args.append("--pgo-python-input=%s" % pgo_filename)
+    else:
+        os.environ["NUITKA_SYS_PREFIX"] = sys.prefix
 
     # Same arguments as before.
     args += sys.argv[1:]

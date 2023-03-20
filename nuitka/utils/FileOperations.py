@@ -885,7 +885,7 @@ def getWindowsDrive(path):
     return os.path.normcase(drive)
 
 
-def isFilenameBelowPath(path, filename):
+def isFilenameBelowPath(path, filename, consider_short=True):
     """Is a filename inside of a given directory path
 
     Args:
@@ -894,7 +894,9 @@ def isFilenameBelowPath(path, filename):
     """
     if type(path) in (tuple, list):
         for p in path:
-            if isFilenameBelowPath(path=p, filename=filename):
+            if isFilenameBelowPath(
+                path=p, filename=filename, consider_short=consider_short
+            ):
                 return True
 
         return False
@@ -906,7 +908,16 @@ def isFilenameBelowPath(path, filename):
         if getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
-    return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+    result = os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+
+    if not result and consider_short:
+        if os.path.exists(filename) and os.path.exists(path):
+            filename = getExternalUsePath(filename)
+            path = getExternalUsePath(path)
+
+            result = os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+
+    return result
 
 
 def isFilenameSameAsOrBelowPath(path, filename):
@@ -963,6 +974,9 @@ def getWindowsShortPathName(filename):
             output_buf_size = needed
 
 
+_external_use_path_cache = {}
+
+
 def getExternalUsePath(filename, only_dirname=False):
     """Gets the externally usable absolute path for a given relative path.
 
@@ -978,23 +992,54 @@ def getExternalUsePath(filename, only_dirname=False):
     filename = os.path.abspath(filename)
 
     if os.name == "nt":
-        if only_dirname:
-            dirname = getWindowsShortPathName(os.path.dirname(filename))
-            assert os.path.exists(dirname)
-            filename = os.path.join(dirname, os.path.basename(filename))
-        else:
-            filename = getWindowsShortPathName(filename)
+        if filename not in _external_use_path_cache:
+            asked_filename = filename
+
+            if only_dirname:
+                dirname = getWindowsShortPathName(os.path.dirname(filename))
+                assert os.path.exists(dirname)
+                filename = os.path.join(dirname, os.path.basename(filename))
+            else:
+                filename = getWindowsShortPathName(filename)
+
+            _external_use_path_cache[asked_filename] = filename
+            _external_use_path_cache[filename] = filename
+
+        return _external_use_path_cache[filename]
 
     return filename
 
 
-def getReportPath(filename):
+def getReportPath(filename, prefixes=()):
     """Convert filename into a path suitable for reporting, avoiding home directory paths."""
     if os.path.isabs(os.path.expanduser(filename)):
+        prefixes = list(prefixes)
+        prefixes.append(
+            ("~", os.path.expanduser("~")),
+        )
+
         abs_filename = os.path.abspath(os.path.expanduser(filename))
-        home_path = os.path.expanduser("~")
-        if isFilenameBelowPath(path=home_path, filename=abs_filename):
-            return os.path.join("~", relpath(path=abs_filename, start=home_path))
+
+        for prefix_name, prefix_path in prefixes:
+            if isFilenameBelowPath(
+                path=prefix_path, filename=abs_filename, consider_short=False
+            ):
+                return os.path.normpath(
+                    os.path.join(
+                        prefix_name, relpath(path=abs_filename, start=prefix_path)
+                    )
+                )
+            if isFilenameBelowPath(
+                path=prefix_path, filename=abs_filename, consider_short=True
+            ):
+                return os.path.normpath(
+                    os.path.join(
+                        prefix_name,
+                        relpath(
+                            path=abs_filename, start=getExternalUsePath(prefix_path)
+                        ),
+                    )
+                )
 
     return filename
 
@@ -1028,6 +1073,8 @@ def replaceFileAtomic(source_path, dest_path):
 
     Both paths must reside on the same filesystem for the operation to be
     atomic.
+
+    spellchecker: ignore atomicwrites
     """
 
     if python_version >= 0x300:
