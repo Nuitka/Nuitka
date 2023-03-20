@@ -3787,6 +3787,13 @@
         prefixes:
           - 'tls-client'
 
+- module-name: 'tokenizers.tools.visualizer'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.core.display import HTML, display': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'torch'
   data-files:
     dirs:
