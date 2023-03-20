@@ -463,8 +463,12 @@ which can and should be a top level package and then one choice, "error",
                 ):
 
                     self.warning(
-                        "Undesirable import of '%s' at '%s' encountered. It may slow down compilation."
-                        % (handled_module_name, source_ref.getAsString()),
+                        "Undesirable import of '%s' in '%s' (at '%s') encountered. It may slow down compilation."
+                        % (
+                            handled_module_name,
+                            using_module.getFullName(),
+                            source_ref.getAsString(),
+                        ),
                         mnemonic="unwanted-module",
                     )
 
