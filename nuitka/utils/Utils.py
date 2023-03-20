@@ -288,15 +288,14 @@ def hasStandaloneSupportedOS():
 
 
 def getUserName():
-    """Return the user name.
+    """Return the user name."""
+    # spell-checker: ignore getpwuid,getuid,getlogin
+    if isWin32Windows():
+        return os.getlogin()
+    else:
+        import pwd  # pylint: disable=I0021,import-error
 
-    Notes: Currently doesn't work on Windows.
-    """
-    import pwd  # pylint: disable=I0021,import-error
-
-    # spell-checker: ignore getpwuid,getuid
-
-    return pwd.getpwuid(os.getuid())[0]
+        return pwd.getpwuid(os.getuid())[0]
 
 
 @contextmanager
