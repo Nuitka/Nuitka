@@ -26,7 +26,7 @@ class NuitkaPluginKivy(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "kivy"
-    plugin_desc = "Required by kivy package"
+    plugin_desc = "Required by 'kivy' package."
 
     @staticmethod
     def isAlwaysEnabled():

@@ -64,7 +64,9 @@ class NuitkaPluginTrio(NuitkaPluginBase):
     """
 
     plugin_name = "trio"
-    plugin_desc = "Required for Trio package"
+    plugin_desc = "Required for 'trio' package."
+
+    # TODO: Change this to Yaml configuration.
 
     def __init__(self):
         self.shown_warning = False
