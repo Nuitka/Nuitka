@@ -43,7 +43,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Yaml import (
-    Yaml,
+    PackageConfigYaml,
     getYamlPackage,
     getYamlPackageConfigurationSchemaFilename,
     parseYaml,
@@ -101,7 +101,7 @@ def _checkValues(filename, module_name, section, value):
 
 
 def checkValues(filename):
-    yaml = Yaml(
+    yaml = PackageConfigYaml(
         name=filename,
         data=parseYaml(getFileContents(filename, mode="rb")),
     )
