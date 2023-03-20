@@ -612,6 +612,7 @@ def autoFormatFile(
             ".j2",
             ".gitignore",
             ".gitattributes",
+            ".gitmodules",
             ".json",
             ".spec",
             "-rpmlintrc",
