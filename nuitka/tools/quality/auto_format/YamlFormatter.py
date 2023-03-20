@@ -31,7 +31,7 @@ from nuitka.utils.FileOperations import (
     renameFile,
 )
 from nuitka.utils.Yaml import (
-    Yaml,
+    PackageConfigYaml,
     getYamlPackageConfigurationSchemaFilename,
     parseYaml,
 )
@@ -198,8 +198,8 @@ def _reorderDictionaryList(entry_list, key_order):
 
 
 def deepCompareYamlFiles(path1, path2):
-    yaml1 = Yaml(path1, parseYaml(getFileContents(path1)))
-    yaml2 = Yaml(path2, parseYaml(getFileContents(path2)))
+    yaml1 = PackageConfigYaml(path1, parseYaml(getFileContents(path1)))
+    yaml2 = PackageConfigYaml(path2, parseYaml(getFileContents(path2)))
 
     import deepdiff
 
