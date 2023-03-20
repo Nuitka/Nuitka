@@ -24,7 +24,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase, standalone_only
 
 class NuitkaPluginGi(NuitkaPluginBase):
     plugin_name = "gi"
-    plugin_desc = "Support for GI typelib dependency"
+    plugin_desc = "Support for GI package typelib dependency."
 
     @staticmethod
     def isAlwaysEnabled():

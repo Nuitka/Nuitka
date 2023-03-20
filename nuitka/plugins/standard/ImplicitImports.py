@@ -35,6 +35,10 @@ from nuitka.utils.Yaml import getYamlPackageConfiguration
 class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
+    plugin_desc = (
+        "Provide implicit imports of package as per package configuration files."
+    )
+
     def __init__(self):
         self.config = getYamlPackageConfiguration()
 
