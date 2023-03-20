@@ -2005,6 +2005,11 @@ def getCompilationReportTemplates():
     return tuple(result)
 
 
+def shallCreateDiffableCompilationReport():
+    """*bool*" derived from --report-diffable"""
+    return options.compilation_report_diffable
+
+
 def getUserProvidedYamlFiles():
     """*list* files with user provided Yaml files"""
     return options.user_yaml_files

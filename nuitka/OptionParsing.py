@@ -1024,6 +1024,17 @@ lot of information. Default is off.""",
 )
 
 tracing_group.add_option(
+    "--report-diffable",
+    action="store_true",
+    dest="compilation_report_diffable",
+    metavar="REPORT_DIFFABLE",
+    default=False,
+    help="""\
+Report data in diffable form, i.e. no timing or memory usage values that vary from run
+to run. Default is off.""",
+)
+
+tracing_group.add_option(
     "--report-template",
     action="append",
     dest="compilation_report_templates",
@@ -1034,6 +1045,7 @@ Report via template. Provide template and output filename "template.rst.j2:outpu
 built-in templates, check the User Manual for what these are. Can be given multiple times.
 Default is empty.""",
 )
+
 
 tracing_group.add_option(
     "--quiet",
