@@ -30,6 +30,32 @@ Bug fixes
 -  Standalone: Added support for newer ``skimage``. Fixed in 1.5.1
    already.
 
+-  Standalone: Fix, new data file type ``.json`` needed to be added to
+   the list of extensions used for the Qt plugin bindings. Fixed in
+   1.5.2 already.
+
+-  Standalone: Fix, the ``nuitka_types_patch`` module using during
+   startup was released, which can have bad effects. Fixed in 1.5.2
+   already.
+
+-  Android: More reliable detection of the Android based Python Flavor.
+   Fixed in 1.5.2 already.
+
+-  Windows: Fix, the preservation of ``PATH`` didn't work on systems
+   where this could lead to encoding issues due to reading a MBCS value
+   and writing it as a unicode string. We now read and write the
+   environment value as ``unicode`` both. Fixed in 1.5.3 already.
+
+-  Plugins: Fix, the scons report values were not available in case of
+   removed ``--remove-output`` deleting it before use. It is now read in
+   case if will be used. Fixed in 1.5.3 already.
+
+-  Python3.11: Added support for ``ExceptionGroup`` built-in type. Fixed
+   in 1.5.4 already.
+
+-  Anaconda: Fix, using ``numpy`` in a virtualenv and not from conda
+   package was crashing. Fixed in 1.5.4 already.
+
 New Features
 ============
 
@@ -43,21 +69,51 @@ New Features
 Optimization
 ============
 
--  Anti-Bloat: Remove ``IPython`` usage in ``huggingface_hub`` package.
-   Added in 1.5.1 already.
+-  Anti-Bloat: Remove ``IPython`` usage in ``huggingface_hub`` package
+   versions. Added in 1.5.2 already.
+
+-  Anti-Bloat: Added data files for ``pytorch_lightning`` and
+   ``lightning_fabric`` packages.
 
 -  Added support for module type as a constant value. We want to add all
    types we have shapes for to allow better ``type(x)`` optimization.
    This is only the start.
 
+-  Onefile: During payload unpacking the memory mapped data was copied
+   to an input buffer. Removing that avoids memory copying and reduces
+   usage.
+
 Organisational
 ==============
+
+-  GitHub: Added marketplace action designed to cross platform build
+   with Nuitka on GitHub directly. Usable with both standard and
+   commercial Nuitka versions, and pronouncing it as officially
+   supported.
 
 -  Windows: When MSVC doesn't have WindowsSDK, just don't use it, and
    proceed, to e.g. allow fallback to winlibs gcc.
 
 -  User Manual: The code to update benchmark numbers as giving was
    actually wrong. Fixed in 1.5.1 already.
+
+-  UI: Make it clear that partially supported versions are considered
+   experimental, not unsupported. Fixed in 1.5.2 already.
+
+Cleanups
+========
+
+-  Use proper API for setting ``PyConfig`` values during interpreter
+   initialization. There is otherwise always the risk of crashes, should
+   these values change during runtime. Fixed in 1.5.2 already.
+
+Tests
+=====
+
+-  Refined macOS standalone exceptions further to cover more normal
+   usages of files on that OS.
+
+-  Detect and consider onefile mode if given in project options as well.
 
 This release is not done yet.
 
@@ -90,9 +146,6 @@ Bug Fixes
 
 -  Plugins: Fix ``removeDllDependencies`` was broken and could not
    longer be used to remove DLLs from inclusion. Fixed in 1.4.1 already.
-
--  Tests: Ignore ``ld`` info output about mismatching architecture
-   libraries being ignored. Fixed in 1.4.1 already.
 
 -  Fix, assigning methods of lists and calling them that way could crash
    at runtime. The same was true of dict methods, but had never been
@@ -555,6 +608,9 @@ Tests
 
 -  For the ``pyproject.toml`` using tests, Nuitka was always downloaded
    from PyPI rather than using the version under test.
+
+-  Ignore ``ld`` info output about mismatching architecture libraries
+   being ignored. Fixed in 1.4.1 already.
 
 Summary
 =======
