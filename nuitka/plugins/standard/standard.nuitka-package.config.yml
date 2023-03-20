@@ -3901,6 +3901,18 @@
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
 
+- module-name: 'transformers.utils.hub'
+  implicit-imports:
+    - depends:
+        - 'huggingface_hub.hf_api'
+
+- module-name: 'transformers.utils.versions'
+  anti-bloat:
+    - description: 'disable runtime metadata check for core dependencies'
+      change_function:
+        # TODO: Forcing inline of this will be better solution.
+        'require_version_core': "'(lambda requirement: None)'"
+
 - module-name: 'trimesh.viewer.notebook'
   anti-bloat:
     - description: 'remove IPython reference'
