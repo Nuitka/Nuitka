@@ -138,6 +138,12 @@ class build(distutils.command.build.build):
                 module_name=script_module_name, parent_package=None, level=0
             )[1]
 
+            if script_module_filename is None:
+                wheel_logger.sysexit(
+                    "Error, failed to locate script containing module '%s'"
+                    % script_module_name
+                )
+
             # Decide package or module.
             (
                 _main_added,
