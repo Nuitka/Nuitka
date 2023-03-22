@@ -25,7 +25,8 @@ build-backend = "nuitka.distutils.Build"
 
 [nuitka]
 # Note: These are not recommended, but they make it obvious to have effect that
-# can be seen, namely using clang in the compilation output. This also uses both
-# supported forms for assigning a boolean option of Nuitka.
+# can be seen, namely have "explain imports" output in the compilation output.
+# This also uses both supported forms for assigning a boolean option of Nuitka,
+# where the later works, but is not recommended.
 show-scons = true
-clang = ""
+explain-imports = ""
