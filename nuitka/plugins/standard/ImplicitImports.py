@@ -287,9 +287,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
             ):
                 yield "pkg_resources._vendor." + part
 
-        else:
-            for item in self._getImportsByFullname(module=module, full_name=full_name):
-                yield item
+        for item in self._getImportsByFullname(module=module, full_name=full_name):
+            yield item
 
     def _getPackageExtraScanPaths(self, package_dir, config):
         for config_package_dir in config.get("package-dirs", ()):
