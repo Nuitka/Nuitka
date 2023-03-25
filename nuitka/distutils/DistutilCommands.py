@@ -209,7 +209,9 @@ class build(distutils.command.build.build):
         os.chdir(build_lib)
 
         if self.distribution.package_dir and "" in self.distribution.package_dir:
-            main_package_dir = self.distribution.package_dir.get("")
+            main_package_dir = os.path.join(
+                old_dir, self.distribution.package_dir.get("")
+            )
         else:
             main_package_dir = os.path.abspath(old_dir)
 
