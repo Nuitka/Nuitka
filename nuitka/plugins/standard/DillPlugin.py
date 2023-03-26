@@ -27,6 +27,8 @@ class NuitkaPluginDillWorkarounds(NuitkaPluginBase):
 
     plugin_name = "dill-compat"
 
+    plugin_desc = "Required for 'dill' package compatibility."
+
     @staticmethod
     def isAlwaysEnabled():
         return False

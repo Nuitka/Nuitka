@@ -31,4 +31,5 @@ version = "0.0.1"
 runner="some_namespace.some_package.sub_package:main"
 
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["some_namespace.some_package*", "runner"]

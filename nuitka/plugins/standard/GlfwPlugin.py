@@ -41,7 +41,7 @@ class NuitkaPluginGlfw(NuitkaPluginBase):
 
     # TODO: Maybe rename to opengl maybe
     plugin_name = "glfw"  # Nuitka knows us by this name
-    plugin_desc = "Required for OpenGL and glfw in standalone mode"
+    plugin_desc = "Required for OpenGL and 'glfw' package in standalone mode."
 
     @staticmethod
     def isAlwaysEnabled():

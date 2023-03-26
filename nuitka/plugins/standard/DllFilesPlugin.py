@@ -40,6 +40,8 @@ from nuitka.utils.Yaml import getYamlPackageConfiguration
 class NuitkaPluginDllFiles(NuitkaPluginBase):
     plugin_name = "dll-files"
 
+    plugin_desc = "Include DLLs as per package configuration files."
+
     def __init__(self):
         self.config = getYamlPackageConfiguration()
 

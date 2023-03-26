@@ -8,6 +8,12 @@
     - depends:
         - '_dbus_bindings'
 
+- module-name: '_distutils_hack.override'
+  anti-bloat:
+    - description: 'disable distutils hacks'
+      module_code: ''
+      when: 'standalone'
+
 - module-name: '_mplcairo'
   implicit-imports:
     - depends:
@@ -1206,7 +1212,7 @@
         filename_code: |
           [os.path.join(library_path, filename)
            for filename in os.listdir(library_path)
-           if filename.startswith(library_prefix)] if os.path.isdir(library_prefix) else []
+           if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
       dest_path: '.'
       when: 'anaconda'
 
@@ -2521,6 +2527,30 @@
     patterns:
       - 'words.txt'
 
+- module-name: 'setuptools.extern'
+# TODO: Vendor importers should maybe get their own thing, pkg_resources does
+# similar, and we might try and avoid duplication between the two of them on
+# some level.
+  implicit-imports:
+    - depends:
+        - 'setuptools._vendor.*'
+        - 'setuptools._vendor.*.*'
+
+- module-name: 'setuptools.monkey'
+  anti-bloat:
+    - description: 'remove MSVC patching on non-Windows'
+      replacements_plain:
+        "msvc = import_module('setuptools.msvc')": 'return'
+      change_function:
+        # TODO: No effect if bytecode is used, we might have to change how
+        # these are done, and try to do it in source code somehow.
+        'patch_for_msvc_specialized_compiler': "'(lambda: None)'"
+      when: 'standalone and not win32'
+  implicit-imports:
+    - depends:
+        - '.msvc'
+      when: 'standalone and win32'
+
 - module-name: 'sgmllib'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -3787,6 +3817,13 @@
         prefixes:
           - 'tls-client'
 
+- module-name: 'tokenizers.tools.visualizer'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.core.display import HTML, display': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'torch'
   data-files:
     dirs:
@@ -3900,6 +3937,18 @@
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
+
+- module-name: 'transformers.utils.hub'
+  implicit-imports:
+    - depends:
+        - 'huggingface_hub.hf_api'
+
+- module-name: 'transformers.utils.versions'
+  anti-bloat:
+    - description: 'disable runtime metadata check for core dependencies'
+      change_function:
+        # TODO: Forcing inline of this will be better solution.
+        'require_version_core': "'(lambda requirement: None)'"
 
 - module-name: 'trimesh.viewer.notebook'
   anti-bloat:
