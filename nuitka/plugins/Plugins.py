@@ -1278,16 +1278,22 @@ def listPlugins():
     printLine("-" * 80)
 
     plist = []
-    name_len = 0
+    max_name_length = 0
     for plugin_name in sorted(plugin_name2plugin_classes):
         plugin = plugin_name2plugin_classes[plugin_name][0]
+
+        if plugin.isDeprecated():
+            continue
+
         if hasattr(plugin, "plugin_desc"):
             plist.append((plugin_name, plugin.plugin_desc))
         else:
             plist.append((plugin_name, ""))
-        name_len = max(len(plugin_name) + 1, name_len)
+
+        max_name_length = max(len(plugin_name), max_name_length)
+
     for line in plist:
-        printLine(" " + line[0].ljust(name_len), line[1])
+        printLine(" " + line[0].ljust(max_name_length + 1), line[1])
 
 
 def isObjectAUserPluginBaseClass(obj):

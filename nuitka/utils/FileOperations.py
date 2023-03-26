@@ -103,7 +103,7 @@ def areSamePaths(path1, path2):
     path1 = os.path.abspath(os.path.normpath(path1))
     path2 = os.path.abspath(os.path.normpath(path2))
 
-    if os.path.exists(path1):
+    if os.path.exists(path1) and os.path.exists(path2):
         path1 = getExternalUsePath(path1)
         path2 = getExternalUsePath(path2)
 

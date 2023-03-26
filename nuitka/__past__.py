@@ -176,6 +176,11 @@ else:
     iter_modules = pkgutil.iter_modules
 
 
+try:
+    ExceptionGroup = ExceptionGroup
+except NameError:
+    ExceptionGroup = None
+
 # For PyLint to be happy.
 assert long
 assert unicode

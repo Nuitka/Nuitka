@@ -37,6 +37,8 @@ from nuitka.utils.Yaml import getYamlPackageConfiguration
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
 
+    plugin_desc = "Include data files specified by package configuration files."
+
     def __init__(self):
         self.config = getYamlPackageConfiguration()
 

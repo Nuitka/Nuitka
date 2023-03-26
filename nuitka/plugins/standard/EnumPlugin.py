@@ -31,6 +31,8 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
 
     plugin_name = "enum-compat"
 
+    plugin_desc = "Required for Python2 and 'enum' package."
+
     @classmethod
     def isRelevant(cls):
         return python_version < 0x300
