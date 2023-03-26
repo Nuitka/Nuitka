@@ -30,7 +30,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "pywebview"
-    plugin_desc = "Required by the webview package (pywebview on PyPI)"
+    plugin_desc = "Required by the 'webview' package (pywebview on PyPI)."
 
     @staticmethod
     def isAlwaysEnabled():

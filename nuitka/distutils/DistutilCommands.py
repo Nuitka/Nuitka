@@ -138,6 +138,12 @@ class build(distutils.command.build.build):
                 module_name=script_module_name, parent_package=None, level=0
             )[1]
 
+            if script_module_filename is None:
+                wheel_logger.sysexit(
+                    "Error, failed to locate script containing module '%s'"
+                    % script_module_name
+                )
+
             # Decide package or module.
             (
                 _main_added,
@@ -209,7 +215,9 @@ class build(distutils.command.build.build):
         os.chdir(build_lib)
 
         if self.distribution.package_dir and "" in self.distribution.package_dir:
-            main_package_dir = self.distribution.package_dir.get("")
+            main_package_dir = os.path.join(
+                old_dir, self.distribution.package_dir.get("")
+            )
         else:
             main_package_dir = os.path.abspath(old_dir)
 

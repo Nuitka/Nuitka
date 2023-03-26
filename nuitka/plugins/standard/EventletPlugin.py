@@ -25,7 +25,9 @@ class NuitkaPluginEventlet(NuitkaPluginBase):
     """This class represents the main logic of the plugin."""
 
     plugin_name = "eventlet"
-    plugin_desc = "Support for including 'eventlet' dependencies and its need for 'dns' package monkey patching"
+    plugin_desc = "Support for including 'eventlet' dependencies and its need for 'dns' package monkey patching."
+
+    # TODO: Change this to Yaml configuration.
 
     @staticmethod
     def isAlwaysEnabled():

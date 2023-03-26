@@ -37,6 +37,10 @@ from nuitka.utils.Yaml import getYamlPackageConfiguration
 class NuitkaPluginOptionsNanny(NuitkaPluginBase):
     plugin_name = "options-nanny"
 
+    plugin_desc = (
+        "Inform the user about potential problems as per package configuration files."
+    )
+
     def __init__(self):
         self.config = getYamlPackageConfiguration()
 
