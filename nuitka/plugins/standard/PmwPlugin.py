@@ -72,7 +72,7 @@ files = [
 
 class NuitkaPluginPmw(NuitkaPluginBase):
     plugin_name = "pmw-freezer"
-    plugin_desc = "Required by the Pmw package"
+    plugin_desc = "Required by the 'Pmw' package."
 
     def __init__(self, need_blt, need_color):
         self.need_blt = need_blt

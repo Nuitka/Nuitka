@@ -30,6 +30,8 @@ class NuitkaPluginPbrWorkarounds(NuitkaPluginBase):
 
     plugin_name = "pbr-compat"
 
+    plugin_desc = "Required by the 'pbr' package in standalone mode."
+
     @classmethod
     def isRelevant(cls):
         return Options.isStandaloneMode()

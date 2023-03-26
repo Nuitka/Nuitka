@@ -19,6 +19,6 @@ rem
 
 setlocal
 
-"%~dp0nuitka.bat --run %*
+"%~dp0nuitka.bat --run %*"
 
 endlocal

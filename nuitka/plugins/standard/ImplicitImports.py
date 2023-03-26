@@ -35,6 +35,10 @@ from nuitka.utils.Yaml import getYamlPackageConfiguration
 class NuitkaPluginImplicitImports(NuitkaPluginBase):
     plugin_name = "implicit-imports"
 
+    plugin_desc = (
+        "Provide implicit imports of package as per package configuration files."
+    )
+
     def __init__(self):
         self.config = getYamlPackageConfiguration()
 
@@ -283,9 +287,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
             ):
                 yield "pkg_resources._vendor." + part
 
-        else:
-            for item in self._getImportsByFullname(module=module, full_name=full_name):
-                yield item
+        for item in self._getImportsByFullname(module=module, full_name=full_name):
+            yield item
 
     def _getPackageExtraScanPaths(self, package_dir, config):
         for config_package_dir in config.get("package-dirs", ()):

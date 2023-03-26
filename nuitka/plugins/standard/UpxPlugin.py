@@ -37,7 +37,7 @@ class NuitkaPluginUpx(NuitkaPluginBase):
     """
 
     plugin_name = "upx"  # Nuitka knows us by this name
-    plugin_desc = "Compress created binaries with UPX automatically"
+    plugin_desc = "Compress created binaries with UPX automatically."
 
     def __init__(self, upx_path, upx_nocache):
         self.upx_binary = getExecutablePath("upx", upx_path)
