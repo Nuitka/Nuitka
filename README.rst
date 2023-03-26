@@ -967,8 +967,8 @@ package is missing files and then use ``--include-package-data``
 (preferably), or ``--include-data-dir``/``--include-data-files`` to
 include them.
 
-Missing DLLs in standalone
-==========================
+Missing DLLs/EXEs in standalone
+===============================
 
 Nuitka has plugins that deal with copying DLLs. For NumPy, SciPy,
 Tkinter, etc.
@@ -977,6 +977,12 @@ These need special treatment to be able to run on other systems.
 Manually copying them is not enough and will given strange errors.
 Sometimes newer version of packages, esp. NumPy can be unsupported. In
 this case you will have to raise an issue, and use the older one.
+
+If you want to manually add a DLL or an EXE, because it is your project
+only, you will have to use user Yaml files describing where they can be
+found. This is described in detail with examples in the `Nuitka Package
+Configuration <https://nuitka.net/doc/nuitka-package-config.html>`__
+page.
 
 Dependency creep in standalone
 ==============================
