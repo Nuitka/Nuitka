@@ -39,6 +39,7 @@ from nuitka.ModuleRegistry import (
 from nuitka.Options import (
     getCompilationReportFilename,
     getCompilationReportTemplates,
+    getCompilationReportUserData,
     shallCreateDiffableCompilationReport,
 )
 from nuitka.plugins.Plugins import getActivePlugins
@@ -118,6 +119,8 @@ def _getReportInputData(aborted):
     nuitka_aborted = aborted
 
     nuitka_exception = sys.exc_info()
+
+    user_data = getCompilationReportUserData()
 
     return dict(
         (var_name, var_value)
@@ -240,6 +243,22 @@ def _addMemoryInfosToReport(performance_xml_node, memory_infos, diffable):
             name=key,
             value="volatile" if diffable else str(value),
         )
+
+
+def _addUserDataToReport(root, user_data):
+    if user_data:
+        user_data_xml_node = TreeXML.appendTreeElement(
+            root,
+            "user-data",
+        )
+
+        for key, value in user_data.items():
+            user_data_value_xml_node = TreeXML.appendTreeElement(
+                user_data_xml_node,
+                key,
+            )
+
+            user_data_value_xml_node.text = value
 
 
 def writeCompilationReport(report_filename, report_input_data, diffable):
@@ -391,6 +410,8 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             "path",
             value=_getCompilationReportPath(search_path),
         )
+
+    _addUserDataToReport(root=root, user_data=report_input_data["user_data"])
 
     try:
         putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))

@@ -1035,6 +1035,20 @@ to run. Default is off.""",
 )
 
 tracing_group.add_option(
+    "--report-user-provided",
+    action="append",
+    dest="compilation_report_user_data",
+    metavar="KEY_VALUE",
+    default=[],
+    help="""\
+Report data from you. This can be given multiple times and be
+anything in 'key=value' form, where key should be an identifier, e.g. use
+'--report-user-provided=pipenv-lock-hash=64a5e4' to track some input values.
+Default is empty.""",
+)
+
+
+tracing_group.add_option(
     "--report-template",
     action="append",
     dest="compilation_report_templates",
