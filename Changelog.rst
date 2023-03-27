@@ -41,6 +41,9 @@ Bug fixes
 -  Android: More reliable detection of the Android based Python Flavor.
    Fixed in 1.5.2 already.
 
+-  Standalone: Added data files for ``pytorch_lightning`` and
+   ``lightning_fabric`` packages. Added in 1.5.2 already.
+
 -  Windows: Fix, the preservation of ``PATH`` didn't work on systems
    where this could lead to encoding issues due to reading a MBCS value
    and writing it as a unicode string. We now read and write the
@@ -55,6 +58,22 @@ Bug fixes
 
 -  Anaconda: Fix, using ``numpy`` in a virtualenv and not from conda
    package was crashing. Fixed in 1.5.4 already.
+
+-  Standalone: Added support for ``setuptools``. Due to the anti-bloat
+   work, we didn't notice that if that was not sufficiently usable, the
+   compiled result was not usable. Fixed in 1.5.4 already.
+
+-  Distutils: Added support for pyproject with ``src`` folders. This
+   supports now ``tool.setuptools.packages.find`` with a ``where`` value
+   with pyproject files, where it typically is used like this:
+
+   .. code:: toml
+
+      [tool.setuptools.packages.find]
+      where = ["src"]
+
+-  Windows: Fix, the ``nuitka-run`` batch file was not working. Fixed in
+   1.5.4 already.
 
 New Features
 ============
@@ -72,8 +91,8 @@ Optimization
 -  Anti-Bloat: Remove ``IPython`` usage in ``huggingface_hub`` package
    versions. Added in 1.5.2 already.
 
--  Anti-Bloat: Added data files for ``pytorch_lightning`` and
-   ``lightning_fabric`` packages.
+-  Anti-Bloat: Avoid ``IPython`` usage in ``tokenizers`` module. Added
+   in 1.5.4 already.
 
 -  Added support for module type as a constant value. We want to add all
    types we have shapes for to allow better ``type(x)`` optimization.
@@ -99,6 +118,14 @@ Organisational
 
 -  UI: Make it clear that partially supported versions are considered
    experimental, not unsupported. Fixed in 1.5.2 already.
+
+-  Plugins: Do not list deprecated plugins with ``plugin-list``, they do
+   not have any effect, but listing them, makes people use them still.
+   Fixed in 1.5.4 already.
+
+-  Plugins: Make sure all plugins have descriptions. Some didn't have
+   any yet, and sometimes the wording was improved. Fixed in 1.5.4
+   already.
 
 Cleanups
 ========
