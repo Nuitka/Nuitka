@@ -69,7 +69,11 @@ Do not cache UPX compression result, by default DLLs are cached, exe files are n
     def _filterUpxError(stderr):
         new_result = None
 
-        if b"NotCompressibleException" in stderr or b"CantPackException" in stderr:
+        if (
+            b"NotCompressibleException" in stderr
+            or b"CantPackException" in stderr
+            or b"AlreadyPackedException" in stderr
+        ):
             stderr = b""
             new_result = 0
 
