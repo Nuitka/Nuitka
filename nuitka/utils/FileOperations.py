@@ -723,6 +723,30 @@ def putTextFileContents(filename, contents, encoding=None):
             _writeContents(output_file)
 
 
+def changeTextFileContents(filename, contents, encoding=None, compare_only=False):
+    """Write a text file from given contents.
+
+    Args:
+        filename: str with the file to be created or updated
+        contents: str
+        encoding: optional encoding to used when writing the file
+
+    Returns:
+        change indication for existing file if any
+    """
+
+    if (
+        not os.path.isfile(filename)
+        or getFileContents(filename, encoding=encoding) != contents
+    ):
+        if not compare_only:
+            putTextFileContents(filename, contents)
+
+        return True
+    else:
+        return False
+
+
 @contextmanager
 def withPreserveFileMode(filenames):
     if type(filenames) is str:
