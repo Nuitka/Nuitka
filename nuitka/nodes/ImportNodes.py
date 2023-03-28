@@ -483,6 +483,9 @@ class ExpressionImportModuleFixed(ExpressionBase):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
+        # Trace the module usage attempt.
+        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
+
         # Nothing to do about it.
         return self, None, None
 
