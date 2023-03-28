@@ -60,7 +60,7 @@ preloaded_packages = None
 
 
 def getPreloadedPackagePaths():
-    """Return dictionrary with preloaded package paths from .pth files"""
+    """Return dictionary with preloaded package paths from .pth files"""
 
     # We need to set this from the outside, pylint: disable=global-statement
     global preloaded_packages
