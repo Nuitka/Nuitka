@@ -1722,7 +1722,7 @@ def _getPythonFlags():
             for part in parts.split(","):
                 if part in ("-S", "nosite", "no_site"):
                     _python_flags.add("no_site")
-                elif part in ("site"):
+                elif part in ("site",):
                     if "no_site" in _python_flags:
                         _python_flags.remove("no_site")
                 elif part in (
