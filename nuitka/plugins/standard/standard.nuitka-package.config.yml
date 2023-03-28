@@ -1367,8 +1367,21 @@
     - from_filenames:
         relative_path: 'capi'
         prefixes:
-          - 'onnxruntime'
+          - 'onnxruntime_providers_shared'
       when: 'win32'
+    - from_filenames:
+        relative_path: 'capi'
+        prefixes:
+          - 'libonnxruntime_providers_shared'
+        suffixes:
+          - 'so'
+      dest_path: '.'
+      when: 'linux'
+
+- module-name: 'onnxruntime.capi.onnxruntime_pybind11_state'
+  implicit-imports:
+    - depends:
+        - 'numpy'
 
 - module-name: 'openapi_spec_validator'
   data-files:
