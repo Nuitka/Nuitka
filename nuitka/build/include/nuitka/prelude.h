@@ -130,6 +130,15 @@ extern _PyRuntimeState _PyRuntime;
 #include <internal/pycore_gc.h>
 #endif
 
+// Uncompiled generator integration requires these.
+#if PYTHON_VERSION >= 0x3b0
+#include <internal/pycore_opcode.h>
+// Clashes with our helper names.
+#undef LIST_EXTEND
+#undef CALL_FUNCTION
+#undef IMPORT_NAME
+#endif
+
 #ifndef PY_NOGIL
 #undef PyThreadState_GET
 #define _PyThreadState_Current _PyRuntime.gilstate.tstate_current

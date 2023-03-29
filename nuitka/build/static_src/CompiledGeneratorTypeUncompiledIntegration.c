@@ -350,20 +350,59 @@ static PyObject *Nuitka_PyGen_Send(PyGenObject *gen, PyObject *arg) {
 #endif
 
 // TODO: Disabled for NOGIL until it becomes more ready.
-// TODO: Disable for Python3.11 initially
-#if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL) && PYTHON_VERSION < 0x3b0
+// Not done for earlier versions yet, indicate usability for compiled
+// generators, but it seems that mostly coroutines need it anyway, so the
+// benefit would be only for performance and not by a lot.
+#if PYTHON_VERSION >= 0x340 && !defined(PY_NOGIL)
+#define NUITKA_UNCOMPILED_THROW_INTEGRATION 1
+#endif
 
-// Clashes with our helper names.
+// TODO: Disable for Python3.11 initially
+#if PYTHON_VERSION >= 0x3B0 && !defined(_NUITKA_EXPERIMENTAL_UNCOMPILED_THROW_INTEGRATION)
+#undef NUITKA_UNCOMPILED_THROW_INTEGRATION
+#define NUITKA_UNCOMPILED_THROW_INTEGRATION 0
+#endif
+
+#if NUITKA_UNCOMPILED_THROW_INTEGRATION
+
+#if PYTHON_VERSION < 0x3B0
 #include <opcode.h>
+// Clashes with our helper names.
 #undef LIST_EXTEND
 #undef CALL_FUNCTION
 #undef IMPORT_NAME
-
-// Not done for earlier versions yet, indicate usability for compiled generators.
-#define NUITKA_UNCOMPILED_THROW_INTEGRATION 1
+#endif
 
 static PyObject *Nuitka_PyGen_gen_close(PyGenObject *gen, PyObject *args);
 
+// Restarting with 3.11, because the structures and internal API have
+// changed so much, makes no sense to keep it in one code. For older
+// versions, the else branch is there.
+#if PYTHON_VERSION >= 0x3b0
+PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {
+    PyObject *yf = NULL;
+
+    if (gen->gi_frame_state < FRAME_CLEARED) {
+        _PyInterpreterFrame *frame = (_PyInterpreterFrame *)gen->gi_iframe;
+
+        if (gen->gi_frame_state == FRAME_CREATED) {
+            return NULL;
+        }
+
+        _Py_CODEUNIT next = frame->prev_instr[1];
+        if (_PyOpcode_Deopt[_Py_OPCODE(next)] != RESUME || _Py_OPARG(next) < 2) {
+            return NULL;
+        }
+
+        yf = _PyFrame_StackPeek(frame);
+
+        Py_INCREF(yf);
+    }
+
+    return yf;
+}
+
+#else
 static PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {
     PyFrameObject *f = gen->gi_frame;
 
@@ -402,6 +441,7 @@ static PyObject *Nuitka_PyGen_yf(PyGenObject *gen) {
         return NULL;
     }
 }
+#endif
 
 static PyObject *Nuitka_PyGen_gen_send_ex(PyGenObject *gen, PyObject *arg, int exc, int closing) {
     PyThreadState *tstate = PyThreadState_GET();
