@@ -577,6 +577,13 @@ def _unpackPathElement(path_entry):
     return path_entry
 
 
+def getPythonUnpackedSearchPath():
+    """Python search path with with eggs unpacked."""
+
+    # TODO: Maybe cache this for a given "sys.path" as we do IO checks each time.
+    return [_unpackPathElement(path_element) for path_element in sys.path]
+
+
 def getPackageSearchPath(package_name):
     assert _main_paths
 
@@ -584,7 +591,7 @@ def getPackageSearchPath(package_name):
         result = (
             [os.getcwd()]
             + list(_main_paths)
-            + [_unpackPathElement(path_element) for path_element in sys.path]
+            + getPythonUnpackedSearchPath()
             + list(_extra_paths)
         )
     elif "." in package_name:

@@ -1061,6 +1061,15 @@ except ImportError:
         # Virtual method, pylint: disable=unused-argument
         return self.plugin_name
 
+    def decideAllowOutsideDependencies(self, module_name):
+        """Decide if outside of Python dependencies are allowed.
+
+        Returns:
+            None (no opinion for that module), True (yes) or False (no)
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     @staticmethod
     def getPackageVersion(distribution_name):
         """Provide package version of a distribution."""

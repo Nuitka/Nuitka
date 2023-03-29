@@ -1268,6 +1268,45 @@ class Plugins(object):
             for value in plugin.getCacheContributionValues(module_name):
                 yield value
 
+    @classmethod
+    def decideAllowOutsideDependencies(cls, module_name):
+        if not Options.isExperimental("no-outside-dependencies"):
+            return None
+
+        result = None
+        plugin_name = None
+
+        if module_name is not None:
+            for plugin in getActivePlugins():
+                value = plugin.decideAllowOutsideDependencies(module_name)
+
+                if value is True:
+                    if result is False:
+                        plugin.sysexit(
+                            "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
+                            % plugin_name
+                        )
+
+                    result = True
+                    plugin_name = plugin.plugin_name
+
+                elif value is False:
+                    if result is False:
+                        plugin.sysexit(
+                            "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
+                            % plugin_name
+                        )
+
+                    result = False
+                    plugin_name = plugin.plugin_name
+                elif value is not None:
+                    plugin.sysexit(
+                        "Error, can only return True, False, None from 'decideAllowOutsideDependencies' not %r"
+                        % value
+                    )
+
+        return result
+
 
 def listPlugins():
     """Print available standard plugins."""

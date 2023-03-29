@@ -40,7 +40,13 @@ from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isDebianBasedLinux,
+    isLinux,
+    isMacOS,
+    isWin32Windows,
+)
 
 # Use to detect the Qt plugin that is active and check for conflicts.
 _qt_binding_names = getQtBindingNames()
@@ -854,6 +860,17 @@ Prefix = .
             )
 
         self.web_engine_done_binaries = True  # prevent multiple copies
+
+    def decideAllowOutsideDependencies(self, module_name):
+        if isLinux() and module_name.hasNamespace(self.binding_name):
+            if isDebianBasedLinux():
+                module_filename = self.locateModule(self.binding_name)
+
+                return "dist-packages" in module_filename.split("/")
+            else:
+                return False
+
+        return None
 
     def getExtraDlls(self, module):
         # pylint: disable=too-many-branches
