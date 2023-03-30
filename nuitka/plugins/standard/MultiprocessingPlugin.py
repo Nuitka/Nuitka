@@ -72,11 +72,17 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
             code = """\
 import sys, os
 sys.frozen = 1
-if sys.platform == "win32" and not os.path.exists(sys.argv[0]) and not sys.argv[0].endswith(".exe"):
-    sys.executable = sys.argv[0] + ".exe"
-else:
-    sys.executable = sys.argv[0]
-"""
+argv0 = sys.argv[0]
+if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(".exe"):
+    argv0 += ".exe"
+
+sys.executable = %s
+sys._base_executable = sys.executable
+""" % (
+                "os.path.join(os.path.dirname(sys.executable), os.path.basename(argv0))"
+                if Options.isStandaloneMode()
+                else "argv0"
+            )
             return (
                 code,
                 """\
