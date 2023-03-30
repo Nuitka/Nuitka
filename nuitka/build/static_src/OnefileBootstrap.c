@@ -1143,7 +1143,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");
 
     if (bool_res == false) {
-        fatalErrorChild("Error, couldn't launch child.", GetLastError());
+        fatalErrorChild("Error, couldn't launch child", GetLastError());
     }
 
     CloseHandle(pi.hThread);
@@ -1192,12 +1192,12 @@ int main(int argc, char **argv) {
 
         cleanupChildProcess(false);
 
-        fatalErrorChild("Error, couldn't launch child (fork).", error_code);
+        fatalErrorChild("Error, couldn't launch child (fork)", error_code);
     } else if (pid == 0) {
         // Child process
         execv(first_filename, argv);
 
-        fatalErrorChild("Error, couldn't launch child (exec).", errno);
+        fatalErrorChild("Error, couldn't launch child (exec)", errno);
     } else {
         // Onefile bootstrap process
         handle_process = pid;
