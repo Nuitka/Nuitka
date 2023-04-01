@@ -18,11 +18,11 @@
 """Data composer, crunch constants into binary blobs to load. """
 
 import binascii
-import math
 import os
 import re
 import struct
 import sys
+from math import copysign, isinf, isnan
 
 from nuitka.__past__ import (
     BytesIO,
@@ -169,17 +169,17 @@ def _writeConstantValue(output, constant_value):
         output.write(b"i" + struct.pack("l", constant_value))
     elif constant_type is float:
         if constant_value == 0.0:
-            if math.copysign(1, constant_value) == 1:
+            if copysign(1, constant_value) == 1:
                 output.write(b"Z" + to_byte(0))
             else:
                 output.write(b"Z" + to_byte(1))
-        elif math.isnan(constant_value):
-            if math.copysign(1, constant_value) == 1:
+        elif isnan(constant_value):
+            if copysign(1, constant_value) == 1:
                 output.write(b"Z" + to_byte(2))
             else:
                 output.write(b"Z" + to_byte(3))
-        elif math.isinf(constant_value):
-            if math.copysign(1, constant_value) == 1:
+        elif isinf(constant_value):
+            if copysign(1, constant_value) == 1:
                 output.write(b"Z" + to_byte(4))
             else:
                 output.write(b"Z" + to_byte(5))
@@ -251,10 +251,10 @@ def _writeConstantValue(output, constant_value):
         if (
             constant_value.real == 0
             or constant_value.imag == 0
-            or math.isnan(constant_value.real)
-            or math.isnan(constant_value.imag)
-            or math.isinf(constant_value.real)
-            or math.isinf(constant_value.imag)
+            or isnan(constant_value.real)
+            or isnan(constant_value.imag)
+            or isinf(constant_value.real)
+            or isinf(constant_value.imag)
         ):
             output.write(b"J")
 
