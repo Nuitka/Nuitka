@@ -1034,7 +1034,7 @@ Onefile: Finding files
 ======================
 
 There is a difference between ``sys.argv[0]`` and ``__file__`` of the
-main module for onefile more, that is caused by using a bootstrap to a
+main module for onefile mode, that is caused by using a bootstrap to a
 temporary location. The first one will be the original executable path,
 where as the second one will be the temporary or permanent path the
 bootstrap executable unpacks to. Data files will be in the later
