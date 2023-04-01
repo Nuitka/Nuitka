@@ -182,8 +182,11 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
             } else {
                 *w = 0;
 
+                bool is_path = false;
+
                 if (wcsicmp(var_name, L"TEMP") == 0) {
                     GetTempPathW((DWORD)buffer_size, target);
+                    is_path = true;
                 } else if (wcsicmp(var_name, L"PROGRAM") == 0) {
 #if _NUITKA_ONEFILE_TEMP_BOOL == 1
                     appendWStringSafeW(target, __wargv[0], buffer_size);
@@ -201,10 +204,12 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                     if (appendStringCSIDLPathW(target, CSIDL_PROFILE, buffer_size) == false) {
                         return false;
                     }
+                    is_path = true;
                 } else if (wcsicmp(var_name, L"CACHE_DIR") == 0) {
                     if (appendStringCSIDLPathW(target, CSIDL_LOCAL_APPDATA, buffer_size) == false) {
                         return false;
                     }
+                    is_path = true;
 #ifdef NUITKA_COMPANY_NAME
                 } else if (wcsicmp(var_name, L"COMPANY") == 0) {
                     appendWStringSafeW(target, L"" NUITKA_COMPANY_NAME, buffer_size);
@@ -235,6 +240,14 @@ bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_s
                 while (*target) {
                     target++;
                     buffer_size -= 1;
+                }
+
+                if (is_path) {
+                    while (*(target - 1) == FILENAME_SEP_CHAR) {
+                        target--;
+                        *target = 0;
+                        buffer_size += 1;
+                    }
                 }
 
                 w = NULL;
@@ -286,6 +299,8 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
             } else {
                 *w = 0;
 
+                bool is_path = false;
+
                 if (strcasecmp(var_name, "TEMP") == 0) {
                     char const *tmp_dir = getenv("TMPDIR");
                     if (tmp_dir == NULL) {
@@ -293,6 +308,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                     }
 
                     appendStringSafe(target, tmp_dir, buffer_size);
+                    is_path = true;
                 } else if (strcasecmp(var_name, "PROGRAM") == 0) {
                     // Not implemented outside of Windows yet.
                     return false;
@@ -316,6 +332,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                     }
 
                     appendStringSafe(target, home_path, buffer_size);
+                    is_path = true;
                 } else if (strcasecmp(var_name, "CACHE_DIR") == 0) {
                     if (expandTemplatePath(target, "%HOME%", buffer_size - strlen(target)) == false) {
                         return false;
@@ -323,6 +340,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                     appendCharSafe(target, '/', buffer_size);
                     appendStringSafe(target, ".cache", buffer_size);
+                    is_path = true;
 #ifdef NUITKA_COMPANY_NAME
                 } else if (strcasecmp(var_name, "COMPANY") == 0) {
                     appendStringSafe(target, NUITKA_COMPANY_NAME, buffer_size);
@@ -347,11 +365,18 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
                 } else {
                     return false;
                 }
-
                 // Skip over appended stuff.
                 while (*target) {
                     target++;
                     buffer_size -= 1;
+                }
+
+                if (is_path) {
+                    while (*(target - 1) == FILENAME_SEP_CHAR) {
+                        target--;
+                        *target = 0;
+                        buffer_size += 1;
+                    }
                 }
 
                 w = NULL;
