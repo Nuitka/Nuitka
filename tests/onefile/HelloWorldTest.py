@@ -21,4 +21,10 @@ from __future__ import print_function
 
 # nuitka-project: --onefile
 
+# Lets have some version information to coverage purposes in here too.
+
+# nuitka-project: --company-name="Nuitka Test Company"
+# nuitka-project: --product-name="Hello World Deluxe"
+# nuitka-project: --product-version=1
+
 print("Hello Onefile World!")
