@@ -235,6 +235,7 @@ static size_t stream_end_pos;
 
 #ifdef _NUITKA_PAYLOAD_FROM_MACOS_SECTION
 
+#include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
 static unsigned char *findMacOSBinarySection(void) {
@@ -242,7 +243,7 @@ static unsigned char *findMacOSBinarySection(void) {
 
     unsigned long section_size;
 
-    unsigned char *result = getsectdata("payload", "payload", &section_size) + (uintptr_t)header;
+    unsigned char *result = getsectiondata(header, "payload", "payload", &section_size);
     stream_end_pos = (size_t)section_size;
 
     return result;
