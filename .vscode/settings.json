@@ -41,7 +41,13 @@
         "initializer_list": "c",
         "ranges": "c",
         "chrono": "c",
-        "ratio": "c"
+        "ratio": "c",
+        "__hash_table": "c",
+        "__split_buffer": "c",
+        "bitset": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c"
     },
     "python.linting.pylintArgs": [
         "--disable=I0011,I0012,no-init,bad-whitespace,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none",
