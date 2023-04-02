@@ -1270,7 +1270,7 @@
 - module-name: 'numpy.random'
   implicit-imports:
     - depends:
-      # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
+        # These are post-1.18 names. TODO: Once we detect versions of packages, be proper selective here.
         - 'numpy.random._bit_generator'
         - 'numpy.random._bounded_integers'
         - 'numpy.random._common'
@@ -1280,7 +1280,7 @@
         - 'numpy.random._philox'
         - 'numpy.random._sfc64'
 
-      # These are pre-1.18 names
+        # These are pre-1.18 names
         - 'numpy.random.bit_generator'
         - 'numpy.random.bounded_integers'
         - 'numpy.random.common'
@@ -1290,7 +1290,7 @@
         - 'numpy.random.philox'
         - 'numpy.random.sfc64'
 
-      # TODO: Clarify if entropy is needed for 1.18 or at all.
+        # TODO: Clarify if entropy is needed for 1.18 or at all.
         - 'numpy.random.entropy'
         - 'numpy.random.mtrand'
 
@@ -1955,6 +1955,16 @@
     dirs:
       - 'data'
 
+- module-name: 'pymoo.cython'
+  implicit-imports:
+    - depends:
+        - 'pymoo.cython.*'
+
+- module-name: 'pymoo.gradient.toolbox'
+  implicit-imports:
+    - depends:
+        - 'autograd.numpy'
+
 - module-name: 'pyparsing'
   anti-bloat:
     - description: 'remove pdb usage'
@@ -2528,9 +2538,9 @@
       - 'words.txt'
 
 - module-name: 'setuptools.extern'
-# TODO: Vendor importers should maybe get their own thing, pkg_resources does
-# similar, and we might try and avoid duplication between the two of them on
-# some level.
+  # TODO: Vendor importers should maybe get their own thing, pkg_resources does
+  # similar, and we might try and avoid duplication between the two of them on
+  # some level.
   implicit-imports:
     - depends:
         - 'setuptools._vendor.*'
