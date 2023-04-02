@@ -50,16 +50,22 @@ def _getExecutablePath(filename, search_path):
         path_element = path_element.strip('"')
         path_element = os.path.expanduser(path_element)
 
+        candidate = None
+
         if os.path.isfile(path_element):
             if os.path.normcase(os.path.basename(path_element)) == os.path.normcase(
                 filename
             ):
-                return path_element
+                candidate = path_element
         else:
             full = os.path.join(path_element, filename)
 
             if os.path.exists(full):
-                return full
+                candidate = full
+
+        if candidate is not None:
+            if os.access(candidate, os.X_OK):
+                return candidate
 
 
 def getExecutablePath(filename, extra_dir=None):
