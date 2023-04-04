@@ -30,6 +30,9 @@
 #define FILENAME_TMP_STR L".tmp"
 #define FILENAME_AWAY_STR L".away"
 #define expandTemplatePathFilename expandTemplatePathW
+#define strlenFilename wcslen
+#define strcmpFilename wcscmp
+#define strdupFilename wcsdup
 #else
 #define filename_char_t char
 #define FILENAME_EMPTY_STR ""
@@ -41,6 +44,9 @@
 #define FILENAME_TMP_STR ".tmp"
 #define FILENAME_AWAY_STR ".away"
 #define expandTemplatePathFilename expandTemplatePath
+#define strlenFilename strlen
+#define strcmpFilename strcmp
+#define strdupFilename strdup
 #endif
 
 #if defined(_WIN32)

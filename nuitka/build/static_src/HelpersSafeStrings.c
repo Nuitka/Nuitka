@@ -317,7 +317,7 @@ bool expandTemplatePath(char *target, char const *source, size_t buffer_size) {
 
                     appendStringSafe(target, home_path, buffer_size);
                 } else if (strcasecmp(var_name, "CACHE_DIR") == 0) {
-                    if (expandTemplatePath(target, "HOME", buffer_size - strlen(target)) == false) {
+                    if (expandTemplatePath(target, "%HOME%", buffer_size - strlen(target)) == false) {
                         return false;
                     }
 

@@ -135,8 +135,7 @@ static void printError(char const *message, error_code_t error_code) {
     FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
                   error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
 
-    puts(message);
-    puts(err_buffer);
+    printf("%s ([Error %d] %s)\n", message, error_code, err_buffer);
 #else
     printf("%s: %s\n", message, strerror(error_code));
     perror(message);
@@ -236,6 +235,7 @@ static size_t stream_end_pos;
 
 #ifdef _NUITKA_PAYLOAD_FROM_MACOS_SECTION
 
+#include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
 static unsigned char *findMacOSBinarySection(void) {
@@ -243,7 +243,7 @@ static unsigned char *findMacOSBinarySection(void) {
 
     unsigned long section_size;
 
-    unsigned char *result = getsectdata("payload", "payload", &section_size) + (uintptr_t)header;
+    unsigned char *result = getsectiondata(header, "payload", "payload", &section_size);
     stream_end_pos = (size_t)section_size;
 
     return result;
@@ -465,34 +465,89 @@ static filename_char_t payload_path[4096] = {0};
 static bool payload_created = false;
 #endif
 
+#define MAX_CREATED_DIRS 1024
+static filename_char_t *created_dir_paths[MAX_CREATED_DIRS];
+int created_dir_count = 0;
+
 static bool createDirectory(filename_char_t const *path) {
+    bool bool_res;
+
 #if defined(_WIN32)
-    BOOL bool_res = CreateDirectoryW(path, NULL);
-    return bool_res;
-#else
-    return mkdir(path, 0700) == 0;
+    if (created_dir_count == 0) {
+        filename_char_t home_path[4096];
+        wchar_t *pattern = L"%HOME%";
+
+        bool_res = expandTemplatePathFilename(home_path, pattern, sizeof(payload_path) / sizeof(filename_char_t));
+
+        if (unlikely(bool_res == false)) {
+            fatalErrorSpec(pattern);
+        }
+
+        created_dir_paths[created_dir_count] = wcsdup(home_path);
+        created_dir_count += 1;
+    }
 #endif
+
+    for (int i = 0; i < created_dir_count; i++) {
+        if (strcmpFilename(path, created_dir_paths[i]) == 0) {
+            return true;
+        }
+    }
+
+#if defined(_WIN32)
+    // On Windows, lets ignore drive letters.
+    if (strlenFilename(path) == 2 && path[1] == L':') {
+        return true;
+    }
+#endif
+
+#if defined(_WIN32)
+    bool_res = CreateDirectoryW(path, NULL);
+
+    if (bool_res == false && GetLastError() == 183) {
+        bool_res = true;
+    }
+#else
+    if (access(path, F_OK) != -1) {
+        bool_res = true;
+    } else {
+        bool_res = mkdir(path, 0700) == 0;
+    }
+#endif
+
+    if (bool_res != false && created_dir_count < MAX_CREATED_DIRS) {
+        created_dir_paths[created_dir_count] = strdupFilename(path);
+        created_dir_count += 1;
+    }
+
+    return bool_res;
 }
 
-static void createContainingDirectory(filename_char_t const *path) {
-    static filename_char_t dir_path[4096] = {0};
+static bool createContainingDirectory(filename_char_t const *path) {
+    filename_char_t dir_path[4096] = {0};
     dir_path[0] = 0;
 
     appendStringSafeFilename(dir_path, path, sizeof(dir_path) / sizeof(filename_char_t));
 
-    filename_char_t *w = dir_path;
+    filename_char_t *w = dir_path + strlenFilename(dir_path);
 
-    while (*w) {
+    while (w > dir_path) {
         if (*w == FILENAME_SEP_CHAR) {
             *w = 0;
 
-            createDirectory(dir_path);
+            bool res = createDirectory(dir_path);
+            if (res != false) {
+                return true;
+            }
 
-            *w = FILENAME_SEP_CHAR;
+            createContainingDirectory(dir_path);
+            return createDirectory(dir_path);
         }
 
-        w++;
+        w--;
     }
+
+    return true;
 }
 
 #if defined(_WIN32)
@@ -734,7 +789,7 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
         // Handle the CTRL-C signal.
     case CTRL_C_EVENT:
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-C event");
 #endif
         cleanupChildProcess(false);
@@ -742,7 +797,7 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 
         // CTRL-CLOSE: confirm that the user wants to exit.
     case CTRL_CLOSE_EVENT:
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-Close event");
 #endif
         cleanupChildProcess(false);
@@ -750,21 +805,21 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 
         // Pass other signals to the next handler.
     case CTRL_BREAK_EVENT:
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-Break event");
 #endif
         cleanupChildProcess(false);
         return FALSE;
 
     case CTRL_LOGOFF_EVENT:
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-Logoff event");
 #endif
         cleanupChildProcess(false);
         return FALSE;
 
     case CTRL_SHUTDOWN_EVENT:
-#if _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_HANDLING
         puts("Ctrl-Shutdown event");
 #endif
         cleanupChildProcess(false);
