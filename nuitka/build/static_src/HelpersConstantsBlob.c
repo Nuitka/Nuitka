@@ -1166,6 +1166,7 @@ static void unpackBlobConstants(PyObject **output, unsigned char const *data) {
 
 #if _NUITKA_CONSTANTS_FROM_MACOS_SECTION
 
+#include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 
 #ifndef _NUITKA_EXE
@@ -1197,20 +1198,15 @@ static int findMacOSDllImageId(void) {
 unsigned char *findMacOSBinarySection(void) {
 #ifdef _NUITKA_EXE
     const struct mach_header *header = &_mh_execute_header;
-
-    unsigned long *size;
-    return getsectdata("constants", "constants", &size) + (uintptr_t)header;
 #else
     int image_id = findMacOSDllImageId();
     assert(image_id != -1);
 
     const struct mach_header *header = _dyld_get_image_header(image_id);
+#endif
 
     unsigned long *size;
-    unsigned char *result = getsectdatafromheader_64(header, "constants", "constants", &size) + (uintptr_t)header;
-
-    return result;
-#endif
+    return getsectiondata(header, "constants", "constants", &size);
 }
 
 #endif
