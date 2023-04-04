@@ -316,7 +316,7 @@ def getFileList(
 
     Returns:
         Sorted list of all filenames below that directory,
-        relative to it.
+        include the path given.
 
     Notes:
         This function descends into directories, but does
@@ -842,6 +842,9 @@ def queryUser(question, choices, default, default_non_interactive):
         reply = raw_input() or default
     except EOFError:
         reply = default_non_interactive
+
+    if reply == "y":
+        reply = "yes"
 
     return reply.lower()
 
