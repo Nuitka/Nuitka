@@ -45,7 +45,7 @@ sys.path.insert(
 
 from nuitka.tools.testing.Common import (
     checkLoadedFileAccesses,
-    checkRequirements,
+    checkTestRequirements,
     compareWithCPython,
     createSearchMode,
     displayFileContents,
@@ -122,7 +122,7 @@ def main():
             extra_flags.append("--send-ctrl-c")
 
         # skip each test if their respective requirements are not met
-        requirements_met, error_message = checkRequirements(filename)
+        requirements_met, error_message = checkTestRequirements(filename)
         if not requirements_met:
             reportSkip(error_message, ".", filename)
             continue
