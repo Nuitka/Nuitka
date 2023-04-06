@@ -19,6 +19,7 @@
 
 #ifdef __IDE_ONLY__
 #include "HelpersSafeStrings.c"
+#include "nuitka/tracing.h"
 #include <windows.h>
 #endif
 
@@ -32,7 +33,7 @@
 IStream *createImageStream(void) {
 
     // Load the resource with image data
-    HRSRC res_handle = FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA);
+    HRSRC res_handle = FindResource(NULL, MAKEINTRESOURCE(28), RT_RCDATA);
     if (res_handle == NULL) {
         return NULL;
     }
@@ -221,6 +222,8 @@ static void initSplashScreen(void) {
     CloseHandle(handle_splash_file);
 
     splash_active = true;
+
+    NUITKA_PRINT_TIMING("ONEFILE: Done with splash screen.");
 }
 
 static void closeSplashScreen(void) {

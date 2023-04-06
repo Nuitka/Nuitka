@@ -256,6 +256,17 @@ static void initPayloadData(void) {
 
 static void closePayloadData(void) {}
 
+#elif defined(_WIN32)
+
+static void initPayloadData(void) {
+    payload_data =
+        (const unsigned char *)LockResource(LoadResource(NULL, FindResource(NULL, MAKEINTRESOURCE(27), RT_RCDATA)));
+    payload_current = payload_data;
+}
+
+// Note: it appears unlocking the resource is not actually foreseen.
+static void closePayloadData(void) {}
+
 #else
 
 static struct MapFileToMemoryInfo exe_file_mapped;
@@ -753,44 +764,6 @@ static void cleanupChildProcess(bool send_sigint) {
 }
 
 #if defined(_WIN32)
-static char *convertUnicodePathToAnsi(wchar_t const *path) {
-    // first get short path as otherwise, conversion might not be reliable
-    DWORD l = GetShortPathNameW(path, NULL, 0);
-    wchar_t *short_path = (wchar_t *)malloc(sizeof(wchar_t) * (l + 1));
-    if (short_path == NULL) {
-        fatalErrorMemory();
-    }
-
-    l = GetShortPathNameW(path, short_path, l);
-    if (unlikely(l == 0)) {
-        goto err_short_path;
-    }
-
-    size_t i;
-    if (unlikely(wcstombs_s(&i, NULL, 0, short_path, _TRUNCATE) != 0)) {
-        goto err_short_path;
-    }
-    char *ansi_path = (char *)malloc(i);
-    if (ansi_path == NULL) {
-        fatalErrorMemory();
-    }
-    if (unlikely(wcstombs_s(&i, ansi_path, i, short_path, _TRUNCATE) != 0)) {
-        goto err_ansi_path;
-    }
-
-    free(short_path);
-
-    return ansi_path;
-
-err_ansi_path:
-    free(ansi_path);
-err_short_path:
-    free(short_path);
-    return NULL;
-}
-#endif
-
-#if defined(_WIN32)
 BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
         // Handle the CTRL-C signal.
@@ -893,45 +866,9 @@ int main(int argc, char **argv) {
 
     initPayloadData();
 
-#if defined(_WIN32)
-    /* if an application is signed, the signature is at the end of the file
-       where we normally expect the start position of out container.
-       the overcome this limitation, use the windows function MapAndLoad()
-       to parse the PE header. The header contains information whether
-       a signature is present and at which address the first signature
-       start. so we can use that address to find the start position value */
-    DWORD cert_table_addr = 0;
-
-    char *exe_filename_a = convertUnicodePathToAnsi(getBinaryPath());
-    if (exe_filename_a) {
-        LOADED_IMAGE loaded_image;
-        if (MapAndLoad(exe_filename_a, "\\dont-search-path", &loaded_image, false, true)) {
-            if (loaded_image.FileHeader) {
-                if (loaded_image.FileHeader->OptionalHeader.NumberOfRvaAndSizes > IMAGE_DIRECTORY_ENTRY_SECURITY) {
-                    cert_table_addr =
-                        loaded_image.FileHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]
-                            .VirtualAddress;
-                    // printf("Certificate Table at: %d\n", cert_table_addr);
-                }
-            }
-            UnMapAndLoad(&loaded_image);
-        }
-
-        free(exe_filename_a);
-    }
-
-    off_t size_end_offset;
-
-    if (cert_table_addr == 0) {
-        size_end_offset = (off_t)exe_file_mapped.file_size;
-    } else {
-        size_end_offset = (off_t)cert_table_addr;
-    }
-#elif !defined(_NUITKA_PAYLOAD_FROM_MACOS_SECTION)
+#if !defined(_NUITKA_PAYLOAD_FROM_MACOS_SECTION) && !defined(_WIN32)
     const off_t size_end_offset = exe_file_mapped.file_size;
-#endif
 
-#if !defined(_NUITKA_PAYLOAD_FROM_MACOS_SECTION)
     NUITKA_PRINT_TIMING("ONEFILE: Determining payload start position.");
 
     unsigned long long payload_size;
@@ -969,7 +906,7 @@ int main(int argc, char **argv) {
     static filename_char_t first_filename[1024] = {0};
 
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
-    NUITKA_PRINT_TIMING("ONEFILE: Splash screen.");
+    NUITKA_PRINT_TIMING("ONEFILE: Init splash screen.");
 
     initSplashScreen();
 #endif
