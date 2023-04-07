@@ -214,6 +214,10 @@ def enableCcache(
 
 
 def enableClcache(env, source_dir):
+    # We allow using Python2 still
+    if sys.version_info < (3, 5):
+        return
+
     importFromInlineCopy("atomicwrites", must_exist=True)
     importFromInlineCopy("clcache", must_exist=True)
 

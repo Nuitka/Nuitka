@@ -18,7 +18,7 @@ if __name__ == "__main__":
     if sys.version_info < (2, 7):
         # Non-Windows, Python 2.6, mostly older RHEL
         scons_version = "scons-2.3.2"
-    elif os.name == "nt":
+    elif os.name == "nt" and sys.version_info >= (3, 5):
         # Windows can use latest, supported MSVC 2022 this way
         scons_version = "scons-4.3.0"
     else:
