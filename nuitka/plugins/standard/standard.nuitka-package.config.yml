@@ -1294,6 +1294,11 @@
         - 'numpy.random.entropy'
         - 'numpy.random.mtrand'
 
+- module-name: 'numpy.random.bit_generator'
+  implicit-imports:
+    - depends:
+        - 'secrets'
+
 - module-name: 'numpy.testing'
   anti-bloat:
     - description: 'remove numpy testing framework'
@@ -2700,6 +2705,11 @@
         - 'enum'
       when: 'before_python3'
 
+- module-name: 'six'
+  implicit-imports:
+    - depends:
+        - 'queue'
+
 - module-name: 'skimage'
   data-files:
     dirs:
@@ -4050,6 +4060,11 @@
         - 'urllib.parse'
         - 'urllib.request'
         - 'urllib.response'
+
+- module-name: 'urllib3.packages.six'
+  implicit-imports:
+    - depends:
+        - 'queue'
 
 - module-name: 'uvicorn'
   implicit-imports:
