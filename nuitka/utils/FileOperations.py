@@ -1001,6 +1001,48 @@ def getWindowsShortPathName(filename):
             output_buf_size = needed
 
 
+def getWindowsLongPathName(filename):
+    """Gets the long path name of a given long path.
+
+    Args:
+        filename - short Windows filename
+    Returns:
+        Path that is a long filename pointing at the same file.
+    """
+    import ctypes.wintypes
+
+    GetLongPathNameW = ctypes.windll.kernel32.GetLongPathNameW
+    GetLongPathNameW.argtypes = (
+        ctypes.wintypes.LPCWSTR,
+        ctypes.wintypes.LPWSTR,
+        ctypes.wintypes.DWORD,
+    )
+    GetLongPathNameW.restype = ctypes.wintypes.DWORD
+
+    output_buf_size = 0
+    while True:
+        output_buf = ctypes.create_unicode_buffer(output_buf_size)
+        needed = GetLongPathNameW(
+            os.path.abspath(filename), output_buf, output_buf_size
+        )
+
+        if needed == 0:
+            # Windows only code, pylint: disable=I0021,undefined-variable
+
+            # Permission denied.
+            if ctypes.GetLastError() == 5:
+                return filename
+
+            raise WindowsError(
+                ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+            )
+
+        if output_buf_size >= needed:
+            return output_buf.value
+        else:
+            output_buf_size = needed
+
+
 _external_use_path_cache = {}
 
 
@@ -1033,12 +1075,24 @@ def getExternalUsePath(filename, only_dirname=False):
             _external_use_path_cache[filename] = filename
 
         return _external_use_path_cache[filename]
+    else:
+        return filename
 
-    return filename
+
+_report_path_cache = {}
 
 
 def getReportPath(filename, prefixes=()):
     """Convert filename into a path suitable for reporting, avoiding home directory paths."""
+    key = filename, tuple(prefixes)
+
+    if key not in _report_path_cache:
+        _report_path_cache[key] = _getReportPath(filename, prefixes)
+
+    return _report_path_cache[key]
+
+
+def _getReportPath(filename, prefixes):
     if os.path.isabs(os.path.expanduser(filename)):
         prefixes = list(prefixes)
         prefixes.append(
@@ -1056,6 +1110,7 @@ def getReportPath(filename, prefixes=()):
                         prefix_name, relpath(path=abs_filename, start=prefix_path)
                     )
                 )
+
             if isFilenameBelowPath(
                 path=prefix_path, filename=abs_filename, consider_short=True
             ):
@@ -1067,6 +1122,20 @@ def getReportPath(filename, prefixes=()):
                         ),
                     )
                 )
+
+    if isWin32Windows():
+        try:
+            filename = getWindowsLongPathName(filename)
+        except FileNotFoundError:
+            dirname = os.path.dirname(filename)
+
+            if dirname:
+                try:
+                    dirname = getWindowsLongPathName(dirname)
+                except FileNotFoundError:
+                    pass
+                else:
+                    filename = os.path.join(dirname, os.path.basename(filename))
 
     return filename
 
