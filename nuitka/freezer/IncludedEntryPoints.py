@@ -31,6 +31,7 @@ from nuitka.Options import getShallNotIncludeDllFilePatterns, isShowInclusion
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    getReportPath,
     hasFilenameExtension,
     haveSameFileContents,
     isRelativePath,
@@ -90,7 +91,7 @@ def _makeDllOrExeEntryPoint(
     if not os.path.isfile(source_path):
         logger.sysexit(
             "Error, attempting to include file '%s' (%s) that does not exist."
-            % (source_path, reason)
+            % (getReportPath(source_path), reason)
         )
 
     return _makeIncludedEntryPoint(
