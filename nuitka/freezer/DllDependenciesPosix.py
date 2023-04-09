@@ -183,7 +183,7 @@ _linux_dll_ignore_list = [
     "libmvec.so",
     "libnsl.so",
     "libnss3.so",
-    "libnssutils3.so",
+    "libnssutil3.so",
     "libnss_compat.so",
     "libnss_db.so",
     "libnss_dns.so",
