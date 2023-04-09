@@ -81,9 +81,13 @@ def detectBinaryPathDLLsWindowsDependencyWalker(
             for line in getFileContentByLine(cache_filename):
                 line = line.strip()
 
-                result.add(line)
+                # Detect files that have become missing by ignoring the cache.
+                if not os.path.exists(line):
+                    break
 
-            return result
+                result.add(line)
+            else:
+                return result
 
     if isShowProgress():
         inclusion_logger.info("Analyzing dependencies of '%s'." % binary_filename)
