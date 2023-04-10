@@ -109,24 +109,37 @@ def _runOnefileScons(onefile_compression):
         onefile_logger.sysexit("Error, onefile bootstrap binary build failed.")
 
 
+_compressor_python = None
+
+
 def getCompressorPython():
-    compressor_python = findInstalledPython(
-        python_versions=getZstandardSupportingVersions(),
-        module_name="zstandard",
-        module_version="0.15",
-    )
+    # User may disable it.
+    if Options.shallNotCompressOnefile():
+        return None
 
-    if compressor_python is None:
-        if python_version < 0x350:
-            onefile_logger.warning(
-                "Onefile mode cannot compress without 'zstandard' module installed on another Python >= 3.5 on your system."
-            )
-        else:
-            onefile_logger.warning(
-                "Onefile mode cannot compress without 'zstandard' module installed."
-            )
+    global _compressor_python  # singleton, pylint: disable=global-statement
 
-    return compressor_python
+    if _compressor_python is None:
+        _compressor_python = findInstalledPython(
+            python_versions=getZstandardSupportingVersions(),
+            module_name="zstandard",
+            module_version="0.15",
+        )
+
+        if _compressor_python is None:
+            if python_version < 0x350:
+                onefile_logger.warning(
+                    """\
+Onefile mode cannot compress without 'zstandard' module installed on \
+another discoverable Python >= 3.5 on your system."""
+                )
+            else:
+                onefile_logger.warning(
+                    """\
+Onefile mode cannot compress without 'zstandard' module installed."""
+                )
+
+    return _compressor_python
 
 
 def runOnefileCompressor(
