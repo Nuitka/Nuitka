@@ -328,6 +328,17 @@ flush data. This is the amount of time in ms, before the child it
 killed in the hard way. Unit is ms, and default 5000.""",
 )
 
+onefile_group.add_option(
+    "--onefile-no-compression",
+    action="store_true",
+    dest="onefile_no_compression",
+    default=False,
+    help="""\
+When creating the onefile, disable compression of the payload. This is
+mostly for debug purposes, or to save time. Default is off.""",
+)
+
+
 del onefile_group
 
 data_group = parser.add_option_group("Data files")
