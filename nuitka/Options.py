@@ -1592,6 +1592,11 @@ def getOnefileChildGraceTime():
     return int(options.onefile_child_grace_time)
 
 
+def shallNotCompressOnefile():
+    """*bool* = ``--onefile-no-compression``"""
+    return options.onefile_no_compression
+
+
 def getIconPaths():
     """*list of str*, values of ``--windows-icon-from-ico`` and ``--linux-onefile-icon``"""
 
