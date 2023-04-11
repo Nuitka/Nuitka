@@ -1345,10 +1345,16 @@ class NuitkaPluginPySide6Plugins(NuitkaPluginQtBindingsPluginBase):
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
+        if self._getBindingVersion() < (6, 5, 0):
+            self.warning(
+                """\
+Make sure to use PySide 6.5.0 or higher, otherwise Qt slots won't work in all cases."""
+            )
+
         if self._getBindingVersion() < (6, 1, 2):
             self.warning(
                 """\
-Only PySide 6.1.2 or higher (or dev branch compiled), otherwise callbacks won't work."""
+Make sure to use PySide 6.1.2 or higher, otherwise Qt callbacks to Python won't work."""
             )
 
 

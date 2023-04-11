@@ -32,6 +32,7 @@ from nuitka.utils.FileOperations import (
     deleteFile,
     getExternalUsePath,
     getFileContentByLine,
+    isFilenameBelowPath,
     putTextFileContents,
     withFileLock,
 )
@@ -88,6 +89,8 @@ def _attemptToFindNotFoundDLL(dll_filename):
 
 
 def _parseDependsExeOutput2(lines):
+    # Many cases to deal with, pylint: disable=too-many-branches
+
     result = OrderedSet()
 
     inside = False
@@ -110,6 +113,11 @@ def _parseDependsExeOutput2(lines):
 
         dll_filename = line[line.find("]") + 2 :].rstrip()
         dll_filename = os.path.normcase(dll_filename)
+
+        if isFilenameBelowPath(
+            path=os.path.join(os.environ["SYSTEMROOT"], "WinSxS"), filename=dll_filename
+        ):
+            continue
 
         # Skip DLLs that failed to load, apparently not needed anyway.
         if "E" in line[: line.find("]")]:
@@ -172,6 +180,7 @@ def detectDLLsWithDependencyWalker(binary_filename, source_dir, scan_dirs):
         putTextFileContents(
             dwp_filename,
             contents="""\
+SxS
 %(scan_dirs)s
 """
             % {

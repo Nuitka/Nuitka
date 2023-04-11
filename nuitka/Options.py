@@ -151,6 +151,13 @@ start of '%s=%s', using it in the middle is not allowed."""
                 % (candidate, arg_name, value)
             )
 
+        if candidate == value:
+            Tracing.options_logger.sysexit(
+                """Cannot use general system folder %s, may only be the \
+start of '%s=%s', using that alone is not allowed."""
+                % (candidate, arg_name, value)
+            )
+
 
 def _checkOnefileTargetSpec():
     checkPathSpec(

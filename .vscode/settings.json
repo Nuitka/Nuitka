@@ -276,6 +276,7 @@
         "roadmap",
         "RPATH",
         "rpaths",
+        "RT_RCDATA",
         "Scons",
         "setattrofunc",
         "Setuptools",
