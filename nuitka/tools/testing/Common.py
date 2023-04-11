@@ -1325,7 +1325,13 @@ def someGeneratorRaising():
 #     "# nuitka-skip-unless-expression: expression to be evaluated"
 #       OR
 #     "# nuitka-skip-unless-imports: module1,module2,..."
-def checkRequirements(filename):
+def checkTestRequirements(filename):
+    if os.path.isdir(filename):
+        candidate = os.path.join(filename, "__main__.py")
+
+        if os.path.isfile(candidate):
+            filename = candidate
+
     for line in readSourceCodeFromFilename(None, filename).splitlines():
         if line.startswith("# nuitka-skip-unless-"):
             if line[21:33] == "expression: ":

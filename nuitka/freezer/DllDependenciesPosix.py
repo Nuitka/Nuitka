@@ -23,6 +23,7 @@
 import os
 import sys
 
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.Tracing import inclusion_logger
 from nuitka.utils.Execution import executeProcess, withEnvironmentPathAdded
@@ -89,7 +90,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
     if stderr:
         inclusion_logger.debug("ldd error for %s is:\n%s" % (dll_filename, stderr))
 
-    result = set()
+    result = OrderedSet()
 
     for line in stdout.split(b"\n"):
         if not line:
@@ -138,7 +139,7 @@ def detectBinaryPathDLLsPosix(dll_filename, package_name, original_dir):
 
     ldd_result_cache[dll_filename] = result
 
-    sub_result = set(result)
+    sub_result = OrderedSet(result)
 
     for sub_dll_filename in result:
         sub_result = sub_result.union(
@@ -182,7 +183,7 @@ _linux_dll_ignore_list = [
     "libmvec.so",
     "libnsl.so",
     "libnss3.so",
-    "libnssutils3.so",
+    "libnssutil3.so",
     "libnss_compat.so",
     "libnss_db.so",
     "libnss_dns.so",

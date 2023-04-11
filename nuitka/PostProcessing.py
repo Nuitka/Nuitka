@@ -322,7 +322,7 @@ def executePostProcessing():
         # Attach the binary blob as a Windows resource.
         addResourceToFile(
             target_filename=result_filename,
-            data=getFileContents(getConstantBlobFilename(source_dir), "rb"),
+            data=getFileContents(getConstantBlobFilename(source_dir), mode="rb"),
             resource_kind=RT_RCDATA,
             res_name=3,
             lang_id=0,
