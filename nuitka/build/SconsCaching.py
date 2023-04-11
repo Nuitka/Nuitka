@@ -150,7 +150,7 @@ def _injectCcache(env, cc_path, python_prefix, assume_yes_for_downloads):
 
         # Spare ccache the detection of the compiler, seems it will also misbehave when it's
         # prefixed with "ccache" on old gcc versions in terms of detecting need for C++ linkage.
-        env["LINK"] = cc_path
+        env["LINK"] = '"%s"' % cc_path
 
         scons_details_logger.info(
             "Found ccache '%s' to cache C compilation result." % ccache_binary
