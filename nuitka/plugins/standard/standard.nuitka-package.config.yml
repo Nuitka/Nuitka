@@ -3996,6 +3996,13 @@
         'boolean_sparse': 'un-callable'
       when: 'not use_numba'
 
+- module-name: 'trio._core._multierror'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        '"IPython" in sys.modules': 'False'
+      when: 'not use_ipython'
+
 - module-name: 'tzdata'
   data-files:
     dirs:
