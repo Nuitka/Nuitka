@@ -92,6 +92,8 @@ is_verbose = None
 
 
 def checkPathSpec(value, arg_name, allow_disable):
+    # There are never enough checks here, pylint: disable=too-many-branches
+
     if "%NONE%" in value:
         if not allow_disable:
             Tracing.options_logger.sysexit(
