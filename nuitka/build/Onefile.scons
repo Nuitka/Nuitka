@@ -461,18 +461,13 @@ def discoverSourceFiles():
     return result
 
 
-source_targets = []
-
 source_files = discoverSourceFiles()
 
-target = env.Program(result_exe, source_files + source_targets)
+target = env.Program(result_exe, source_files)
 
 # Avoid dependency on MinGW libraries.
 if win_target and env.gcc_mode and not env.clang_mode:
     env.Append(LINKFLAGS=["-static-libgcc"])
-# on Windows link against imagehlp to support signed applications detection
-if win_target:
-    link_libraries.append("imagehlp")
 
 # Outside compiler settings are respected.
 if "CPPFLAGS" in os.environ:

@@ -45,10 +45,16 @@ from nuitka.PythonVersions import (
 )
 from nuitka.Tracing import onefile_logger, postprocessing_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
-from nuitka.utils.FileOperations import areSamePaths, removeDirectory
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    getExternalUsePath,
+    getFileContents,
+    removeDirectory,
+)
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.utils.Signing import addMacOSCodeSignature
 from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
+from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
 
 def packDistFolderToOnefile(dist_dir):
@@ -101,14 +107,6 @@ def _runOnefileScons(onefile_compression):
     # Exit if compilation failed.
     if not result:
         onefile_logger.sysexit("Error, onefile bootstrap binary build failed.")
-
-    if Options.isRemoveBuildDir():
-        onefile_logger.info("Removing onefile build directory '%s'." % source_dir)
-
-        removeDirectory(path=source_dir, ignore_errors=False)
-        assert not os.path.exists(source_dir)
-    else:
-        onefile_logger.info("Keeping onefile build directory '%s'." % source_dir)
 
 
 def getCompressorPython():
@@ -176,7 +174,7 @@ def runOnefileCompressor(
                     compressor_python.getPythonExe(),
                     onefile_compressor_path,
                     dist_dir,
-                    onefile_output_filename,
+                    getExternalUsePath(onefile_output_filename, only_dirname=True),
                     start_binary,
                     str(file_checksums),
                     str(win_path_sep),
@@ -196,6 +194,9 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
     source_dir = OutputDirectories.getSourceDirectoryPath(onefile=True)
     cleanSconsDirectory(source_dir)
 
+    # Used only in some configurations
+    onefile_payload_filename = os.path.join(source_dir, "__payload.bin")
+
     # Now need to append to payload it, potentially compressing it.
     compressor_python = getCompressorPython()
 
@@ -207,7 +208,7 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
         runOnefileCompressor(
             compressor_python=compressor_python,
             dist_dir=dist_dir,
-            onefile_output_filename=os.path.join(source_dir, "__payload.bin"),
+            onefile_output_filename=onefile_payload_filename,
             start_binary=getResultFullpath(onefile=False),
         )
 
@@ -228,6 +229,28 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
         runOnefileCompressor(
             compressor_python=compressor_python,
             dist_dir=dist_dir,
-            onefile_output_filename=onefile_output_filename,
+            onefile_output_filename=(
+                onefile_payload_filename
+                if isWin32Windows()
+                else onefile_output_filename
+            ),
             start_binary=getResultFullpath(onefile=False),
         )
+
+        if isWin32Windows():
+            addResourceToFile(
+                target_filename=onefile_output_filename,
+                data=getFileContents(onefile_payload_filename, mode="rb"),
+                resource_kind=RT_RCDATA,
+                lang_id=0,
+                res_name=27,
+                logger=postprocessing_logger,
+            )
+
+    if Options.isRemoveBuildDir():
+        onefile_logger.info("Removing onefile build directory '%s'." % source_dir)
+
+        removeDirectory(path=source_dir, ignore_errors=False)
+        assert not os.path.exists(source_dir)
+    else:
+        onefile_logger.info("Keeping onefile build directory '%s'." % source_dir)

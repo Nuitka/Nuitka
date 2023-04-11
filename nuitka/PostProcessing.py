@@ -285,7 +285,7 @@ def executePostProcessingResources(manifest, onefile):
             data=splash_data,
             resource_kind=RT_RCDATA,
             lang_id=0,
-            res_name=27,
+            res_name=28,
             logger=postprocessing_logger,
         )
 
@@ -322,7 +322,7 @@ def executePostProcessing():
         # Attach the binary blob as a Windows resource.
         addResourceToFile(
             target_filename=result_filename,
-            data=getFileContents(getConstantBlobFilename(source_dir), "rb"),
+            data=getFileContents(getConstantBlobFilename(source_dir), mode="rb"),
             resource_kind=RT_RCDATA,
             res_name=3,
             lang_id=0,

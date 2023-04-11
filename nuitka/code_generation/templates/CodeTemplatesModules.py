@@ -246,6 +246,7 @@ static PyObject *_create_compiled_function(PyObject *self, PyObject *args, PyObj
         line_int,
         flags_int,
         function_name,
+        function_name, // TODO: function_qualname
         argnames,
         NULL, // freevars
         arg_count_int,
