@@ -2171,6 +2171,11 @@
     - find-dlls-near-module:
         - 'shiboken6'
 
+- module-name: 'PySide6.QtCore'
+  implicit-imports:
+    - depends:
+        - 'PySide6.support.deprecated'
+
 - module-name: 'python_utils.terminal'
   anti-bloat:
     - description: 'remove IPython reference'
