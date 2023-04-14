@@ -1888,6 +1888,11 @@
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
 
+- module-name: 'pyarrow.lib'
+  implicit-imports:
+    - depends:
+        - 'pyarrow.vendored.version'
+
 - module-name: 'pyarrow.vendored.docscrape'
   anti-bloat:
     - description: 'remove sphinx reference'
