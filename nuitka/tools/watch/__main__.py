@@ -129,7 +129,7 @@ def updateCase(case_dir, case_data, dry_run):
 
     for installed_python in selectPythons(
         anaconda=case_data["anaconda"] == "yes",
-        python_version_req=case_data["python_version_req"],
+        python_version_req=case_data.get("python_version_req"),
     ):
         print("Consider with Python %s" % installed_python)
 
