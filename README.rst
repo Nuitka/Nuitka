@@ -794,7 +794,7 @@ syntax to combine the code with the creation, compile this:
 
    # Whatever this is obviously
    print("Delaying startup by 10s...")
-   import time
+   import time, tempfile, os
    time.sleep(10)
 
    # Use this code to signal the splash screen removal.
