@@ -1393,6 +1393,12 @@
     dirs:
       - 'resources/schemas'
 
+- module-name: 'opentele.utils'
+  anti-bloat:
+    - description: 'workaround compiled function decorator issues'
+      replacements_plain:
+        'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
+
 - module-name: 'openvino'
   data-files:
     dirs:
