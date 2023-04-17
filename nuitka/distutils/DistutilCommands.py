@@ -31,10 +31,12 @@ from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing.Importing import (
     addMainScriptDirectory,
     decideModuleSourceRef,
+    flushImportCache,
     locateModule,
 )
 from nuitka.Tracing import wheel_logger
 from nuitka.utils.Execution import check_call
+from nuitka.utils.FileOperations import deleteFile, renameFile
 from nuitka.utils.ModuleNames import ModuleName
 
 
@@ -112,7 +114,7 @@ class build(distutils.command.build.build):
 
         self._build(os.path.abspath(self.build_lib))
 
-    def _findBuildTasks(self):
+    def _findBuildTasks2(self):
         """
         Helper for _build
         Returns list containing bool (is_package) and module_names
@@ -180,6 +182,42 @@ class build(distutils.command.build.build):
             builds.append((True, current_package))
 
         return builds
+
+    def _findBuildTasks(self):
+        builds = self._findBuildTasks2()
+        result = []
+
+        for _is_package, module_name_orig in builds:
+            _module_name, main_filename, module_kind, finding = locateModule(
+                module_name=module_name_orig,
+                parent_package=None,
+                level=0,
+            )
+
+            # Handle extension modules already compiled. They are either to be replaced, or
+            # they are included as they are, because there is no source, then the task can
+            # be skipped.
+            if module_kind == "extension":
+                main_filename_away = main_filename + ".away"
+                renameFile(main_filename, main_filename_away)
+
+                flushImportCache()
+
+                _module_name, main_filename, module_kind, finding = locateModule(
+                    module_name=module_name_orig,
+                    parent_package=None,
+                    level=0,
+                )
+
+                if finding != "not-found":
+                    deleteFile(main_filename_away, must_exist=True)
+                else:
+                    renameFile(main_filename_away, main_filename)
+                    continue
+
+            result.append((_is_package, module_name_orig))
+
+        return result
 
     @staticmethod
     def _parseOptionsEntry(option, value):
