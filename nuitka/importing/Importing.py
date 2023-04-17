@@ -406,6 +406,17 @@ def listDirCached(path):
     return _list_dir_cache[path]
 
 
+def flushImportCache():
+    """Clear import related caches.
+
+    In some situations, e.g. during package rebuild, we scan and then decide to remove
+    files and scan again. This allows that. Nothing in standard Nuitka should do it,
+    as it throws away so much.
+    """
+    _list_dir_cache.clear()
+    module_search_cache.clear()
+
+
 def _findModuleInPath2(package_name, module_name, search_path):
     """This is out own module finding low level implementation.
 
