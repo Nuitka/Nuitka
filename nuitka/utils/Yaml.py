@@ -25,6 +25,9 @@ Also we put loading for specific packages in here and a few helpers to work
 with these config files.
 """
 
+# Otherwise "Yaml" and "yaml" collide on case insensitive setups
+from __future__ import absolute_import
+
 import os
 import pkgutil
 
