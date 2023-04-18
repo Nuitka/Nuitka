@@ -144,7 +144,7 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
 
     # Handle case without inline copy too.
     try:
-        return __import__(module_name)
+        return __import__(module_name, level=0)
     except (ImportError, SyntaxError, RuntimeError) as e:
         if not must_exist:
             return None
