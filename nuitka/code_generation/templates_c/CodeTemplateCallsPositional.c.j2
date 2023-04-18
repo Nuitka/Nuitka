@@ -76,6 +76,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 
         Py_LeaveRecursiveCall();
 
+        CHECK_OBJECT_X(result);
+
         return result;
     } else if (Nuitka_Method_Check(called)) {
         struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
@@ -106,7 +108,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
                 return NULL;
             }
 
-            return Nuitka_CallFunctionPosArgs(method->m_function, args, {{args_count}});
+            PyObject *result = Nuitka_CallFunctionPosArgs(method->m_function, args, {{args_count}});
+
+            CHECK_OBJECT_X(result);
+
+            return result;
 {% endif %}
         } else {
             if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
@@ -159,6 +165,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 
             Py_LeaveRecursiveCall();
 
+            CHECK_OBJECT_X(result);
+
             return result;
         }
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_CFUNCTION_CALL_OPT)
@@ -183,6 +191,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
 #endif
+            CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(called, result);
 {% else %}
@@ -205,12 +214,13 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             PyCFunction method = PyCFunction_GET_FUNCTION(called);
             PyObject *self = PyCFunction_GET_SELF(called);
 
-
             PyObject *result = (*method)(self, args[0]);
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
 #endif
+
+            CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(called, result);
 {% else %}
@@ -290,10 +300,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             }
 #endif
 
-
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
 #endif
+
+            CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(called, result);
         }
@@ -302,9 +313,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
     } else if (PyFunction_Check(called)) {
 #if PYTHON_VERSION < 0x3b0
 {% if args_count == 0 %}
-        return callPythonFunctionNoArgs(called);
+        PyObject *result = callPythonFunctionNoArgs(called);
 {% else %}
-        return callPythonFunction(
+        PyObject *result = callPythonFunction(
             called,
             args,
             {{args_count}}
@@ -312,11 +323,14 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% endif %}
 #else
 {% if args_count == 0 %}
-    return _PyFunction_Vectorcall(called, NULL, 0, NULL);
+        PyObject *result = _PyFunction_Vectorcall(called, NULL, 0, NULL);
 {% else %}
-    return _PyFunction_Vectorcall(called, args, {{args_count}}, NULL);
+        PyObject *result = _PyFunction_Vectorcall(called, args, {{args_count}}, NULL);
 {% endif %}
 #endif
+        CHECK_OBJECT_X(result);
+
+        return result;
 #endif
 #if !defined(_NUITKA_EXPERIMENTAL_DISABLE_TYPE_CREATION_OPT)
     } else if (PyType_Check(called)) {
@@ -479,6 +493,9 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% if not has_tuple_arg and args_count != 0 %}
             Py_XDECREF(pos_args);
 {% endif %}
+
+            CHECK_OBJECT_X(obj);
+
             return obj;
         }
 #endif
@@ -560,6 +577,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
             return NULL;
         }
 
+        CHECK_OBJECT_X(obj);
+
         return obj;
 #endif
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
@@ -572,6 +591,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
 {% else %}
             PyObject *result = func(called, args, {{args_count}}, NULL);
 {% endif %}
+
+            CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(called, result);
         }
@@ -598,6 +619,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS{{args_count}}(PyObject *called, PyObject *cons
     Py_DECREF(pos_args);
 {% endif %}
 {% endif %}
+
+    CHECK_OBJECT_X(result);
 
     return result;
 }
