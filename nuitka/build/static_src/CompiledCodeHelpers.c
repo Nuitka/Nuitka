@@ -826,12 +826,12 @@ bool PRINT_ITEM_TO(PyObject *file, PyObject *object) {
 
     // TODO: Have a helper that creates a dictionary for PyObject **
     PyObject *print_kw = MAKE_DICT_EMPTY();
-    PyDict_SetItem(print_kw, const_str_plain_end, const_str_empty);
+    DICT_SET_ITEM(print_kw, const_str_plain_end, const_str_empty);
 
     if (file == NULL) {
-        PyDict_SetItem(print_kw, const_str_plain_file, GET_STDOUT());
+        DICT_SET_ITEM(print_kw, const_str_plain_file, GET_STDOUT());
     } else {
-        PyDict_SetItem(print_kw, const_str_plain_file, file);
+        DICT_SET_ITEM(print_kw, const_str_plain_file, file);
     }
 
     PyObject *print_args = MAKE_TUPLE1(object);
@@ -1133,7 +1133,7 @@ static int nuitka_class_setattr(PyClassObject *klass, PyObject *attr_name, PyObj
 
         return status;
     } else {
-        return PyDict_SetItem(klass->cl_dict, attr_name, value);
+        return DICT_SET_ITEM(klass->cl_dict, attr_name, value) ? 0 : -1;
     }
 }
 

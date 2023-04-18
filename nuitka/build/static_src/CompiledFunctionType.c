@@ -48,6 +48,10 @@ static PyObject *Nuitka_Function_descr_get(PyObject *function, PyObject *object,
 
 // tp_repr slot, decide how compiled function shall be output to "repr" built-in
 static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     return Nuitka_String_FromFormat("<compiled_function %s at %p>",
 #if PYTHON_VERSION < 0x300
                                     Nuitka_String_AsString(function->m_name),
@@ -58,6 +62,10 @@ static PyObject *Nuitka_Function_tp_repr(struct Nuitka_FunctionObject *function)
 }
 
 static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, visitproc visit, void *arg) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     // TODO: Identify the impact of not visiting other owned objects. It appears
     // to be mostly harmless, as these are strings.
     Py_VISIT(function->m_dict);
@@ -69,15 +77,32 @@ static long Nuitka_Function_tp_traverse(struct Nuitka_FunctionObject *function, 
     return 0;
 }
 
-static long Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) { return function->m_counter; }
+static long Nuitka_Function_tp_hash(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
 
-static PyObject *Nuitka_Function_get_name(struct Nuitka_FunctionObject *object) {
-    PyObject *result = object->m_name;
+    return function->m_counter;
+}
+
+static PyObject *Nuitka_Function_get_name(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyObject *result = function->m_name;
+    CHECK_OBJECT(result);
+
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+    CHECK_OBJECT_X(value);
+
 #if PYTHON_VERSION < 0x300
     if (unlikely(value == NULL || PyString_Check(value) == 0))
 #else
@@ -88,51 +113,75 @@ static int Nuitka_Function_set_name(struct Nuitka_FunctionObject *object, PyObje
         return -1;
     }
 
-    PyObject *old = object->m_name;
+    PyObject *old = function->m_name;
+    CHECK_OBJECT(old);
+
     Py_INCREF(value);
-    object->m_name = value;
+    function->m_name = value;
     Py_DECREF(old);
 
     return 0;
 }
 
 #if PYTHON_VERSION >= 0x300
-static PyObject *Nuitka_Function_get_qualname(struct Nuitka_FunctionObject *object) {
-    PyObject *result = object->m_qualname;
+static PyObject *Nuitka_Function_get_qualname(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyObject *result = function->m_qualname;
+    CHECK_OBJECT(result);
+
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Function_set_qualname(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_qualname(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+    CHECK_OBJECT_X(value);
+
     if (unlikely(value == NULL || PyUnicode_Check(value) == 0)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__qualname__ must be set to a string object");
         return -1;
     }
 
-    PyObject *old = object->m_qualname;
+    PyObject *old = function->m_qualname;
     Py_INCREF(value);
-    object->m_qualname = value;
+    function->m_qualname = value;
     Py_DECREF(old);
 
     return 0;
 }
 #endif
 
-static PyObject *Nuitka_Function_get_doc(struct Nuitka_FunctionObject *object) {
-    PyObject *result = object->m_doc;
+static PyObject *Nuitka_Function_get_doc(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyObject *result = function->m_doc;
 
     if (result == NULL) {
         result = Py_None;
     }
 
+    CHECK_OBJECT(result);
+
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Function_set_doc(struct Nuitka_FunctionObject *object, PyObject *value) {
-    PyObject *old = object->m_doc;
+static int Nuitka_Function_set_doc(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+    CHECK_OBJECT_X(value);
 
-    object->m_doc = value;
+    PyObject *old = function->m_doc;
+
+    function->m_doc = value;
     Py_XINCREF(value);
 
     Py_XDECREF(old);
@@ -140,25 +189,38 @@ static int Nuitka_Function_set_doc(struct Nuitka_FunctionObject *object, PyObjec
     return 0;
 }
 
-static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *object) {
-    if (object->m_dict == NULL) {
-        object->m_dict = MAKE_DICT_EMPTY();
+static PyObject *Nuitka_Function_get_dict(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    if (function->m_dict == NULL) {
+        function->m_dict = MAKE_DICT_EMPTY();
     }
 
-    Py_INCREF(object->m_dict);
-    return object->m_dict;
+    CHECK_OBJECT(function->m_dict);
+
+    Py_INCREF(function->m_dict);
+    return function->m_dict;
 }
 
-static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+    CHECK_OBJECT_X(value);
+
     if (unlikely(value == NULL)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "function's dictionary may not be deleted");
         return -1;
     }
 
     if (likely(PyDict_Check(value))) {
-        PyObject *old = object->m_dict;
+        PyObject *old = function->m_dict;
+        CHECK_OBJECT_X(old);
+
         Py_INCREF(value);
-        object->m_dict = value;
+        function->m_dict = value;
         Py_XDECREF(old);
 
         return 0;
@@ -168,55 +230,91 @@ static int Nuitka_Function_set_dict(struct Nuitka_FunctionObject *object, PyObje
     }
 }
 
-static PyObject *Nuitka_Function_get_code(struct Nuitka_FunctionObject *object) {
-    PyObject *result = (PyObject *)object->m_code_object;
+static PyObject *Nuitka_Function_get_code(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyObject *result = (PyObject *)function->m_code_object;
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Function_set_code(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_code(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "__code__ is not writable in Nuitka");
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_compiled(struct Nuitka_FunctionObject *object) {
+static PyObject *Nuitka_Function_get_compiled(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     PyObject *result = Nuitka_dunder_compiled_value;
+    CHECK_OBJECT(result);
+
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Function_set_compiled(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_compiled(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "__compiled__ is not writable");
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_compiled_constant(struct Nuitka_FunctionObject *object) {
-    PyObject *result = object->m_constant_return_value;
+static PyObject *Nuitka_Function_get_compiled_constant(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyObject *result = function->m_constant_return_value;
 
     if (result == NULL) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_AttributeError, "non-constant return value");
 
         return NULL;
     }
+    CHECK_OBJECT(result);
+
     Py_INCREF(result);
     return result;
 }
 
-static int Nuitka_Function_set_compiled_constant(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_compiled_constant(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_RuntimeError, "__compiled_constant__ is not writable");
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *object) {
-    if (object->m_closure_given > 0) {
-        return MAKE_TUPLE((PyObject *const *)object->m_closure, object->m_closure_given);
+static PyObject *Nuitka_Function_get_closure(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    if (function->m_closure_given > 0) {
+        return MAKE_TUPLE((PyObject *const *)function->m_closure, function->m_closure_given);
     } else {
         Py_INCREF(Py_None);
         return Py_None;
     }
 }
 
-static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     SET_CURRENT_EXCEPTION_TYPE0_STR(
 #if PYTHON_VERSION < 0x300
         PyExc_TypeError,
@@ -228,13 +326,22 @@ static int Nuitka_Function_set_closure(struct Nuitka_FunctionObject *object, PyO
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_defaults(struct Nuitka_FunctionObject *object) {
-    PyObject *result = (PyObject *)object->m_defaults;
+static PyObject *Nuitka_Function_get_defaults(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyObject *result = (PyObject *)function->m_defaults;
+    CHECK_OBJECT(result);
+
     Py_INCREF(result);
     return result;
 }
 
 static void _onUpdatedCompiledFunctionDefaultsValue(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+
     if (function->m_defaults == Py_None) {
         function->m_defaults_given = 0;
     } else {
@@ -242,7 +349,12 @@ static void _onUpdatedCompiledFunctionDefaultsValue(struct Nuitka_FunctionObject
     }
 }
 
-static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+    CHECK_OBJECT_X(value);
+
     if (value == NULL) {
         value = Py_None;
     }
@@ -252,19 +364,26 @@ static int Nuitka_Function_set_defaults(struct Nuitka_FunctionObject *object, Py
         return -1;
     }
 
-    PyObject *old = object->m_defaults;
+    PyObject *old = function->m_defaults;
+    CHECK_OBJECT(old);
+
     Py_INCREF(value);
-    object->m_defaults = value;
+    function->m_defaults = value;
     Py_DECREF(old);
 
-    _onUpdatedCompiledFunctionDefaultsValue(object);
+    _onUpdatedCompiledFunctionDefaultsValue(function);
 
     return 0;
 }
 
 #if PYTHON_VERSION >= 0x300
-static PyObject *Nuitka_Function_get_kwdefaults(struct Nuitka_FunctionObject *object) {
-    PyObject *result = object->m_kwdefaults;
+static PyObject *Nuitka_Function_get_kwdefaults(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
+    PyObject *result = function->m_kwdefaults;
+    CHECK_OBJECT_X(result);
 
     if (result == NULL) {
         result = Py_None;
@@ -274,7 +393,12 @@ static PyObject *Nuitka_Function_get_kwdefaults(struct Nuitka_FunctionObject *ob
     return result;
 }
 
-static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+    CHECK_OBJECT_X(value);
+
     if (value == NULL) {
         value = Py_None;
     }
@@ -288,32 +412,45 @@ static int Nuitka_Function_set_kwdefaults(struct Nuitka_FunctionObject *object, 
         value = NULL;
     }
 
-    PyObject *old = object->m_kwdefaults;
+    PyObject *old = function->m_kwdefaults;
+    CHECK_OBJECT_X(old);
+
     Py_XINCREF(value);
-    object->m_kwdefaults = value;
+    function->m_kwdefaults = value;
     Py_XDECREF(old);
 
     return 0;
 }
 
-static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *object) {
-    if (object->m_annotations == NULL) {
-        object->m_annotations = MAKE_DICT_EMPTY();
-    }
+static PyObject *Nuitka_Function_get_annotations(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
 
-    Py_INCREF(object->m_annotations);
-    return object->m_annotations;
+    if (function->m_annotations == NULL) {
+        function->m_annotations = MAKE_DICT_EMPTY();
+    }
+    CHECK_OBJECT(function->m_annotations);
+
+    Py_INCREF(function->m_annotations);
+    return function->m_annotations;
 }
 
-static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *object, PyObject *value) {
+static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     if (unlikely(value != NULL && PyDict_Check(value) == false)) {
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "__annotations__ must be set to a dict object");
         return -1;
     }
 
-    PyObject *old = object->m_annotations;
+    PyObject *old = function->m_annotations;
+    CHECK_OBJECT_X(old);
+
     Py_XINCREF(value);
-    object->m_annotations = value;
+    function->m_annotations = value;
     Py_XDECREF(old);
 
     return 0;
@@ -322,52 +459,79 @@ static int Nuitka_Function_set_annotations(struct Nuitka_FunctionObject *object,
 #endif
 
 static int Nuitka_Function_set_globals(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "readonly attribute");
     return -1;
 }
 
 static PyObject *Nuitka_Function_get_globals(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     PyObject *result = PyModule_GetDict(function->m_module);
+    CHECK_OBJECT(result);
+
     Py_INCREF(result);
     return result;
 }
 
 #if PYTHON_VERSION >= 0x3a0
 static int Nuitka_Function_set_builtins(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "readonly attribute");
     return -1;
 }
 
 static PyObject *Nuitka_Function_get_builtins(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     return LOOKUP_SUBSCRIPT(PyModule_GetDict(function->m_module), const_str_plain___builtins__);
 }
 #endif
 
-static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *object, PyObject *value) {
-    if (object->m_dict == NULL) {
-        object->m_dict = MAKE_DICT_EMPTY();
+static int Nuitka_Function_set_module(struct Nuitka_FunctionObject *function, PyObject *value) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+    CHECK_OBJECT_X(value);
+
+    if (function->m_dict == NULL) {
+        function->m_dict = MAKE_DICT_EMPTY();
     }
 
     if (value == NULL) {
         value = Py_None;
     }
 
-    return PyDict_SetItem(object->m_dict, const_str_plain___module__, value);
+    return DICT_SET_ITEM(function->m_dict, const_str_plain___module__, value) ? 0 : -1;
 }
 
-static PyObject *Nuitka_Function_get_module(struct Nuitka_FunctionObject *object) {
+static PyObject *Nuitka_Function_get_module(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     PyObject *result;
 
     // The __dict__ might overrule this.
-    if (object->m_dict) {
-        result = DICT_GET_ITEM1(object->m_dict, const_str_plain___module__);
+    if (function->m_dict) {
+        result = DICT_GET_ITEM1(function->m_dict, const_str_plain___module__);
 
         if (result != NULL) {
             return result;
         }
     }
 
-    result = MODULE_NAME1(object->m_module);
+    result = MODULE_NAME1(function->m_module);
     return result;
 }
 
@@ -417,6 +581,10 @@ static PyGetSetDef Nuitka_Function_getset[] = {
     {NULL}};
 
 static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     PyObject *result;
 
 #if PYTHON_VERSION < 0x300
@@ -430,6 +598,10 @@ static PyObject *Nuitka_Function_reduce(struct Nuitka_FunctionObject *function) 
 }
 
 static PyObject *Nuitka_Function_clone(struct Nuitka_FunctionObject *function) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     struct Nuitka_FunctionObject *result =
         Nuitka_Function_New(function->m_c_code, function->m_name,
 #if PYTHON_VERSION >= 0x300
@@ -449,6 +621,9 @@ static struct Nuitka_FunctionObject *free_list_functions = NULL;
 static int free_list_functions_count = 0;
 
 static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
     PyObject *save_exception_type, *save_exception_value;
@@ -456,7 +631,7 @@ static void Nuitka_Function_tp_dealloc(struct Nuitka_FunctionObject *function) {
     FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
     RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 #endif
-
+    assert(_PyObject_GC_IS_TRACKED(function));
     Nuitka_GC_UnTrack(function);
 
     if (function->m_weakrefs != NULL) {
@@ -718,6 +893,10 @@ void _initCompiledFunctionType(void) {
 // produce one.
 static PyObject *_Nuitka_FunctionEmptyCodeNoneImpl(struct Nuitka_FunctionObject const *function,
                                                    PyObject **python_pars) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     Py_ssize_t arg_count = function->m_args_overall_count;
 
     for (Py_ssize_t i = 0; i < arg_count; i++) {
@@ -732,6 +911,10 @@ static PyObject *_Nuitka_FunctionEmptyCodeNoneImpl(struct Nuitka_FunctionObject 
 
 static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(struct Nuitka_FunctionObject const *function,
                                                    PyObject **python_pars) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     Py_ssize_t arg_count = function->m_args_overall_count;
 
     for (Py_ssize_t i = 0; i < arg_count; i++) {
@@ -746,6 +929,10 @@ static PyObject *_Nuitka_FunctionEmptyCodeTrueImpl(struct Nuitka_FunctionObject 
 
 static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(struct Nuitka_FunctionObject const *function,
                                                     PyObject **python_pars) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     Py_ssize_t arg_count = function->m_args_overall_count;
 
     for (Py_ssize_t i = 0; i < arg_count; i++) {
@@ -760,6 +947,10 @@ static PyObject *_Nuitka_FunctionEmptyCodeFalseImpl(struct Nuitka_FunctionObject
 
 static PyObject *_Nuitka_FunctionEmptyCodeGenericImpl(struct Nuitka_FunctionObject const *function,
                                                       PyObject **python_pars) {
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
+
     Py_ssize_t arg_count = function->m_args_overall_count;
 
     for (Py_ssize_t i = 0; i < arg_count; i++) {
@@ -1565,7 +1756,7 @@ static Py_ssize_t handleKeywordArgsSplitWithStarDict(struct Nuitka_FunctionObjec
         PyObject *key = PyTuple_GET_ITEM(kw_names, i);
         PyObject *value = kw_values[i];
 
-        PyDict_SetItem(python_pars[star_dict_index], key, value);
+        DICT_SET_ITEM(python_pars[star_dict_index], key, value);
     }
 
     Py_ssize_t kw_found = 0;
@@ -2446,9 +2637,9 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY38(struct Nuitka_FunctionObject const 
             return false;
         }
 
-        int res = PyDict_SetItem(python_pars[star_dict_index], key, kw_values[i]);
+        bool result = DICT_SET_ITEM(python_pars[star_dict_index], key, kw_values[i]);
 
-        if (unlikely(res != 0)) {
+        if (unlikely(result == false)) {
             return false;
         }
     }

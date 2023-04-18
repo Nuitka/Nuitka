@@ -236,6 +236,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, 
 
 NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value) {
     CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
     CHECK_OBJECT(key);
     CHECK_OBJECT(value);
 

@@ -315,7 +315,7 @@ PyObject *DEEP_COPY_DICT(PyObject *dict_value) {
         PyObject *dict_value_copy = DEEP_COPY(value);
 
         if (dict_value_copy != value) {
-            DICT_SET_ITEM(value, key, value);
+            DICT_SET_ITEM(result, key, value);
         }
     }
 #else
