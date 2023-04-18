@@ -51,8 +51,8 @@
     CHECK_OBJECT(result);
 
 #define releaseToFreeList(free_list, object, max_free_list_count)                                                      \
-    if (free_list != NULL) {                                                                                           \
-        if (free_list##_count > max_free_list_count) {                                                                 \
+    if (free_list != NULL || max_free_list_count == 0) {                                                               \
+        if (free_list##_count >= max_free_list_count) {                                                                \
             PyObject_GC_Del(object);                                                                                   \
         } else {                                                                                                       \
             *((void **)object) = (void *)free_list;                                                                    \
