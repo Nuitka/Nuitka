@@ -442,7 +442,7 @@ class Plugins(object):
 
     @classmethod
     def getPackageExtraScanPaths(cls, package_name, package_dir):
-        key = package_name
+        key = package_name, package_dir
 
         if key not in cls.extra_scan_paths_cache:
             cls.extra_scan_paths_cache[key] = ()
