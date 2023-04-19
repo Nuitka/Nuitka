@@ -76,12 +76,19 @@ def withPluginProblemReporting(plugin, template, args):
     try:
         yield
     except Exception:  # Catch all the things, pylint: disable=broad-except
+        message = """\
+Plugin issue while working on '%s'. Please report the bug with the above \
+traceback included.""" % (
+            template % args
+        )
+
+        if Options.is_debug:
+            plugin.warning(message)
+            raise
+
         traceback.print_exception(*sys.exc_info())
 
-        plugin.sysexit(
-            "Plugin issue while working on '%s'. Please report the bug with the above traceback included."
-            % (template % args)
-        )
+        plugin.sysexit(message)
 
 
 def withPluginModuleNameProblemReporting(plugin, module_name):
