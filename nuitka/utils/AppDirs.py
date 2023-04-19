@@ -31,11 +31,10 @@ from nuitka.Tracing import general
 from .FileOperations import makePath
 from .Importing import importFromInlineCopy
 
-try:
+appdirs = importFromInlineCopy("appdirs", must_exist=False)
+
+if appdirs is None:
     import appdirs  # pylint: disable=I0021,import-error
-except ImportError:
-    # We handle the case without inline copy too.
-    appdirs = importFromInlineCopy("appdirs", must_exist=False)
 
 _cache_dir = None
 
