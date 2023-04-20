@@ -126,11 +126,15 @@ static environment_char_t const *getEnvironmentVariable(char const *name) {
 }
 
 static void setEnvironmentVariable(char const *name, environment_char_t const *value) {
+    assert(name != NULL);
+    assert(value != NULL);
+
     wchar_t name_wide[20];
     name_wide[0] = 0;
     appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
 
     DWORD res = SetEnvironmentVariableW(name_wide, value);
+    assert(wcscmp(getEnvironmentVariable(name), value) == 0);
 
     assert(res != 0);
 }
@@ -194,12 +198,7 @@ static void undoEnvironmentVariable(char const *variable_name, environment_char_
         int res = PyObject_DelItem(os_environ, variable_name_str);
 
         if (unlikely(res != 0)) {
-#if PYTHON_VERSION < 0x300
             DROP_ERROR_OCCURRED();
-#else
-            PyErr_PrintEx(1);
-            Py_Exit(1);
-#endif
         }
     }
 
