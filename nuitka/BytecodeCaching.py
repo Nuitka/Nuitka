@@ -107,6 +107,8 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
             finding != module_used["finding"]
             or module_kind != module_used["module_kind"]
         ):
+            assert module_name != "email._header_value_parser", finding
+
             return None
 
         result.add(

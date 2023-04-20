@@ -49,7 +49,7 @@ def callExecProcess(args):
             # Context manager is not available on all Python versions, pylint: disable=consider-using-with
             process = subprocess.Popen(args=args)
             process.communicate()
-            # No point in cleaning up, pylint: disable=protected-access
+            # No point in cleaning up, just exit the hard way.
             try:
                 os._exit(process.returncode)
             except OverflowError:
@@ -58,7 +58,7 @@ def callExecProcess(args):
                 os._exit(process.returncode - 2**32)
         except KeyboardInterrupt:
             # There was a more relevant stack trace already, so abort this
-            # right here, pylint: disable=protected-access
+            # right here.
             os._exit(2)
     else:
         # The star arguments is the API of execl

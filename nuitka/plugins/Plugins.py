@@ -963,7 +963,6 @@ class Plugins(object):
                 )
 
             if result is not None:
-                # false alarm, pylint: disable=unsubscriptable-object
                 if result[0] != must_recurse[0]:
                     plugin.sysexit(
                         "Error, decision %s does not match other plugin '%s' decision."
