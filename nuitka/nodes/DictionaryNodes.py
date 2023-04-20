@@ -1414,6 +1414,7 @@ class ExpressionDictOperationFromkeys2(ExpressionDictOperationFromkeys2Base):
         if self.subnode_iterable.isCompileTimeConstant():
             # TODO: Could be assert against it being None with a compile time constant,
             # we will usually be able to tell?
+            # This is actually OK to use like this, pylint: disable=bad-chained-comparison
             if None is not self.subnode_iterable.getIterationLength() < 256:
                 return trace_collection.getCompileTimeComputationResult(
                     node=self,
@@ -1432,6 +1433,7 @@ class ExpressionDictOperationFromkeys2(ExpressionDictOperationFromkeys2Base):
         )
 
     def mayRaiseExceptionOperation(self):
+        # This is actually OK to use like this, pylint: disable=bad-chained-comparison
         return None is not self.subnode_iterable.getIterationLength() < 256
 
 
@@ -1448,6 +1450,7 @@ class ExpressionDictOperationFromkeys3(ExpressionDictOperationFromkeys3Base):
         ):
             # TODO: Could be assert against it being None with a compile time constant,
             # we will usually be able to tell?
+            # This is actually OK to use like this, pylint: disable=bad-chained-comparison
             if None is not self.subnode_iterable.getIterationLength() < 256:
                 return trace_collection.getCompileTimeComputationResult(
                     node=self,
@@ -1468,6 +1471,7 @@ class ExpressionDictOperationFromkeys3(ExpressionDictOperationFromkeys3Base):
         )
 
     def mayRaiseExceptionOperation(self):
+        # This is actually OK to use like this, pylint: disable=bad-chained-comparison
         return None is not self.subnode_iterable.getIterationLength() < 256
 
 

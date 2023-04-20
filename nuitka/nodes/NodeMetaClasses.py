@@ -53,7 +53,7 @@ def _checkBases(name, bases):
 class NodeCheckMetaClass(ABCMeta):
     kinds = {}
 
-    def __new__(cls, name, bases, dictionary):  # pylint: disable=I0021,arguments-differ
+    def __new__(mcs, name, bases, dictionary):  # pylint: disable=I0021,arguments-differ
         _checkBases(name, bases)
 
         if "__slots__" not in dictionary:
@@ -103,8 +103,7 @@ class NodeCheckMetaClass(ABCMeta):
         if "checker" in dictionary:
             dictionary["checker"] = staticmethod(dictionary["checker"])
 
-        # false alarm, pylint: disable=I0021,too-many-function-args
-        return ABCMeta.__new__(cls, name, bases, dictionary)
+        return ABCMeta.__new__(mcs, name, bases, dictionary)
 
     def __init__(cls, name, bases, dictionary):
 
