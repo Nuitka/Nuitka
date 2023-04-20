@@ -9,8 +9,8 @@ orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
 subprocess32 == 3.5.4 ; python_version == '2.7'
 
 # PyLint wouldn't be installable on 2.6 and not work with too old Python3
-pylint == 2.12.2 ; python_version >= '3.7'
-astroid == 2.9.3 ; python_version >= '3.7'
+pylint == 2.17.2 ; python_version >= '3.7'
+astroid == 2.15.3 ; python_version >= '3.7'
 
 # linting rest code snippets
 restructuredtext-lint==1.3.2 ; python_version == '2.7' or python_version >= '3.7'

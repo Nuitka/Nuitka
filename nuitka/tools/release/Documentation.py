@@ -61,7 +61,7 @@ def makeLogoImages():
             "../Nuitka-website/doc/_static/apple-touch-icon-iphone.png": "57x57",
             "../Nuitka-website/doc/_static/apple-touch-icon-iphone4.png": "114x114",
             "../Nuitka-website/doc/_static/apple-touch-icon-180x180.png": "180x180",
-        }:
+        }.items():
             check_call((cmd % (icon, size)).split())
 
 

@@ -252,9 +252,7 @@ def get_args(cls, dist, header=None):
         for name, _ep in dist.get_entry_map(group).items():
             script_text = runner_script_template
 
-            args = cls._get_script_args(  # pylint: disable=protected-access
-                type_, name, header, script_text
-            )
+            args = cls._get_script_args(type_, name, header, script_text)
             for res in args:
                 yield res
 
