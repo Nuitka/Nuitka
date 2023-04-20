@@ -2180,6 +2180,7 @@
       - description: 'PySide6 is a GUI framework'
         console: 'recommend'
         when: 'plugin("pyside6")'
+
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
@@ -2188,6 +2189,19 @@
   implicit-imports:
     - depends:
         - 'PySide6.support.deprecated'
+    - post-import-code:
+        - |
+          def myconnect(self, func):
+              if hasattr(func, "im_func"):
+                  if hasattr(func.im_func, "__compiled__"):
+                      myconnect._protected = getattr(myconnect, "_protected", set())
+                      myconnect._protected.add(func)
+
+              return orig_connect(self, func)
+
+          from PySide6 import QtCore
+          orig_connect = QtCore.SignalInstance.connect
+          QtCore.SignalInstance.connect = myconnect
 
 - module-name: 'python_utils.terminal'
   anti-bloat:
