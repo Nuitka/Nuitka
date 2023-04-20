@@ -99,7 +99,11 @@ def getSharedLibrarySuffixes():
         else:
             import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
 
-            _shared_library_suffixes = importlib.machinery.EXTENSION_SUFFIXES
+            _shared_library_suffixes = list(importlib.machinery.EXTENSION_SUFFIXES)
+
+        # Nuitka-Python on Windows has that
+        if "" in _shared_library_suffixes:
+            _shared_library_suffixes.remove("")
 
         _shared_library_suffixes = tuple(_shared_library_suffixes)
 
