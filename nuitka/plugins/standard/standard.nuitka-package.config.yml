@@ -1140,6 +1140,13 @@
       replacements_plain:
         'from networkx.testing.test import run as test': 'test = None'
 
+- module-name: 'networkx.classes.backends'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
+      when: 'not use_pytest'
+
 - module-name: 'networkx.utils.decorators'
   anti-bloat:
     - description: 'required for decorator compatibility'
