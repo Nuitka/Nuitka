@@ -91,6 +91,93 @@
     - depends:
         - 'gobject'
 
+- module-name: 'av.audio.frame'
+  implicit-imports:
+    - depends:
+        - 'av.frame'
+        - 'av.audio.plane'
+
+- module-name: 'av.audio.resampler'
+  implicit-imports:
+    - depends:
+        - 'av.filter'
+
+- module-name: 'av.buffer'
+  implicit-imports:
+    - depends:
+        - 'av.bytesource'
+        - 'av.deprecation'
+
+- module-name: 'av.codec.codec'
+  implicit-imports:
+    - depends:
+        - 'av.descriptor'
+
+- module-name: 'av.container.core'
+  implicit-imports:
+    - depends:
+        - 'av.container.pyio'
+
+- module-name: 'av.container.streams'
+  implicit-imports:
+    - depends:
+        - 'av.stream'
+
+- module-name: 'av.descriptor'
+  implicit-imports:
+    - depends:
+        - 'av.option'
+
+- module-name: 'av.filter.context'
+  implicit-imports:
+    - depends:
+        - 'av.filter.link'
+
+- module-name: 'av.filter.graph'
+  implicit-imports:
+    - depends:
+        - 'av.filter.context'
+
+- module-name: 'av.filter.link'
+  implicit-imports:
+    - depends:
+        - 'av.filter.pad'
+
+- module-name: 'av.frame'
+  implicit-imports:
+    - depends:
+        - 'av.buffer'
+
+- module-name: 'av.option'
+  implicit-imports:
+    - depends:
+        - 'av.enum'
+        - 'av.utils'
+
+- module-name: 'av.packet'
+  implicit-imports:
+    - depends:
+        - 'av.dictionary'
+        - 'av.sidedata.sidedata'
+
+- module-name: 'av.sidedata.sidedata'
+  implicit-imports:
+    - depends:
+        - 'av.container.streams'
+        - 'av.sidedata.motionvectors'
+
+- module-name: 'av.utils'
+  implicit-imports:
+    - depends:
+        - 'fractions'
+
+- module-name: 'av.video.frame'
+  implicit-imports:
+    - depends:
+        - 'av.video.reformatter'
+        - 'av.plane'
+        - 'av.video.plane'
+
 - module-name: 'babel'
   data-files:
     dirs:
