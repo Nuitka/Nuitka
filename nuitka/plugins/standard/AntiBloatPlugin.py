@@ -287,8 +287,8 @@ which can and should be a top level package and then one choice, "error",
 
             if type(replace_dst) is not str:
                 self.sysexit(
-                    "Error, expression needs to generate string, not %s"
-                    % type(replace_dst)
+                    "Error, expression code '%s' needs to generate string, not %s"
+                    % (replace_code, type(replace_dst))
                 )
 
             old = source_code
