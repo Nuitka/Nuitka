@@ -357,25 +357,32 @@ def formatYaml(path):
         string_io = StringIO()
         yaml.dump(new_data, string_io)
 
-        lastline = None
+        last_line = None
+        pipe_block = False
         for line in string_io.getvalue().splitlines():
             # Duplicate new-lines are a no-go.
-            if lastline == "" and line == "":
+            if last_line == "" and line == "":
                 continue
 
             if line.startswith("  "):
-                if not line.lstrip().startswith("#"):
+                if not line.lstrip().startswith("#") or pipe_block:
                     line = line[2:]
+
+            if line.endswith("|"):
+                pipe_block = True
+                pipe_block_prefix = (len(line) - len(line.lstrip()) + 2) * " "
+            elif pipe_block and not line.startswith(pipe_block_prefix):
+                pipe_block = False
 
             if line.startswith("- module-name:"):
                 if (
-                    lastline != ""
-                    and not lastline.startswith("#")
-                    and not lastline == "---"
+                    last_line != ""
+                    and not last_line.startswith("#")
+                    and not last_line == "---"
                 ):
                     output_file.write("\n")
 
-            lastline = line
+            last_line = line
 
             output_file.write(line + "\n")
 
