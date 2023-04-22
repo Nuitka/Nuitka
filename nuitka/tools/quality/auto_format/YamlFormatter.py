@@ -208,7 +208,7 @@ def deepCompareYamlFiles(path1, path2):
     return diff
 
 
-def formatYaml(path):
+def formatYaml(path, ignore_diff=False):
     """
     format and sort a yaml file
     """
@@ -386,10 +386,12 @@ def formatYaml(path):
 
             output_file.write(line + "\n")
 
-    diff = deepCompareYamlFiles(path, tmp_path)
-    if diff:
-        tools_logger.sysexit(
-            "Error, auto-format for Yaml file %s is changing contents %s" % (path, diff)
-        )
+    if not ignore_diff:
+        diff = deepCompareYamlFiles(path, tmp_path)
+        if diff:
+            tools_logger.sysexit(
+                "Error, auto-format for Yaml file %s is changing contents %s"
+                % (path, diff)
+            )
 
     renameFile(tmp_path, path)
