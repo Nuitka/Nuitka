@@ -90,7 +90,9 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.control_tags["use_setuptools"] = True
 
         if noinclude_pytest_mode != "allow":
+            self.handled_modules["_pytest"] = noinclude_pytest_mode
             self.handled_modules["pytest"] = noinclude_pytest_mode
+            self.handled_modules["py"] = noinclude_pytest_mode
             self.handled_modules["nose2"] = noinclude_pytest_mode
             self.handled_modules["nose"] = noinclude_pytest_mode
         else:
