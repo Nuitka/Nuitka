@@ -561,6 +561,7 @@ def autoFormatFile(
     limit_c=False,
     limit_rst=False,
     ignore_errors=False,
+    ignore_yaml_diff=True,
 ):
     """Format source code with external tools
 
@@ -698,7 +699,7 @@ def autoFormatFile(
                     _cleanupRstFmt(tmp_filename, effective_filename)
 
                 if is_package_config_yaml:
-                    formatYaml(tmp_filename)
+                    formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)
                     cleanupWindowsNewlines(tmp_filename, effective_filename)
                     _cleanupTrailingWhitespace(tmp_filename)
 
