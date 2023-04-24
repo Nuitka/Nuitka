@@ -145,7 +145,6 @@ def getWindowsRelease():
 def isDebianBasedLinux():
     dist_name, base, _dist_version = getLinuxDistribution()
 
-    # False alarm, pylint: disable=superfluous-parens
     return (base or dist_name) in ("Debian", "Ubuntu")
 
 

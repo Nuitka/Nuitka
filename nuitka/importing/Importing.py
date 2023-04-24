@@ -49,6 +49,7 @@ from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
+from nuitka.PythonFlavors import isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import my_print, recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
@@ -164,6 +165,9 @@ def getModuleNameAndKindFromFilename(module_filename):
 
 
 def isIgnoreListedImportMaker(source_ref):
+    if isNuitkaPython():
+        return True
+
     return StandardLibrary.isStandardLibraryPath(source_ref.getFilename())
 
 
@@ -404,6 +408,17 @@ def listDirCached(path):
         _list_dir_cache[path] = tuple(listDir(path))
 
     return _list_dir_cache[path]
+
+
+def flushImportCache():
+    """Clear import related caches.
+
+    In some situations, e.g. during package rebuild, we scan and then decide to remove
+    files and scan again. This allows that. Nothing in standard Nuitka should do it,
+    as it throws away so much.
+    """
+    _list_dir_cache.clear()
+    module_search_cache.clear()
 
 
 def _findModuleInPath2(package_name, module_name, search_path):

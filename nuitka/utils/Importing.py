@@ -99,7 +99,11 @@ def getSharedLibrarySuffixes():
         else:
             import importlib.machinery  # pylint: disable=I0021,import-error,no-name-in-module
 
-            _shared_library_suffixes = importlib.machinery.EXTENSION_SUFFIXES
+            _shared_library_suffixes = list(importlib.machinery.EXTENSION_SUFFIXES)
+
+        # Nuitka-Python on Windows has that
+        if "" in _shared_library_suffixes:
+            _shared_library_suffixes.remove("")
 
         _shared_library_suffixes = tuple(_shared_library_suffixes)
 
@@ -140,7 +144,7 @@ def _importFromFolder(logger, module_name, path, must_exist, message):
 
     # Handle case without inline copy too.
     try:
-        return __import__(module_name)
+        return __import__(module_name, level=0)
     except (ImportError, SyntaxError, RuntimeError) as e:
         if not must_exist:
             return None

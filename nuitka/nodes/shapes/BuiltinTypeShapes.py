@@ -4092,6 +4092,7 @@ def mergeStrOrUnicode(op_shapes_str, op_shapes_unicode):
 
             r[key] = value
         elif value[0] is tshape_str and value2[0] is tshape_unicode:
+            # Actually as intended, pylint: disable=bad-chained-comparison
             assert (
                 value[1]
                 is value2[1]
