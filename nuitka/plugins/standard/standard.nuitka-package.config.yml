@@ -4040,6 +4040,13 @@
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
 
+- module-name: 'triton.compiler'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'import setuptools': ''
+      when: 'not use_setuptools'
+
 - module-name: 'tzdata'
   data-files:
     dirs:
