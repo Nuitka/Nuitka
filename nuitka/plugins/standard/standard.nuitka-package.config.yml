@@ -203,8 +203,8 @@
 - module-name: 'cffi.ffiplatform'
   anti-bloat:
     - description: 'disable distutils hacks'
-      replacements:
-        'import setuptools': "'pass'"
+      replacements_plain:
+        'import setuptools': 'pass'
     - description: 'disable distutils hacks'
       change_function:
         'get_extension': 'un-callable'
@@ -416,9 +416,9 @@
   anti-bloat:
     - description: 'remove cython support'
       # TODO: We should replace this with a nuitkarize in Cython maybe.
-      replacements:
-        'from cython import compiled': "'raise ImportError'"
-        'if compiled:': "'if False:'"
+      replacements_plain:
+        'from cython import compiled': 'raise ImportError'
+        'if compiled:': 'if False:'
 
 - module-name: 'dns.rdtypes'
   implicit-imports:
@@ -452,8 +452,8 @@
 - module-name: 'eliot._traceback'
   anti-bloat:
     - description: 'avoid useless duplication of traceback module'
-      replacements:
-        'load_module(str("_traceback_no_io"), traceback)': "'__import__(\"traceback\")'"
+      replacements_plain:
+        'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
 - module-name: 'enchant'
   data-files:
