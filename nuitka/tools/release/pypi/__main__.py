@@ -27,7 +27,34 @@ from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
 from nuitka.Tracing import my_print
+from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
+
+
+def _checkNuitkaInVirtualenv(python):
+    with withVirtualenv(
+        "venv_nuitka", style="blue", python=python.getPythonExe()
+    ) as venv:
+        my_print("Installing Nuitka into virtualenv:", style="blue")
+        my_print("*" * 40, style="blue")
+        venv.runCommand("python -m pip install ../dist/Nuitka*.tar.gz")
+        my_print("*" * 40, style="blue")
+
+        my_print("Compiling basic test with runner:", style="blue")
+        my_print("*" * 40, style="blue")
+        venv.runCommand(
+            "nuitka%s ../tests/basics/AssertsTest.py" % python.getPythonVersion()[0],
+            style="blue",
+        )
+        my_print("*" * 40, style="blue")
+
+        my_print("Compiling basic test with recommended -m mode:", style="blue")
+        my_print("*" * 40, style="blue")
+        venv.runCommand(
+            "python -m nuitka ../tests/basics/AssertsTest.py",
+            style="blue",
+        )
+        my_print("*" * 40, style="blue")
 
 
 def main():
@@ -50,29 +77,32 @@ def main():
     my_print("Creating documentation.", style="blue")
     createReleaseDocumentation()
     my_print("Creating source distribution.", style="blue")
-    assert os.system("umask 0022 && chmod -R a+rX . && python setup.py sdist") == 0
+    assert (
+        os.system("umask 0022 && chmod -R a+rX . && %s setup.py sdist" % sys.executable)
+        == 0
+    )
 
-    with withVirtualenv("venv_nuitka", style="blue") as venv:
-        my_print("Installing Nuitka into virtualenv:", style="blue")
-        my_print("*" * 40, style="blue")
-        venv.runCommand("python -m pip install ../dist/Nuitka*.tar.gz")
-        my_print("*" * 40, style="blue")
-
-        my_print("Compiling basic test with runner:", style="blue")
-        my_print("*" * 40, style="blue")
-        venv.runCommand(
-            "nuitka%d-run ../tests/basics/AssertsTest.py" % sys.version_info[0],
-            style="blue",
+    # Delete requires.txt as it confuses poetry and potentially other tools
+    assert os.system("gunzip dist/Nuitka*.tar.gz") == 0
+    assert (
+        os.system(
+            "tar --wildcards --delete --file dist/Nuitka*.tar Nuitka-*/Nuitka.egg-info/requires.txt"
         )
-        my_print("*" * 40, style="blue")
+        == 0
+    )
+    assert os.system("gzip -9 dist/Nuitka*.tar") == 0
 
-        my_print("Compiling basic test with recommended -m mode:", style="blue")
-        my_print("*" * 40, style="blue")
-        venv.runCommand(
-            "python -m nuitka ../tests/basics/AssertsTest.py",
-            style="blue",
-        )
-        my_print("*" * 40, style="blue")
+    pythons = [
+        findInstalledPython(
+            python_versions=("2.7",), module_name=None, module_version=None
+        ),
+        findInstalledPython(
+            python_versions=("3.10",), module_name=None, module_version=None
+        ),
+    ]
+
+    for python in pythons:
+        _checkNuitkaInVirtualenv(python)
 
     assert os.system("twine check dist/*") == 0
 

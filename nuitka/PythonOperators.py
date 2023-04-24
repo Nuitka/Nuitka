@@ -122,6 +122,9 @@ all_comparison_functions.update(other_comparison_functions)
 
 
 def matchException(left, right):
+    # This doesn't yet work, make it error exit and silence PyLint for now.
+    # pylint: disable=unused-argument
+
     if python_version >= 0x300:
         if type(right) is tuple:
             for element in right:
@@ -134,13 +137,9 @@ def matchException(left, right):
                 "catching classes that do not inherit from BaseException is not allowed"
             )
 
-    # This doesn't yet work, make it error exit. and silence PyLint for now.
-    # pylint: disable=protected-access
     import os
 
     os._exit(16)
-
-    assert False, left
 
 
 all_comparison_functions["exception_match"] = matchException
