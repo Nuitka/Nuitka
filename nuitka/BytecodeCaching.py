@@ -88,27 +88,39 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
     result = OrderedSet()
 
-    for module in data["modules_used"]:
-        module_name = ModuleName(module["module_name"])
+    for module_used in data["modules_used"]:
+        used_module_name = ModuleName(module_used["module_name"])
 
-        # Retry the module scan.
-        _module_name, filename, module_kind, finding = locateModule(
-            module_name=module_name, parent_package=None, level=0
-        )
+        # Retry the module scan to see if it still gives same result
+        if module_used["finding"] == "relative":
+            _used_module_name, filename, module_kind, finding = locateModule(
+                module_name=used_module_name.getBasename(),
+                parent_package=used_module_name.getPackageName(),
+                level=1,
+            )
+        else:
+            _used_module_name, filename, module_kind, finding = locateModule(
+                module_name=used_module_name, parent_package=None, level=0
+            )
 
-        if finding != module["finding"] or module_kind != module["module_kind"]:
+        if (
+            finding != module_used["finding"]
+            or module_kind != module_used["module_kind"]
+        ):
+            assert module_name != "email._header_value_parser", finding
+
             return None
 
         result.add(
             makeModuleUsageAttempt(
-                module_name=module_name,
+                module_name=used_module_name,
                 filename=filename,
-                finding=module["finding"],
-                module_kind=module["module_kind"],
+                finding=module_used["finding"],
+                module_kind=module_used["module_kind"],
                 # TODO: Level might have to be dropped.
                 level=0,
                 # We store only the line number, so this cheats it to at full one.
-                source_ref=source_ref.atLineNumber(module["source_ref_line"]),
+                source_ref=source_ref.atLineNumber(module_used["source_ref_line"]),
             )
         )
 
