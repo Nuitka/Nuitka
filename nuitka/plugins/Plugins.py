@@ -442,7 +442,7 @@ class Plugins(object):
 
     @classmethod
     def getPackageExtraScanPaths(cls, package_name, package_dir):
-        key = package_name
+        key = package_name, package_dir
 
         if key not in cls.extra_scan_paths_cache:
             cls.extra_scan_paths_cache[key] = ()
@@ -745,9 +745,10 @@ class Plugins(object):
                 is_fake=module_name,
                 hide_syntax_error=False,
             )
-        except SyntaxError:
+        except SyntaxError as e:
             plugins_logger.sysexit(
-                "SyntaxError in plugin provided source code for '%s'." % module_name
+                "SyntaxError in plugin provided source code for '%s': %s."
+                % (module_name, e)
             )
 
         if trigger_module.getCompilationMode() == "bytecode":
@@ -758,7 +759,7 @@ class Plugins(object):
     @classmethod
     def onModuleDiscovered(cls, module):
         # We offer plugins many ways to provide extra stuff
-        # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+        # pylint: disable=too-many-locals,too-many-statements
 
         full_name = module.getFullName()
 
@@ -816,22 +817,40 @@ class Plugins(object):
                 _untangleFakeDesc(description=plugin.createFakeModuleDependency(module))
             )
 
-        if pre_module_load_descriptions:
-            total_code = []
+        def combineLoadCodes(module_load_descriptions, mode):
+            future_imports_code = []
+            normal_code_code = []
             total_flags = OrderedSet()
             reasons = []
 
-            for plugin, pre_code, reason, flags in pre_module_load_descriptions:
-                if pre_code:
+            for plugin, code, reason, flags in module_load_descriptions:
+                if code:
                     plugin.info(
-                        "Injecting pre-module load code for module '%s':" % full_name
+                        "Injecting %s-module load code for module '%s':"
+                        % (mode, full_name)
                     )
                     for line in reason.split("\n"):
                         plugin.info("    " + line)
 
-                    total_code.append(pre_code)
+                    for line in code.splitlines():
+                        line = line + "\n"
+
+                        if line.startswith("from __future__"):
+                            future_imports_code.append(line)
+                        else:
+                            normal_code_code.append(line)
+
                     total_flags.update(flags)
                     reasons.append(reason)
+
+            total_code = future_imports_code + normal_code_code
+
+            return total_code, reasons, total_flags
+
+        if pre_module_load_descriptions:
+            total_code, reasons, total_flags = combineLoadCodes(
+                module_load_descriptions=pre_module_load_descriptions, mode="pre"
+            )
 
             if total_code:
                 assert full_name not in pre_modules
@@ -839,27 +858,15 @@ class Plugins(object):
                 pre_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
                     trigger_name=pre_module_load_trigger_name,
-                    code="\n\n".join(total_code),
+                    code="".join(total_code),
                     flags=total_flags,
                 )
                 pre_modules_reasons[full_name] = tuple(reasons)
 
         if post_module_load_descriptions:
-            total_code = []
-            total_flags = OrderedSet()
-            reasons = []
-
-            for plugin, post_code, reason, flags in post_module_load_descriptions:
-                if post_code:
-                    plugin.info(
-                        "Injecting post-module load code for module '%s':" % full_name
-                    )
-                    for line in reason.split("\n"):
-                        plugin.info("    " + line)
-
-                    total_code.append(post_code)
-                    total_flags.update(flags)
-                    reasons.append(reason)
+            total_code, reasons, total_flags = combineLoadCodes(
+                module_load_descriptions=post_module_load_descriptions, mode="post"
+            )
 
             if total_code:
                 assert full_name not in post_modules
@@ -867,7 +874,7 @@ class Plugins(object):
                 post_modules[full_name] = cls._createTriggerLoadedModule(
                     module=module,
                     trigger_name=post_module_load_trigger_name,
-                    code="\n\n".join(total_code),
+                    code="".join(total_code),
                     flags=total_flags,
                 )
                 post_modules_reasons[full_name] = reasons
@@ -963,7 +970,6 @@ class Plugins(object):
                 )
 
             if result is not None:
-                # false alarm, pylint: disable=unsubscriptable-object
                 if result[0] != must_recurse[0]:
                     plugin.sysexit(
                         "Error, decision %s does not match other plugin '%s' decision."

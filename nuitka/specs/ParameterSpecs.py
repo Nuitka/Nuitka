@@ -417,14 +417,14 @@ def matchCall(
                     )
 
                 raise TooManyArguments(TypeError(message))
-            else:
-                if arg_index < num_pos_only:
-                    message = "'%s' is an invalid keyword argument for %s()" % (
-                        pair[0],
-                        func_name,
-                    )
 
-                    raise TooManyArguments(TypeError(message))
+            if arg_index < num_pos_only:
+                message = "'%s' is an invalid keyword argument for %s()" % (
+                    pair[0],
+                    func_name,
+                )
+
+                raise TooManyArguments(TypeError(message))
 
     if star_list_arg:
         if num_pos > num_args:

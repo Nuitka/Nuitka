@@ -154,6 +154,9 @@ def checkVersion():
 # unnecessary-dunder-call
 # We do make those intentionally only.
 
+# arguments-differ
+# We override static methods with non-static all the time.
+
 
 def getOptions():
     pylint_version = checkVersion()
@@ -199,7 +202,7 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
     if os.name != "nt":
         default_pylint_options.append("--rcfile=%s" % os.devnull)
 
-    if pylint_version < (2, 15):
+    if pylint_version < (2, 17):
         default_pylint_options.append("--disable=bad-whitespace")
         default_pylint_options.append("--disable=bad-continuation")
         default_pylint_options.append("--disable=no-init")
@@ -208,9 +211,11 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
         default_pylint_options.append("--disable=W1504")
         default_pylint_options.append("--disable=R0204")
     else:
+        default_pylint_options.append("--load-plugins=pylint.extensions.no_self_use")
         default_pylint_options.append("--disable=unnecessary-lambda-assignment")
         default_pylint_options.append("--disable=unnecessary-dunder-call")
-        default_pylint_options.append("--load-plugins=pylint.extensions.no_self_use")
+        default_pylint_options.append("--disable=arguments-differ")
+        default_pylint_options.append("--disable=redefined-slots-in-subclass")
 
     return default_pylint_options
 

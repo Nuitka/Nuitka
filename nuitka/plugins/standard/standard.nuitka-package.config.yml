@@ -203,8 +203,8 @@
 - module-name: 'cffi.ffiplatform'
   anti-bloat:
     - description: 'disable distutils hacks'
-      replacements:
-        'import setuptools': "'pass'"
+      replacements_plain:
+        'import setuptools': 'pass'
     - description: 'disable distutils hacks'
       change_function:
         'get_extension': 'un-callable'
@@ -416,9 +416,9 @@
   anti-bloat:
     - description: 'remove cython support'
       # TODO: We should replace this with a nuitkarize in Cython maybe.
-      replacements:
-        'from cython import compiled': "'raise ImportError'"
-        'if compiled:': "'if False:'"
+      replacements_plain:
+        'from cython import compiled': 'raise ImportError'
+        'if compiled:': 'if False:'
 
 - module-name: 'dns.rdtypes'
   implicit-imports:
@@ -452,8 +452,8 @@
 - module-name: 'eliot._traceback'
   anti-bloat:
     - description: 'avoid useless duplication of traceback module'
-      replacements:
-        'load_module(str("_traceback_no_io"), traceback)': "'__import__(\"traceback\")'"
+      replacements_plain:
+        'load_module(str("_traceback_no_io"), traceback)': '__import__("traceback")'
 
 - module-name: 'enchant'
   data-files:
@@ -1129,6 +1129,14 @@
     patterns:
       - '*.pem'
 
+- module-name: 'mpmath'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'doctests': 'un-callable'
+        'runtests': 'un-callable'
+      when: 'not use_pytest'
+
 - module-name: 'nacl._sodium'
   implicit-imports:
     - depends:
@@ -1140,12 +1148,32 @@
       replacements_plain:
         'from networkx.testing.test import run as test': 'test = None'
 
+- module-name: 'networkx.classes.backends'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'os.environ.get("NETWORKX_GRAPH_CONVERT")': 'None'
+      when: 'not use_pytest'
+
 - module-name: 'networkx.utils.decorators'
   anti-bloat:
     - description: 'required for decorator compatibility'
       replacements_plain:
         'func.__defaults__ = f.__defaults__': ''
         'real_func = func.__argmap__.compile(func.__wrapped__)': 'return func'
+        '    return argmap(_not_implemented_for, 0)': |
+          #
+              import functools
+              def inner(func):
+                  @functools.wraps(func)
+                  def _not_implemented_for(g):
+                      if (mval is None or mval == g.is_multigraph()) and (
+                          dval is None or dval == g.is_directed()
+                      ):
+                          raise nx.NetworkXNotImplemented(errmsg)
+                      return func(g)
+                  return _not_implemented_for
+              return inner
 
 - module-name: 'nose.core'
   data-files:
@@ -1387,6 +1415,12 @@
   data-files:
     dirs:
       - 'resources/schemas'
+
+- module-name: 'opentele.utils'
+  anti-bloat:
+    - description: 'workaround compiled function decorator issues'
+      replacements_plain:
+        'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
 
 - module-name: 'openvino'
   data-files:
@@ -1675,6 +1709,7 @@
       change_function:
         'test_pandas_friendly_reshape': 'un-callable'
         'test_wide_dtype_for_and_widen': 'un-callable'
+      when: 'not use_pytest'
 
 - module-name: 'pendulum'
   data-files:
@@ -1882,6 +1917,11 @@
         'from ._common import POSIX': "'POSIX = %r' % psutil.POSIX"
         'from ._common import SUNOS': "'SUNOS = %r' % psutil.SUNOS"
         'from ._common import WINDOWS': "'WINDOWS = %r' % psutil.WINDOWS"
+
+- module-name: 'pyarrow.lib'
+  implicit-imports:
+    - depends:
+        - 'pyarrow.vendored.version'
 
 - module-name: 'pyarrow.vendored.docscrape'
   anti-bloat:
@@ -2162,9 +2202,28 @@
       - description: 'PySide6 is a GUI framework'
         console: 'recommend'
         when: 'plugin("pyside6")'
+
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
+
+- module-name: 'PySide6.QtCore'
+  implicit-imports:
+    - depends:
+        - 'PySide6.support.deprecated'
+    - post-import-code:
+        - |
+          def myconnect(self, func):
+              if hasattr(func, "im_func"):
+                  if hasattr(func.im_func, "__compiled__"):
+                      myconnect._protected = getattr(myconnect, "_protected", set())
+                      myconnect._protected.add(func)
+
+              return orig_connect(self, func)
+
+          from PySide6 import QtCore
+          orig_connect = QtCore.SignalInstance.connect
+          QtCore.SignalInstance.connect = myconnect
 
 - module-name: 'python_utils.terminal'
   anti-bloat:
@@ -3264,6 +3323,26 @@
     dirs:
       - 'vendor'
 
+- module-name: 'sympy.interactive.printing'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import IPython': 'raise ImportError'
+        'from IPython import get_ipython': 'raise ImportError'
+        'from IPython.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
+        'from IPython.frontend.terminal.interactiveshell import TerminalInteractiveShell': 'raise ImportError'
+        'from IPython.lib.latextools import latex_to_png': 'raise ImportError'
+        'from IPython.core.interactiveshell import InteractiveShell': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'sympy.interactive.session'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import IPython': 'raise ImportError'
+        'from IPython import get_ipython': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'tables'
   anti-bloat:
     - description: 'remove tables.tests usage'
@@ -4002,6 +4081,13 @@
       replacements_plain:
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
+
+- module-name: 'triton.compiler'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'import setuptools': ''
+      when: 'not use_setuptools'
 
 - module-name: 'tzdata'
   data-files:
