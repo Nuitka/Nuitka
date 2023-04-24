@@ -64,8 +64,6 @@ class CTypeNuitkaVoidEnum(CTypeNotReferenceCountedMixin, CTypeBase):
     def emitAssignmentCodeFromConstant(
         cls, to_name, constant, may_escape, emit, context
     ):
-        # No context needed, pylint: disable=unused-argument
-
         # Everything else expresses missed compiled time optimization.
         assert constant is None
 

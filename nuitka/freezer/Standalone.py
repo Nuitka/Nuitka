@@ -536,7 +536,11 @@ def checkFreezingModuleSet():
 
     else:
         checkModulePath = None
+        message = None
+        mnemonic = None
 
+    # We intend for other platforms to join, e.g. Fedora, etc. but currently
+    # only Debian is done.
     if checkModulePath is not None:
         for module in ModuleRegistry.getDoneModules():
             checkModulePath(module)

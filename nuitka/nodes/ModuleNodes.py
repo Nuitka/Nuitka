@@ -831,8 +831,7 @@ class PythonMainModule(CompiledPythonModule):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        if "code_flags" in args:
-            future_spec = fromFlags(args["code_flags"])
+        future_spec = fromFlags(args["code_flags"])
 
         result = cls(
             main_added=args["main_added"] == "True",
