@@ -75,6 +75,84 @@ Bug fixes
 -  Windows: Fix, the ``nuitka-run`` batch file was not working. Fixed in
    1.5.4 already.
 
+-  Standalone: Add ``pymoo`` implicit dependencies. Fixed in 1.5.5
+   already.
+
+-  macOS: Avoid deprecated API, this should fix newer Xcode being used.
+   Fixed in 1.5.5 already.
+
+-  Fix, the ``multiprocessing`` in spawn mode didn't handle relative
+   paths that become invalid after process start. Fixed in 1.5.5
+   already.
+
+-  Fix, spec ``%CACHE_DIR%`` was not given the correct folder on
+   non-Windows. Fixed in 1.5.5 already.
+
+-  Fix, special float values like ``nan`` and ``inf`` didn't properly
+   generate code for C values. Fixed in 1.5.5 already.
+
+-  Standalone: Add missing DLL for ``onnxruntime`` on Linux too. Fixed
+   in 1.5.5 already.
+
+-  UI: Fix, illegal python flags value could enable ``site`` mode. by
+   mistake and were not caught. Fixed in 1.5.6 already.
+
+-  Windows: Fix, user names with spaces failed with MinGW64 during
+   linking. Fixed in 1.5.6 already.
+
+-  Linux: Fix, was not excluding all libraries from glibc, which could
+   cause crashes on newer systems. Fixed in 1.5.6 already.
+
+-  Windows: Fix, could still pickup SxS libraries distributed by other
+   software when found in PATH. Fixed in 1.5.6 already.
+
+-  Windows: Fix, do not use cache DLL dependencies if one the files
+   listed there went missing. Fixed in 1.5.6 already.
+
+-  Plugins: Fix, the ``dill-compat`` was broken by code object changes.
+   Fixed in 1.5.6 already.
+
+-  Standalone: Added workaround for ``networkx`` decorator issues. Fixed
+   in 1.5.7 already.
+
+-  Standalone: Added workaround for PySide6 problem. Fixed in 1.5.7
+   already.
+
+-  Fix, need to make sure the yaml package is located absolutely or else
+   case insensitive file systems can confuse things. Fixed in 1.5.7
+   already.
+
+-  Standalone: Fix, extra scan paths were not considered in caching of
+   module imports, breaking the feature in many cases. Fixed in 1.5.7
+   already.
+
+-  Windows: Fix, avoid system installed ``appdirs`` package as it is
+   frequently broken. Fixed in 1.5.7 already.
+
+-  Standalone: The bytecode cache check needs to handle re-checking
+   relative imports found in the cache better. Otherwise some standard
+   library modules were always recompiled due to apparent import
+   changes. Fixed in 1.5.7 already.
+
+-  Nuitka-Python: Fix, do not insist on ``PYTHONHOME`` making it to
+   ``os.environ`` in order to delete it again. Fixed in 1.5.7 already.
+
+-  Nuitka-Python: Allow builtin modules of all names. This is of course
+   what it does. Fixed in 1.5.7 already.
+
+-  Nuitka-Python: Ignore empty extension module suffix. Was confusing
+   Nuitka to consider every file an extension module potentially. Fixed
+   in 1.5.7 already.
+
+-  Standalone: Added support for ``opentele`` package. Fixed in 1.5.7
+   already.
+
+-  Standalone: Added support for newer ``pandas`` and ``pyarrow`` usage.
+   Fixed in 1.5.7 already.
+
+-  Standalone: Added missing implicit dependency for PySide6. Fixed in
+   1.5.7 already.
+
 New Features
 ============
 
@@ -84,6 +162,14 @@ New Features
    For data file options and configuration, these files are excluded,
    but this is now the way to force their inclusion. Added in 1.5.1
    already.
+
+-  Plugins: Properly merge code coming from distinct plugins. The
+   ``__future__`` imports need to be moved to the start. Added in 1.5.7
+   already.
+
+-  Distutils: Handle extension modules in build tasks. Also recognize if
+   we built it ourselves, in which case we remove it for rebuild. Added
+   in 1.5.7 already.
 
 Optimization
 ============
@@ -101,6 +187,35 @@ Optimization
 -  Onefile: During payload unpacking the memory mapped data was copied
    to an input buffer. Removing that avoids memory copying and reduces
    usage.
+
+-  Onefile: Avoid repeated directory creations. Without it, the
+   bootstrap was creating already existing directories up to the root
+   over and over, making many unnecessary file system checks. Added in
+   1.5.5 already.
+
+-  Onefile: Reject path spec that points to a system folder. We do not
+   want to delete those when cleaning up clearly. Added in 1.5.6
+   already.
+
+-  Anti-Bloat: Remove usage of ``IPython`` in ``trio`` package. Added in
+   1.5.6 already.
+
+-  Onefile: Use resource for payload on Win32 rather than overlay. This
+   integrates better with signatures, removing the need to check for
+   original file size. Changed in 1.5.6 already.
+
+-  Onefile: Avoid using zstd input buffer, but using the memory mapped
+   contents directly avoiding to copy uncompressed payload data. Changed
+   in 1.5.6 already.
+
+-  Anti-Bloat: Remove usage of ``pytest`` and ``IPython`` for some
+   packages used by newer ``torch``. Added in 1.5.7 already.
+
+-  Anti-Bloat: Avoid ``triton`` to use setuptools. Added in 1.5.7
+   already.
+
+-  Anti-Bloat: Avoid ``pytest`` in newer ``networkx`` package. Added in
+   1.5.7 already.
 
 Organisational
 ==============
@@ -127,6 +242,22 @@ Organisational
    any yet, and sometimes the wording was improved. Fixed in 1.5.4
    already.
 
+-  UI: Accept ``y`` as a shortcut for ``yes`` in prompts. Added in 1.5.5
+   already.
+
+-  Reports: Make sure the DLL dependencies for Linux are in a stable
+   order. Added in 1.5.6 already.
+
+-  Plugins: Check for latest fixes in PySide6. Added in 1.5.6 already.
+
+-  Windows XP: For Python3.4 make using Python2 scons work again, we
+   cannot have 3.5 or higher there. Added in 1.5.6 already.
+
+-  Quality: Updated to latest PyLint. Changed in 1.5.7 already.
+
+-  Release: Avoid broken ``requires.txt`` in source distribution. This
+   apparently breaks poetry. Changed in 1.5.7 already.
+
 Cleanups
 ========
 
@@ -141,6 +272,9 @@ Tests
    usages of files on that OS.
 
 -  Detect and consider onefile mode if given in project options as well.
+
+-  Tests: Was not really applying import check in programs tests. Added
+   in 1.5.6 already.
 
 This release is not done yet.
 
