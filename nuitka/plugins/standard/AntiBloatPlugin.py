@@ -23,7 +23,9 @@ that to be done and causing massive degradations.
 """
 
 import ast
+import os
 import re
+import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
@@ -250,7 +252,8 @@ which can and should be a top level package and then one choice, "error",
         # To allow detection if it did anything.
         change_count = 0
 
-        context = {}
+        context = {"sys": sys, "os": os}
+
         context_code = anti_bloat_config.get("context", "")
         if type(context_code) in (tuple, list):
             context_code = "\n".join(context_code)
@@ -277,6 +280,10 @@ which can and should be a top level package and then one choice, "error",
                         )
 
                     context_ready = True
+
+                if "__dirname__" in replace_code:
+                    context["__dirname__"] = self.locateModule(module_name)
+
                 try:
                     replace_dst = eval(replace_code, context)
                 except Exception as e:  # pylint: disable=broad-except

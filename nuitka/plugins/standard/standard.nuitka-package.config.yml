@@ -564,6 +564,16 @@
         - 'engineio.async_drivers.threading'
         - 'engineio.async_drivers.tornado'
 
+- module-name: 'Equation'
+  anti-bloat:
+    - description: 'workaround for standalone mode'
+      replacements:
+        'os.listdir(dirname)': 'repr(os.listdir(__dirname__))'
+      when: 'standalone'
+  implicit-imports:
+    - depends:
+        - 'Equation.equation_*'
+
 - module-name: 'exchangelib'
   implicit-imports:
     - depends:
