@@ -31,9 +31,8 @@ from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
-from nuitka.tree.SourceHandling import readSourceCodeFromFilename
+from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
 from nuitka.utils.CStrings import encodePythonIdentifierToC
-from nuitka.utils.FileOperations import getFileContentByLine
 from nuitka.utils.ModuleNames import ModuleName
 
 from .ChildrenHavingMixins import (
@@ -971,102 +970,25 @@ class PythonExtensionModule(PythonModuleBase):
     def _readPyIFile(self):
         """Read the .pyi file if present and scan for dependencies."""
 
-        # Complex stuff, pylint: disable=too-many-branches,too-many-statements
         if self.used_modules is None:
             pyi_filename = self.getPyIFilename()
 
             if os.path.exists(pyi_filename):
-                pyi_deps = OrderedSet()
+                pyi_deps = parsePyIFile(
+                    module_name=self.getFullName(), pyi_filename=pyi_filename
+                )
 
-                # Flag signalling multiline import handling
-                in_import = False
-                in_import_part = ""
-
-                for line in getFileContentByLine(pyi_filename):
-                    line = line.strip()
-
-                    if not in_import:
-                        if line.startswith("import "):
-                            imported = line[7:]
-
-                            pyi_deps.add(imported)
-                        elif line.startswith("from "):
-                            parts = line.split(None, 3)
-                            assert parts[0] == "from"
-                            assert parts[2] == "import"
-
-                            origin_name = parts[1]
-
-                            if origin_name == "typing":
-                                continue
-
-                            if origin_name == ".":
-                                origin_name = self.getFullName()
-                            else:
-                                dot_count = 0
-                                while origin_name.startswith("."):
-                                    origin_name = origin_name[1:]
-                                    dot_count += 1
-
-                                if dot_count > 0:
-                                    if origin_name:
-                                        origin_name = (
-                                            self.getFullName()
-                                            .getRelativePackageName(level=dot_count + 1)
-                                            .getChildNamed(origin_name)
-                                        )
-                                    else:
-                                        origin_name = (
-                                            self.getFullName().getRelativePackageName(
-                                                level=dot_count + 1
-                                            )
-                                        )
-
-                            if origin_name != self.getFullName():
-                                pyi_deps.add(origin_name)
-
-                            imported = parts[3]
-                            if imported.startswith("("):
-                                # Handle multiline imports
-                                if not imported.endswith(")"):
-                                    in_import = True
-                                    imported = imported[1:]
-                                    in_import_part = origin_name
-                                    assert in_import_part, (
-                                        "Multiline part in file %s cannot be empty"
-                                        % pyi_filename
-                                    )
-                                else:
-                                    in_import = False
-                                    imported = imported[1:-1]
-                                    assert imported
-
-                            if imported == "*":
-                                continue
-
-                            for name in imported.split(","):
-                                if name:
-                                    name = name.strip()
-                                    pyi_deps.add(origin_name + "." + name)
-
-                    else:  # In import
-                        imported = line
-                        if imported.endswith(")"):
-                            imported = imported[0:-1]
-                            in_import = False
-
-                        for name in imported.split(","):
-                            name = name.strip()
-                            if name:
-                                pyi_deps.add(in_import_part + "." + name)
-
+                # These are not to be taken serious.
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
                 if "__future__" in pyi_deps:
                     pyi_deps.discard("__future__")
 
+                # Dependency on itself makes no sense.
                 if self.getFullName() in pyi_deps:
                     pyi_deps.discard(self.getFullName())
+
+                # Dependency on containing package makes no sense.
                 if self.getFullName().getPackageName() in pyi_deps:
                     pyi_deps.discard(self.getFullName().getPackageName())
 
