@@ -23,6 +23,11 @@
 #include "nuitka/prelude.h"
 #endif
 
+// For Python2.6, these assertions cannot be done easily, just disable them with dummy code.
+#if PYTHON_VERSION < 0x270 && !defined(__NUITKA_NO_ASSERT__)
+#define _PyObject_GC_IS_TRACKED(obj) (1)
+#endif
+
 #if PYTHON_VERSION >= 0x380
 // Need to make Py_DECREF a macro again that doesn't call an API
 static inline void _Nuitka_Py_DECREF(PyObject *ob) {

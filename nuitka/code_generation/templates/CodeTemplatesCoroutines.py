@@ -24,16 +24,20 @@ static PyObject *%(coroutine_maker_identifier)s(%(coroutine_creation_args)s);
 """
 
 template_coroutine_object_body = """
+#if %(has_heap_declaration)s
 struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
+#endif
 
 static PyObject *%(function_identifier)s_context(struct Nuitka_CoroutineObject *coroutine, PyObject *yield_return_value) {
     CHECK_OBJECT(coroutine);
     assert(Nuitka_Coroutine_Check((PyObject *)coroutine));
 
-    // Heap access if used.
+#if %(has_heap_declaration)s
+    // Heap access.
 %(heap_declaration)s
+#endif
 
     // Dispatch to yield based on return label index:
 %(function_dispatch)s
@@ -56,7 +60,11 @@ static PyObject *%(coroutine_maker_identifier)s(%(coroutine_creation_args)s) {
         %(code_identifier)s,
         %(closure_name)s,
         %(closure_count)d,
+#if %(has_heap_declaration)s
         sizeof(struct %(function_identifier)s_locals)
+#else
+        0
+#endif
     );
 }
 """

@@ -129,6 +129,27 @@ NUITKA_MAY_BE_UNUSED static void FETCH_ERROR_OCCURRED_UNTRACED(PyObject **except
     tstate->curexc_traceback = NULL;
 }
 
+NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED_TSTATE(PyThreadState *tstate, PyObject *exception_type,
+                                                               PyObject *exception_value,
+                                                               PyTracebackObject *exception_traceback) {
+    PyObject *old_exception_type = tstate->curexc_type;
+    PyObject *old_exception_value = tstate->curexc_value;
+    PyObject *old_exception_traceback = tstate->curexc_traceback;
+
+    tstate->curexc_type = exception_type;
+    tstate->curexc_value = exception_value;
+    tstate->curexc_traceback = (PyObject *)exception_traceback;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("RESTORE_ERROR_OCCURRED:\n");
+    PRINT_CURRENT_EXCEPTION();
+#endif
+
+    Py_XDECREF(old_exception_type);
+    Py_XDECREF(old_exception_value);
+    Py_XDECREF(old_exception_traceback);
+}
+
 NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED(PyObject *exception_type, PyObject *exception_value,
                                                         PyTracebackObject *exception_traceback) {
     PyThreadState *tstate = PyThreadState_GET();
@@ -341,6 +362,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION(struct Nuitka_Exce
 }
 
 // Helper that sets the current thread exception, and has no reference passed.
+// Similar to PyErr_SetNone.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION_TYPE0(PyObject *exception_type) {
     CHECK_OBJECT(exception_type);
 

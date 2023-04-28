@@ -24,16 +24,20 @@ static PyObject *%(asyncgen_maker_identifier)s(%(asyncgen_creation_args)s);
 """
 
 template_asyncgen_object_body = """
+#if %(has_heap_declaration)s
 struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
+#endif
 
 static PyObject *%(function_identifier)s_context(struct Nuitka_AsyncgenObject *asyncgen, PyObject *yield_return_value) {
     CHECK_OBJECT(asyncgen);
     assert(Nuitka_Asyncgen_Check((PyObject *)asyncgen));
 
-    // Heap access if used.
+#if %(has_heap_declaration)s
+    // Heap access.
 %(heap_declaration)s
+#endif
 
     // Dispatch to yield based on return label index:
 %(function_dispatch)s
@@ -41,7 +45,7 @@ static PyObject *%(function_identifier)s_context(struct Nuitka_AsyncgenObject *a
     // Local variable initialization
 %(function_var_inits)s
 
-    // Actual asyngen body.
+    // Actual asyncgen body.
 %(function_body)s
 
 %(asyncgen_exit)s
@@ -56,7 +60,11 @@ static PyObject *%(asyncgen_maker_identifier)s(%(asyncgen_creation_args)s) {
         %(code_identifier)s,
         %(closure_name)s,
         %(closure_count)d,
+#if %(has_heap_declaration)s
         sizeof(struct %(function_identifier)s_locals)
+#else
+        0
+#endif
     );
 }
 """
