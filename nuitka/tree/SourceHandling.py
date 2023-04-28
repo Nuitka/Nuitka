@@ -27,10 +27,14 @@ import sys
 
 from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import unicode
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.Tracing import general, my_print
-from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.utils.FileOperations import (
+    getFileContentByLine,
+    putTextFileContents,
+)
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import isWin32OrPosixWindows
 
@@ -283,3 +287,106 @@ def writeSourceCode(filename, source_code):
     assert not os.path.isfile(filename), filename
 
     putTextFileContents(filename=filename, contents=source_code, encoding="latin1")
+
+
+def parsePyIFile(module_name, pyi_filename):
+    """Parse a pyi file for the given module name and extract imports made."""
+
+    # Complex stuff, pylint: disable=too-many-branches,too-many-statements
+
+    pyi_deps = OrderedSet()
+
+    # Flag signalling multiline import handling
+    in_import = False
+    in_import_part = ""
+    in_quote = None
+
+    for line_number, line in enumerate(getFileContentByLine(pyi_filename), start=1):
+        line = line.strip()
+
+        if in_quote:
+            if line.endswith(in_quote):
+                in_quote = None
+
+            continue
+
+        if line.startswith('"""'):
+            in_quote = '"""'
+            continue
+
+        if line.startswith("'''"):
+            in_quote = "'''"
+            continue
+
+        if not in_import:
+            if line.startswith("import "):
+                imported = line[7:]
+
+                pyi_deps.add(imported)
+            elif line.startswith("from "):
+                parts = line.split(None, 3)
+                assert parts[0] == "from"
+                assert parts[2] == "import", (line, pyi_filename, line_number)
+
+                origin_name = parts[1]
+
+                # These are never submodules.
+                if origin_name in ("typing", "__future__"):
+                    continue
+
+                if origin_name == ".":
+                    origin_name = module_name
+                else:
+                    dot_count = 0
+                    while origin_name.startswith("."):
+                        origin_name = origin_name[1:]
+                        dot_count += 1
+
+                    if dot_count > 0:
+                        if origin_name:
+                            origin_name = module_name.getRelativePackageName(
+                                level=dot_count + 1
+                            ).getChildNamed(origin_name)
+                        else:
+                            origin_name = module_name.getRelativePackageName(
+                                level=dot_count + 1
+                            )
+
+                if origin_name != module_name:
+                    pyi_deps.add(origin_name)
+
+                imported = parts[3]
+                if imported.startswith("("):
+                    # Handle multiline imports
+                    if not imported.endswith(")"):
+                        in_import = True
+                        imported = imported[1:]
+                        in_import_part = origin_name
+                        assert in_import_part, (
+                            "Multiline part in file %s cannot be empty" % pyi_filename
+                        )
+                    else:
+                        in_import = False
+                        imported = imported[1:-1]
+                        assert imported
+
+                if imported == "*":
+                    continue
+
+                for name in imported.split(","):
+                    if name:
+                        name = name.strip()
+                        pyi_deps.add(origin_name + "." + name)
+
+        else:  # In import
+            imported = line
+            if imported.endswith(")"):
+                imported = imported[0:-1]
+                in_import = False
+
+            for name in imported.split(","):
+                name = name.strip()
+                if name:
+                    pyi_deps.add(in_import_part + "." + name)
+
+    return pyi_deps
