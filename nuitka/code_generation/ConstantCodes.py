@@ -31,8 +31,8 @@ import os
 import sys
 
 from nuitka import Options
-from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
+from nuitka.Serialization import ConstantAccessor
 from nuitka.Version import getNuitkaVersionTuple
 
 from .CodeHelpers import withObjectCodeTemporaryAssignment
