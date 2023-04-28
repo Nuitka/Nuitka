@@ -92,7 +92,7 @@ class BlobData(object):
         return self.data
 
     def __repr__(self):
-        return "<nuitka.constants.Serialization.BlobData %s>" % self.name
+        return "<nuitka.Serialization.BlobData %s>" % self.name
 
 
 def _pickleAnonValues(pickler, value):

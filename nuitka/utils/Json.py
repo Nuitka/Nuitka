@@ -19,6 +19,8 @@
 
 """
 
+from __future__ import absolute_import
+
 import json
 
 from .FileOperations import getFileContents, openTextFile
@@ -27,7 +29,7 @@ from .FileOperations import getFileContents, openTextFile
 def loadJsonFromFilename(filename):
     try:
         return json.loads(getFileContents(filename))
-    except json.decoder.JSONDecodeError:
+    except ValueError:
         return None
 
 

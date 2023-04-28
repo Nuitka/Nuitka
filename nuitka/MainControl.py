@@ -29,7 +29,6 @@ import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
-from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
     addIncludedDataFilesFromPackageOptions,
@@ -69,6 +68,7 @@ from nuitka.PythonVersions import (
     python_version,
     python_version_str,
 )
+from nuitka.Serialization import ConstantAccessor
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode

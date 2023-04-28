@@ -34,18 +34,18 @@ from nuitka.__past__ import (
 )
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
-from nuitka.constants.Serialization import (
-    BlobData,
-    BuiltinAnonValue,
-    BuiltinSpecialValue,
-    BuiltinUnionTypeValue,
-    ConstantStreamReader,
-)
 from nuitka.PythonVersions import (
     isPythonValidCLongLongValue,
     isPythonValidCLongValue,
     python_version,
     sizeof_clonglong,
+)
+from nuitka.Serialization import (
+    BlobData,
+    BuiltinAnonValue,
+    BuiltinSpecialValue,
+    BuiltinUnionTypeValue,
+    ConstantStreamReader,
 )
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.FileOperations import listDir
