@@ -39,7 +39,7 @@ extern PyObject *MAKE_LIST_EMPTY(Py_ssize_t size);
 #define MAKE_LIST_EMPTY(size) PyList_New(size)
 #endif
 
-extern bool LIST_EXTEND(PyObject *list, PyObject *other);
+extern bool LIST_EXTEND_FROM_ITERABLE(PyObject *list, PyObject *other);
 extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);
 
 // Like PyList_Append, but we get to specify the transfer of refcount ownership.

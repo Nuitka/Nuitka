@@ -165,7 +165,7 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
         "%s = %s(%s, %s);"
         % (
             res_name,
-            "LIST_EXTEND_FOR_UNPACK" if is_unpack else "LIST_EXTEND",
+            "LIST_EXTEND_FOR_UNPACK" if is_unpack else "LIST_EXTEND_FROM_ITERABLE",
             list_arg_name,
             value_arg_name,
         )

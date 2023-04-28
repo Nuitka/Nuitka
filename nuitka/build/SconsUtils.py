@@ -608,7 +608,7 @@ def getMsvcVersion(env):
         value = os.environ.get("VCToolsVersion", "14.3").rsplit(".", 1)[0]
 
     value = value.replace("exp", "")
-    return float(value)
+    return tuple((int(d) for d in value.split(".")))
 
 
 def _getBinaryArch(binary, mingw_mode):

@@ -1219,7 +1219,7 @@ Optimization
 
 -  Faster exception normalization.
 
-   For the common case, we have our own variable of
+   For the common case, we have our own variant of
    ``PyErr_NormalizeException`` that will avoid the API call. It may
    still call the ``PyObject_IsSubclass`` API, for which we only have
    started replacement work, but this is already a step ahead in the

@@ -388,7 +388,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
         %(import_level)s
     );
 } else {
-    %(to_name)s = IMPORT_NAME(%(from_arg_name)s, %(import_name)s);
+    %(to_name)s = IMPORT_NAME_FROM_MODULE(%(from_arg_name)s, %(import_name)s);
 }
 """
                 % {
@@ -405,7 +405,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
             )
         else:
             emit(
-                "%s = IMPORT_NAME(%s, %s);"
+                "%s = IMPORT_NAME_FROM_MODULE(%s, %s);"
                 % (
                     value_name,
                     from_arg_name,

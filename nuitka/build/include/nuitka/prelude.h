@@ -134,9 +134,7 @@ extern _PyRuntimeState _PyRuntime;
 #if PYTHON_VERSION >= 0x3b0
 #include <internal/pycore_opcode.h>
 // Clashes with our helper names.
-#undef LIST_EXTEND
 #undef CALL_FUNCTION
-#undef IMPORT_NAME
 #endif
 
 #ifndef PY_NOGIL
