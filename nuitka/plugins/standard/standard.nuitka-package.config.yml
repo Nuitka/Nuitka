@@ -2018,6 +2018,12 @@
     - depends:
         - 'autograd.numpy'
 
+- module-name: 'pyodbc'
+  implicit-imports:
+    - depends:
+        - 'hashlib'
+        - 'decimal'
+
 - module-name: 'pyparsing'
   anti-bloat:
     - description: 'remove pdb usage'
