@@ -33,7 +33,11 @@ extern char const *GET_INSTANCE_CLASS_NAME(PyObject *instance);
 NUITKA_MAY_BE_UNUSED static inline PyObject *Nuitka_CheckFunctionResult(PyObject *callable, PyObject *result) {
     if (result == NULL) {
         if (unlikely(!ERROR_OCCURRED())) {
+#if PYTHON_VERSION < 0x3b0
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_SystemError, "NULL result without error from call");
+#else
+            PyErr_Format(PyExc_SystemError, "%R returned NULL without setting an exception", callable);
+#endif
         }
 
         return NULL;
