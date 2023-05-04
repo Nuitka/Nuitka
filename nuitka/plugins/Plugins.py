@@ -1320,6 +1320,43 @@ class Plugins(object):
 
         return result
 
+    @classmethod
+    def isAcceptableMissingDLL(cls, module, filename_base):
+        result = None
+        plugin_name = None
+
+        for plugin in getActivePlugins():
+            value = plugin.isAcceptableMissingDLL(
+                module=module, filename_base=filename_base
+            )
+
+            if value is True:
+                if result is False:
+                    plugin.sysexit(
+                        "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
+                        % plugin_name
+                    )
+
+                result = True
+                plugin_name = plugin.plugin_name
+
+            elif value is False:
+                if result is False:
+                    plugin.sysexit(
+                        "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
+                        % plugin_name
+                    )
+
+                result = False
+                plugin_name = plugin.plugin_name
+            elif value is not None:
+                plugin.sysexit(
+                    "Error, can only return True, False, None from 'isAcceptableMissingDLL' not %r"
+                    % value
+                )
+
+        return result, plugin_name
+
 
 def listPlugins():
     """Print available standard plugins."""

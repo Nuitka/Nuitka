@@ -650,6 +650,18 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def isAcceptableMissingDLL(self, module, filename_base):
+        """Check if a missing DLL is acceptable to the plugin.
+
+        Args:
+            filename_base : basename of the DLL
+        Returns:
+            None (no opinion for that file), True (yes) or False (no)
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def makeIncludedDataFile(self, source_path, dest_path, reason, tags=""):
         return makeIncludedDataFile(
             source_path=source_path,
