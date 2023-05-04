@@ -1356,6 +1356,19 @@ Make sure to use PySide 6.5.0 or higher, otherwise Qt slots won't work in all ca
 Make sure to use PySide 6.1.2 or higher, otherwise Qt callbacks to Python won't work."""
             )
 
+    @staticmethod
+    def isAcceptableMissingDLL(module, filename_base):
+        # spell-checker: ignore qt,lib,effects,qpdf
+        if filename_base in (
+            "libeffectsplugin.dylib",
+            "libeffects.dylib",
+            "libpdfquickplugin.dylib",
+            "libqpdf.dylib",
+            "libqtquick3dhelpersimplplugin.dylib",
+            "libquick3dspatialaudioplugin.dylib",
+        ):
+            return True
+
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):
     detector_for = NuitkaPluginPySide6Plugins
@@ -1386,6 +1399,8 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
             """\
 Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
         )
+
+        return None
 
 
 class NuitkaPluginNoQt(NuitkaPluginBase):
