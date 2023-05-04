@@ -1387,6 +1387,17 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
 Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
         )
 
+    @staticmethod
+    def getListSkippedDLLs():
+        return [
+            "libeffectsplugin.dylib",
+            "libeffects.dylib",
+            "libpdfquickplugin.dylib",
+            "libqpdf.dylib",
+            "libqtquick3dhelpersimplplugin.dylib",
+            "libquick3dspatialaudioplugin.dylib",
+        ]
+
 
 class NuitkaPluginNoQt(NuitkaPluginBase):
     """This is a plugins for suppression of all Qt binding plugins."""

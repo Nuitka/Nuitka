@@ -23,6 +23,7 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
+from nuitka.plugins.Plugins import getActivePlugins, hasActivePlugin
 from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
@@ -90,6 +91,7 @@ def detectBinaryPathDLLsMacOS(
         binary_filename=binary_filename,
         paths=paths,
         package_specific_dirs=package_specific_dirs,
+        package_name=package_name,
     )
 
     if recursive:
@@ -141,7 +143,7 @@ def _parseOtoolListingOutput(output):
 
 
 def _resolveBinaryPathDLLsMacOS(
-    original_dir, binary_filename, paths, package_specific_dirs
+    original_dir, binary_filename, paths, package_specific_dirs, package_name
 ):
     # Quite a few variations to consider
     # pylint: disable=too-many-branches,too-many-locals
@@ -201,10 +203,23 @@ def _resolveBinaryPathDLLsMacOS(
             if candidate is not None and os.path.exists(candidate):
                 resolved_path = candidate
 
+        def getRightActivePlugin(required_plugin_name):
+            for active_plugin in getActivePlugins():
+                if required_plugin_name == active_plugin.plugin_name and hasattr(
+                    active_plugin, "getListSkippedDLLs"
+                ):
+                    return active_plugin
+
         if not os.path.exists(resolved_path):
-            # TODO: Make this a plugin decision, to move this from here to PySide6 plugin:
-            if os.path.basename(binary_filename) == "libqpdf.dylib":
-                raise NuitkaForbiddenDLLEncounter(binary_filename, "pyside6")
+            # The name of the plugin must match the name of the package.
+            plugin_name = package_name.lower()
+            if hasActivePlugin(plugin_name):
+                plugin = getRightActivePlugin(plugin_name)
+                if (
+                    plugin
+                    and os.path.basename(binary_filename) in plugin.getListSkippedDLLs()
+                ):
+                    raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
 
             inclusion_logger.sysexit(
                 "Error, failed to find path %s (resolved DLL to %s) for %s, please report the bug."
@@ -252,38 +267,40 @@ def fixupBinaryDLLPathsMacOS(
     binary_filename, package_name, original_location, standalone_entry_points
 ):
     """For macOS, the binary needs to be told to use relative DLL paths"""
-
-    had_self, rpath_map = detectBinaryPathDLLsMacOS(
-        original_dir=os.path.dirname(original_location),
-        binary_filename=original_location,
-        package_name=package_name,
-        keep_unresolved=True,
-        recursive=False,
-    )
-
-    mapping = []
-
-    for resolved_filename, rpath_filename in rpath_map.items():
-        for standalone_entry_point in standalone_entry_points:
-            if resolved_filename == standalone_entry_point.source_path:
-                dist_path = standalone_entry_point.dest_path
-                break
-        else:
-            dist_path = None
-
-        if dist_path is None:
-            inclusion_logger.sysexit(
-                """\
-Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                % (original_location, rpath_filename)
-            )
-
-        mapping.append((rpath_filename, "@executable_path/" + dist_path))
-
-    if mapping or had_self:
-        callInstallNameTool(
-            filename=binary_filename,
-            mapping=mapping,
-            id_path=os.path.basename(binary_filename) if had_self else None,
-            rpath=None,
+    try:
+        had_self, rpath_map = detectBinaryPathDLLsMacOS(
+            original_dir=os.path.dirname(original_location),
+            binary_filename=original_location,
+            package_name=package_name,
+            keep_unresolved=True,
+            recursive=False,
         )
+    except NuitkaForbiddenDLLEncounter:
+        inclusion_logger.info("Not copying forbidden DLL '%s'." % binary_filename)
+    else:
+        mapping = []
+
+        for resolved_filename, rpath_filename in rpath_map.items():
+            for standalone_entry_point in standalone_entry_points:
+                if resolved_filename == standalone_entry_point.source_path:
+                    dist_path = standalone_entry_point.dest_path
+                    break
+            else:
+                dist_path = None
+
+            if dist_path is None:
+                inclusion_logger.sysexit(
+                    """\
+    Error, problem with dependency scan of '%s' with '%s' please report the bug."""
+                    % (original_location, rpath_filename)
+                )
+
+            mapping.append((rpath_filename, "@executable_path/" + dist_path))
+
+        if mapping or had_self:
+            callInstallNameTool(
+                filename=binary_filename,
+                mapping=mapping,
+                id_path=os.path.basename(binary_filename) if had_self else None,
+                rpath=None,
+            )
