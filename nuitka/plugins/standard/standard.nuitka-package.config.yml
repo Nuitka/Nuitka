@@ -4163,6 +4163,20 @@
     - depends:
         - 'huggingface_hub.hf_api'
 
+- module-name: 'transformers.utils.import_utils'
+  anti-bloat:
+    - description: 'workaround for metadata checks not recognized'
+      replacements_plain:
+        'from .versions import importlib_metadata': 'import importlib.metadata as importlib_metadata'
+      when: 'python38_or_higher'
+    - description: 'workaround for metadata checks not recognized'
+      replacements_plain:
+        'from .versions import importlib_metadata': 'import importlib_metadata'
+      when: 'before_python38'
+    - description: 'workaround for tensorflow checks preventing pytorch usage'
+      replacements_plain:
+        'importlib.util.find_spec("tensorflow") is not None': 'False'
+
 - module-name: 'transformers.utils.versions'
   anti-bloat:
     - description: 'disable runtime metadata check for core dependencies'
