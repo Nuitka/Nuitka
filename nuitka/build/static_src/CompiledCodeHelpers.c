@@ -1595,56 +1595,65 @@ NUITKA_MAY_BE_UNUSED static void stripFilenameW(wchar_t *path) {
 #if defined(_NUITKA_EXE)
 
 #ifdef _WIN32
-static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *filename, DWORD resolved_filename_size) {
-#if defined(_NUITKA_EXPERIMENTAL_SYMLINKS)
+static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *filename, DWORD resolved_filename_size,
+                                    bool resolve_symlinks) {
     // Resolve any symbolic links in the filename.
     // Copies the resolved path over the top of the parameter.
 
-    // Open the file in the most non-exclusive way possible
-    HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
-                                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (resolve_symlinks) {
+        // Open the file in the most non-exclusive way possible
+        HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-    if (unlikely(file_handle == INVALID_HANDLE_VALUE)) {
-        abort();
+        if (unlikely(file_handle == INVALID_HANDLE_VALUE)) {
+            abort();
+        }
+
+        // Resolve the path, get the result with a drive letter
+        DWORD len = GetFinalPathNameByHandleW(file_handle, resolved_filename, resolved_filename_size,
+                                              FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+
+        CloseHandle(file_handle);
+
+        if (unlikely(len >= resolved_filename_size)) {
+            abort();
+        }
+
+        // Avoid network filenames added by just the resolution, revert it if
+        // they are pointing to local drive.
+        if (wcsncmp(resolved_filename, L"\\\\?\\", 4) == 0) {
+            if (wcscmp(resolved_filename + 4, filename) == 0) {
+                copyStringSafeW(resolved_filename, filename, resolved_filename_size);
+            } else if (resolved_filename[5] == L':') {
+                copyStringSafeW(resolved_filename, resolved_filename + 4, resolved_filename_size);
+            }
+        }
+    } else {
+        copyStringSafeW(resolved_filename, filename, resolved_filename_size);
     }
-
-    // Resolve the path, get the result with a drive letter
-    DWORD len = GetFinalPathNameByHandleW(file_handle, resolved_filename, resolved_filename_size,
-                                          FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
-
-    CloseHandle(file_handle);
-
-    if (unlikely(len >= resolved_filename_size)) {
-        abort();
-    }
-#else
-    copyStringSafeW(resolved_filename, filename, resolved_filename_size);
-#endif
 }
 
 #else
 
-static void resolveFileSymbolicLink(char *resolved_filename, char const *filename, size_t resolved_filename_size) {
-#if defined(_NUITKA_EXPERIMENTAL_SYMLINKS)
-    assert(resolved_filename_size < PATH_MAX);
-    assert(false);
+static void resolveFileSymbolicLink(char *resolved_filename, char const *filename, size_t resolved_filename_size,
+                                    bool resolve_symlinks) {
+    if (resolve_symlinks) {
+        // At least on macOS, realpath cannot allocate a buffer, so the above test is what is needed
+        // and then this will be safe, on Linux we could use NULL argument and have a malloc of the
+        // resulting value.
+        char *result = realpath(filename, resolved_filename);
 
-    // At least on macOS, realpath cannot allocate a buffer, so the above test is what is needed
-    // and then this will be safe, on Linux we could use NULL argument and have a malloc of the
-    // resulting value.
-    char *result = realpath(filename, resolved_filename);
-
-    if (unlikely(result == NULL)) {
-        abort();
+        if (unlikely(result == NULL)) {
+            abort();
+        }
+    } else {
+        copyStringSafe(resolved_filename, filename, resolved_filename_size);
     }
-#else
-    copyStringSafe(resolved_filename, filename, resolved_filename_size);
-#endif
 }
 #endif
 
 #ifndef _WIN32
-char const *getBinaryDirectoryHostEncoded(void) {
+char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
     static char binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1663,7 +1672,7 @@ char const *getBinaryDirectoryHostEncoded(void) {
     }
 
     // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
+    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
 
     // On macOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
@@ -1686,7 +1695,7 @@ char const *getBinaryDirectoryHostEncoded(void) {
     }
 
     // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
+    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
 
     /* We want the directory name, the above gives the full executable name. */
     copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
@@ -1703,7 +1712,7 @@ char const *getBinaryDirectoryHostEncoded(void) {
     }
 
     // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
+    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
 
     copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
 #endif
@@ -1712,7 +1721,7 @@ char const *getBinaryDirectoryHostEncoded(void) {
 }
 #endif
 
-wchar_t const *getBinaryDirectoryWideChars(void) {
+wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
     static wchar_t binary_directory[MAXPATHLEN + 1];
     static bool init_done = false;
 
@@ -1725,7 +1734,7 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
         assert(res != 0);
 
         // Resolve any symlinks we were invoked via
-        resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory));
+        resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
 
         stripFilenameW(binary_directory);
 
@@ -1746,7 +1755,7 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
 
         free(short_binary_directory);
 #else
-        appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(),
+        appendStringSafeW(binary_directory, getBinaryDirectoryHostEncoded(true),
                           sizeof(binary_directory) / sizeof(wchar_t));
 #endif
 
@@ -1756,68 +1765,86 @@ wchar_t const *getBinaryDirectoryWideChars(void) {
 }
 
 #if defined(_WIN32)
-char const *getBinaryDirectoryHostEncoded(void) {
+char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
     static char *binary_directory = NULL;
+    static char *binary_directory_resolved = NULL;
 
-    if (binary_directory != NULL) {
-        return binary_directory;
+    char *binary_object_target;
+
+    if (resolve_symlinks) {
+        binary_object_target = binary_directory_resolved;
+    } else {
+        binary_object_target = binary_directory;
     }
-    wchar_t const *w = getBinaryDirectoryWideChars();
+
+    if (binary_object_target != NULL) {
+        return binary_object_target;
+    }
+    wchar_t const *w = getBinaryDirectoryWideChars(resolve_symlinks);
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
-    binary_directory = (char *)malloc(bufsize + 1);
+    binary_object_target = (char *)malloc(bufsize + 1);
     assert(binary_directory);
 
-    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_directory, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_object_target, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    return (char const *)binary_directory;
+    return (char const *)binary_object_target;
 }
 #endif
 
-static PyObject *getBinaryDirectoryObject(void) {
+static PyObject *getBinaryDirectoryObject(bool resolve_symlinks) {
     static PyObject *binary_directory = NULL;
+    static PyObject *binary_directory_resolved = NULL;
 
-    if (binary_directory != NULL) {
-        CHECK_OBJECT(binary_directory);
+    PyObject **binary_object_target;
 
-        return binary_directory;
+    if (resolve_symlinks) {
+        binary_object_target = &binary_directory_resolved;
+    } else {
+        binary_object_target = &binary_directory;
+    }
+
+    if (*binary_object_target != NULL) {
+        CHECK_OBJECT(*binary_object_target);
+
+        return *binary_object_target;
     }
 
 // On Python3, this must be a unicode object, it cannot be on Python2,
 // there e.g. code objects expect Python2 strings.
 #if PYTHON_VERSION >= 0x300
 #ifdef _WIN32
-    wchar_t const *bin_directory = getBinaryDirectoryWideChars();
-    binary_directory = NuitkaUnicode_FromWideChar(bin_directory, -1);
+    wchar_t const *bin_directory = getBinaryDirectoryWideChars(resolve_symlinks);
+    *binary_object_target = NuitkaUnicode_FromWideChar(bin_directory, -1);
 #else
-    binary_directory = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded());
+    *binary_object_target = PyUnicode_DecodeFSDefault(getBinaryDirectoryHostEncoded(resolve_symlinks));
 #endif
 #else
-    binary_directory = PyString_FromString(getBinaryDirectoryHostEncoded());
+    *binary_object_target = PyString_FromString(getBinaryDirectoryHostEncoded(resolve_symlinks));
 #endif
 
-    if (unlikely(binary_directory == NULL)) {
+    if (unlikely(*binary_object_target == NULL)) {
         PyErr_Print();
         abort();
     }
 
     // Make sure it's usable for caching.
-    Py_INCREF(binary_directory);
+    Py_INCREF(*binary_object_target);
 
-    return binary_directory;
+    return *binary_object_target;
 }
 
 #ifdef _NUITKA_STANDALONE
 // Helper function to create path.
 PyObject *getStandaloneSysExecutablePath(PyObject *basename) {
-    PyObject *dir_name = getBinaryDirectoryObject();
+    PyObject *dir_name = getBinaryDirectoryObject(false);
     PyObject *sys_executable = JOIN_PATH2(dir_name, basename);
 
     return sys_executable;
@@ -1921,7 +1948,7 @@ void _initBuiltinModule(void) {
     assert(PyDict_Check(dict_builtin));
 
 #ifdef _NUITKA_STANDALONE
-    int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject());
+    int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject(true));
     assert(res == 0);
 #endif
 
@@ -1961,7 +1988,7 @@ PyObject *MAKE_RELATIVE_PATH(PyObject *relative) {
 
     if (our_path_object == NULL) {
 #if defined(_NUITKA_EXE)
-        our_path_object = getBinaryDirectoryObject();
+        our_path_object = getBinaryDirectoryObject(true);
 #else
         our_path_object = Nuitka_String_FromString(getDllDirectory());
 #endif
