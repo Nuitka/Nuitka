@@ -225,22 +225,22 @@ static void prepareStandaloneEnvironment(void) {
 
     old_env_pythonhome = getEnvironmentVariable("PYTHONHOME");
 #if defined(_WIN32)
-    setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryWideChars());
+    setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryWideChars(true));
 #else
-    setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryHostEncoded());
+    setEnvironmentVariable("PYTHONHOME", getBinaryDirectoryHostEncoded(true));
 #endif
 
 #if defined(_WIN32)
-    SetDllDirectoryW(getBinaryDirectoryWideChars());
+    SetDllDirectoryW(getBinaryDirectoryWideChars(true));
 #endif
 
 #if PYTHON_VERSION < 0x300
-    char *binary_directory = (char *)getBinaryDirectoryHostEncoded();
+    char *binary_directory = (char *)getBinaryDirectoryHostEncoded(true);
     NUITKA_PRINTF_TRACE("main(): Binary dir is %s\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
 #elif PYTHON_VERSION < 0x370
-    wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
+    wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars(true);
     NUITKA_PRINTF_TRACE("main(): Binary dir is %S\n", binary_directory);
 
     Py_SetPythonHome(binary_directory);
@@ -256,11 +256,11 @@ static void prepareStandaloneEnvironment(void) {
 static void restoreStandaloneEnvironment(void) {
     /* Make sure to use the optimal value for standalone mode only. */
 #if PYTHON_VERSION < 0x300
-    PySys_SetPath((char *)getBinaryDirectoryHostEncoded());
+    PySys_SetPath((char *)getBinaryDirectoryHostEncoded(true));
     // NUITKA_PRINTF_TRACE("Final PySys_GetPath is 's'.\n", PySys_GetPath());
 #elif PYTHON_VERSION < 0x370
-    PySys_SetPath(getBinaryDirectoryWideChars());
-    Py_SetPath(getBinaryDirectoryWideChars());
+    PySys_SetPath(getBinaryDirectoryWideChars(true));
+    Py_SetPath(getBinaryDirectoryWideChars(true));
     // NUITKA_PRINTF_TRACE("Final Py_GetPath is '%ls'.\n", Py_GetPath());
 #endif
 
@@ -925,7 +925,7 @@ static void Nuitka_Py_Initialize(void) {
     }
 
 #ifdef _NUITKA_STANDALONE
-    wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars();
+    wchar_t *binary_directory = (wchar_t *)getBinaryDirectoryWideChars(true);
 
     PyConfig_SetString(&config, &config.executable, orig_argv[0]);
     PyConfig_SetString(&config, &config.prefix, binary_directory);
