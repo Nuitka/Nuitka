@@ -584,7 +584,10 @@ Nuitka.
 
    # For setup.py if not you't use other build systems:
    setup(
+      # Data files are to be handled by setuptools and not Nuitka
+      package_data={"some_package": ["some_file.txt"]},
       ...,
+      # This is to pass Nuitka options.
       command_options={
          'nuitka': {
             # boolean option, e.g. if you cared for C compilation commands
@@ -595,7 +598,7 @@ Nuitka.
             '--enable-plugin': "pyside2",
             # options with several values, e.g. avoiding including modules
             '--nofollow-import-to' : ["*.tests", "*.distutils"],
-         }
+         },
       },
    )
 
@@ -605,6 +608,10 @@ Nuitka.
    # e.g. "setuptools_rust"
 
    setup(
+      # Data files are to be handled by setuptools and not Nuitka
+      package_data={"some_package": ["some_file.txt"]},
+      ...,
+      # This is to pass Nuitka options.
       ...,
       command_options={
          'nuitka': {
@@ -655,6 +662,10 @@ value:
    requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
    build-backend = "nuitka.distutils.Build"
 
+   # Data files are to be handled by setuptools and not Nuitka
+   [tool.setuptools.package-data]
+   some_package = ['data_file.txt']
+
    [nuitka]
    # These are not recommended, but they make it obvious to have effect.
 
@@ -674,6 +685,14 @@ value:
    For the ``nuitka`` requirement above absolute paths like
    ``C:\Users\...\Nuitka`` will also work on Linux, use an absolute path
    with *two* leading slashes, e.g. ``//home/.../Nuitka``.
+
+.. note::
+
+   Whatever approach you take, data files in these wheels are not
+   handled by Nuitka at all, but by setuptools. You can however use the
+   data file embedding of Nuitka commercial. In that case you actually
+   would embed the files inside the extension module itself, and not as
+   a file in the wheel.
 
 Use Case 6 - Multidist
 ======================
