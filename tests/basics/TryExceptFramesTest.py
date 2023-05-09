@@ -72,7 +72,7 @@ def catcher():
     try:
         raising(True)
     except ZeroDivisionError:
-        print("Catched.")
+        print("Caught.")
 
         print("Top traceback code is '%s'." % sys.exc_info()[2].tb_frame.f_code.co_name)
         print(

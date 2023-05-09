@@ -178,7 +178,7 @@ class Test:
         The tests must set .rounds to a value high enough to let the
         test run between 20-50 seconds. This is needed because
         clock()-timing only gives rather inaccurate values (on Linux,
-        for example, it is accurate to a few hundreths of a
+        for example, it is accurate to a few hundredths of a
         second). If you don't want to wait that long, use a warp
         factor larger than 1.
 

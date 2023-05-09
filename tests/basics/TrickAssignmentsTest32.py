@@ -1270,7 +1270,7 @@ def someFunctionThatReturnsDeletedValueViaFormat():
         def __format__(self, string):
             nonlocal a
             del a
-            return "formated string"
+            return "formatted string"
 
     c = C()
 

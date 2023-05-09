@@ -103,7 +103,7 @@ IWICBitmapSource *getBitmapFromImageStream(IStream *image_stream) {
 }
 
 HBITMAP CreateHBITMAP(IWICBitmapSource *ipBitmap) {
-    // Get image dimenstions.
+    // Get image dimensions.
     UINT width = 0;
     UINT height = 0;
     if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0) {
