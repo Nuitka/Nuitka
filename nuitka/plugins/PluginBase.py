@@ -650,6 +650,17 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    @staticmethod
+    def getListSkippedDLLs():
+        """Provide a list of DLLs for which there may be a problem with finding dependencies.
+
+        Args:
+            None
+        Returns:
+            Iterable of DLL names
+        """
+        return ()
+
     def makeIncludedDataFile(self, source_path, dest_path, reason, tags=""):
         return makeIncludedDataFile(
             source_path=source_path,

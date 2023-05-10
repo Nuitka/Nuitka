@@ -205,9 +205,7 @@ def _resolveBinaryPathDLLsMacOS(
 
         def getRightActivePlugin(required_plugin_name):
             for active_plugin in getActivePlugins():
-                if required_plugin_name == active_plugin.plugin_name and hasattr(
-                    active_plugin, "getListSkippedDLLs"
-                ):
+                if required_plugin_name == active_plugin.plugin_name:
                     return active_plugin
 
         if not os.path.exists(resolved_path):
