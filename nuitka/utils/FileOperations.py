@@ -829,15 +829,34 @@ def copyTree(source_path, dest_path):
     return copy_tree(source_path, dest_path)
 
 
-def copyFileWithPermissions(source_path, dest_path):
-    """Improved version of shutil.copy2.
+def copyFileWithPermissions(source_path, dest_path, dist_dir):
+    """Improved version of shutil.copy2 for putting things to dist folder
 
     File systems might not allow to transfer extended attributes, which we then ignore
     and only copy permissions.
     """
 
+    if os.path.islink(source_path) and not isWin32Windows():
+        link_source_abs = os.path.abspath(source_path)
+        link_target_abs = os.path.abspath(
+            os.path.join(os.path.dirname(source_path), os.readlink(source_path))
+        )
+
+        link_target_rel = relpath(link_target_abs, os.path.dirname(link_source_abs))
+
+        if isFilenameBelowPath(
+            path=dist_dir,
+            filename=os.path.join(os.path.dirname(dest_path), link_target_rel),
+        ):
+
+            os.symlink(link_target_rel, dest_path)
+            return
+
     try:
-        shutil.copy2(source_path, dest_path)
+        shutil.copy2(
+            source_path,
+            dest_path,
+        )
     except PermissionError as e:
         if e.errno != errno.EACCES:
             raise
