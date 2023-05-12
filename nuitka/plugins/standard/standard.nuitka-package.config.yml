@@ -52,7 +52,7 @@
 - module-name: 'appdirs'
   anti-bloat:
     # Keep this the same as for 'pkg_resources._vendor.appdirs' module.
-    # TODO: May allow naming spefific "anti-bloat" blocks, and reference them by
+    # TODO: May allow naming specific "anti-bloat" blocks, and reference them by
     # name, that works like an include statement to the module.
     - description: 'remove pywin32 reference'
       replacements_plain:
@@ -4078,7 +4078,7 @@
 
 - module-name: 'torch.utils.data._typing'
   anti-bloat:
-    - description: 'compatiblity workaround'
+    - description: 'compatibility workaround'
       replacements_plain:
         ? "\ndef _dp_init_subclass"
         : |-

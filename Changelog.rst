@@ -1648,7 +1648,7 @@ LTO with MSVC with help this a lot, although for big compilations
 
 More ``anti-bloat`` work on more packages rounds up the work.
 
-For macOS specifically, the WebEngine support is cruical to some users,
+For macOS specifically, the WebEngine support is crucial to some users,
 and the new ``--macos-app-mode`` with more GUI friendly default resolves
 long standing problems in this area.
 
@@ -4683,7 +4683,7 @@ organisational changes.
 Bug Fixes
 =========
 
--  Python3.6+: Fixes to asyncgen, need to raise ``StopAsyncInteration``
+-  Python3.6+: Fixes to asyncgen, need to raise ``StopAsyncIteration``
    rather than ``StopIteration`` in some situations to be fully
    compatible.
 
@@ -5648,7 +5648,7 @@ Bug Fixes
 New Features
 ============
 
--  Pyton3.5+: Added support for onefile compression. This is using
+-  Python3.5+: Added support for onefile compression. This is using
    ``zstd`` which is known to give very good compression with very high
    decompression, much better than e.g. ``zlib``.
 
