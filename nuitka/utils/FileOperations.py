@@ -836,7 +836,7 @@ def copyFileWithPermissions(source_path, dest_path):
     """
 
     try:
-        shutil.copy2(source_path, dest_path)
+        shutil.copy2(source_path, dest_path, follow_symlinks=not isRelativeLinkInDist(source_path))
     except PermissionError as e:
         if e.errno != errno.EACCES:
             raise
@@ -1160,6 +1160,30 @@ def getLinkTarget(filename):
         is_link = True
 
     return is_link, filename
+
+
+def isRelativeLinkInDist(filename):
+    """
+    Returns true if:
+    - filename is a link file
+    - the link doesn't contain an absolute path
+    - the relative path doesn't point to a parent folder.
+    """
+    if not os.path.islink(filename):
+        # not a link
+        return False
+    link_target = os.readlink(filename)
+    if os.path.isabs(link_target):
+        # link is an absolute path
+        return False
+    target_filename = os.path.join(os.path.dirname(filename), link_target)
+    target_filename = os.path.normpath(target_filename)
+    if target_filename.startswith(".."):
+        # link points to a file outside of the dist
+        return False
+    return True
+
+
 
 
 def replaceFileAtomic(source_path, dest_path):
