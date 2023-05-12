@@ -34,7 +34,8 @@ import tempfile
 import time
 from contextlib import contextmanager
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    PermissionError,
     WindowsError,
     basestring,
     raw_input,
