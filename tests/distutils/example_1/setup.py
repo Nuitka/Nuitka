@@ -17,7 +17,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Distutils examle that contains a package and a data file.
+""" Distutils example that contains a package and a data file.
 
 """
 
