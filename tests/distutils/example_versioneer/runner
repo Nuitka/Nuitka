@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+import some_package as pkg
+
+print("Hello distutils world!")
+
+
+# We are importing the newly installed package and we want to check that the
+# correct version is being set based on the file that gets changed during
+# build time.
+assert pkg.__version__ == "0+24601"
