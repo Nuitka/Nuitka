@@ -1127,7 +1127,7 @@ nuitka (0.5.28.2+ds-1) unstable; urgency=medium
 nuitka (0.5.28.1+ds-1) unstable; urgency=medium
 
   * New upstream hotfix release.
-  * Also ignore sbuild non-existant directory (Closes: #871125).
+  * Also ignore sbuild non-existent directory (Closes: #871125).
 
  -- Kay Hayen <kay.hayen@gmail.com>  Sun, 22 Oct 2017 10:44:31 +0200
 

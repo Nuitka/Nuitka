@@ -746,7 +746,7 @@ static bool SET_INSTANCE(PyObject *target, PyObject *attr_name, PyObject *value)
 
 #if (PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)) && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT)
 
-// Classes in Pyhon3 might share keys.
+// Classes in Python3 might share keys.
 #define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
 
 static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject *attr_name, PyObject *value) {

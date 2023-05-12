@@ -741,7 +741,7 @@ print(zip([1, 2, 3], "String"))
 try:
     zip(1, "String")
 except TypeError as e:
-    print("Occured", repr(e))
+    print("Occurred", repr(e))
 print(zip())
 x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
 print(x)
