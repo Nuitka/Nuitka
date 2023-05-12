@@ -241,23 +241,18 @@ class build(distutils.command.build.build):
     def _build(self, build_lib):
         # High complexity, pylint: disable=too-many-branches,too-many-locals
 
-        # Remove Python code from build folder, that's our job now.
-        for root, _, filenames in os.walk(build_lib):
-            for filename in filenames:
-                fullpath = os.path.join(root, filename)
-
-                if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
-                    os.unlink(fullpath)
-
         old_dir = os.getcwd()
+
+        # Let's use the python source files in the build_lib since these should
+        # get copied over.
         os.chdir(build_lib)
 
         if self.distribution.package_dir and "" in self.distribution.package_dir:
             main_package_dir = os.path.join(
-                old_dir, self.distribution.package_dir.get("")
+                build_lib, self.distribution.package_dir.get("")
             )
         else:
-            main_package_dir = os.path.abspath(old_dir)
+            main_package_dir = os.path.abspath(build_lib)
 
         # Search in the build directory preferably.
         addMainScriptDirectory(main_package_dir)
@@ -345,6 +340,14 @@ class build(distutils.command.build.build):
         self.build_lib = build_lib
 
         os.chdir(old_dir)
+
+        # Remove Python code from build folder, that's our job now.
+        for root, _, filenames in os.walk(build_lib):
+            for filename in filenames:
+                fullpath = os.path.join(root, filename)
+
+                if fullpath.lower().endswith((".py", ".pyw", ".pyc", ".pyo")):
+                    os.unlink(fullpath)
 
 
 # Required by distutils, used as command name, pylint: disable=invalid-name
