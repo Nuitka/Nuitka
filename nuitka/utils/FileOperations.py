@@ -836,7 +836,11 @@ def copyFileWithPermissions(source_path, dest_path):
     """
 
     try:
-        shutil.copy2(source_path, dest_path, follow_symlinks=not isRelativeLinkInDist(source_path))
+        shutil.copy2(
+            source_path,
+            dest_path,
+            follow_symlinks=not isRelativeLinkInDist(source_path),
+        )
     except PermissionError as e:
         if e.errno != errno.EACCES:
             raise
@@ -1182,8 +1186,6 @@ def isRelativeLinkInDist(filename):
         # link points to a file outside of the dist
         return False
     return True
-
-
 
 
 def replaceFileAtomic(source_path, dest_path):
