@@ -23,9 +23,13 @@ is not installed, we use our own code for best effort.
 
 from __future__ import absolute_import
 
+import errno
 import os
 import tempfile
 
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    PermissionError,
+)
 from nuitka.Tracing import general
 
 from .FileOperations import makePath
@@ -61,7 +65,10 @@ def getCacheDir():
 
         try:
             makePath(_cache_dir)
-        except PermissionError:
+        except PermissionError as e:
+            if e.errno != errno.EACCES:
+                raise
+
             general.sysexit(
                 """\
 Error, failed to create cache directory '%s'. If this is due to a special environment, \
