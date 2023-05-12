@@ -1038,9 +1038,12 @@ except ImportError:
 
         return self._runtime_information_cache[info_name]
 
-    def queryRuntimeInformationSingle(self, setup_codes, value):
+    def queryRuntimeInformationSingle(self, setup_codes, value, info_name=None):
+        if info_name is None:
+            info_name = "temp_info_for_" + self.plugin_name.replace("-", "_")
+
         return self.queryRuntimeInformationMultiple(
-            info_name="temp_info_for_" + self.plugin_name.replace("-", "_"),
+            info_name=info_name,
             setup_codes=setup_codes,
             values=(("key", value),),
         ).key

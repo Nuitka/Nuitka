@@ -434,6 +434,9 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
         "asyncua.server.standard_address_space.standard_address_space_services",  # Too large generated code
         "azure.mgmt.network",  # Too large generated code
         "azure.mgmt.compute",  # Too large generated code
+        "transformers.utils.dummy_pt_objects",  # Not performance relevant.
+        "transformers.utils.dummy_flax_objects",  # Not performance relevant.
+        "transformers.utils.dummy_tf_objects",  # Not performance relevant.
     )
 
     def decideCompilation(self, module_name):
