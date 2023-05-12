@@ -505,7 +505,9 @@ def _handleDataFile(included_datafile):
 
         makePath(os.path.dirname(dest_path))
         copyFileWithPermissions(
-            source_path=included_datafile.source_path, dest_path=dest_path
+            source_path=included_datafile.source_path,
+            dest_path=dest_path,
+            dist_dir=dist_dir,
         )
     else:
         assert False, included_datafile
