@@ -40,7 +40,7 @@ _executable_command_cache = {}
 
 def _getExecutablePath(filename, search_path):
     # Append ".exe" suffix  on Windows if not already present.
-    if isWin32OrPosixWindows() and not filename.lower().endswith(".exe"):
+    if isWin32OrPosixWindows() and not filename.lower().endswith((".exe", ".cmd")):
         filename += ".exe"
 
     # Now check in each path element, much like the shell will.
