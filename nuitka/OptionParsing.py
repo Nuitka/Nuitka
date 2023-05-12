@@ -785,6 +785,7 @@ Create a new virtualenv in that non-existing path from the report file given wit
 e.g. '--report=compilation-report.xml'. Default not done.""",
 )
 
+del debug_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -796,8 +797,16 @@ parser.add_option(
     help=SUPPRESS_HELP,
 )
 
-
-del debug_group
+# Not sure where to put this yet, intended to helps me edit code faster, will
+# make it public if it becomes useful.
+parser.add_option(
+    "--edit-module-code",
+    action="store",
+    dest="edit_module_code",
+    default=None,
+    require_compiling=False,
+    help=SUPPRESS_HELP,
+)
 
 
 c_compiler_group = parser.add_option_group("Backend C compiler choice")
@@ -1757,7 +1766,8 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
-    # well as integrating with plugins and run modes, pylint: disable=too-many-branches
+    # well as integrating with plugins and run modes, and dispatching of tool
+    # mode executions, pylint: disable=too-many-branches,too-many-statements
 
     # First, isolate the first non-option arguments.
     extra_args = []
@@ -1838,6 +1848,14 @@ Error, need filename argument with python module or main program."""
         from nuitka.tools.scanning.DisplayPackageData import displayPackageData
 
         displayPackageData(options.list_package_data)
+        sys.exit(0)
+
+    if options.edit_module_code:
+        from nuitka.tools.general.find_module.FindModuleCode import (
+            editModuleCode,
+        )
+
+        editModuleCode(options.edit_module_code)
         sys.exit(0)
 
     if options.create_environment_from_report:
