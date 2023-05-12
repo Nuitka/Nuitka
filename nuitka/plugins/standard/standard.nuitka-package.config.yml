@@ -2140,6 +2140,11 @@
     - description: 'remove doctest usage'
 
 - module-name: 'PyQt5'
+  data-files:
+    empty_dirs:
+      - 'Qt5'
+      - 'Qt'
+
   options:
     checks:
       - description: 'PyQt5 is a GUI framework'
