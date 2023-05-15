@@ -161,6 +161,10 @@ else:
 # Just to make this not Windows-specific.
 WindowsError = OSError  # pylint: disable=I0021,redefined-builtin
 
+# Make it available for Python2 as well
+PermissionError = (  # pylint: disable=redefined-builtin
+    PermissionError if str is not bytes else OSError
+)
 
 if not hasattr(pkgutil, "ModuleInfo"):
     # Python3.5 or lower do not return namedtuple, but it's nicer to read code with it.
