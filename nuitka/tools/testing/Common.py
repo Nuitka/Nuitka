@@ -1780,7 +1780,7 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             ignore = True
             for ignored_dir in (
                 "/System/Library/PrivateFrameworks",
-                "/System/Library/CoreService",
+                "/System/Library/CoreServices",
                 "/System/Library/Frameworks/CoreFoundation.framework",
                 "/System/Library/dyld",
                 "/AppleInternal",
