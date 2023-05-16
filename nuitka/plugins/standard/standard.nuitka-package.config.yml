@@ -3368,6 +3368,27 @@
     - depends:
         - 'sqlalchemy.sql.default_comparator'
 
+- module-name: 'sqlfluff'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'import pytest': ''
+        'pytest.register_assert_rewrite("sqlfluff.utils.testing")': ''
+
+- module-name: 'sqlfluff.api.simple'
+  implicit-imports:
+    - depends:
+        - 'sqlfluff.dialects.*'
+
+- module-name: 'sqlfluff.core'
+  data-files:
+    patterns:
+      - '*.cfg'
+  implicit-imports:
+    - depends:
+        - 'sqlfluff.core.plugin.*'
+        - 'sqlfluff.rules.*'
+
 - module-name: 'srsly.msgpack._packer'
   implicit-imports:
     - depends:
