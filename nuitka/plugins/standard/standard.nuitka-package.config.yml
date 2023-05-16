@@ -4083,6 +4083,53 @@
         prefixes:
           - ''
 
+- module-name: 'torch._inductor.codegen.common'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from .cpp import DTYPE_TO_CPP, INDEX_TYPE': 'raise ImportError'
+        'from .cpp import DTYPE_TO_CPP': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.graph'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from .codegen.wrapper import CppWrapperCodeGen, WrapperCodeGen': ''
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.ir'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from torch._inductor.codegen.wrapper import CppWrapperCodeGen': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.scheduler'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from .codegen.wrapper import buffer_reuse_key': 'raise ImportError'
+        'from .codegen.cpp import CppScheduling': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.sizevars'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        # This could actually be done, by creating the "PythonPrinter().doprint"
+        # locally
+        'from .codegen.wrapper import pexpr': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.autotune'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from ..codecache import cache_dir': ''
+        'cache_dir()': '__nuitka_binary_dir, ".cache"'
+      when: 'not use_setuptools'
+
 - module-name: 'torch._jit_internal'
   anti-bloat:
     - description: 'disable jit warnings'
@@ -4183,6 +4230,27 @@
     - description: 'remove IPython reference'
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
+
+- module-name: 'transformers.models.deformable_detr.load_custom'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.rwkv.modeling_rwkv'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_wkv_cuda_kernel': "'(lambda : None)'"
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.yoso.modeling_yoso'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': "'(lambda : False)'"
+      when: 'not use_setuptools'
 
 - module-name: 'transformers.utils.hub'
   implicit-imports:
