@@ -18,6 +18,7 @@
 """ Tools for accessing distributions and resolving package names for them. """
 
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.PythonVersions import python_version
 
 from .ModuleNames import ModuleName, checkModuleName
 
@@ -93,3 +94,25 @@ def getDistributionsFromModuleName(module_name):
             key=lambda dist: dist.metadata["Name"],
         )
     )
+
+
+def getDistribution(distribution_name):
+    try:
+        if python_version >= 0x380:
+            from importlib import metadata
+        else:
+            import importlib_metadata as metadata
+    except ImportError:
+        return None
+
+    try:
+        return metadata.distribution(distribution_name)
+    except metadata.PackageNotFoundError:
+        # If not found, lets assume package name was given, and resolve to
+        # the distribution.
+        dists = getDistributionsFromModuleName(distribution_name)
+
+        if len(dists) == 1:
+            return dists.values[0]
+
+        return None

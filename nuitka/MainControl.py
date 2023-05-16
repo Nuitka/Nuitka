@@ -29,6 +29,7 @@ import sys
 
 from nuitka.build.DataComposerInterface import runDataComposer
 from nuitka.build.SconsUtils import getSconsReportValue, readSconsReport
+from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.freezer.IncludedDataFiles import (
     addIncludedDataFilesFromFileOptions,
     addIncludedDataFilesFromPackageOptions,
@@ -73,6 +74,7 @@ from nuitka.Tracing import general, inclusion_logger
 from nuitka.tree import SyntaxErrors
 from nuitka.tree.ReformulationMultidist import createMultidistMainSourceCode
 from nuitka.utils import InstanceCounters
+from nuitka.utils.Distributions import getDistribution
 from nuitka.utils.Execution import (
     callProcess,
     withEnvironmentVarOverridden,
@@ -160,6 +162,17 @@ def _createMainModule():
         )
 
     OutputDirectories.setMainModule(main_module)
+
+    for distribution_name in Options.getShallIncludeDistributionMetadata():
+        distribution = getDistribution(distribution_name)
+
+        if distribution is None:
+            general.sysexit(
+                "Error, could not find distribution '%s' for which metadata was asked to be included."
+                % distribution_name
+            )
+
+        addDistributionMetadataValue(distribution_name, distribution)
 
     # First remove old object files and old generated files, old binary or
     # module, and standalone mode program directory if any, they can only do

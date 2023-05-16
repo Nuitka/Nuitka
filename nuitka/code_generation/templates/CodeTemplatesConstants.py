@@ -38,6 +38,8 @@ PyObject *Nuitka_dunder_compiled_value = NULL;
 extern PyObject *getStandaloneSysExecutablePath(PyObject *basename);
 #endif
 
+extern void setDistributionsMetadata(PyObject *metadata_values);
+
 // We provide the sys.version info shortcut as a global value here for ease of use.
 PyObject *Py_SysVersionInfo = NULL;
 
@@ -139,6 +141,8 @@ static void _createGlobalConstants(void) {
     // Prevent users from creating the Nuitka version type object.
     Nuitka_VersionInfoType.tp_init = NULL;
     Nuitka_VersionInfoType.tp_new = NULL;
+
+    setDistributionsMetadata(%(metadata_values)s);
 }
 
 // In debug mode we can check that the constants were not tampered with in any
