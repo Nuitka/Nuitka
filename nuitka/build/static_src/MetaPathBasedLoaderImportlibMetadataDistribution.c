@@ -25,7 +25,17 @@
 #include "nuitka/unfreezing.h"
 #endif
 
-PyObject *Nuitka_Distribution_New(char const *distribution_name, char const *package_name, PyObject *metadata) {
+static PyObject *metadata_values_dict = NULL;
+
+// For initialization of the metadata dictionary during startup.
+void setDistributionsMetadata(PyObject *metadata_values) { metadata_values_dict = metadata_values; }
+
+bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr) {
+    PyObject *value;
+    return Nuitka_DictNext(metadata_values_dict, pos, distribution_name_ptr, &value);
+}
+
+PyObject *Nuitka_Distribution_New(PyObject *name) {
     // TODO: Have our own Python code to be included in compiled form,
     // this duplicates with inspec patcher code.
     static PyObject *nuitka_distribution_type = NULL;
@@ -36,15 +46,18 @@ PyObject *Nuitka_Distribution_New(char const *distribution_name, char const *pac
         static char const *nuitka_distribution_code = "\n\
 import os,sys\n\
 if sys.version_info >= (3, 8):\n\
-    from importlib.metadata import Distribution,distribution\n\
+    from importlib.metadata import Distribution,distribution,EntryPoints\n\
 else:\n\
-    from importlib_metadata import Distribution,distribution\n\
+    from importlib_metadata import Distribution,distribution,EntryPoints\n\
 class nuitka_distribution(Distribution):\n\
-    def __init__(self, base_path, metadata):\n\
+    def __init__(self, base_path, metadata, entry_points):\n\
         self.base_path = base_path; self.metadata_data = metadata\n\
+        self.entry_points_data = entry_points\n\
     def read_text(self, filename):\n\
         if filename == 'METADATA':\n\
             return self.metadata_data\n\
+        elif filename == 'entry_points.txt':\n\
+            return self.entry_points_data\n\
     def locate_file(self, path):\n\
         return os.path.join(self.base_path, path)\n\
 ";
@@ -70,22 +83,26 @@ class nuitka_distribution(Distribution):\n\
         }
     }
 
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(package_name);
-
-    if (entry == NULL) {
-        PyObject *name_obj = Nuitka_String_FromString(distribution_name);
-        CHECK_OBJECT(name_obj);
-        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(importlib_metadata_distribution, name_obj);
-        Py_DECREF(name_obj);
+    PyObject *metadata_value_item = DICT_GET_ITEM0(metadata_values_dict, name);
+    if (metadata_value_item == NULL) {
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(importlib_metadata_distribution, name);
 
         return result;
     } else {
+        PyObject *package_name = PyTuple_GET_ITEM(metadata_value_item, 0);
+        PyObject *metadata = PyTuple_GET_ITEM(metadata_value_item, 1);
+        PyObject *entry_points = PyTuple_GET_ITEM(metadata_value_item, 2);
 
-        PyObject *args[2] = {
-            getModuleDirectory(entry),
-            metadata,
-        };
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(nuitka_distribution_type, args);
+        struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(Nuitka_String_AsString_Unchecked(package_name));
+
+        if (entry == NULL) {
+            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(importlib_metadata_distribution, name);
+
+            return result;
+        }
+
+        PyObject *args[3] = {getModuleDirectory(entry), metadata, entry_points};
+        PyObject *result = CALL_FUNCTION_WITH_ARGS3(nuitka_distribution_type, args);
         CHECK_OBJECT(result);
         return result;
     }

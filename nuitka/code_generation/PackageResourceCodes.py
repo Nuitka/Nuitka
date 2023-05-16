@@ -18,7 +18,6 @@
 """Code generation for package resources access."""
 
 from nuitka.Options import shallMakeModule
-from nuitka.utils.Distributions import getDistributionTopLevelPackageNames
 
 from .CallCodes import (
     getCallCodeKwPairs,
@@ -31,6 +30,7 @@ from .CodeHelpers import (
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
+from .ConstantCodes import addDistributionMetadataValue
 from .DictCodes import getDictionaryCreationCode
 from .ErrorCodes import getErrorExitCode
 from .ImportCodes import getImportModuleNameHardCode
@@ -165,23 +165,17 @@ def generateImportlibMetadataBackportEntryPointsCallCode(
 def generateImportlibMetadataDistributionValueCode(to_name, expression, emit, context):
     distribution = expression.distribution
     original_name = expression.original_name
-    metadata = (
-        distribution.read_text("METADATA") or distribution.read_text("METADATA") or ""
-    )
 
-    metadata = str(metadata)
+    addDistributionMetadataValue(name=original_name, distribution=distribution)
 
     with withObjectCodeTemporaryAssignment(
         to_name, "distribution_value", expression, emit, context
     ) as value_name:
-
         emit(
-            """%(to_name)s = Nuitka_Distribution_New("%(name)s", "%(package_name)s", %(metadata)s);"""
+            """%(to_name)s = Nuitka_Distribution_New(%(name)s);"""
             % {
                 "to_name": value_name,
-                "name": original_name,
-                "package_name": getDistributionTopLevelPackageNames(distribution)[0],
-                "metadata": context.getConstantCode(constant=metadata),
+                "name": context.getConstantCode(original_name),
             }
         )
 

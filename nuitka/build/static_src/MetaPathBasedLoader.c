@@ -1614,8 +1614,6 @@ static PyObject *_nuitka_loader_get_resource_reader(PyObject *self, PyObject *ar
 
 #endif
 
-#if _NUITKA_EXPERIMENTAL_METADATA
-
 static char const *_kw_list_find_distributions[] = {"context", NULL};
 
 static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *args, PyObject *kwds) {
@@ -1630,23 +1628,35 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
 
     PyObject *name = PyObject_GetAttr(context, const_str_plain_name);
 
-    if (unlikely(name == 0)) {
+    if (unlikely(name == NULL)) {
         return NULL;
     }
 
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry(Nuitka_String_AsString(name));
+    PyObject *temp = MAKE_LIST_EMPTY(0);
 
-    Py_DECREF(name);
+    Py_ssize_t pos = 0;
+    PyObject *distribution_name;
 
-    PyObject *temp;
+    while (Nuitka_DistributionNext(&pos, &distribution_name)) {
+        bool include = false;
+        if (name == Py_None) {
+            include = true;
+        } else {
+            nuitka_bool cmp_res = RICH_COMPARE_EQ_NBOOL_OBJECT_OBJECT(name, distribution_name);
 
-    if (entry) {
-        // Create a distribution object for the entry
-        PyObject *distribution = Nuitka_Distribution_New(entry);
-        temp = MAKE_TUPLE1_0(distribution);
-    } else {
-        temp = const_tuple_empty;
-        Py_INCREF(const_tuple_empty);
+            if (unlikely(cmp_res == NUITKA_BOOL_EXCEPTION)) {
+                Py_DECREF(name);
+                return NULL;
+            }
+
+            include = cmp_res == NUITKA_BOOL_TRUE;
+        }
+
+        if (include) {
+            // Create a distribution object from our data.
+            PyObject *distribution = Nuitka_Distribution_New(distribution_name);
+            LIST_APPEND1(temp, distribution);
+        }
     }
 
     // We are expected to return an iterator.
@@ -1655,8 +1665,6 @@ static PyObject *_nuitka_loader_find_distributions(PyObject *self, PyObject *arg
     Py_DECREF(temp);
     return result;
 }
-
-#endif
 
 static PyMethodDef Nuitka_Loader_methods[] = {
     {"iter_modules", (PyCFunction)_nuitka_loader_iter_modules, METH_VARARGS | METH_KEYWORDS, NULL},
@@ -1677,10 +1685,8 @@ static PyMethodDef Nuitka_Loader_methods[] = {
      NULL},
 #endif
 
-#if _NUITKA_EXPERIMENTAL_METADATA
     {"find_distributions", (PyCFunction)_nuitka_loader_find_distributions, METH_STATIC | METH_VARARGS | METH_KEYWORDS,
      NULL},
-#endif
 
     {NULL, NULL}
 };
@@ -1688,7 +1694,7 @@ static PyMethodDef Nuitka_Loader_methods[] = {
 static PyObject *Nuitka_Loader_tp_repr(struct Nuitka_LoaderObject *loader) {
     if (loader->m_loader_entry == NULL) {
         // TODO: Indicate in module mode, which one it is for.
-        return Nuitka_String_FromString("<nuitka_module_loader");
+        return Nuitka_String_FromString("<nuitka_module_loader>");
     } else {
         return Nuitka_String_FromFormat("<nuitka_module_loader for '%s'>", loader->m_loader_entry->name);
     }

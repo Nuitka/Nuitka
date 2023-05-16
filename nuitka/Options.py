@@ -1092,6 +1092,13 @@ def getMustIncludePackages():
     return sum([_splitShellPattern(x) for x in options.include_packages], [])
 
 
+def getShallIncludeDistributionMetadata():
+    """*list*, items of ``--include-distribution-metadata=``"""
+    return sum(
+        [_splitShellPattern(x) for x in options.include_distribution_metadata], []
+    )
+
+
 def getShallIncludePackageData():
     """*iterable of (module name, filename pattern)*, derived from ``--include-package-data=``
 

@@ -420,6 +420,23 @@ Output the data files found for a given package name. Default not done.""",
 
 del data_group
 
+metadata_group = parser.add_option_group("Metadata support")
+
+metadata_group.add_option(
+    "--include-distribution-metadata",
+    action="append",
+    dest="include_distribution_metadata",
+    metavar="DISTRIBUTION",
+    default=[],
+    help="""\
+Include metadata information for the given distribution name. Some packages
+check metadata for presence, version, entry points, etc. and without this
+option given, it only works when it's recognized at compile time which is
+not always happening. This of course only makes sense for packages that are
+included in the compilation. Default empty.""",
+)
+
+del metadata_group
 
 dll_group = parser.add_option_group("DLL files")
 

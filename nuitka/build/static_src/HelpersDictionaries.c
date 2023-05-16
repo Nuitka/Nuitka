@@ -1169,6 +1169,8 @@ Py_ssize_t Nuitka_PyDictLookupStr(PyDictObject *mp, PyObject *key, Py_hash_t has
 bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObject **value_ptr) {
     CHECK_OBJECT(dict);
     assert(PyDict_CheckExact(dict));
+    assert(key_ptr);
+    assert(value_ptr);
 
 #if PYTHON_VERSION < 0x300
     Py_ssize_t i = *pos;

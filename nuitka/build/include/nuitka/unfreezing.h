@@ -18,6 +18,8 @@
 #ifndef __NUITKA_UNFREEZING_H__
 #define __NUITKA_UNFREEZING_H__
 
+#include <stdbool.h>
+
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */
 #define NUITKA_COMPILED_MODULE 0
@@ -73,6 +75,9 @@ extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntr
 extern PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 
 // Create a distribution object from the given metadata.
-extern PyObject *Nuitka_Distribution_New(char const *distribution_name, char const *package_name, PyObject *metadata);
+extern PyObject *Nuitka_Distribution_New(PyObject *name);
+
+// Check if we provide a distribution object ourselves.
+extern bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr);
 
 #endif
