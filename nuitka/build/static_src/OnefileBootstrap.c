@@ -938,12 +938,29 @@ int main(int argc, char **argv) {
             appendStringSafeFilename(first_filename, target_path, sizeof(target_path) / sizeof(filename_char_t));
         }
 
-        // _putws(target_path);
-        unsigned long long file_size = readPayloadSizeValue();
-
 #if !defined(_WIN32) && !defined(__MSYS__)
         unsigned char file_flags = readPayloadFileFlagsValue();
 #endif
+
+#if !defined(_WIN32) && !defined(__MSYS__)
+        if (file_flags & 2) {
+            filename_char_t *link_target_path = readPayloadFilename();
+
+            // printf("Filename: " FILENAME_FORMAT_STR " symlink to " FILENAME_FORMAT_STR "\n", target_path,
+            // link_target_path);
+
+            createContainingDirectory(target_path);
+
+            unlink(target_path);
+            if (symlink(link_target_path, target_path) != 0) {
+                fatalErrorTempFileCreate(target_path);
+            }
+
+            continue;
+        }
+#endif
+        // _putws(target_path);
+        unsigned long long file_size = readPayloadSizeValue();
 
         bool needs_write = true;
 
