@@ -358,7 +358,11 @@ to install it."""
 
             for _command, result in stats.items():
                 # These are not important to our users, time based decisions differentiate these.
-                if result in ("cache hit (direct)", "cache hit (preprocessed)"):
+                if result in (
+                    "cache hit (direct)",
+                    "cache hit (preprocessed)",
+                    "local_storage_hit",
+                ):
                     result = "cache hit"
 
                 # Newer ccache has these, but they duplicate:
@@ -369,6 +373,10 @@ to install it."""
                     "preprocessed_cache_miss",
                     "primary_storage_miss",
                     "called_for_link",
+                    "local_storage_read_hit",
+                    "local_storage_read_miss",
+                    "local_storage_write",
+                    "local_storage_miss",
                 ):
                     continue
                 if result == "primary_storage_hit":
