@@ -43,6 +43,7 @@ from nuitka.utils.FileOperations import (
     copyFileWithPermissions,
     getFileContents,
     getFileList,
+    getFilenameExtension,
     getFileSize,
     isFilenameBelowPath,
     isRelativePath,
@@ -358,13 +359,34 @@ def addIncludedDataFilesFromFileOptions():
         addIncludedDataFile(included_datafile)
 
 
-def scanIncludedPackageDataFiles(package_directory):
-    return getFileList(
+def scanIncludedPackageDataFiles(package_directory, pattern):
+    ignore_suffixes = default_ignored_suffixes
+
+    if pattern is not None:
+        pattern_extension = getFilenameExtension(pattern)
+
+        ignore_suffixes = tuple(
+            ignore_suffix
+            for ignore_suffix in ignore_suffixes
+            if ignore_suffix != pattern_extension
+        )
+
+    result = []
+
+    for pkg_filename in getFileList(
         package_directory,
         ignore_dirs=default_ignored_dirs,
-        ignore_suffixes=default_ignored_suffixes,
+        ignore_suffixes=ignore_suffixes,
         ignore_filenames=default_ignored_filenames,
-    )
+    ):
+        rel_path = os.path.relpath(pkg_filename, package_directory)
+
+        if pattern and not fnmatch.fnmatch(rel_path, pattern):
+            continue
+
+        result.append(pkg_filename)
+
+    return result
 
 
 def makeIncludedPackageDataFiles(
@@ -375,11 +397,8 @@ def makeIncludedPackageDataFiles(
 
     file_reason = "package '%s' %s" % (package_name, reason)
 
-    for pkg_filename in scanIncludedPackageDataFiles(package_directory):
+    for pkg_filename in scanIncludedPackageDataFiles(package_directory, pattern):
         rel_path = os.path.relpath(pkg_filename, package_directory)
-
-        if pattern and not fnmatch.fnmatch(rel_path, pattern):
-            continue
 
         yield makeIncludedDataFile(
             source_path=pkg_filename,
@@ -421,6 +440,12 @@ def addIncludedDataFilesFromPackageOptions():
                 "Failed to locate package directory of '%s'" % package_name.asString()
             )
             continue
+
+        if os.path.isfile(package_directory):
+            options_logger.sysexit(
+                "Error, '%s' is a module not a package, cannot have package data."
+                % package_name
+            )
 
         # TODO: Maybe warn about packages that have no data files found.
 
