@@ -1129,11 +1129,13 @@ int main(int argc, char **argv) {
         cleanupChildProcess(false);
 
         fatalErrorChild("Error, couldn't launch child (fork)", error_code);
+        exit_code = 2;
     } else if (pid == 0) {
         // Child process
         execv(first_filename, argv);
 
         fatalErrorChild("Error, couldn't launch child (exec)", errno);
+        exit_code = 2;
     } else {
         // Onefile bootstrap process
         handle_process = pid;
