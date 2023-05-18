@@ -1600,6 +1600,9 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
     // Resolve any symbolic links in the filename.
     // Copies the resolved path over the top of the parameter.
 
+    // There are no symlinks before Windows Vista. TODO: This effectively disables this code
+    // for MinGW64.
+#if _WIN32_WINNT >= 0x0600
     if (resolve_symlinks) {
         // Open the file in the most non-exclusive way possible
         HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
@@ -1628,7 +1631,9 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
                 copyStringSafeW(resolved_filename, resolved_filename + 4, resolved_filename_size);
             }
         }
-    } else {
+    } else
+#endif
+    {
         copyStringSafeW(resolved_filename, filename, resolved_filename_size);
     }
 }
