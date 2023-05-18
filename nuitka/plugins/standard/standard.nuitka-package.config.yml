@@ -2343,6 +2343,17 @@
           orig_connect = QtCore.SignalInstance.connect
           QtCore.SignalInstance.connect = myconnect
 
+- module-name: 'pysnmp.smi'
+  data-files:
+    patterns:
+      - 'mibs/**/*.py'
+  implicit-imports:
+    - depends:
+        - 'pysnmp.smi.exval'
+        - 'pysnmp.cache'
+        - 'pysnmp.smi.mibs'
+        - 'pysnmp.smi.mibs.instances'
+
 - module-name: 'python_utils.terminal'
   anti-bloat:
     - description: 'remove IPython reference'
