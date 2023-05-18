@@ -44,8 +44,9 @@ def _filterCodesignErrorOutput(stderr):
     if b"errSecInternalComponent" in stderr:
         postprocessing_logger.sysexit(
             """\
-Access to the certificate is not allowed. Please allow all items or with
-GUI, enable prompting for the certificate in KeyChain Access."""
+Access to the specified codesign certificate was not allowed. Please \
+'allow all items' or when compiling with GUI available, enable prompting \
+for the certificate in KeyChain Access application for this certificate."""
         )
 
     return None, stderr
