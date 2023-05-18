@@ -122,10 +122,85 @@ def attachOnefilePayload(
     file_checksums,
     win_path_sep,
 ):
-    # Somewhat detail rich, pylint: disable=too-many-locals,too-many-statements
+    # Somewhat detail rich, pylint: disable=too-many-statements
     compression_indicator, compressor = getCompressorFunction(
         expect_compression=expect_compression
     )
+
+    def _attachOnefilePayloadFile(
+        compressed_file, filename_full, dist_dir, filename_encoding
+    ):
+        payload_item_size = 0
+
+        filename_relative = os.path.relpath(filename_full, dist_dir)
+
+        reportProgressBar(
+            item=filename_relative,
+            update=False,
+        )
+
+        # Might be changing from POSIX to Win32 Python on Windows.
+        if win_path_sep:
+            filename_relative = filename_relative.replace("/", "\\")
+        else:
+            filename_relative = filename_relative.replace("\\", "/")
+
+        filename_encoded = (filename_relative + "\0").encode(filename_encoding)
+
+        compressed_file.write(filename_encoded)
+        payload_item_size += len(filename_encoded)
+
+        file_flags = 0
+        if not isWin32OrPosixWindows() and os.path.islink(filename_full):
+            link_target = os.readlink(filename_full)
+
+            file_flags |= 2
+            file_header = to_byte(file_flags)
+
+            compressed_file.write(file_header)
+            payload_item_size += len(file_header)
+
+            link_target_encoded = (link_target + "\0").encode(filename_encoding)
+
+            compressed_file.write(link_target_encoded)
+            payload_item_size += len(link_target_encoded)
+        else:
+            # This flag is only relevant for non-links.
+            if not isWin32OrPosixWindows() and os.access(filename_full, os.X_OK):
+                file_flags |= 1
+
+            with open(filename_full, "rb") as input_file:
+                input_file.seek(0, 2)
+                input_size = input_file.tell()
+                input_file.seek(0, 0)
+
+                file_header = b""
+
+                if not isWin32OrPosixWindows():
+                    file_header += to_byte(file_flags)
+
+                file_header += struct.pack("Q", input_size)
+
+                if file_checksums:
+                    hash_crc32 = HashCRC32()
+                    hash_crc32.updateFromFileHandle(input_file)
+                    input_file.seek(0, 0)
+
+                    # CRC32 value 0 is avoided, used as error indicator in C code.
+                    file_header += struct.pack("I", hash_crc32.asDigest() or 1)
+
+                compressed_file.write(file_header)
+                payload_item_size += len(file_header)
+
+                shutil.copyfileobj(input_file, compressed_file)
+                payload_item_size += input_size
+
+        reportProgressBar(
+            item=filename_relative,
+            update=True,
+        )
+
+        return payload_item_size
 
     @decoratorRetries(
         logger=onefile_logger,
@@ -160,59 +235,11 @@ def attachOnefilePayload(
 
             with compressor(output_file) as compressed_file:
                 for filename_full in file_list:
-                    filename_relative = os.path.relpath(filename_full, dist_dir)
-
-                    reportProgressBar(
-                        item=filename_relative,
-                        update=False,
-                    )
-
-                    # Might be changing from POSIX to Win32 Python on Windows.
-                    if win_path_sep:
-                        filename_relative = filename_relative.replace("/", "\\")
-                    else:
-                        filename_relative = filename_relative.replace("\\", "/")
-
-                    filename_encoded = (filename_relative + "\0").encode(
-                        filename_encoding
-                    )
-
-                    compressed_file.write(filename_encoded)
-                    payload_size += len(filename_encoded)
-
-                    file_flags = 0
-                    if not isWin32OrPosixWindows() and os.access(
-                        filename_full, os.X_OK
-                    ):
-                        file_flags += 1
-
-                    with open(filename_full, "rb") as input_file:
-                        input_file.seek(0, 2)
-                        input_size = input_file.tell()
-                        input_file.seek(0, 0)
-
-                        file_header = struct.pack("Q", input_size)
-
-                        if not isWin32OrPosixWindows():
-                            file_header += to_byte(file_flags)
-
-                        if file_checksums:
-                            hash_crc32 = HashCRC32()
-                            hash_crc32.updateFromFileHandle(input_file)
-                            input_file.seek(0, 0)
-
-                            # CRC32 value 0 is avoided, used as error indicator in C code.
-                            file_header += struct.pack("I", hash_crc32.asDigest() or 1)
-
-                        compressed_file.write(file_header)
-
-                        shutil.copyfileobj(input_file, compressed_file)
-
-                        payload_size += input_size + len(file_header)
-
-                    reportProgressBar(
-                        item=filename_relative,
-                        update=True,
+                    payload_size += _attachOnefilePayloadFile(
+                        compressed_file=compressed_file,
+                        filename_full=filename_full,
+                        dist_dir=dist_dir,
+                        filename_encoding=filename_encoding,
                     )
 
                 # Using empty filename as a terminator.
