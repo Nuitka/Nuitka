@@ -55,5 +55,7 @@ def displayPackageData(module_name):
 
     tools_logger.my_print(package_directory)
 
-    for pkg_filename in scanIncludedPackageDataFiles(package_directory):
+    for pkg_filename in scanIncludedPackageDataFiles(
+        package_directory=package_directory, pattern=None
+    ):
         tools_logger.my_print(pkg_filename)
