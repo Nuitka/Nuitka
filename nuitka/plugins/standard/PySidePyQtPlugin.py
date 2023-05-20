@@ -25,7 +25,6 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
-    isExperimental,
     isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
@@ -409,15 +408,6 @@ import %(binding_name)s.QtCore
                 qt_plugin_name = filename_relative.split(os.path.sep, 1)[0]
 
                 if not self.hasQtPluginSelected(qt_plugin_name):
-                    continue
-
-                # TODO: The qpdf plugin is causing issues, and we would have to check
-                # here, already, if dependencies of the plugin will be available, and
-                # if not, then skip it, but that is for a future release, as it is
-                # blocking on macOS now.
-                if "qpdf" in os.path.basename(filename_relative) and not isExperimental(
-                    "qt-force-qpdf"
-                ):
                     continue
 
                 yield self.makeDllEntryPoint(
@@ -1355,19 +1345,6 @@ Make sure to use PySide 6.5.0 or higher, otherwise Qt slots won't work in all ca
                 """\
 Make sure to use PySide 6.1.2 or higher, otherwise Qt callbacks to Python won't work."""
             )
-
-    @staticmethod
-    def isAcceptableMissingDLL(module, filename_base):
-        # spell-checker: ignore qt,lib,effects,qpdf
-        if filename_base in (
-            "libeffectsplugin.dylib",
-            "libeffects.dylib",
-            "libpdfquickplugin.dylib",
-            "libqpdf.dylib",
-            "libqtquick3dhelpersimplplugin.dylib",
-            "libquick3dspatialaudioplugin.dylib",
-        ):
-            return True
 
 
 class NuitkaPluginDetectorPySide6Plugins(NuitkaPluginBase):

@@ -2324,6 +2324,13 @@
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
+    - acceptable-missing-dlls:
+        - 'libeffectsplugin'
+        - 'libeffects'
+        - 'libpdfquickplugin'
+        - 'libqpdf'
+        - 'libqtquick3dhelpersimplplugin'
+        - 'libquick3dspatialaudioplugin'
 
 - module-name: 'PySide6.QtCore'
   implicit-imports:
@@ -4178,6 +4185,13 @@
         : |-
           @classmethod
           def _dp_init_subclass
+
+- module-name: 'torchaudio'
+  import-hacks:
+    - find-dlls-near-module:
+        - 'torch'
+    - acceptable-missing-dlls:
+        - '_torchaudio_ffmpeg'
 
 - module-name: 'torchmetrics.utilities.checks'
   anti-bloat:

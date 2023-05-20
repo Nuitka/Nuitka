@@ -315,16 +315,6 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
                 ):
                     yield item
 
-    def _getModuleSpecificDllPaths(self, config):
-        for config_package_name in config.get("find-dlls-near-module", ()):
-            module_filename = self.locateModule(config_package_name)
-
-            if module_filename is not None:
-                if os.path.isfile(module_filename):
-                    yield os.path.dirname(module_filename)
-                else:
-                    yield module_filename
-
     def _getModuleSysPathAdditions(self, module_name, config):
         module_filename = self.locateModule(module_name)
 
@@ -336,14 +326,6 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
             if os.path.isdir(candidate):
                 yield candidate
-
-    def getModuleSpecificDllPaths(self, module_name):
-        for entry in self.config.get(module_name, section="import-hacks"):
-            if self.evaluateCondition(
-                full_name=module_name, condition=entry.get("when", "True")
-            ):
-                for item in self._getModuleSpecificDllPaths(config=entry):
-                    yield item
 
     def getModuleSysPathAdditions(self, module_name):
         for entry in self.config.get(module_name, section="import-hacks"):

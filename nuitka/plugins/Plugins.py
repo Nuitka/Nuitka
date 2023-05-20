@@ -43,7 +43,11 @@ from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import makePath, putTextFileContents
+from nuitka.utils.FileOperations import (
+    getDllBasename,
+    makePath,
+    putTextFileContents,
+)
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import (
     ModuleName,
@@ -1321,13 +1325,20 @@ class Plugins(object):
         return result
 
     @classmethod
-    def isAcceptableMissingDLL(cls, module, filename_base):
+    def isAcceptableMissingDLL(cls, package_name, filename):
+        dll_basename = getDllBasename(os.path.basename(filename))
+
+        # Not a DLL filename, then it cannot be true, but it's kind of strange
+        # to get asked.
+        if dll_basename is None:
+            return False
+
         result = None
         plugin_name = None
 
         for plugin in getActivePlugins():
             value = plugin.isAcceptableMissingDLL(
-                module=module, filename_base=filename_base
+                package_name=package_name, dll_basename=dll_basename
             )
 
             if value is True:
