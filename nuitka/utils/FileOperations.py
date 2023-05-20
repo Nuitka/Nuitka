@@ -402,6 +402,22 @@ def getSubDirectories(path, ignore_dirs=()):
     return result
 
 
+def getDllBasename(path):
+    compare_path = os.path.normcase(path)
+
+    for suffix in (".dll", ".so", ".dylib"):
+        if compare_path.endswith(suffix):
+            return path[: -len(suffix)]
+
+    # Linux us not case sensitive, but lets still do it properly,
+    # sometimes, it is done on non-Linux too. So we split on the
+    # normcase, but only to find out what is going on there.
+    if ".so." in compare_path:
+        return path[: len(compare_path.split(".so.")[0])]
+
+    return None
+
+
 def listDllFilesFromDirectory(path, prefix=None, suffixes=None):
     """Give a sorted listing of DLLs filenames in a path.
 

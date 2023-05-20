@@ -289,6 +289,12 @@
                                 "type": "string"
                             }
                         },
+                        "acceptable-missing-dlls": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "global-sys-path": {
                             "type": "array",
                             "items": {

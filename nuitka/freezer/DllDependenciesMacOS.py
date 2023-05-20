@@ -171,11 +171,12 @@ def _resolveBinaryPathDLLsMacOS(
             # We ignore the references to itself coming from the library id.
             continue
         elif isNuitkaPython() and not os.path.isabs(path) and not os.path.exists(path):
-            # Since Nuitka Python statically links all packages, some of them have proprietary
-            # dependencies that cannot be statically built and must instead be linked to the
-            # python executable. Due to how the python executable is linked, we end up with
-            # relative paths to dependencies, so we need to scan the Nuitka Python library directories
-            # for a matching dll.
+            # Although Nuitka Python statically links all packages, some of them
+            # have proprietary dependencies that cannot be statically built and
+            # must instead be linked to the python executable. Due to how the
+            # python executable is linked, we end up with relative paths to
+            # dependencies, so we need to scan the Nuitka Python library
+            # directories for a matching dll.
             link_data = loadJsonFromFilename(os.path.join(sys.prefix, "link.json"))
             for library_dir in link_data["library_dirs"]:
                 candidate = os.path.join(library_dir, path)
@@ -205,7 +206,8 @@ def _resolveBinaryPathDLLsMacOS(
 
         if not os.path.exists(resolved_path):
             acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
-                module=package_name, filename_base=os.path.basename(binary_filename)
+                package_name=package_name,
+                filename=binary_filename,
             )
 
             # TODO: Missing DLLs that are accepted, are not really forbidden, we
@@ -214,9 +216,12 @@ def _resolveBinaryPathDLLsMacOS(
             if acceptable is True:
                 raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
 
+            if not path.startswith(("@", "/")):
+                continue
+
             inclusion_logger.sysexit(
-                "Error, failed to find path %s (resolved DLL to %s) for %s, please report the bug."
-                % (path, resolved_path, binary_filename)
+                "Error, failed to find path %s (resolved DLL to %s) for %s from '%s', please report the bug."
+                % (path, resolved_path, binary_filename, package_name)
             )
 
         # Some libraries depend on themselves.
