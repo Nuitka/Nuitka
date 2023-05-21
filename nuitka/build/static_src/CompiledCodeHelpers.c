@@ -1638,45 +1638,89 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
 static void resolveFileSymbolicLink(char *resolved_filename, char const *filename, size_t resolved_filename_size,
                                     bool resolve_symlinks) {
     if (resolve_symlinks) {
-        // At least on macOS, realpath cannot allocate a buffer, so the above test is what is needed
-        // and then this will be safe, on Linux we could use NULL argument and have a malloc of the
-        // resulting value.
-        char *result = realpath(filename, resolved_filename);
+        // At least on macOS, realpath cannot allocate a buffer, itself, so lets
+        // use a local one, only on Linux we could use NULL argument and have a
+        // malloc of the resulting value.
+        char buffer[PATH_MAX];
+
+        char *result = realpath(filename, buffer);
 
         if (unlikely(result == NULL)) {
             abort();
         }
+
+        copyStringSafe(resolved_filename, buffer, resolved_filename_size);
     } else {
         copyStringSafe(resolved_filename, filename, resolved_filename_size);
     }
 }
 #endif
 
-#ifndef _WIN32
-char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
-    static char binary_directory[MAXPATHLEN + 1];
-    static bool init_done = false;
+#ifdef _WIN32
+extern wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks);
 
-    if (init_done) {
-        return binary_directory;
+char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
+    static char *binary_filename = NULL;
+    static char *binary_filename_resolved = NULL;
+
+    char *binary_filename_target;
+
+    if (resolve_symlinks) {
+        binary_filename_target = binary_filename_resolved;
+    } else {
+        binary_filename_target = binary_filename;
     }
 
-    char binary_filename[MAXPATHLEN + 1];
+    if (binary_filename_target != NULL) {
+        return binary_filename_target;
+    }
+    wchar_t const *w = getBinaryFilenameWideChars(resolve_symlinks);
+
+    DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
+    assert(bufsize != 0);
+
+    binary_filename_target = (char *)malloc(bufsize + 1);
+    assert(binary_filename_target);
+
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_filename_target, bufsize, NULL, NULL);
+    assert(res2 != 0);
+
+    if (unlikely(res2 > bufsize)) {
+        abort();
+    }
+
+    return (char const *)binary_filename_target;
+}
+
+#else
+char const *getBinaryFilenameHostEncoded(bool resolve_symlinks) {
+    const int buffer_size = MAXPATHLEN + 1;
+
+    static char binary_filename[MAXPATHLEN + 1] = {0};
+    static char binary_filename_resolved[MAXPATHLEN + 1] = {0};
+
+    char *binary_filename_target;
+
+    if (resolve_symlinks) {
+        binary_filename_target = binary_filename_resolved;
+    } else {
+        binary_filename_target = binary_filename;
+    }
+
+    if (*binary_filename_target != 0) {
+        return binary_filename_target;
+    }
 
 #if defined(__APPLE__)
-    uint32_t bufsize = sizeof(binary_filename);
-    int res = _NSGetExecutablePath(binary_filename, &bufsize);
+    uint32_t bufsize = buffer_size;
+    int res = _NSGetExecutablePath(binary_filename_target, &bufsize);
 
     if (unlikely(res != 0)) {
         abort();
     }
 
     // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
-
-    // On macOS, the "dirname" call creates a separate internal string, we can
-    // safely copy back.
-    copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
+    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
     /* Not all of FreeBSD has /proc file system, so use the appropriate
@@ -1687,37 +1731,50 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-    size_t cb = sizeof(binary_filename);
-    int res = sysctl(mib, 4, binary_filename, &cb, NULL, 0);
+    size_t cb = buffer_size;
+    int res = sysctl(mib, 4, binary_filename_target, &cb, NULL, 0);
 
     if (unlikely(res != 0)) {
         abort();
     }
 
     // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
-
-    /* We want the directory name, the above gives the full executable name. */
-    copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
+    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 #else
     /* The remaining platforms, mostly Linux or compatible. */
 
     /* The "readlink" call does not terminate result, so fill zeros there, then
      * it is a proper C string right away. */
-    memset(binary_filename, 0, sizeof(binary_filename));
-    ssize_t res = readlink("/proc/self/exe", binary_filename, sizeof(binary_filename) - 1);
+    memset(binary_filename_target, 0, buffer_size);
+    ssize_t res = readlink("/proc/self/exe", binary_filename_target, buffer_size - 1);
 
     if (unlikely(res == -1)) {
         abort();
     }
 
     // Resolve any symlinks we were invoked via
-    resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
-
-    copyStringSafe(binary_directory, dirname(binary_directory), sizeof(binary_directory));
+    resolveFileSymbolicLink(binary_filename_target, binary_filename_target, buffer_size, resolve_symlinks);
 #endif
-    init_done = true;
-    return binary_directory;
+
+    return binary_filename_target;
+}
+#endif
+
+#ifdef _WIN32
+wchar_t const *getBinaryFilenameWideChars(bool resolve_symlinks) {
+    static wchar_t binary_filename[MAXPATHLEN + 1];
+    static bool init_done = false;
+
+    if (init_done == false) {
+        DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename) / sizeof(wchar_t));
+        assert(res != 0);
+
+        // Resolve any symlinks we were invoked via
+        resolveFileSymbolicLink(binary_filename, binary_filename, sizeof(binary_filename) / sizeof(wchar_t),
+                                resolve_symlinks);
+    }
+
+    return binary_filename;
 }
 #endif
 
@@ -1729,12 +1786,8 @@ wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
         binary_directory[0] = 0;
 
 #if defined(_WIN32)
-        wchar_t binary_filename[MAXPATHLEN + 1];
-        DWORD res = GetModuleFileNameW(NULL, binary_filename, sizeof(binary_filename));
-        assert(res != 0);
-
-        // Resolve any symlinks we were invoked via
-        resolveFileSymbolicLink(binary_directory, binary_filename, sizeof(binary_directory), resolve_symlinks);
+        copyStringSafeW(binary_directory, getBinaryFilenameWideChars(resolve_symlinks),
+                        sizeof(binary_directory) / sizeof(wchar_t));
 
         stripFilenameW(binary_directory);
 
@@ -1743,7 +1796,7 @@ wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks) {
         assert(length != 0);
 
         wchar_t *short_binary_directory = (wchar_t *)malloc((length + 1) * sizeof(wchar_t));
-        res = GetShortPathNameW(binary_directory, short_binary_directory, length);
+        DWORD res = GetShortPathNameW(binary_directory, short_binary_directory, length);
         assert(res != 0);
 
         if (unlikely(res > length)) {
@@ -1769,33 +1822,107 @@ char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
     static char *binary_directory = NULL;
     static char *binary_directory_resolved = NULL;
 
-    char *binary_object_target;
+    char *binary_directory_target;
 
     if (resolve_symlinks) {
-        binary_object_target = binary_directory_resolved;
+        binary_directory_target = binary_directory_resolved;
     } else {
-        binary_object_target = binary_directory;
+        binary_directory_target = binary_directory;
     }
 
-    if (binary_object_target != NULL) {
-        return binary_object_target;
+    if (binary_directory_target != NULL) {
+        return binary_directory_target;
     }
     wchar_t const *w = getBinaryDirectoryWideChars(resolve_symlinks);
 
     DWORD bufsize = WideCharToMultiByte(CP_ACP, 0, w, -1, NULL, 0, NULL, NULL);
     assert(bufsize != 0);
 
-    binary_object_target = (char *)malloc(bufsize + 1);
-    assert(binary_directory);
+    binary_directory_target = (char *)malloc(bufsize + 1);
+    assert(binary_directory_target);
 
-    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_object_target, bufsize, NULL, NULL);
+    DWORD res2 = WideCharToMultiByte(CP_ACP, 0, w, -1, binary_directory_target, bufsize, NULL, NULL);
     assert(res2 != 0);
 
     if (unlikely(res2 > bufsize)) {
         abort();
     }
 
-    return (char const *)binary_object_target;
+    return (char const *)binary_directory_target;
+}
+
+#else
+
+char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks) {
+    const int buffer_size = MAXPATHLEN + 1;
+
+    static char binary_directory[MAXPATHLEN + 1] = {0};
+    static char binary_directory_resolved[MAXPATHLEN + 1] = {0};
+
+    char *binary_directory_target;
+
+    if (resolve_symlinks) {
+        binary_directory_target = binary_directory_resolved;
+    } else {
+        binary_directory_target = binary_directory;
+    }
+
+    if (*binary_directory_target != 0) {
+        return binary_directory_target;
+    }
+
+    // Get the filename first.
+    copyStringSafe(binary_directory_target, getBinaryFilenameHostEncoded(resolve_symlinks), buffer_size);
+
+    // We want the directory name, the above gives the full executable name.
+    copyStringSafe(binary_directory_target, dirname(binary_directory_target), buffer_size);
+
+    return binary_directory_target;
+}
+
+#endif
+
+#ifdef _NUITKA_STANDALONE
+static PyObject *getBinaryFilenameObject(bool resolve_symlinks) {
+    static PyObject *binary_filename = NULL;
+    static PyObject *binary_filename_resolved = NULL;
+
+    PyObject **binary_object_target;
+
+    if (resolve_symlinks) {
+        binary_object_target = &binary_filename_resolved;
+    } else {
+        binary_object_target = &binary_filename;
+    }
+
+    if (*binary_object_target != NULL) {
+        CHECK_OBJECT(*binary_object_target);
+
+        return *binary_object_target;
+    }
+
+// On Python3, this must be a unicode object, it cannot be on Python2,
+// there e.g. code objects expect Python2 strings.
+#if PYTHON_VERSION >= 0x300
+#ifdef _WIN32
+    wchar_t const *exe_filename = getBinaryFilenameWideChars(resolve_symlinks);
+    *binary_object_target = NuitkaUnicode_FromWideChar(exe_filename, -1);
+#else
+    *binary_object_target = PyUnicode_DecodeFSDefault(getBinaryFilenameHostEncoded(resolve_symlinks));
+#endif
+#else
+    *binary_object_target = PyString_FromString(getBinaryFilenameHostEncoded(resolve_symlinks));
+#endif
+
+    if (unlikely(*binary_object_target == NULL)) {
+        PyErr_Print();
+        abort();
+    }
+
+    // Make sure it's usable for caching.
+    Py_INCREF(*binary_object_target);
+
+    return *binary_object_target;
 }
 #endif
 
@@ -1949,6 +2076,8 @@ void _initBuiltinModule(void) {
 
 #ifdef _NUITKA_STANDALONE
     int res = PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_dir", getBinaryDirectoryObject(true));
+    assert(res == 0);
+    PyDict_SetItemString((PyObject *)dict_builtin, "__nuitka_binary_exe", getBinaryFilenameObject(true));
     assert(res == 0);
 #endif
 

@@ -367,7 +367,7 @@ extern wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks);
 // Get the binary directory, translated to ANSI/native path
 extern char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks);
 
-#if _NUITKA_STANDALONE
+#ifdef _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(void);
 #endif
 
