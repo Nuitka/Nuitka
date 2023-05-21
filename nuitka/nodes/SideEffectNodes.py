@@ -101,6 +101,9 @@ class ExpressionSideEffects(
 
         return self, None, None
 
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
     def getTruthValue(self):
         return self.subnode_expression.getTruthValue()
 
