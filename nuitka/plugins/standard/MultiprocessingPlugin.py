@@ -79,9 +79,7 @@ if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(
 sys.executable = %s
 sys._base_executable = sys.executable
 """ % (
-                "os.path.join(os.path.dirname(sys.executable), os.path.basename(argv0))"
-                if Options.isStandaloneMode()
-                else "argv0"
+                "__nuitka_binary_exe" if Options.isStandaloneMode() else "argv0"
             )
             return (
                 code,

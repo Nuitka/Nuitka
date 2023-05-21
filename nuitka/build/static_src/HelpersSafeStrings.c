@@ -37,7 +37,10 @@ void copyStringSafe(char *buffer, char const *source, size_t buffer_size) {
     if (strlen(source) >= buffer_size) {
         abort();
     }
-    strcpy(buffer, source);
+
+    if (buffer != source) {
+        strcpy(buffer, source);
+    }
 }
 
 void copyStringSafeN(char *buffer, char const *source, size_t n, size_t buffer_size) {
