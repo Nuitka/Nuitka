@@ -216,6 +216,14 @@ def getPluginClass(plugin_name):
     plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
 
     if plugin_name not in plugin_name2plugin_classes:
+        for plugin_name2 in plugin_name2plugin_classes:
+            if plugin_name.lower() == plugin_name2.lower():
+                plugins_logger.sysexit(
+                    """\
+Error, unknown plug-in '%s' in wrong case referenced, use '%s' instead."""
+                    % (plugin_name, plugin_name2)
+                )
+
         plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
 
     return plugin_name2plugin_classes[plugin_name][0]
