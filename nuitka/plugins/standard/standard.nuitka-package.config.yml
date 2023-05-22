@@ -2302,6 +2302,21 @@
           - 'libcvhf'
 
 - module-name: 'PySide2'
+  implicit-imports:
+    - post-import-code:
+        - |
+          def myconnect(self, func):
+              if hasattr(func, "im_func"):
+                  if hasattr(func.im_func, "__compiled__"):
+                      myconnect._protected = getattr(myconnect, "_protected", set())
+                      myconnect._protected.add(func)
+
+              return orig_connect(self, func)
+
+          from PySide2 import QtCore
+          orig_connect = QtCore.SignalInstance.connect
+          QtCore.SignalInstance.connect = myconnect
+
   options:
     checks:
       - description: 'PySide2 is a GUI framework'
