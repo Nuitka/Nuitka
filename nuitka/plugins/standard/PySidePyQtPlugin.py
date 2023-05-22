@@ -413,8 +413,7 @@ import %(binding_name)s.QtCore
                 yield self.makeDllEntryPoint(
                     source_path=filename,
                     dest_path=os.path.join(
-                        self.binding_name,
-                        "qt-plugins",
+                        self.getQtPluginTargetPath(),
                         filename_relative,
                     ),
                     package_name=self.binding_package_name,
@@ -594,21 +593,30 @@ from __future__ import absolute_import
 from %(package_name)s import QCoreApplication
 import os
 
-QCoreApplication.setLibraryPaths(
-    [
-        os.path.join(
-           os.path.dirname(__file__),
-           "qt-plugins"
-        )
-    ]
-)
+qt_plugins_path = %(qt_plugins_path)s
+
+if qt_plugins_path is not None:
+    QCoreApplication.setLibraryPaths(
+        [
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                %(qt_plugins_path)s
+            )
+        ]
+    )
 
 os.environ["QML2_IMPORT_PATH"] = os.path.join(
     os.path.dirname(__file__),
     "qml"
 )
 """ % {
-                "package_name": full_name
+                "package_name": full_name,
+                "qt_plugins_path": repr(
+                    None
+                    if self.isDefaultQtPluginTargetPath()
+                    else self.getQtPluginTargetPath()
+                ),
             }
 
             yield (
@@ -861,6 +869,17 @@ Prefix = .
 
         return None
 
+    def getQtPluginTargetPath(self):
+        if self.binding_name == "PyQt6":
+            return os.path.join(self.binding_name, "Qt6", "plugins")
+        else:
+            return os.path.join(self.binding_name, "qt-plugins")
+
+    def isDefaultQtPluginTargetPath(self):
+        # So far we use the default only with PyQt6, since our post load code to
+        # change it crashes on macOS, probably being called too soon.
+        return self.binding_name == "PyQt6"
+
     def getExtraDlls(self, module):
         # pylint: disable=too-many-branches
         full_name = module.getFullName()
@@ -872,15 +891,13 @@ Prefix = .
                     % self.binding_name
                 )
 
-            target_plugin_dir = os.path.join(full_name.asPath(), "qt-plugins")
-
             self.info(
                 "Including Qt plugins '%s' below '%s'."
                 % (
                     ",".join(
                         sorted(x for x in self.getQtPluginsSelected() if x != "xml")
                     ),
-                    target_plugin_dir,
+                    self.getQtPluginTargetPath(),
                 )
             )
 
