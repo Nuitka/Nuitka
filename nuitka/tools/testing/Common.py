@@ -1782,6 +1782,8 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
                 "/System/Library/PrivateFrameworks",
                 "/System/Library/CoreServices",
                 "/System/Library/Frameworks/CoreFoundation.framework",
+                "/System/Library/Frameworks/AppKit.framework",
+                "/System/Library/Frameworks/ApplicationServices.framework",
                 "/System/Library/dyld",
                 "/AppleInternal",
                 "/System/Volumes/Preboot",
