@@ -219,6 +219,9 @@
   implicit-imports:
     - depends:
         - 'subprocess'
+    - depends:
+        - 'plistlib'
+      when: 'macos'
 
 - module-name: 'pyclbr'
   anti-bloat:
