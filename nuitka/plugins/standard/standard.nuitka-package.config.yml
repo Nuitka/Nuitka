@@ -2745,6 +2745,11 @@
     patterns:
       - 'words.txt'
 
+- module-name: 'sentence_transformers.SentenceTransformer'
+  implicit-imports:
+    - depends:
+        - 'huggingface_hub.repository'
+
 - module-name: 'setuptools.extern'
   # TODO: Vendor importers should maybe get their own thing, pkg_resources does
   # similar, and we might try and avoid duplication between the two of them on
