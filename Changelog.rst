@@ -115,8 +115,11 @@ Bug fixes
 -  Standalone: Added workaround for ``networkx`` decorator issues. Fixed
    in 1.5.7 already.
 
--  Standalone: Added workaround for PySide6 problem. Fixed in 1.5.7
-   already.
+-  Standalone: Added workaround for PySide6 problem with disconnecting
+   signals from methods. Fixed in 1.5.7 already.
+
+-  Standalone: Added workaround for PySide2 problem with disconnecting
+   signals.
 
 -  Fix, need to make sure the yaml package is located absolutely or else
    case insensitive file systems can confuse things. Fixed in 1.5.7
@@ -152,6 +155,16 @@ Bug fixes
 
 -  Standalone: Added missing implicit dependency for PySide6. Fixed in
    1.5.7 already.
+
+-  Fix, the pyi-file parser didn't handle doc strings, and could be
+   crash for comment contents not conforming to be import statement
+   code. Fixed in 1.5.8 already.
+
+-  Standalone: Added support for ``pyqtlet2`` data files.
+
+-  Python2: Fix, ``PermissionError`` doesn't exist on that version,
+   which could lead to issues with retries for locked files e.g. but was
+   also observed with symlinks.
 
 New Features
 ============
@@ -217,6 +230,15 @@ Optimization
 -  Anti-Bloat: Avoid ``pytest`` in newer ``networkx`` package. Added in
    1.5.7 already.
 
+-  Prepare optimization for more built-in types with experimental code,
+   but we need to disable it for now as it requires more completeness in
+   code generation to cover them all. We did some, e.g. module type, but
+   many more will be missing still.
+
+-  Prepare optimization of class selection at compile time, by having a
+   helper function rather than a dedicated node. This work is not
+   complete though, and cannot be activated yet.
+
 Organisational
 ==============
 
@@ -264,6 +286,12 @@ Cleanups
 -  Use proper API for setting ``PyConfig`` values during interpreter
    initialization. There is otherwise always the risk of crashes, should
    these values change during runtime. Fixed in 1.5.2 already.
+
+-  For our reformulations have a helper function that build release
+   statements for multiple variables at once.
+
+-  Move pyi-file parser out of the module nodes and to source handling,
+   where it is more closely related.
 
 Tests
 =====
