@@ -47,9 +47,9 @@ import subprocess
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.testing.Common import (
     createSearchMode,
-    decideFilenameVersionSkip,
     my_print,
     reportSkip,
+    scanDirectoryForTestCaseFolders,
     setup,
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
@@ -59,38 +59,19 @@ from nuitka.utils.FileOperations import copyFile, deleteFile, removeDirectory
 def main():
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    python_version = setup(suite="distutils", needs_io_encoding=True)
+    setup(suite="distutils", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
     nuitka_dir = os.path.abspath(os.path.join(os.getcwd(), "..", ".."))
 
-    for filename in sorted(os.listdir(".")):
-        if (
-            not os.path.isdir(filename)
-            or filename.endswith((".build", ".dist"))
-            or filename.startswith("venv_")
-        ):
-            continue
-
-        filename = os.path.relpath(filename)
-
-        if not decideFilenameVersionSkip(filename):
-            continue
-
+    for filename, _filename_main in scanDirectoryForTestCaseFolders("."):
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:
             my_print("Consider distutils example: '%s'" % filename, style="blue")
 
-            py3_only_examples = ("example_3", "nested_namespaces")
-            if python_version < (3,) and (
-                filename in py3_only_examples or "_pyproject_" in filename
-            ):
-                reportSkip("Skipped, only relevant for Python3", ".", filename)
-                continue
-
-            if filename == "example_pyproject_2":
+            if filename == "example_2_pyproject":
                 reportSkip(
                     "Skipped, 'poetry' based pyproject is not working for now",
                     ".",
@@ -103,13 +84,10 @@ def main():
             removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
             removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
 
-            with withVirtualenv("venv_cpython") as venv:
-                if "_pyproject_" not in filename:
-                    venv.runCommand(
-                        commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
-                    )
+            is_pyproject = "_pyproject" in filename
 
-                else:
+            with withVirtualenv("venv_cpython") as venv:
+                if is_pyproject:
                     venv.runCommand("pip install build")
 
                     copyFile(
@@ -119,6 +97,10 @@ def main():
                     venv.runCommand(commands=['cd "%s"' % case_dir, "python -m build"])
                     deleteFile(
                         os.path.join(case_dir, "pyproject.toml"), must_exist=True
+                    )
+                else:
+                    venv.runCommand(
+                        commands=['cd "%s"' % case_dir, "python setup.py bdist_wheel"]
                     )
 
                 dist_dir = os.path.join(case_dir, "dist")
@@ -192,11 +174,7 @@ def main():
                 )
 
                 # Create the wheel with Nuitka compilation.
-                if "_pyproject_" not in filename:
-                    venv.runCommand(
-                        commands=['cd "%s"' % case_dir, "python setup.py bdist_nuitka"]
-                    )
-                else:
+                if is_pyproject:
                     venv.runCommand("pip install build")
 
                     copyFile(
@@ -208,6 +186,10 @@ def main():
                     )
                     deleteFile(
                         os.path.join(case_dir, "pyproject.toml"), must_exist=True
+                    )
+                else:
+                    venv.runCommand(
+                        commands=['cd "%s"' % case_dir, "python setup.py bdist_nuitka"]
                     )
 
                 dist_dir = os.path.join(case_dir, "dist")

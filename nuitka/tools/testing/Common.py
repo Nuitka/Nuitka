@@ -1248,8 +1248,8 @@ def scanDirectoryForTestCaseFolders(dirname):
 
         if (
             not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
+            or filename.endswith((".dist", ".build"))
+            or os.path.basename(filename).startswith("venv_")
         ):
             continue
 
@@ -1816,6 +1816,14 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
 def getMainProgramFilename(filename):
     for filename_main in os.listdir(filename):
         if filename_main.endswith(("Main.py", "Main")):
+            return filename_main
+
+        if filename_main in (
+            "setup.py",
+            "setup.cfg",
+            "pyproject.cpython.toml",
+            "pyproject.nuitka.toml",
+        ):
             return filename_main
 
     test_logger.sysexit(
