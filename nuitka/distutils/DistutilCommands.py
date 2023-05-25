@@ -316,6 +316,11 @@ class build(distutils.command.build.build):
                     toml_options = toml_loads(toml_file.read())
 
                 for option, value in toml_options.get("nuitka", {}).items():
+                    if option in ["standalone", "onefile"]:
+                        try:
+                            command.remove("--module")
+                        except ValueError:
+                            pass
                     command.extend(self._parseOptionsEntry(option, value))
 
             # Process any extra options from setuptools
