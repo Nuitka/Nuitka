@@ -132,3 +132,6 @@ Turned side effects of expression only statement into statements.""",
         # TODO: Actually we could very well ask the expression, but retaining the side
         # effects in optimization is not yet guaranteed.
         return False
+
+    def willRaiseAnyException(self):
+        return self.subnode_expression.willRaiseAnyException()
