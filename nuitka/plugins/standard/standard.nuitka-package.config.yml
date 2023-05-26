@@ -91,6 +91,13 @@
     - depends:
         - 'gobject'
 
+- module-name: 'attr'
+  options:
+    checks:
+      - description: 'attrs is not fully supported before 23.1.0'
+        support_info: 'warning'
+        when: 'version("attrs") < (23,1)'
+
 - module-name: 'av.audio.frame'
   implicit-imports:
     - depends:
@@ -4799,9 +4806,3 @@
         '_skip_under_py2': "'(lambda test_method: None)'"
         '_skip_under_py3k': "'(lambda test_method: None)'"
       when: 'not use_unittest'
-- module-name: 'attr'
-  options:
-    checks:
-      - description: 'attrs is not fully supported before 23.1.0'
-        support_info: 'warning'
-        when: 'version("attrs") < (23,1)'
