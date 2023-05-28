@@ -42,6 +42,10 @@ def createPlistInfoFile(logger, onefile):
     result_filename = OutputDirectories.getResultFullpath(onefile=onefile)
     app_name = Options.getMacOSAppName() or os.path.basename(result_filename)
 
+    executable_name = os.path.basename(
+        OutputDirectories.getResultFullpath(onefile=Options.isOnefileMode())
+    )
+
     signed_app_name = Options.getMacOSSignedAppName() or app_name
     app_version = Options.getMacOSAppVersion() or "1.0"
 
@@ -51,7 +55,7 @@ def createPlistInfoFile(logger, onefile):
             ("CFBundleDisplayName", app_name),
             ("CFBundleName", app_name),
             ("CFBundleIdentifier", signed_app_name),
-            ("CFBundleExecutable", app_name),
+            ("CFBundleExecutable", executable_name),
             ("CFBundleInfoDictionaryVersion", "6.0"),
             ("CFBundlePackageType", "APPL"),
             ("CFBundleShortVersionString", app_version),
