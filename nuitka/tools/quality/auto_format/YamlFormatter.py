@@ -1,4 +1,4 @@
-#     Copyright 2022, Fire-Cube <ben7@gmx.ch>
+#     Copyright 2023, Fire-Cube <ben7@gmx.ch>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
