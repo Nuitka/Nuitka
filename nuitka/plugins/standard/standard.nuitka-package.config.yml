@@ -4103,10 +4103,26 @@
   dlls:
     - from_filenames:
         relative_path: 'dependencies'
-        # TODO: We might want to match OS and arches here closely, so we do not pick up
-        # unnecessary arches.
         prefixes:
           - 'tls-client'
+        suffixes:
+          - 'dll'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'dependencies'
+        prefixes:
+          - 'tls-client'
+        suffixes:
+          - 'so'
+      when: 'linux'
+      #i don't use macos but hope it works
+    - from_filenames:
+        relative_path: 'dependencies'
+        prefixes:
+          - 'tls-client'
+        suffixes:
+          - 'dylib'
+      when: 'macos'
 
 - module-name: 'tokenizers.tools.visualizer'
   anti-bloat:
