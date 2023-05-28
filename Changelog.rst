@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 1.6 (Draft)
-****************************
+********************
+ Nuitka Release 1.6
+********************
 
 This release bumps the much awaited 3.11 support to full level. This
 means Nuitka is now expected to behave identical to CPython3.11 for the
