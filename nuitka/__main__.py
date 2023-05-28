@@ -86,8 +86,12 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_re_execution = True
 
+    # Avoid doing it when running in Visual Code.
+    if needs_re_execution and "debugpy" in sys.modules:
+        needs_re_execution = False
+
     # In case we need to re-execute.
-    if needs_re_execution and "debugpy" not in sys.modules:
+    if needs_re_execution:
         from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
         # Does not return
