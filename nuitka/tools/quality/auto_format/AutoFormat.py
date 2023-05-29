@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -561,6 +561,7 @@ def autoFormatFile(
     limit_c=False,
     limit_rst=False,
     ignore_errors=False,
+    ignore_yaml_diff=True,
 ):
     """Format source code with external tools
 
@@ -612,6 +613,7 @@ def autoFormatFile(
             ".j2",
             ".gitignore",
             ".gitattributes",
+            ".gitmodules",
             ".json",
             ".spec",
             "-rpmlintrc",
@@ -697,7 +699,7 @@ def autoFormatFile(
                     _cleanupRstFmt(tmp_filename, effective_filename)
 
                 if is_package_config_yaml:
-                    formatYaml(tmp_filename)
+                    formatYaml(tmp_filename, ignore_diff=ignore_yaml_diff)
                     cleanupWindowsNewlines(tmp_filename, effective_filename)
                     _cleanupTrailingWhitespace(tmp_filename)
 

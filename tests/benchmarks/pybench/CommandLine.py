@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -477,7 +477,7 @@ class Application:
                 handler = getattr(self, handlername)
             except AttributeError:
                 if value == '':
-                    # count the number of occurances
+                    # count the number of occurrences
                     if values.has_key(optionname):
                         values[optionname] = values[optionname] + 1
                     else:

@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,6 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Options import (
-    isExperimental,
     isOnefileMode,
     isStandaloneMode,
     shallCreateAppBundle,
@@ -40,7 +39,13 @@ from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import getFileList, listDir
 from nuitka.utils.ModuleNames import ModuleName
-from nuitka.utils.Utils import getArchitecture, isMacOS, isWin32Windows
+from nuitka.utils.Utils import (
+    getArchitecture,
+    isDebianBasedLinux,
+    isLinux,
+    isMacOS,
+    isWin32Windows,
+)
 
 # Use to detect the Qt plugin that is active and check for conflicts.
 _qt_binding_names = getQtBindingNames()
@@ -405,20 +410,10 @@ import %(binding_name)s.QtCore
                 if not self.hasQtPluginSelected(qt_plugin_name):
                     continue
 
-                # TODO: The qpdf plugin is causing issues, and we would have to check
-                # here, already, if dependencies of the plugin will be available, and
-                # if not, then skip it, but that is for a future release, as it is
-                # blocking on macOS now.
-                if "qpdf" in os.path.basename(filename_relative) and not isExperimental(
-                    "qt-force-qpdf"
-                ):
-                    continue
-
                 yield self.makeDllEntryPoint(
                     source_path=filename,
                     dest_path=os.path.join(
-                        self.binding_name,
-                        "qt-plugins",
+                        self.getQtPluginTargetPath(),
                         filename_relative,
                     ),
                     package_name=self.binding_package_name,
@@ -598,21 +593,30 @@ from __future__ import absolute_import
 from %(package_name)s import QCoreApplication
 import os
 
-QCoreApplication.setLibraryPaths(
-    [
-        os.path.join(
-           os.path.dirname(__file__),
-           "qt-plugins"
-        )
-    ]
-)
+qt_plugins_path = %(qt_plugins_path)s
+
+if qt_plugins_path is not None:
+    QCoreApplication.setLibraryPaths(
+        [
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                %(qt_plugins_path)s
+            )
+        ]
+    )
 
 os.environ["QML2_IMPORT_PATH"] = os.path.join(
     os.path.dirname(__file__),
     "qml"
 )
 """ % {
-                "package_name": full_name
+                "package_name": full_name,
+                "qt_plugins_path": repr(
+                    None
+                    if self.isDefaultQtPluginTargetPath()
+                    else self.getQtPluginTargetPath()
+                ),
             }
 
             yield (
@@ -854,6 +858,28 @@ Prefix = .
 
         self.web_engine_done_binaries = True  # prevent multiple copies
 
+    def decideAllowOutsideDependencies(self, module_name):
+        if isLinux() and module_name.hasNamespace(self.binding_name):
+            if isDebianBasedLinux():
+                module_filename = self.locateModule(self.binding_name)
+
+                return "dist-packages" in module_filename.split("/")
+            else:
+                return False
+
+        return None
+
+    def getQtPluginTargetPath(self):
+        if self.binding_name == "PyQt6":
+            return os.path.join(self.binding_name, "Qt6", "plugins")
+        else:
+            return os.path.join(self.binding_name, "qt-plugins")
+
+    def isDefaultQtPluginTargetPath(self):
+        # So far we use the default only with PyQt6, since our post load code to
+        # change it crashes on macOS, probably being called too soon.
+        return self.binding_name == "PyQt6"
+
     def getExtraDlls(self, module):
         # pylint: disable=too-many-branches
         full_name = module.getFullName()
@@ -865,15 +891,13 @@ Prefix = .
                     % self.binding_name
                 )
 
-            target_plugin_dir = os.path.join(full_name.asPath(), "qt-plugins")
-
             self.info(
                 "Including Qt plugins '%s' below '%s'."
                 % (
                     ",".join(
                         sorted(x for x in self.getQtPluginsSelected() if x != "xml")
                     ),
-                    target_plugin_dir,
+                    self.getQtPluginTargetPath(),
                 )
             )
 
@@ -1369,6 +1393,8 @@ class NuitkaPluginPyQt6Plugins(NuitkaPluginQtBindingsPluginBase):
             """\
 Support for PyQt6 is not perfect, e.g. Qt threading does not work, so prefer PySide6 if you can."""
         )
+
+        return None
 
 
 class NuitkaPluginNoQt(NuitkaPluginBase):

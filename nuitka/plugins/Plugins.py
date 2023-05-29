@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,7 +43,11 @@ from nuitka.freezer.IncludedDataFiles import IncludedDataFile
 from nuitka.freezer.IncludedEntryPoints import IncludedEntryPoint
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.Tracing import plugins_logger, printLine
-from nuitka.utils.FileOperations import makePath, putTextFileContents
+from nuitka.utils.FileOperations import (
+    getDllBasename,
+    makePath,
+    putTextFileContents,
+)
 from nuitka.utils.Importing import importFileAsModule
 from nuitka.utils.ModuleNames import (
     ModuleName,
@@ -76,12 +80,19 @@ def withPluginProblemReporting(plugin, template, args):
     try:
         yield
     except Exception:  # Catch all the things, pylint: disable=broad-except
+        message = """\
+Plugin issue while working on '%s'. Please report the bug with the above \
+traceback included.""" % (
+            template % args
+        )
+
+        if Options.is_debug:
+            plugin.warning(message)
+            raise
+
         traceback.print_exception(*sys.exc_info())
 
-        plugin.sysexit(
-            "Plugin issue while working on '%s'. Please report the bug with the above traceback included."
-            % (template % args)
-        )
+        plugin.sysexit(message)
 
 
 def withPluginModuleNameProblemReporting(plugin, module_name):
@@ -205,6 +216,14 @@ def getPluginClass(plugin_name):
     plugin_name = Options.getPluginNameConsideringRenames(plugin_name)
 
     if plugin_name not in plugin_name2plugin_classes:
+        for plugin_name2 in plugin_name2plugin_classes:
+            if plugin_name.lower() == plugin_name2.lower():
+                plugins_logger.sysexit(
+                    """\
+Error, unknown plug-in '%s' in wrong case referenced, use '%s' instead."""
+                    % (plugin_name, plugin_name2)
+                )
+
         plugins_logger.sysexit("Error, unknown plug-in '%s' referenced." % plugin_name)
 
     return plugin_name2plugin_classes[plugin_name][0]
@@ -1273,6 +1292,89 @@ class Plugins(object):
         for plugin in getActivePlugins():
             for value in plugin.getCacheContributionValues(module_name):
                 yield value
+
+    @classmethod
+    def decideAllowOutsideDependencies(cls, module_name):
+        if not Options.isExperimental("no-outside-dependencies"):
+            return None
+
+        result = None
+        plugin_name = None
+
+        if module_name is not None:
+            for plugin in getActivePlugins():
+                value = plugin.decideAllowOutsideDependencies(module_name)
+
+                if value is True:
+                    if result is False:
+                        plugin.sysexit(
+                            "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
+                            % plugin_name
+                        )
+
+                    result = True
+                    plugin_name = plugin.plugin_name
+
+                elif value is False:
+                    if result is False:
+                        plugin.sysexit(
+                            "Error, conflicting allow/disallow outside dependencies of plug-in '%s'."
+                            % plugin_name
+                        )
+
+                    result = False
+                    plugin_name = plugin.plugin_name
+                elif value is not None:
+                    plugin.sysexit(
+                        "Error, can only return True, False, None from 'decideAllowOutsideDependencies' not %r"
+                        % value
+                    )
+
+        return result
+
+    @classmethod
+    def isAcceptableMissingDLL(cls, package_name, filename):
+        dll_basename = getDllBasename(os.path.basename(filename))
+
+        # Not a DLL filename, then it cannot be true, but it's kind of strange
+        # to get asked.
+        if dll_basename is None:
+            return False
+
+        result = None
+        plugin_name = None
+
+        for plugin in getActivePlugins():
+            value = plugin.isAcceptableMissingDLL(
+                package_name=package_name, dll_basename=dll_basename
+            )
+
+            if value is True:
+                if result is False:
+                    plugin.sysexit(
+                        "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
+                        % plugin_name
+                    )
+
+                result = True
+                plugin_name = plugin.plugin_name
+
+            elif value is False:
+                if result is False:
+                    plugin.sysexit(
+                        "Error, conflicting accept/reject missing DLLs of plug-in '%s'."
+                        % plugin_name
+                    )
+
+                result = False
+                plugin_name = plugin.plugin_name
+            elif value is not None:
+                plugin.sysexit(
+                    "Error, can only return True, False, None from 'isAcceptableMissingDLL' not %r"
+                    % value
+                )
+
+        return result, plugin_name
 
 
 def listPlugins():

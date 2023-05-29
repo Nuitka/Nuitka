@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -43,7 +43,7 @@ from nuitka.utils.FileOperations import (
     resolveShellPatternToFilenames,
 )
 from nuitka.utils.Yaml import (
-    Yaml,
+    PackageConfigYaml,
     getYamlPackage,
     getYamlPackageConfigurationSchemaFilename,
     parseYaml,
@@ -101,7 +101,7 @@ def _checkValues(filename, module_name, section, value):
 
 
 def checkValues(filename):
-    yaml = Yaml(
+    yaml = PackageConfigYaml(
         name=filename,
         data=parseYaml(getFileContents(filename, mode="rb")),
     )

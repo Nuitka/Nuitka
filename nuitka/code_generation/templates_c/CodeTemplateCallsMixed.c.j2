@@ -1,4 +1,4 @@
-{#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
+{#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com                    #}
 {#                                                                              #}
 {#     Part of "Nuitka", an optimizing Python compiler that is compatible and   #}
 {#     integrates with CPython, but also works on its own.                      #}
@@ -59,6 +59,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
 
         Py_LeaveRecursiveCall();
 
+        CHECK_OBJECT_X(result);
+
         return result;
 #if PYTHON_VERSION >= 0x380 && !defined(_NUITKA_EXPERIMENTAL_DISABLE_VECTORCALL_USAGE)
     } else if (PyType_HasFeature(Py_TYPE(called), _Py_TPFLAGS_HAVE_VECTORCALL)) {
@@ -77,6 +79,8 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
 
             PyObject *result = func(called, vectorcall_args, {{args_count}}, kw_names);
 {% endif %}
+
+            CHECK_OBJECT_X(result);
 
             return Nuitka_CheckFunctionResult(called, result);
         }
@@ -121,7 +125,7 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
         CHECK_OBJECT(key);
         CHECK_OBJECT(value);
 
-        PyDict_SetItem(named_args, key, value);
+        DICT_SET_ITEM(named_args, key, value);
     }
 
     PyObject *result = (*call_slot)(called, pos_args, named_args);
@@ -131,14 +135,9 @@ PyObject *CALL_FUNCTION_WITH_POSARGS{{args_count}}_KWSPLIT(PyObject *called, PyO
 {% endif %}
     Py_DECREF(named_args);
 
-{% if args_count != 0 %}
-    CHECK_OBJECTS(args, {{args_count}});
-{% endif %}
-{% if has_dict_values %}
-    CHECK_OBJECTS(kw_values, nkwargs);
-{% endif %}
-
     Py_LeaveRecursiveCall();
+
+    CHECK_OBJECT_X(result);
 
     return Nuitka_CheckFunctionResult(called, result);
 }

@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -1564,6 +1564,9 @@ def makeConstantRefNode(constant, source_ref, user_provided=False):
         if constant is type:
             return ExpressionConstantTypeTypeRef(source_ref=source_ref)
 
+        # TODO: Need to get rid of these, and be sure we have complete coverage for
+        # code generation of all types. This lets constants be created that may not
+        # work. Needed for isExperimental("assume-type-complete") to be workable.
         return ExpressionConstantTypeRef(constant=constant, source_ref=source_ref)
     elif constant_type is xrange:
         return ExpressionConstantXrangeRef(

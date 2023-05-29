@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -61,6 +61,16 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
 
         if (binary_stream == NULL) {
             return NULL;
+        }
+
+        PyObject *encoding_default = NULL;
+
+        if (encoding == NULL) {
+            if (encoding_default == NULL) {
+                encoding_default = Nuitka_String_FromString("utf-8");
+            }
+
+            encoding = encoding_default;
         }
 
         PyObject *args[] = {binary_stream, encoding, Py_None, Py_None, Py_False, Py_True};

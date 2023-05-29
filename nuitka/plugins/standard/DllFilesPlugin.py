@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,6 +22,7 @@ encodes the knowledge we have for various modules. Feel free to add to this
 and submit patches to make it more complete.
 """
 
+import fnmatch
 import os
 import sys
 
@@ -75,7 +76,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
             if dest_path is None:
                 dest_path = os.path.join(full_name.asPath(), "..", relative_path)
 
-        dll_dir = os.path.join(module_directory, relative_path)
+        dll_dir = os.path.normpath(os.path.join(module_directory, relative_path))
 
         if os.path.exists(dll_dir):
             exe = dll_config.get("executable", "no") == "yes"
@@ -337,3 +338,43 @@ conditions are missing, or this version of the module needs treatment added."""
                             package_name=None,
                             reason="needed by '%s'" % full_name.asString(),
                         )
+
+    def getModuleSpecificDllPaths(self, module_name):
+        for entry in self.config.get(module_name, section="import-hacks"):
+            if self.evaluateCondition(
+                full_name=module_name, condition=entry.get("when", "True")
+            ):
+                for item in self._getModuleSpecificDllPaths(config=entry):
+                    yield item
+
+    def _getModuleSpecificDllPaths(self, config):
+        for config_package_name in config.get("find-dlls-near-module", ()):
+            module_filename = self.locateModule(config_package_name)
+
+            if module_filename is not None:
+                if os.path.isfile(module_filename):
+                    yield os.path.dirname(module_filename)
+                else:
+                    yield module_filename
+
+    def isAcceptableMissingDLL(self, package_name, dll_basename):
+        for entry in self.config.get(package_name, section="import-hacks"):
+            if self.evaluateCondition(
+                full_name=package_name, condition=entry.get("when", "True")
+            ):
+                result = self._isAcceptableMissingDLL(
+                    config=entry, dll_basename=dll_basename
+                )
+
+                if result is not None:
+                    return result
+
+        return None
+
+    @staticmethod
+    def _isAcceptableMissingDLL(config, dll_basename):
+        for config_dll_name in config.get("acceptable-missing-dlls", ()):
+            if fnmatch.fnmatch(dll_basename, config_dll_name):
+                return True
+
+        return None

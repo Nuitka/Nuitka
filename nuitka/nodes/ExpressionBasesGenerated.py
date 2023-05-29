@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -742,6 +742,136 @@ class ChildHavingExpressionAttributeNameMixin(ExpressionBase):
 # Assign the names that are easier to import with a stable name.
 ExpressionAttributeLookupBase = ChildHavingExpressionAttributeNameMixin
 ExpressionAttributeLookupSpecialBase = ChildHavingExpressionAttributeNameMixin
+
+
+class ChildrenHavingLeftRightFinalNoRaiseMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionSubtypeCheck
+
+    def __init__(self, left, right, source_ref):
+        left.parent = self
+
+        self.subnode_left = left
+
+        right.parent = self
+
+        self.subnode_right = right
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        return (
+            self.subnode_left,
+            self.subnode_right,
+        )
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (
+            ("left", self.subnode_left),
+            ("right", self.subnode_right),
+        )
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_left
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_left = new_node
+
+            return
+
+        value = self.subnode_right
+        if old_node is value:
+            new_node.parent = self
+
+            self.subnode_right = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "left": self.subnode_left.makeClone(),
+            "right": self.subnode_right.makeClone(),
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        self.subnode_left.finalize()
+        del self.subnode_left
+        self.subnode_right.finalize()
+        del self.subnode_right
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
+
+            if expression.willRaiseAnyException():
+                sub_expressions = self.getVisitableNodes()
+
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects=sub_expressions[:count],
+                    old_node=sub_expression,
+                    new_node=expression,
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        return self, None, None
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return False
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_left.mayRaiseException(
+            exception_type
+        ) or self.subnode_right.mayRaiseException(exception_type)
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        self.subnode_left.collectVariableAccesses(emit_read, emit_write)
+        self.subnode_right.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionSubtypeCheckBase = ChildrenHavingLeftRightFinalNoRaiseMixin
 
 
 class ChildHavingListArgNoRaiseMixin(ExpressionBase):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -24,7 +24,7 @@
 
     This module implements various different strategies for measuring
     performance timings. It tries to choose the best available method
-    based on the platforma and available tools.
+    based on the platform and available tools.
 
     On Windows, it is recommended to have the Mark Hammond win32
     package installed. Alternatively, the Thomas Heller ctypes

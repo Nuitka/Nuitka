@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -103,7 +103,7 @@ IWICBitmapSource *getBitmapFromImageStream(IStream *image_stream) {
 }
 
 HBITMAP CreateHBITMAP(IWICBitmapSource *ipBitmap) {
-    // Get image dimenstions.
+    // Get image dimensions.
     UINT width = 0;
     UINT height = 0;
     if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0) {

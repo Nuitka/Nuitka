@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,8 +31,9 @@ import os
 import sys
 
 from nuitka import Options
-from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
+from nuitka.Serialization import ConstantAccessor
+from nuitka.utils.Distributions import getDistributionTopLevelPackageNames
 from nuitka.Version import getNuitkaVersionTuple
 
 from .CodeHelpers import withObjectCodeTemporaryAssignment
@@ -140,6 +141,8 @@ def getConstantsDefinitionCode():
                 sys.base_exec_prefix
             )
 
+    metadata_values_code = constant_accessor.getConstantCode(metadata_values)
+
     lines.insert(
         0,
         "extern PyObject *global_constants[%d];"
@@ -164,6 +167,23 @@ def getConstantsDefinitionCode():
         "nuitka_version_minor": minor,
         "nuitka_version_micro": micro,
         "nuitka_version_level": "release" if is_final else "candidate",
+        "metadata_values": metadata_values_code,
     }
 
     return header, body
+
+
+metadata_values = {}
+
+
+def addDistributionMetadataValue(name, distribution):
+    # Extract what we need to from the distribution object.
+    metadata = str(
+        distribution.read_text("METADATA") or distribution.read_text("PKG-INFO") or ""
+    )
+
+    entry_points = str(distribution.read_text("entry_points.txt") or "")
+
+    package_name = getDistributionTopLevelPackageNames(distribution)[0]
+
+    metadata_values[name] = (package_name, metadata, entry_points)

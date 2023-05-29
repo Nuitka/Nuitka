@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -768,7 +768,15 @@ def buildParseTree(provider, ast_tree, source_ref, is_module, is_main):
     if is_module and is_main and python_version >= 0x360:
         provider.markAsNeedsAnnotationsDictionary()
 
-    result = buildStatementsNode(provider=provider, nodes=body, source_ref=source_ref)
+    try:
+        result = buildStatementsNode(
+            provider=provider, nodes=body, source_ref=source_ref
+        )
+    except RuntimeError as e:
+        if "maximum recursion depth" in e.args[0]:
+            raise CodeTooComplexCode(
+                provider.getFullName(), provider.getCompileTimeFilename()
+            )
 
     # After building, we can verify that all future statements were where they
     # belong, namely at the start of the module.
@@ -1187,13 +1195,10 @@ def _makeModuleBodyTooComplex(module_name, module_filename, source_code, is_pack
     if module_filename not in Importing.warned_about:
         Importing.warned_about.add(module_filename)
 
-        recursion_logger.warning(
+        recursion_logger.info(
             """\
-Cannot follow import to import module '%r' ('%s') because code is too complex."""
-            % (
-                module_name,
-                module_filename,
-            )
+Cannot compile module '%s' because its code is too complex, included as bytecode."""
+            % module_name
         )
 
     module = makeUncompiledPythonModule(
@@ -1208,6 +1213,8 @@ Cannot follow import to import module '%r' ('%s') because code is too complex.""
     )
 
     ModuleRegistry.addUncompiledModule(module)
+
+    return module
 
 
 def buildModule(
@@ -1354,11 +1361,25 @@ def buildModule(
         OutputDirectories.setMainModule(module)
 
     if module.isCompiledPythonModule() and source_code is not None:
-        createModuleTree(
-            module=module,
-            source_ref=source_ref,
-            ast_tree=ast_tree,
-            is_main=is_main,
-        )
+        try:
+            createModuleTree(
+                module=module,
+                source_ref=source_ref,
+                ast_tree=ast_tree,
+                is_main=is_main,
+            )
+        except CodeTooComplexCode:
+            # Do not hide CodeTooComplexCode in main module.
+            if is_main or is_top:
+                raise
+
+            module = _makeModuleBodyTooComplex(
+                module_name=module_name,
+                module_filename=module_filename,
+                source_code=source_code,
+                is_package=is_package,
+            )
+
+            return module, False
 
     return module, True

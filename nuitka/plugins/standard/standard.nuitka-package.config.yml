@@ -52,7 +52,7 @@
 - module-name: 'appdirs'
   anti-bloat:
     # Keep this the same as for 'pkg_resources._vendor.appdirs' module.
-    # TODO: May allow naming spefific "anti-bloat" blocks, and reference them by
+    # TODO: May allow naming specific "anti-bloat" blocks, and reference them by
     # name, that works like an include statement to the module.
     - description: 'remove pywin32 reference'
       replacements_plain:
@@ -90,6 +90,100 @@
   implicit-imports:
     - depends:
         - 'gobject'
+
+- module-name: 'attr'
+  options:
+    checks:
+      - description: 'attrs is not fully supported before 23.1.0'
+        support_info: 'warning'
+        when: 'version("attrs") < (23,1)'
+
+- module-name: 'av.audio.frame'
+  implicit-imports:
+    - depends:
+        - 'av.frame'
+        - 'av.audio.plane'
+
+- module-name: 'av.audio.resampler'
+  implicit-imports:
+    - depends:
+        - 'av.filter'
+
+- module-name: 'av.buffer'
+  implicit-imports:
+    - depends:
+        - 'av.bytesource'
+        - 'av.deprecation'
+
+- module-name: 'av.codec.codec'
+  implicit-imports:
+    - depends:
+        - 'av.descriptor'
+
+- module-name: 'av.container.core'
+  implicit-imports:
+    - depends:
+        - 'av.container.pyio'
+
+- module-name: 'av.container.streams'
+  implicit-imports:
+    - depends:
+        - 'av.stream'
+
+- module-name: 'av.descriptor'
+  implicit-imports:
+    - depends:
+        - 'av.option'
+
+- module-name: 'av.filter.context'
+  implicit-imports:
+    - depends:
+        - 'av.filter.link'
+
+- module-name: 'av.filter.graph'
+  implicit-imports:
+    - depends:
+        - 'av.filter.context'
+
+- module-name: 'av.filter.link'
+  implicit-imports:
+    - depends:
+        - 'av.filter.pad'
+
+- module-name: 'av.frame'
+  implicit-imports:
+    - depends:
+        - 'av.buffer'
+
+- module-name: 'av.option'
+  implicit-imports:
+    - depends:
+        - 'av.enum'
+        - 'av.utils'
+
+- module-name: 'av.packet'
+  implicit-imports:
+    - depends:
+        - 'av.dictionary'
+        - 'av.sidedata.sidedata'
+
+- module-name: 'av.sidedata.sidedata'
+  implicit-imports:
+    - depends:
+        - 'av.container.streams'
+        - 'av.sidedata.motionvectors'
+
+- module-name: 'av.utils'
+  implicit-imports:
+    - depends:
+        - 'fractions'
+
+- module-name: 'av.video.frame'
+  implicit-imports:
+    - depends:
+        - 'av.video.reformatter'
+        - 'av.plane'
+        - 'av.video.plane'
 
 - module-name: 'babel'
   data-files:
@@ -476,6 +570,16 @@
         - 'engineio.async_drivers.sanic'
         - 'engineio.async_drivers.threading'
         - 'engineio.async_drivers.tornado'
+
+- module-name: 'Equation'
+  anti-bloat:
+    - description: 'workaround for standalone mode'
+      replacements:
+        'os.listdir(dirname)': 'repr(os.listdir(__dirname__))'
+      when: 'standalone'
+  implicit-imports:
+    - depends:
+        - 'Equation.equation_*'
 
 - module-name: 'exchangelib'
   implicit-imports:
@@ -1322,6 +1426,11 @@
         - 'numpy.random.entropy'
         - 'numpy.random.mtrand'
 
+- module-name: 'numpy.random.bit_generator'
+  implicit-imports:
+    - depends:
+        - 'secrets'
+
 - module-name: 'numpy.testing'
   anti-bloat:
     - description: 'remove numpy testing framework'
@@ -2038,6 +2147,11 @@
     - description: 'remove doctest usage'
 
 - module-name: 'PyQt5'
+  data-files:
+    empty_dirs:
+      - 'Qt5'
+      - 'Qt'
+
   options:
     checks:
       - description: 'PyQt5 is a GUI framework'
@@ -2195,6 +2309,21 @@
           - 'libcvhf'
 
 - module-name: 'PySide2'
+  implicit-imports:
+    - post-import-code:
+        - |
+          def myconnect(self, func):
+              if hasattr(func, "im_func"):
+                  if hasattr(func.im_func, "__compiled__"):
+                      myconnect._protected = getattr(myconnect, "_protected", set())
+                      myconnect._protected.add(func)
+
+              return orig_connect(self, func)
+
+          from PySide2 import QtCore
+          orig_connect = QtCore.SignalInstance.connect
+          QtCore.SignalInstance.connect = myconnect
+
   options:
     checks:
       - description: 'PySide2 is a GUI framework'
@@ -2217,6 +2346,13 @@
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken6'
+    - acceptable-missing-dlls:
+        - 'libeffectsplugin'
+        - 'libeffects'
+        - 'libpdfquickplugin'
+        - 'libqpdf'
+        - 'libqtquick3dhelpersimplplugin'
+        - 'libquick3dspatialaudioplugin'
 
 - module-name: 'PySide6.QtCore'
   implicit-imports:
@@ -2235,6 +2371,17 @@
           from PySide6 import QtCore
           orig_connect = QtCore.SignalInstance.connect
           QtCore.SignalInstance.connect = myconnect
+
+- module-name: 'pysnmp.smi'
+  data-files:
+    patterns:
+      - 'mibs/**/*.py'
+  implicit-imports:
+    - depends:
+        - 'pysnmp.smi.exval'
+        - 'pysnmp.cache'
+        - 'pysnmp.smi.mibs'
+        - 'pysnmp.smi.mibs.instances'
 
 - module-name: 'python_utils.terminal'
   anti-bloat:
@@ -2620,6 +2767,11 @@
     patterns:
       - 'words.txt'
 
+- module-name: 'sentence_transformers.SentenceTransformer'
+  implicit-imports:
+    - depends:
+        - 'huggingface_hub.repository'
+
 - module-name: 'setuptools.extern'
   # TODO: Vendor importers should maybe get their own thing, pkg_resources does
   # similar, and we might try and avoid duplication between the two of them on
@@ -2769,6 +2921,11 @@
     - depends:
         - 'enum'
       when: 'before_python3'
+
+- module-name: 'six'
+  implicit-imports:
+    - depends:
+        - 'queue'
 
 - module-name: 'skimage'
   data-files:
@@ -3255,6 +3412,27 @@
   implicit-imports:
     - depends:
         - 'sqlalchemy.sql.default_comparator'
+
+- module-name: 'sqlfluff'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'import pytest': ''
+        'pytest.register_assert_rewrite("sqlfluff.utils.testing")': ''
+
+- module-name: 'sqlfluff.api.simple'
+  implicit-imports:
+    - depends:
+        - 'sqlfluff.dialects.*'
+
+- module-name: 'sqlfluff.core'
+  data-files:
+    patterns:
+      - '*.cfg'
+  implicit-imports:
+    - depends:
+        - 'sqlfluff.core.plugin.*'
+        - 'sqlfluff.rules.*'
 
 - module-name: 'srsly.msgpack._packer'
   implicit-imports:
@@ -3950,6 +4128,61 @@
         prefixes:
           - ''
 
+- module-name: 'torch._dynamo.config_utils'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'import unittest': ''
+        'issubclass(func, unittest.TestCase)': 'False'
+      when: 'not use_unittest'
+
+- module-name: 'torch._inductor.codegen.common'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from .cpp import DTYPE_TO_CPP, INDEX_TYPE': 'raise ImportError'
+        'from .cpp import DTYPE_TO_CPP': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.graph'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from .codegen.wrapper import CppWrapperCodeGen, WrapperCodeGen': ''
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.ir'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from torch._inductor.codegen.wrapper import CppWrapperCodeGen': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.scheduler'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from .codegen.wrapper import buffer_reuse_key': 'raise ImportError'
+        'from .codegen.cpp import CppScheduling': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.sizevars'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        # This could actually be done, by creating the "PythonPrinter().doprint"
+        # locally
+        'from .codegen.wrapper import pexpr': 'raise ImportError'
+      when: 'not use_setuptools'
+
+- module-name: 'torch._inductor.triton_ops.autotune'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from ..codecache import cache_dir': ''
+        'cache_dir()': '__nuitka_binary_dir, ".cache"'
+      when: 'not use_setuptools'
+
 - module-name: 'torch._jit_internal'
   anti-bloat:
     - description: 'disable jit warnings'
@@ -3981,12 +4214,19 @@
 
 - module-name: 'torch.utils.data._typing'
   anti-bloat:
-    - description: 'compatiblity workaround'
+    - description: 'compatibility workaround'
       replacements_plain:
         ? "\ndef _dp_init_subclass"
         : |-
           @classmethod
           def _dp_init_subclass
+
+- module-name: 'torchaudio'
+  import-hacks:
+    - find-dlls-near-module:
+        - 'torch'
+    - acceptable-missing-dlls:
+        - '_torchaudio_ffmpeg'
 
 - module-name: 'torchmetrics.utilities.checks'
   anti-bloat:
@@ -4051,10 +4291,45 @@
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
 
+- module-name: 'transformers.models.deformable_detr.load_custom'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': 'un-callable'
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.rwkv.modeling_rwkv'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_wkv_cuda_kernel': "'(lambda : None)'"
+      when: 'not use_setuptools'
+
+- module-name: 'transformers.models.yoso.modeling_yoso'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      change_function:
+        'load_cuda_kernels': "'(lambda : False)'"
+      when: 'not use_setuptools'
+
 - module-name: 'transformers.utils.hub'
   implicit-imports:
     - depends:
         - 'huggingface_hub.hf_api'
+
+- module-name: 'transformers.utils.import_utils'
+  anti-bloat:
+    - description: 'workaround for metadata checks not recognized'
+      replacements_plain:
+        'from .versions import importlib_metadata': 'import importlib.metadata as importlib_metadata'
+      when: 'python38_or_higher'
+    - description: 'workaround for metadata checks not recognized'
+      replacements_plain:
+        'from .versions import importlib_metadata': 'import importlib_metadata'
+      when: 'before_python38'
+    - description: 'workaround for tensorflow checks preventing pytorch usage'
+      replacements_plain:
+        'importlib.util.find_spec("tensorflow") is not None': 'False'
 
 - module-name: 'transformers.utils.versions'
   anti-bloat:
@@ -4147,6 +4422,11 @@
         - 'urllib.parse'
         - 'urllib.request'
         - 'urllib.response'
+
+- module-name: 'urllib3.packages.six'
+  implicit-imports:
+    - depends:
+        - 'queue'
 
 - module-name: 'uvicorn'
   implicit-imports:

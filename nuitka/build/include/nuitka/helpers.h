@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -362,12 +362,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
 }
 
 // Get the binary directory was wide characters.
-extern wchar_t const *getBinaryDirectoryWideChars(void);
+extern wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks);
 
 // Get the binary directory, translated to ANSI/native path
-extern char const *getBinaryDirectoryHostEncoded(void);
+extern char const *getBinaryDirectoryHostEncoded(bool resolve_symlinks);
 
-#if _NUITKA_STANDALONE
+#ifdef _NUITKA_STANDALONE
 extern void setEarlyFrozenModulesFileAttribute(void);
 #endif
 

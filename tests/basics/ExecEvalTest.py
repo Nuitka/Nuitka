@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -324,7 +324,7 @@ def evalInContractions():
 print "Eval in a list contraction or generator expression", evalInContractions()
 
 
-def execDefinesFunctionToLocalsExplicity():
+def execDefinesFunctionToLocalsExplicitly():
     exec """\
 def makeAddPair(a, b):
     def addPair(c, d):
@@ -338,7 +338,7 @@ def makeAddPair(a, b):
     return "yes"
 
 
-print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
+print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicitly()
 
 os.unlink(tmp_filename)
 

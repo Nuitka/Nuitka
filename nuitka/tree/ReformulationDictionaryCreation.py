@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -61,7 +61,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -192,18 +192,6 @@ def getDictUnpackingHelper():
 
     args_variable = result.getVariableForAssignment(variable_name="args")
 
-    final = (
-        makeStatementReleaseVariable(
-            variable=tmp_result_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_item_variable, source_ref=internal_source_ref
-        ),
-    )
-
     tried = makeStatementsSequenceFromStatements(
         makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
@@ -234,7 +222,14 @@ def getDictUnpackingHelper():
             makeTryFinallyStatement(
                 provider=result,
                 tried=tried,
-                final=final,
+                final=makeStatementsReleaseVariables(
+                    variables=(
+                        tmp_result_variable,
+                        tmp_iter_variable,
+                        tmp_item_variable,
+                    ),
+                    source_ref=internal_source_ref,
+                ),
                 source_ref=internal_source_ref,
             )
         )

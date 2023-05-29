@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -79,9 +79,7 @@ if sys.platform == "win32" and not os.path.exists(argv0) and not argv0.endswith(
 sys.executable = %s
 sys._base_executable = sys.executable
 """ % (
-                "os.path.join(os.path.dirname(sys.executable), os.path.basename(argv0))"
-                if Options.isStandaloneMode()
-                else "argv0"
+                "__nuitka_binary_exe" if Options.isStandaloneMode() else "argv0"
             )
             return (
                 code,

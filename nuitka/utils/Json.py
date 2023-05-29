@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,6 +19,8 @@
 
 """
 
+from __future__ import absolute_import
+
 import json
 
 from .FileOperations import getFileContents, openTextFile
@@ -27,7 +29,7 @@ from .FileOperations import getFileContents, openTextFile
 def loadJsonFromFilename(filename):
     try:
         return json.loads(getFileContents(filename))
-    except json.decoder.JSONDecodeError:
+    except ValueError:
         return None
 
 

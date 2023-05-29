@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -39,13 +39,15 @@ from nuitka.ModuleRegistry import (
 from nuitka.Options import (
     getCompilationReportFilename,
     getCompilationReportTemplates,
+    getCompilationReportUserData,
+    shallCreateDiffableCompilationReport,
 )
 from nuitka.plugins.Plugins import getActivePlugins
 from nuitka.PythonFlavors import getPythonFlavorName
-from nuitka.PythonVersions import python_version_full_str
+from nuitka.PythonVersions import getSystemPrefixPath, python_version_full_str
 from nuitka.Tracing import reports_logger
 from nuitka.utils.Distributions import getDistributionsFromModuleName
-from nuitka.utils.FileOperations import putTextFileContents
+from nuitka.utils.FileOperations import getReportPath, putTextFileContents
 from nuitka.utils.Jinja2 import getTemplate
 from nuitka.utils.MemoryUsage import getMemoryInfos
 from nuitka.utils.Utils import getArchitecture, getOS
@@ -118,6 +120,8 @@ def _getReportInputData(aborted):
 
     nuitka_exception = sys.exc_info()
 
+    user_data = getCompilationReportUserData()
+
     return dict(
         (var_name, var_value)
         for var_name, var_value in locals().items()
@@ -125,7 +129,34 @@ def _getReportInputData(aborted):
     )
 
 
-def _addModulesToReport(root, report_input_data):
+_report_prefixes = None
+
+
+def _getReportPathPrefixes():
+    # Using global here, as this is really a singleton, in the form of a module,
+    # pylint: disable=global-statement
+    global _report_prefixes
+
+    if _report_prefixes is None:
+        _report_prefixes = []
+
+        sys_prefix = os.environ.get("NUITKA_SYS_PREFIX", sys.prefix)
+        real_sys_prefix = getSystemPrefixPath()
+
+        if real_sys_prefix != sys_prefix:
+            _report_prefixes.append(("${sys.real_prefix}", real_sys_prefix))
+
+        _report_prefixes.append(("${sys.prefix}", sys_prefix))
+        _report_prefixes.append(("${cwd}", os.getcwd()))
+
+    return _report_prefixes
+
+
+def _getCompilationReportPath(path):
+    return getReportPath(path, prefixes=_getReportPathPrefixes())
+
+
+def _addModulesToReport(root, report_input_data, diffable):
     # Many details to work with, pylint: disable=too-many-locals
 
     for module_name in report_input_data["module_names"]:
@@ -164,7 +195,9 @@ def _addModulesToReport(root, report_input_data):
 
             # Going via attrib, because pass is a keyword in Python.
             timing_xml_node.attrib["pass"] = str(timing_info.pass_number)
-            timing_xml_node.attrib["time"] = "%.2f" % timing_info.time_used
+            timing_xml_node.attrib["time"] = (
+                "volatile" if diffable else "%.2f" % timing_info.time_used
+            )
 
             module_xml_node.append(timing_xml_node)
 
@@ -198,18 +231,37 @@ def _addModulesToReport(root, report_input_data):
             )
 
 
-def _addMemoryInfosToReport(performance_xml_node, memory_infos):
+def _addMemoryInfosToReport(performance_xml_node, memory_infos, diffable):
     for key, value in memory_infos.items():
         # Only top level values for now.
         if type(value) is not int:
             continue
 
         TreeXML.appendTreeElement(
-            performance_xml_node, "memory_usage", name=key, value=str(value)
+            performance_xml_node,
+            "memory_usage",
+            name=key,
+            value="volatile" if diffable else str(value),
         )
 
 
-def writeCompilationReport(report_filename, report_input_data):
+def _addUserDataToReport(root, user_data):
+    if user_data:
+        user_data_xml_node = TreeXML.appendTreeElement(
+            root,
+            "user-data",
+        )
+
+        for key, value in user_data.items():
+            user_data_value_xml_node = TreeXML.appendTreeElement(
+                user_data_xml_node,
+                key,
+            )
+
+            user_data_value_xml_node.text = value
+
+
+def writeCompilationReport(report_filename, report_input_data, diffable):
     """Write the compilation report in XML format."""
     # Many details, pylint: disable=too-many-branches,too-many-locals
 
@@ -239,7 +291,9 @@ def writeCompilationReport(report_filename, report_input_data):
 
         exception_xml_node.text = "\n" + traceback.format_exc()
 
-    _addModulesToReport(root, report_input_data)
+    _addModulesToReport(
+        root=root, report_input_data=report_input_data, diffable=diffable
+    )
 
     if report_input_data["memory_infos"]:
         performance_xml_node = TreeXML.appendTreeElement(
@@ -247,7 +301,11 @@ def writeCompilationReport(report_filename, report_input_data):
             "performance",
         )
 
-        _addMemoryInfosToReport(performance_xml_node, report_input_data["memory_infos"])
+        _addMemoryInfosToReport(
+            performance_xml_node=performance_xml_node,
+            memory_infos=report_input_data["memory_infos"],
+            diffable=diffable,
+        )
 
     for included_datafile in getIncludedDataFiles():
         if included_datafile.kind == "data_file":
@@ -255,7 +313,7 @@ def writeCompilationReport(report_filename, report_input_data):
                 root,
                 "data_file",
                 name=included_datafile.dest_path,
-                source=included_datafile.source_path,
+                source=_getCompilationReportPath(included_datafile.source_path),
                 size=str(included_datafile.getFileSize()),
                 reason=included_datafile.reason,
                 tags=",".join(included_datafile.tags),
@@ -287,7 +345,7 @@ def writeCompilationReport(report_filename, report_input_data):
             "included_" + kind,
             name=os.path.basename(standalone_entry_point.dest_path),
             dest_path=standalone_entry_point.dest_path,
-            source_path=standalone_entry_point.source_path,
+            source_path=_getCompilationReportPath(standalone_entry_point.source_path),
             package=standalone_entry_point.package_name or "",
             ignored="yes" if ignored else "no",
             reason=standalone_entry_point.reason
@@ -334,7 +392,7 @@ def writeCompilationReport(report_filename, report_input_data):
     python_xml_node = TreeXML.appendTreeElement(
         root,
         "python",
-        python_exe=report_input_data["python_exe"],
+        python_exe=_getCompilationReportPath(report_input_data["python_exe"]),
         python_flavor=report_input_data["python_flavor"],
         python_version=report_input_data["python_version"],
         os_name=report_input_data["os_name"],
@@ -347,7 +405,13 @@ def writeCompilationReport(report_filename, report_input_data):
     )
 
     for search_path in getPackageSearchPath(None):
-        TreeXML.appendTreeElement(search_path_xml_node, "path", value=search_path)
+        TreeXML.appendTreeElement(
+            search_path_xml_node,
+            "path",
+            value=_getCompilationReportPath(search_path),
+        )
+
+    _addUserDataToReport(root=root, user_data=report_input_data["user_data"])
 
     try:
         putTextFileContents(filename=report_filename, contents=TreeXML.toString(root))
@@ -423,13 +487,16 @@ def writeCompilationReportFromTemplate(
 def writeCompilationReports(aborted):
     report_filename = getCompilationReportFilename()
     template_specs = getCompilationReportTemplates()
+    diffable = shallCreateDiffableCompilationReport()
 
     if report_filename or template_specs:
         report_input_data = _getReportInputData(aborted)
 
         if report_filename:
             writeCompilationReport(
-                report_filename=report_filename, report_input_data=report_input_data
+                report_filename=report_filename,
+                report_input_data=report_input_data,
+                diffable=diffable,
             )
 
         for template_filename, report_filename in template_specs:

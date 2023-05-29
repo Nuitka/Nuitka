@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -139,6 +139,7 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
         "function_identifier": function_identifier,
         "function_body": indented(function_codes.codes),
         "heap_declaration": indented(heap_declaration),
+        "has_heap_declaration": 1 if heap_declaration != "" else 0,
         "function_local_types": indented(local_type_decl),
         "function_var_inits": indented(function_locals),
         "function_dispatch": indented(getYieldReturnDispatchCode(context)),

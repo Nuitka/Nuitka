@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -142,7 +142,7 @@ class ExpressionPkgResourcesGetDistributionCall(
         try:
             distribution = get_distribution(arg)
         except DistributionNotFound:
-            inclusion_logger.warning(
+            inclusion_logger.info(
                 "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (arg, self.source_ref.getAsString())
             )
@@ -182,7 +182,7 @@ class ImportlibMetadataVersionCallMixin(object):
         try:
             distribution = version(arg)
         except PackageNotFoundError:
-            inclusion_logger.warning(
+            inclusion_logger.info(
                 "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (arg, self.source_ref.getAsString())
             )
@@ -367,7 +367,7 @@ class ExpressionPkgResourcesIterEntryPointsCall(
             # Get entry point from generator, we cannot delay.
             entry_points = tuple(iter_entry_points(group=group, name=name))
         except DistributionNotFound:
-            inclusion_logger.warning(
+            inclusion_logger.info(
                 "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (group, self.source_ref.getAsString())
             )
@@ -482,7 +482,7 @@ class ImportlibMetadataDistributionCallMixin(object):
         try:
             distribution = distribution_func(arg)
         except PackageNotFoundError:
-            inclusion_logger.warning(
+            inclusion_logger.info(
                 "Cannot find distribution '%s' at '%s', expect potential run time problem, unless this is unused code."
                 % (arg, self.source_ref.getAsString())
             )

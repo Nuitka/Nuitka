@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,6 +23,7 @@ import sys
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import isAnacondaPython, isNuitkaPython
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger
@@ -90,6 +91,7 @@ def detectBinaryPathDLLsMacOS(
         binary_filename=binary_filename,
         paths=paths,
         package_specific_dirs=package_specific_dirs,
+        package_name=package_name,
     )
 
     if recursive:
@@ -141,7 +143,7 @@ def _parseOtoolListingOutput(output):
 
 
 def _resolveBinaryPathDLLsMacOS(
-    original_dir, binary_filename, paths, package_specific_dirs
+    original_dir, binary_filename, paths, package_specific_dirs, package_name
 ):
     # Quite a few variations to consider
     # pylint: disable=too-many-branches,too-many-locals
@@ -169,11 +171,12 @@ def _resolveBinaryPathDLLsMacOS(
             # We ignore the references to itself coming from the library id.
             continue
         elif isNuitkaPython() and not os.path.isabs(path) and not os.path.exists(path):
-            # Since Nuitka Python statically links all packages, some of them have proprietary
-            # dependencies that cannot be statically built and must instead be linked to the
-            # python executable. Due to how the python executable is linked, we end up with
-            # relative paths to dependencies, so we need to scan the Nuitka Python library directories
-            # for a matching dll.
+            # Although Nuitka Python statically links all packages, some of them
+            # have proprietary dependencies that cannot be statically built and
+            # must instead be linked to the python executable. Due to how the
+            # python executable is linked, we end up with relative paths to
+            # dependencies, so we need to scan the Nuitka Python library
+            # directories for a matching dll.
             link_data = loadJsonFromFilename(os.path.join(sys.prefix, "link.json"))
             for library_dir in link_data["library_dirs"]:
                 candidate = os.path.join(library_dir, path)
@@ -202,13 +205,23 @@ def _resolveBinaryPathDLLsMacOS(
                 resolved_path = candidate
 
         if not os.path.exists(resolved_path):
-            # TODO: Make this a plugin decision, to move this from here to PySide6 plugin:
-            if os.path.basename(binary_filename) == "libqpdf.dylib":
-                raise NuitkaForbiddenDLLEncounter(binary_filename, "pyside6")
+            acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
+                package_name=package_name,
+                filename=binary_filename,
+            )
+
+            # TODO: Missing DLLs that are accepted, are not really forbidden, we
+            # should instead acknowledge them as missing, and treat that properly
+            # in using code.
+            if acceptable is True:
+                raise NuitkaForbiddenDLLEncounter(binary_filename, plugin_name)
+
+            if not path.startswith(("@", "/")):
+                continue
 
             inclusion_logger.sysexit(
-                "Error, failed to find path %s (resolved DLL to %s) for %s, please report the bug."
-                % (path, resolved_path, binary_filename)
+                "Error, failed to find path %s (resolved DLL to %s) for %s from '%s', please report the bug."
+                % (path, resolved_path, binary_filename, package_name)
             )
 
         # Some libraries depend on themselves.
@@ -252,38 +265,40 @@ def fixupBinaryDLLPathsMacOS(
     binary_filename, package_name, original_location, standalone_entry_points
 ):
     """For macOS, the binary needs to be told to use relative DLL paths"""
-
-    had_self, rpath_map = detectBinaryPathDLLsMacOS(
-        original_dir=os.path.dirname(original_location),
-        binary_filename=original_location,
-        package_name=package_name,
-        keep_unresolved=True,
-        recursive=False,
-    )
-
-    mapping = []
-
-    for resolved_filename, rpath_filename in rpath_map.items():
-        for standalone_entry_point in standalone_entry_points:
-            if resolved_filename == standalone_entry_point.source_path:
-                dist_path = standalone_entry_point.dest_path
-                break
-        else:
-            dist_path = None
-
-        if dist_path is None:
-            inclusion_logger.sysexit(
-                """\
-Error, problem with dependency scan of '%s' with '%s' please report the bug."""
-                % (original_location, rpath_filename)
-            )
-
-        mapping.append((rpath_filename, "@executable_path/" + dist_path))
-
-    if mapping or had_self:
-        callInstallNameTool(
-            filename=binary_filename,
-            mapping=mapping,
-            id_path=os.path.basename(binary_filename) if had_self else None,
-            rpath=None,
+    try:
+        had_self, rpath_map = detectBinaryPathDLLsMacOS(
+            original_dir=os.path.dirname(original_location),
+            binary_filename=original_location,
+            package_name=package_name,
+            keep_unresolved=True,
+            recursive=False,
         )
+    except NuitkaForbiddenDLLEncounter:
+        inclusion_logger.info("Not copying forbidden DLL '%s'." % binary_filename)
+    else:
+        mapping = []
+
+        for resolved_filename, rpath_filename in rpath_map.items():
+            for standalone_entry_point in standalone_entry_points:
+                if resolved_filename == standalone_entry_point.source_path:
+                    dist_path = standalone_entry_point.dest_path
+                    break
+            else:
+                dist_path = None
+
+            if dist_path is None:
+                inclusion_logger.sysexit(
+                    """\
+    Error, problem with dependency scan of '%s' with '%s' please report the bug."""
+                    % (original_location, rpath_filename)
+                )
+
+            mapping.append((rpath_filename, "@executable_path/" + dist_path))
+
+        if mapping or had_self:
+            callInstallNameTool(
+                filename=binary_filename,
+                mapping=mapping,
+                id_path=os.path.basename(binary_filename) if had_self else None,
+                rpath=None,
+            )

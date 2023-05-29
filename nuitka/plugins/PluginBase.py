@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -650,6 +650,19 @@ Unwanted import of '%(unwanted)s' that %(problem)s '%(binding_name)s' encountere
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def isAcceptableMissingDLL(self, package_name, dll_basename):
+        """Check if a missing DLL is acceptable to the plugin.
+
+        Args:
+            package_name: name of the package using the DLL
+            dll_basename : basename of the DLL, i.e. no suffix
+        Returns:
+            None (no opinion for that file), True (yes) or False (no)
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
+
     def makeIncludedDataFile(self, source_path, dest_path, reason, tags=""):
         return makeIncludedDataFile(
             source_path=source_path,
@@ -1038,9 +1051,12 @@ except ImportError:
 
         return self._runtime_information_cache[info_name]
 
-    def queryRuntimeInformationSingle(self, setup_codes, value):
+    def queryRuntimeInformationSingle(self, setup_codes, value, info_name=None):
+        if info_name is None:
+            info_name = "temp_info_for_" + self.plugin_name.replace("-", "_")
+
         return self.queryRuntimeInformationMultiple(
-            info_name="temp_info_for_" + self.plugin_name.replace("-", "_"),
+            info_name=info_name,
             setup_codes=setup_codes,
             values=(("key", value),),
         ).key
@@ -1060,6 +1076,15 @@ except ImportError:
         """
         # Virtual method, pylint: disable=unused-argument
         return self.plugin_name
+
+    def decideAllowOutsideDependencies(self, module_name):
+        """Decide if outside of Python dependencies are allowed.
+
+        Returns:
+            None (no opinion for that module), True (yes) or False (no)
+        """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return None
 
     @staticmethod
     def getPackageVersion(distribution_name):

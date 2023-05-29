@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -64,7 +64,7 @@ def raiseExceptionAndReraise(arg):
 try:
     raiseExceptionAndReraise(0)
 except:
-    print("Catched reraised", sys.exc_info())
+    print("Caught reraised", sys.exc_info())
 
 print("After catching, sys.exc_info is this", sys.exc_info())
 print("*" * 20)
@@ -140,12 +140,12 @@ def checkExceptionConversion():
     try:
         raise Exception("some string")
     except Exception as err:
-        print("Catched raised object", err, type(err))
+        print("Caught raised object", err, type(err))
 
     try:
         raise Exception, "some string"
     except Exception as err:
-        print("Catched raised type, value pair", err, type(err))
+        print("Caught raised type, value pair", err, type(err))
 
 
 checkExceptionConversion()
@@ -367,14 +367,14 @@ print("*" * 20)
 print("Testing exception that escapes __del__ and therefore cannot be raised")
 
 
-def devide(a, b):
+def divide(a, b):
     return a / b
 
 
 def unraisableExceptionInDel():
     class C:
         def __del__(self):
-            c = devide(1, 0)
+            c = divide(1, 0)
             print(c)
 
     def f():
@@ -557,7 +557,7 @@ def checkReraiseAfterNestedTryExcept():
     try:
         reraise()
     except Exception as e:
-        print("Catched", repr(e))
+        print("Caught", repr(e))
 
 
 checkReraiseAfterNestedTryExcept()

@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -21,6 +21,8 @@
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
 #endif
+
+// spell-checker: ignore klass
 
 #if PYTHON_VERSION < 0x300
 PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name) {
@@ -152,7 +154,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
 // TODO: This is what Python 3.11 requires us to add.
 #if PYTHON_VERSION >= 0x3b0 && 0
         if ((type->tp_flags & Py_TPFLAGS_MANAGED_DICT) && *_PyObject_ValuesPointer(source)) {
-            PyObject **dictptr;
+            PyObject **dict_pointer;
 
             PyDictValues **values_ptr = _PyObject_ValuesPointer(source);
 
@@ -164,10 +166,10 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
                     return result;
                 }
             } else {
-                dictptr = _PyObject_DictPointer(source);
-                assert(dictptr != NULL && *dictptr == NULL);
+                dict_pointer = _PyObject_DictPointer(source);
+                assert(dict_pointer != NULL && *dict_pointer == NULL);
 
-                *dictptr = dict = _PyObject_MakeDictFromInstanceAttributes(source, *values_ptr);
+                *dict_pointer = dict = _PyObject_MakeDictFromInstanceAttributes(source, *values_ptr);
                 if (unlikely(dict == NULL)) {
                     return NULL;
                 }
@@ -195,8 +197,8 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
                     dict_offset += (long)size;
                 }
 
-                PyObject **dictptr = (PyObject **)((char *)source + dict_offset);
-                dict = *dictptr;
+                PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
+                dict = *dict_pointer;
             }
         }
 
@@ -299,12 +301,12 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
             }
         }
 
-        Py_ssize_t dictoffset = type->tp_dictoffset;
+        Py_ssize_t dict_offset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
-        if (dictoffset != 0) {
+        if (dict_offset != 0) {
             // Negative dictionary offsets have special meaning.
-            if (dictoffset < 0) {
+            if (dict_offset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
 
@@ -313,11 +315,11 @@ PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source) {
                     tsize = -tsize;
                 size = _PyObject_VAR_SIZE(type, tsize);
 
-                dictoffset += (long)size;
+                dict_offset += (long)size;
             }
 
-            PyObject **dictptr = (PyObject **)((char *)source + dictoffset);
-            dict = *dictptr;
+            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
+            dict = *dict_pointer;
         }
 
         if (dict != NULL) {
@@ -416,12 +418,12 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
             }
         }
 
-        Py_ssize_t dictoffset = type->tp_dictoffset;
+        Py_ssize_t dict_offset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
-        if (dictoffset != 0) {
+        if (dict_offset != 0) {
             // Negative dictionary offsets have special meaning.
-            if (dictoffset < 0) {
+            if (dict_offset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
 
@@ -431,11 +433,11 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source) {
                 }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
-                dictoffset += (long)size;
+                dict_offset += (long)size;
             }
 
-            PyObject **dictptr = (PyObject **)((char *)source + dictoffset);
-            dict = *dictptr;
+            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
+            dict = *dict_pointer;
         }
 
         if (dict != NULL) {
@@ -591,12 +593,12 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
             }
         }
 
-        Py_ssize_t dictoffset = type->tp_dictoffset;
+        Py_ssize_t dict_offset = type->tp_dictoffset;
         PyObject *dict = NULL;
 
-        if (dictoffset != 0) {
+        if (dict_offset != 0) {
             // Negative dictionary offsets have special meaning.
-            if (dictoffset < 0) {
+            if (dict_offset < 0) {
                 Py_ssize_t tsize;
                 size_t size;
 
@@ -606,11 +608,11 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
                 }
                 size = _PyObject_VAR_SIZE(type, tsize);
 
-                dictoffset += (long)size;
+                dict_offset += (long)size;
             }
 
-            PyObject **dictptr = (PyObject **)((char *)source + dictoffset);
-            dict = *dictptr;
+            PyObject **dict_pointer = (PyObject **)((char *)source + dict_offset);
+            dict = *dict_pointer;
         }
 
         if (dict != NULL) {
@@ -744,16 +746,16 @@ static bool SET_INSTANCE(PyObject *target, PyObject *attr_name, PyObject *value)
 }
 #endif
 
-#if PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)
+#if (PYTHON_VERSION < 0x300 || defined(_NUITKA_USE_UNEXPOSED_API)) && !defined(_NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT)
 
-// Classes in Pyhon3 might share keys.
+// Classes in Python3 might share keys.
 #define CACHED_KEYS(type) (((PyHeapTypeObject *)type)->ht_cached_keys)
 
 static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject *attr_name, PyObject *value) {
     // Unfortunately this is required, although of cause rarely necessary.
     if (unlikely(type->tp_dict == NULL)) {
         if (unlikely(PyType_Ready(type) < 0)) {
-            return NULL;
+            return false;
         }
     }
 
@@ -774,12 +776,12 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
         }
     }
 
-    Py_ssize_t dictoffset = type->tp_dictoffset;
+    Py_ssize_t dict_offset = type->tp_dictoffset;
     PyObject *dict = NULL;
 
-    if (dictoffset != 0) {
+    if (dict_offset != 0) {
         // Negative dictionary offsets have special meaning.
-        if (dictoffset < 0) {
+        if (dict_offset < 0) {
             Py_ssize_t tsize;
             size_t size;
 
@@ -789,14 +791,14 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
             }
             size = _PyObject_VAR_SIZE(type, tsize);
 
-            dictoffset += (long)size;
+            dict_offset += (long)size;
         }
 
-        PyObject **dictptr = (PyObject **)((char *)target + dictoffset);
+        PyObject **dict_pointer = (PyObject **)((char *)target + dict_offset);
 
 #if PYTHON_VERSION >= 0x300
         if ((type->tp_flags & Py_TPFLAGS_HEAPTYPE) && (CACHED_KEYS(type) != NULL)) {
-            int res = _PyObjectDict_SetItem(type, dictptr, attr_name, value);
+            int res = _PyObjectDict_SetItem(type, dict_pointer, attr_name, value);
 
             // TODO: Not possible for set, is it?
             if (res < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
@@ -808,11 +810,11 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
         } else
 #endif
         {
-            dict = *dictptr;
+            dict = *dict_pointer;
 
             if (dict == NULL) {
                 dict = MAKE_DICT_EMPTY();
-                *dictptr = dict;
+                *dict_pointer = dict;
             }
         }
     }
@@ -837,7 +839,7 @@ static bool SET_ATTRIBUTE_GENERIC(PyTypeObject *type, PyObject *target, PyObject
 #else
     PyErr_Format(PyExc_AttributeError, "'%s' object has no attribute '%U'", type->tp_name, attr_name);
 #endif
-    return NULL;
+    return false;
 }
 
 #endif

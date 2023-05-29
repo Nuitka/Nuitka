@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,8 +26,8 @@ from contextlib import contextmanager
 from nuitka import Options
 from nuitka.__past__ import getMetaClassBase, iterItems
 from nuitka.Constants import isMutable
-from nuitka.constants.Serialization import ConstantAccessor
 from nuitka.PythonVersions import python_version
+from nuitka.Serialization import ConstantAccessor
 from nuitka.utils.Hashing import getStringHash
 from nuitka.utils.InstanceCounters import (
     counted_del,

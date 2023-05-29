@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,16 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" The type1 node.
+""" The type nodes.
 
-This one just determines types. It's great for optimization. We may be able to
-predict its value, but knowing it. In that case, we have a built-in name
-reference for that type to convert to, or when checking the result of it, we
-will then know it's limited after the fact.
+These ones deal with types and they are great for optimization. We need to know
+them, their relationship or check for them in re-formulations.
 
 """
 
 from nuitka.Builtins import builtin_names
+from nuitka.Options import isExperimental
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -40,9 +39,13 @@ from .ChildrenHavingMixins import (
     ChildrenHavingInstanceClassesMixin,
 )
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
+from .ExpressionBasesGenerated import ExpressionSubtypeCheckBase
 from .ExpressionShapeMixins import ExpressionBoolShapeExactMixin
 from .NodeBases import SideEffectsFromChildrenMixin
-from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    wrapExpressionWithNodeSideEffects,
+)
 from .shapes.BuiltinTypeShapes import tshape_type
 
 
@@ -57,21 +60,34 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
         if type_shape is not None:
             type_name = type_shape.getTypeName()
 
-            if type_name is not None and type_name in __builtins__:
-                result = ExpressionBuiltinRef(
-                    builtin_name=type_name, source_ref=value.getSourceReference()
-                )
+            if type_name is not None:
+                if isExperimental("assume-type-complete") and hasattr(
+                    type_shape, "typical_value"
+                ):
+                    result = makeConstantReplacementNode(
+                        constant=type(getattr(type_shape, "typical_value")),
+                        node=self,
+                        user_provided=False,
+                    )
+                elif type_name in __builtins__:
+                    result = ExpressionBuiltinRef(
+                        builtin_name=type_name, source_ref=value.getSourceReference()
+                    )
+                else:
+                    result = None
 
-                result = wrapExpressionWithNodeSideEffects(
-                    new_node=result, old_node=value
-                )
+                # TODO: Does this even happen to be not None
+                if result is not None:
+                    result = wrapExpressionWithNodeSideEffects(
+                        new_node=result, old_node=value
+                    )
 
-                return (
-                    result,
-                    "new_builtin",
-                    "Replaced predictable type lookup with builtin type '%s'."
-                    % (type_name),
-                )
+                    return (
+                        result,
+                        "new_builtin",
+                        "Replaced predictable type lookup with builtin type '%s'."
+                        % (type_name),
+                    )
 
         if value.isCompileTimeConstant():
             # The above code is supposed to catch these in a better way.
@@ -300,4 +316,21 @@ class ExpressionTypeCheck(
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict, but I am not aware of
         # 100% true Python equivalent at this time.
+        return self, None, None
+
+
+class ExpressionSubtypeCheck(
+    ExpressionBoolShapeExactMixin,
+    SideEffectsFromChildrenMixin,
+    ExpressionSubtypeCheckBase,
+):
+    kind = "EXPRESSION_SUBTYPE_CHECK"
+
+    named_children = ("left", "right")
+
+    auto_compute_handling = "final,no_raise"
+
+    def computeExpression(self, trace_collection):
+        # TODO: This needs to check the MRO and can assume the type nature, since it's only coming
+        # from re-formulations that guarantee that.
         return self, None, None

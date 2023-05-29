@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -43,9 +43,11 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     getMainProgramFilename,
     my_print,
+    reportSkip,
     setup,
     withPythonPathChange,
 )
+from nuitka.Version import getCommercialVersion
 
 
 def main():
@@ -91,6 +93,13 @@ def main():
 
         if active:
             my_print("Consider output of recursively compiled program:", filename)
+
+            if filename in ("code_signing",):
+                if getCommercialVersion() is None:
+                    reportSkip(
+                        "Plugin only available in Nuitka commercial", ".", filename
+                    )
+                    continue
 
             filename_main = getMainProgramFilename(filename)
 

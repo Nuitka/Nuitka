@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,6 +27,7 @@ from nuitka import Options
 from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
@@ -754,3 +755,30 @@ def convertRPathToRunPath(filename):
             stderr_filter=_filterPatchelfErrorOutput,
             absence_message=_patchelf_usage,
         )
+
+
+_nm_usage = """\
+Error, needs 'nm' on your system, to detect exported DLL symbols."""
+
+
+def getDllExportedSymbols(logger, filename):
+    if isLinux():
+        output = executeToolChecked(
+            logger=logger,
+            command=("nm", "-D", "--without-symbol-versions", filename),
+            absence_message=_nm_usage,
+        )
+
+        result = OrderedSet()
+        for line in output.splitlines():
+            try:
+                _addr, marker, symbol_name = line.split()
+            except ValueError:
+                continue
+
+            if marker == b"T":
+                result.add(symbol_name.decode("utf8"))
+
+        return result
+    else:
+        return None

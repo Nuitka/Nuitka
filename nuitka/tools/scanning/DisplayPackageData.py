@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -55,5 +55,7 @@ def displayPackageData(module_name):
 
     tools_logger.my_print(package_directory)
 
-    for pkg_filename in scanIncludedPackageDataFiles(package_directory):
+    for pkg_filename in scanIncludedPackageDataFiles(
+        package_directory=package_directory, pattern=None
+    ):
         tools_logger.my_print(pkg_filename)

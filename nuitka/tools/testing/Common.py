@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -1248,8 +1248,8 @@ def scanDirectoryForTestCaseFolders(dirname):
 
         if (
             not os.path.isdir(filename)
-            or filename.endswith(".build")
-            or filename.endswith(".dist")
+            or filename.endswith((".dist", ".build"))
+            or os.path.basename(filename).startswith("venv_")
         ):
             continue
 
@@ -1780,8 +1780,10 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
             ignore = True
             for ignored_dir in (
                 "/System/Library/PrivateFrameworks",
-                "/System/Library/CoreService",
+                "/System/Library/CoreServices",
                 "/System/Library/Frameworks/CoreFoundation.framework",
+                "/System/Library/Frameworks/AppKit.framework",
+                "/System/Library/Frameworks/ApplicationServices.framework",
                 "/System/Library/dyld",
                 "/AppleInternal",
                 "/System/Volumes/Preboot",
@@ -1814,6 +1816,14 @@ def checkLoadedFileAccesses(loaded_filenames, current_dir):
 def getMainProgramFilename(filename):
     for filename_main in os.listdir(filename):
         if filename_main.endswith(("Main.py", "Main")):
+            return filename_main
+
+        if filename_main in (
+            "setup.py",
+            "setup.cfg",
+            "pyproject.cpython.toml",
+            "pyproject.nuitka.toml",
+        ):
             return filename_main
 
     test_logger.sysexit(

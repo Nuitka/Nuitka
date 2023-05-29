@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -38,7 +38,7 @@ from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
@@ -88,13 +88,9 @@ def wrapEvalGlobalsAndLocals(
             )
         )
 
-    post_statements += (
-        makeStatementReleaseVariable(
-            variable=globals_keeper_variable, source_ref=source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=locals_keeper_variable, source_ref=source_ref
-        ),
+    post_statements += makeStatementsReleaseVariables(
+        variables=(globals_keeper_variable, locals_keeper_variable),
+        source_ref=source_ref,
     )
 
     # The locals default is dependent on exec_mode, globals or locals.
@@ -367,21 +363,19 @@ exec: arg 1 must be a string, file, or code object""",
         ),
     )
 
-    final = (
-        makeStatementReleaseVariable(variable=source_variable, source_ref=source_ref),
-        makeStatementReleaseVariable(
-            variable=globals_keeper_variable, source_ref=source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=locals_keeper_variable, source_ref=source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=plain_indicator_variable, source_ref=source_ref
-        ),
-    )
-
     return makeTryFinallyStatement(
-        provider=provider, tried=tried, final=final, source_ref=source_ref
+        provider=provider,
+        tried=tried,
+        final=makeStatementsReleaseVariables(
+            variables=(
+                source_variable,
+                globals_keeper_variable,
+                locals_keeper_variable,
+                plain_indicator_variable,
+            ),
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
     )
 
 

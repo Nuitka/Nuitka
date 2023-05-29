@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -552,6 +552,10 @@ void _initCompiledMethodType(void) {
 
 PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass) {
     struct Nuitka_MethodObject *result;
+
+    CHECK_OBJECT((PyObject *)function);
+    assert(Nuitka_Function_Check((PyObject *)function));
+    assert(_PyObject_GC_IS_TRACKED(function));
 
     allocateFromFreeListFixed(free_list_methods, struct Nuitka_MethodObject, Nuitka_Method_Type);
 

@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -608,7 +608,7 @@ def getMsvcVersion(env):
         value = os.environ.get("VCToolsVersion", "14.3").rsplit(".", 1)[0]
 
     value = value.replace("exp", "")
-    return float(value)
+    return tuple((int(d) for d in value.split(".")))
 
 
 def _getBinaryArch(binary, mingw_mode):

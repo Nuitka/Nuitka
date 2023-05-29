@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,9 @@ that to be done and causing massive degradations.
 """
 
 import ast
+import os
 import re
+import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
@@ -90,7 +92,9 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.control_tags["use_setuptools"] = True
 
         if noinclude_pytest_mode != "allow":
+            self.handled_modules["_pytest"] = noinclude_pytest_mode
             self.handled_modules["pytest"] = noinclude_pytest_mode
+            self.handled_modules["py"] = noinclude_pytest_mode
             self.handled_modules["nose2"] = noinclude_pytest_mode
             self.handled_modules["nose"] = noinclude_pytest_mode
         else:
@@ -98,6 +102,7 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         if noinclude_unittest_mode != "allow":
             self.handled_modules["unittest"] = noinclude_unittest_mode
+            self.handled_modules["doctest"] = noinclude_unittest_mode
         else:
             self.control_tags["use_unittest"] = True
 
@@ -248,7 +253,8 @@ which can and should be a top level package and then one choice, "error",
         # To allow detection if it did anything.
         change_count = 0
 
-        context = {}
+        context = {"sys": sys, "os": os}
+
         context_code = anti_bloat_config.get("context", "")
         if type(context_code) in (tuple, list):
             context_code = "\n".join(context_code)
@@ -275,6 +281,10 @@ which can and should be a top level package and then one choice, "error",
                         )
 
                     context_ready = True
+
+                if "__dirname__" in replace_code:
+                    context["__dirname__"] = self.locateModule(module_name)
+
                 try:
                     replace_dst = eval(replace_code, context)
                 except Exception as e:  # pylint: disable=broad-except
@@ -287,8 +297,8 @@ which can and should be a top level package and then one choice, "error",
 
             if type(replace_dst) is not str:
                 self.sysexit(
-                    "Error, expression needs to generate string, not %s"
-                    % type(replace_dst)
+                    "Error, expression code '%s' needs to generate string, not %s"
+                    % (replace_code, type(replace_dst))
                 )
 
             old = source_code
@@ -463,8 +473,12 @@ which can and should be a top level package and then one choice, "error",
                 ):
 
                     self.warning(
-                        "Undesirable import of '%s' at '%s' encountered. It may slow down compilation."
-                        % (handled_module_name, source_ref.getAsString()),
+                        "Undesirable import of '%s' in '%s' (at '%s') encountered. It may slow down compilation."
+                        % (
+                            handled_module_name,
+                            using_module.getFullName(),
+                            source_ref.getAsString(),
+                        ),
                         mnemonic="unwanted-module",
                     )
 

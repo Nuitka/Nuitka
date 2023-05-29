@@ -503,7 +503,7 @@ and then deleted, however this default
 ``--onefile-tempdir-spec="%TEMP%/onefile_%PID%_%TIME%"`` can be
 overridden with a path specification that is using then using a cached
 path, avoiding repeated unpacking, e.g. with
-``--onefile-tempdir-spec="%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION"``
+``--onefile-tempdir-spec="%CACHE_DIR%/%COMPANY%/%PRODUCT%/%VERSION%"``
 which uses version information, and user specific cache directory.
 
 .. note::
@@ -514,29 +514,33 @@ which uses version information, and user specific cache directory.
 
 Currently these expanded tokens are available:
 
-+-------------+-----------------------------------------------------------+----------------------------------+
-| Token       | What this Expands to                                      | Example                          |
-+=============+===========================================================+==================================+
-| %TEMP%      | User temporary file directory                             | C:\Users\...\AppData\Locals\Temp |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %PID%       | Process ID                                                | 2772                             |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %TIME%      | Time in seconds since the epoch.                          | 1299852985                       |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %PROGRAM%   | Full program run-time filename of executable.             | C:\SomeWhere\YourOnefile.exe     |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %CACHE_DIR% | Cache directory for the user.                             | C:\Users\SomeBody\AppData\Local  |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %COMPANY%   | Value given as ``--company-name``                         | YourCompanyName                  |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %PRODUCT%   | Value given as ``--product-name``                         | YourProductName                  |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %VERSION%   | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                  |
-+-------------+-----------------------------------------------------------+----------------------------------+
-| %HOME%      | Home directory for the user.                              | /home/somebody                   |
-+-------------+-----------------------------------------------------------+----------------------------------+
++-------------+-----------------------------------------------------------+---------------------------------------+
+| Token       | What this Expands to                                      | Example                               |
++=============+===========================================================+=======================================+
+| %TEMP%      | User temporary file directory                             | C:\\Users\\...\\AppData\\Locals\\Temp |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %PID%       | Process ID                                                | 2772                                  |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %TIME%      | Time in seconds since the epoch.                          | 1299852985                            |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %PROGRAM%   | Full program run-time filename of executable.             | C:\\SomeWhere\\YourOnefile.exe        |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %CACHE_DIR% | Cache directory for the user.                             | C:\\Users\\SomeBody\\AppData\\Local   |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %COMPANY%   | Value given as ``--company-name``                         | YourCompanyName                       |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %PRODUCT%   | Value given as ``--product-name``                         | YourProductName                       |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %VERSION%   | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                       |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %HOME%      | Home directory for the user.                              | /home/somebody                        |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %NONE%      | When provided for file outputs, ``None`` is used          | see notice below                      |
++-------------+-----------------------------------------------------------+---------------------------------------+
+| %NULL%      | When provided for file outputs, ``os.devnull`` is used    | see notice below                      |
++-------------+-----------------------------------------------------------+---------------------------------------+
 
-.. note::
+.. important::
 
    It is your responsibility to make the path provided unique, on
    Windows a running program will be locked, and while using a fixed
@@ -547,6 +551,21 @@ Currently these expanded tokens are available:
    path unique, and this is mainly intended for use cases, where e.g.
    you want things to reside in a place you choose or abide your naming
    conventions.
+
+.. important::
+
+   For disabling output and stderr with ``--force-stdout-spec`` and
+   ``--force-stderr-spec`` the values ``%NONE%`` and ``%NULL%`` achieve
+   it, but with different effect. With ``%NONE%``the corresponding
+   handle becomes ``None``. As a result e.g. ``sys.stdout`` will be
+   ``None`` which is different from ``%NULL%`` where it will be backed
+   by a file pointing to ``os.devnull``, i.e. you can write to it.
+
+   With ``%NONE%`` you may get ``RuntimeError: lost sys.stdout`` in case
+   it does get used, with ``%NULL%`` that never happens. However, some
+   libraries handle this as input for their logging mechanism, and on
+   Windows this is how you are compatible with ``pythonw.exe`` which is
+   behaving like ``%NONE%``.
 
 Use Case 5 - Setuptools Wheels
 ==============================
@@ -565,7 +584,10 @@ Nuitka.
 
    # For setup.py if not you't use other build systems:
    setup(
+      # Data files are to be handled by setuptools and not Nuitka
+      package_data={"some_package": ["some_file.txt"]},
       ...,
+      # This is to pass Nuitka options.
       command_options={
          'nuitka': {
             # boolean option, e.g. if you cared for C compilation commands
@@ -576,7 +598,7 @@ Nuitka.
             '--enable-plugin': "pyside2",
             # options with several values, e.g. avoiding including modules
             '--nofollow-import-to' : ["*.tests", "*.distutils"],
-         }
+         },
       },
    )
 
@@ -586,6 +608,10 @@ Nuitka.
    # e.g. "setuptools_rust"
 
    setup(
+      # Data files are to be handled by setuptools and not Nuitka
+      package_data={"some_package": ["some_file.txt"]},
+      ...,
+      # This is to pass Nuitka options.
       ...,
       command_options={
          'nuitka': {
@@ -636,6 +662,10 @@ value:
    requires = ["setuptools>=42", "wheel", "nuitka", "toml"]
    build-backend = "nuitka.distutils.Build"
 
+   # Data files are to be handled by setuptools and not Nuitka
+   [tool.setuptools.package-data]
+   some_package = ['data_file.txt']
+
    [nuitka]
    # These are not recommended, but they make it obvious to have effect.
 
@@ -655,6 +685,14 @@ value:
    For the ``nuitka`` requirement above absolute paths like
    ``C:\Users\...\Nuitka`` will also work on Linux, use an absolute path
    with *two* leading slashes, e.g. ``//home/.../Nuitka``.
+
+.. note::
+
+   Whatever approach you take, data files in these wheels are not
+   handled by Nuitka at all, but by setuptools. You can however use the
+   data file embedding of Nuitka commercial. In that case you actually
+   would embed the files inside the extension module itself, and not as
+   a file in the wheel.
 
 Use Case 6 - Multidist
 ======================
@@ -775,7 +813,7 @@ syntax to combine the code with the creation, compile this:
 
    # Whatever this is obviously
    print("Delaying startup by 10s...")
-   import time
+   import time, tempfile, os
    time.sleep(10)
 
    # Use this code to signal the splash screen removal.
@@ -802,6 +840,14 @@ providing your own template, with a few of them built-in to Nuitka.
 These reports carry all the detail information, e.g. when a module was
 attempted to be imported, but not found, you can see where that happens.
 For bug reporting, it is very much recommended to provide the report.
+
+Version Information
+===================
+
+You can attach copyright and trademark information, company name,
+product name, and so on to your compilation. This is then used in
+version information for the created binary on Windows, or application
+bundle on macOS. If you find something that it's lacking, let us know.
 
 ******************
  Typical Problems
@@ -940,8 +986,8 @@ package is missing files and then use ``--include-package-data``
 (preferably), or ``--include-data-dir``/``--include-data-files`` to
 include them.
 
-Missing DLLs in standalone
-==========================
+Missing DLLs/EXEs in standalone
+===============================
 
 Nuitka has plugins that deal with copying DLLs. For NumPy, SciPy,
 Tkinter, etc.
@@ -950,6 +996,12 @@ These need special treatment to be able to run on other systems.
 Manually copying them is not enough and will given strange errors.
 Sometimes newer version of packages, esp. NumPy can be unsupported. In
 this case you will have to raise an issue, and use the older one.
+
+If you want to manually add a DLL or an EXE, because it is your project
+only, you will have to use user Yaml files describing where they can be
+found. This is described in detail with examples in the `Nuitka Package
+Configuration <https://nuitka.net/doc/nuitka-package-config.html>`__
+page.
 
 Dependency creep in standalone
 ==============================
@@ -1001,7 +1053,7 @@ Onefile: Finding files
 ======================
 
 There is a difference between ``sys.argv[0]`` and ``__file__`` of the
-main module for onefile more, that is caused by using a bootstrap to a
+main module for onefile mode, that is caused by using a bootstrap to a
 temporary location. The first one will be the original executable path,
 where as the second one will be the temporary or permanent path the
 bootstrap executable unpacks to. Data files will be in the later
@@ -1022,9 +1074,9 @@ Windows Programs without console give no errors
 ===============================================
 
 For debugging purposes, remove ``--disable-console`` or use the options
-``--windows-force-stdout-spec`` and ``--windows-force-stderr-spec`` with
-paths as documented for ``--onefile-tempdir-spec`` above. These can be
-relative to the program or absolute, so you can see the outputs given.
+``--force-stdout-spec`` and ``--force-stderr-spec`` with paths as
+documented for ``--onefile-tempdir-spec`` above. These can be relative
+to the program or absolute, so you can see the outputs given.
 
 Deep copying uncompiled functions
 =================================
@@ -1099,9 +1151,9 @@ Table with supported variables:
 +==================+================================+==========================================+
 | {OS}             | Name of the OS used            | Linux, Windows, Darwin, FreeBSD, OpenBSD |
 +------------------+--------------------------------+------------------------------------------+
-| {Version}        | Version of Nuitka              | e.g. (0, 6, 16)                          |
+| {Version}        | Version of Nuitka              | e.g. (1, 6, 0)                           |
 +------------------+--------------------------------+------------------------------------------+
-| {Commercial}     | Version of Nuitka Commercial   | e.g. (0, 9, 4)                           |
+| {Commercial}     | Version of Nuitka Commercial   | e.g. (2, 1, 0)                           |
 +------------------+--------------------------------+------------------------------------------+
 | {Arch}           | Architecture used              | x86_64, arm64, etc.                      |
 +------------------+--------------------------------+------------------------------------------+

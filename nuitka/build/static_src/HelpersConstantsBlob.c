@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -463,17 +463,20 @@ static PyObject *_unpackAnonValue(unsigned char anon_index) {
         return (PyObject *)&PyCFunction_Type;
     case 6:
         return (PyObject *)&PyCode_Type;
+    case 7:
+        return (PyObject *)&PyModule_Type;
 
 #if PYTHON_VERSION < 0x300
-    case 7:
-        return (PyObject *)&PyFile_Type;
     case 8:
-        return (PyObject *)&PyClass_Type;
+        return (PyObject *)&PyFile_Type;
     case 9:
-        return (PyObject *)&PyInstance_Type;
+        return (PyObject *)&PyClass_Type;
     case 10:
+        return (PyObject *)&PyInstance_Type;
+    case 11:
         return (PyObject *)&PyMethod_Type;
 #endif
+
     default:
         PRINT_FORMAT("Missing anon value for %d\n", (int)anon_index);
         NUITKA_CANNOT_GET_HERE("Corrupt constants blob");

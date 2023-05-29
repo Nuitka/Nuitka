@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -741,7 +741,7 @@ print(zip([1, 2, 3], "String"))
 try:
     zip(1, "String")
 except TypeError as e:
-    print("Occured", repr(e))
+    print("Occurred", repr(e))
 print(zip())
 x = [(u, v) for (u, v) in zip(range(8), reversed(range(8)))]
 print(x)

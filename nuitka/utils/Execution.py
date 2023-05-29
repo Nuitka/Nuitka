@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,7 +40,7 @@ _executable_command_cache = {}
 
 def _getExecutablePath(filename, search_path):
     # Append ".exe" suffix  on Windows if not already present.
-    if isWin32OrPosixWindows() and not filename.lower().endswith(".exe"):
+    if isWin32OrPosixWindows() and not filename.lower().endswith((".exe", ".cmd")):
         filename += ".exe"
 
     # Now check in each path element, much like the shell will.
@@ -50,16 +50,22 @@ def _getExecutablePath(filename, search_path):
         path_element = path_element.strip('"')
         path_element = os.path.expanduser(path_element)
 
+        candidate = None
+
         if os.path.isfile(path_element):
             if os.path.normcase(os.path.basename(path_element)) == os.path.normcase(
                 filename
             ):
-                return path_element
+                candidate = path_element
         else:
             full = os.path.join(path_element, filename)
 
             if os.path.exists(full):
-                return full
+                candidate = full
+
+        if candidate is not None:
+            if os.access(candidate, os.X_OK):
+                return candidate
 
 
 def getExecutablePath(filename, extra_dir=None):

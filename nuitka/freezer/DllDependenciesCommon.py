@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,11 +56,13 @@ def getPackageSpecificDLLDirectories(package_name, consider_plugins=True):
 
         if os.path.isdir(package_dir):
             scan_dirs.add(package_dir)
-
             scan_dirs.update(getSubDirectoriesWithDlls(package_dir))
 
         if consider_plugins:
-            scan_dirs.update(Plugins.getModuleSpecificDllPaths(package_name))
+            for plugin_provided_dir in Plugins.getModuleSpecificDllPaths(package_name):
+                if os.path.isdir(plugin_provided_dir):
+                    scan_dirs.add(plugin_provided_dir)
+                    scan_dirs.update(getSubDirectoriesWithDlls(plugin_provided_dir))
 
     # TODO: Move this to plugins DLLs section.
     if package_name == "torchvision" and consider_plugins:

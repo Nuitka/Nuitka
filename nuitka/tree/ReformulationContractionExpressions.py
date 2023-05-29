@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -68,7 +68,10 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import (
+    makeStatementReleaseVariable,
+    makeStatementsReleaseVariables,
+)
 from nuitka.nodes.YieldNodes import (
     ExpressionYield,
     ExpressionYieldFromWaitable,
@@ -577,9 +580,8 @@ def _buildContractionBodyNode(
     statements.append(current_body)
     statements = mergeStatements(statements)
 
-    release_statements = tuple(
-        makeStatementReleaseVariable(variable=tmp_variable, source_ref=source_ref)
-        for tmp_variable in tmp_variables
+    release_statements = makeStatementsReleaseVariables(
+        variables=tmp_variables, source_ref=source_ref
     )
 
     return statements, release_statements

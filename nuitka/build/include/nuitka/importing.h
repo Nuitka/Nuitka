@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -42,7 +42,7 @@ extern PyObject *IMPORT_EMBEDDED_MODULE(char const *name);
 extern PyObject *EXECUTE_EMBEDDED_MODULE(PyObject *module);
 
 // Import a name from a module.
-extern PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name);
+extern PyObject *IMPORT_NAME_FROM_MODULE(PyObject *module, PyObject *import_name);
 
 // import a name from a module, potentially making an import of it if necessary.
 #if PYTHON_VERSION >= 0x350

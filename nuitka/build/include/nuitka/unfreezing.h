@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -17,6 +17,8 @@
 //
 #ifndef __NUITKA_UNFREEZING_H__
 #define __NUITKA_UNFREEZING_H__
+
+#include <stdbool.h>
 
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */
@@ -73,6 +75,9 @@ extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntr
 extern PyObject *Nuitka_Loader_New(struct Nuitka_MetaPathBasedLoaderEntry const *entry);
 
 // Create a distribution object from the given metadata.
-extern PyObject *Nuitka_Distribution_New(char const *distribution_name, char const *package_name, PyObject *metadata);
+extern PyObject *Nuitka_Distribution_New(PyObject *name);
+
+// Check if we provide a distribution object ourselves.
+extern bool Nuitka_DistributionNext(Py_ssize_t *pos, PyObject **distribution_name_ptr);
 
 #endif

@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,6 +32,7 @@ from nuitka.Bytecodes import compileSourceToBytecode
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import NuitkaForbiddenDLLEncounter
 from nuitka.importing import ImportCache
+from nuitka.importing.Importing import getPythonUnpackedSearchPath
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
     isStandardLibraryNoAutoInclusionModule,
@@ -54,7 +55,11 @@ from nuitka.tree.SourceHandling import (
     readSourceCodeFromFilenameWithInformation,
 )
 from nuitka.utils.Execution import executeProcess
-from nuitka.utils.FileOperations import areInSamePaths, areSamePaths
+from nuitka.utils.FileOperations import (
+    areInSamePaths,
+    areSamePaths,
+    isFilenameBelowPath,
+)
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import copyDllFile, setSharedLibraryRPATH
 from nuitka.utils.Signing import addMacOSCodeSignature
@@ -692,6 +697,29 @@ def _detectUsedDLLs(standalone_entry_point, source_dir):
     except NuitkaForbiddenDLLEncounter:
         inclusion_logger.info("Not including forbidden DLL '%s'." % binary_filename)
     else:
+        # Plugins generally decide if they allow dependencies from the outside
+        # based on the package name.
+        allow_outside_dependencies = Plugins.decideAllowOutsideDependencies(
+            standalone_entry_point.package_name
+        )
+
+        # TODO: Command line option maybe
+        if allow_outside_dependencies is None:
+            allow_outside_dependencies = True
+
+        if not allow_outside_dependencies:
+            inside_paths = getPythonUnpackedSearchPath()
+
+            def decideInside(dll_filename):
+                return any(
+                    isFilenameBelowPath(path=inside_path, filename=dll_filename)
+                    for inside_path in inside_paths
+                )
+
+            used_dlls = set(
+                dll_filename for dll_filename in used_dlls if decideInside(dll_filename)
+            )
+
         # Allow plugins can prevent inclusion, this may discard things from used_dlls.
         removed_dlls = Plugins.removeDllDependencies(
             dll_filename=binary_filename, dll_filenames=used_dlls

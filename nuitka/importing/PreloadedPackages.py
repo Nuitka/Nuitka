@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -60,7 +60,7 @@ preloaded_packages = None
 
 
 def getPreloadedPackagePaths():
-    """Return dictionrary with preloaded package paths from .pth files"""
+    """Return dictionary with preloaded package paths from .pth files"""
 
     # We need to set this from the outside, pylint: disable=global-statement
     global preloaded_packages

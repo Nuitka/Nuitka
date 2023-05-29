@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -51,8 +51,8 @@
     CHECK_OBJECT(result);
 
 #define releaseToFreeList(free_list, object, max_free_list_count)                                                      \
-    if (free_list != NULL) {                                                                                           \
-        if (free_list##_count > max_free_list_count) {                                                                 \
+    if (free_list != NULL || max_free_list_count == 0) {                                                               \
+        if (free_list##_count >= max_free_list_count) {                                                                \
             PyObject_GC_Del(object);                                                                                   \
         } else {                                                                                                       \
             *((void **)object) = (void *)free_list;                                                                    \

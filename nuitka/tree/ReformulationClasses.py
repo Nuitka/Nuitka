@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -55,7 +55,10 @@ from nuitka.nodes.VariableNameNodes import (
     StatementAssignmentVariableName,
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import (
+    makeStatementReleaseVariable,
+    makeStatementsReleaseVariables,
+)
 from nuitka.PythonVersions import python_version
 
 from .ReformulationClasses3 import buildClassNode3
@@ -370,15 +373,14 @@ def buildClassNode2(provider, node, source_ref):
         )
     )
 
-    final = (
-        makeStatementReleaseVariable(variable=tmp_class, source_ref=source_ref),
-        makeStatementReleaseVariable(variable=tmp_bases, source_ref=source_ref),
-        makeStatementReleaseVariable(variable=tmp_class_dict, source_ref=source_ref),
-        makeStatementReleaseVariable(variable=tmp_metaclass, source_ref=source_ref),
-    )
-
     return makeTryFinallyStatement(
-        provider=function_body, tried=statements, final=final, source_ref=source_ref
+        provider=function_body,
+        tried=statements,
+        final=makeStatementsReleaseVariables(
+            variables=(tmp_class, tmp_bases, tmp_class_dict, tmp_metaclass),
+            source_ref=source_ref,
+        ),
+        source_ref=source_ref,
     )
 
 
