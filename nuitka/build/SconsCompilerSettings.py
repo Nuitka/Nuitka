@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -46,6 +46,7 @@ from .SconsUtils import (
     getLinkerArch,
     getMsvcVersion,
     getMsvcVersionString,
+    isClangName,
     isGccName,
     raiseNoCompilerFoundErrorExit,
     setEnvironmentVariable,
@@ -59,24 +60,37 @@ from .SconsUtils import (
 
 
 def _detectWindowsSDK(env):
+    # Caching
+    if hasattr(env, "windows_sdk_version"):
+        return env.windows_sdk_version
+
     # Check if there is a Windows SDK installed.
-    if env.msvc_mode or env.clangcl_mode:
-        if "WindowsSDKVersion" not in env:
-            if "WindowsSDKVersion" in os.environ:
-                windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
-            else:
-                windows_sdk_version = None
+    if "WindowsSDKVersion" not in env:
+        if "WindowsSDKVersion" in os.environ:
+            windows_sdk_version = os.environ["WindowsSDKVersion"].rstrip("\\")
         else:
-            windows_sdk_version = env["WindowsSDKVersion"]
+            windows_sdk_version = None
+    else:
+        windows_sdk_version = env["WindowsSDKVersion"]
 
-        if not windows_sdk_version:
-            scons_logger.sysexit(
-                "Error, the Windows SDK must be installed in Visual Studio."
-            )
-
+    if windows_sdk_version:
         scons_details_logger.info("Using Windows SDK '%s'." % windows_sdk_version)
 
         env.windows_sdk_version = tuple(int(x) for x in windows_sdk_version.split("."))
+    else:
+        scons_logger.warning(
+            """\
+Windows SDK must be installed in Visual Studio for it to \
+be usable with Nuitka. Use the Visual Studio installer for \
+adding it."""
+        )
+
+        env.windows_sdk_version = None
+
+    return env.windows_sdk_version
+
+
+_windows_sdk_c11_mode_min_version = (10, 0, 19041, 0)
 
 
 def _enableC11Settings(env):
@@ -91,13 +105,12 @@ def _enableC11Settings(env):
 
     if env.clangcl_mode:
         c11_mode = True
-    elif env.msvc_mode:
-        # TODO: Make this experimental mode the default, on ARM64 at least it
-        # seems even required.
-        c11_mode = env.target_arch == "arm64" or (
-            env.windows_sdk_version >= (10, 0, 19041, 0)
-            and "msvc_c11" in env.experimental_flags
-        )
+    elif (
+        env.msvc_mode
+        and env.windows_sdk_version >= _windows_sdk_c11_mode_min_version
+        and getMsvcVersion(env) >= (14, 3)
+    ):
+        c11_mode = True
     elif env.clang_mode:
         c11_mode = True
     elif env.gcc_mode and env.gcc_version >= (5,):
@@ -139,7 +152,7 @@ def _enableLtoSettings(
     elif pgo_mode in ("use", "generate"):
         lto_mode = True
         reason = "PGO implies LTO"
-    elif env.msvc_mode and getMsvcVersion(env) >= 14:
+    elif env.msvc_mode and getMsvcVersion(env) >= (14,):
         lto_mode = True
         reason = "known to be supported"
     elif env.nuitka_python:
@@ -246,6 +259,27 @@ def checkWindowsCompilerFound(
         # will of course still match.
         if env.msys2_mingw_python and compiler_path.endswith("/usr/bin/gcc.exe"):
             compiler_path = None
+
+        if compiler_path is not None:
+            the_cc_name = os.path.basename(compiler_path)
+
+            # The MSVC can only be used with an Windows SDK installed, and for 3.11 we need it
+            # to be a least a minimum version.
+            if (
+                not isGccName(the_cc_name)
+                and not isClangName(the_cc_name)
+                and (
+                    _detectWindowsSDK(env) is None
+                    or (
+                        env.python_version is not None
+                        and env.python_version >= (3, 11)
+                        and _detectWindowsSDK(env) < _windows_sdk_c11_mode_min_version
+                    )
+                )
+            ):
+                # This will trigger using it to use our own gcc in branch below.
+                compiler_path = None
+                env["CC"] = None
 
         # Drop wrong arch compiler, most often found by scans. There might be wrong gcc or cl on the PATH.
         if compiler_path is not None:
@@ -517,7 +551,6 @@ def setupCCompiler(env, lto_mode, pgo_mode, job_count):
         job_count=job_count,
     )
 
-    _detectWindowsSDK(env)
     _enableC11Settings(env)
 
     if env.gcc_mode:
@@ -770,7 +803,7 @@ def _enableDebugSystemSettings(env, job_count):
             env.Append(CCFLAGS=["/Z7"])
 
             # Higher MSVC versions need this for parallel compilation
-            if job_count > 1 and getMsvcVersion(env) >= 11:
+            if job_count > 1 and getMsvcVersion(env) >= (11,):
                 env.Append(CCFLAGS=["/FS"])
 
             env.Append(LINKFLAGS=["/DEBUG"])

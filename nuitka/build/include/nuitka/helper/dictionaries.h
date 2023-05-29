@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -236,6 +236,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE(PyDictObject *dict, 
 
 NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM(PyObject *dict, PyObject *key, PyObject *value) {
     CHECK_OBJECT(dict);
+    assert(PyDict_Check(dict));
     CHECK_OBJECT(key);
     CHECK_OBJECT(value);
 

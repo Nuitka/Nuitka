@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -87,6 +87,8 @@ def reExecuteNuitka(pgo_filename):
 
     if pgo_filename is not None:
         args.append("--pgo-python-input=%s" % pgo_filename)
+    else:
+        os.environ["NUITKA_SYS_PREFIX"] = sys.prefix
 
     # Same arguments as before.
     args += sys.argv[1:]

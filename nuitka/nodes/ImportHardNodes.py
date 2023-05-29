@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -49,7 +49,7 @@ class ExpressionImportHardBase(ExpressionBase):
 
         # Expect to find them and to match the name of course.
         assert self.finding != "not-found", self.module_name
-        assert _module_name == self.module_name, _module_name
+        assert _module_name == self.module_name, (self.module_name, _module_name)
 
     def getModulesUsageAttempt(self):
         return makeModuleUsageAttempt(

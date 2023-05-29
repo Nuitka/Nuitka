@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -39,7 +39,7 @@ extern PyObject *MAKE_LIST_EMPTY(Py_ssize_t size);
 #define MAKE_LIST_EMPTY(size) PyList_New(size)
 #endif
 
-extern bool LIST_EXTEND(PyObject *list, PyObject *other);
+extern bool LIST_EXTEND_FROM_ITERABLE(PyObject *list, PyObject *other);
 extern bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other);
 
 // Like PyList_Append, but we get to specify the transfer of refcount ownership.

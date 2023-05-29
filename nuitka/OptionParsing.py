@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -328,6 +328,17 @@ flush data. This is the amount of time in ms, before the child it
 killed in the hard way. Unit is ms, and default 5000.""",
 )
 
+onefile_group.add_option(
+    "--onefile-no-compression",
+    action="store_true",
+    dest="onefile_no_compression",
+    default=False,
+    help="""\
+When creating the onefile, disable compression of the payload. This is
+mostly for debug purposes, or to save time. Default is off.""",
+)
+
+
 del onefile_group
 
 data_group = parser.add_option_group("Data files")
@@ -409,6 +420,23 @@ Output the data files found for a given package name. Default not done.""",
 
 del data_group
 
+metadata_group = parser.add_option_group("Metadata support")
+
+metadata_group.add_option(
+    "--include-distribution-metadata",
+    action="append",
+    dest="include_distribution_metadata",
+    metavar="DISTRIBUTION",
+    default=[],
+    help="""\
+Include metadata information for the given distribution name. Some packages
+check metadata for presence, version, entry points, etc. and without this
+option given, it only works when it's recognized at compile time which is
+not always happening. This of course only makes sense for packages that are
+included in the compilation. Default empty.""",
+)
+
+del metadata_group
 
 dll_group = parser.add_option_group("DLL files")
 
@@ -774,6 +802,7 @@ Create a new virtualenv in that non-existing path from the report file given wit
 e.g. '--report=compilation-report.xml'. Default not done.""",
 )
 
+del debug_group
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -785,8 +814,16 @@ parser.add_option(
     help=SUPPRESS_HELP,
 )
 
-
-del debug_group
+# Not sure where to put this yet, intended to helps me edit code faster, will
+# make it public if it becomes useful.
+parser.add_option(
+    "--edit-module-code",
+    action="store",
+    dest="edit_module_code",
+    default=None,
+    require_compiling=False,
+    help=SUPPRESS_HELP,
+)
 
 
 c_compiler_group = parser.add_option_group("Backend C compiler choice")
@@ -1024,6 +1061,31 @@ lot of information. Default is off.""",
 )
 
 tracing_group.add_option(
+    "--report-diffable",
+    action="store_true",
+    dest="compilation_report_diffable",
+    metavar="REPORT_DIFFABLE",
+    default=False,
+    help="""\
+Report data in diffable form, i.e. no timing or memory usage values that vary from run
+to run. Default is off.""",
+)
+
+tracing_group.add_option(
+    "--report-user-provided",
+    action="append",
+    dest="compilation_report_user_data",
+    metavar="KEY_VALUE",
+    default=[],
+    help="""\
+Report data from you. This can be given multiple times and be
+anything in 'key=value' form, where key should be an identifier, e.g. use
+'--report-user-provided=pipenv-lock-hash=64a5e4' to track some input values.
+Default is empty.""",
+)
+
+
+tracing_group.add_option(
     "--report-template",
     action="append",
     dest="compilation_report_templates",
@@ -1034,6 +1096,7 @@ Report via template. Provide template and output filename "template.rst.j2:outpu
 built-in templates, check the User Manual for what these are. Can be given multiple times.
 Default is empty.""",
 )
+
 
 tracing_group.add_option(
     "--quiet",
@@ -1160,7 +1223,8 @@ os_group.add_option(
     help="""\
 Force standard output of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program.""",
+Defaults to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program,
+check User Manual for full list of available values.""",
 )
 
 os_group.add_option(
@@ -1173,7 +1237,8 @@ os_group.add_option(
     help="""\
 Force standard error of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program.""",
+Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program,
+check User Manual for full list of available values.""",
 )
 
 del os_group
@@ -1718,7 +1783,8 @@ def getNuitkaProjectOptions(logger, filename_arg, module_mode):
 
 def parseOptions(logger):
     # Pretty complex code, having a small options parser and many details as
-    # well as integrating with plugins and run modes, pylint: disable=too-many-branches
+    # well as integrating with plugins and run modes, and dispatching of tool
+    # mode executions, pylint: disable=too-many-branches,too-many-statements
 
     # First, isolate the first non-option arguments.
     extra_args = []
@@ -1799,6 +1865,14 @@ Error, need filename argument with python module or main program."""
         from nuitka.tools.scanning.DisplayPackageData import displayPackageData
 
         displayPackageData(options.list_package_data)
+        sys.exit(0)
+
+    if options.edit_module_code:
+        from nuitka.tools.general.find_module.FindModuleCode import (
+            editModuleCode,
+        )
+
+        editModuleCode(options.edit_module_code)
         sys.exit(0)
 
     if options.create_environment_from_report:

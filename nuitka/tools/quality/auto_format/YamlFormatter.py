@@ -1,4 +1,4 @@
-#     Copyright 2022, Fire-Cube <ben7@gmx.ch>
+#     Copyright 2023, Fire-Cube <ben7@gmx.ch>
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,7 @@ from nuitka.utils.FileOperations import (
     renameFile,
 )
 from nuitka.utils.Yaml import (
-    Yaml,
+    PackageConfigYaml,
     getYamlPackageConfigurationSchemaFilename,
     parseYaml,
 )
@@ -198,8 +198,8 @@ def _reorderDictionaryList(entry_list, key_order):
 
 
 def deepCompareYamlFiles(path1, path2):
-    yaml1 = Yaml(path1, parseYaml(getFileContents(path1)))
-    yaml2 = Yaml(path2, parseYaml(getFileContents(path2)))
+    yaml1 = PackageConfigYaml(path1, parseYaml(getFileContents(path1)))
+    yaml2 = PackageConfigYaml(path2, parseYaml(getFileContents(path2)))
 
     import deepdiff
 
@@ -208,7 +208,7 @@ def deepCompareYamlFiles(path1, path2):
     return diff
 
 
-def formatYaml(path):
+def formatYaml(path, ignore_diff=False):
     """
     format and sort a yaml file
     """
@@ -386,10 +386,12 @@ def formatYaml(path):
 
             output_file.write(line + "\n")
 
-    diff = deepCompareYamlFiles(path, tmp_path)
-    if diff:
-        tools_logger.sysexit(
-            "Error, auto-format for Yaml file %s is changing contents %s" % (path, diff)
-        )
+    if not ignore_diff:
+        diff = deepCompareYamlFiles(path, tmp_path)
+        if diff:
+            tools_logger.sysexit(
+                "Error, auto-format for Yaml file %s is changing contents %s"
+                % (path, diff)
+            )
 
     renameFile(tmp_path, path)

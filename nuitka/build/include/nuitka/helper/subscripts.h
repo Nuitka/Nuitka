@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -27,6 +27,7 @@ static void formatNotSubscriptableTypeError(PyObject *type) {
 }
 #endif
 
+#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT)
 static void formatNotSubscriptableError(PyObject *source) {
     SET_CURRENT_EXCEPTION_TYPE_COMPLAINT(
 #if PYTHON_VERSION < 0x270
@@ -40,6 +41,7 @@ static void formatNotSubscriptableError(PyObject *source) {
 #endif
         source);
 }
+#endif
 
 #if PYTHON_VERSION < 0x370
 #define HAS_SEQUENCE_ITEM_SLOT(type) (type->tp_as_sequence != NULL)
@@ -47,6 +49,7 @@ static void formatNotSubscriptableError(PyObject *source) {
 #define HAS_SEQUENCE_ITEM_SLOT(type) (type->tp_as_sequence != NULL && type->tp_as_sequence->sq_item)
 #endif
 
+#if !defined(_NUITKA_EXPERIMENTAL_DISABLE_SUBSCRIPT_OPT)
 static PyObject *SEQUENCE_GET_ITEM_CONST(PyObject *sequence, Py_ssize_t int_subscript) {
     PySequenceMethods *tp_as_sequence = Py_TYPE(sequence)->tp_as_sequence;
     assert(tp_as_sequence != NULL);
@@ -72,6 +75,7 @@ static PyObject *SEQUENCE_GET_ITEM_CONST(PyObject *sequence, Py_ssize_t int_subs
     PyObject *res = tp_as_sequence->sq_item(sequence, int_subscript);
     return res;
 }
+#endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST(PyObject *source, PyObject *const_subscript,
                                                              Py_ssize_t int_subscript) {

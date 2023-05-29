@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,8 @@ from nuitka.Options import getShallNotIncludeDllFilePatterns, isShowInclusion
 from nuitka.Tracing import general, inclusion_logger
 from nuitka.utils.FileOperations import (
     areSamePaths,
+    getReportPath,
+    hasFilenameExtension,
     haveSameFileContents,
     isRelativePath,
 )
@@ -61,6 +63,12 @@ def _makeIncludedEntryPoint(
 
     assert type(executable) is bool, executable
 
+    # Make sure outside code uses sane paths only.
+    assert source_path == os.path.normpath(source_path), source_path
+
+    # Avoid obvious mistakes, these files won't be binaries or DLL ever, right?
+    assert not hasFilenameExtension(path=source_path, extensions=(".qml", ".json"))
+
     return IncludedEntryPoint(
         logger,
         kind,
@@ -83,7 +91,7 @@ def _makeDllOrExeEntryPoint(
     if not os.path.isfile(source_path):
         logger.sysexit(
             "Error, attempting to include file '%s' (%s) that does not exist."
-            % (source_path, reason)
+            % (getReportPath(source_path), reason)
         )
 
     return _makeIncludedEntryPoint(

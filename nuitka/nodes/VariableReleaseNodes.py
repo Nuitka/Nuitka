@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -142,3 +142,10 @@ def makeStatementReleaseVariable(variable, source_ref):
         )
     else:
         return StatementReleaseVariableLocal(variable=variable, source_ref=source_ref)
+
+
+def makeStatementsReleaseVariables(variables, source_ref):
+    return tuple(
+        makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
+        for variable in variables
+    )

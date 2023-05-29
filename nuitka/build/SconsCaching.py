@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -347,13 +347,22 @@ def checkCachingSuccess(source_dir):
         stats = _getCcacheStatistics(ccache_logfile)
 
         if not stats:
-            scons_logger.warning("You are not using ccache.")
+            scons_logger.warning(
+                """\
+You are not using ccache, re-compilation of identical code \
+will be slower than necessary. Use your OS package manager \
+to install it."""
+            )
         else:
             counts = defaultdict(int)
 
             for _command, result in stats.items():
                 # These are not important to our users, time based decisions differentiate these.
-                if result in ("cache hit (direct)", "cache hit (preprocessed)"):
+                if result in (
+                    "cache hit (direct)",
+                    "cache hit (preprocessed)",
+                    "local_storage_hit",
+                ):
                     result = "cache hit"
 
                 # Newer ccache has these, but they duplicate:
@@ -364,6 +373,10 @@ def checkCachingSuccess(source_dir):
                     "preprocessed_cache_miss",
                     "primary_storage_miss",
                     "called_for_link",
+                    "local_storage_read_hit",
+                    "local_storage_read_miss",
+                    "local_storage_write",
+                    "local_storage_miss",
                 ):
                     continue
                 if result == "primary_storage_hit":

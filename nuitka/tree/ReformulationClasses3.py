@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -54,6 +54,10 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationRemove,
     StatementDictOperationUpdate,
 )
+from nuitka.nodes.ExceptionNodes import (
+    ExpressionBuiltinMakeException,
+    StatementRaiseException,
+)
 from nuitka.nodes.FunctionAttributeNodes import ExpressionFunctionQualnameRef
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef,
@@ -76,14 +80,19 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import makeExpressionIndexLookup
-from nuitka.nodes.TypeNodes import ExpressionBuiltinType1, ExpressionTypeCheck
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinType1,
+    ExpressionSubtypeCheck,
+    ExpressionTypeCheck,
+)
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import StatementAssignmentVariableName
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
+from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
@@ -547,7 +556,7 @@ def buildClassNode3(provider, node, source_ref):
     statements += (
         makeStatementAssignmentVariable(
             variable=tmp_metaclass,
-            source=ExpressionSelectMetaclass(
+            source=makeExpressionSelectMetaclass(
                 metaclass=ExpressionConditional(
                     condition=ExpressionDictOperationIn(
                         key=makeConstantRefNode(
@@ -630,24 +639,23 @@ def buildClassNode3(provider, node, source_ref):
     if python_version >= 0x340:
         class_creation_function.qualname_setup = node.name, qualname_assign
 
-    final = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
+    tmp_variables = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
     if node.bases:
-        final.insert(0, tmp_bases)
+        tmp_variables.insert(0, tmp_bases)
         if python_version >= 0x370:
-            final.insert(0, tmp_bases_orig)
+            tmp_variables.insert(0, tmp_bases_orig)
 
     return makeTryFinallyStatement(
         provider=provider,
         tried=statements,
-        final=tuple(
-            makeStatementReleaseVariable(variable=variable, source_ref=source_ref)
-            for variable in final
+        final=makeStatementsReleaseVariables(
+            variables=tmp_variables, source_ref=source_ref
         ),
         source_ref=source_ref,
     )
 
 
-# Note: This emulates Python/bltinmodule.c/update_bases function. We have it
+# Note: This emulates "Python/bltinmodule.c/update_bases" function. We have it
 # here, so we can hope to statically optimize it later on.
 @once_decorator
 def getClassBasesMroConversionHelper():
@@ -762,21 +770,6 @@ def getClassBasesMroConversionHelper():
         ),
     )
 
-    final = (
-        makeStatementReleaseVariable(
-            variable=args_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_result_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_item_variable, source_ref=internal_source_ref
-        ),
-    )
-
     tried = makeStatementsSequenceFromStatements(
         makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
@@ -810,7 +803,222 @@ def getClassBasesMroConversionHelper():
             makeTryFinallyStatement(
                 provider=result,
                 tried=tried,
-                final=final,
+                final=makeStatementsReleaseVariables(
+                    variables=(
+                        args_variable,
+                        tmp_result_variable,
+                        tmp_iter_variable,
+                        tmp_item_variable,
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                source_ref=internal_source_ref,
+            )
+        )
+    )
+
+    return result
+
+
+def makeExpressionSelectMetaclass(metaclass, bases, source_ref):
+    if isExperimental("select-metaclass-helper"):
+        return makeExpressionFunctionCall(
+            function=makeExpressionFunctionCreation(
+                function_ref=ExpressionFunctionRef(
+                    function_body=getClassSelectMetaClassHelper(),
+                    source_ref=source_ref,
+                ),
+                defaults=(),
+                kw_defaults=None,
+                annotations=None,
+                source_ref=source_ref,
+            ),
+            values=(metaclass, bases),
+            source_ref=source_ref,
+        )
+
+    else:
+
+        return ExpressionSelectMetaclass(
+            metaclass=metaclass, bases=bases, source_ref=source_ref
+        )
+
+
+def _makeRaiseExceptionMetaclassConflict():
+    return StatementRaiseException(
+        exception_type=ExpressionBuiltinMakeException(
+            exception_name="TypeError",
+            args=(
+                makeConstantRefNode(
+                    constant="""\
+metaclass conflict: the metaclass of a derived class must be a (non-strict) \
+subclass of the metaclasses of all its bases""",
+                    source_ref=internal_source_ref,
+                ),
+            ),
+            source_ref=internal_source_ref,
+        ),
+        exception_value=None,
+        exception_trace=None,
+        exception_cause=None,
+        source_ref=internal_source_ref,
+    )
+
+
+# Note: This emulates selection of meta class based on base classes
+@once_decorator
+def getClassSelectMetaClassHelper():
+    helper_name = "_select_metaclass"
+
+    result = makeInternalHelperFunctionBody(
+        name=helper_name,
+        parameters=ParameterSpec(
+            ps_name=helper_name,
+            ps_normal_args=(
+                "metaclass",
+                "bases",
+            ),
+            ps_pos_only_args=(),
+            ps_list_star_arg=None,
+            ps_dict_star_arg=None,
+            ps_default_count=0,
+            ps_kw_only_args=(),
+        ),
+        inline_const_args=False,  # TODO: Allow this.
+    )
+
+    metaclass_variable = result.getVariableForAssignment(variable_name="metaclass")
+    bases_variable = result.getVariableForAssignment(variable_name="bases")
+
+    temp_scope = None
+
+    tmp_winner_variable = result.allocateTempVariable(temp_scope, "winner")
+    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
+    tmp_item_variable = result.allocateTempVariable(temp_scope, "base")
+    tmp_item_type_variable = result.allocateTempVariable(temp_scope, "base_type")
+
+    # For non-types, the metaclass cannot be overruled by bases.
+    non_type_case = StatementReturn(
+        expression=ExpressionVariableRef(
+            variable=metaclass_variable, source_ref=internal_source_ref
+        ),
+        source_ref=internal_source_ref,
+    )
+
+    type_loop_body = makeStatementsSequenceFromStatements(
+        makeTryExceptSingleHandlerNode(
+            tried=makeStatementAssignmentVariable(
+                variable=tmp_item_variable,
+                source=ExpressionBuiltinNext1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_iter_variable, source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                source_ref=internal_source_ref,
+            ),
+            exception_name="StopIteration",
+            handler_body=StatementLoopBreak(source_ref=internal_source_ref),
+            source_ref=internal_source_ref,
+        ),
+        makeStatementAssignmentVariable(
+            variable=tmp_item_type_variable,
+            source=ExpressionBuiltinType1(
+                value=ExpressionTempVariableRef(
+                    variable=tmp_item_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        ),
+        makeStatementConditional(
+            condition=ExpressionSubtypeCheck(
+                left=ExpressionTempVariableRef(
+                    variable=tmp_winner_variable, source_ref=internal_source_ref
+                ),
+                right=ExpressionTempVariableRef(
+                    variable=tmp_item_type_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            ),
+            yes_branch=None,  # Ignore if current winner is already a subtype.
+            no_branch=makeStatementConditional(
+                condition=ExpressionSubtypeCheck(
+                    left=ExpressionTempVariableRef(
+                        variable=tmp_item_type_variable, source_ref=internal_source_ref
+                    ),
+                    right=ExpressionTempVariableRef(
+                        variable=tmp_winner_variable, source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                yes_branch=makeStatementAssignmentVariable(
+                    variable=tmp_winner_variable,
+                    source=ExpressionTempVariableRef(
+                        variable=tmp_item_type_variable, source_ref=internal_source_ref
+                    ),
+                    source_ref=internal_source_ref,
+                ),
+                no_branch=_makeRaiseExceptionMetaclassConflict(),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        ),
+    )
+
+    type_case = makeStatementsSequenceFromStatements(
+        makeStatementAssignmentVariable(
+            variable=tmp_winner_variable,
+            source=ExpressionVariableRef(
+                variable=metaclass_variable, source_ref=internal_source_ref
+            ),
+            source_ref=internal_source_ref,
+        ),
+        makeStatementAssignmentVariable(
+            variable=tmp_iter_variable,
+            source=ExpressionBuiltinIter1(
+                value=ExpressionVariableRef(
+                    variable=bases_variable, source_ref=internal_source_ref
+                ),
+                source_ref=internal_source_ref,
+            ),
+            source_ref=internal_source_ref,
+        ),
+        StatementLoop(loop_body=type_loop_body, source_ref=internal_source_ref),
+        StatementReturn(
+            expression=ExpressionTempVariableRef(
+                variable=tmp_winner_variable, source_ref=internal_source_ref
+            ),
+            source_ref=internal_source_ref,
+        ),
+    )
+
+    tried = makeStatementConditional(
+        condition=ExpressionTypeCheck(
+            cls=ExpressionVariableRef(
+                variable=metaclass_variable, source_ref=internal_source_ref
+            ),
+            source_ref=internal_source_ref,
+        ),
+        yes_branch=type_case,
+        no_branch=non_type_case,
+        source_ref=internal_source_ref,
+    )
+
+    result.setChildBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                provider=result,
+                tried=tried,
+                final=makeStatementsReleaseVariables(
+                    variables=(
+                        tmp_winner_variable,
+                        tmp_iter_variable,
+                        tmp_item_variable,
+                        tmp_item_type_variable,
+                    ),
+                    source_ref=internal_source_ref,
+                ),
                 source_ref=internal_source_ref,
             )
         )

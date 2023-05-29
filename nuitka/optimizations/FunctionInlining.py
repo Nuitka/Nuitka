@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,7 @@ from the in-lined function.
 
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.tree.Operations import VisitorNoopMixin, visitTree
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement,
@@ -54,7 +54,7 @@ def updateLocalsScope(provider, locals_scope, variable_translation):
 
 
 def convertFunctionCallToOutline(provider, function_body, values, call_source_ref):
-    # This has got to have pretty man details, pylint: disable=too-many-locals
+    # This has got to have pretty man details
     function_source_ref = function_body.getSourceReference()
 
     outline_body = ExpressionOutlineBody(
@@ -97,17 +97,12 @@ def convertFunctionCallToOutline(provider, function_body, values, call_source_re
 
     # TODO: Not possible to auto release with outline bodies too?
     if auto_releases:
-        releases = [
-            makeStatementReleaseVariable(
-                variable=variable, source_ref=function_source_ref
-            )
-            for variable in auto_releases
-        ]
-
         body = makeTryFinallyStatement(
             provider=outline_body,
             tried=body,
-            final=releases,
+            final=makeStatementsReleaseVariables(
+                variables=auto_releases, source_ref=function_source_ref
+            ),
             source_ref=function_source_ref,
         )
 

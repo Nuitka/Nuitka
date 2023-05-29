@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -482,6 +482,9 @@ class ExpressionImportModuleFixed(ExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         if self.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
+
+        # Trace the module usage attempt.
+        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
 
         # Nothing to do about it.
         return self, None, None

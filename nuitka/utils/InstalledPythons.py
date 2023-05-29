@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,7 +48,17 @@ class InstalledPython(object):
         return self.python_exe
 
     def getPythonVersion(self):
-        return "%d.%d" % (self.python_version // 256, (self.python_version // 16) % 16)
+        return self.python_version
+
+    def getHexVersion(self):
+        major, minor = self.python_version.split(".")
+        return int(major) * 256 + int(minor) * 16
+
+    def isAnacondaPython(self):
+        # TODO: This may not yet going to work really
+        return os.path.exists(
+            os.path.join(os.path.dirname(self.python_exe), "..", "conda-meta")
+        )
 
     # Necessary for Python 2.7, otherwise SyntaxError is given on exec.
     @staticmethod
@@ -179,6 +189,10 @@ def _getPythonInstallPathsWindows(python_version):
 
 def findPythons(python_version):
     """Find all Python installations for a specific version."""
+
+    if python_version in _installed_pythons:
+        return _installed_pythons[python_version]
+
     result = OrderedSet()
 
     if python_version == python_version_str:
@@ -196,6 +210,7 @@ def findPythons(python_version):
     if candidate is not None:
         result.add(InstalledPython(python_exe=candidate, python_version=python_version))
 
+    _installed_pythons[python_version] = result
     return result
 
 
@@ -206,11 +221,8 @@ def findInstalledPython(python_versions, module_name, module_version):
     )
 
     # Make sure the current Python version is scanned for if acceptable.
-    if (
-        python_version_str in python_versions
-        and python_version_str not in _installed_pythons
-    ):
-        _installed_pythons[python_version_str] = findPythons(python_version_str)
+    if python_version_str in python_versions:
+        findPythons(python_version_str)
 
     # Attempt to prefer scanned versions.
     for python_version in python_versions:
@@ -223,9 +235,7 @@ def findInstalledPython(python_versions, module_name, module_version):
     # Attempt to find so far not scanned versions.
     for python_version in python_versions:
         if python_version not in _installed_pythons:
-            _installed_pythons[python_version] = findPythons(python_version)
-
-            for candidate in _installed_pythons.get(python_version, ()):
+            for candidate in findPythons(python_version):
                 if module_name is None or candidate.checkUsability(
                     module_name=module_name, module_version=module_version
                 ):

@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -402,6 +402,22 @@ def getSubDirectories(path, ignore_dirs=()):
     return result
 
 
+def getDllBasename(path):
+    compare_path = os.path.normcase(path)
+
+    for suffix in (".dll", ".so", ".dylib"):
+        if compare_path.endswith(suffix):
+            return path[: -len(suffix)]
+
+    # Linux us not case sensitive, but lets still do it properly,
+    # sometimes, it is done on non-Linux too. So we split on the
+    # normcase, but only to find out what is going on there.
+    if ".so." in compare_path:
+        return path[: len(compare_path.split(".so.")[0])]
+
+    return None
+
+
 def listDllFilesFromDirectory(path, prefix=None, suffixes=None):
     """Give a sorted listing of DLLs filenames in a path.
 
@@ -724,6 +740,30 @@ def putTextFileContents(filename, contents, encoding=None):
             _writeContents(output_file)
 
 
+def changeTextFileContents(filename, contents, encoding=None, compare_only=False):
+    """Write a text file from given contents.
+
+    Args:
+        filename: str with the file to be created or updated
+        contents: str
+        encoding: optional encoding to used when writing the file
+
+    Returns:
+        change indication for existing file if any
+    """
+
+    if (
+        not os.path.isfile(filename)
+        or getFileContents(filename, encoding=encoding) != contents
+    ):
+        if not compare_only:
+            putTextFileContents(filename, contents)
+
+        return True
+    else:
+        return False
+
+
 @contextmanager
 def withPreserveFileMode(filenames):
     if type(filenames) is str:
@@ -805,15 +845,34 @@ def copyTree(source_path, dest_path):
     return copy_tree(source_path, dest_path)
 
 
-def copyFileWithPermissions(source_path, dest_path):
-    """Improved version of shutil.copy2.
+def copyFileWithPermissions(source_path, dest_path, dist_dir):
+    """Improved version of shutil.copy2 for putting things to dist folder
 
     File systems might not allow to transfer extended attributes, which we then ignore
     and only copy permissions.
     """
 
+    if os.path.islink(source_path) and not isWin32Windows():
+        link_source_abs = os.path.abspath(source_path)
+        link_target_abs = os.path.abspath(
+            os.path.join(os.path.dirname(source_path), os.readlink(source_path))
+        )
+
+        link_target_rel = relpath(link_target_abs, os.path.dirname(link_source_abs))
+
+        if isFilenameBelowPath(
+            path=dist_dir,
+            filename=os.path.join(os.path.dirname(dest_path), link_target_rel),
+        ):
+
+            os.symlink(link_target_rel, dest_path)
+            return
+
     try:
-        shutil.copy2(source_path, dest_path)
+        shutil.copy2(
+            source_path,
+            dest_path,
+        )
     except PermissionError as e:
         if e.errno != errno.EACCES:
             raise
@@ -889,7 +948,7 @@ def getWindowsDrive(path):
     return os.path.normcase(drive)
 
 
-def isFilenameBelowPath(path, filename):
+def isFilenameBelowPath(path, filename, consider_short=True):
     """Is a filename inside of a given directory path
 
     Args:
@@ -898,7 +957,9 @@ def isFilenameBelowPath(path, filename):
     """
     if type(path) in (tuple, list):
         for p in path:
-            if isFilenameBelowPath(path=p, filename=filename):
+            if isFilenameBelowPath(
+                path=p, filename=filename, consider_short=consider_short
+            ):
                 return True
 
         return False
@@ -910,7 +971,16 @@ def isFilenameBelowPath(path, filename):
         if getWindowsDrive(path) != getWindowsDrive(filename):
             return False
 
-    return os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+    result = os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+
+    if not result and consider_short:
+        if os.path.exists(filename) and os.path.exists(path):
+            filename = getExternalUsePath(filename)
+            path = getExternalUsePath(path)
+
+            result = os.path.relpath(filename, path).split(os.path.sep)[0] != ".."
+
+    return result
 
 
 def isFilenameSameAsOrBelowPath(path, filename):
@@ -967,6 +1037,51 @@ def getWindowsShortPathName(filename):
             output_buf_size = needed
 
 
+def getWindowsLongPathName(filename):
+    """Gets the long path name of a given long path.
+
+    Args:
+        filename - short Windows filename
+    Returns:
+        Path that is a long filename pointing at the same file.
+    """
+    import ctypes.wintypes
+
+    GetLongPathNameW = ctypes.windll.kernel32.GetLongPathNameW
+    GetLongPathNameW.argtypes = (
+        ctypes.wintypes.LPCWSTR,
+        ctypes.wintypes.LPWSTR,
+        ctypes.wintypes.DWORD,
+    )
+    GetLongPathNameW.restype = ctypes.wintypes.DWORD
+
+    output_buf_size = 0
+    while True:
+        output_buf = ctypes.create_unicode_buffer(output_buf_size)
+        needed = GetLongPathNameW(
+            os.path.abspath(filename), output_buf, output_buf_size
+        )
+
+        if needed == 0:
+            # Windows only code, pylint: disable=I0021,undefined-variable
+
+            # Permission denied.
+            if ctypes.GetLastError() == 5:
+                return filename
+
+            raise WindowsError(
+                ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())
+            )
+
+        if output_buf_size >= needed:
+            return output_buf.value
+        else:
+            output_buf_size = needed
+
+
+_external_use_path_cache = {}
+
+
 def getExternalUsePath(filename, only_dirname=False):
     """Gets the externally usable absolute path for a given relative path.
 
@@ -982,23 +1097,81 @@ def getExternalUsePath(filename, only_dirname=False):
     filename = os.path.abspath(filename)
 
     if os.name == "nt":
-        if only_dirname:
-            dirname = getWindowsShortPathName(os.path.dirname(filename))
-            assert os.path.exists(dirname)
-            filename = os.path.join(dirname, os.path.basename(filename))
-        else:
-            filename = getWindowsShortPathName(filename)
+        if filename not in _external_use_path_cache:
+            asked_filename = filename
 
-    return filename
+            if only_dirname:
+                dirname = getWindowsShortPathName(os.path.dirname(filename))
+                assert os.path.exists(dirname)
+                filename = os.path.join(dirname, os.path.basename(filename))
+            else:
+                filename = getWindowsShortPathName(filename)
+
+            _external_use_path_cache[asked_filename] = filename
+            _external_use_path_cache[filename] = filename
+
+        return _external_use_path_cache[filename]
+    else:
+        return filename
 
 
-def getReportPath(filename):
+_report_path_cache = {}
+
+
+def getReportPath(filename, prefixes=()):
     """Convert filename into a path suitable for reporting, avoiding home directory paths."""
+    key = filename, tuple(prefixes)
+
+    if key not in _report_path_cache:
+        _report_path_cache[key] = _getReportPath(filename, prefixes)
+
+    return _report_path_cache[key]
+
+
+def _getReportPath(filename, prefixes):
     if os.path.isabs(os.path.expanduser(filename)):
+        prefixes = list(prefixes)
+        prefixes.append(
+            ("~", os.path.expanduser("~")),
+        )
+
         abs_filename = os.path.abspath(os.path.expanduser(filename))
-        home_path = os.path.expanduser("~")
-        if isFilenameBelowPath(path=home_path, filename=abs_filename):
-            return os.path.join("~", relpath(path=abs_filename, start=home_path))
+
+        for prefix_name, prefix_path in prefixes:
+            if isFilenameBelowPath(
+                path=prefix_path, filename=abs_filename, consider_short=False
+            ):
+                return os.path.normpath(
+                    os.path.join(
+                        prefix_name, relpath(path=abs_filename, start=prefix_path)
+                    )
+                )
+
+            if isFilenameBelowPath(
+                path=prefix_path, filename=abs_filename, consider_short=True
+            ):
+                return os.path.normpath(
+                    os.path.join(
+                        prefix_name,
+                        relpath(
+                            path=abs_filename, start=getExternalUsePath(prefix_path)
+                        ),
+                    )
+                )
+
+    if isWin32Windows():
+        try:
+            filename = getWindowsLongPathName(filename)
+        except FileNotFoundError:
+            dirname = os.path.dirname(filename)
+
+            if dirname:
+                try:
+                    dirname = getWindowsLongPathName(dirname)
+                except FileNotFoundError:
+                    pass
+                else:
+                    filename = os.path.join(dirname, os.path.basename(filename))
 
     return filename
 
@@ -1032,6 +1205,8 @@ def replaceFileAtomic(source_path, dest_path):
 
     Both paths must reside on the same filesystem for the operation to be
     atomic.
+
+    spellchecker: ignore atomicwrites
     """
 
     if python_version >= 0x300:

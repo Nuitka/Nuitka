@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -217,7 +217,7 @@ bool IMPORT_MODULE_STAR(PyObject *target, bool is_module, PyObject *module) {
     return !ERROR_OCCURRED();
 }
 
-PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name) {
+PyObject *IMPORT_NAME_FROM_MODULE(PyObject *module, PyObject *import_name) {
     CHECK_OBJECT(module);
     CHECK_OBJECT(import_name);
 
@@ -461,7 +461,7 @@ PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *i
             if (result == NULL) {
                 CLEAR_ERROR_OCCURRED();
 
-                result = IMPORT_NAME(module, import_name);
+                result = IMPORT_NAME_FROM_MODULE(module, import_name);
             }
         }
     }

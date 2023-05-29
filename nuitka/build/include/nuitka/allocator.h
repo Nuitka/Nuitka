@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -21,6 +21,11 @@
 /* This file is included from another C file, help IDEs to still parse it on its own. */
 #ifdef __IDE_ONLY__
 #include "nuitka/prelude.h"
+#endif
+
+// For Python2.6, these assertions cannot be done easily, just disable them with dummy code.
+#if PYTHON_VERSION < 0x270 && !defined(__NUITKA_NO_ASSERT__)
+#define _PyObject_GC_IS_TRACKED(obj) (1)
 #endif
 
 #if PYTHON_VERSION >= 0x380

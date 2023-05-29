@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -592,6 +592,13 @@ def _unpackPathElement(path_entry):
     return path_entry
 
 
+def getPythonUnpackedSearchPath():
+    """Python search path with with eggs unpacked."""
+
+    # TODO: Maybe cache this for a given "sys.path" as we do IO checks each time.
+    return [_unpackPathElement(path_element) for path_element in sys.path]
+
+
 def getPackageSearchPath(package_name):
     assert _main_paths
 
@@ -599,7 +606,7 @@ def getPackageSearchPath(package_name):
         result = (
             [os.getcwd()]
             + list(_main_paths)
-            + [_unpackPathElement(path_element) for path_element in sys.path]
+            + getPythonUnpackedSearchPath()
             + list(_extra_paths)
         )
     elif "." in package_name:

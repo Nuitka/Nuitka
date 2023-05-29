@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -128,6 +128,13 @@ extern _PyRuntimeState _PyRuntime;
 #if PYTHON_VERSION >= 0x3b0
 #include <internal/pycore_frame.h>
 #include <internal/pycore_gc.h>
+#endif
+
+// Uncompiled generator integration requires these.
+#if PYTHON_VERSION >= 0x3b0
+#include <internal/pycore_opcode.h>
+// Clashes with our helper names.
+#undef CALL_FUNCTION
 #endif
 
 #ifndef PY_NOGIL

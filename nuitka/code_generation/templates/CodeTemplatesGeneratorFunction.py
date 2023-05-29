@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,17 +24,21 @@ static PyObject *%(generator_maker_identifier)s(%(generator_creation_args)s);
 """
 
 template_genfunc_yielder_body_template = """
+#if %(has_heap_declaration)s
 struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
+#endif
 
 static PyObject *%(function_identifier)s_context(struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value) {
     CHECK_OBJECT(generator);
     assert(Nuitka_Generator_Check((PyObject *)generator));
     CHECK_OBJECT_X(yield_return_value);
 
-    // Heap access if used.
+#if %(has_heap_declaration)s
+    // Heap access.
 %(heap_declaration)s
+#endif
 
     // Dispatch to yield based on return label index:
 %(function_dispatch)s
@@ -59,7 +63,11 @@ static PyObject *%(generator_maker_identifier)s(%(generator_creation_args)s) {
         %(code_identifier)s,
         %(closure_name)s,
         %(closure_count)d,
+#if %(has_heap_declaration)s
         sizeof(struct %(function_identifier)s_locals)
+#else
+        0
+#endif
     );
 }
 """

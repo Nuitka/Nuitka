@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,8 @@ scons with mismatching Python major versions. Also a binary distribution
 is enforced, to avoid being cached with wrong inline copies for the
 Python version.
 
-spellchecker: ignore chdir,pythonw,tqdm,distutil,atomicwrites,markupsafe,wininst,distclass
+spellchecker: ignore chdir,pythonw,tqdm,distutil,atomicwrites,markupsafe
+spellchecker: ignore wininst,distclass,Containerfile,orderedset
 """
 import os
 import sys
@@ -143,7 +144,7 @@ addInlineCopy("pkg_resources")
 addInlineCopy("bin")
 
 if os.name == "nt" or sdist_mode:
-    addInlineCopy("lib/scons-4.3.0", do_byte_compile=sys.version_info >= (2, 7))
+    addInlineCopy("lib/scons-4.3.0", do_byte_compile=sys.version_info >= (3,))
 if (os.name != "nt" and sys.version_info < (2, 7)) or sdist_mode:
     addInlineCopy("lib/scons-2.3.2")
 if (os.name != "nt" and sys.version_info >= (2, 7)) or sdist_mode:

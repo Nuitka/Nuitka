@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -86,8 +86,12 @@ def main():
     if os.environ.get("PYTHONHASHSEED", "-1") != "0":
         needs_re_execution = True
 
+    # Avoid doing it when running in Visual Code.
+    if needs_re_execution and "debugpy" in sys.modules:
+        needs_re_execution = False
+
     # In case we need to re-execute.
-    if needs_re_execution and "debugpy" not in sys.modules:
+    if needs_re_execution:
         from nuitka.utils.ReExecute import reExecuteNuitka  # isort:skip
 
         # Does not return

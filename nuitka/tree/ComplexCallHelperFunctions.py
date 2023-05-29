@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -73,7 +73,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef,
 )
-from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
+from nuitka.nodes.VariableReleaseNodes import makeStatementsReleaseVariables
 from nuitka.PythonVersions import (
     getComplexCallSequenceErrorTemplate,
     python_version,
@@ -649,23 +649,19 @@ def _makeStarDictArgumentToDictStatement(result, called_variable, star_dict_vari
         source_ref=internal_source_ref,
     )
 
-    final = (
-        makeStatementReleaseVariable(
-            variable=tmp_dict_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_keys_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_key_variable, source_ref=internal_source_ref
-        ),
-    )
-
     return makeTryFinallyStatement(
-        provider=result, tried=tried, final=final, source_ref=internal_source_ref
+        provider=result,
+        tried=tried,
+        final=makeStatementsReleaseVariables(
+            variables=(
+                tmp_dict_variable,
+                tmp_iter_variable,
+                tmp_keys_variable,
+                tmp_key_variable,
+            ),
+            source_ref=internal_source_ref,
+        ),
+        source_ref=internal_source_ref,
     )
 
 
@@ -781,18 +777,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key_xxx")
 
-    final = [
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_keys_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_key_variable, source_ref=internal_source_ref
-        ),
-    ]
-
+    tmp_variables = [tmp_iter_variable, tmp_keys_variable, tmp_key_variable]
     mapping_loop_body = (
         makeStatementConditional(
             condition=ExpressionComparisonIn(
@@ -874,18 +859,7 @@ def _makeStarDictArgumentMergeToKwStatement(
     tmp_item_variable = result.allocateTempVariable(temp_scope, "item")
     tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
 
-    final += (
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_item_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_key_variable, source_ref=internal_source_ref
-        ),
-    )
-
+    tmp_variables += [tmp_iter_variable, tmp_item_variable, tmp_key_variable]
     dict_loop_body = (
         makeStatementAssignmentVariable(
             variable=tmp_key_variable,
@@ -996,7 +970,13 @@ def _makeStarDictArgumentMergeToKwStatement(
     )
 
     return makeTryFinallyStatement(
-        provider=result, tried=tried, final=final, source_ref=internal_source_ref
+        provider=result,
+        tried=tried,
+        final=makeStatementsReleaseVariables(
+            variables=tmp_variables,
+            source_ref=internal_source_ref,
+        ),
+        source_ref=internal_source_ref,
     )
 
 
@@ -2093,24 +2073,6 @@ def getFunctionCallHelperDictionaryUnpacking():
         ),
     )
 
-    final = (
-        makeStatementReleaseVariable(
-            variable=tmp_result_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_iter_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_item_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_iter2_variable, source_ref=internal_source_ref
-        ),
-        makeStatementReleaseVariable(
-            variable=tmp_key_variable, source_ref=internal_source_ref
-        ),
-    )
-
     tried = makeStatementsSequenceFromStatements(
         makeStatementAssignmentVariable(
             variable=tmp_iter_variable,
@@ -2144,7 +2106,16 @@ def getFunctionCallHelperDictionaryUnpacking():
         makeTryFinallyStatement(
             provider=result,
             tried=tried,
-            final=final,
+            final=makeStatementsReleaseVariables(
+                variables=(
+                    tmp_result_variable,
+                    tmp_iter_variable,
+                    tmp_item_variable,
+                    tmp_iter2_variable,
+                    tmp_key_variable,
+                ),
+                source_ref=internal_source_ref,
+            ),
             source_ref=internal_source_ref,
         )
     )

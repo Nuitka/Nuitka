@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,7 +32,7 @@ from .c_types.CTypeBooleans import CTypeBool
 from .c_types.CTypeNuitkaBooleans import CTypeNuitkaBoolEnum
 from .c_types.CTypeNuitkaVoids import CTypeNuitkaVoidEnum
 from .c_types.CTypePyObjectPointers import CTypePyObjectPtr
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .CodeHelperSelection import selectCodeHelper
 from .ComparisonHelperDefinitions import (
     getNonSpecializedComparisonOperations,
@@ -436,7 +436,7 @@ def generateBuiltinIssubclassCode(to_name, expression, emit, context):
 
 
 def generateTypeCheckCode(to_name, expression, emit, context):
-    cls_name = context.allocateTempName("issubclass_cls")
+    cls_name = context.allocateTempName("type_check_cls")
 
     generateExpressionCode(
         to_name=cls_name,
@@ -458,6 +458,32 @@ def generateTypeCheckCode(to_name, expression, emit, context):
 
     to_name.getCType().emitAssignmentCodeFromBoolCondition(
         to_name=to_name, condition="%s != 0" % res_name, emit=emit
+    )
+
+
+def generateSubtypeCheckCode(to_name, expression, emit, context):
+    left_name, right_name = generateChildExpressionsCode(
+        expression=expression,
+        emit=emit,
+        context=context,
+    )
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
+
+    res_name = context.getBoolResName()
+
+    emit(
+        "%s = Nuitka_Type_IsSubtype((PyTypeObject *)%s, (PyTypeObject *)%s);"
+        % (res_name, left_name, right_name)
+    )
+
+    getReleaseCodes(
+        release_names=(left_name, right_name),
+        emit=emit,
+        context=context,
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name=to_name, condition=res_name, emit=emit
     )
 
 

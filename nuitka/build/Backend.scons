@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -924,9 +924,20 @@ def createBuildDefinitionsFile():
     build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
 
     if forced_stdout_path:
-        build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
+        if forced_stdout_path == "%NONE%":
+            build_definitions["NUITKA_FORCED_STDOUT_NONE_BOOL"] = 1
+        elif forced_stdout_path == "%NULL%":
+            build_definitions["NUITKA_FORCED_STDOUT_NULL_BOOL"] = 1
+        else:
+            build_definitions["NUITKA_FORCED_STDOUT_PATH"] = forced_stdout_path
+
     if forced_stderr_path:
-        build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
+        if forced_stderr_path == "%NONE%":
+            build_definitions["NUITKA_FORCED_STDERR_NONE_BOOL"] = 1
+        elif forced_stderr_path == "%NULL%":
+            build_definitions["NUITKA_FORCED_STDERR_NULL_BOOL"] = 1
+        else:
+            build_definitions["NUITKA_FORCED_STDERR_PATH"] = forced_stderr_path
 
     build_definitions["NUITKA_MAIN_MODULE_NAME"] = main_module_name
 

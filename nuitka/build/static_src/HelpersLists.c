@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -164,7 +164,7 @@ bool LIST_EXTEND_FROM_LIST(PyObject *list, PyObject *other) {
 #endif
 }
 
-bool LIST_EXTEND(PyObject *target, PyObject *other) {
+bool LIST_EXTEND_FROM_ITERABLE(PyObject *target, PyObject *other) {
     CHECK_OBJECT(target);
     assert(PyList_CheckExact(target));
 
@@ -314,7 +314,7 @@ bool LIST_EXTEND(PyObject *target, PyObject *other) {
 bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other) {
     // TODO: For improved performance, inline this, but we probably wait
     // until code generation for this kind of helpers is there.
-    bool result = LIST_EXTEND(list, other);
+    bool result = LIST_EXTEND_FROM_ITERABLE(list, other);
 
     if (likely(result)) {
         return true;
@@ -698,7 +698,7 @@ PyObject *MAKE_LIST(PyObject *iterable) {
     }
 #endif
 
-    bool res = LIST_EXTEND(list, iterable);
+    bool res = LIST_EXTEND_FROM_ITERABLE(list, iterable);
 
     if (unlikely(res == false)) {
         Py_DECREF(list);

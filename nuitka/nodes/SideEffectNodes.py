@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -101,6 +101,9 @@ class ExpressionSideEffects(
 
         return self, None, None
 
+    def computeExpression(self, trace_collection):
+        return self, None, None
+
     def getTruthValue(self):
         return self.subnode_expression.getTruthValue()
 
@@ -123,3 +126,12 @@ class ExpressionSideEffects(
             """\
 Turned side effects of expression only statement into statements.""",
         )
+
+    @staticmethod
+    def canPredictIterationValues():
+        # TODO: Actually we could very well ask the expression, but retaining the side
+        # effects in optimization is not yet guaranteed.
+        return False
+
+    def willRaiseAnyException(self):
+        return self.subnode_expression.willRaiseAnyException()

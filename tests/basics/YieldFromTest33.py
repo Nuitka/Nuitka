@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -82,7 +82,7 @@ def test_broken_getattr_handling():
 test_broken_getattr_handling()
 
 
-def test_throw_catched_subgenerator_handling():
+def test_throw_caught_subgenerator_handling():
     def g1():
         try:
             print("Starting g1")
@@ -117,7 +117,7 @@ def test_throw_catched_subgenerator_handling():
         print("Yielded %s" % (x,))
 
 
-test_throw_catched_subgenerator_handling()
+test_throw_caught_subgenerator_handling()
 
 
 def give_cpython_generator():

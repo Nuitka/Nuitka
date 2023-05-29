@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -72,7 +72,7 @@ def catcher():
     try:
         raising(True)
     except ZeroDivisionError:
-        print("Catched.")
+        print("Caught.")
 
         print("Top traceback code is '%s'." % sys.exc_info()[2].tb_frame.f_code.co_name)
         print(

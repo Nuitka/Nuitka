@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -130,8 +130,11 @@ static PyMethodDef _method_def_types_coroutine_replacement = {"coroutine", (PyCF
 /* Replace inspect functions with ones that handle compiles types too. */
 void patchInspectModule(void) {
     static bool is_done = false;
-    if (is_done)
+    if (is_done) {
         return;
+    }
+
+    CHECK_OBJECT(dict_builtin);
 
 #if PYTHON_VERSION >= 0x300
 #if defined(_NUITKA_EXE) && !defined(_NUITKA_STANDALONE)

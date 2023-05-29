@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -906,7 +906,7 @@ int main(int argc, char **argv) {
     static filename_char_t first_filename[1024] = {0};
 
 #if _NUITKA_ONEFILE_SPLASH_SCREEN
-    NUITKA_PRINT_TIMING("ONEFILE: Init splash screen.");
+    NUITKA_PRINT_TIMING("ONEFILE: Splash screen.");
 
     initSplashScreen();
 #endif
@@ -938,12 +938,29 @@ int main(int argc, char **argv) {
             appendStringSafeFilename(first_filename, target_path, sizeof(target_path) / sizeof(filename_char_t));
         }
 
-        // _putws(target_path);
-        unsigned long long file_size = readPayloadSizeValue();
-
 #if !defined(_WIN32) && !defined(__MSYS__)
         unsigned char file_flags = readPayloadFileFlagsValue();
 #endif
+
+#if !defined(_WIN32) && !defined(__MSYS__)
+        if (file_flags & 2) {
+            filename_char_t *link_target_path = readPayloadFilename();
+
+            // printf("Filename: " FILENAME_FORMAT_STR " symlink to " FILENAME_FORMAT_STR "\n", target_path,
+            // link_target_path);
+
+            createContainingDirectory(target_path);
+
+            unlink(target_path);
+            if (symlink(link_target_path, target_path) != 0) {
+                fatalErrorTempFileCreate(target_path);
+            }
+
+            continue;
+        }
+#endif
+        // _putws(target_path);
+        unsigned long long file_size = readPayloadSizeValue();
 
         bool needs_write = true;
 
@@ -1079,7 +1096,7 @@ int main(int argc, char **argv) {
     NUITKA_PRINT_TIMING("ONEFILE: Started slave process.");
 
     if (bool_res == false) {
-        fatalErrorChild("Error, couldn't launch child.", GetLastError());
+        fatalErrorChild("Error, couldn't launch child", GetLastError());
     }
 
     CloseHandle(pi.hThread);
@@ -1128,12 +1145,14 @@ int main(int argc, char **argv) {
 
         cleanupChildProcess(false);
 
-        fatalErrorChild("Error, couldn't launch child (fork).", error_code);
+        fatalErrorChild("Error, couldn't launch child (fork)", error_code);
+        exit_code = 2;
     } else if (pid == 0) {
         // Child process
         execv(first_filename, argv);
 
-        fatalErrorChild("Error, couldn't launch child (exec).", errno);
+        fatalErrorChild("Error, couldn't launch child (exec)", errno);
+        exit_code = 2;
     } else {
         // Onefile bootstrap process
         handle_process = pid;

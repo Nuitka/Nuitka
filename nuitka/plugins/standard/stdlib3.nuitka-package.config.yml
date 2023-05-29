@@ -88,6 +88,15 @@
       change_function:
         '_test': "'(lambda: None)'"
 
+- module-name: 'email.utils'
+  anti-bloat:
+    - description: 'avoid socket module usage'
+      replacements_plain:
+        'import socket': ''
+      change_function:
+        'make_msgid': 'un-callable'
+      when: 'not use_socket'
+
 - module-name: 'encodings'
   implicit-imports:
     - depends:
@@ -206,6 +215,14 @@
       change_function:
         '_test': "'(lambda: None)'"
 
+- module-name: 'platform'
+  implicit-imports:
+    - depends:
+        - 'subprocess'
+    - depends:
+        - 'plistlib'
+      when: 'macos'
+
 - module-name: 'pyclbr'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -234,6 +251,16 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
+  implicit-imports:
+    # TODO: The version criterion here is weak and could be tightend
+    # and with anti-bloat we could make sure it is always not using
+    # full hashlib for no reason.
+    - depends:
+        - '_sha512'
+      when: 'python310_or_higher'
+    - depends:
+        - 'hashlib'
+      when: 'before_python310'
 
 - module-name: 'shelve'
   implicit-imports:

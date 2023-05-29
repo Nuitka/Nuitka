@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -166,7 +166,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
                 CHECK_OBJECT_X(value);
 
                 if (value != NULL) {
-                    PyDict_SetItem(result, *varnames, value);
+                    DICT_SET_ITEM(result, *varnames, value);
                 }
 
                 t += sizeof(PyObject *);
@@ -179,7 +179,7 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
                 CHECK_OBJECT(value);
 
                 if (value->ob_ref != NULL) {
-                    PyDict_SetItem(result, *varnames, value->ob_ref);
+                    DICT_SET_ITEM(result, *varnames, value->ob_ref);
                 }
 
                 t += sizeof(struct Nuitka_CellObject *);
@@ -194,11 +194,11 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *nuitka_frame,
                 t += sizeof(int);
                 switch ((nuitka_bool)value) {
                 case NUITKA_BOOL_TRUE: {
-                    PyDict_SetItem(result, *varnames, Py_True);
+                    DICT_SET_ITEM(result, *varnames, Py_True);
                     break;
                 }
                 case NUITKA_BOOL_FALSE: {
-                    PyDict_SetItem(result, *varnames, Py_False);
+                    DICT_SET_ITEM(result, *varnames, Py_False);
                     break;
                 }
                 default:

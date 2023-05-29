@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,10 +28,12 @@ some handling of defaults.
 
 import fnmatch
 import os
+import re
 import shlex
 import sys
 
 from nuitka import Progress, Tracing
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.OptionParsing import parseOptions
 from nuitka.PythonFlavors import (
@@ -89,7 +91,35 @@ is_report_missing = None
 is_verbose = None
 
 
-def checkPathSpec(value, arg_name):
+def checkPathSpec(value, arg_name, allow_disable):
+    # There are never enough checks here, pylint: disable=too-many-branches
+
+    if "%NONE%" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '%%NONE%%' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "%NONE%":
+            Tracing.options_logger.sysexit(
+                "Using value '%%NONE%%' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
+    if "%NULL%" in value:
+        if not allow_disable:
+            Tracing.options_logger.sysexit(
+                "Using value '%%NULL%%' in '%s=%s' value is not allowed."
+                % (arg_name, value)
+            )
+
+        if value != "%NULL%":
+            Tracing.options_logger.sysexit(
+                "Using value '%%NULL%%' in '%s=%s' value does not allow anything else used too."
+                % (arg_name, value)
+            )
+
     if "%COMPANY%" in value and not getCompanyName():
         Tracing.options_logger.sysexit(
             "Using value '%%COMPANY%%' in '%s=%s' value without being specified."
@@ -132,7 +162,11 @@ start of '%s=%s', using that alone is not allowed."""
 
 
 def _checkOnefileTargetSpec():
-    checkPathSpec(options.onefile_tempdir_spec, arg_name="--onefile-tempdir-spec")
+    checkPathSpec(
+        options.onefile_tempdir_spec,
+        arg_name="--onefile-tempdir-spec",
+        allow_disable=False,
+    )
 
     if os.path.normpath(options.onefile_tempdir_spec) == ".":
         Tracing.options_logger.sysexit(
@@ -326,6 +360,16 @@ def parseArgs():
     # Check onefile tempdir spec.
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
+
+    if options.force_stdout_spec:
+        checkPathSpec(
+            options.force_stdout_spec, "--force-stdout-spec", allow_disable=True
+        )
+
+    if options.force_stderr_spec:
+        checkPathSpec(
+            options.force_stderr_spec, "--force-stderr-spec", allow_disable=True
+        )
 
     # Provide a tempdir spec implies onefile tempdir, even on Linux.
     # Standalone mode implies an executable, not importing "site" module, which is
@@ -628,6 +672,9 @@ want to install it."""
             "Error, path '%s' to binary to use for PGO is not executable."
             % pgo_executable
         )
+
+    # This triggers checks inside that code
+    getCompilationReportUserData()
 
 
 def commentArgs():
@@ -1043,6 +1090,13 @@ def getMustIncludeModules():
 def getMustIncludePackages():
     """*list*, items of ``--include-package=``"""
     return sum([_splitShellPattern(x) for x in options.include_packages], [])
+
+
+def getShallIncludeDistributionMetadata():
+    """*list*, items of ``--include-distribution-metadata=``"""
+    return sum(
+        [_splitShellPattern(x) for x in options.include_distribution_metadata], []
+    )
 
 
 def getShallIncludePackageData():
@@ -1547,6 +1601,11 @@ def getOnefileChildGraceTime():
     return int(options.onefile_child_grace_time)
 
 
+def shallNotCompressOnefile():
+    """*bool* = ``--onefile-no-compression``"""
+    return options.onefile_no_compression
+
+
 def getIconPaths():
     """*list of str*, values of ``--windows-icon-from-ico`` and ``--linux-onefile-icon``"""
 
@@ -1970,6 +2029,46 @@ def getCompilationReportTemplates():
         result.append(value.split(":", 1))
 
     return tuple(result)
+
+
+def getCompilationReportUserData():
+    result = OrderedDict()
+
+    for desc in options.compilation_report_user_data:
+        if "=" not in desc:
+            Tracing.options_logger.sysexit(
+                "Error, user report data must be of key=value form not '%s'." % desc
+            )
+
+        key, value = desc.split("=", 1)
+
+        if key in result and value != result[key]:
+            Tracing.options_logger.sysexit(
+                "Error, user report data key '%s' has been given conflicting values '%s' and '%s'."
+                % (
+                    key,
+                    result[key],
+                    value,
+                )
+            )
+
+        if not re.match(
+            r"^([_a-z][\w]?|[a-w_yz][\w]{2,}|[_a-z][a-l_n-z\d][\w]+|[_a-z][\w][a-k_m-z\d][\w]*)$",
+            key,
+        ):
+            Tracing.options_logger.sysexit(
+                "Error, user report data key '%s' is not valid as an XML tag, and therefore cannot be used."
+                % key
+            )
+
+        result[key] = value
+
+    return result
+
+
+def shallCreateDiffableCompilationReport():
+    """*bool*" derived from --report-diffable"""
+    return options.compilation_report_diffable
 
 
 def getUserProvidedYamlFiles():

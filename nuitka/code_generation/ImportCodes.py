@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -388,7 +388,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
         %(import_level)s
     );
 } else {
-    %(to_name)s = IMPORT_NAME(%(from_arg_name)s, %(import_name)s);
+    %(to_name)s = IMPORT_NAME_FROM_MODULE(%(from_arg_name)s, %(import_name)s);
 }
 """
                 % {
@@ -405,7 +405,7 @@ if (PyModule_Check(%(from_arg_name)s)) {
             )
         else:
             emit(
-                "%s = IMPORT_NAME(%s, %s);"
+                "%s = IMPORT_NAME_FROM_MODULE(%s, %s);"
                 % (
                     value_name,
                     from_arg_name,

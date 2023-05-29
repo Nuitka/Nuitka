@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,8 +18,8 @@
 """ Nuitka yaml utility functions.
 
 Because we want to work with Python2.6 or higher, we play a few tricks with
-what library to use for what Python. We have an inline copy of PyYAML that
-still does 2.6, on other Pythons, we expect the system to have it installed.
+what library to use for what Python. We have an 2 inline copy of PyYAML, one
+that still does 2.6 and one for newer Pythons.
 
 Also we put loading for specific packages in here and a few helpers to work
 with these config files.
@@ -39,7 +39,7 @@ from .FileOperations import getFileContents
 from .Importing import importFromInlineCopy
 
 
-class Yaml(object):
+class PackageConfigYaml(object):
     __slots__ = (
         "name",
         "data",
@@ -67,7 +67,7 @@ class Yaml(object):
             self.data[module_name] = item
 
     def __repr__(self):
-        return "<Yaml %s>" % self.name
+        return "<PackageConfigYaml %s>" % self.name
 
     def get(self, name, section):
         """Return a configs for that section."""
@@ -144,7 +144,7 @@ def parsePackageYaml(package_name, filename):
         if data is None:
             raise IOError("Cannot find %s.%s" % (package_name, filename))
 
-        _yaml_cache[key] = Yaml(name=filename, data=parseYaml(data))
+        _yaml_cache[key] = PackageConfigYaml(name=filename, data=parseYaml(data))
 
     return _yaml_cache[key]
 
@@ -189,7 +189,7 @@ def getYamlPackageConfiguration():
         # about it somewhat.
         for user_yaml_filename in getUserProvidedYamlFiles():
             _package_config.update(
-                Yaml(
+                PackageConfigYaml(
                     name=user_yaml_filename,
                     data=parseYaml(getFileContents(user_yaml_filename, mode="rb")),
                 )

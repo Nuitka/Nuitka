@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,8 +44,9 @@ def _filterCodesignErrorOutput(stderr):
     if b"errSecInternalComponent" in stderr:
         postprocessing_logger.sysexit(
             """\
-Access to the certificate is not allowed. Please allow all items or with
-GUI, enable prompting for the certificate in KeyChain Access."""
+Access to the specified codesign certificate was not allowed. Please \
+'allow all items' or when compiling with GUI available, enable prompting \
+for the certificate in KeyChain Access application for this certificate."""
         )
 
     return None, stderr

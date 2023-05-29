@@ -1,4 +1,4 @@
-//     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -670,15 +670,15 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
                 Py_XDECREF(old_tb);
 
                 if (old_type != saved_exception_type) {
-                    PyDict_SetItem(sys_dict, const_str_plain_exc_type, saved_exception_type);
+                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_type, saved_exception_type);
                 }
                 if (saved_exception_value != old_value) {
-                    PyDict_SetItem(sys_dict, const_str_plain_exc_value,
-                                   saved_exception_value ? saved_exception_value : Py_None);
+                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_value,
+                                  saved_exception_value ? saved_exception_value : Py_None);
                 }
                 if (saved_exception_traceback != old_tb) {
-                    PyDict_SetItem(sys_dict, const_str_plain_exc_traceback,
-                                   saved_exception_traceback ? (PyObject *)saved_exception_traceback : Py_None);
+                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_traceback,
+                                  saved_exception_traceback ? (PyObject *)saved_exception_traceback : Py_None);
                 }
             } else {
                 thread_state->exc_type = Py_None;
@@ -694,13 +694,13 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
                 Py_XDECREF(old_tb);
 
                 if (old_type != Py_None) {
-                    PyDict_SetItem(sys_dict, const_str_plain_exc_type, Py_None);
+                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_type, Py_None);
                 }
                 if (old_value != Py_None) {
-                    PyDict_SetItem(sys_dict, const_str_plain_exc_value, Py_None);
+                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_value, Py_None);
                 }
                 if (old_tb != (PyTracebackObject *)Py_None) {
-                    PyDict_SetItem(sys_dict, const_str_plain_exc_traceback, Py_None);
+                    DICT_SET_ITEM(sys_dict, const_str_plain_exc_traceback, Py_None);
                 }
             }
 #endif
