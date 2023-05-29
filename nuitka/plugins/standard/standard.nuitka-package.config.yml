@@ -4115,7 +4115,7 @@
         suffixes:
           - 'so'
       when: 'linux'
-      #i don't use macos but hope it works
+      # Hopefully this works on MacOS
     - from_filenames:
         relative_path: 'dependencies'
         prefixes:
