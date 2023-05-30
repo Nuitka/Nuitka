@@ -139,6 +139,8 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
             self.handled_modules[ModuleName(module_name)] = mode
 
+        self.warnings_given = set()
+
     def getCacheContributionValues(self, module_name):
         config = self.config.get(module_name, section="anti-bloat")
 
@@ -471,16 +473,23 @@ which can and should be a top level package and then one choice, "error",
                     )
                     and source_ref is not None
                 ):
-
-                    self.warning(
-                        "Undesirable import of '%s' in '%s' (at '%s') encountered. It may slow down compilation."
-                        % (
-                            handled_module_name,
-                            using_module.getFullName(),
-                            source_ref.getAsString(),
-                        ),
-                        mnemonic="unwanted-module",
+                    key = (
+                        handled_module_name,
+                        using_module,
+                        source_ref.getLineNumber(),
                     )
+                    if key not in self.warnings_given:
+                        self.warning(
+                            "Undesirable import of '%s' in '%s' (at '%s') encountered. It may slow down compilation."
+                            % (
+                                handled_module_name,
+                                using_module.getFullName(),
+                                source_ref.getAsString(),
+                            ),
+                            mnemonic="unwanted-module",
+                        )
+
+                        self.warnings_given.add(key)
 
     def onModuleEncounter(self, module_name, module_filename, module_kind):
         for handled_module_name, mode in self.handled_modules.items():
