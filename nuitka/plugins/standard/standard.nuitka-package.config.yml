@@ -2920,6 +2920,7 @@
   implicit-imports:
     - depends:
         - 'argparse'
+        - 'enum'
 
 - module-name: 'sip'
   implicit-imports:
