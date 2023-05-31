@@ -2906,7 +2906,7 @@
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
       dest_path: 'shapely'
-      when: 'anaconda or win32 and version("shapely") < (1,8,1)'
+      when: 'version("shapely") < (2,0) and (anaconda or win32 and version("shapely") < (1,8,1))'
   anti-bloat:
     - description: 'change geos DLL location'
       replacements_plain:
