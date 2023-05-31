@@ -974,7 +974,7 @@
     dest_path: './jpype'
     patterns:
       - '../org.jpype.jar'
-    when: 'anaconda'
+    when: 'is_conda_package("jpype")'
 
 - module-name: 'jsonrpcserver.main'
   data-files:
@@ -1201,7 +1201,7 @@
         setup_code: 'import os;import sys'
         filename_code: "os.path.join(sys.prefix, 'lib', 'libmkl_mc3.1.dylib')"
       dest_path: '.'
-      when: 'anaconda and macos'
+      when: 'is_conda_package("mkl") and macos'
 
 - module-name: 'mmcv.utils'
   anti-bloat:
@@ -1346,7 +1346,7 @@
            for filename in os.listdir(library_path)
            if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
       dest_path: '.'
-      when: 'anaconda'
+      when: 'is_conda_package("numpy")'
 
   implicit-imports:
     - depends:
@@ -2164,7 +2164,7 @@
         when: 'plugin("pyqt5")'
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
-        when: 'macos and not anaconda and plugin("pyqt5")'
+        when: 'macos and not is_conda_package("pyqt5") and plugin("pyqt5")'
       - description: 'PyQt5 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
         when: 'macos and plugin("pyqt5")'
@@ -2900,13 +2900,13 @@
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
-      when: 'not anaconda and not win32 and version("shapely") < (2,0)'
+      when: 'not is_conda_package("shapely") and not win32 and version("shapely") < (2,0)'
     # Anaconda or Win32 are forced to specific path.
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
       dest_path: 'shapely'
-      when: 'version("shapely") < (2,0) and (anaconda or win32 and version("shapely") < (1,8,1))'
+      when: 'version("shapely") < (2,0) and (is_conda_package("shapely") or win32 and version("shapely") < (1,8,1))'
   anti-bloat:
     - description: 'change geos DLL location'
       replacements_plain:
@@ -3537,6 +3537,12 @@
         'import IPython': 'raise ImportError'
         'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
+
+- module-name: 'sympy.utilities.decorator'
+  anti-bloat:
+    - description: 'remove sympy.testing reference'
+      change_function:
+        'skiptests': 'un-callable'
 
 - module-name: 'tables'
   anti-bloat:

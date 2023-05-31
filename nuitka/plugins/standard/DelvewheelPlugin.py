@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Support for pyzmq, details in below class definitions.
+""" Support for delvewheel, details in below class definitions.
 
 """
 
@@ -24,9 +24,10 @@ import re
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.utils.FileOperations import getFileList
 
-# spell-checker: ignore delvewheel,pyzmq
+# spell-checker: ignore delvewheel
 
 
 class NuitkaPluginDelvewheel(NuitkaPluginBase):
@@ -78,15 +79,11 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
 
         delvewheel_version = match.group(2).replace("_", ".")
 
-        self.info(
-            "Detected usage of 'delvewheel' version '%s' in module '%s'."
-            % (delvewheel_version, module_name.asString())
-        )
-
         code = match.group(1)
 
         code = code.replace("os.add_dll_directory", "add_dll_directory")
         code = code.replace("sys.version_info[:2] >= (3, 8)", "True")
+        code = code.replace("sys.version_info[:2] >= (3, 10)", "True")
 
         self.dll_directory = None
 
@@ -101,9 +98,18 @@ class NuitkaPluginDelvewheel(NuitkaPluginBase):
         # We believe this should be the easiest, pylint: disable=exec-used
         exec(code, exec_globals)
 
-        # Copy it over.
-        assert self.dll_directory is not None, module_name
+        # Copy it over. For Anaconda we allow exceptions, when it's not an
+        # Anaconda package, but a PyPI package, those mixes are acting strange.
+        if not isAnacondaPython():
+            assert self.dll_directory is not None, module_name
+
         self.dll_directories[module_name] = self.dll_directory
+
+        if self.dll_directories[module_name]:
+            self.info(
+                "Detected usage of 'delvewheel' version '%s' in module '%s'."
+                % (delvewheel_version, module_name.asString())
+            )
 
     def getExtraDlls(self, module):
         full_name = module.getFullName()

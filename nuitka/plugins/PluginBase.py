@@ -63,6 +63,7 @@ from nuitka.Options import (
 from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
 from nuitka.PythonVersions import getSupportedPythonVersions, python_version
 from nuitka.Tracing import plugins_logger
+from nuitka.utils.Distributions import isDistributionCondaPackage
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.ModuleNames import (
     ModuleName,
@@ -1109,6 +1110,7 @@ except ImportError:
                 "win32": isWin32Windows(),
                 "linux": isLinux(),
                 "anaconda": isAnacondaPython(),
+                "is_conda_package": isDistributionCondaPackage,
                 "debian_python": isDebianPackagePython(),
                 "standalone": isStandaloneMode(),
                 "module_mode": shallMakeModule(),
