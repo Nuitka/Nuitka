@@ -32,6 +32,7 @@ import inspect
 import os
 import sys
 
+from nuitka import Options
 from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
@@ -1151,6 +1152,9 @@ except ImportError:
         try:
             result = eval(condition, context)
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            if Options.is_debug:
+                raise
+
             self.sysexit(
                 "Error, failed to evaluate condition '%s' in this context, exception was '%s'."
                 % (condition, e)
