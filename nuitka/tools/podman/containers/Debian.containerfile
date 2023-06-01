@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -17,19 +16,21 @@
 #     limitations under the License.
 #
 
-""" Launcher for pylint checker tool.
+FROM debian:stable-slim
+ENV container docker
 
-"""
+VOLUME [ "/sys/fs/cgroup" ]
 
-import os
-import sys
+# Install what we use for CI generally
+COPY requirements-devel.txt /etc/requirements-devel.txt
+RUN mkdir /src
+RUN apt-get update && apt-get install -y gcc python2 python2-dev python3 python3-dev python3-pip git twine rst2pdf help2man chrpath dput lintian gdb strace ccache
+RUN python3 -m pip install -U -r /etc/requirements-devel.txt wheel
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought to be there.
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
+ADD https://bootstrap.pypa.io/pip/2.7/get-pip.py /var/tmp/get-pip.py
+RUN python2 /var/tmp/get-pip.py
+RUN python2 -m pip install -U -r /etc/requirements-devel.txt
 
-# isort:start
-
-from nuitka.tools.quality.pylint.__main__ import main
-
-main()
+# Clean up APT when done.
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# CMD ["/usr/sbin/init"]

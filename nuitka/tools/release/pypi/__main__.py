@@ -22,11 +22,12 @@
 import os
 import shutil
 import sys
+from optparse import OptionParser
 
 from nuitka.tools.environments.Virtualenv import withVirtualenv
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.InstalledPythons import findInstalledPython
 from nuitka.Version import getNuitkaVersion
 
@@ -62,10 +63,35 @@ def main():
 
     branch_name = checkBranchName()
 
-    check_mode = "--check" in sys.argv
+    parser = OptionParser()
+
+    parser.add_option(
+        "--token",
+        action="store",
+        dest="token",
+        help="""
+Token to use for upload.
+""",
+    )
+
+    parser.add_option(
+        "--check",
+        action="store_true",
+        dest="check",
+        help="""
+Do not update the the container, use it if updating was done recently.
+""",
+    )
+
+    options, positional_args = parser.parse_args()
+
+    if positional_args:
+        tools_logger.sysexit(
+            "This command takes no positional arguments, check help output."
+        )
 
     # Only real main releases so far.
-    if not check_mode:
+    if not options.check:
         assert branch_name == "main", branch_name
         assert "pre" not in nuitka_version and "rc" not in nuitka_version
 
@@ -92,6 +118,7 @@ def main():
     )
     assert os.system("gzip -9 dist/Nuitka*.tar") == 0
 
+    # Test with these Pythons if the installed package would work.
     pythons = [
         findInstalledPython(
             python_versions=("2.7",), module_name=None, module_version=None
@@ -106,9 +133,15 @@ def main():
 
     assert os.system("twine check dist/*") == 0
 
-    if not check_mode:
+    if not options.check:
         my_print("Uploading source dist")
-        assert os.system("twine upload dist/*") == 0
+        assert (
+            os.system(
+                "twine upload --username=__token__ --password=%s dist/* "
+                % options.token
+            )
+            == 0
+        )
         my_print("Uploaded.")
     else:
         my_print("Checked OK, but not uploaded.")

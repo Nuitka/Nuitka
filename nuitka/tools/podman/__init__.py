@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,20 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-""" Launcher for pylint checker tool.
-
-"""
-
-import os
-import sys
-
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought to be there.
-sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
-
-# isort:start
-
-from nuitka.tools.quality.pylint.__main__ import main
-
-main()
+""" Dummy file to make this directory a package. """
