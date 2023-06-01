@@ -1095,7 +1095,7 @@ own code, here is what you can do:
       return result
 
 Compiled functions cannot be used to create uncompiled ones from, so the
-above code, will not work. However, there is a dedicated ``clone``
+above code will not work. However, there is a dedicated ``clone``
 method, that is specific to them, so use this instead.
 
 .. code:: python
