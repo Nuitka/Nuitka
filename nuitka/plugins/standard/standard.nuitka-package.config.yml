@@ -1919,6 +1919,11 @@
     patterns:
       - '*.txt'
 
+- module-name: 'pint.util'
+  anti-bloat:
+    - description: 'workaround __new__ decorator issue'
+      append_plain: 'SharedRegistryObject.__new__ = staticmethod(SharedRegistryObject.__new__)'
+
 - module-name: 'pkg_resources'
   anti-bloat:
     - description: 'avoid using plistlib dependency on non-macOS'
