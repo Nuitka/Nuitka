@@ -286,6 +286,7 @@
         "sourcery",
         "ssizeargfunc",
         "startswith",
+        "staticmethod",
         "stdlib",
         "strchr",
         "subclasscheck",
