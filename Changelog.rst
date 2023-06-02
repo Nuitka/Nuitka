@@ -10,6 +10,85 @@ Nuitka blog.
  Nuitka Release 1.7 (Draft)
 ****************************
 
+Bug fixes
+=========
+
+-  Python3.11: An MSVC will not work before 14.3 (2022), point it out to
+   the user an ignore older versions. Fixed in 1.6.1 already.
+
+-  Standalone: Added support for the ``pint`` package. Fixed in 1.6.1
+   already.
+
+-  Standalone: Added missing standard library dependency for
+   ``statistics``. Fixed in 1.6.1 already.
+
+-  Compatibility: Fix, the ``transformers`` auto models were copying
+   invalid bytecode from compiled functions. Added workaround to use
+   compiled function ``.clone()`` method. Fixed in 1.6.1 already.
+
+-  Compatibility: Added workaround for ``scipy.optimize.cobyla``
+   package. Fixed in 1.6.1 already.
+
+-  Anaconda: Detect Anaconda package from ``conda install`` vs. PyPI
+   package from ``pip install``, the specifics should only be applied to
+   those. Adapted our configurations to make the difference. Fixed in
+   1.6.1 already.
+
+-  Anaconda: Do not search DLLs for newer ``shapely`` versions. Fixed in
+   1.6.1 already.
+
+-  Standalone: Add new implicit dependencies for ``pycrytodome.ECC``
+   module. Fixed in 1.6.1 already.
+
+-  Standalone: Fix ``tls_client`` for Linux by not non-Linux DLLs. Fixed
+   in 1.6.1 already.
+
+-  MacOS: When using ``--macos-app-name``, the executable name of a
+   bundle could become wrong and prevent the launch of the program. Now
+   uses the actual executable name. Fixed in 1.6.1 already.
+
+New Features
+============
+
+-  Plugins: Added ability to query if a package in an Anaconda package
+   or not, with the new ``is_conda_package()`` function in Nuitka
+   package configuration. Added in 1.6.1 already.
+
+Optimization
+============
+
+-  Standalone: Include only platform DLLs for ``tls_client`` rather than
+   all DLLs for all platforms. Added in 1.6.1 already.
+
+Organisational
+==============
+
+-  Added ``run-inside-nuitka-container`` for use in CI scripts. With
+   this, dependencies of package building and testing from correct
+   system installation should go away.
+
+-  Release: Use upload tokens rather than PyPI password in uploads, and
+   secure the account with 2FA.
+
+-  UI: Avoid duplicate warnings for ``anti-bloat`` detected imports. In
+   case of ``from unittest import mock`` there were 2 warnings given,
+   for ``unittest`` and ``unittest.mock`` but that is superfluous.
+
+-  macOS: More beginner friendly version of Apple Python standalone
+   error. They won't know why it is, and where to get a working Python
+   version, so we explain more and added a download link.
+
+-  Scons: Consider only 5 minutes slow for a module compilation in
+   backend. Many machines are busy or slow by nature, so don't warn that
+   much.
+
+Tests
+=====
+
+-  macOS: Allow all system library frameworks to be used, not just a few
+   selected ones, there is many of them and they should all exist on
+   every system. Added in 1.6.1 already.
+
 This release is not done yet.
 
 ********************
