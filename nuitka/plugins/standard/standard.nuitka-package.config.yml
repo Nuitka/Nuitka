@@ -4328,6 +4328,20 @@
         'load_cuda_kernels': "'(lambda : False)'"
       when: 'not use_setuptools'
 
+- module-name: 'transformers.utils.doc'
+  anti-bloat:
+    - description: 'add support for compiled functions'
+      append_plain: |
+        def copy_func(f):
+            try:
+                g = f.clone()
+            except AttributeError:
+                g = types.FunctionType(f.__code__, f.__globals__, name=f.__name__, argdefs=f.__defaults__, closure=f.__closure__)
+                g = functools.update_wrapper(g, f)
+                g.__kwdefaults__ = f.__kwdefaults__
+
+            return g
+
 - module-name: 'transformers.utils.hub'
   implicit-imports:
     - depends:
