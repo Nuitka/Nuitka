@@ -974,7 +974,7 @@
     dest_path: './jpype'
     patterns:
       - '../org.jpype.jar'
-    when: 'anaconda'
+    when: 'is_conda_package("jpype")'
 
 - module-name: 'jsonrpcserver.main'
   data-files:
@@ -1201,7 +1201,7 @@
         setup_code: 'import os;import sys'
         filename_code: "os.path.join(sys.prefix, 'lib', 'libmkl_mc3.1.dylib')"
       dest_path: '.'
-      when: 'anaconda and macos'
+      when: 'is_conda_package("mkl") and macos'
 
 - module-name: 'mmcv.utils'
   anti-bloat:
@@ -1346,7 +1346,7 @@
            for filename in os.listdir(library_path)
            if filename.startswith(library_prefix)] if os.path.isdir(library_path) else []
       dest_path: '.'
-      when: 'anaconda'
+      when: 'is_conda_package("numpy")'
 
   implicit-imports:
     - depends:
@@ -1919,6 +1919,11 @@
     patterns:
       - '*.txt'
 
+- module-name: 'pint.util'
+  anti-bloat:
+    - description: 'workaround __new__ decorator issue'
+      append_plain: 'SharedRegistryObject.__new__ = staticmethod(SharedRegistryObject.__new__)'
+
 - module-name: 'pkg_resources'
   anti-bloat:
     - description: 'avoid using plistlib dependency on non-macOS'
@@ -2159,7 +2164,7 @@
         when: 'plugin("pyqt5")'
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
-        when: 'macos and not anaconda and plugin("pyqt5")'
+        when: 'macos and not is_conda_package("pyqt5") and plugin("pyqt5")'
       - description: 'PyQt5 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
         when: 'macos and plugin("pyqt5")'
@@ -2685,6 +2690,28 @@
         - 'scipy.linalg.cython_blas'
         - 'scipy.linalg.cython_lapack'
 
+- module-name: 'scipy.optimize._cobyla_py'
+  anti-bloat:
+    - replacements_plain:
+        '    info = np.zeros(4, np.float64)': |
+          #
+              info = np.zeros(4, np.float64)
+              def calcfc2(x, con):
+                  f = fun(np.copy(x), *args)
+                  i = 0
+                  for size, c in izip(cons_lengths, constraints):
+                      con[i: i + size] = c['fun'](x, *c['args'])
+                      i += size
+                  return f
+
+              calcfc = eval("lambda x, con: calcfc2(x,con)", locals())
+
+              def wrapped_callback2(x):
+                  if callback is not None:
+                      callback(np.copy(x))
+
+              wrapped_callback = eval("lambda x: wrapped_callback2(x)", locals())
+
 - module-name: 'scipy.sparse.csgraph'
   implicit-imports:
     - depends:
@@ -2895,13 +2922,13 @@
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
-      when: 'not anaconda and not win32 and version("shapely") < (2,0)'
+      when: 'not is_conda_package("shapely") and not win32 and version("shapely") < (2,0)'
     # Anaconda or Win32 are forced to specific path.
     - by_code:
         setup_code: 'import shapely.geos'
         filename_code: 'shapely.geos._lgeos._name'
       dest_path: 'shapely'
-      when: 'anaconda or win32 and version("shapely") < (1,8,1)'
+      when: 'version("shapely") < (2,0) and (is_conda_package("shapely") or win32 and version("shapely") < (1,8,1))'
   anti-bloat:
     - description: 'change geos DLL location'
       replacements_plain:
@@ -2915,6 +2942,7 @@
   implicit-imports:
     - depends:
         - 'argparse'
+        - 'enum'
 
 - module-name: 'sip'
   implicit-imports:
@@ -3532,6 +3560,12 @@
         'from IPython import get_ipython': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'sympy.utilities.decorator'
+  anti-bloat:
+    - description: 'remove sympy.testing reference'
+      change_function:
+        'skiptests': 'un-callable'
+
 - module-name: 'tables'
   anti-bloat:
     - description: 'remove tables.tests usage'
@@ -4103,10 +4137,26 @@
   dlls:
     - from_filenames:
         relative_path: 'dependencies'
-        # TODO: We might want to match OS and arches here closely, so we do not pick up
-        # unnecessary arches.
         prefixes:
           - 'tls-client'
+        suffixes:
+          - 'dll'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'dependencies'
+        prefixes:
+          - 'tls-client'
+        suffixes:
+          - 'so'
+      when: 'linux'
+      # Hopefully this works on MacOS
+    - from_filenames:
+        relative_path: 'dependencies'
+        prefixes:
+          - 'tls-client'
+        suffixes:
+          - 'dylib'
+      when: 'macos'
 
 - module-name: 'tokenizers.tools.visualizer'
   anti-bloat:
@@ -4311,6 +4361,20 @@
       change_function:
         'load_cuda_kernels': "'(lambda : False)'"
       when: 'not use_setuptools'
+
+- module-name: 'transformers.utils.doc'
+  anti-bloat:
+    - description: 'add support for compiled functions'
+      append_plain: |
+        def copy_func(f):
+            try:
+                g = f.clone()
+            except AttributeError:
+                g = types.FunctionType(f.__code__, f.__globals__, name=f.__name__, argdefs=f.__defaults__, closure=f.__closure__)
+                g = functools.update_wrapper(g, f)
+                g.__kwdefaults__ = f.__kwdefaults__
+
+            return g
 
 - module-name: 'transformers.utils.hub'
   implicit-imports:

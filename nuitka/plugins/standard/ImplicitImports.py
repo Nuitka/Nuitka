@@ -239,6 +239,8 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
             elif full_name == crypto_module_name + ".PublicKey.ECC":
                 yield crypto_module_name + ".PublicKey._ec_ws"
+                yield crypto_module_name + ".PublicKey._ed25519"
+                yield crypto_module_name + ".PublicKey._ed448"
 
             elif full_name == crypto_module_name + ".Cipher.ARC4":
                 yield crypto_module_name + ".Cipher._ARC4"

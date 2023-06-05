@@ -653,7 +653,11 @@ want to install it."""
     if isApplePython():
         if isStandaloneMode():
             Tracing.options_logger.sysexit(
-                "Error, for standalone mode, Apple Python from macOS is not supported, use e.g. CPython instead."
+                """\
+Error, on macOS, for standalone mode, Apple Python is not supported \
+due to being tied to specific OS releases, use e.g. CPython instead \
+which is available from https://www.python.org/downloads/macos/ for \
+download. With that, your program will work on macOS 10.9 or higher."""
             )
 
         if str is bytes:

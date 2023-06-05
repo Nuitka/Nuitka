@@ -813,16 +813,23 @@ BOOL WINAPI ourConsoleCtrlHandler(DWORD fdwCtrlType) {
 void ourConsoleCtrlHandler(int sig) { cleanupChildProcess(false); }
 #endif
 
-#if _NUITKA_ONEFILE_SPLASH_SCREEN
-#include "OnefileSplashScreen.cpp"
-#endif
-
 #if _NUITKA_AUTO_UPDATE_BOOL && !defined(__IDE_ONLY__)
 #include "nuitka_onefile_auto_updater.h"
 #endif
 
 #if _NUITKA_AUTO_UPDATE_BOOL
 extern bool exe_file_updatable;
+#endif
+
+#ifdef _NUITKA_ONEFILE_SPLASH_SCREEN
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern void initSplashScreen(void);
+extern void checkSplashScreen(void);
+#ifdef __cplusplus
+}
+#endif
 #endif
 
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT

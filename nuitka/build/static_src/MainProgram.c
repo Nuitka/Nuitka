@@ -111,7 +111,7 @@ static environment_char_t const *getEnvironmentVariable(char const *name) {
     wchar_t buffer[32768];
     buffer[0] = 0;
 
-    wchar_t name_wide[20];
+    wchar_t name_wide[40];
     name_wide[0] = 0;
     appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
 
@@ -129,7 +129,7 @@ static void setEnvironmentVariable(char const *name, environment_char_t const *v
     assert(name != NULL);
     assert(value != NULL);
 
-    wchar_t name_wide[20];
+    wchar_t name_wide[40];
     name_wide[0] = 0;
     appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
 
@@ -140,7 +140,7 @@ static void setEnvironmentVariable(char const *name, environment_char_t const *v
 }
 
 static void unsetEnvironmentVariable(char const *name) {
-    wchar_t name_wide[20];
+    wchar_t name_wide[40];
     name_wide[0] = 0;
     appendStringSafeW(name_wide, name, sizeof(name_wide) / sizeof(wchar_t));
 

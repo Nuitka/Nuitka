@@ -18,6 +18,7 @@
 """ Tools for accessing distributions and resolving package names for them. """
 
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
 
 from .ModuleNames import ModuleName, checkModuleName
@@ -26,6 +27,7 @@ _package_to_distribution = None
 
 
 def getDistributionTopLevelPackageNames(distribution):
+    """Returns the top level package names for a distribution."""
     top_level_txt = distribution.read_text("top_level.txt")
 
     if top_level_txt:
@@ -97,6 +99,7 @@ def getDistributionsFromModuleName(module_name):
 
 
 def getDistribution(distribution_name):
+    """Get a distribution by name."""
     try:
         if python_version >= 0x380:
             from importlib import metadata
@@ -113,6 +116,28 @@ def getDistribution(distribution_name):
         dists = getDistributionsFromModuleName(distribution_name)
 
         if len(dists) == 1:
-            return dists.values[0]
+            return dists[0]
 
         return None
+
+
+_distribution_to_conda_package = {}
+
+
+def isDistributionCondaPackage(distribution_name):
+    if not isAnacondaPython():
+        return False
+
+    if distribution_name not in _distribution_to_conda_package:
+        distribution = getDistribution(distribution_name)
+
+        if distribution is None:
+            _distribution_to_conda_package[distribution_name] = False
+        else:
+            installer_txt = distribution.read_text("INSTALLER") or ""
+
+            _distribution_to_conda_package[distribution_name] = (
+                installer_txt.upper() == "CONDA"
+            )
+
+    return _distribution_to_conda_package[distribution_name]
