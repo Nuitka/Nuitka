@@ -458,6 +458,16 @@ def discoverSourceFiles():
         )
     )
 
+    if onefile_splash_screen:
+        result.append(
+            provideStaticSourceFile(
+                sub_path="OnefileSplashScreen.cpp",
+                nuitka_src=nuitka_src,
+                source_dir=source_dir,
+                c11_mode=False,
+            )
+        )
+
     return result
 
 

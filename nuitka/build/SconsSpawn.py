@@ -77,8 +77,8 @@ def runProcessMonitored(cmdline, env):
     thread = SubprocessThread(cmdline, env)
     thread.start()
 
-    # Allow a minute before warning for long compile time.
-    thread.join(60)
+    # Allow 5 minutes before warning for long compile time.
+    thread.join(360)
 
     if thread.is_alive():
         reportSlowCompilation(cmdline, thread.timer_report.getTimer().getDelta())
@@ -346,8 +346,8 @@ def runSpawnMonitored(sh, cmd, args, env):
     thread = SpawnThread(sh, cmd, args, env)
     thread.start()
 
-    # Allow a minute before warning for long compile time.
-    thread.join(60)
+    # Allow 5 minutes before warning for long compile time.
+    thread.join(360)
 
     if thread.is_alive():
         reportSlowCompilation(cmd, thread.timer_report.getTimer().getDelta())

@@ -17,18 +17,20 @@
 //
 // Creates a stream object initialized with the data from an executable resource.
 
-#ifdef __IDE_ONLY__
-#include "HelpersSafeStrings.c"
-#include "nuitka/tracing.h"
-#include <windows.h>
-#endif
-
-#include <assert.h>
-#include <wincodec.h>
-
 #ifdef __MINGW32__
 #error "No support for splash screens with MinGW64 yet, only works with MSVC. Somebody please make it portable."
 #endif
+
+#include <shlwapi.h>
+#include <wincodec.h>
+#include <windows.h>
+
+#include <assert.h>
+
+extern "C" {
+#include "nuitka/safe_string_ops.h"
+#include "nuitka/tracing.h"
+};
 
 IStream *createImageStream(void) {
 
@@ -191,7 +193,7 @@ HWND splash_window = 0;
 static wchar_t splash_indicator_path[4096] = {0};
 bool splash_active = false;
 
-static void initSplashScreen(void) {
+extern "C" void initSplashScreen(void) {
     CoInitialize(NULL);
     IStream *image_stream = createImageStream();
     if (image_stream == NULL) {
@@ -233,7 +235,7 @@ static void closeSplashScreen(void) {
     }
 }
 
-static bool checkSplashScreen(void) {
+extern "C" bool checkSplashScreen(void) {
     if (splash_active) {
         if (!PathFileExistsW(splash_indicator_path)) {
             closeSplashScreen();

@@ -240,6 +240,9 @@ version for lto mode (>= 4.6). Disabled."""
     _enablePgoSettings(env, pgo_mode)
 
 
+_python311_min_msvc_version = (14, 3)
+
+
 def checkWindowsCompilerFound(
     env, target_arch, clang_mode, msvc_version, assume_yes_for_downloads
 ):
@@ -318,6 +321,27 @@ C compiler ('%s' -> '%s') arches, that compiler is ignored!"""
                 scons_logger.info(
                     "Failed to find requested MSVC version ('%s' != '%s')."
                     % (msvc_version, getMsvcVersionString(env))
+                )
+
+                # This will trigger error exit in branch below.
+                compiler_path = None
+                env["CC"] = None
+
+        # For Python3.11
+        if compiler_path is not None:
+            if (
+                # This is actually OK to use like this, pylint: disable=bad-chained-comparison
+                None is not env.python_version >= (3, 11)
+                and getMsvcVersion(env) < _python311_min_msvc_version
+            ):
+                scons_logger.info(
+                    """\
+For Python version %s MSVC %s or later is required, not %s which is too old."""
+                    % (
+                        ".".join(str(d) for d in env.python_version),
+                        ".".join(str(d) for d in _python311_min_msvc_version),
+                        getMsvcVersionString(env),
+                    )
                 )
 
                 # This will trigger error exit in branch below.

@@ -248,7 +248,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     # Add the "staticmethod" decorator to __new__ methods if not provided.
 
-    # CPython made these optional, but secretly applies them when it does
+    # CPython 2.x made these optional, but secretly applies them when it does
     # "class __new__".  We add them earlier, so our optimization will see it.
     if (
         python_version < 0x300
