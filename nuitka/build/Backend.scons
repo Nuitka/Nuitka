@@ -795,8 +795,15 @@ if module_mode:
         assert False, env.the_cc_name
 else:
     if env.msvc_mode:
-        env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
-
+        # For complete outputs, we have to match the C runtime of the Python DLL, if any,
+        # for Nuitka-Python there is of course none.
+        if not env.nuitka_python and (
+            forced_stdout_path not in ("%NONE%", "%NULL%", None)
+            or forced_stderr_path not in ("%NONE%", "%NULL%", None)
+        ):
+            env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
+        else:
+            env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 if module_mode:
     env.Append(CPPDEFINES=["_NUITKA_MODULE"])

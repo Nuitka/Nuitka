@@ -48,6 +48,18 @@
 #define NUITKA_MAIN_MODULE_NAME "__main__"
 #endif
 
+// It doesn't work for MinGW64 to update the standard output handles early on,
+// so make a difference here.
+#if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
+#if defined(__MINGW64__) || defined(__MINGW32__)
+#define NUITKA_STANDARD_HANDLES_EARLY 0
+#else
+#define NUITKA_STANDARD_HANDLES_EARLY 1
+#endif
+#else
+#define NUITKA_STANDARD_HANDLES_EARLY 0
+#endif
+
 extern PyCodeObject *codeobj_main;
 
 /* For later use in "Py_GetArgcArgv" we expose the needed value  */
@@ -713,34 +725,6 @@ static char **getCommandLineToArgvA(char *lpCmdline) {
 int _dowildcard = 0;
 #endif
 
-#if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
-#ifdef _WIN32
-static PyObject *getExpandedTemplatePath(wchar_t const *template_path) {
-    wchar_t filename_buffer[1024];
-    bool res = expandTemplatePathW(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(wchar_t));
-
-    if (res == false) {
-        puts("Error, couldn't expand pattern:");
-        abort();
-    }
-
-    return NuitkaUnicode_FromWideChar(filename_buffer, -1);
-}
-#else
-static PyObject *getExpandedTemplatePath(char const *template) {
-    char filename_buffer[1024];
-    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer));
-
-    if (res == false) {
-        printf("Error, couldn't expand pattern: %s\n", template);
-        abort();
-    }
-
-    return Nuitka_String_FromString(filename_buffer);
-}
-#endif
-#endif
-
 #ifdef _WIN32
 static void setStdFileHandleNumber(DWORD std_handle_id, PyObject *file_handle) {
     PyObject *file_no_value = CALL_METHOD_NO_ARGS(file_handle, const_str_plain_fileno);
@@ -817,6 +801,36 @@ static void setStderrHandle(PyObject *stderr_file) {
 #endif
 }
 
+#if NUITKA_STANDARD_HANDLES_EARLY == 0
+#if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
+#ifdef _WIN32
+static PyObject *getExpandedTemplatePath(wchar_t const *template_path) {
+    wchar_t filename_buffer[1024];
+    bool res = expandTemplatePathW(filename_buffer, template_path, sizeof(filename_buffer) / sizeof(wchar_t));
+
+    if (res == false) {
+        puts("Error, couldn't expand pattern:");
+        abort();
+    }
+
+    return NuitkaUnicode_FromWideChar(filename_buffer, -1);
+}
+#else
+static PyObject *getExpandedTemplatePath(char const *template) {
+    char filename_buffer[1024];
+    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer));
+
+    if (res == false) {
+        printf("Error, couldn't expand pattern: %s\n", template);
+        abort();
+    }
+
+    return Nuitka_String_FromString(filename_buffer);
+}
+#endif
+#endif
+#endif
+
 static void setInputOutputHandles(void) {
     // We support disabling the stdout/stderr through options as well as
     // building for GUI on Windows, which has inputs disabled by default, this
@@ -826,6 +840,80 @@ static void setInputOutputHandles(void) {
     // This defaults to "utf-8" internally. We may add an argument of use
     // platform ones in the future.
     PyObject *encoding = NULL;
+
+// Reconfigure stdout for line buffering, for mixing traces and Python IO
+// better, and force it to utf-8, it often becomes platform IO for no good
+// reason.
+#if NUITKA_STANDARD_HANDLES_EARLY == 1 && PYTHON_VERSION >= 0x370
+#if defined(NUITKA_FORCED_STDOUT_PATH) || defined(NUITKA_FORCED_STDERR_PATH)
+    PyObject *args = MAKE_DICT_EMPTY();
+
+    DICT_SET_ITEM(args, const_str_plain_encoding, Nuitka_String_FromString("utf-8"));
+    DICT_SET_ITEM(args, const_str_plain_line_buffering, Py_True);
+
+#if defined(NUITKA_FORCED_STDOUT_PATH)
+    {
+        PyObject *sys_stdout = Nuitka_SysGetObject("stdout");
+
+        PyObject *method = LOOKUP_ATTRIBUTE(sys_stdout, const_str_plain_reconfigure);
+        CHECK_OBJECT(method);
+
+        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(method, args);
+        CHECK_OBJECT(result);
+    }
+#endif
+
+#if defined(NUITKA_FORCED_STDERR_PATH)
+    {
+        PyObject *sys_stderr = Nuitka_SysGetObject("stderr");
+
+        PyObject *method = LOOKUP_ATTRIBUTE(sys_stderr, const_str_plain_reconfigure);
+        CHECK_OBJECT(method);
+
+        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(method, args);
+        CHECK_OBJECT(result);
+    }
+#endif
+
+    Py_DECREF(args);
+#endif
+#endif
+
+#if NUITKA_STANDARD_HANDLES_EARLY == 0
+#if defined(NUITKA_FORCED_STDOUT_PATH)
+    {
+#ifdef _WIN32
+        PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDOUT_PATH);
+#else
+        PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
+#endif
+        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
+        if (unlikely(stdout_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        setStdoutHandle(stdout_file);
+    }
+#endif
+
+#if defined(NUITKA_FORCED_STDERR_PATH)
+    {
+#ifdef _WIN32
+        PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDERR_PATH);
+#else
+        PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
+#endif
+        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", false, encoding);
+        if (unlikely(stderr_file == NULL)) {
+            PyErr_PrintEx(1);
+            Py_Exit(1);
+        }
+
+        setStderrHandle(stderr_file);
+    }
+#endif
+#endif
 
     {
 #if defined(_WIN32)
@@ -857,46 +945,12 @@ static void setInputOutputHandles(void) {
         Py_DECREF(devnull_filename);
     }
 
-#if defined(NUITKA_FORCED_STDOUT_PATH)
-    {
-#ifdef _WIN32
-        PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDOUT_PATH);
-#else
-        PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDOUT_PATH);
-#endif
-        PyObject *stdout_file = BUILTIN_OPEN_SIMPLE(filename, "w", SYSFLAG_UNBUFFERED != 1, encoding);
-        if (unlikely(stdout_file == NULL)) {
-            PyErr_PrintEx(1);
-            Py_Exit(1);
-        }
-
-        setStdoutHandle(stdout_file);
-    }
-#endif
-
 #if NUITKA_FORCED_STDOUT_NONE_BOOL
     setStdoutHandle(Py_None);
 #endif
 
 #if NUITKA_FORCED_STDERR_NONE_BOOL
     setStderrHandle(Py_None);
-#endif
-
-#if defined(NUITKA_FORCED_STDERR_PATH)
-    {
-#ifdef _WIN32
-        PyObject *filename = getExpandedTemplatePath(L"" NUITKA_FORCED_STDERR_PATH);
-#else
-        PyObject *filename = getExpandedTemplatePath(NUITKA_FORCED_STDERR_PATH);
-#endif
-        PyObject *stderr_file = BUILTIN_OPEN_SIMPLE(filename, "w", false, encoding);
-        if (unlikely(stderr_file == NULL)) {
-            PyErr_PrintEx(1);
-            Py_Exit(1);
-        }
-
-        setStderrHandle(stderr_file);
-    }
 #endif
 
     Py_XDECREF(encoding);
@@ -957,6 +1011,115 @@ static void Nuitka_Py_Initialize(void) {
 #endif
 }
 
+#include <fcntl.h>
+
+#if NUITKA_STANDARD_HANDLES_EARLY == 1
+#if defined(_WIN32)
+
+static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, filename_char_t const *template) {
+    filename_char_t filename_buffer[1024];
+
+    // TODO: We should only have one that works with filename_char_t rather than having
+    // to make a difference here.
+#ifdef _WIN32
+    bool res = expandTemplatePathW(filename_buffer, template, sizeof(filename_buffer) / sizeof(filename_char_t));
+
+    if (res == false) {
+        wprintf(L"Error, couldn't expand pattern '%lS'\n", template);
+        abort();
+    }
+#else
+    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer) / sizeof(filename_char_t));
+
+    if (res == false) {
+        printf("Error, couldn't expand pattern: '%s'\n", template);
+        abort();
+    }
+#endif
+
+    if (GetStdHandle(std_handle_id) == 0) {
+        FILE *file_handle;
+
+        if (std_handle_id == STD_INPUT_HANDLE) {
+            file_handle = _wfreopen(filename_buffer, L"rb", std_handle);
+        } else {
+            file_handle = _wfreopen(filename_buffer, L"wb", std_handle);
+        }
+
+        if (file_handle == NULL) {
+            perror("_wfreopen");
+            abort();
+        }
+
+        BOOL r = SetStdHandle(std_handle_id, (HANDLE)_get_osfhandle(fileno(file_handle)));
+        assert(r);
+
+        *std_handle = *file_handle;
+
+        assert(fileno(file_handle) == fileno(std_handle));
+
+        int stdout_dup = dup(fileno(std_handle));
+        if (stdout_dup >= 0) {
+            close(stdout_dup);
+        }
+
+        DWORD mode = 0;
+        if (GetConsoleMode((HANDLE)_get_osfhandle(fileno(std_handle)), &mode)) {
+            exit(66);
+        }
+    } else {
+        HANDLE w = CreateFileW(filename_buffer, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+                               CREATE_ALWAYS, 0, NULL);
+        BOOL r = SetStdHandle(std_handle_id, w);
+        assert(r);
+
+        int os_handle = _open_osfhandle((intptr_t)GetStdHandle(std_handle_id), O_WRONLY | O_TEXT);
+        if (os_handle == -1) {
+            perror("_open_osfhandle");
+            abort();
+        }
+
+        int int_res = dup2(os_handle, fileno(std_handle));
+
+        // Without a console, this is normal.
+        if (int_res == -1) {
+            perror("_open_osfhandle");
+            abort();
+        }
+
+        close(os_handle);
+    }
+
+    setvbuf(std_handle, NULL, _IOLBF, 4096);
+}
+#else
+static void changeStandardHandleTarget(FILE *std_handle, filename_char_t const *template) {
+    filename_char_t filename_buffer[1024];
+
+    bool res = expandTemplatePath(filename_buffer, template, sizeof(filename_buffer) / sizeof(filename_char_t));
+
+    if (res == false) {
+        printf("Error, couldn't expand pattern: '%s'\n", template);
+        abort();
+    }
+
+    int os_handle = open(filename_buffer, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (os_handle == -1) {
+        perror("open");
+        abort();
+    }
+
+    int int_res = dup2(os_handle, fileno(std_handle));
+    if (int_res == -1) {
+        perror("dup2");
+        abort();
+    }
+
+    close(os_handle);
+}
+#endif
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t *lpCmdLine, int nCmdShow) {
     /* MSVC, MINGW64 */
@@ -969,8 +1132,31 @@ int wmain(int argc, wchar_t **argv) {
 int main(int argc, char **argv) {
 #endif
 #endif
-    NUITKA_PRINT_TIMING("main(): Entered.");
-    NUITKA_INIT_PROGRAM_EARLY(argc, argv);
+
+    // First things, set up stdout/stderr according to user specification.
+#if NUITKA_STANDARD_HANDLES_EARLY == 1
+#if defined(NUITKA_FORCED_STDOUT_PATH)
+#ifdef _WIN32
+    changeStandardHandleTarget(STD_OUTPUT_HANDLE, stdout, L"" NUITKA_FORCED_STDOUT_PATH);
+#else
+    changeStandardHandleTarget(stdout, NUITKA_FORCED_STDOUT_PATH);
+#endif
+#endif
+#if defined(NUITKA_FORCED_STDERR_PATH)
+#ifdef _WIN32
+    changeStandardHandleTarget(STD_ERROR_HANDLE, stderr, L"" NUITKA_FORCED_STDERR_PATH);
+#else
+    changeStandardHandleTarget(stderr, NUITKA_FORCED_STDERR_PATH);
+#endif
+#endif
+#if defined(NUITKA_FORCED_STDIN_PATH)
+#ifdef _WIN32
+    changeStandardHandleTarget(STD_INPUT_HANDLE, stdin, L"" NUITKA_FORCED_STDIN_PATH);
+#else
+    changeStandardHandleTarget(stdin, NUITKA_FORCED_STDIN_PATH);
+#endif
+#endif
+#endif
 
 #if SYSFLAG_UNBUFFERED == 1
     setbuf(stdin, (char *)NULL);
@@ -982,6 +1168,9 @@ int main(int argc, char **argv) {
     setEnvironmentVariable("PYTHONUNBUFFERED", makeEnvironmentLiteral("1"));
 #endif
 #endif
+
+    NUITKA_PRINT_TIMING("main(): Entered.");
+    NUITKA_INIT_PROGRAM_EARLY(argc, argv);
 
 #ifdef __FreeBSD__
     /* FP exceptions run in "no stop" mode by default */
@@ -1208,7 +1397,7 @@ orig_argv = argv;
     }
 #endif
 
-    NUITKA_PRINT_TRACE("main(): Setting input/output handles.");
+    NUITKA_PRINT_TRACE("main(): Setting Python input/output handles.");
     setInputOutputHandles();
 
 #ifdef _NUITKA_STANDALONE

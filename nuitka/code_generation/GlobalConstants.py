@@ -34,7 +34,7 @@ def getConstantDefaultPopulation():
     be constructed through code.
     """
 
-    # Lots of cases, pylint: disable=too-many-branches
+    # Lots of cases, pylint: disable=too-many-branches,too-many-statements
 
     # Note: Can't work with set here, because we need to put in some values that
     # cannot be hashed.
@@ -196,7 +196,14 @@ def getConstantDefaultPopulation():
         result.append("register")
 
     if python_version >= 0x370:
+        # New class method
         result.append("__class_getitem__")
+
+    if python_version >= 0x370:
+        # Reconfiguring stdout
+        result.append("reconfigure")
+        result.append("encoding")
+        result.append("line_buffering")
 
     if python_version >= 0x3A0:
         result.append("__match_args__")
