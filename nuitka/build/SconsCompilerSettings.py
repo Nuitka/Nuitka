@@ -128,6 +128,9 @@ def _enableC11Settings(env):
         # Windows SDK shows this even in non-debug mode in C11 mode.
         env.Append(CCFLAGS=["/wd5105"])
 
+    if not c11_mode:
+        env.Append(CPPDEFINES=["_NUITKA_NON_C11_MODE"])
+
     scons_details_logger.info("Using C11 mode: %s" % c11_mode)
 
     env.c11_mode = c11_mode

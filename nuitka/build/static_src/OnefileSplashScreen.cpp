@@ -27,11 +27,14 @@
 
 #include <assert.h>
 
+#ifndef _NUITKA_NON_C11_MODE
 extern "C" {
+#endif
 #include "nuitka/safe_string_ops.h"
 #include "nuitka/tracing.h"
+#ifndef _NUITKA_NON_C11_MODE
 };
-
+#endif
 IStream *createImageStream(void) {
 
     // Load the resource with image data
