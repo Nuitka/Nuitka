@@ -21,6 +21,7 @@
 
 import os
 import shutil
+import sys
 from optparse import OptionParser
 
 from nuitka.Tracing import OurLogger
@@ -150,7 +151,13 @@ Podman binary in case you do not have it in your path.
         "--mount",
         "type=bind,source=.,dst=/src,relabel=shared",
         "--network=none",
-        "-it",
+    ]
+
+    # Interactive if possible only.
+    if sys.stdout.isatty():
+        command.append("-it")
+
+    command += [
         "nuitka-build-%s:latest" % (options.container_id.lower(),),
         "bash",
         "-l",
