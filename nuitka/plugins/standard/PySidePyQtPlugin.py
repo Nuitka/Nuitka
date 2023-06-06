@@ -61,7 +61,12 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     warned_about = set()
 
     def __init__(self, qt_plugins, no_qt_translations):
-        self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins.split(","))
+        if not qt_plugins:
+            qt_plugins = ["sensible"]
+
+        qt_plugins = sum([value.split(",") for value in qt_plugins], [])
+
+        self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins)
         self.no_qt_translations = no_qt_translations
 
         self.web_engine_done_binaries = False
@@ -92,9 +97,9 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
             "--include-qt-plugins",
-            action="store",
+            action="append",
             dest="qt_plugins",
-            default="sensible",
+            default=[],
             help="""\
 Which Qt plugins to include. These can be big with dependencies, so
 by default only the sensible ones are included, but you can also put
