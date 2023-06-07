@@ -314,7 +314,7 @@ import %(binding_name)s.QtCore
 
     def _getWebEngineExecutablePath(self):
         """Get the path to QtWebEngine binary."""
-        return self._getQtInformation().library_executables_path
+        return os.path.normpath(self._getQtInformation().library_executables_path)
 
     def getQtPluginDirs(self):
         if self.qt_plugins_dirs is not None:
@@ -842,8 +842,8 @@ Prefix = .
             if filename_relative.startswith("QtWebEngineProcess"):
                 yield self.makeExeEntryPoint(
                     source_path=filename,
-                    dest_path=os.path.join(
-                        self._getWebEngineTargetDir(), filename_relative
+                    dest_path=os.path.normpath(
+                        os.path.join(self._getWebEngineTargetDir(), filename_relative)
                     ),
                     package_name=full_name,
                     reason="needed by '%s'" % full_name.asString(),
