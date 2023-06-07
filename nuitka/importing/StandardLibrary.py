@@ -276,6 +276,7 @@ _stdlib_no_auto_inclusion_list = (
     "_lzma",
     "bz2",
     "_bz2",
+    "logging",
     "subprocess",
     "socket",
     "selectors",
