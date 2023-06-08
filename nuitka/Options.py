@@ -145,7 +145,13 @@ not do what you want it to do."""
             % (arg_name, value)
         )
 
-    for candidate in ("%PROGRAM%", "%CACHE_DIR%", "%HOME%", "%TEMP%"):
+    for candidate in (
+        "%PROGRAM%",
+        "%PROGRAM_BASE%",
+        "%CACHE_DIR%",
+        "%HOME%",
+        "%TEMP%",
+    ):
         if candidate in value[1:]:
             Tracing.options_logger.sysexit(
                 """Absolute run time path of '%s' can only be at the \
