@@ -47,8 +47,28 @@ Bug fixes
    bundle could become wrong and prevent the launch of the program. Now
    uses the actual executable name. Fixed in 1.6.1 already.
 
+-  Multidist: The docs didn't properly state the option name to use
+   which is ``--main`` and also it didn't show up in help output. Fixed
+   in 1.6.2 already.
+
 New Features
 ============
+
+-  The options for forcing outputs were renamed to
+   ``--force-stdout-spec`` and ``force-stderr-spec`` to force output to
+   files and now work on non-Windows as well. They kind of were before,
+   but e.g. ``%PROGRAM%`` was not implemented for all OSes yet.
+
+-  Capturing of all outputs now extends beyond the Python level outputs
+   is now attempting to capture C level outputs as well. These can be
+   traces of Nuitka itself, but also messages from C libraries. On
+   Windows, with MinGW64 this does not work, and it still only captures
+   MinGW64, due to limitations of using different C run-times. With MSVC
+   it works for the compiled program and C, but DLLs can have their own
+   C runtime outputs that are still not caught.
+
+-  Added new spec value ``%PROGRAM_BASE%`` which will avoid the suffix
+   ``.exe`` or ``.bin`` of binaries that ``%PROGRAM%`` will still give.
 
 -  Plugins: Added ability to query if a package in an Anaconda package
    or not, with the new ``is_conda_package()`` function in Nuitka
@@ -81,6 +101,16 @@ Organisational
 -  Scons: Consider only 5 minutes slow for a module compilation in
    backend. Many machines are busy or slow by nature, so don't warn that
    much.
+
+Cleanups
+========
+
+-  Moved OS error reporting as done in onefile binary to common code for
+   easier reuse in plugins.
+
+-  Moved helper codes for expanding paths and for getting the path to
+   the running executable to file path common code for clearer code
+   structure.
 
 Tests
 =====
@@ -6818,6 +6848,11 @@ New Features
    will be ported to other supported OSes eventually. These are most
    useful for programs run as ``--windows-disable-console`` or with
    ``--enable-plugin=windows-service``.
+
+   .. note::
+
+      These options have since been renamed to ``--force-stdout`` and
+      ``--force-stderr`` and have been made to work on all OSes.
 
 -  Windows: Added option ``--windows-onefile-tempdir-spec`` (since
    renamed to ``--onefile-tempdir-spec``) to provide the temporary
