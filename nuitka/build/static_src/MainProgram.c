@@ -399,25 +399,21 @@ static PyObject *EXECUTE_MAIN_MODULE(char const *module_name) {
 }
 
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
-extern void SvcInstall();
-extern void SvcLaunchService();
+#include "nuitka_windows_service.h"
 
 // Callback from Windows Service logic.
-DWORD WINAPI SvcStartPython(LPVOID lpParam) {
-    if (lpParam == NULL) {
-        EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
+bool SvcStartPython(void) {
+    EXECUTE_MAIN_MODULE(NUITKA_MAIN_MODULE_NAME);
 
-        // TODO: Log exception and call ReportSvcStatus
-        if (ERROR_OCCURRED()) {
-            return 1;
-        } else {
-            return 0;
-        }
+    if (ERROR_OCCURRED()) {
+        return true;
     } else {
-        PyErr_SetInterrupt();
-        return 0;
+        return false;
     }
 }
+
+void SvcStopPython(void) { PyErr_SetInterrupt(); }
+
 #endif
 
 // This is a multiprocessing fork
@@ -1070,6 +1066,11 @@ static void changeStandardHandleTarget(int std_handle_id, FILE *std_handle, file
     } else {
         HANDLE w = CreateFileW(filename_buffer, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                                CREATE_ALWAYS, 0, NULL);
+
+        if (w == INVALID_HANDLE_VALUE) {
+            printOSErrorMessage("standard handle failed to create", GetLastError());
+            abort();
+        }
         BOOL r = SetStdHandle(std_handle_id, w);
         assert(r);
 
