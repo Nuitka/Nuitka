@@ -326,6 +326,13 @@
     - depends:
         - 'mozilla-ca'
 
+- module-name: 'chromadb'
+  implicit-imports:
+    - depends:
+        - 'chromadb.telemetry.posthog'
+        - 'chromadb.api.local'
+        - 'chromadb.db.duckdb'
+
 - module-name: 'clr'
   dlls:
     - from_filenames:
