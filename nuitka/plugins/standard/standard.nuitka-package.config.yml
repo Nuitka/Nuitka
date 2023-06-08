@@ -1587,6 +1587,16 @@
         - 'osgeo._ogr'
         - 'osgeo._osr'
 
+- module-name: 'overrides.enforce'
+  anti-bloat:
+    - description: 'disable overrides function checking'
+      module_code: |
+        from abc import ABCMeta
+        class EnforceOverridesMeta(ABCMeta):
+          pass
+        class EnforceOverrides(metaclass=EnforceOverridesMeta):
+          pass
+
 - module-name: 'overrides.overrides'
   anti-bloat:
     - description: 'disable overrides function checking'
