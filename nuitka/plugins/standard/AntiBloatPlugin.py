@@ -141,11 +141,19 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         self.warnings_given = set()
 
+    def getEvaluationConditionControlTags(self):
+        return self.control_tags
+
     def getCacheContributionValues(self, module_name):
         config = self.config.get(module_name, section="anti-bloat")
 
         if config:
             yield str(config)
+
+            # TODO: Until we can change the evaluation to tell us exactly what
+            # control tag values were used, we have to make this one. We sort
+            # the values, to try and have order changes in code not matter.
+            yield str(tuple(sorted(self.handled_modules.items())))
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -379,10 +387,7 @@ which can and should be a top level package and then one choice, "error",
     def onModuleSourceCode(self, module_name, source_code):
         for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
             if self.evaluateCondition(
-                full_name=module_name,
-                condition=anti_bloat_config.get("when", "True"),
-                # Allow disabling config for a module with matching control tags.
-                control_tags=self.control_tags,
+                full_name=module_name, condition=anti_bloat_config.get("when", "True")
             ):
                 source_code = self._onModuleSourceCode(
                     module_name=module_name,

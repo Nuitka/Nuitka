@@ -57,7 +57,7 @@ from nuitka.utils.ModuleNames import (
     pre_module_load_trigger_name,
 )
 
-from .PluginBase import NuitkaPluginBase
+from .PluginBase import NuitkaPluginBase, control_tags
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
@@ -132,6 +132,8 @@ def _addActivePlugin(plugin_class, args, force=False):
     has_active_gui_toolkit_plugin = has_active_gui_toolkit_plugin or getattr(
         plugin_class, "plugin_gui_toolkit", False
     )
+
+    control_tags.update(plugin_instance.getEvaluationConditionControlTags())
 
 
 def getActivePlugins():

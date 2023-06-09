@@ -62,7 +62,10 @@ from nuitka.Options import (
     shallShowExecutedCommands,
 )
 from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
-from nuitka.PythonVersions import getSupportedPythonVersions, python_version
+from nuitka.PythonVersions import (
+    getTestExecutionPythonVersions,
+    python_version,
+)
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Distributions import isDistributionCondaPackage
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
@@ -84,6 +87,10 @@ _warned_unused_plugins = set()
 
 # TODO: Could share data cache with meta data nodes
 _package_versions = {}
+
+# Populated during plugin instance creation from their tags given by
+# "getEvaluationConditionControlTags" value.
+control_tags = {}
 
 
 def _convertVersionToTuple(version_str):
@@ -1093,7 +1100,11 @@ except ImportError:
         """Provide package version of a distribution."""
         return _getPackageVersion(distribution_name)
 
-    def evaluateCondition(self, full_name, condition, control_tags=()):
+    def getEvaluationConditionControlTags(self):
+        # Virtual method, pylint: disable=no-self-use
+        return {}
+
+    def evaluateCondition(self, full_name, condition):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
@@ -1135,7 +1146,7 @@ except ImportError:
                 }
             )
 
-        versions = getSupportedPythonVersions()
+        versions = getTestExecutionPythonVersions()
 
         for version in versions:
             big, major = version.split(".")
