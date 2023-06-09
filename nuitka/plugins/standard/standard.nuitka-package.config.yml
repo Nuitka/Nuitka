@@ -2037,6 +2037,31 @@
         - 'plotly.graph_objs.layout.*'
         - 'plotly.graph_objs.layout.*.*'
 
+- module-name: 'polars.lazyframe.frame'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.display import SVG, display': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'polars.series.utils'
+  anti-bloat:
+    - description: 'workaround for compiled method support'
+      append_plain: |
+        _orig_is_empty_method = _is_empty_method
+        def _is_empty_method(func):
+          if hasattr(func, "__compiled_constant__"):
+              return getattr(func, "__compiled_constant__") is None
+
+          return _orig_is_empty_method(func)
+
+- module-name: 'polars.utils.various'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'psutil'
   anti-bloat:
     - description: 'resolve platform specific imports at compile time'
