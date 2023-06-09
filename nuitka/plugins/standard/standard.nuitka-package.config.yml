@@ -3564,6 +3564,14 @@
     dirs:
       - 'vendor'
 
+- module-name: 'sympy'
+  anti-bloat:
+    - description: 'remove sympy.testing reference'
+      replacements_plain:
+        "'test', 'doctest',": ''
+        'from .testing import test, doctest': ''
+      when: 'not use_pytest'
+
 - module-name: 'sympy.interactive.printing'
   anti-bloat:
     - description: 'remove IPython reference'
@@ -3587,8 +3595,11 @@
 - module-name: 'sympy.utilities.decorator'
   anti-bloat:
     - description: 'remove sympy.testing reference'
+      replacements_plain:
+        'from sympy.testing.runtests import DependencyError, SymPyDocTests, PyTestReporter': ''
       change_function:
         'skiptests': 'un-callable'
+      when: 'not use_pytest'
 
 - module-name: 'tables'
   anti-bloat:
