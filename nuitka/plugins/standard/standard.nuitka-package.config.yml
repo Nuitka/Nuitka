@@ -4365,6 +4365,13 @@
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
 
+- module-name: 'transformers.integrations'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from transformers.utils.notebook import NotebookProgressCallback': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'transformers.models.deformable_detr.load_custom'
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -4385,6 +4392,13 @@
       change_function:
         'load_cuda_kernels': "'(lambda : False)'"
       when: 'not use_setuptools'
+
+- module-name: 'transformers.trainer'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'is_in_notebook()': 'False'
+      when: 'not use_ipython'
 
 - module-name: 'transformers.utils.doc'
   anti-bloat:
