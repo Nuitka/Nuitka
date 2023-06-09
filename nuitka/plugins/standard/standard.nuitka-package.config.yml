@@ -61,6 +61,12 @@
         '_get_win_folder_with_pywin32': 'un-callable'
       when: 'not use_pywin32 or not win32'
 
+- module-name: 'apscheduler'
+  implicit-imports:
+    - depends:
+        - 'apscheduler.triggers.*'
+        - 'apscheduler.triggers.*.*'
+
 - module-name: 'apsw'
   implicit-imports:
     - depends:
