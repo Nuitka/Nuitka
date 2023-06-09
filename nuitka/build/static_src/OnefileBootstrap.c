@@ -826,7 +826,7 @@ extern bool exe_file_updatable;
 extern "C" {
 #endif
 extern void initSplashScreen(void);
-extern void checkSplashScreen(void);
+extern bool checkSplashScreen(void);
 #ifdef __cplusplus
 }
 #endif

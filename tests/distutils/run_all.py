@@ -59,7 +59,7 @@ from nuitka.utils.FileOperations import copyFile, deleteFile, removeDirectory
 def main():
     # Complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
-    setup(suite="distutils", needs_io_encoding=True)
+    python_version = setup(suite="distutils", needs_io_encoding=True)
 
     search_mode = createSearchMode()
 
@@ -79,12 +79,20 @@ def main():
                 )
                 continue
 
+            is_pyproject = "_pyproject" in filename
+
+            if is_pyproject and python_version < (3,):
+                reportSkip(
+                    "Skipped, pyprojects are not for Python2",
+                    ".",
+                    filename,
+                )
+                continue
+
             case_dir = os.path.join(os.getcwd(), filename)
 
             removeDirectory(os.path.join(case_dir, "build"), ignore_errors=False)
             removeDirectory(os.path.join(case_dir, "dist"), ignore_errors=False)
-
-            is_pyproject = "_pyproject" in filename
 
             with withVirtualenv("venv_cpython") as venv:
                 if is_pyproject:
