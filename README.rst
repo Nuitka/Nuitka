@@ -703,11 +703,11 @@ standalone mode, this of course meant that you were fairly wasteful, as
 sharing the folders could be done, but wasn't really supported by
 Nuitka.
 
-Enter ``Multidist``. There is an option ``--main-path`` that replaces or
-adds to the positional argument given. And it can be given multiple
-times. When given multiple times, Nuitka will create a binary that
-contains the code of all the programs given, but sharing modules used in
-them. They therefore do not have to be distributed multiple times.
+Enter ``Multidist``. There is an option ``--main`` that replaces or adds
+to the positional argument given. And it can be given multiple times.
+When given multiple times, Nuitka will create a binary that contains the
+code of all the programs given, but sharing modules used in them. They
+therefore do not have to be distributed multiple times.
 
 Lets call the basename of the main path, and entry point. The names of
 these must of course be different. Then the created binary can execute

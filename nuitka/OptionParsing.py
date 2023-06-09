@@ -160,7 +160,13 @@ parser.add_option(
     dest="mains",
     metavar="PATH",
     default=[],
-    help=SUPPRESS_HELP,
+    help="""\
+If specified once, this takes the place of the
+positional argument, i.e. the filename to compile.
+When given multiple times, it enables "multidist"
+(see User Manual) it allows you to create binaries
+that depending on file name or invocation name.
+""",
 )
 
 include_group = parser.add_option_group(
