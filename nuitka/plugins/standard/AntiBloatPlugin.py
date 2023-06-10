@@ -476,33 +476,38 @@ which can and should be a top level package and then one choice, "error",
         return result
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module, source_ref
+        self, module_name, module_filename, module_kind, using_module_name, source_ref
     ):
+        # This will allow "unittest.mock" to pass these things.
+        if module_name == "unittest.mock" and module_name not in self.handled_modules:
+            return
+
         for handled_module_name, mode in self.handled_modules.items():
+            # This will ignore internal usages. In case of error, e.g. above unittest
+            # could cause them to happen.
+            if using_module_name is not None and using_module_name.hasNamespace(
+                handled_module_name
+            ):
+                return
+
             if module_name.hasNamespace(handled_module_name):
                 # Make sure the compilation aborts or warns if asked to
                 if mode == "error":
+                    # This will allow unittest.mock to use
                     raise NuitkaForbiddenImportEncounter(module_name)
-                if mode == "warning" and (
-                    (
-                        using_module is None
-                        or not using_module.getFullName().hasNamespace(
-                            handled_module_name
-                        )
-                    )
-                    and source_ref is not None
-                ):
+                if mode == "warning" and source_ref is not None:
                     key = (
-                        handled_module_name,
-                        using_module,
+                        module_name,
+                        using_module_name,
                         source_ref.getLineNumber(),
                     )
+
                     if key not in self.warnings_given:
                         self.warning(
                             "Undesirable import of '%s' in '%s' (at '%s') encountered. It may slow down compilation."
                             % (
                                 handled_module_name,
-                                using_module.getFullName(),
+                                using_module_name,
                                 source_ref.getAsString(),
                             ),
                             mnemonic="unwanted-module",
