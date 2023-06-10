@@ -127,11 +127,27 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     active_plugins[plugin_name] = plugin_instance
 
+    is_gui_toolkit_plugin = getattr(plugin_class, "plugin_gui_toolkit", False)
+
     # Singleton, pylint: disable=global-statement
     global has_active_gui_toolkit_plugin
-    has_active_gui_toolkit_plugin = has_active_gui_toolkit_plugin or getattr(
-        plugin_class, "plugin_gui_toolkit", False
+    has_active_gui_toolkit_plugin = (
+        has_active_gui_toolkit_plugin or is_gui_toolkit_plugin
     )
+
+    # Do GUI toolkit exclusion control tags generically. You may have two of
+    # them and we don't want them to override each other.
+    if is_gui_toolkit_plugin:
+        for binding_name in getGUIBindingNames():
+            is_matching = binding_name.lower() == plugin_class.binding_name.lower()
+
+            tag_name = "use_%s" % binding_name.lower()
+
+            # Set if matching, set to False only if not matching and not already set.
+            if is_matching:
+                control_tags[tag_name] = True
+            elif is_matching not in control_tags:
+                control_tags[tag_name] = False
 
     control_tags.update(plugin_instance.getEvaluationConditionControlTags())
 
@@ -162,6 +178,10 @@ def getQtBindingNames():
 
 def getOtherGUIBindingNames():
     return ("wx", "tkinter", "Tkinter")
+
+
+def getGUIBindingNames():
+    return getQtBindingNames() + getOtherGUIBindingNames()
 
 
 def getQtPluginNames():

@@ -1145,9 +1145,11 @@
   implicit-imports:
     - depends:
         - 'matplotlib.backends._backend_agg'
+        - 'matplotlib.backends.backend_agg'
+    - depends:
         - 'matplotlib.backends._tkagg'
         - 'matplotlib.backends.backend_tkagg'
-        - 'matplotlib.backends.backend_agg'
+      when: 'use_tkinter'
 
 - module-name: 'matplotlib.backends.backend_cairo'
   implicit-imports:
@@ -2091,6 +2093,13 @@
       replacements:
         'from IPython.display import display as ipython_display': "'raise ImportError'"
       when: 'not use_ipython'
+
+- module-name: 'PIL.SpiderImagePlugin'
+  anti-bloat:
+    - description: 'remove tkinter reference'
+      change_function:
+        'tkPhotoImage': 'un-callable'
+      when: 'not use_tkinter'
 
 - module-name: 'pint.compat'
   anti-bloat:
