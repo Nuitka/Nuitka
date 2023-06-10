@@ -2960,6 +2960,7 @@
     - depends:
         - 'argparse'
         - 'enum'
+        - 'logging'
 
 - module-name: 'sip'
   implicit-imports:
