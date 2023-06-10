@@ -61,6 +61,12 @@
         '_get_win_folder_with_pywin32': 'un-callable'
       when: 'not use_pywin32 or not win32'
 
+- module-name: 'apscheduler'
+  implicit-imports:
+    - depends:
+        - 'apscheduler.triggers.*'
+        - 'apscheduler.triggers.*.*'
+
 - module-name: 'apsw'
   implicit-imports:
     - depends:
@@ -2031,6 +2037,31 @@
         - 'plotly.graph_objs.layout.*'
         - 'plotly.graph_objs.layout.*.*'
 
+- module-name: 'polars.lazyframe.frame'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython.display import SVG, display': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'polars.series.utils'
+  anti-bloat:
+    - description: 'workaround for compiled method support'
+      append_plain: |
+        _orig_is_empty_method = _is_empty_method
+        def _is_empty_method(func):
+          if hasattr(func, "__compiled_constant__"):
+              return getattr(func, "__compiled_constant__") is None
+
+          return _orig_is_empty_method(func)
+
+- module-name: 'polars.utils.various'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'psutil'
   anti-bloat:
     - description: 'resolve platform specific imports at compile time'
@@ -2960,6 +2991,7 @@
     - depends:
         - 'argparse'
         - 'enum'
+        - 'logging'
 
 - module-name: 'sip'
   implicit-imports:
@@ -3557,6 +3589,14 @@
     dirs:
       - 'vendor'
 
+- module-name: 'sympy'
+  anti-bloat:
+    - description: 'remove sympy.testing reference'
+      replacements_plain:
+        "'test', 'doctest',": ''
+        'from .testing import test, doctest': ''
+      when: 'not use_pytest'
+
 - module-name: 'sympy.interactive.printing'
   anti-bloat:
     - description: 'remove IPython reference'
@@ -3580,8 +3620,11 @@
 - module-name: 'sympy.utilities.decorator'
   anti-bloat:
     - description: 'remove sympy.testing reference'
+      replacements_plain:
+        'from sympy.testing.runtests import DependencyError, SymPyDocTests, PyTestReporter': ''
       change_function:
         'skiptests': 'un-callable'
+      when: 'not use_pytest'
 
 - module-name: 'tables'
   anti-bloat:
@@ -4358,6 +4401,13 @@
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
 
+- module-name: 'transformers.integrations'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from transformers.utils.notebook import NotebookProgressCallback': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'transformers.models.deformable_detr.load_custom'
   anti-bloat:
     - description: 'remove setuptools usage'
@@ -4378,6 +4428,13 @@
       change_function:
         'load_cuda_kernels': "'(lambda : False)'"
       when: 'not use_setuptools'
+
+- module-name: 'transformers.trainer'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'is_in_notebook()': 'False'
+      when: 'not use_ipython'
 
 - module-name: 'transformers.utils.doc'
   anti-bloat:
