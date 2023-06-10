@@ -283,6 +283,8 @@ def dumpTreeXML():
             for module in ModuleRegistry.getDoneModules():
                 dumpTreeXMLToFile(tree=module.asXml(), output_file=output_file)
 
+        general.info("XML dump of node state written to file '%s'." % filename)
+
 
 def pickSourceFilenames(source_dir, modules):
     """Pick the names for the C files of each module.
