@@ -1549,6 +1549,13 @@
     - depends:
         - 'numpy'
 
+- module-name: 'open_clip'
+  data-files:
+    dirs:
+      - 'model_configs'
+    patterns:
+      - '*.tar.gz'
+
 - module-name: 'openapi_spec_validator'
   data-files:
     dirs:
