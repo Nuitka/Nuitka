@@ -461,7 +461,7 @@ class Plugins(object):
                     module_name=full_name,
                     module_filename=module_filename,
                     module_kind=module_kind,
-                    using_module=module,
+                    using_module_name=module.module_name,
                     source_ref=module.getSourceReference(),
                     reason=reason,
                 )
@@ -1024,14 +1024,14 @@ class Plugins(object):
 
     @staticmethod
     def onModuleRecursion(
-        module_name, module_filename, module_kind, using_module, source_ref
+        module_name, module_filename, module_kind, using_module_name, source_ref
     ):
         for plugin in getActivePlugins():
             plugin.onModuleRecursion(
                 module_name=module_name,
                 module_filename=module_filename,
                 module_kind=module_kind,
-                using_module=using_module,
+                using_module_name=using_module_name,
                 source_ref=source_ref,
             )
 

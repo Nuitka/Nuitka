@@ -98,6 +98,8 @@ hard_modules = frozenset(
         "pkgutil",
         "functools",
         "sysconfig",
+        "unittest",
+        "unittest.mock",
         # "cStringIO",
         "io",
         "ctypes",
@@ -263,6 +265,9 @@ hard_modules_trust = {
     "pkgutil": {"get_data": trust_node},
     "functools": {"partial": trust_exist},
     "sysconfig": {},
+    # TODO: We should have trust_module too.
+    "unittest": {"mock": trust_exist},
+    "unittest.mock": {},
     "io": {"BytesIO": trust_exist},
     # "cStringIO": {"StringIO": trust_exist},
     "pkg_resources": {
