@@ -105,4 +105,5 @@ def editModuleCode(module_search_desc):
             "code.cmd" if isWin32Windows() else "code"
         )
 
-        callProcess([visual_code_binary, module_filename])
+        if visual_code_binary:
+            callProcess([visual_code_binary, module_filename])
