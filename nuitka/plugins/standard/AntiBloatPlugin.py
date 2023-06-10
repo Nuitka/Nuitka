@@ -123,10 +123,12 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.control_tags["use_numba"] = True
 
         for custom_choice in custom_choices:
-            if ":" not in custom_choice:
+            if custom_choice.count(":") != 1:
                 self.sysexit(
-                    "Error, malformed value '%s' for '--noinclude-custom-mode' used."
-                    % custom_choice
+                    """\
+Error, malformed value '%s' for '--noinclude-custom-mode' used. It has to be of \
+form 'module_name:[%s]'."""
+                    % (custom_choice, "|".join(_mode_choices))
                 )
 
             module_name, mode = custom_choice.rsplit(":", 1)
