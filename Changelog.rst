@@ -51,6 +51,12 @@ Bug fixes
    which is ``--main`` and also it didn't show up in help output. Fixed
    in 1.6.2 already.
 
+-  Standalone: Added support for ``polars`` package. Fixed in 1.6.3
+   already.
+
+-  Standalone: Added implicit imports for ``apscheduler`` triggers.
+   Fixed in 1.6.3 already.
+
 New Features
 ============
 
@@ -74,11 +80,25 @@ New Features
    or not, with the new ``is_conda_package()`` function in Nuitka
    package configuration. Added in 1.6.1 already.
 
+-  Plugins: Allow to give ``--include-qt-plugins`` options of Qt binding
+   plugins to be given multiple times. This is for consistency with
+   other options. These now expand the list of plugins rather than
+   replacing it.
+
 Optimization
 ============
 
 -  Standalone: Include only platform DLLs for ``tls_client`` rather than
    all DLLs for all platforms. Added in 1.6.1 already.
+
+-  Anti-Bloat: Avoid including ``sympy.testing`` for ``sympy`` package.
+   Added in 1.6.3 already.
+
+-  Anti-Bloat: Avoid ``IPython`` in ``transformers`` package. Added in
+   1.6.3 already.
+
+-  Anti-Bloat: Avoid ``transformers.testing_util`` inclusion for
+   ``transformers`` package as it will trigger ``pytest`` inclusion.
 
 Organisational
 ==============
