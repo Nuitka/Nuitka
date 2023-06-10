@@ -421,50 +421,59 @@ which can and should be a top level package and then one choice, "error",
                 function_name,
             )
 
-        if replace_code is not None:
-            if not context_ready:
-                exec(context_code, context)
-                context_ready = True
+        if replace_code is None:
+            return False
 
-            try:
-                replacement = eval(replace_code, context)
-            except Exception as e:  # pylint: disable=broad-except
-                self.sysexit(
-                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                    % (replace_code, context_code, e)
-                )
+        if not context_ready:
+            exec(context_code, context)
+            context_ready = True
 
-            # Single node is required, extract the generated module body with
-            # single expression only statement value or a function body.
-            replacement = ast.parse(replacement).body[0]
+        try:
+            replacement = eval(replace_code, context)
+        except Exception as e:  # pylint: disable=broad-except
+            self.sysexit(
+                "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                % (replace_code, context_code, e)
+            )
 
-            if type(replacement) is ast.Expr:
-                if type(replacement.value) is ast.Lambda:
-                    body[:] = [ast.Return(replacement.value.body)]
-                else:
-                    body[:] = [ast.Return(replacement.value)]
-            elif type(replacement) is ast.Raise:
-                body[:] = [replacement]
+        # Single node is required, extract the generated module body with
+        # single expression only statement value or a function body.
+        replacement = ast.parse(replacement).body[0]
+
+        if type(replacement) is ast.Expr:
+            if type(replacement.value) is ast.Lambda:
+                body[:] = [ast.Return(replacement.value.body)]
             else:
-                body[:] = replacement.body
+                body[:] = [ast.Return(replacement.value)]
+        elif type(replacement) is ast.Raise:
+            body[:] = [replacement]
+        else:
+            body[:] = replacement.body
 
-            if self.show_changes:
-                self.info(
-                    "Updated module '%s' function '%s'."
-                    % (module_name.asString(), function_name)
-                )
+        if self.show_changes:
+            self.info(
+                "Updated module '%s' function '%s'."
+                % (module_name.asString(), function_name)
+            )
+
+        return True
 
     def onFunctionBodyParsing(self, module_name, function_name, body):
+        result = False
+
         config = self.config.get(module_name, section="anti-bloat")
 
         if config:
             for anti_bloat_config in config:
-                self._onFunctionBodyParsing(
+                if self._onFunctionBodyParsing(
                     module_name=module_name,
                     anti_bloat_config=anti_bloat_config,
                     function_name=function_name,
                     body=body,
-                )
+                ):
+                    result = True
+
+        return result
 
     def onModuleRecursion(
         self, module_name, module_filename, module_kind, using_module, source_ref
