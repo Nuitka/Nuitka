@@ -1303,6 +1303,8 @@ class Plugins(object):
         module_name = provider.getParentModule().getFullName()
 
         for plugin in getActivePlugins():
+            # TODO: Could record what functions got modified by what plugin
+            # and in what way checking the return value
             plugin.onFunctionBodyParsing(
                 module_name=module_name,
                 function_name=function_name,

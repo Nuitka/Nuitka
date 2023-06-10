@@ -1071,9 +1071,12 @@ except ImportError:
         ).key
 
     def onFunctionBodyParsing(self, module_name, function_name, body):
-        """Provide a different function body for the function of that module."""
+        """Provide a different function body for the function of that module.
+
+        Should return a boolean, indicating if any actual change was done.
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
-        return None
+        return False
 
     def getCacheContributionValues(self, module_name):
         """Provide values that represent the include of a plugin on the compilation.
