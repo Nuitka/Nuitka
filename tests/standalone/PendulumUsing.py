@@ -24,12 +24,16 @@ When this import works, locales are there.
 
 # nuitka-project: --standalone
 
-# nuitka-skip-unless-imports: pendulum.locales
+# nuitka-skip-unless-imports: pendulum
 
 from __future__ import print_function
 
 # isort:start
 
-import pendulum.locales
+import pendulum
+
+dt = pendulum.datetime(2020, 11, 27, tz="NZ")
+print(dt)
+print(dt.timezone.name)
 
 print("OK")
