@@ -58,7 +58,9 @@ def editModuleCode(module_search_desc):
 
             candidate = module_search_desc
 
-            while not candidate.endswith(".DIS"):
+            while not candidate.endswith(".DIS") and not os.path.basename(
+                candidate
+            ).startswith("ONEFIL"):
                 candidate = os.path.dirname(candidate)
 
             module_name = relpath(module_search_desc, start=candidate).replace(
