@@ -1985,6 +1985,7 @@
   data-files:
     empty_dir_structures:
       - 'locales'
+    when: 'version("pendulum") >= (2,)'
 
 - module-name: 'pendulum.locales'
   implicit-imports:
