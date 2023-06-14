@@ -604,6 +604,12 @@
     dirs:
       - '../data'
 
+- module-name: 'faker.config'
+  implicit-imports:
+    - depends:
+        - 'faker.providers.*'
+        - 'faker.providers.*.*'
+
 - module-name: 'falcon.app'
   implicit-imports:
     - depends:
