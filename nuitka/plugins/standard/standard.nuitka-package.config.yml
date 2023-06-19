@@ -1875,6 +1875,12 @@
         - 'PIL._tkinter_finder'
 
 - module-name: 'PIL.Image'
+  anti-bloat:
+    - description: 'avoid qt usage for plugin no-qt'
+      replacements_plain:
+        'from . import ImageQt': 'raise ImportError'
+      when: 'plugin("no-qt")'
+
   implicit-imports:
     - depends:
         - 'PIL.BlpImagePlugin'
