@@ -1743,6 +1743,13 @@
         'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
         'from distutils.version import LooseVersion': "''"
 
+- module-name: 'pandas.core.groupby.groupby'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'maybe_use_numba(engine)': 'False'
+      when: 'not use_numba'
+
 - module-name: 'pandas.core.util.numba_'
   anti-bloat:
     - description: 'remove useless distutils usage'
@@ -1755,6 +1762,13 @@
     - depends:
         - 'pandas._libs.window'
         - 'pandas._libs.skiplist'
+
+- module-name: 'pandas.core.window.rolling'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'maybe_use_numba(engine)': 'False'
+      when: 'not use_numba'
 
 - module-name: 'pandas.io.excel._base'
   anti-bloat:
