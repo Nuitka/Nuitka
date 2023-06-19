@@ -238,6 +238,7 @@ version for lto mode (>= 4.6). Disabled."""
         )
 
     env.lto_mode = lto_mode
+    env.orig_lto_mode = orig_lto_mode
 
     # PGO configuration
     _enablePgoSettings(env, pgo_mode)
