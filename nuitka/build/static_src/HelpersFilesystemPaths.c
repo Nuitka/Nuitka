@@ -452,14 +452,27 @@ uint32_t getFileCRC32(filename_char_t const *filename) {
 }
 
 #ifdef _WIN32
+
+static DWORD Nuitka_GetFinalPathNameByHandleW(HANDLE hFile, LPWSTR lpszFilePath, DWORD cchFilePath, DWORD dwFlags) {
+    typedef DWORD(WINAPI * pfnGetFinalPathNameByHandleW)(HANDLE hFile, LPWSTR lpszFilePath, DWORD cchFilePath,
+                                                         DWORD dwFlags);
+
+    pfnGetFinalPathNameByHandleW fnGetFinalPathNameByHandleW =
+        (pfnGetFinalPathNameByHandleW)GetProcAddress(GetModuleHandleA("Kernel32.dll"), "GetFinalPathNameByHandleW");
+
+    if (fnGetFinalPathNameByHandleW != NULL) {
+        return fnGetFinalPathNameByHandleW(hFile, lpszFilePath, cchFilePath, dwFlags);
+    } else {
+        // There are no symlinks before Windows Vista.
+        return 0;
+    }
+}
+
 static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *filename, DWORD resolved_filename_size,
                                     bool resolve_symlinks) {
     // Resolve any symbolic links in the filename.
     // Copies the resolved path over the top of the parameter.
 
-    // There are no symlinks before Windows Vista. TODO: This effectively disables this code
-    // for MinGW64.
-#if _WIN32_WINNT >= 0x0600
     if (resolve_symlinks) {
         // Open the file in the most non-exclusive way possible
         HANDLE file_handle = CreateFileW(filename, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
@@ -469,9 +482,13 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
             abort();
         }
 
+        // In case, the Windows API for symlinks does not yet exist, just used
+        // the unresolved one.
+        copyStringSafeW(resolved_filename, filename, resolved_filename_size);
+
         // Resolve the path, get the result with a drive letter
-        DWORD len = GetFinalPathNameByHandleW(file_handle, resolved_filename, resolved_filename_size,
-                                              FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+        DWORD len = Nuitka_GetFinalPathNameByHandleW(file_handle, resolved_filename, resolved_filename_size,
+                                                     FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
 
         CloseHandle(file_handle);
 
@@ -488,9 +505,7 @@ static void resolveFileSymbolicLink(wchar_t *resolved_filename, wchar_t const *f
                 copyStringSafeW(resolved_filename, resolved_filename + 4, resolved_filename_size);
             }
         }
-    } else
-#endif
-    {
+    } else {
         copyStringSafeW(resolved_filename, filename, resolved_filename_size);
     }
 }
