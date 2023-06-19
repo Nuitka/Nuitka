@@ -1832,6 +1832,80 @@
     - depends:
         - 'passlib.handlers.sha2_crypt'
 
+- module-name: 'patsy.build'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test__max_allowed_dim': 'un-callable'
+        'test__eval_factor_numerical': 'un-callable'
+        'test__eval_factor_categorical': 'un-callable'
+        'test__subterm_column_names_iter_and__build_subterm': 'un-callable'
+        'test__examine_factor_types': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.builtins'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_Q': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.categorical'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_CategoricalSniffer': 'un-callable'
+        'test_categorical_to_int': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.constraint'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_LinearConstraint': 'un-callable'
+        'test_LinearConstraint_combine': 'un-callable'
+        'test__tokenize_constraint': 'un-callable'
+        'test_linear_constraint': 'un-callable'
+        '_check_lincon': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.contrasts'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_ContrastMatrix': 'un-callable'
+        'test__get_level': 'un-callable'
+        'test_Poly': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.design_info'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_FactorInfo': 'un-callable'
+        'test_DesignInfo': 'un-callable'
+        'test_DesignInfo_from_array': 'un-callable'
+        'test_design_matrix': 'un-callable'
+        'test_SubtermInfo': 'un-callable'
+
+- module-name: 'patsy.eval'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_VarLookupDict': 'un-callable'
+        'test_ast_names_disallowed_nodes': 'un-callable'
+        'test_EvalEnvironment_capture_namespace': 'un-callable'
+        'test_EvalEnvironment_eval_namespace': 'un-callable'
+        'test_EvalEnvironment_eval_flags': 'un-callable'
+        'test_EvalEnvironment_subset': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.infix_parser'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_infix_parse': 'un-callable'
+
 - module-name: 'patsy.mgcv_cubic_splines'
   anti-bloat:
     - description: 'remove unittest reference'
@@ -1842,12 +1916,40 @@
         'test_te_errors': 'un-callable'
         'test__row_tensor_product_errors': 'un-callable'
 
+- module-name: 'patsy.missing'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_NAAction_basic': 'un-callable'
+
+- module-name: 'patsy.splines'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_bs_errors': 'un-callable'
+
+- module-name: 'patsy.tokens'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_python_tokenize': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.user_util'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_demo_data': 'un-callable'
+        'test_LookupFactor': 'un-callable'
+      when: 'not use_pytest'
+
 - module-name: 'patsy.util'
   anti-bloat:
     - description: 'remove pytest reference'
       change_function:
         'test_pandas_friendly_reshape': 'un-callable'
         'test_wide_dtype_for_and_widen': 'un-callable'
+        'assert_no_pickling': 'un-callable'
       when: 'not use_pytest'
 
 - module-name: 'pendulum'
