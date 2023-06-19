@@ -139,6 +139,9 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
             self.handled_modules[ModuleName(module_name)] = mode
 
+            if mode == "allow":
+                self.control_tags["use_%s" % module_name] = True
+
         self.warnings_given = set()
 
     def getCacheContributionValues(self, module_name):
