@@ -73,15 +73,15 @@ class SubprocessThread(threading.Thread):
         return self.data, self.err, self.exit_code, self.exception
 
 
-def runProcessMonitored(cmdline, env):
-    thread = SubprocessThread(cmdline, env)
+def _runProcessMonitored(env, cmdline, os_env):
+    thread = SubprocessThread(cmdline, os_env)
     thread.start()
 
     # Allow 5 minutes before warning for long compile time.
     thread.join(360)
 
     if thread.is_alive():
-        reportSlowCompilation(cmdline, thread.timer_report.getTimer().getDelta())
+        reportSlowCompilation(env, cmdline, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
@@ -160,7 +160,7 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
         if cmd == "<clcache>":
             data, err, rv = runClCache(args, os_env)
         else:
-            data, err, rv, exception = runProcessMonitored(cmdline, os_env)
+            data, err, rv, exception = _runProcessMonitored(env, cmdline, os_env)
 
             if exception:
                 closeSconsProgressBar()
@@ -342,15 +342,15 @@ class SpawnThread(threading.Thread):
         return self.result, self.exception
 
 
-def runSpawnMonitored(sh, cmd, args, env):
-    thread = SpawnThread(sh, cmd, args, env)
+def _runSpawnMonitored(env, sh, cmd, args, os_env):
+    thread = SpawnThread(sh, cmd, args, os_env)
     thread.start()
 
     # Allow 5 minutes before warning for long compile time.
     thread.join(360)
 
     if thread.is_alive():
-        reportSlowCompilation(cmd, thread.timer_report.getTimer().getDelta())
+        reportSlowCompilation(env, cmd, thread.timer_report.getTimer().getDelta())
 
     thread.join()
 
@@ -360,16 +360,16 @@ def runSpawnMonitored(sh, cmd, args, env):
 
 
 def _getWrappedSpawnFunction(env):
-    def spawnCommand(sh, escape, cmd, args, _env):
+    def spawnCommand(sh, escape, cmd, args, os_env):
         # signature needed towards Scons core, pylint: disable=unused-argument
 
         # Avoid using ccache on binary constants blob, not useful and not working
         # with old ccache.
         if '"__constants_data.o"' in args or '"__constants_data.os"' in args:
-            _env = dict(_env)
-            _env["CCACHE_DISABLE"] = "1"
+            os_env = dict(os_env)
+            os_env["CCACHE_DISABLE"] = "1"
 
-        result, exception = runSpawnMonitored(sh, cmd, args, _env)
+        result, exception = _runSpawnMonitored(env, sh, cmd, args, os_env)
 
         if exception:
             closeSconsProgressBar()
