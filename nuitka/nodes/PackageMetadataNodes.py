@@ -292,10 +292,12 @@ class ExpressionPkgResourcesDistributionValueRef(
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.isKnownToHaveAttribute(
-            attribute_name
-        ) or isCompileTimeConstantValue(
-            getattr(self.distribution, attribute_name, None)
+        if (
+            self.isKnownToHaveAttribute(attribute_name)
+            and isCompileTimeConstantValue(
+                getattr(self.distribution, attribute_name, None)
+            )
+            and (attribute_name != "location" or not isStandaloneMode())
         ):
             return trace_collection.getCompileTimeComputationResult(
                 node=lookup_node,
@@ -453,9 +455,7 @@ class ExpressionPkgResourcesEntryPointValueRef(
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.isKnownToHaveAttribute(
-            attribute_name
-        ) or isCompileTimeConstantValue(
+        if self.isKnownToHaveAttribute(attribute_name) and isCompileTimeConstantValue(
             getattr(self.entry_point, attribute_name, None)
         ):
             return trace_collection.getCompileTimeComputationResult(
@@ -586,9 +586,7 @@ class ExpressionImportlibMetadataEntryPointValueMixin(object):
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.isKnownToHaveAttribute(
-            attribute_name
-        ) or isCompileTimeConstantValue(
+        if self.isKnownToHaveAttribute(attribute_name) and isCompileTimeConstantValue(
             getattr(self.entry_point, attribute_name, None)
         ):
             return trace_collection.getCompileTimeComputationResult(
