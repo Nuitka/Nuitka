@@ -527,10 +527,17 @@ def setupFunctionLocalVariables(
             context=context, variable=variable
         )
 
+        # Delay cell variable initialization for outlines to their own code.
+        if (
+            variable_c_type is CTypeCellObject
+            and variable.owner.isExpressionOutlineFunctionBase()
+        ):
+            init_value = "NULL"
+        else:
+            init_value = variable_c_type.getInitValue(None)
+
         variable_declaration = context.variable_storage.addVariableDeclarationTop(
-            variable_c_type.c_type,
-            variable_code_name,
-            variable_c_type.getInitValue(None),
+            variable_c_type.c_type, variable_code_name, init_value
         )
 
         context.setVariableType(variable, variable_declaration)
@@ -777,6 +784,14 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     if expression.isExpressionOutlineFunctionBase():
         context = PythonFunctionOutlineContext(parent=context, outline=expression)
+
+        for variable in expression.getUserLocalVariables():
+            variable_declaration = getLocalVariableDeclaration(
+                context=context, variable=variable, variable_trace=None
+            )
+
+            if variable_declaration.getCType() is CTypeCellObject:
+                emit("%s = Nuitka_Cell_Empty();" % variable_declaration)
 
     # Need to set return target, to assign to_name from.
 
