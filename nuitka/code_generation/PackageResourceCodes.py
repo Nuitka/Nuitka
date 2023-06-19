@@ -91,6 +91,13 @@ def generatePkgResourcesDistributionValueCode(to_name, expression, emit, context
             for kw_name in kw_names
         ]
 
+        # Standalone mode, has a different location.
+        if "location" not in kw_names:
+            kw_names += ("location",)
+        dict_value_names.append(
+            'LOOKUP_BUILTIN_STR("__nuitka_binary_dir")',
+        )
+
         getCallCodeKwSplit(
             to_name=result_name,
             called_name=distribution_class_name,
