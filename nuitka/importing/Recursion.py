@@ -415,9 +415,10 @@ def considerUsedModules(module, signal_change):
                 )
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
-                "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
+                "Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' at '%s' encountered."
                 % (
-                    e,
+                    e.args[0],
+                    e.args[1],
                     module.getFullName(),
                     used_module.source_ref.getAsString(),
                 )
@@ -427,6 +428,6 @@ def considerUsedModules(module, signal_change):
         Plugins.considerImplicitImports(module=module, signal_change=signal_change)
     except NuitkaForbiddenImportEncounter as e:
         recursion_logger.sysexit(
-            "Error, forbidden import of '%s' done implicitly by module '%s'."
-            % (e, module.getFullName())
+            "Error, forbidden import of '%s' (intending to avoid '%s') done implicitly by module '%s'."
+            % (e.args[0], e.args[1], module.getFullName())
         )
