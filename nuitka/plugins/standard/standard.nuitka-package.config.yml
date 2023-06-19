@@ -44,10 +44,20 @@
     dirs:
       - 'lib'
 
+- module-name: 'androguard.core.resources'
+  data-files:
+    patterns:
+      - 'public.xml'
+
 - module-name: 'anyio._core._eventloop'
   implicit-imports:
     - depends:
         - 'anyio._backends._asyncio'
+
+- module-name: 'apkutils.axml'
+  data-files:
+    patterns:
+      - 'public.xml'
 
 - module-name: 'appdirs'
   anti-bloat:
@@ -603,6 +613,12 @@
   data-files:
     dirs:
       - '../data'
+
+- module-name: 'faker.config'
+  implicit-imports:
+    - depends:
+        - 'faker.providers.*'
+        - 'faker.providers.*.*'
 
 - module-name: 'falcon.app'
   implicit-imports:
@@ -1497,6 +1513,9 @@
                   smsg = msg
               raise AssertionError(smsg)
 
+        def assert_equal(actual, desired, err_msg='', verbose=True):
+          pass
+
 - module-name: 'numpy.testing._private.pytesttester'
   anti-bloat:
     - description: 'remove numpy testing framework'
@@ -1504,6 +1523,13 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
+- module-name: 'numpy.testing._private.utils'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'rundocs': 'un-callable'
+      when: 'not use_unittest'
 
 - module-name: 'objc'
   options:
@@ -1533,10 +1559,23 @@
     - depends:
         - 'numpy'
 
+- module-name: 'open_clip'
+  data-files:
+    dirs:
+      - 'model_configs'
+    patterns:
+      - '*.tar.gz'
+
 - module-name: 'openapi_spec_validator'
   data-files:
     dirs:
       - 'resources/schemas'
+
+- module-name: 'opentele.exception'
+  anti-bloat:
+    - description: 'workaround compiled functions not updating locals'
+      replacements_plain:
+        'parameters = {arg: locals[arg] for arg in args}': 'parameters = {}'
 
 - module-name: 'opentele.utils'
   anti-bloat:
@@ -1736,6 +1775,13 @@
         'NUMEXPR_VERSION < LooseVersion("2.6.9")': "'False'"
         'from distutils.version import LooseVersion': "''"
 
+- module-name: 'pandas.core.groupby.groupby'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'maybe_use_numba(engine)': 'False'
+      when: 'not use_numba'
+
 - module-name: 'pandas.core.util.numba_'
   anti-bloat:
     - description: 'remove useless distutils usage'
@@ -1748,6 +1794,13 @@
     - depends:
         - 'pandas._libs.window'
         - 'pandas._libs.skiplist'
+
+- module-name: 'pandas.core.window.rolling'
+  anti-bloat:
+    - description: 'remove numba reference'
+      replacements_plain:
+        'maybe_use_numba(engine)': 'False'
+      when: 'not use_numba'
 
 - module-name: 'pandas.io.excel._base'
   anti-bloat:
@@ -1825,6 +1878,80 @@
     - depends:
         - 'passlib.handlers.sha2_crypt'
 
+- module-name: 'patsy.build'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test__max_allowed_dim': 'un-callable'
+        'test__eval_factor_numerical': 'un-callable'
+        'test__eval_factor_categorical': 'un-callable'
+        'test__subterm_column_names_iter_and__build_subterm': 'un-callable'
+        'test__examine_factor_types': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.builtins'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_Q': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.categorical'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_CategoricalSniffer': 'un-callable'
+        'test_categorical_to_int': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.constraint'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_LinearConstraint': 'un-callable'
+        'test_LinearConstraint_combine': 'un-callable'
+        'test__tokenize_constraint': 'un-callable'
+        'test_linear_constraint': 'un-callable'
+        '_check_lincon': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.contrasts'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_ContrastMatrix': 'un-callable'
+        'test__get_level': 'un-callable'
+        'test_Poly': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.design_info'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_FactorInfo': 'un-callable'
+        'test_DesignInfo': 'un-callable'
+        'test_DesignInfo_from_array': 'un-callable'
+        'test_design_matrix': 'un-callable'
+        'test_SubtermInfo': 'un-callable'
+
+- module-name: 'patsy.eval'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_VarLookupDict': 'un-callable'
+        'test_ast_names_disallowed_nodes': 'un-callable'
+        'test_EvalEnvironment_capture_namespace': 'un-callable'
+        'test_EvalEnvironment_eval_namespace': 'un-callable'
+        'test_EvalEnvironment_eval_flags': 'un-callable'
+        'test_EvalEnvironment_subset': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.infix_parser'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_infix_parse': 'un-callable'
+
 - module-name: 'patsy.mgcv_cubic_splines'
   anti-bloat:
     - description: 'remove unittest reference'
@@ -1835,18 +1962,47 @@
         'test_te_errors': 'un-callable'
         'test__row_tensor_product_errors': 'un-callable'
 
+- module-name: 'patsy.missing'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_NAAction_basic': 'un-callable'
+
+- module-name: 'patsy.splines'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_bs_errors': 'un-callable'
+
+- module-name: 'patsy.tokens'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_python_tokenize': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'patsy.user_util'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'test_demo_data': 'un-callable'
+        'test_LookupFactor': 'un-callable'
+      when: 'not use_pytest'
+
 - module-name: 'patsy.util'
   anti-bloat:
     - description: 'remove pytest reference'
       change_function:
         'test_pandas_friendly_reshape': 'un-callable'
         'test_wide_dtype_for_and_widen': 'un-callable'
+        'assert_no_pickling': 'un-callable'
       when: 'not use_pytest'
 
 - module-name: 'pendulum'
   data-files:
     empty_dir_structures:
       - 'locales'
+    when: 'version("pendulum") >= (2,)'
 
 - module-name: 'pendulum.locales'
   implicit-imports:
@@ -1875,6 +2031,12 @@
         - 'PIL._tkinter_finder'
 
 - module-name: 'PIL.Image'
+  anti-bloat:
+    - description: 'avoid qt usage for plugin no-qt'
+      replacements_plain:
+        'from . import ImageQt': 'raise ImportError'
+      when: 'plugin("no-qt")'
+
   implicit-imports:
     - depends:
         - 'PIL.BlpImagePlugin'
@@ -2093,6 +2255,16 @@
     - description: 'workaround for MSVC bug with scipy docscrape 1.8.x'
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
+
+- module-name: 'pyaxmlparser.resources'
+  data-files:
+    patterns:
+      - 'public.xml'
+
+- module-name: 'pycountry'
+  data-files:
+    dirs:
+      - 'databases'
 
 - module-name: 'pycparser.c_parser'
   implicit-imports:
@@ -3516,18 +3688,162 @@
     - depends:
         - 'srsly.msgpack.util'
 
+- module-name: 'statsmodels'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      change_function:
+        'test': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.base'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.compat'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.discrete'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.distributions'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.emplike'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.formula'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.genmod'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.genmod.families'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.graphics'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.iolib'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.multivariate'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.nonparametric'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.nonparametric.linbin'
         - 'statsmodels.nonparametric._smoothers_lowess'
 
+- module-name: 'statsmodels.regression'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.sandbox'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      module_code: |
+        class PytestTester:
+          def __init__(self, package_path=None):
+            pass
+        test = PytestTester()
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.stats'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.stats.libqsturng'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.tools'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.tsa'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.tsa._exponential_smoothers'
 
+- module-name: 'statsmodels.tsa.base'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.tsa.innovations'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.tsa.innovations._arma_innovations'
@@ -3544,6 +3860,11 @@
         - 'statsmodels.tsa.regime_switching._kim_smoother'
 
 - module-name: 'statsmodels.tsa.statespace'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.tsa.statespace._filters'

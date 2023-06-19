@@ -62,11 +62,7 @@ class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
 
     named_children = ("source_code", "globals_arg", "locals_arg")
 
-    __slots__ = ("in_early_closure",)
-
-    def __init__(
-        self, in_early_closure, source_code, globals_arg, locals_arg, source_ref
-    ):
+    def __init__(self, source_code, globals_arg, locals_arg, source_ref):
         ChildrenExpressionBuiltinExecMixin.__init__(
             self,
             source_code=source_code,
@@ -76,35 +72,14 @@ class ExpressionBuiltinExec(ChildrenExpressionBuiltinExecMixin, ExpressionBase):
 
         ExpressionBase.__init__(self, source_ref)
 
-        self.in_early_closure = in_early_closure
-
-    def getDetails(self):
-        return {"in_early_closure": self.in_early_closure}
-
     def computeExpression(self, trace_collection):
         # TODO: Attempt for constant values to do it.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     def computeExpressionDrop(self, statement, trace_collection):
-        # TODO: Have this as an attribute during creation.
-        if self.early_closure:
-            result = StatementExec(
-                source_code=self.subnode_source_code,
-                globals_arg=self.subnode_globals_arg,
-                locals_arg=self.subnode_locals_arg,
-                source_ref=self.source_ref,
-            )
-
-            del self.parent
-
-            return (
-                result,
-                "new_statements",
-                """\
-Replaced built-in exec call to exec statement in early closure context.""",
-            )
-        else:
-            return statement, None, None
+        return statement, None, None
 
 
 class ExpressionBuiltinExecfile(ChildrenExpressionBuiltinExecfileMixin, ExpressionBase):

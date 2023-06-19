@@ -1032,7 +1032,6 @@ if python_version >= 0x300:
                     tried,
                     makeStatementReturn(
                         expression=ExpressionBuiltinExec(
-                            in_early_closure=node.getParentVariableProvider().isEarlyClosure(),
                             source_code=source,
                             globals_arg=globals_ref,
                             locals_arg=locals_ref,
