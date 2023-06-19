@@ -86,39 +86,48 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         self.control_tags = OrderedDict()
 
         if noinclude_setuptools_mode != "allow":
-            self.handled_modules["setuptools"] = noinclude_setuptools_mode
-            self.handled_modules["setuptools_scm"] = noinclude_setuptools_mode
+            self.handled_modules["setuptools"] = noinclude_setuptools_mode, "setuptools"
+            self.handled_modules["setuptools_scm"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
         else:
             self.control_tags["use_setuptools"] = True
 
         if noinclude_pytest_mode != "allow":
-            self.handled_modules["_pytest"] = noinclude_pytest_mode
-            self.handled_modules["pytest"] = noinclude_pytest_mode
-            self.handled_modules["py"] = noinclude_pytest_mode
-            self.handled_modules["nose2"] = noinclude_pytest_mode
-            self.handled_modules["nose"] = noinclude_pytest_mode
+            self.handled_modules["_pytest"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["pytest"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["py"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["nose2"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["nose"] = noinclude_pytest_mode, "pytest"
         else:
             self.control_tags["use_pytest"] = True
 
         if noinclude_unittest_mode != "allow":
-            self.handled_modules["unittest"] = noinclude_unittest_mode
-            self.handled_modules["doctest"] = noinclude_unittest_mode
+            self.handled_modules["unittest"] = noinclude_unittest_mode, "unittest"
+            self.handled_modules["doctest"] = noinclude_unittest_mode, "unittest"
         else:
             self.control_tags["use_unittest"] = True
 
         if noinclude_ipython_mode != "allow":
-            self.handled_modules["IPython"] = noinclude_ipython_mode
+            self.handled_modules["IPython"] = noinclude_ipython_mode, "IPython"
         else:
             self.control_tags["use_ipython"] = True
 
         if noinclude_dask_mode != "allow":
-            self.handled_modules["dask"] = noinclude_dask_mode
+            self.handled_modules["dask"] = noinclude_dask_mode, "dask"
+            self.handled_modules["distributed"] = noinclude_dask_mode, "dask"
         else:
             self.control_tags["use_dask"] = True
 
         if noinclude_numba_mode != "allow":
-            self.handled_modules["numba"] = noinclude_numba_mode
-            self.handled_modules["sparse"] = noinclude_numba_mode
+            self.handled_modules["numba"] = noinclude_numba_mode, "numba"
+            self.handled_modules["sparse"] = noinclude_numba_mode, "numba"
+            self.handled_modules["stumpy"] = noinclude_numba_mode, "numba"
+            self.handled_modules["pandas.core._numba.kernels"] = (
+                noinclude_numba_mode,
+                "numba",
+            )
         else:
             self.control_tags["use_numba"] = True
 
@@ -139,7 +148,7 @@ form 'module_name:[%s]'."""
                     % (mode, custom_choice)
                 )
 
-            self.handled_modules[ModuleName(module_name)] = mode
+            self.handled_modules[ModuleName(module_name)] = mode, module_name
 
             if mode == "allow":
                 self.control_tags["use_%s" % module_name] = True
@@ -482,7 +491,10 @@ which can and should be a top level package and then one choice, "error",
         if module_name == "unittest.mock" and module_name not in self.handled_modules:
             return
 
-        for handled_module_name, mode in self.handled_modules.items():
+        for handled_module_name, (
+            mode,
+            intended_module_name,
+        ) in self.handled_modules.items():
             # This will ignore internal usages. In case of error, e.g. above unittest
             # could cause them to happen.
             if using_module_name is not None and using_module_name.hasNamespace(
@@ -493,8 +505,9 @@ which can and should be a top level package and then one choice, "error",
             if module_name.hasNamespace(handled_module_name):
                 # Make sure the compilation aborts or warns if asked to
                 if mode == "error":
-                    # This will allow unittest.mock to use
-                    raise NuitkaForbiddenImportEncounter(module_name)
+                    raise NuitkaForbiddenImportEncounter(
+                        module_name, intended_module_name
+                    )
                 if mode == "warning" and source_ref is not None:
                     key = (
                         module_name,
@@ -504,9 +517,12 @@ which can and should be a top level package and then one choice, "error",
 
                     if key not in self.warnings_given:
                         self.warning(
-                            "Undesirable import of '%s' in '%s' (at '%s') encountered. It may slow down compilation."
+                            """\
+Undesirable import of '%s' (intending to avoid '%s') in \
+'%s' (at '%s') encountered. It may slow down compilation."""
                             % (
                                 handled_module_name,
+                                intended_module_name,
                                 using_module_name,
                                 source_ref.getAsString(),
                             ),
@@ -516,25 +532,33 @@ which can and should be a top level package and then one choice, "error",
                         self.warnings_given.add(key)
 
     def onModuleEncounter(self, module_name, module_filename, module_kind):
-        for handled_module_name, mode in self.handled_modules.items():
+        for handled_module_name, (
+            mode,
+            intended_module_name,
+        ) in self.handled_modules.items():
             if module_name.hasNamespace(handled_module_name):
                 # Either issue a warning, or pretend the module doesn't exist for standalone or
                 # at least will not be included.
                 if mode == "nofollow":
                     if self.show_changes:
                         self.info(
-                            "Forcing import of '%s' to not be followed." % module_name
+                            "Forcing import of '%s' (intending to avoid '%s') to not be followed."
+                            % (module_name, intended_module_name)
                         )
                     return (
                         False,
-                        "user requested to not follow '%s' import" % module_name,
+                        "user requested to not follow '%s' (intending to avoid '%s') import"
+                        % (module_name, intended_module_name),
                     )
 
         # Do not provide an opinion about it.
         return None
 
     def decideCompilation(self, module_name):
-        for handled_module_name, mode in self.handled_modules.items():
+        for handled_module_name, (
+            mode,
+            _intended_module_name,
+        ) in self.handled_modules.items():
             if mode != "bytecode":
                 continue
 
