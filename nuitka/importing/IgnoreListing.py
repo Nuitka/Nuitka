@@ -22,6 +22,7 @@
 import sys
 
 from nuitka.Errors import NuitkaOptimizationError
+from nuitka.PythonFlavors import isNuitkaPython
 
 
 def getModuleIgnoreList():
@@ -435,7 +436,7 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
 
 def isIgnoreListedNotExistingModule(module_name):
-    if module_name in sys.builtin_module_names:
+    if module_name in sys.builtin_module_names and not isNuitkaPython():
         raise NuitkaOptimizationError(
             """
 Your CPython version has a built-in module '%s', that is not ignore listed

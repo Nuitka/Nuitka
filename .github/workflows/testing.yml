@@ -21,7 +21,6 @@ jobs:
     strategy:
       matrix:
         python_version:
-            - '2.7'
             - '3.7'
             - '3.8'
             - '3.9'
@@ -97,39 +96,6 @@ jobs:
           python ./bin/autoformat-nuitka-source --check-only
         if: matrix.python_version == '3.9'
 
-  mac-python2:
-    runs-on: macos-11
-    strategy:
-      matrix:
-        python_version:
-            - '2.7'
-    name: macOS Python ${{ matrix.python_version }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Verbose installation output for Python
-        run: |
-          set -x
-          which python
-          otool -L $(which python)
-          otool -l $(which python)
-
-      - name: 🧳 Install Nuitka and dependencies
-        run: |
-          pip install --no-python-version-warning --disable-pip-version-check -r requirements-devel.txt
-          pip install --no-python-version-warning --disable-pip-version-check .
-
-      - name: Verbose scons output in compilation
-        run: |
-          python -m nuitka --module --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-          python -m nuitka --show-scons --run --assume-yes-for-downloads tests/basics/EmptyModuleTest.py
-
-      - name: Run Nuitka test suite
-        run: |
-          python -m nuitka --version
-          env | sort
-          python ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
-
   mac-python3:
     runs-on: macos-latest
     strategy:
@@ -178,7 +144,6 @@ jobs:
     strategy:
       matrix:
         python_version:
-            - '2.7'
             - '3.7'
             - '3.8'
             - '3.9'
