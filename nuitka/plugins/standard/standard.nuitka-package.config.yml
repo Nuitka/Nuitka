@@ -1497,6 +1497,9 @@
                   smsg = msg
               raise AssertionError(smsg)
 
+        def assert_equal(actual, desired, err_msg='', verbose=True):
+          pass
+
 - module-name: 'numpy.testing._private.pytesttester'
   anti-bloat:
     - description: 'remove numpy testing framework'
