@@ -3522,18 +3522,162 @@
     - depends:
         - 'srsly.msgpack.util'
 
+- module-name: 'statsmodels'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      change_function:
+        'test': 'un-callable'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.base'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.compat'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.discrete'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.distributions'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.emplike'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.formula'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.genmod'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.genmod.families'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.graphics'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.iolib'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.multivariate'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.nonparametric'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.nonparametric.linbin'
         - 'statsmodels.nonparametric._smoothers_lowess'
 
+- module-name: 'statsmodels.regression'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.sandbox'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      module_code: |
+        class PytestTester:
+          def __init__(self, package_path=None):
+            pass
+        test = PytestTester()
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.stats'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.stats.libqsturng'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.tools'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.tsa'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.tsa._exponential_smoothers'
 
+- module-name: 'statsmodels.tsa.base'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.tsa.innovations'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.tsa.innovations._arma_innovations'
@@ -3550,6 +3694,11 @@
         - 'statsmodels.tsa.regime_switching._kim_smoother'
 
 - module-name: 'statsmodels.tsa.statespace'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
   implicit-imports:
     - depends:
         - 'statsmodels.tsa.statespace._filters'
