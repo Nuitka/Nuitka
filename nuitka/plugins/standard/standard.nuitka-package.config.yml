@@ -1545,6 +1545,12 @@
     dirs:
       - 'resources/schemas'
 
+- module-name: 'opentele.exception'
+  anti-bloat:
+    - description: 'workaround compiled functions not updating locals'
+      replacements_plain:
+        'parameters = {arg: locals[arg] for arg in args}': 'parameters = {}'
+
 - module-name: 'opentele.utils'
   anti-bloat:
     - description: 'workaround compiled function decorator issues'
