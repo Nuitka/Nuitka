@@ -1505,6 +1505,13 @@
           def __init__(self, name):
             pass
 
+- module-name: 'numpy.testing._private.utils'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      change_function:
+        'rundocs': 'un-callable'
+      when: 'not use_unittest'
+
 - module-name: 'objc'
   options:
     checks:
