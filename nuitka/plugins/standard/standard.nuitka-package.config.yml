@@ -4843,6 +4843,28 @@
         'import setuptools': ''
       when: 'not use_setuptools'
 
+- module-name: 'tsfresh.feature_extraction.data'
+  anti-bloat:
+    - description: 'remove dask reference via distributed module'
+      replacements_plain:
+        'from dask import dataframe as dd': 'raise ImportError'
+      when: 'not use_dask'
+
+- module-name: 'tsfresh.feature_extraction.feature_calculators'
+  anti-bloat:
+    - description: 'remove numba reference via stumpy module'
+      replacements_plain:
+        'import stumpy': ''
+      when: 'not use_numba'
+
+- module-name: 'tsfresh.utilities.distribution'
+  anti-bloat:
+    - description: 'remove dask reference via distributed module'
+      replacements_plain:
+        'from distributed import Client, LocalCluster': 'raise ImportError'
+        'from distributed import Client': 'raise ImportError'
+      when: 'not use_dask'
+
 - module-name: 'tzdata'
   data-files:
     dirs:
