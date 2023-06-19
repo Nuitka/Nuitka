@@ -44,10 +44,20 @@
     dirs:
       - 'lib'
 
+- module-name: 'androguard.core.resources'
+  data-files:
+    patterns:
+      - 'public.xml'
+
 - module-name: 'anyio._core._eventloop'
   implicit-imports:
     - depends:
         - 'anyio._backends._asyncio'
+
+- module-name: 'apkutils.axml'
+  data-files:
+    patterns:
+      - 'public.xml'
 
 - module-name: 'appdirs'
   anti-bloat:
@@ -2245,6 +2255,11 @@
     - description: 'workaround for MSVC bug with scipy docscrape 1.8.x'
       replacements_plain:
         "return l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1))": "r = l2.startswith('-'*len(l1)) or l2.startswith('='*len(l1)); return r"
+
+- module-name: 'pyaxmlparser.resources'
+  data-files:
+    patterns:
+      - 'public.xml'
 
 - module-name: 'pycountry'
   data-files:
