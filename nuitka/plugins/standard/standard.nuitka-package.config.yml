@@ -4616,6 +4616,14 @@
         'issubclass(func, unittest.TestCase)': 'False'
       when: 'not use_unittest'
 
+- module-name: 'torch._inductor.codecache'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from torch.utils import cpp_extension': ''
+      change_function:
+        'get_include_and_linking_paths': 'un-callable'
+
 - module-name: 'torch._inductor.codegen.common'
   anti-bloat:
     - description: 'remove setuptools usage'
