@@ -1205,7 +1205,7 @@ def isUnstripped():
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or options.profile
+    return options.unstripped or options.profile or is_debug
 
 
 def isProfile():
