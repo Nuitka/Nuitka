@@ -266,6 +266,55 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'cassandra.cluster'
+  implicit-imports:
+    - depends:
+        - 'cassandra.auth'
+        - 'cassandra.connection'
+        - 'concurrent.futures'
+        - 'cassandra.encoder'
+        - 'cassandra.metadata'
+        - 'cassandra.timestamps'
+        - 'cassandra.datastax.insights.reporter'
+        - 'cassandra.datastax.cloud'
+        - 'cassandra.io.libevreactor'
+        - 'cassandra.io.twistedreactor'
+        - 'cassandra.io.eventletreactor'
+        - 'cassandra.io.asyncorereactor'
+        - 'six'
+        - 'uuid'
+
+- module-name: 'cassandra.connection'
+  implicit-imports:
+    - depends:
+        - 'cassandra.marshal'
+        - 'cassandra.protocol'
+        - 'cassandra.segment'
+
+- module-name: 'cassandra.cqltypes'
+  implicit-imports:
+    - depends:
+        - 'cassandra.util'
+
+- module-name: 'cassandra.metadata'
+  implicit-imports:
+    - depends:
+        - 'cassandra.query'
+        - 'cassandra.pool'
+
+- module-name: 'cassandra.protocol'
+  implicit-imports:
+    - depends:
+        - 'cassandra.type_codes'
+        - 'cassandra.cqltypes'
+        - 'cassandra.policies'
+        - 'cassandra.cython_deps'
+
+- module-name: 'cassandra.util'
+  implicit-imports:
+    - depends:
+        - 'cassandra.compat'
+
 - module-name: 'cefpython3'
   data-files:
     dirs:
