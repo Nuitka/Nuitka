@@ -323,10 +323,11 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
 static int HANDLE_PROGRAM_EXIT(void) {
     int exit_code;
 
-    if (ERROR_OCCURRED()) {
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    if (HAS_ERROR_OCCURRED(thread_state)) {
 #if PYTHON_VERSION >= 0x300
         /* Remove the frozen importlib traceback part, which would not be compatible. */
-        PyThreadState *thread_state = PyThreadState_GET();
 
         while (thread_state->curexc_traceback) {
             PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
@@ -410,8 +411,8 @@ DWORD WINAPI SvcStartPython(LPVOID lpParam) {
 
 // This is a multiprocessing fork
 static bool is_multiprocessing_fork = false;
-// This is a multiprocessing resource tracker.
-static PyObject *multiprocessing_resource_tracker_arg = NULL;
+// This is a multiprocessing resource tracker if not -1
+static int multiprocessing_resource_tracker_arg = -1;
 
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
@@ -445,9 +446,9 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
 #endif
             {
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
-                multiprocessing_resource_tracker_arg = PyInt_FromLong(atoi(argv[i + 1]));
+                multiprocessing_resource_tracker_arg = atoi(argv[i + 1]);
 #else
-                multiprocessing_resource_tracker_arg = PyLong_FromLong(_wtoi(argv[i + 1]));
+                multiprocessing_resource_tracker_arg = _wtoi(argv[i + 1]);
 #endif
                 break;
             }
@@ -1073,8 +1074,8 @@ orig_argv = argv;
 
     orig_argc = argc;
 
+    // Early command line parsing.
     NUITKA_PRINT_TRACE("main(): Calling initial setCommandLineParameters.");
-
     setCommandLineParameters(argc, argv, true);
 
     /* For Python installations that need the home set, we inject it back here. */
@@ -1301,13 +1302,13 @@ orig_argv = argv;
 
         // TODO: Should maybe call Py_Exit here, but there were issues with that.
         exit(exit_code);
-    } else if (unlikely(multiprocessing_resource_tracker_arg != NULL)) {
+    } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
         PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("multiprocessing.resource_tracker");
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
 
-        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, multiprocessing_resource_tracker_arg);
+        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
