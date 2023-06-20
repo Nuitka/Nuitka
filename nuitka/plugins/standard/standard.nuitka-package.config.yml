@@ -545,6 +545,13 @@
       replacements_plain:
         'import pandas.testing as tm': ''
 
+- module-name: 'dask.dot'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import IPython.display as display': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'datatree'
   anti-bloat:
     - description: 'remove useless metadata usage'
