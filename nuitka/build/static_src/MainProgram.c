@@ -535,8 +535,12 @@ DWORD WINAPI doOnefileParentMonitoring(LPVOID lpParam) {
     }
 
     NUITKA_PRINT_TRACE("Onefile parent monitoring causes KeyboardInterrupt.");
-
     PyErr_SetInterrupt();
+
+    Sleep(_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT);
+
+    NUITKA_PRINT_TRACE("Onefile parent monitoring hard kills after ignored KeyboardInterrupt.");
+    ExitProcess(1);
 
     return 0;
 }
