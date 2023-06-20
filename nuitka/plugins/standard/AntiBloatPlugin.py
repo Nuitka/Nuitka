@@ -111,6 +111,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
 
         if noinclude_ipython_mode != "allow":
             self.handled_modules["IPython"] = noinclude_ipython_mode, "IPython"
+            self.handled_modules["matplotlib_inline.backend_inline"] = (
+                noinclude_ipython_mode,
+                "IPython",
+            )
         else:
             self.control_tags["use_ipython"] = True
 
@@ -152,6 +156,19 @@ form 'module_name:[%s]'."""
 
             if mode == "allow":
                 self.control_tags["use_%s" % module_name] = True
+
+        self.handled_module_namespaces = {}
+
+        for handled_module_name, (
+            mode,
+            intended_module_name,
+        ) in self.handled_modules.items():
+            if mode == "warning":
+                if intended_module_name not in self.handled_module_namespaces:
+                    self.handled_module_namespaces[intended_module_name] = set()
+                self.handled_module_namespaces[intended_module_name].add(
+                    handled_module_name
+                )
 
         self.warnings_given = set()
 
@@ -509,6 +526,11 @@ which can and should be a top level package and then one choice, "error",
                         module_name, intended_module_name
                     )
                 if mode == "warning" and source_ref is not None:
+                    if using_module_name.hasOneOfNamespaces(
+                        self.handled_module_namespaces[intended_module_name]
+                    ):
+                        continue
+
                     key = (
                         module_name,
                         using_module_name,
