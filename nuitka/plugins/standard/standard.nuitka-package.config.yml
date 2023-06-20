@@ -742,6 +742,13 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'fsspec.transaction'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import distributed': 'raise ImportError'
+      when: 'not use_dask'
+
 - module-name: 'gevent'
   implicit-imports:
     - depends:
