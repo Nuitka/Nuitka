@@ -2046,6 +2046,10 @@
         'test_wide_dtype_for_and_widen': 'un-callable'
         'assert_no_pickling': 'un-callable'
       when: 'not use_pytest'
+    - description: 'remove IPython reference'
+      replacements_plain:
+        '"IPython" in sys.modules': 'False'
+      when: 'not use_ipython'
 
 - module-name: 'pendulum'
   data-files:
