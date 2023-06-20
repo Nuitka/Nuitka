@@ -54,7 +54,7 @@ class SubprocessThread(threading.Thread):
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
             % repr(self.cmdline).replace("%", "%%"),
-            min_report_time=60,
+            min_report_time=360,
             logger=scons_logger,
         )
 
@@ -77,7 +77,7 @@ def _runProcessMonitored(env, cmdline, os_env):
     thread = SubprocessThread(cmdline, os_env)
     thread.start()
 
-    # Allow 5 minutes before warning for long compile time.
+    # Allow 6 minutes before warning for long compile time.
     thread.join(360)
 
     if thread.is_alive():
@@ -323,7 +323,7 @@ class SpawnThread(threading.Thread):
         self.timer_report = TimerReport(
             message="Running %s took %%.2f seconds"
             % (" ".join(_unescape(arg) for arg in self.args[2]).replace("%", "%%"),),
-            min_report_time=60,
+            min_report_time=360,
             logger=scons_logger,
         )
 
@@ -346,7 +346,7 @@ def _runSpawnMonitored(env, sh, cmd, args, os_env):
     thread = SpawnThread(sh, cmd, args, os_env)
     thread.start()
 
-    # Allow 5 minutes before warning for long compile time.
+    # Allow 6 minutes before warning for long compile time.
     thread.join(360)
 
     if thread.is_alive():
