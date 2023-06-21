@@ -191,6 +191,13 @@
       change_function:
         '_main': "'(lambda: None)'"
 
+- module-name: 'multiprocessing.resource_tracker'
+  anti-bloat:
+    - description: "workaround for starting 'multiprocessing resource tracker"
+      replacements_plain:
+        "args += ['-c', cmd % r]": "args += ['--multiprocessing-resource-tracker', str(r)]"
+      when: 'not module_mode'
+
 - module-name: 'pathlib'
   implicit-imports:
     - depends:
