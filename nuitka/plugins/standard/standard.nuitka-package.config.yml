@@ -4806,6 +4806,11 @@
       module_code: "from .std import tqdm, trange\n"
       when: 'not use_ipython'
 
+- module-name: 'tqdm.std'
+  anti-bloat:
+    - no-auto-follow:
+        - 'pandas'
+
 - module-name: 'transformers.integrations'
   anti-bloat:
     - description: 'remove IPython reference'
