@@ -28,6 +28,7 @@ it being used.
 
 import ast
 import functools
+import imp
 import inspect
 import os
 import sys
@@ -1143,6 +1144,8 @@ except ImportError:
                 "no_asserts": hasPythonFlagNoAsserts(),
                 "no_docstrings": hasPythonFlagNoDocStrings(),
                 "no_annotations": hasPythonFlagNoAnnotations(),
+                # Querying package properties
+                "has_builtin_module": imp.is_builtin,
             }
         )
 

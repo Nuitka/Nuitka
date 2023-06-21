@@ -96,6 +96,7 @@
         'socket.': '__import__("socket").'
       no-auto-follow:
         - 'socket'
+      when: 'not has_builtin_module("_socket")'
 
 - module-name: 'encodings'
   implicit-imports:
