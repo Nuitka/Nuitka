@@ -110,6 +110,7 @@ class PythonModuleBase(NodeBase):
             # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
 
             decision, _reason = decideRecursion(
+                using_module_name=self.getFullName(),
                 module_filename=package_filename,
                 module_name=package_name,
                 module_kind=package_module_kind,

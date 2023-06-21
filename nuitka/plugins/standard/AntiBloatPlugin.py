@@ -553,7 +553,9 @@ Undesirable import of '%s' (intending to avoid '%s') in \
 
                         self.warnings_given.add(key)
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         for handled_module_name, (
             mode,
             intended_module_name,
@@ -572,6 +574,26 @@ Undesirable import of '%s' (intending to avoid '%s') in \
                         "user requested to not follow '%s' (intending to avoid '%s') import"
                         % (module_name, intended_module_name),
                     )
+
+        if using_module_name is not None:
+            config = self.config.get(using_module_name, section="anti-bloat")
+
+            if config:
+                for anti_bloat_config in config:
+                    if self.evaluateCondition(
+                        full_name=module_name,
+                        condition=anti_bloat_config.get("when", "True"),
+                    ):
+                        match, reason = module_name.matchesToShellPatterns(
+                            anti_bloat_config.get("no-auto-follow", ())
+                        )
+
+                        if match:
+                            return (
+                                False,
+                                "according to yaml 'no-auto-follow' configuration of '%s' and '%s'"
+                                % (using_module_name, reason),
+                            )
 
         # Do not provide an opinion about it.
         return None

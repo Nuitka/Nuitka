@@ -450,6 +450,7 @@ class Plugins(object):
 
             # This will get back to all other plugins allowing them to inhibit it though.
             decision, reason = Recursion.decideRecursion(
+                using_module_name=module.getFullName(),
                 module_filename=module_filename,
                 module_name=full_name,
                 module_kind=module_kind,
@@ -991,12 +992,13 @@ class Plugins(object):
         return bytecode
 
     @staticmethod
-    def onModuleEncounter(module_name, module_filename, module_kind):
+    def onModuleEncounter(using_module_name, module_name, module_filename, module_kind):
         result = None
         deciding_plugins = []
 
         for plugin in getActivePlugins():
             must_recurse = plugin.onModuleEncounter(
+                using_module_name=using_module_name,
                 module_name=module_name,
                 module_filename=module_filename,
                 module_kind=module_kind,

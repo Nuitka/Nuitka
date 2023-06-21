@@ -374,6 +374,7 @@ class ExpressionImportAllowanceMixin(object):
             self.allowed = True
         else:
             self.allowed, _reason = decideRecursion(
+                using_module_name=None,
                 module_filename=self.module_filename,
                 module_name=self.module_name,
                 module_kind=self.module_kind,
