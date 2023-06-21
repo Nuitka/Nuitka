@@ -945,7 +945,7 @@ be able to compile it and find the used modules from these paths as
 well.
 
 Manual Python File Loading
---------------------------
+==========================
 
 A very frequent pattern with private code is that it scans plugin
 directories of some kind, and e.g. uses ``os.listdir``, then considers
@@ -1112,6 +1112,20 @@ method, that is specific to them, so use this instead.
 
       result.__name__ = name
       return result
+
+Modules: Extension modules are not executable directly
+======================================================
+
+A package can be compiled with Nuitka, no problem, but when it comes to
+executing it, ``python -m compiled_module`` is not going to work and
+give the error ``No code object available for AssertsTest`` because the
+compiled module is not source code, and Python will not just load it.
+The closest would be ``python -c "import compile_module"`` and you might
+have to call the main function yourself.
+
+To support this, the CPython ``runpy`` and/or ``ExtensionFileLoader``
+would need improving such that Nuitka could supply its compiled module
+object for Python to use.
 
 ******
  Tips
