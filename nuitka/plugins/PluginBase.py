@@ -426,10 +426,13 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         """Help decide whether to include a module.
 
         Args:
+            using_module_name: module that does this (can be None if user)
             module_name: full module name
             module_filename: filename
             module_kind: one of "py", "extension" (shared library)

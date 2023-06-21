@@ -1057,7 +1057,9 @@ Prefix = .
                         if os.path.basename(sub_dll_filename).startswith(badword):
                             yield sub_dll_filename
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():
@@ -1218,12 +1220,15 @@ The standard PySide2 is not supported before CPython <3.6. For full support: htt
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         if module_name == self.binding_name and self._getNuitkaPatchLevel() < 1:
             return True, "Need to monkey patch PySide2 for abstract methods."
 
         return NuitkaPluginQtBindingsPluginBase.onModuleEncounter(
             self,
+            using_module_name=using_module_name,
             module_name=module_name,
             module_filename=module_filename,
             module_kind=module_kind,
@@ -1410,7 +1415,9 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
 
     warned_about = set()
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():

@@ -153,10 +153,12 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             module_name,
             source_code,
             root_module.getCompileTimeFilename(),
-            "Autoenable multiprocessing freeze support",
+            "Auto enable multiprocessing freeze support",
         )
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         # Enforce recursion in to multiprocessing for accelerated mode, which
         # would normally avoid this.
         if module_name.hasNamespace("multiprocessing"):

@@ -94,18 +94,26 @@ def recurseTo(
 _recursion_decision_cache = {}
 
 
-def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
-    key = module_filename, module_name, module_kind, extra_recursion
+def decideRecursion(
+    using_module_name, module_filename, module_name, module_kind, extra_recursion=False
+):
+    key = using_module_name, module_filename, module_name, module_kind, extra_recursion
 
     if key not in _recursion_decision_cache:
         _recursion_decision_cache[key] = _decideRecursion(
-            module_filename, module_name, module_kind, extra_recursion
+            using_module_name,
+            module_filename,
+            module_name,
+            module_kind,
+            extra_recursion,
         )
 
     return _recursion_decision_cache[key]
 
 
-def _decideRecursion(module_filename, module_name, module_kind, extra_recursion):
+def _decideRecursion(
+    using_module_name, module_filename, module_name, module_kind, extra_recursion
+):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
@@ -121,6 +129,7 @@ def _decideRecursion(module_filename, module_name, module_kind, extra_recursion)
             return False, "Main program is already included in package mode."
 
     plugin_decision = Plugins.onModuleEncounter(
+        using_module_name=using_module_name,
         module_filename=module_filename,
         module_name=module_name,
         module_kind=module_kind,
@@ -290,6 +299,7 @@ the compiled result, and therefore asking to include them makes no sense.
 
     if module_kind is not None:
         decision, reason = decideRecursion(
+            using_module_name=None,
             module_filename=plugin_filename,
             module_name=module_name,
             module_kind=module_kind,
@@ -390,6 +400,7 @@ def considerUsedModules(module, signal_change):
 
         try:
             decision, reason = decideRecursion(
+                using_module_name=module.getFullName(),
                 module_filename=used_module.filename,
                 module_name=used_module.module_name,
                 module_kind=used_module.module_kind,
