@@ -863,6 +863,8 @@ int main(int argc, char **argv) {
     }
 #else
     signal(SIGINT, ourConsoleCtrlHandler);
+    signal(SIGQUIT, ourConsoleCtrlHandler);
+    signal(SIGTERM, ourConsoleCtrlHandler);
 #endif
 
 #ifdef _NUITKA_AUTO_UPDATE_BOOL
