@@ -14,7 +14,6 @@ from nuitka.tools.release.Debian import (
     cleanupTarfileForDebian,
     runPy2dsc,
 )
-from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName, getBranchCategory
 from nuitka.Tracing import my_print
 from nuitka.utils.Execution import check_call
@@ -73,7 +72,6 @@ Check only, if the package builds, do not upload. Default %default.""",
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
-    createReleaseDocumentation()
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     os.chdir("dist")
@@ -97,20 +95,13 @@ Check only, if the package builds, do not upload. Default %default.""",
                 codename=codename, filename=filename, new_name=new_name
             )
 
-            entry = runPy2dsc(filename, new_name)
+            runPy2dsc(filename, new_name)
 
             break
     else:
         assert False
 
-    os.chdir("deb_dist")
-    os.chdir(entry)
-
-    # Build the debian package, but disable the running of tests, will be done later
-    # in the pbuilder test steps.
-    assert os.system("debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck") == 0
-
-    os.chdir("../../..")
+    os.chdir("..")
     assert os.path.exists("dist/deb_dist")
 
     # Check with pylint in pedantic mode and don't proceed if there were any
