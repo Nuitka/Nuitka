@@ -1007,6 +1007,12 @@ static void Nuitka_Py_Initialize(void) {
 
 #ifdef _NUITKA_STANDALONE
     assert(wcscmp(config.exec_prefix, binary_directory) == 0);
+
+// Empty "sys.path" first time, will be revived, but keep it
+// short lived.
+#if SYSFLAG_ISOLATED
+    Nuitka_SysSetObject("path", PyList_New(0));
+#endif
 #endif
 
 #endif
@@ -1339,6 +1345,10 @@ orig_argv = argv;
     setCommandLineParameters(argc, argv, false);
 
     PySys_SetArgv(argc, orig_argv);
+// Empty "sys.path" again, the above adds program directory to it.
+#if SYSFLAG_ISOLATED
+    Nuitka_SysSetObject("path", PyList_New(0));
+#endif
 
     /* Initialize the built-in module tricks used and builtin-type methods */
     NUITKA_PRINT_TRACE("main(): Calling _initBuiltinModule().");
