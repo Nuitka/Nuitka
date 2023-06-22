@@ -6,6 +6,7 @@
 
 import os
 import shutil
+import sys
 from optparse import OptionParser
 
 from nuitka.tools.release.Debian import (
@@ -41,6 +42,15 @@ def main():
 Update the pbuilder chroot before building. Default %default.""",
     )
 
+    parser.add_option(
+        "--check",
+        action="store_true",
+        dest="check",
+        default=False,
+        help="""\
+Check only, if the package builds, do not upload. Default %default.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     assert len(positional_args) == 1, positional_args
@@ -64,7 +74,7 @@ Update the pbuilder chroot before building. Default %default.""",
     shutil.rmtree("build", ignore_errors=True)
 
     createReleaseDocumentation()
-    assert os.system("python setup.py sdist --formats=gztar") == 0
+    assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     os.chdir("dist")
 
@@ -177,6 +187,9 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
     command.extend(resolveShellPatternToFilenames("../*.deb"))
 
     check_call(command, shell=False)
+
+    if options.check:
+        my_print("Finished check.", style="blue")
 
     my_print("Uploading ...", style="blue")
 
