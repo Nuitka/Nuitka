@@ -29,7 +29,7 @@ CMD ["/sbin/my_init"]
 
 # Install what we use for CI generally
 COPY requirements-devel.txt /etc/requirements-devel.txt
-RUN apt-get update && apt-get install -y gcc python2 python2-dev python3 python3-dev python3-pip git twine rst2pdf help2man chrpath dput lintian gdb strace ccache
+RUN apt-get update && apt-get install -y gcc python2 python2-dev python3 python3-dev python3-pip git twine rst2pdf help2man chrpath dput lintian gdb strace ccache pbuilder python3-stdeb lintian devscripts reprepro
 RUN python3 -m pip install -U -r /etc/requirements-devel.txt pip wheel
 RUN apt-get remove -y python3-pip && apt-get install -y python-pip && python2 -m pip install -U -r /etc/requirements-devel.txt && apt-get remove -y python-pip
 
