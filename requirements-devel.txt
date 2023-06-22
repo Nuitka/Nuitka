@@ -27,6 +27,9 @@ jsonschema == 4.6.0 ; python_version >= '3.7'
 ruamel.yaml == 0.17.21 ; python_version >= '3.7'
 deepdiff==5.8.1 ; python_version >= '3.7'
 
+# Codespell can be used as well, no need to fix version
+codespell ; python_version >= '3.7'
+
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'
 
@@ -36,9 +39,6 @@ Jinja2 == 3.0.3 ; python_version >= '3.7'
 
 # For the progress bar to look nicely.
 tqdm == 4.64.1 ; python_version == '2.7' or python_version >= '3.4'
-
-# Codespell can be used as well, no need to fix version
-codespell ; python_version >= '2.7'
 
 # Distutils test, packaging test for PyPI, fixed for Python2 breakage
 # of newer virtualenv.
