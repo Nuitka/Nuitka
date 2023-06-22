@@ -31,11 +31,7 @@ from nuitka.build.SconsInterface import (
     runScons,
     setCommonSconsOptions,
 )
-from nuitka.Options import (
-    getOnefileChildGraceTime,
-    getOnefileTempDirSpec,
-    isOnefileTempDirMode,
-)
+from nuitka.Options import getOnefileTempDirSpec, isOnefileTempDirMode
 from nuitka.OutputDirectories import getResultFullpath
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PostProcessing import executePostProcessingResources
@@ -93,7 +89,6 @@ def _runOnefileScons(onefile_compression):
     env_values["_NUITKA_ONEFILE_TEMP_BOOL"] = "1" if isOnefileTempDirMode() else "0"
     env_values["_NUITKA_ONEFILE_COMPRESSION_BOOL"] = "1" if onefile_compression else "0"
     env_values["_NUITKA_ONEFILE_BUILD_BOOL"] = "1" if onefile_compression else "0"
-    env_values["_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT"] = str(getOnefileChildGraceTime())
 
     # Allow plugins to build definitions.
     env_values.update(Plugins.getBuildDefinitions())

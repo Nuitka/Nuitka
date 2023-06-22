@@ -266,6 +266,55 @@
     patterns:
       - 'VERSION'
 
+- module-name: 'cassandra.cluster'
+  implicit-imports:
+    - depends:
+        - 'cassandra.auth'
+        - 'cassandra.connection'
+        - 'concurrent.futures'
+        - 'cassandra.encoder'
+        - 'cassandra.metadata'
+        - 'cassandra.timestamps'
+        - 'cassandra.datastax.insights.reporter'
+        - 'cassandra.datastax.cloud'
+        - 'cassandra.io.libevreactor'
+        - 'cassandra.io.twistedreactor'
+        - 'cassandra.io.eventletreactor'
+        - 'cassandra.io.asyncorereactor'
+        - 'six'
+        - 'uuid'
+
+- module-name: 'cassandra.connection'
+  implicit-imports:
+    - depends:
+        - 'cassandra.marshal'
+        - 'cassandra.protocol'
+        - 'cassandra.segment'
+
+- module-name: 'cassandra.cqltypes'
+  implicit-imports:
+    - depends:
+        - 'cassandra.util'
+
+- module-name: 'cassandra.metadata'
+  implicit-imports:
+    - depends:
+        - 'cassandra.query'
+        - 'cassandra.pool'
+
+- module-name: 'cassandra.protocol'
+  implicit-imports:
+    - depends:
+        - 'cassandra.type_codes'
+        - 'cassandra.cqltypes'
+        - 'cassandra.policies'
+        - 'cassandra.cython_deps'
+
+- module-name: 'cassandra.util'
+  implicit-imports:
+    - depends:
+        - 'cassandra.compat'
+
 - module-name: 'cefpython3'
   data-files:
     dirs:
@@ -496,6 +545,13 @@
       replacements_plain:
         'import pandas.testing as tm': ''
 
+- module-name: 'dask.dot'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'import IPython.display as display': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'datatree'
   anti-bloat:
     - description: 'remove useless metadata usage'
@@ -692,6 +748,13 @@
   data-files:
     patterns:
       - 'VERSION'
+
+- module-name: 'fsspec.transaction'
+  anti-bloat:
+    - description: 'remove optional dask usage'
+      replacements_plain:
+        'import distributed': 'raise ImportError'
+      when: 'not use_dask'
 
 - module-name: 'gevent'
   implicit-imports:
@@ -1997,6 +2060,10 @@
         'test_wide_dtype_for_and_widen': 'un-callable'
         'assert_no_pickling': 'un-callable'
       when: 'not use_pytest'
+    - description: 'remove IPython reference'
+      replacements_plain:
+        '"IPython" in sys.modules': 'False'
+      when: 'not use_ipython'
 
 - module-name: 'pendulum'
   data-files:
@@ -4566,6 +4633,14 @@
         'import unittest': ''
         'issubclass(func, unittest.TestCase)': 'False'
       when: 'not use_unittest'
+
+- module-name: 'torch._inductor.codecache'
+  anti-bloat:
+    - description: 'remove setuptools usage'
+      replacements_plain:
+        'from torch.utils import cpp_extension': ''
+      change_function:
+        'get_include_and_linking_paths': 'un-callable'
 
 - module-name: 'torch._inductor.codegen.common'
   anti-bloat:
