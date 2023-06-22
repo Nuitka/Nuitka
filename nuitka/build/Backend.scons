@@ -263,6 +263,10 @@ python_sysflag_no_randomization = getArgumentBool(
 # python_sysflag_unbuffered
 python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
 
+# python_sysflag_isolated
+python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
+
+
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
 cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
@@ -929,6 +933,8 @@ def createBuildDefinitionsFile():
     )
 
     build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
+
+    build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
 
     if forced_stdout_path:
         if forced_stdout_path == "%NONE%":

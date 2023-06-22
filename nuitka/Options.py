@@ -1825,6 +1825,8 @@ def _getPythonFlags():
                     _python_flags.add("unbuffered")
                 elif part in ("-m", "package_mode"):
                     _python_flags.add("package_mode")
+                elif part in ("-I", "isolated"):
+                    _python_flags.add("isolated")
                 else:
                     Tracing.options_logger.sysexit(
                         "Unsupported python flag '%s'." % part
@@ -1861,6 +1863,12 @@ def hasPythonFlagNoWarnings():
     """*bool* = "no_warnings" in python flags given"""
 
     return "no_warnings" in _getPythonFlags()
+
+
+def hasPythonFlagIsolated():
+    """*bool* = "isolated" in python flags given"""
+
+    return "isolated" in _getPythonFlags()
 
 
 def hasPythonFlagTraceImports():

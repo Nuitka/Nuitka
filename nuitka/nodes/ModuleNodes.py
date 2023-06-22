@@ -29,6 +29,7 @@ from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
+from nuitka.Options import hasPythonFlagIsolated
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
@@ -713,7 +714,7 @@ class CompiledPythonPackage(CompiledPythonModule):
 
     @staticmethod
     def canHaveExternalImports():
-        return True
+        return not hasPythonFlagIsolated()
 
 
 def makeUncompiledPythonModule(
