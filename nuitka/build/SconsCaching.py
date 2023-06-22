@@ -218,6 +218,7 @@ def enableClcache(env, source_dir):
     if sys.version_info < (3, 5):
         return
 
+    # spell-checker: ignore atomicwrites
     importFromInlineCopy("atomicwrites", must_exist=True)
     importFromInlineCopy("clcache", must_exist=True)
 
@@ -233,7 +234,8 @@ def enableClcache(env, source_dir):
 
     setEnvironmentVariable(env, "CLCACHE_HIDE_OUTPUTS", "1")
 
-    # Use the mode of clcache that is not dependent on MSVC filenames output
+    # Use the mode of "clcache" that is not dependent on MSVC filenames output
+    # spell-checker: ignore CLCACHE_NODIRECT
     if "CLCACHE_NODIRECT" not in os.environ:
         setEnvironmentVariable(env, "CLCACHE_NODIRECT", "1")
 
@@ -362,8 +364,11 @@ to install it."""
                     "cache hit (direct)",
                     "cache hit (preprocessed)",
                     "local_storage_hit",
+                    "primary_storage_hit",
                 ):
                     result = "cache hit"
+                elif result == "cache_miss":
+                    result = "cache miss"
 
                 # Newer ccache has these, but they duplicate:
                 if result in (
@@ -377,20 +382,17 @@ to install it."""
                     "local_storage_read_miss",
                     "local_storage_write",
                     "local_storage_miss",
+                    # Usage of incbin causes this for the constants blob integration.
+                    "unsupported code directive",
+                    "disabled",
                 ):
-                    continue
-                if result == "primary_storage_hit":
-                    result = "cache hit"
-                if result == "cache_miss":
-                    result = "cache miss"
-
-                # Usage of incbin causes this for the constants blob integration.
-                if result in ("unsupported code directive", "disabled"):
                     continue
 
                 counts[result] += 1
 
-            scons_logger.info("Compiled %d C files using ccache." % len(stats))
+            scons_logger.info(
+                "Compiled %d C files using ccache." % sum(counts.values())
+            )
             for result, count in sorted(counts.items()):
                 scons_logger.info(
                     "Cached C files (using ccache) with result '%s': %d"

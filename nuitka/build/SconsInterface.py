@@ -31,6 +31,7 @@ import sys
 from nuitka import Options, Tracing
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
+from nuitka.Options import getOnefileChildGraceTime, isOnefileMode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonFlavors import (
     isAnacondaPython,
@@ -494,5 +495,12 @@ def setCommonSconsOptions(options):
 
         env_values["CC"] = sysconfig.get_config_var("CC").split()[0]
         env_values["CXX"] = sysconfig.get_config_var("CXX").split()[0]
+
+    # Onefile grace time is shared, because client will also suicide based on
+    # it.
+    if isOnefileMode():
+        env_values["_NUITKA_ONEFILE_CHILD_GRACE_TIME_INT"] = str(
+            getOnefileChildGraceTime()
+        )
 
     return env_values
