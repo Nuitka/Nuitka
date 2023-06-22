@@ -123,6 +123,7 @@ def _getPackageVersion(distribution_name):
             try:
                 from pkg_resources import (
                     DistributionNotFound,
+                    extern,
                     get_distribution,
                 )
             except ImportError:
@@ -133,6 +134,8 @@ def _getPackageVersion(distribution_name):
                         get_distribution(distribution_name).version
                     )
                 except DistributionNotFound:
+                    result = None
+                except extern.packaging.version.InvalidVersion:
                     result = None
 
         if result is None:
