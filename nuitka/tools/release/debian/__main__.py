@@ -72,6 +72,8 @@ Check only, if the package builds, do not upload. Default %default.""",
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
+    # Build the source distribution as per our setup, however that's not going
+    # to be good enough for Debian packages. spellchecker: ignore gztar
     assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     os.chdir("dist")
@@ -107,6 +109,7 @@ Check only, if the package builds, do not upload. Default %default.""",
     # Check with pylint in pedantic mode and don't proceed if there were any
     # warnings given. Nuitka is lintian clean and shall remain that way. For
     # hotfix releases, i.e. "stable" builds, we skip this test though.
+
     if category == "stable":
         my_print("Skipped lintian checks for stable releases.", style="blue")
     else:
@@ -123,23 +126,28 @@ Check only, if the package builds, do not upload. Default %default.""",
     shutil.rmtree("package", ignore_errors=True)
     os.makedirs("package")
 
-    # Now update the pbuilder.
+    # Now update the pbuilder, spell-checker: ignore basetgz
+
+    basetgz_filename = "/pbuilder/%s.tgz" % codename
+
     if options.update_pbuilder:
         command = """\
-sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s.tgz""" % (
-            codename
+sudo /usr/sbin/pbuilder --update --basetgz %s""" % (
+            basetgz_filename
         )
 
         assert os.system(command) == 0, codename
 
     (dsc_filename,) = resolveShellPatternToFilenames("dist/deb_dist/*.dsc")
+
     # Execute the package build in the pbuilder with tests.
+    # spell-checker: ignore hookdir,debemail,buildresult
     command = (
         "sudo",
         "/usr/sbin/pbuilder",
         "--build",
         "--basetgz",
-        "/var/cache/pbuilder/%s.tgz" % codename,
+        basetgz_filename,
         "--hookdir",
         "debian/pbuilder-hookdir",
         "--debemail",
@@ -164,6 +172,7 @@ sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s.tgz""" % (
 
     os.makedirs("conf")
 
+    # spell-checker: ignore armel armhf
     putTextFileContents(
         "conf/distributions",
         contents="""\
@@ -178,6 +187,7 @@ SignWith: D96ADCA1377F1CEB6B5103F11BFC33752912B99C
         % {"codename": codename},
     )
 
+    # spell-checker: ignore reprepro includedeb
     command = ["reprepro", "includedeb", codename]
     command.extend(resolveShellPatternToFilenames("../*.deb"))
 
