@@ -74,6 +74,16 @@ Podman binary in case you do not have it in your path.
 """,
     )
 
+    parser.add_option(
+        "--shared-path",
+        action="append",
+        dest="shared_paths",
+        default=[],
+        help="""
+Path to share with container, use "--shared-path=src=dst" format for directory names.
+""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if positional_args:
@@ -152,6 +162,17 @@ Podman binary in case you do not have it in your path.
         "type=bind,source=.,dst=/src,relabel=shared",
         "--network=none",
     ]
+
+    dst_paths = []
+
+    for path_desc in options.shared_paths:
+        src_path, dst_path = path_desc.split("=")
+        dst_paths.append(dst_path)
+
+        command += [
+            "--mount",
+            "type=bind,source=%s,dst=%s,relabel=shared" % (src_path, dst_path),
+        ]
 
     # Interactive if possible only.
     if sys.stdout.isatty():
