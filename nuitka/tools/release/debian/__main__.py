@@ -110,7 +110,11 @@ Check only, if the package builds, do not upload. Default %default.""",
     if category == "stable":
         my_print("Skipped lintian checks for stable releases.", style="blue")
     else:
-        assert os.system("lintian --pedantic --allow-root dist/deb_dist/*.changes") == 0
+        # TODO: Do the lintian checks inside the pbuilder, we do not build
+        # the package locally anymore, or with a builder that focusses on
+        # that with e.g. the develop branch as a target on a regular basis.
+        my_print("Skipped lintian checks for now.", style="blue")
+        # assert os.system("lintian --pedantic --allow-root dist/deb_dist/*.changes") == 0
 
     # Move the created debian package files out.
     os.system("cp dist/deb_dist/*.deb dist/")
