@@ -720,6 +720,22 @@
         '__parse_starttag': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))'
         'goahead': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))'
 
+- module-name: 'fiona'
+  data-files:
+    dirs:
+      - 'proj_data'
+
+- module-name: 'fiona.crs'
+  implicit-imports:
+    - depends:
+        - 'fiona.enums'
+
+- module-name: 'fiona.ogrext'
+  implicit-imports:
+    - depends:
+        - 'fiona.schema'
+        - 'fiona._shim'
+
 - module-name: 'fitz.fitz'
   implicit-imports:
     - depends:
