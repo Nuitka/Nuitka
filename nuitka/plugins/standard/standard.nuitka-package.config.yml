@@ -110,7 +110,7 @@
 - module-name: 'attr'
   options:
     checks:
-      - description: 'attrs is not fully supported before 23.1.0'
+      - description: "'attrs' is not fully supported before version 23.1.0"
         support_info: 'warning'
         when: 'version("attrs") < (23,1)'
 
