@@ -84,6 +84,16 @@ Path to share with container, use "--shared-path=src=dst" format for directory n
 """,
     )
 
+    parser.add_option(
+        "--pbuilder",
+        action="store_true",
+        dest="pbuilder",
+        default=False,
+        help="""
+This container run should be allowed to use pbuilder.
+""",
+    )
+
     options, positional_args = parser.parse_args()
 
     if positional_args:
@@ -162,6 +172,11 @@ Path to share with container, use "--shared-path=src=dst" format for directory n
         "type=bind,source=.,dst=/src,relabel=shared",
         "--network=none",
     ]
+
+    # May need to allow pbuilder to create device nodes, makes the container insecure
+    # though.
+    if options.pbuilder:
+        command += ["--privileged"]
 
     dst_paths = []
 
