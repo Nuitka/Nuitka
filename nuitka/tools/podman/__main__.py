@@ -32,7 +32,7 @@ from .Podman import getPodmanExecutablePath
 containers_logger = OurLogger("Nuitka-Containers", base_style="blue")
 
 
-def main():
+def parseOptions():
     parser = OptionParser()
 
     parser.add_option(
@@ -85,6 +85,16 @@ Path to share with container, use "--shared-path=src=dst" format for directory n
     )
 
     parser.add_option(
+        "--network",
+        action="store_true",
+        dest="network",
+        default=False,
+        help="""
+This container run should be allowed to use network.
+""",
+    )
+
+    parser.add_option(
         "--pbuilder",
         action="store_true",
         dest="pbuilder",
@@ -106,6 +116,57 @@ This container run should be allowed to use pbuilder.
 
         assert options.podman_path is not None
 
+    return options
+
+
+def updateContainer(podman_path, container_id, container_file_path):
+    requirements_file = os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "requirements-devel.txt"
+    )
+
+    if not os.path.exists(requirements_file):
+        containers_logger.sysexit(
+            "Error, cannot find expected requirements-devel.txt file."
+        )
+
+    containers_logger.info("Updating container '%s'..." % container_id)
+
+    requirements_tmp_file = os.path.join(
+        os.path.dirname(container_file_path), "requirements-devel.txt"
+    )
+
+    shutil.copy(requirements_file, requirements_tmp_file)
+
+    try:
+        command = [
+            podman_path,
+            "build",
+            # Tolerate errors checking for image download, and use old one
+            "--quiet",
+            "--pull=newer",
+            "--tag",
+            "nuitka-build-%s:latest" % (container_id.lower(),),
+            "-f",
+            container_file_path,
+        ]
+
+        exit_code = callProcess(command)
+
+        if exit_code:
+            containers_logger.sysexit(
+                "Failed to update container with exit code '%d'." % exit_code,
+                exit_code=exit_code,
+            )
+
+        containers_logger.info("Updated container '%s' successfully." % container_id)
+
+    finally:
+        os.unlink(requirements_tmp_file)
+
+
+def main():
+    options = parseOptions()
+
     containers_logger.info(
         "Running in container '%s' this command: %s"
         % (options.container_id, options.command)
@@ -120,58 +181,22 @@ This container run should be allowed to use pbuilder.
             "Error, no container ID '%s' found" % options.container_id
         )
 
-    requirements_tmp_file = os.path.join(
-        os.path.dirname(container_file_path), "requirements-devel.txt"
-    )
-    requirements_file = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "requirements-devel.txt"
-    )
-
-    if not os.path.exists(requirements_file):
-        containers_logger.sysexit(
-            "Error, cannot find expected requirements-devel.txt file."
-        )
-
     if not options.no_build_container:
-        containers_logger.info("Updating container '%s'..." % options.container_id)
-
-        shutil.copy(requirements_file, requirements_tmp_file)
-
-        try:
-            command = [
-                options.podman_path,
-                "build",
-                # Tolerate errors checking for image download, and use old one
-                "--quiet",
-                "--pull=newer",
-                "--tag",
-                "nuitka-build-%s:latest" % (options.container_id.lower(),),
-                "-f",
-                container_file_path,
-            ]
-
-            exit_code = callProcess(command)
-
-            if exit_code:
-                containers_logger.sysexit(
-                    "Failed to update container with exit code '%d'." % exit_code,
-                    exit_code=exit_code,
-                )
-
-            containers_logger.info(
-                "Updated container '%s' successfully." % options.container_id
-            )
-
-        finally:
-            os.unlink(requirements_tmp_file)
+        updateContainer(
+            podman_path=options.podman_path,
+            container_id=options.container_id,
+            container_file_path=container_file_path,
+        )
 
     command = [
         options.podman_path,
         "run",
         "--mount",
         "type=bind,source=.,dst=/src,relabel=shared",
-        "--network=none",
     ]
+
+    if not options.network:
+        command.append("--network=none")
 
     # May need to allow pbuilder to create device nodes, makes the container insecure
     # though.
@@ -181,12 +206,18 @@ This container run should be allowed to use pbuilder.
     dst_paths = []
 
     for path_desc in options.shared_paths:
-        src_path, dst_path = path_desc.split("=")
+        if path_desc.count("=") == 1:
+            src_path, dst_path = path_desc.split("=")
+            flags = ""
+        else:
+            src_path, dst_path, flags = path_desc.split("=", 2)
+            flags = "," + flags
+
         dst_paths.append(dst_path)
 
         command += [
             "--mount",
-            "type=bind,source=%s,dst=%s,relabel=shared" % (src_path, dst_path),
+            "type=bind,source=%s,dst=%s,relabel=shared%s" % (src_path, dst_path, flags),
         ]
 
     # Interactive if possible only.
@@ -206,3 +237,7 @@ This container run should be allowed to use pbuilder.
     containers_logger.sysexit(
         "Finished container run with exit code '%d'." % exit_code, exit_code=exit_code
     )
+
+
+if __name__ == "__main__":
+    main()
