@@ -2840,6 +2840,17 @@
         - '.Prefix_py'
         - '.Prefix_cpp'
 
+- module-name: 'rasterio._io'
+  implicit-imports:
+    - depends:
+        - 'rasterio.sample'
+        - 'rasterio.vrt'
+
+- module-name: 'rasterio._warp'
+  implicit-imports:
+    - depends:
+        - 'rasterio._features'
+
 - module-name: 'rdkit'
   anti-bloat:
     - description: 'remove IPython reference'
