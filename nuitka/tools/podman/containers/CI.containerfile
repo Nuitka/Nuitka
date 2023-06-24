@@ -39,3 +39,6 @@ RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro \
 
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Do what git asks us to do, for working with git checkouts.
+RUN git config --global --add safe.directory /src
