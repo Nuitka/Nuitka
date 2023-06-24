@@ -2378,6 +2378,16 @@
         - 'pydantic.networks'
         - 'pydantic.errors'
 
+- module-name: 'pydantic.errors'
+  implicit-imports:
+    - depends:
+        - 'decimal'
+
+- module-name: 'pydantic.json'
+  implicit-imports:
+    - depends:
+        - 'uuid'
+
 - module-name: 'pydantic.typing'
   implicit-imports:
     - depends:
