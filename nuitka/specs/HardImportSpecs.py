@@ -104,6 +104,12 @@ importlib_resources_read_text_spec = BuiltinParameterSpec(
     default_count=2,
     type_shape=tshape_str,
 )
+importlib_resources_files_spec = BuiltinParameterSpec(
+    "importlib.resources.files",
+    ("package",),
+    default_count=0,
+)
+
 
 # os/sys functions:
 os_uname_spec = BuiltinParameterSpec(

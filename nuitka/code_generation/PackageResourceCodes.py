@@ -27,6 +27,7 @@ from .CallCodes import (
 )
 from .CodeHelpers import (
     decideConversionCheckNeeded,
+    generateChildExpressionCode,
     generateChildExpressionsCode,
     withObjectCodeTemporaryAssignment,
 )
@@ -727,6 +728,38 @@ def generateImportlibResourcesReadTextCallCode(to_name, expression, emit, contex
             called_name=read_text_function,
             expression=expression,
             arg_names=(package_name, resource_name, encoding_name, errors_name),
+            emit=emit,
+            context=context,
+        )
+
+
+def generateImportlibResourcesFilesCallCode(to_name, expression, emit, context):
+    package_name = generateChildExpressionCode(
+        expression=expression.getPackageNameUsed(),
+        child_name="package_name",
+        emit=emit,
+        context=context,
+    )
+
+    with withObjectCodeTemporaryAssignment(
+        to_name, "files_value", expression, emit, context
+    ) as result_name:
+        files_function = context.allocateTempName("files_function", unique=True)
+
+        getImportModuleNameHardCode(
+            to_name=files_function,
+            module_name="importlib.resources",
+            import_name="files",
+            needs_check=False,
+            emit=emit,
+            context=context,
+        )
+
+        getCallCodePosArgsQuick(
+            to_name=result_name,
+            called_name=files_function,
+            expression=expression,
+            arg_names=(package_name,),
             emit=emit,
             context=context,
         )

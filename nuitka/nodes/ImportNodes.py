@@ -277,7 +277,11 @@ hard_modules_trust = {
         "resource_string": trust_node,
         "resource_stream": trust_node,
     },
-    "importlib.resources": {"read_binary": trust_node, "read_text": trust_node},
+    "importlib.resources": {
+        "read_binary": trust_node,
+        "read_text": trust_node,
+        "files": trust_node,
+    },
     "ctypes": module_ctypes_trust,
     "site": {},
     "ctypes.wintypes": {},
@@ -579,7 +583,7 @@ class ExpressionImportModuleHard(
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Trace the module usage attempt.
-        trace_collection.onModuleUsageAttempt(self.getModulesUsageAttempt())
+        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
 
         return self, None, None
 
