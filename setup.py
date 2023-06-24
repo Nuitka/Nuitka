@@ -35,7 +35,6 @@ sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 # isort:start
 
-import distutils.util
 import fnmatch
 import re
 
@@ -204,23 +203,30 @@ if "nuitka.plugins.commercial" in nuitka_packages:
     package_data["nuitka.plugins.commercial"] = commercial_data_files
     package_data["nuitka.tools.commercial.container_build"] = ["Containerfile"]
 
-orig_byte_compile = distutils.util.byte_compile
+try:
+    import distutils.util
+except ImportError:
+    # Python 3.12 might do this, we need to find out where to disable the
+    # bytecode compilation there.
+    pass
+else:
+    orig_byte_compile = distutils.util.byte_compile
 
+    def byte_compile(py_files, *args, **kw):
+        # Disable bytecode compilation output, too annoying.
+        kw["verbose"] = 0
 
-def byte_compile(py_files, *args, **kw):
-    # Disable bytecode compilation output, too annoying.
-    kw["verbose"] = 0
+        # Avoid attempting files that won't work.
+        py_files = [
+            filename
+            for filename in py_files
+            if not any(
+                fnmatch.fnmatch(filename, "*/*/*/" + pattern)
+                for pattern in no_byte_compile
+            )
+        ]
 
-    # Avoid attempting files that won't work.
-    py_files = [
-        filename
-        for filename in py_files
-        if not any(
-            fnmatch.fnmatch(filename, "*/*/*/" + pattern) for pattern in no_byte_compile
-        )
-    ]
-
-    orig_byte_compile(py_files, *args, **kw)
+        orig_byte_compile(py_files, *args, **kw)
 
 
 distutils.util.byte_compile = byte_compile
