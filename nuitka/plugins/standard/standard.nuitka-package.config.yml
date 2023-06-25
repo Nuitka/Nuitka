@@ -2412,6 +2412,11 @@
     dirs:
       - '.'
 
+- module-name: 'pygeos._geometry'
+  implicit-imports:
+    - depends:
+        - 'pygeos._geos'
+
 - module-name: 'pyglet'
   implicit-imports:
     - depends:
