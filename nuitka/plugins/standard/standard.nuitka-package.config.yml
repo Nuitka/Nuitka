@@ -110,7 +110,7 @@
 - module-name: 'attr'
   options:
     checks:
-      - description: 'attrs is not fully supported before 23.1.0'
+      - description: "'attrs' is not fully supported before version 23.1.0"
         support_info: 'warning'
         when: 'version("attrs") < (23,1)'
 
@@ -719,6 +719,22 @@
       change_function:
         '__parse_starttag': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.parse_starttag))'
         'goahead': 'textwrap.dedent(inspect.getsource(sgmllib.SGMLParser.goahead))'
+
+- module-name: 'fiona'
+  data-files:
+    dirs:
+      - 'proj_data'
+
+- module-name: 'fiona.crs'
+  implicit-imports:
+    - depends:
+        - 'fiona.enums'
+
+- module-name: 'fiona.ogrext'
+  implicit-imports:
+    - depends:
+        - 'fiona.schema'
+        - 'fiona._shim'
 
 - module-name: 'fitz.fitz'
   implicit-imports:
@@ -2371,6 +2387,16 @@
         - 'pydantic.networks'
         - 'pydantic.errors'
 
+- module-name: 'pydantic.errors'
+  implicit-imports:
+    - depends:
+        - 'decimal'
+
+- module-name: 'pydantic.json'
+  implicit-imports:
+    - depends:
+        - 'uuid'
+
 - module-name: 'pydantic.typing'
   implicit-imports:
     - depends:
@@ -2848,6 +2874,17 @@
         - '.Postfix_cpp'
         - '.Prefix_py'
         - '.Prefix_cpp'
+
+- module-name: 'rasterio._io'
+  implicit-imports:
+    - depends:
+        - 'rasterio.sample'
+        - 'rasterio.vrt'
+
+- module-name: 'rasterio._warp'
+  implicit-imports:
+    - depends:
+        - 'rasterio._features'
 
 - module-name: 'rdkit'
   anti-bloat:
