@@ -119,11 +119,11 @@ def checkRstLint(document):
     my_print("OK.", style="blue")
 
 
-def makeManpages():
+def makeManPages():
     if not os.path.exists("man"):
         os.mkdir("man")
 
-    def makeManpage(python, suffix):
+    def makeManPage(python, suffix):
         cmd = [
             "help2man",
             "-n",
@@ -162,8 +162,8 @@ def makeManpages():
 
             putTextFileContents(manpage, contents=new_contents)
 
-    makeManpage("python2", "2")
-    makeManpage("python3", "3")
+    makeManPage("python2", "2")
+    makeManPage("python3", "3")
 
 
 def createReleaseDocumentation():
@@ -173,7 +173,7 @@ def createReleaseDocumentation():
         createPDF(document)
 
     if os.name != "nt":
-        makeManpages()
+        makeManPages()
 
 
 def checkReleaseDocumentation():
