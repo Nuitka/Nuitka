@@ -80,57 +80,7 @@ shutil.rmtree("build", ignore_errors=True)
 createReleaseDocumentation()
 assert os.system("python setup.py sdist --formats=bztar,gztar,zip") == 0
 
-os.chdir("dist")
-
-# Clean the stage for the debian package. The name "deb_dist" is what "py2dsc"
-# uses for its output later on.
-
-if os.path.exists("deb_dist"):
-    shutil.rmtree("deb_dist")
-
-# Provide a re-packed tar.gz for the Debian package as input.
-
-# Create it as a "+ds" file, removing:
-# - the benchmarks (too many sources, not useful to end users, potential license
-#   issues)
-# - the inline copy of scons (not wanted for Debian)
-
-# Then run "py2dsc" on it.
-
-for filename in os.listdir("."):
-    if filename.endswith(".tar.gz"):
-        new_name = filename[:-7] + "+ds.tar.gz"
-
-        cleanupTarfileForDebian(codename="sid", filename=filename, new_name=new_name)
-
-        entry = runPy2dsc(filename, new_name)
-
-        break
-else:
-    assert False
-
-os.chdir("deb_dist")
-os.chdir(entry)
-
-# Build the debian package, but disable the running of tests, will be done later
-# in the pbuilders.
-assert os.system("debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck") == 0
-
-os.chdir("../../..")
-
 checkAtHome()
-
-assert os.path.exists("dist/deb_dist")
-
-# Check with pylint in pedantic mode and don't proceed if there were any
-# warnings given. Nuitka is lintian clean and shall remain that way.
-assert os.system("lintian --pedantic dist/deb_dist/*.changes") == 0
-
-os.system("cp dist/deb_dist/*.deb dist/")
-
-for filename in os.listdir("dist/deb_dist"):
-    if os.path.isdir("dist/deb_dist/" + filename):
-        shutil.rmtree("dist/deb_dist/" + filename)
 
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir("dist"):
