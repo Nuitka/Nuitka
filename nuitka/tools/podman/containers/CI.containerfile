@@ -15,27 +15,23 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-# Use phusion/baseimage as base image. To make your builds
-# reproducible, make sure you lock down to a specific version, not
-# to `latest`! See
-# https://github.com/phusion/baseimage-docker/blob/master/Changelog.md
-# for a list of version numbers.
-FROM phusion/baseimage:jammy-1.0.1
+
+FROM debian:11-slim
 ENV container docker
 
-# Use baseimage-docker's init system.
-CMD ["/sbin/my_init"]
-
+VOLUME [ "/sys/fs/cgroup" ]
 
 # Install what we use for CI generally
 COPY requirements-devel.txt /etc/requirements-devel.txt
-RUN apt-get update && apt-get install -y gcc python2 python2-dev python3 python3-dev python3-pip git twine rst2pdf help2man chrpath dput lintian gdb strace ccache
-RUN python3 -m pip install -U -r /etc/requirements-devel.txt pip wheel
-RUN apt-get remove -y python3-pip && apt-get install -y python-pip && python2 -m pip install -U -r /etc/requirements-devel.txt && apt-get remove -y python-pip
+RUN mkdir /src
+RUN apt-get update && apt-get install -y apt-utils gcc python2 python2-dev python3 python3-dev python3-pip git rst2pdf help2man chrpath dput lintian gdb strace ccache
 
 # Install pbuilder extra stuff along with Nuitka build dependencies.
 RUN apt-get install -y pbuilder python3-stdeb lintian devscripts reprepro \
-    python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync python3-yaml python3-glob2 patchelf libzstd-dev
+    python3-appdirs scons dh-python python3-all-dev python3-all-dbg rsync \
+    python3-yaml python3-glob2 patchelf libzstd-dev
+
+RUN python3 -m pip install -U -r /etc/requirements-devel.txt wheel
 
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

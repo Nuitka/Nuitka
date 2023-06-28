@@ -107,6 +107,9 @@ def main():
     shutil.rmtree("dist", ignore_errors=True)
     shutil.rmtree("build", ignore_errors=True)
 
+    tools_logger.info(
+        "Copying src to temporary location before modifying it.", style="blue"
+    )
     copyTree("/src", "/var/tmp/src")
     os.chdir("/var/tmp/src")
 
@@ -124,6 +127,7 @@ def main():
     with withEnvironmentVarOverridden(
         "NUITKA_NO_INLINE_COPY", "1" if shallNotIncludeInlineCopy(codename) else "0"
     ):
+        tools_logger.info("Creating dist archive.", style="blue")
         check_call([sys.executable, "setup.py", "sdist", "--formats=gztar"])
 
         with withDirectoryChange("dist"):
@@ -141,6 +145,8 @@ def main():
                     cleanupTarfileForDebian(
                         codename=codename, filename=filename, new_name=new_name
                     )
+
+                    tools_logger.info("Running py2dsc.", style="blue")
 
                     entry = runPy2dsc(filename, new_name)
 
