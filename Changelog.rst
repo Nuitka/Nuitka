@@ -13,8 +13,9 @@ Nuitka blog.
 Bug fixes
 =========
 
--  Python3.11: An MSVC will not work before 14.3 (2022), point it out to
-   the user an ignore older versions. Fixed in 1.6.1 already.
+-  Python3.11: The MSVC compiler for Windows will not work before 14.3
+   (Visual Studio 2022) if used in conjunction with Python 3.11, point
+   it out to the user an ignore older versions. Fixed in 1.6.1 already.
 
 -  Standalone: Added support for the ``pint`` package. Fixed in 1.6.1
    already.
@@ -56,6 +57,62 @@ Bug fixes
 
 -  Standalone: Added implicit imports for ``apscheduler`` triggers.
    Fixed in 1.6.3 already.
+
+-  Standalone: Add data files to AXML parser packages. Added in 1.6.4
+   already.
+
+-  Fix, ``exec`` nodes didn't annotate their exception exit. Fixed in
+   1.6.4 already.
+
+-  Standalone: Added data files for ``open_clip`` package. Fixed in
+   1.6.4 already.
+
+-  Standalone: Avoid data files warning with old ``pendulum`` package.
+   Fixed in 1.6.4 already.
+
+-  Standalone: Added implicit dependencies for ``faker`` module. Fixed
+   in 1.6.4 already.
+
+-  Added workaround for ``opentele`` exception raising trying to look at
+   the exception frame before its raised. Fixed in 1.6.4 already.
+
+-  Nuitka-Python: Do not check for unknown built-in modules. Fixed in
+   1.6.4 already.
+
+-  Scons: Fix, the total ``ccache`` file number given could be wrong.
+   Ignored messages were counted still as compiled, leading to larger
+   sum of files than actually there was. Fixed in 1.6.5 already.
+
+-  Fix, multiprocessing resource tracker was not properly initialized.
+   On at least macOS this was causing it to work relatively badly,
+   because it could fail to actually use it. Fixed in 1.6.5 already.
+
+-  Standalone: Added support for ``cassandra-driver`` package. Fixed in
+   1.6.5 already.
+
+-  Onefile: Have Python process suicide when bootstrap surprisingly
+   died, respecting the provided grace time for shutdown. Fixed in 1.6.5
+   already.
+
+-  Plugins: Fix, package versions for at least Ubuntu packages can be
+   broken, such that at least ``pkg_resources`` rejects them. Handle
+   that and use fallback to next version detection method. Fixed in
+   1.6.5 already.
+
+-  Onefile: Handle ``SIGTERM`` and ``SIGQUIT`` just like ``SIGINT`` on
+   non-Windows. The Python code with see ``KeyboardInterrupt`` for all 3
+   signals, so it's easier to implement. Previously onefile would exit
+   without cleanup being performed. Fixed in 1.6.5 already.
+
+-  Standalone: Fix, need to add more implicit dependencies for
+   ``pydantic`` because we do no longer include e.g. ``decimal`` and
+   ``uuid`` automatically.
+
+-  Standalone: Added missing implicit dependencies for ``fiona``
+   package.
+
+-  Standalone: Added missing implicit dependencies for ``rasterio``
+   package.
 
 New Features
 ============
@@ -100,12 +157,53 @@ Optimization
 -  Anti-Bloat: Avoid ``transformers.testing_util`` inclusion for
    ``transformers`` package as it will trigger ``pytest`` inclusion.
 
+-  Anti-Bloat: Added missing method to our ``numpy.testing`` stub, so it
+   can be used with more packages. Added in 1.6.4 already.
+
+-  Anti-Bloat: Avoid ``numba`` usage from parts of ``pandas``. Added in
+   1.6.4 already.
+
+-  Anti-Bloat: Avoid ``pytest`` usage in ``patsy`` more completely.
+   Added in 1.6.4 already.
+
+-  Standalone: Added data files needed for ``pycountry`` package. Added
+   in 1.6.4 already.
+
+-  Anti-Bloat: Avoid ``unittest`` usage in ``numpy`` package. Added in
+   1.6.4 already.
+
+-  Anti-Bloat: Avoid using ``pytest`` in ``statsmodels`` package. Added
+   in 1.6.4 already.
+
+-  Anti-Bloat: Avoid including ``PIL.ImageQt`` when ``no-qt`` plugin is
+   used. Added in 1.6.4 already.
+
+-  Anti-Bloat: Avoid ``IPython`` usage in ``dask``. We do not cover
+   bloat with ``dask`` allowed well yet, more like this should be added.
+   Added in 1.6.5 already.
+
+-  Anti-Bloat: Avoid ``dask`` via ``distributed`` in ``fsspec`` package.
+   Added in 1.6.5 already.
+
+-  Anti-Bloat: Avoid ``IPython`` in ``patsy`` package. Added in 1.6.5
+   already.
+
+-  Anti-Bloat: Avoid ``setuptools`` in newer ``torch`` as well. Added in
+   1.6.5 already.
+
 Organisational
 ==============
 
 -  Added ``run-inside-nuitka-container`` for use in CI scripts. With
    this, dependencies of package building and testing from correct
    system installation should go away.
+
+-  Release: Add CI container for use with
+   ``run-inside-nuitka-container`` to make Debian package releases. This
+   should provide a more stable and flexible environment rather than
+   building through ansible maintained environments, since different
+   branches can more easily use different versions of e.g. ``pylint`` or
+   other aspects of the container setup.
 
 -  Release: Use upload tokens rather than PyPI password in uploads, and
    secure the account with 2FA.
@@ -121,6 +219,14 @@ Organisational
 -  Scons: Consider only 5 minutes slow for a module compilation in
    backend. Many machines are busy or slow by nature, so don't warn that
    much.
+
+-  GitHub: Actions no longer work (easily) with Python2, so we removed
+   those and need to test it elsewhere.
+
+-  UI: Output the filename of the XML node dump from ``--xml`` as well.
+
+-  Debugging: Allow yaml condition traceback to go through in
+   ``--debug`` mode, so exception causes are visible.
 
 Cleanups
 ========
@@ -396,6 +502,8 @@ Bug fixes
 -  Standalone: Added missing implicit dependency for
    ``sentence_transformers`` package.
 
+-  macOS: Fix, added missing dependency for ``platform`` module.
+
 New Features
 ============
 
@@ -478,8 +586,6 @@ New Features
 -  Standalone: Added support for handling missing DLLs. Needed for macOS
    PySide6.5.0 from PyPI, which contains DLL references that are broken.
    With this feature, we can exclude DLLs that wouldn't work anyway.
-
--  macOS: Fix, added missing dependency for ``platform`` module.
 
 Optimization
 ============
@@ -1401,6 +1507,15 @@ Bug Fixes
 -  Standalone: Added DLLs of ``sound_lib``, selecting by OS and
    architecture.
 
+-  Fix, for package metadata as from ``importlib.metadata.metadata`` for
+   use at runtime we need to use both package name and distribution name
+   to create it, or else it failed to work. Packages like
+   ``opencv-python-headless`` can now with this too.
+
+-  Standalone: Added support for ``tkinterweb`` on Windows. Other
+   platforms will need work to be done later.
+
+
 New Features
 ============
 
@@ -1455,14 +1570,6 @@ New Features
 -  Plugins: Add support for extra global search paths to mimic
    ``sys.path`` manipulations in the Yaml configuration with new
    ``global-sys-path`` import hack.
-
--  Standalone: Added support for ``tkinterweb`` on Windows. Other
-   platforms will need work to be done later.
-
--  Fix, for package metadata as from ``importlib.metadata.metadata`` for
-   use at runtime we need to use both package name and distribution name
-   to create it, or else it failed to work. Packages like
-   ``opencv-python-headless`` can now with this too.
 
 -  Reports: Include used distributions of compiled packages and their
    versions.
