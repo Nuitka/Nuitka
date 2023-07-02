@@ -765,7 +765,7 @@ def getDllExportedSymbols(logger, filename):
     if isLinux():
         output = executeToolChecked(
             logger=logger,
-            command=("nm", "-D", "--without-symbol-versions", filename),
+            command=("nm", "-D", filename),
             absence_message=_nm_usage,
         )
 
