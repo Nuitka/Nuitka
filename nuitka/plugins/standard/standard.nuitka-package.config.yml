@@ -1328,6 +1328,11 @@
         'is_rocm_pytorch': "'(lambda: False)'"
         '_get_cuda_home': 'un-callable'
 
+- module-name: 'mnemonic'
+  data-files:
+    dirs:
+      - 'wordlist'
+
 - module-name: 'moto'
   data-files:
     patterns:
