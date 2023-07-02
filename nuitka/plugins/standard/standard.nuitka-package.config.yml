@@ -3780,6 +3780,11 @@
     - depends:
         - 'sqlalchemy.sql.default_comparator'
 
+- module-name: 'sqlalchemy.util.preloaded'
+  implicit-imports:
+    - depends:
+        - 'sqlalchemy.orm.dependency'
+
 - module-name: 'sqlfluff'
   anti-bloat:
     - description: 'remove pytest reference'
