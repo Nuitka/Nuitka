@@ -18,6 +18,7 @@
 """DLL dependency scan methods for macOS. """
 
 import os
+import re
 import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
@@ -146,7 +147,7 @@ def _resolveBinaryPathDLLsMacOS(
     original_dir, binary_filename, paths, package_specific_dirs, package_name
 ):
     # Quite a few variations to consider
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     had_self = False
 
@@ -203,6 +204,17 @@ def _resolveBinaryPathDLLsMacOS(
 
             if candidate is not None and os.path.exists(candidate):
                 resolved_path = candidate
+
+        # Sometimes self-dependencies are on a numbered version, but deployed is
+        # one version without it. The macOS just ignores that, and so we do.
+        if not os.path.exists(resolved_path):
+            match = re.match(r"^(.*)\.\d+\.dylib$", resolved_path)
+
+            if match:
+                candidate = match.group(1) + ".dylib"
+
+                if os.path.exists(candidate):
+                    resolved_path = candidate
 
         if not os.path.exists(resolved_path):
             acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
