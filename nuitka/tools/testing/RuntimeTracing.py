@@ -132,6 +132,10 @@ def _takeSystemCallTraceOutput(logger, path, command):
             if line.startswith((b"stat(", b"newfstatat(")) and b"S_IFDIR" in line:
                 continue
 
+            # Don't consider files not found.
+            if line.startswith(b"stat64(") and b"= -1" in line:
+                continue
+
             result.extend(
                 os.path.abspath(match)
                 for match in re.findall(b'"(.*?)(?:\\\\0)?"', line)
