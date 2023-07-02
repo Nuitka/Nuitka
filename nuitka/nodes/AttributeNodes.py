@@ -34,16 +34,23 @@ work on, and let them decide and do the heavy lifting of optimization
 and annotation is happening in the nodes that implement these compute slots.
 """
 
+from nuitka.__past__ import unicode
+
 from .AttributeLookupNodes import ExpressionAttributeLookup
 from .ChildrenHavingMixins import (
     ChildHavingExpressionMixin,
     ChildrenExpressionBuiltinGetattrMixin,
-    ChildrenExpressionBuiltinHasattrMixin,
     ChildrenExpressionBuiltinSetattrMixin,
 )
 from .ExpressionBases import ExpressionBase
+from .ExpressionBasesGenerated import ExpressionBuiltinHasattrBase
+from .ExpressionShapeMixins import (
+    ExpressionBoolShapeExactMixin,
+    ExpressionNoneShapeExactMixin,
+)
 from .NodeMakingHelpers import (
     makeCompileTimeConstantReplacementNode,
+    makeRaiseExceptionReplacementExpression,
     wrapExpressionWithNodeSideEffects,
 )
 from .StatementBasesGenerated import (
@@ -202,7 +209,9 @@ attribute '%s' to mere attribute lookup"""
         return self, None, None
 
 
-class ExpressionBuiltinSetattr(ChildrenExpressionBuiltinSetattrMixin, ExpressionBase):
+class ExpressionBuiltinSetattr(
+    ExpressionNoneShapeExactMixin, ChildrenExpressionBuiltinSetattrMixin, ExpressionBase
+):
     """Built-in "setattr".
 
     Typical code like this: setattr(source, attribute, value)
@@ -210,13 +219,13 @@ class ExpressionBuiltinSetattr(ChildrenExpressionBuiltinSetattrMixin, Expression
 
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
-    named_children = ("expression", "attribute", "value")
+    named_children = ("expression", "name", "value")
 
     def __init__(self, expression, name, value, source_ref):
         ChildrenExpressionBuiltinSetattrMixin.__init__(
             self,
             expression=expression,
-            attribute=name,
+            name=name,
             value=value,
         )
 
@@ -240,17 +249,12 @@ class ExpressionBuiltinSetattr(ChildrenExpressionBuiltinSetattrMixin, Expression
         return self, None, None
 
 
-class ExpressionBuiltinHasattr(ChildrenExpressionBuiltinHasattrMixin, ExpressionBase):
+class ExpressionBuiltinHasattr(ExpressionBuiltinHasattrBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
-    named_children = ("expression", "attribute")
+    named_children = ("expression", "name")
 
-    def __init__(self, expression, name, source_ref):
-        ChildrenExpressionBuiltinHasattrMixin.__init__(
-            self, expression=expression, attribute=name
-        )
-
-        ExpressionBase.__init__(self, source_ref)
+    auto_compute_handling = "wait_constant:name,raise"
 
     def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more
@@ -258,7 +262,7 @@ class ExpressionBuiltinHasattr(ChildrenExpressionBuiltinHasattrMixin, Expression
         source = self.subnode_expression
 
         if source.isCompileTimeConstant():
-            attribute = self.subnode_attribute
+            attribute = self.subnode_name
 
             attribute_name = attribute.getStringValue()
 
@@ -292,8 +296,42 @@ class ExpressionBuiltinHasattr(ChildrenExpressionBuiltinHasattrMixin, Expression
 
         return self, None, None
 
+    def computeExpressionConstantName(self, trace_collection):
+        attribute_name = self.subnode_name.getCompileTimeConstant()
 
-class ExpressionAttributeCheck(ChildHavingExpressionMixin, ExpressionBase):
+        if type(attribute_name) not in (str, unicode):
+            result = makeRaiseExceptionReplacementExpression(
+                expression=self,
+                exception_type="TypeError",
+                exception_value="attribute name must be string",
+            )
+
+            return (
+                result,
+                "new_raise",
+                "Call to hasattr with non-str type %s attribute name"
+                % type(attribute_name),
+            )
+
+        if str is not unicode:
+            attribute_name = attribute_name.encode()
+
+        result = ExpressionAttributeCheck(
+            expression=self.subnode_expression,
+            attribute_name=attribute_name,
+            source_ref=self.source_ref,
+        )
+
+        return trace_collection.computedExpressionResult(
+            expression=result,
+            change_tags="new_expression",
+            change_desc="Built-in 'hasattr' with constant attribute name.",
+        )
+
+
+class ExpressionAttributeCheck(
+    ExpressionBoolShapeExactMixin, ChildHavingExpressionMixin, ExpressionBase
+):
     kind = "EXPRESSION_ATTRIBUTE_CHECK"
 
     named_children = ("expression",)
@@ -330,15 +368,30 @@ class ExpressionAttributeCheck(ChildHavingExpressionMixin, ExpressionBase):
                 "Attribute check has been pre-computed to '%s'." % has_attribute,
             )
 
-        # Attribute check is implemented by getting an attribute.
-        if source.mayRaiseExceptionAttributeLookup(BaseException, self.attribute_name):
+        # Attribute check does not raise is implemented by getting an attribute.
+        if self.mayRaiseExceptionOperation():
             trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
-    @staticmethod
-    def mayRaiseException(exception_type):
-        return False
+    def mayRaiseException(self, exception_type):
+        return (
+            self.subnode_expression.mayRaiseException(exception_type)
+            or self.mayRaiseExceptionOperation()
+        )
+
+    if str is bytes:
+
+        @staticmethod
+        def mayRaiseExceptionOperation():
+            return True
+
+    else:
+
+        def mayRaiseExceptionOperation(self):
+            return self.subnode_expression.mayRaiseExceptionAttributeLookup(
+                BaseException, self.attribute_name
+            )
 
     def getAttributeName(self):
         return self.attribute_name

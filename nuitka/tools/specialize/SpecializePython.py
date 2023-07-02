@@ -42,6 +42,7 @@ import nuitka.specs.BuiltinStrOperationSpecs
 import nuitka.specs.BuiltinTypeOperationSpecs
 import nuitka.specs.HardImportSpecs
 import nuitka.tree.Building
+from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.nodes.ImportNodes import hard_modules_non_stdlib
 from nuitka.nodes.NodeMetaClasses import NodeCheckMetaClass
 from nuitka.nodes.shapes.BuiltinTypeShapes import (
@@ -521,7 +522,12 @@ def makeMixinName(
         for named_child in named_children
     )
 
-    mixin_name += "_".join(sorted(auto_compute_handling)).title().replace("_", "")
+    mixin_name += (
+        "_".join(sorted(auto_compute_handling))
+        .title()
+        .replace("_", "")
+        .replace(":", "")
+    )
 
     mixin_name += "_".join(sorted(node_attributes)).title().replace("_", "")
 
@@ -725,7 +731,8 @@ addFromNodes()
 
 
 def makeChildrenHavingMixinNodes():
-    # Complex stuff with many details due to 2 files and modes, pylint: disable=too-many-locals
+    # Complex stuff with many details due to 2 files and modes,
+    # pylint: disable=too-many-locals,too-many-statements
 
     filename_python = "nuitka/nodes/ChildrenHavingMixins.py"
     filename_python2 = "nuitka/nodes/ExpressionBasesGenerated.py"
@@ -833,9 +840,35 @@ from nuitka.nodes.Checkers import (
                 return result
 
             is_compute_final = pop("final")
+
             is_compute_no_raise = pop("no_raise")
+            is_compute_raise = pop("raise")
+            is_compute_raise_operation = pop("raise_operation")
+            assert (
+                is_compute_no_raise + is_compute_raise + is_compute_raise_operation < 2
+            )
+
+            if is_compute_raise:
+                raise_mode = "raise"
+            elif is_compute_no_raise:
+                raise_mode = "no_raise"
+            elif is_compute_raise_operation:
+                raise_mode = "raise_operation"
+            else:
+                raise_mode = None
+
             is_compute_statement = pop("operation")
             has_post_node_init = pop("post_init")
+
+            awaited_constant_attributes = OrderedSet(
+                value.split(":", 1)[1]
+                for value in auto_compute_handling_set
+                if value.startswith("wait_constant:")
+            )
+
+            auto_compute_handling_set -= {
+                "wait_constant:%s" % value for value in awaited_constant_attributes
+            }
 
             assert not auto_compute_handling_set, auto_compute_handling_set
 
@@ -852,8 +885,9 @@ from nuitka.nodes.Checkers import (
                 ),
                 intended_for=intended_for,
                 is_compute_final=is_compute_final,
-                is_compute_no_raise=is_compute_no_raise,
+                raise_mode=raise_mode,
                 is_compute_statement=is_compute_statement,
+                awaited_constant_attributes=awaited_constant_attributes,
                 has_post_node_init=has_post_node_init,
                 node_attributes=node_attributes,
                 len=len,
