@@ -2963,6 +2963,19 @@
         'ip = get_ipython()': 'raise NameError'
       when: 'not use_ipython'
 
+- module-name: 'rtree'
+  dlls:
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'spatialindex'
+      when: 'win32'
+    - from_filenames:
+        relative_path: 'lib'
+        prefixes:
+          - 'libspatialindex'
+      when: 'not win32'
+
 - module-name: 'scipy'
   dlls:
     - from_filenames:
