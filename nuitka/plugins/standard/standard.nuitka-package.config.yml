@@ -3316,8 +3316,6 @@
   data-files:
     dirs:
       - 'data'
-    patterns:
-      - 'io/_plugins/fits_plugin*.ini'
     include-pyi-file: 'yes'
 
 - module-name: 'skimage._shared'
@@ -3334,6 +3332,10 @@
         class PytestTester:
           def __init__(self, name):
             pass
+
+- module-name: 'skimage.color'
+  data-files:
+    include-pyi-file: 'yes'
 
 - module-name: 'skimage.data'
   data-files:
@@ -3353,6 +3355,10 @@
   implicit-imports:
     - depends:
         - 'skimage.draw._draw'
+
+- module-name: 'skimage.exposure'
+  data-files:
+    include-pyi-file: 'yes'
 
 - module-name: 'skimage.external.tifffile'
   implicit-imports:
@@ -3408,14 +3414,13 @@
         - 'skimage.graph._spath'
 
 - module-name: 'skimage.io'
+  data-files:
+    patterns:
+      - '_plugins/*.ini'
+
   implicit-imports:
     - depends:
         - 'skimage.io._plugins'
-
-- module-name: 'skimage.io._plugins'
-  implicit-imports:
-    - depends:
-        - 'skimage.io._plugins._colormixer'
         - 'skimage.io._plugins._histograms'
         - 'skimage.io._plugins.fits_plugin'
         - 'skimage.io._plugins.gdal_plugin'
@@ -3429,6 +3434,11 @@
         - 'skimage.io._plugins.skivi_plugin'
         - 'skimage.io._plugins.tifffile_plugin'
         - 'skimage.io._plugins.util'
+
+- module-name: 'skimage.io._io'
+  implicit-imports:
+    - depends:
+        - 'skimage.exposure.exposure'
 
 - module-name: 'skimage.measure'
   implicit-imports:
