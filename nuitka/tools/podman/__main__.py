@@ -24,6 +24,7 @@ import shutil
 import sys
 from optparse import OptionParser
 
+from nuitka.tools.release.Release import getBranchName
 from nuitka.Tracing import OurLogger
 from nuitka.utils.Execution import callProcess
 
@@ -119,7 +120,7 @@ This container run should be allowed to use pbuilder.
     return options
 
 
-def updateContainer(podman_path, container_id, container_file_path):
+def updateContainer(podman_path, container_tag_name, container_file_path):
     requirements_file = os.path.join(
         os.path.dirname(__file__), "..", "..", "..", "requirements-devel.txt"
     )
@@ -129,7 +130,7 @@ def updateContainer(podman_path, container_id, container_file_path):
             "Error, cannot find expected requirements-devel.txt file."
         )
 
-    containers_logger.info("Updating container '%s'..." % container_id)
+    containers_logger.info("Updating container '%s'..." % container_tag_name)
 
     requirements_tmp_file = os.path.join(
         os.path.dirname(container_file_path), "requirements-devel.txt"
@@ -145,7 +146,7 @@ def updateContainer(podman_path, container_id, container_file_path):
             "--quiet",
             "--pull=newer",
             "--tag",
-            "nuitka-build-%s:latest" % (container_id.lower(),),
+            container_tag_name,
             "-f",
             container_file_path,
         ]
@@ -158,7 +159,9 @@ def updateContainer(podman_path, container_id, container_file_path):
                 exit_code=exit_code,
             )
 
-        containers_logger.info("Updated container '%s' successfully." % container_id)
+        containers_logger.info(
+            "Updated container '%s' successfully." % container_tag_name
+        )
 
     finally:
         os.unlink(requirements_tmp_file)
@@ -181,10 +184,15 @@ def main():
             "Error, no container ID '%s' found" % options.container_id
         )
 
+    container_tag_name = "nuitka-build-%s-%s:latest" % (
+        options.container_id.lower(),
+        getBranchName(),
+    )
+
     if not options.no_build_container:
         updateContainer(
             podman_path=options.podman_path,
-            container_id=options.container_id,
+            container_tag_name=container_tag_name,
             container_file_path=container_file_path,
         )
 
@@ -225,7 +233,7 @@ def main():
         command.append("-it")
 
     command += [
-        "nuitka-build-%s:latest" % (options.container_id.lower(),),
+        container_tag_name,
         "bash",
         "-l",
         "-c",
