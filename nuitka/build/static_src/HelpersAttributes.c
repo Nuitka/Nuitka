@@ -535,13 +535,10 @@ int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name) {
     PyObject *value = PyObject_GetAttr(source, attr_name);
 
     if (value == NULL) {
-        bool had_attribute_error = CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED();
-
-        if (had_attribute_error) {
-            return 0;
-        } else {
+        if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() == false) {
             return -1;
         }
+        return 0;
     }
 
     Py_DECREF(value);
@@ -589,6 +586,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
                     }
 
                     DROP_ERROR_OCCURRED();
+                    return false;
                 }
             }
         }
@@ -646,7 +644,10 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
                 return true;
             }
 
-            DROP_ERROR_OCCURRED();
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() == false) {
+                return -1;
+            }
+            return 0;
         }
 
         if (descr != NULL) {
