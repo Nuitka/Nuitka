@@ -242,7 +242,7 @@ PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name) {
         return NULL;
     }
 #if PYTHON_VERSION < 0x300
-    else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
+    else if (type->tp_getattro == PyInstance_Type.tp_getattro && Nuitka_String_CheckExact(attr_name)) {
         PyObject *result = LOOKUP_INSTANCE(source, attr_name);
         return result;
     }
@@ -660,7 +660,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
         return false;
     }
 #if PYTHON_VERSION < 0x300
-    else if (type->tp_getattro == PyInstance_Type.tp_getattro) {
+    else if (type->tp_getattro == PyInstance_Type.tp_getattro && Nuitka_String_CheckExact(attr_name)) {
         PyObject *result = LOOKUP_INSTANCE(source, attr_name);
 
         if (result == NULL) {
