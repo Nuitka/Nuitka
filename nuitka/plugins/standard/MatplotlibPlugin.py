@@ -80,7 +80,7 @@ from inspect import getsource
                 ("matplotlib_version", "__version__"),
                 (
                     "needs_matplotlibdata_env",
-                    "'MATPLOTLIBDATA' in getsource(get_data_path)",
+                    "'MATPLOTLIBDATA' in getsource(get_data_path) or 'MATPLOTLIBRC' in getsource(get_data_path)",
                 ),
             ),
         )
@@ -133,7 +133,7 @@ from inspect import getsource
             new_lines.append("backend: %s" % matplotlib_info.backend)
 
         yield self.makeIncludedGeneratedDataFile(
-            data=new_lines,
+            data="\n".join(new_lines),
             dest_path=os.path.join("matplotlib", "mpl-data", "matplotlibrc"),
             reason="updated matplotlib config file with backend to use",
         )
@@ -191,8 +191,9 @@ from inspect import getsource
             code = r"""
 import os
 os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data")
+os.environ["MATPLOTLIBRC"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data", "matplotlibrc")
 """
             return (
                 code,
-                "Setting 'MATPLOTLIBDATA' environment variable for matplotlib to find package data.",
+                "Setting 'MATPLOTLIBDATA/MATPLOTLIBRC' environment variables for 'matplotlib' to find package data.",
             )
