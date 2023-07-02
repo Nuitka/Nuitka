@@ -221,6 +221,8 @@ def main():
             src_path, dst_path, flags = path_desc.split("=", 2)
             flags = "," + flags
 
+        src_path = os.path.expanduser(src_path)
+
         dst_paths.append(dst_path)
 
         command += [
