@@ -513,6 +513,8 @@ class ExpressionImportlibMetadataDistributionCall(
     ImportlibMetadataDistributionCallMixin,
     ExpressionImportlibMetadataDistributionCallBase,
 ):
+    """Represents call to importlib.metadata.distribution(distribution_name)"""
+
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL"
 
     python_version_spec = ">= 0x380"
@@ -524,6 +526,8 @@ class ExpressionImportlibMetadataBackportDistributionCall(
     ImportlibMetadataDistributionCallMixin,
     ExpressionImportlibMetadataDistributionCallBase,
 ):
+    """Represents call to importlib_metadata.distribution(distribution_name)"""
+
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL"
     importlib_metadata_name = "importlib_metadata"
 
