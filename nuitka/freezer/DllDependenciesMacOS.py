@@ -215,6 +215,11 @@ def _resolveBinaryPathDLLsMacOS(
 
                 if os.path.exists(candidate):
                     resolved_path = candidate
+                else:
+                    candidate = os.path.join(original_dir, os.path.basename(candidate))
+
+                    if os.path.exists(candidate):
+                        resolved_path = candidate
 
         if not os.path.exists(resolved_path):
             acceptable, plugin_name = Plugins.isAcceptableMissingDLL(
