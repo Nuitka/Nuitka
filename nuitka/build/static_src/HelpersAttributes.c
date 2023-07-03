@@ -620,6 +620,7 @@ bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name) {
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(dict, attr_name);
+            DROP_ERROR_OCCURRED();
 
             Py_DECREF(dict);
 
@@ -784,6 +785,12 @@ int HAS_ATTR_BOOL2(PyObject *source, PyObject *attr_name) {
             Py_INCREF(dict);
 
             PyObject *result = DICT_GET_ITEM1(dict, attr_name);
+
+            if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() == false) {
+                return -1;
+            }
+
+            DROP_ERROR_OCCURRED();
 
             Py_DECREF(dict);
 

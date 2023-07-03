@@ -45,6 +45,7 @@ from nuitka.Serialization import (
     BuiltinAnonValue,
     BuiltinSpecialValue,
     BuiltinUnionTypeValue,
+    BuiltinGenericAliasValue,
     ConstantStreamReader,
 )
 from nuitka.Tracing import data_composer_logger
@@ -282,11 +283,11 @@ def _writeConstantValue(output, constant_value):
         output.write(b"X")
         output.write(struct.pack("i", len(constant_value)))
         output.write(constant_value)
-    elif constant_type is GenericAlias:
+    elif constant_type is BuiltinGenericAliasValue:
         output.write(b"G")
         _last_written = None
-        _writeConstantValue(output, constant_value.__origin__)
-        _writeConstantValue(output, constant_value.__args__)
+        _writeConstantValue(output, constant_value.origin)
+        _writeConstantValue(output, constant_value.args)
     elif constant_type is BuiltinUnionTypeValue:
         output.write(b"H")
         _last_written = None
