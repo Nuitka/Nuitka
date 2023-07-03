@@ -1548,6 +1548,7 @@ def isOnefileTempDirMode():
         "%PID",
         "%TIME%",
         "%PROGRAM%",
+        "%PROGRAM_BASE%",
     ):
         if candidate in spec:
             return True
