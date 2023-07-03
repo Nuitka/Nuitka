@@ -10,7 +10,18 @@ Nuitka blog.
  Nuitka Release 1.7 (Draft)
 ****************************
 
-Bug fixes
+There release is focused on adding plenty of new features in Nuitka,
+with the new isolated mode for standalone being a headliner, but there
+are beginnings for including functions as not compiled, and really a lot
+of new anti-bloat new features for improved handling, and improving user
+interaction.
+
+Also many packages were improved specifically.
+
+In terms of bug fixes, it's also a lot, and macOS got again a lot of
+improvements that solve issues in our dependency detection.
+
+Bug Fixes
 =========
 
 -  Python3.11: The MSVC compiler for Windows will not work before 14.3
@@ -109,13 +120,58 @@ Bug fixes
    ``uuid`` automatically.
 
 -  Standalone: Added missing implicit dependencies for ``fiona``
-   package.
+   package. Added in 1.6.6 already.
 
 -  Standalone: Added missing implicit dependencies for ``rasterio``
+   package. Added in 1.6.6 already.
+
+-  Standalone: Fix, need to add more implicit dependencies for
+   ``pydantic``. Added in 1.6.6 already.
+
+-  Fix, the data composer used a signed value for encoding constant blob
+   sizes, limiting it needlessly to half the size possible.
+
+-  Windows: Avoid dependency on API not available on all versions,
+   specifically Windows 7 didn't work anymore. With this, symlinks are
+   only resolved where they actually exist, and MinGW64 does it too now.
+
+-  Standalone: Added support for ``.location`` attribute for
+   ``pkg_resources`` distribution objects.
+
+-  Anti-Bloat: Avoid using ``dask`` and ``numba`` in the ``tsfresh``
    package.
+
+-  Fix, outline cell variables must be re-initialized on entry. The code
+   would be crashing for for outlines used in a loop, since the cleanup
+   code for these cell variables would release the cell that was created
+   during containing scope setup.
+
+-  Standalone: Added missing dependency of ``pygeos`` package.
+
+-  Standalone: Added ``sqlalchemy`` implicit dependency.
+
+-  Standalone: Added data files for ``mnemonic`` package.
+
+-  Fix, attribute checks could cause corruption when used on objects
+   that raise exceptions during ``__getattr__``.
+
+-  Python2: Fix, wasn't making sure instance attribute lookups were
+   actually only done with ``str`` attributes.
+
+-  macOS: Fix, need to allow versioned DLL dependency from un-versioned
+   DLLs packaged.
+
+-  Standalone: Added DLLs for ``rtree`` package.
+
+-  Standalone: Added support for newer ``skimage`` package.
 
 New Features
 ============
+
+-  Added support for ``--python-flag=isolated`` mode. In this mode,
+   packages are not expandable via environment variable provided paths
+   and ``sys.path`` is emptied which makes imports from the file system
+   not work.
 
 -  The options for forcing outputs were renamed to
    ``--force-stdout-spec`` and ``force-stderr-spec`` to force output to
@@ -137,13 +193,55 @@ New Features
    or not, with the new ``is_conda_package()`` function in Nuitka
    package configuration. Added in 1.6.1 already.
 
+-  Plugins: Provide control tags during plugin startup with new
+   interface, such that these become globally visible.
+
 -  Plugins: Allow to give ``--include-qt-plugins`` options of Qt binding
    plugins to be given multiple times. This is for consistency with
    other options. These now expand the list of plugins rather than
    replacing it.
 
+-  Added experimental code to include functions decorated in certain
+   ways to be included as bytecode. Prepare the inclusion as source code
+   in a similar fashion. This was used to make example PyQt5 code work
+   properly with timers where it doesn't normally work, but is still in
+   development before it will be generally useful. For that it reacts to
+   ``@pyqtSlot`` decorators.
+
+-  Plugins: Make anti-bloat not warn when bloating modules include their
+   group. This helps when e.g. ``distributed`` is going to use ``dask``,
+   then we warn about ``distributed``, but not anymore, when that then
+   uses ``dask``. And that intention to avoid ``dask`` is now in the
+   warning given for ``distributed``.
+
+-  Plugins: Added ability to decide module inclusion based on using
+   module name and not only the used name. This will be super useful to
+   make some imports not count per se for inclusion.
+
+-  Plugins: Added new ``no-auto-follow`` Yaml configuration for
+   ``anti-bloat``, that makes imports from one module not automatically
+   included. That can make optional import removal much easier.
+
+-  Plugins: Added new function for when clauses, such that it now can be
+   tested if this Python version has a certain built-in name, e.g.
+   ``when: 'not has_builtin_module("_socket")'`` will not apply
+   configuration ``_socket`` is an extension module rather than
+   built-in. This can be used to avoid unnecessary changes.
+
 Optimization
 ============
+
+-  Optimization: Better ``hasattr`` handling. Added ability for
+   generated expression base class to monitor the attribute name for
+   becoming constant and then calling a new abstract method due to
+   ``auto_compute_handling`` saying ``wait_constant:name``.
+
+-  Optimization: Added type shapes for ``setattr`` and ``hasattr``
+   built-ins as well as the attribute check node for better code
+   generation.
+
+-  Optimization: Added dedicated nodes for ``importlib.resources.files``
+   to allow including the used package automatically.
 
 -  Standalone: Include only platform DLLs for ``tls_client`` rather than
    all DLLs for all platforms. Added in 1.6.1 already.
@@ -191,6 +289,26 @@ Optimization
 -  Anti-Bloat: Avoid ``setuptools`` in newer ``torch`` as well. Added in
    1.6.5 already.
 
+-  Anti-Bloat: Avoid ``tkinter`` inclusion in ``PIL`` and ``matplotlib``
+   if another GUI plugin is active. This is using the control tags made
+   available by GUI plugins.
+
+-  Anti-Bloat: Avoid warning for ``from unittest import mock`` imports.
+   These are common, and not considered actual usage of ``unittest``
+   anymore.
+
+-  Anti-Bloat: Avoid ``pandas`` usage in ``tqdm``. This uses the new
+   ``no-auto-follow`` feature that will enable the optional integration
+   of ``tqdm`` if pandas is included by other means only.
+
+-  Anti-Bloat: Better method of avoiding ``socket`` in ``email.utils``.
+   With changing the source code to delay the import of ``socket`` to
+   the only function using it. Socket is now included only if used
+   elsewhere. These changes however, are only done if ``_socket`` if is
+   not a built-in module, because only then they really matters. And
+   using a simple ``--include-module=socket`` will restore this. This
+   approach is more robust and less invasive.
+
 Organisational
 ==============
 
@@ -200,10 +318,10 @@ Organisational
 
 -  Release: Add CI container for use with
    ``run-inside-nuitka-container`` to make Debian package releases. This
-   should provide a more stable and flexible environment rather than
-   building through ansible maintained environments, since different
-   branches can more easily use different versions of e.g. ``pylint`` or
-   other aspects of the container setup.
+   provides a more stable and flexible environment rather than building
+   through ansible maintained environments, since different branches can
+   more easily use different versions, or new features for the container
+   handling.
 
 -  Release: Use upload tokens rather than PyPI password in uploads, and
    secure the account with 2FA.
@@ -225,8 +343,30 @@ Organisational
 
 -  UI: Output the filename of the XML node dump from ``--xml`` as well.
 
+-  UI: Make ``--edit-module-code`` work with onefile outputs as well.
+
 -  Debugging: Allow yaml condition traceback to go through in
    ``--debug`` mode, so exception causes are visible.
+
+-  Plugins: Make more clear what is the forbidden module user, such that
+   it is possible to debug it.
+
+-  UI: Inform user about slow linking, and ``--lto=no`` choice in case
+   ``auto`` was used. This should make this option more obvious for new
+   users that somehow victim of not defaulting to ``no``, but still
+   having a slow link.
+
+-  Debugging: Include PDBs for DLLs in unstripped mode already.
+   Previously this was only done for debug mode, but that's a bit high
+   of a requirement, and we sometimes need to debug where things do not
+   happen in debug mode.
+
+-  User Manual: Added typical problem with ``python -m compiled_module``
+   execution not working and why that is so.
+
+-  Debian: Do not include PDF files in packages. These are probably not
+   used that much, but they cause issues at times, that are likely not
+   worth the effort.
 
 Cleanups
 ========
@@ -238,14 +378,54 @@ Cleanups
    the running executable to file path common code for clearer code
    structure.
 
+-  Removed ``x-bits`` from files that do not need them. For ``__main__``
+   files, they are not needed, and for some files they were outright
+   wrong.
+
+-  Python3.12: Avoid usage of ``distutils.utils`` which were using to
+   disable bytecode compilation for things we expect to not work.
+
+-  Solve TODO and use more modern git command ``git branch
+   --show-current`` to detect branch, our CI will have this for sure.
+
 Tests
 =====
+
+-  Release: Use CI container for linter checks, so different branches
+   can use different versions with less pain involved.
 
 -  macOS: Allow all system library frameworks to be used, not just a few
    selected ones, there is many of them and they should all exist on
    every system. Added in 1.6.1 already.
 
-This release is not done yet.
+-  Made the ``pendulum`` actually useful to cover new and old pendulum
+   actually working properly.
+
+Summary
+=======
+
+This release really polished ``anti-bloat`` to the point where we now
+have all the tools needed. Also ``torch`` in newest version is now
+working nicely again with it, and a few rough edges of what we did with
+1.6 for not including extension modules were removed. This polishing
+will go on, but has reached really high levels. More and more people are
+capable of helping with PRs here.
+
+The optimization work outside of ``anti-bloat`` was really minor, with
+only the two attribute built-in nodes being worked on, and only
+``hasattr`` seeing real improvements. However, this was more of a
+structural thing. The ``wait_constant`` technique will not get applied
+more often, but it also will need a ``wait_all_constant`` companion,
+before we can expect scalability improvements.
+
+Restoring Windows 7 is important to many people deploying to old
+systems, and the like.
+
+However, in the coming release, we need to attack loop tracing. The only
+bugs currently remaining are related to wrong tracing of items, and it
+also is a limitation for hard imports to work. So scalability from doing
+more of the ``wait_constant`` work, and from more clever loop tracing
+shall be the focus of the 1.8 release.
 
 ********************
  Nuitka Release 1.6
@@ -264,7 +444,7 @@ improvements that solve issues with prominent packages in our dependency
 detection. And then for PySide we found a corruption issue, that got
 workarounds.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The new dict ``in`` optimization was compile time crashing on code
@@ -1514,7 +1694,6 @@ Bug Fixes
 
 -  Standalone: Added support for ``tkinterweb`` on Windows. Other
    platforms will need work to be done later.
-
 
 New Features
 ============
@@ -16630,7 +16809,7 @@ New Features
    The Python 3.2 on Ubuntu is not providing a helper function that was
    used by Nuitka, replaced it with out own code.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Default values were not "is" identical.
@@ -16799,7 +16978,7 @@ New Features
    -  Unicode variable names are also supported, although it's of course
       ugly, to find a way to translate these to C++ ones.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Checking compiled code with ``instance(some_function,
@@ -17063,7 +17242,7 @@ errors are errors of the test, or minor things. Hope is that these unit
 tests can be added as release tests to Nuitka. And once that is done,
 the next big Python application can come.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Local variables were released when an exception was raised that
@@ -17246,7 +17425,7 @@ And then of course, more re-formulation work, in this case, class
 definitions are now mere simple functions. This and later function
 references, is the important and only progress towards type inference.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The compiled method type can now be used with ``copy`` module. That
@@ -17432,7 +17611,7 @@ I would like to thank Debian Legal team, for originally bringing to my
 attention, that this license will be better suited, than any copyright
 assignment could be.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The compiled functions could not be used with ``multiprocessing`` or
@@ -17504,7 +17683,7 @@ first release to not only run itself under Python3, but for Nuitka to
 *compile itself* with Nuitka under Python3, which previously only worked
 for Python2. For the common language subset, it's quite fine now.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  List contractions produced extra entries on the call stack, after
@@ -17729,7 +17908,7 @@ simple ones, etc.
 Also there are the usual few small bug fixes, and a bunch of
 organisational improvements, that make the release complete.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The built-in ``next`` could causes a program crash when iterating
@@ -17987,7 +18166,7 @@ of new optimization and preparations for more. And then there is a new
 compiler clang and a new platform supported. macOS X appears to work
 mostly, thanks for the patches from Pete Hunt.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The use of a local variable name as an expression was not covered and
@@ -18250,7 +18429,7 @@ This time there are a few bug fixes, major cleanups, more Python3
 support, and even new features. A lot things in this are justifying a
 new release.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The man pages of ``nuitka`` and ``nuitka-python`` had no special
@@ -18426,7 +18605,7 @@ fixes, which were available as hot fixes, and some additional
 optimization and node tree cleanups, as well as source cleanups. But not
 much else.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Conditional statements with both branches empty were not optimized
@@ -18561,7 +18740,7 @@ And there has been a lot of effort, to address the Debian packaging to
 be cleaner and more complete, addressing issues that prevented it from
 entering the Debian repository.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Fixed the handling of modules and packages of the same name, but with
@@ -18787,7 +18966,7 @@ Also there has an effort to make the Debian packaging cleaner,
 addressing all kinds of small issues that prevented it from entering the
 Debian repository. It's still not there, but it's making progress.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Fixed a packaging problem for Linux and x64 platform, the new
@@ -18991,7 +19170,7 @@ release. It won't link, but there will be later releases.
 And there is a lot of cleanup going on, geared towards compatibility
 with line numbers in the frame object.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The main module was using ``__main__`` in tracebacks, but it must be
@@ -19154,7 +19333,7 @@ It is again the result of working towards compilation of a real program
 (Mercurial). This time, I have added support for proper handling of
 compiled types by the ``inspect`` module.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Fix for "Missing checks in parameter parsing with star list, star
@@ -19268,7 +19447,7 @@ here were already fixed in on the stable release before this release.
 This time there were 5 such hot fix releases, sometimes fixing multiple
 bugs.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  In case of syntax errors in the main program, an exception stack was
@@ -19401,7 +19580,7 @@ Due to the use of the "git flow", most of the bugs listed here were
 already fixed in on the stable release before this release. And there
 were many of these.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The order of evaluation for base classes and class dictionaries was
@@ -19574,7 +19753,7 @@ now that it's no longer so, I can run heavy compile jobs on it. To my
 surprise, it found many portability problems. So I chose to fix that
 first, the result being that Nuitka now works on ARM Linux too.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  The order of slice expressions was not correct on x86 as well, and I
@@ -19702,7 +19881,7 @@ This new release is major milestone 2 work, enhancing practically all
 areas of Nuitka. The focus was roundup and breaking new grounds with
 structural optimization enhancements.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Exceptions now correctly stack.
@@ -19875,7 +20054,7 @@ areas of Nuitka. The main focus was on faster function calls, faster
 class attributes (not instance), faster unpacking, and more built-ins
 detected and more thoroughly optimizing them.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Exceptions raised inside with statements had references to the
@@ -20164,7 +20343,7 @@ Otherwise there have been the usual round of performance improvements
 and more cleanups. This release is otherwise milestone 2 work only,
 which will have to continue for some time more.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Lambda generators were not fully compatible, their simple form could
@@ -20321,7 +20500,7 @@ in CPython ``instancemethod`` objects. The new ``compiled_method`` is
 specifically designed for wrapping ``compiled_function`` and therefore
 more efficient at it.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  When using ``Python`` or ``Nuitka.py`` to execute some script, the
@@ -20466,7 +20645,7 @@ items, and then aims at cleaner structures internally, so optimization
 analysis shall become "easy". It is a correctness and framework release,
 not a performance improvement at all.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Imports were not respecting the ``level`` yet. Code like this was not
@@ -20592,7 +20771,7 @@ contributed a lot of high quality commits as you can see from the gitweb
 history. He appears to try and compile Mercurial and Nuitka, and this
 resulted in important contributions.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Nicolas found a reference counting bug with nested parameter calls.
@@ -20864,7 +21043,7 @@ So the major advancement of this release is to make the ``--deep``
 option useful. But also there have been a performance improvements,
 which end up giving us another boost for the "PyStone" benchmark.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Imports of modules local to packages now work correctly, closing the
@@ -21015,7 +21194,7 @@ versions of the tests.
 This means an even higher level of compatibility has been achieved, then
 there is performance improvements, and ever cleaner structure.
 
-Bug fixes
+Bug Fixes
 =========
 
 Generators
@@ -21149,7 +21328,7 @@ With the addition of set contractions and dict contractions in this very
 release, Nuitka is approaching Python support for 2.7, and then there
 are some bug fixes.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Calling a function with ``**`` and using a non-dict for it was
@@ -21759,7 +21938,7 @@ could aim at some basic optimization finally.
 
 Good day, this is a major step ahead, improvements everywhere.
 
-Bug fixes
+Bug Fixes
 =========
 
 -  Migrated the Python parser from the deprecated and problematic
