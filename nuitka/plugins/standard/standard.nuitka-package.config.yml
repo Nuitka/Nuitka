@@ -513,6 +513,13 @@
     - depends:
         - 'cytoolz.utils'
 
+- module-name: 'dash._jupyter'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'dash.dash'
   anti-bloat:
     - description: 'remove pytest reference'
