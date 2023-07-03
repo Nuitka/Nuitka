@@ -11,15 +11,20 @@ Nuitka blog.
 ****************************
 
 There release is focused on adding plenty of new features in Nuitka,
-with the new isolated mode for standalone being a headliner, but there
+with the new isolated mode for standalone being headliners, but there
 are beginnings for including functions as not compiled, and really a lot
 of new anti-bloat new features for improved handling, and improving user
 interaction.
 
-Also many packages were improved specifically.
+Also many packages were improved specifically to use less unnecessary
+stuff, some of which are commonly used. For some things, e.g. avoiding
+tkinter, this got also down to polishing modules that have GUI plugins
+to avoid those if another GUI toolkit is used.
 
 In terms of bug fixes, it's also a lot, and macOS got again a lot of
-improvements that solve issues in our dependency detection.
+improvements that solve issues in our dependency detection. But also a
+long standing corruption for code generation of cell variables of
+contractions in loops has finally been solved.
 
 Bug Fixes
 =========
