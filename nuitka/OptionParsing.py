@@ -1231,7 +1231,7 @@ os_group.add_option(
     help="""\
 Force standard output of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM%.out.txt', i.e. file near your program,
+Defaults to not active, use e.g. '%PROGRAM_BASE%.out.txt', i.e. file near your program,
 check User Manual for full list of available values.""",
 )
 
@@ -1245,7 +1245,7 @@ os_group.add_option(
     help="""\
 Force standard error of the program to go to this location. Useful for programs with
 disabled console and programs using the Windows Services Plugin of Nuitka commercial.
-Defaults to not active, use e.g. '%PROGRAM%.err.txt', i.e. file near your program,
+Defaults to not active, use e.g. '%PROGRAM_BASE%.err.txt', i.e. file near your program,
 check User Manual for full list of available values.""",
 )
 
