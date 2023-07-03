@@ -33,7 +33,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
-# spell-checker: ignore dask,numba
+# spell-checker: ignore dask,numba,statsmodels,matplotlib
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
@@ -100,6 +100,10 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
             self.handled_modules["py"] = noinclude_pytest_mode, "pytest"
             self.handled_modules["nose2"] = noinclude_pytest_mode, "pytest"
             self.handled_modules["nose"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["statsmodels.tools._testing"] = (
+                noinclude_pytest_mode,
+                "pytest",
+            )
         else:
             self.control_tags["use_pytest"] = True
 
