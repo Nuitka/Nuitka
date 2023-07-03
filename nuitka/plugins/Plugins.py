@@ -460,7 +460,7 @@ class Plugins(object):
             )
 
             # This will get back to all other plugins allowing them to inhibit it though.
-            decision, reason = Recursion.decideRecursion(
+            decision, decision_reason = Recursion.decideRecursion(
                 using_module_name=module.getFullName(),
                 module_filename=module_filename,
                 module_name=full_name,
@@ -473,16 +473,17 @@ class Plugins(object):
                     module_name=full_name,
                     module_filename=module_filename,
                     module_kind=module_kind,
-                    using_module_name=module.module_name,
                     source_ref=module.getSourceReference(),
-                    reason=reason,
+                    reason="implicit import",
+                    using_module_name=module.module_name,
+                    decision_reason=decision_reason,
                 )
 
                 addUsedModule(
                     module=imported_module,
                     using_module=module,
                     usage_tag="plugin:" + plugin.plugin_name,
-                    reason=reason,
+                    reason="implicit import",
                     source_ref=module.source_ref,
                 )
 
@@ -791,6 +792,7 @@ class Plugins(object):
                     module_name.asPath() + ".py",
                 ),
                 module_name=module_name,
+                reason="trigger",
                 source_code=code,
                 is_top=False,
                 is_main=False,
@@ -947,6 +949,7 @@ class Plugins(object):
                 fake_module, _added = buildModule(
                     module_filename=fake_filename,
                     module_name=fake_module_name,
+                    reason="fake",
                     source_code=source_code,
                     is_top=False,
                     is_main=False,
@@ -1037,7 +1040,7 @@ class Plugins(object):
 
     @staticmethod
     def onModuleRecursion(
-        module_name, module_filename, module_kind, using_module_name, source_ref
+        module_name, module_filename, module_kind, using_module_name, source_ref, reason
     ):
         for plugin in getActivePlugins():
             plugin.onModuleRecursion(
@@ -1046,6 +1049,7 @@ class Plugins(object):
                 module_kind=module_kind,
                 using_module_name=using_module_name,
                 source_ref=source_ref,
+                reason=reason,
             )
 
     @staticmethod

@@ -366,32 +366,6 @@ def makeSourceDirectory():
 
     # assert main_module in ModuleRegistry.getDoneModules()
 
-    # We might have chosen to include it as bytecode, and only compiled it for
-    # fun, and to find its imports. In this case, now we just can drop it. Or
-    # a module may shadow a frozen module, but be a different one, then we can
-    # drop the frozen one.
-    # TODO: This really should be done when the compiled module comes into
-    # existence.
-    for module in ModuleRegistry.getDoneModules():
-        if module.isCompiledPythonModule():
-            uncompiled_module = ModuleRegistry.getUncompiledModule(
-                module_name=module.getFullName(),
-                module_filename=module.getCompileTimeFilename(),
-            )
-
-            if uncompiled_module is not None:
-                # We now need to decide which one to keep, compiled or uncompiled
-                # module. Some uncompiled modules may have been asked by the user
-                # or technically required. By default, frozen code if it exists
-                # is preferred, as it will be from standalone mode adding it.
-                if (
-                    uncompiled_module.isUserProvided()
-                    or uncompiled_module.isTechnical()
-                ):
-                    ModuleRegistry.removeDoneModule(module)
-                else:
-                    ModuleRegistry.removeUncompiledModule(uncompiled_module)
-
     # Lets check if the asked modules are actually present, and warn the
     # user if one of those was not found.
     for any_case_module in Options.getShallFollowModules():

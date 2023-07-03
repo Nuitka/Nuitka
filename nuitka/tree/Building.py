@@ -64,7 +64,10 @@ from nuitka.BytecodeCaching import (
 )
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.Errors import CodeTooComplexCode
-from nuitka.freezer.Standalone import detectEarlyImports
+from nuitka.freezer.ImportDetection import (
+    detectEarlyImports,
+    detectStdlibAutoInclusionModules,
+)
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
@@ -367,7 +370,6 @@ def buildRaiseNode(provider, node, source_ref):
 
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
-
     # On the module level, there is nothing to do.
     if provider.isCompiledPythonModule():
         if shallWarnUnusualCode():
@@ -960,6 +962,10 @@ def decideCompilationMode(is_top, module_name, for_pgo):
     for_pgo - consider PGO information or not
     """
 
+    # Technically required modules must be bytecode
+    if module_name in detectEarlyImports():
+        return "bytecode"
+
     result = Plugins.decideCompilation(module_name)
 
     # Cannot change mode of __main__ to bytecode, that is not going
@@ -990,14 +996,20 @@ required to compiled."""
 
     # Default if neither plugins nor PGO have expressed an opinion
     if result is None:
-        result = "compiled"
+        if module_name in detectStdlibAutoInclusionModules():
+            result = "bytecode"
+        else:
+            result = "compiled"
 
     return result
 
 
-def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_ref):
+def _loadUncompiledModuleFromCache(
+    module_name, reason, is_package, source_code, source_ref
+):
     result = makeUncompiledPythonModule(
         module_name=module_name,
+        reason=reason,
         filename=source_ref.getFilename(),
         bytecode=demoteSourceCodeToBytecode(
             module_name=module_name,
@@ -1005,7 +1017,7 @@ def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_
             filename=source_ref.getFilename(),
         ),
         user_provided=False,
-        technical=False,
+        technical=module_name in detectEarlyImports(),
         is_package=is_package,
     )
 
@@ -1024,6 +1036,7 @@ def _loadUncompiledModuleFromCache(module_name, is_package, source_code, source_
 
 def _createModule(
     module_name,
+    reason,
     source_code,
     source_ref,
     is_extension,
@@ -1035,9 +1048,14 @@ def _createModule(
 ):
     if is_extension:
         result = PythonExtensionModule(
-            module_name=module_name, technical=False, source_ref=source_ref
+            module_name=module_name,
+            reason=reason,
+            technical=module_name in detectEarlyImports(),
+            source_ref=source_ref,
         )
     elif is_main:
+        assert reason == "main", reason
+
         result = PythonMainModule(
             main_added=main_added,
             module_name=module_name,
@@ -1050,7 +1068,12 @@ def _createModule(
 
         checkPythonVersionFromCode(source_code)
     elif is_namespace:
-        result = createNamespacePackage(module_name, is_top, source_ref)
+        result = createNamespacePackage(
+            module_name=module_name,
+            reason=reason,
+            is_top=is_top,
+            source_ref=source_ref,
+        )
     else:
         mode = decideCompilationMode(
             is_top=is_top, module_name=module_name, for_pgo=False
@@ -1066,6 +1089,7 @@ def _createModule(
         ):
             result = _loadUncompiledModuleFromCache(
                 module_name=module_name,
+                reason=reason,
                 is_package=is_package,
                 source_code=source_code,
                 source_ref=source_ref,
@@ -1077,6 +1101,7 @@ def _createModule(
             if is_package:
                 result = CompiledPythonPackage(
                     module_name=module_name,
+                    reason=reason,
                     is_top=is_top,
                     mode=mode,
                     future_spec=None,
@@ -1085,6 +1110,7 @@ def _createModule(
             else:
                 result = CompiledPythonModule(
                     module_name=module_name,
+                    reason=reason,
                     is_top=is_top,
                     mode=mode,
                     future_spec=None,
@@ -1134,6 +1160,7 @@ def buildMainModuleTree(filename, is_main, source_code):
 
     module, _added = buildModule(
         module_name=module_name,
+        reason="main",
         module_filename=filename,
         source_code=source_code,
         is_top=True,
@@ -1144,7 +1171,10 @@ def buildMainModuleTree(filename, is_main, source_code):
     )
 
     if is_main and Options.isStandaloneMode():
-        module.setEarlyModules(detectEarlyImports())
+        module.setStandardLibraryModules(
+            early_module_names=detectEarlyImports(),
+            stdlib_modules_names=detectStdlibAutoInclusionModules(),
+        )
 
     # Main modules do not get added to the import cache, but plugins get to see it.
     if module.isMainModule():
@@ -1155,7 +1185,7 @@ def buildMainModuleTree(filename, is_main, source_code):
     return module
 
 
-def _makeModuleBodyFromSyntaxError(exc, module_name, module_filename):
+def _makeModuleBodyFromSyntaxError(exc, module_name, reason, module_filename):
     if module_filename not in Importing.warned_about:
         Importing.warned_about.add(module_filename)
 
@@ -1169,6 +1199,7 @@ Cannot follow import to module '%s' because of '%s'."""
 
     module = CompiledPythonModule(
         module_name=module_name,
+        reason=reason,
         is_top=False,
         mode="compiled",
         future_spec=FutureSpec(),
@@ -1191,7 +1222,9 @@ Cannot follow import to module '%s' because of '%s'."""
     return module
 
 
-def _makeModuleBodyTooComplex(module_name, module_filename, source_code, is_package):
+def _makeModuleBodyTooComplex(
+    module_name, reason, module_filename, source_code, is_package
+):
     if module_filename not in Importing.warned_about:
         Importing.warned_about.add(module_filename)
 
@@ -1201,24 +1234,22 @@ Cannot compile module '%s' because its code is too complex, included as bytecode
             % module_name
         )
 
-    module = makeUncompiledPythonModule(
+    return makeUncompiledPythonModule(
         module_name=module_name,
+        reason=reason,
         filename=module_filename,
         bytecode=marshal.dumps(
             compile(source_code, module_filename, "exec", dont_inherit=True)
         ),
         is_package=is_package,
         user_provided=True,
-        technical=False,
+        technical=module_name in detectEarlyImports(),
     )
-
-    ModuleRegistry.addUncompiledModule(module)
-
-    return module
 
 
 def buildModule(
     module_name,
+    reason,
     module_filename,
     source_code,
     is_top,
@@ -1279,7 +1310,10 @@ def buildModule(
                     raise
 
                 module = _makeModuleBodyFromSyntaxError(
-                    exc=e, module_name=module_name, module_filename=module_filename
+                    exc=e,
+                    module_name=module_name,
+                    reason=reason,
+                    module_filename=module_filename,
                 )
                 return module, True
 
@@ -1324,7 +1358,10 @@ def buildModule(
                         )
 
             module = _makeModuleBodyFromSyntaxError(
-                exc=e, module_name=module_name, module_filename=module_filename
+                exc=e,
+                module_name=module_name,
+                reason=reason,
+                module_filename=module_filename,
             )
             return module, True
         except CodeTooComplexCode:
@@ -1334,6 +1371,7 @@ def buildModule(
 
             module = _makeModuleBodyTooComplex(
                 module_name=module_name,
+                reason=reason,
                 module_filename=module_filename,
                 source_code=source_code,
                 is_package=is_package,
@@ -1345,6 +1383,7 @@ def buildModule(
 
     module = _createModule(
         module_name=module_name,
+        reason=reason,
         source_code=source_code,
         source_ref=source_ref,
         is_top=is_top,
@@ -1375,6 +1414,7 @@ def buildModule(
 
             module = _makeModuleBodyTooComplex(
                 module_name=module_name,
+                reason=reason,
                 module_filename=module_filename,
                 source_code=source_code,
                 is_package=is_package,

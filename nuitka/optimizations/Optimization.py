@@ -137,7 +137,9 @@ def optimizeCompiledPythonModule(module):
             "Memory usage changed during optimization of '%s'" % (module.getFullName())
         )
 
-    considerUsedModules(module=module, signal_change=signalChange)
+    considerUsedModules(
+        module=module, pass_count=pass_count, signal_change=signalChange
+    )
 
     return touched
 
@@ -153,7 +155,9 @@ def optimizeUncompiledPythonModule(module):
     # Pick up parent package if any.
     module.attemptRecursion()
 
-    considerUsedModules(module=module, signal_change=signalChange)
+    considerUsedModules(
+        module=module, pass_count=pass_count, signal_change=signalChange
+    )
 
     Plugins.considerImplicitImports(module=module, signal_change=signalChange)
 
@@ -275,13 +279,26 @@ def makeOptimizationPass():
 
     _restartProgress()
 
+    main_module = None
+    stdlib_phase_done = False
+
     while True:
         current_module = ModuleRegistry.nextModule()
 
         if current_module is None:
-            # TODO: Internal module seems to cause extra passes.
-            # optimizeModule(getInternalModule())
+            if main_module is not None and pass_count == 1:
+                considerUsedModules(
+                    module=main_module, pass_count=-1, signal_change=signalChange
+                )
+
+                stdlib_phase_done = True
+                main_module = None
+                continue
+
             break
+
+        if current_module.isMainModule() and not stdlib_phase_done:
+            main_module = current_module
 
         _traceProgressModuleStart(current_module)
 

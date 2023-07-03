@@ -23,6 +23,7 @@ import marshal
 
 from nuitka.BytecodeCaching import writeImportedModulesNamesToCache
 from nuitka.Bytecodes import compileSourceToBytecode
+from nuitka.freezer.ImportDetection import detectEarlyImports
 from nuitka.importing.ImportCache import (
     isImportedModuleByName,
     replaceImportedModule,
@@ -77,11 +78,12 @@ def demoteCompiledModuleToBytecode(module):
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
+        reason=module.reason,
         filename=filename,
         bytecode=bytecode,
         is_package=module.isCompiledPythonPackage(),
         user_provided=True,
-        technical=False,
+        technical=full_name in detectEarlyImports(),
     )
 
     used_modules = module.getUsedModules()

@@ -77,12 +77,20 @@ _extra_paths = OrderedSet()
 
 ModuleUsageAttempt = makeNamedtupleClass(
     "ModuleUsageAttempt",
-    ("module_name", "filename", "module_kind", "finding", "level", "source_ref"),
+    (
+        "module_name",
+        "filename",
+        "module_kind",
+        "finding",
+        "level",
+        "source_ref",
+        "reason",
+    ),
 )
 
 
 def makeModuleUsageAttempt(
-    module_name, filename, module_kind, finding, level, source_ref
+    module_name, filename, module_kind, finding, level, source_ref, reason
 ):
     assert source_ref is not None
 
@@ -93,6 +101,7 @@ def makeModuleUsageAttempt(
         finding=finding,
         level=level,
         source_ref=source_ref,
+        reason=reason,
     )
 
 
@@ -199,13 +208,13 @@ def warnAbout(importing, module_name, level, source_ref):
                 level_desc = "%d package levels up" % level
 
             if _debug_module_finding:
-                if importing.getPackageName() is not None:
+                if importing.getFullName().getPackageName() is not None:
                     recursion_logger.warning(
                         "%s: Cannot find '%s' in package '%s' %s."
                         % (
                             importing.getSourceReference().getAsString(),
                             module_name,
-                            importing.getPackageName().asString(),
+                            importing.getFullName().getPackageName().asString(),
                             level_desc,
                         )
                     )

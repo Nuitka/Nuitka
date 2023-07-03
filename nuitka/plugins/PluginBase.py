@@ -444,7 +444,13 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         return None
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module_name, source_ref
+        self,
+        module_name,
+        module_filename,
+        module_kind,
+        using_module_name,
+        source_ref,
+        reason,
     ):
         """React to recursion to a module coming up.
 

@@ -65,7 +65,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 4
+_cache_format_version = 5
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -121,6 +121,7 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
                 level=0,
                 # We store only the line number, so this cheats it to at full one.
                 source_ref=source_ref.atLineNumber(module_used["source_ref_line"]),
+                reason=module_used["reason"],
             )
         )
 

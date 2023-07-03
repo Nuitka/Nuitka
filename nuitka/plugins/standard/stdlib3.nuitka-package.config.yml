@@ -19,21 +19,6 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'asyncio.base_events'
-  implicit-imports:
-    - depends:
-        - 'concurrent.futures'
-
-- module-name: 'asyncio.futures'
-  implicit-imports:
-    - depends:
-        - 'concurrent.futures'
-
-- module-name: 'asyncio.tasks'
-  implicit-imports:
-    - depends:
-        - 'concurrent.futures'
-
 - module-name: 'base64'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -47,22 +32,11 @@
       change_function:
         '_test': "'(lambda: None)'"
 
-- module-name: 'concurrent.futures.process'
-  implicit-imports:
-    - depends:
-        - 'multiprocessing'
-        - 'multiprocessing.connection'
-
 - module-name: 'copy'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
-
-- module-name: 'ctypes'
-  implicit-imports:
-    - depends:
-        - '_ctypes'
 
 - module-name: 'ctypes.util'
   anti-bloat:
@@ -97,14 +71,6 @@
       no-auto-follow:
         - 'socket'
       when: 'not has_builtin_module("_socket")'
-
-- module-name: 'encodings'
-  implicit-imports:
-    - depends:
-        - '.idna'
-        - '.base64_codec'
-        - '.hex_codec'
-        - '.rot_13'
 
 - module-name: 'ensurepip'
   anti-bloat:
@@ -142,11 +108,6 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
-
-- module-name: 'importlib.metadata'
-  implicit-imports:
-    - depends:
-        - 'email'
 
 - module-name: 'inspect'
   anti-bloat:
@@ -198,12 +159,6 @@
         "args += ['-c', cmd % r]": "args += ['--multiprocessing-resource-tracker', str(r)]"
       when: 'not module_mode'
 
-- module-name: 'pathlib'
-  implicit-imports:
-    - depends:
-        - 'ntpath'
-        - 'posixpath'
-
 - module-name: 'pdb'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -225,8 +180,6 @@
 
 - module-name: 'platform'
   implicit-imports:
-    - depends:
-        - 'subprocess'
     - depends:
         - 'plistlib'
       when: 'macos'
@@ -250,30 +203,12 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'main': "'(lambda: None)'"
-  implicit-imports:
-    - depends:
-        - 'py_compile'
 
 - module-name: 'random'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
-  implicit-imports:
-    # TODO: The version criterion here is weak and could be tightend
-    # and with anti-bloat we could make sure it is always not using
-    # full hashlib for no reason.
-    - depends:
-        - '_sha512'
-      when: 'python310_or_higher'
-    - depends:
-        - 'hashlib'
-      when: 'before_python310'
-
-- module-name: 'shelve'
-  implicit-imports:
-    - depends:
-        - 'dbm.dumb'
 
 - module-name: 'site'
   data-files:
@@ -285,11 +220,6 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
-
-- module-name: 'socket'
-  implicit-imports:
-    - depends:
-        - '_socket'
 
 - module-name: 'tabnanny'
   anti-bloat:
@@ -331,9 +261,6 @@
             sys.exit("Nuitka: Need to use '--enable-plugin=tk-inter' option during compilation for tk-inter to work!")
           """, "        ")
       when: 'not deployment'
-  implicit-imports:
-    - depends:
-        - '_tkinter'
   options:
     checks:
       - console: 'recommend'
@@ -351,22 +278,11 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'urllib.request'
-  implicit-imports:
-    - depends:
-        - 'http.client'
-        - 'http.cookiejar'
-
 - module-name: 'uu'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
-
-- module-name: 'wsgiref.simple_server'
-  implicit-imports:
-    - depends:
-        - 'http.server'
 
 - module-name: 'zipfile'
   anti-bloat:
@@ -374,7 +290,8 @@
       change_function:
         'main': "'(lambda: None)'"
 
-- module-name: 'zoneinfo._common'
+- module-name: 'zoneinfo'
+  # This tries to find non-stdlib module when being used.
   implicit-imports:
     - depends:
         - 'tzdata.zoneinfo'

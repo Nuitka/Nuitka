@@ -30,7 +30,6 @@ import os
 
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.PythonVersions import python_version
-from nuitka.utils.FileOperations import areSamePaths
 
 # One or more root modules, i.e. entry points that must be there.
 root_modules = OrderedSet()
@@ -47,9 +46,6 @@ ActiveModuleInfo = collections.namedtuple(
 
 # Already traversed modules
 done_modules = set()
-
-# Uncompiled modules
-uncompiled_modules = set()
 
 
 def addRootModule(module):
@@ -90,26 +86,34 @@ def replaceRootModule(old, new):
     root_modules = new_root_modules
 
 
-def addUncompiledModule(module):
-    assert module.isUncompiledPythonModule(), module
-
-    uncompiled_modules.add(module)
-
-
 def getUncompiledModules():
-    return sorted(uncompiled_modules, key=lambda module: module.getFullName())
+    result = set()
+
+    for module in getDoneModules():
+        if module.isUncompiledPythonModule():
+            result.add(module)
+
+    return tuple(sorted(result, key=lambda module: module.getFullName()))
 
 
 def getUncompiledTechnicalModules():
-    result = [module for module in uncompiled_modules if module.isTechnical()]
+    result = set()
 
-    return sorted(result, key=lambda module: module.getFullName())
+    for module in getDoneModules():
+        if module.isUncompiledPythonModule() and module.isTechnical():
+            result.add(module)
+
+    return tuple(sorted(result, key=lambda module: module.getFullName()))
 
 
 def getUncompiledNonTechnicalModules():
-    result = [module for module in uncompiled_modules if not module.isTechnical()]
+    result = set()
 
-    return sorted(result, key=lambda module: module.getFullName())
+    for module in getDoneModules():
+        if module.isUncompiledPythonModule():
+            result.add(module)
+
+    return tuple(sorted(result, key=lambda module: module.getFullName()))
 
 
 def _normalizeModuleFilename(filename):
@@ -128,22 +132,6 @@ def _normalizeModuleFilename(filename):
         filename = os.path.dirname(filename)
 
     return filename
-
-
-def getUncompiledModule(module_name, module_filename):
-    for uncompiled_module in uncompiled_modules:
-        if module_name == uncompiled_module.getFullName():
-            if areSamePaths(
-                _normalizeModuleFilename(module_filename),
-                _normalizeModuleFilename(uncompiled_module.filename),
-            ):
-                return uncompiled_module
-
-    return None
-
-
-def removeUncompiledModule(module):
-    uncompiled_modules.remove(module)
 
 
 def startTraversal():
@@ -248,10 +236,6 @@ def getModuleByName(module_name):
             return module
 
     for module in done_modules:
-        if module.getFullName() == module_name:
-            return module
-
-    for module in uncompiled_modules:
         if module.getFullName() == module_name:
             return module
 

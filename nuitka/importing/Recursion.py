@@ -24,6 +24,10 @@ import os
 
 from nuitka import ModuleRegistry, Options
 from nuitka.Errors import NuitkaForbiddenImportEncounter
+from nuitka.freezer.ImportDetection import (
+    detectEarlyImports,
+    detectStdlibAutoInclusionModules,
+)
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.ModuleRegistry import addUsedModule, getRootTopModule
 from nuitka.pgo.PGO import decideInclusionFromPGO
@@ -35,12 +39,13 @@ from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
 
-def _recurseTo(module_name, module_filename, module_kind):
+def _recurseTo(module_name, module_filename, module_kind, reason):
     from nuitka.tree import Building
 
     module, is_added = Building.buildModule(
         module_filename=module_filename,
         module_name=module_name,
+        reason=reason,
         source_code=None,
         is_top=False,
         is_main=False,
@@ -59,9 +64,10 @@ def recurseTo(
     module_name,
     module_filename,
     module_kind,
-    using_module_name,
     source_ref,
     reason,
+    using_module_name,
+    decision_reason,
 ):
     try:
         module = ImportCache.getImportedModuleByNameAndPath(
@@ -77,16 +83,18 @@ def recurseTo(
             module_kind=module_kind,
             using_module_name=using_module_name,
             source_ref=source_ref,
+            reason=reason,
         )
 
         module, added_flag = _recurseTo(
             module_name=module_name,
             module_filename=module_filename,
             module_kind=module_kind,
+            reason=reason,
         )
 
         if added_flag and signal_change is not None:
-            signal_change("new_code", module.getSourceReference(), reason)
+            signal_change("new_code", module.getSourceReference(), decision_reason)
 
     return module
 
@@ -118,6 +126,12 @@ def _decideRecursion(
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
         return False, "Main program is not followed to a second time."
+
+    if module_name in detectEarlyImports():
+        return True, "Technically required for CPython library startup."
+
+    if module_name in detectStdlibAutoInclusionModules():
+        return True, "Including as part of the non-excluded parts of standard library."
 
     # In -m mode, when including the package, do not duplicate main program.
     if (
@@ -182,21 +196,21 @@ def _decideRecursion(
     if extra_recursion:
         return (True, "Lives in plug-in directory.")
 
-    if is_stdlib and Options.shallFollowStandardLibrary():
-        return (True, "Instructed by user to follow to standard library.")
+    if (
+        is_stdlib
+        and not Options.isStandaloneMode()
+        and not Options.shallFollowStandardLibrary()
+    ):
+        return (
+            False,
+            "Not following into stdlib unless standalone or requested to follow into stdlib.",
+        )
 
     if Options.shallFollowAllImports():
-        if is_stdlib:
-            if StandardLibrary.isStandardLibraryNoAutoInclusionModule(module_name):
-                return (
-                    True,
-                    "Instructed by user to follow all modules, including non-automatic standard library modules.",
-                )
-        else:
-            return (
-                True,
-                "Instructed by user to follow to all non-standard library modules.",
-            )
+        return (
+            True,
+            "Instructed by user to follow to all modules.",
+        )
 
     if Options.shallFollowNoImports():
         return (None, "Instructed by user to not follow at all.")
@@ -298,7 +312,7 @@ the compiled result, and therefore asking to include them makes no sense.
         )
 
     if module_kind is not None:
-        decision, reason = decideRecursion(
+        decision, decision_reason = decideRecursion(
             using_module_name=None,
             module_filename=plugin_filename,
             module_name=module_name,
@@ -312,9 +326,10 @@ the compiled result, and therefore asking to include them makes no sense.
                 module_filename=plugin_filename,
                 module_name=module_name,
                 module_kind=module_kind,
-                using_module_name=None,
                 source_ref=None,
-                reason=reason,
+                reason="command line",
+                using_module_name=None,
+                decision_reason=decision_reason,
             )
 
             if module:
@@ -326,7 +341,7 @@ the compiled result, and therefore asking to include them makes no sense.
         else:
             recursion_logger.warning(
                 "Not allowed to include module '%s' due to '%s'."
-                % (module_name, reason)
+                % (module_name, decision_reason)
             )
 
 
@@ -384,8 +399,22 @@ def checkPluginFilenamePattern(pattern):
         )
 
 
-def considerUsedModules(module, signal_change):
+def considerUsedModules(module, pass_count, signal_change):
+    # Modules that are only there because they are in standard library are not
+    # supposed to have dependencies included at all.
+    if module.reason == "stdlib":
+        return
+
     for used_module in module.getUsedModules():
+        # The pass number is used to indicate if stdlib modules yet, or only them
+
+        if used_module.reason == "stdlib":
+            if pass_count == 1:
+                continue
+        else:
+            if pass_count == -1:
+                continue
+
         if used_module.finding == "not-found":
             Importing.warnAbout(
                 importing=module,
@@ -399,7 +428,7 @@ def considerUsedModules(module, signal_change):
             continue
 
         try:
-            decision, reason = decideRecursion(
+            decision, decision_reason = decideRecursion(
                 using_module_name=module.getFullName(),
                 module_filename=used_module.filename,
                 module_name=used_module.module_name,
@@ -413,15 +442,17 @@ def considerUsedModules(module, signal_change):
                     module_filename=used_module.filename,
                     module_kind=used_module.module_kind,
                     source_ref=used_module.source_ref,
+                    reason=used_module.reason,
                     using_module_name=module.module_name,
-                    reason=reason,
+                    decision_reason=decision_reason,
                 )
 
                 addUsedModule(
                     module=new_module,
                     using_module=module,
-                    usage_tag="import",
-                    reason=reason,
+                    # TODO: Cleanup argument names here.
+                    usage_tag=used_module.reason,
+                    reason=decision_reason,
                     source_ref=used_module.source_ref,
                 )
         except NuitkaForbiddenImportEncounter as e:

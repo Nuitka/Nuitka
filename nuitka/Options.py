@@ -1896,11 +1896,6 @@ def hasPythonFlagPackageMode():
     return "package_mode" in _getPythonFlags()
 
 
-def shallFreezeAllStdlib():
-    """*bool* = **not** shallFollowStandardLibrary"""
-    return not shallFollowStandardLibrary()
-
-
 def shallNotUseDependsExeCachedResults():
     """:returns: bool derived from ``--disable-dll-dependency-cache`` or ``--force-dll-dependency-cache-update``"""
     return shallNotStoreDependsExeCachedResults() or getattr(
