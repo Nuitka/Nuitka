@@ -6,9 +6,9 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 1.7 (Draft)
-****************************
+********************
+ Nuitka Release 1.7
+********************
 
 There release is focused on adding plenty of new features in Nuitka,
 with the new isolated mode for standalone being headliners, but there
