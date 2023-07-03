@@ -299,19 +299,6 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             None
         """
 
-    def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
-        """Inspect or modify frozen module source code.
-
-        Args:
-            module_name: (str) full name of module
-            is_package: (bool) True indicates a package
-            source_code: (str) its source code
-        Returns:
-            source_code (str)
-        """
-        # Virtual method, pylint: disable=no-self-use,unused-argument
-        return source_code
-
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
         """Inspect or modify frozen module byte code.
 
@@ -444,7 +431,13 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         return None
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module_name, source_ref
+        self,
+        module_name,
+        module_filename,
+        module_kind,
+        using_module_name,
+        source_ref,
+        reason,
     ):
         """React to recursion to a module coming up.
 

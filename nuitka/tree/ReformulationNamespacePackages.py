@@ -194,9 +194,10 @@ def createPython3NamespacePath(package, source_ref):
     )
 
 
-def createNamespacePackage(module_name, is_top, source_ref):
+def createNamespacePackage(module_name, reason, is_top, source_ref):
     package = CompiledPythonPackage(
         module_name=module_name,
+        reason=reason,
         is_top=is_top,
         mode="compiled",
         future_spec=FutureSpec(),

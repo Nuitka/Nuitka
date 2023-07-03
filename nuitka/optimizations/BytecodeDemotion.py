@@ -23,6 +23,7 @@ import marshal
 
 from nuitka.BytecodeCaching import writeImportedModulesNamesToCache
 from nuitka.Bytecodes import compileSourceToBytecode
+from nuitka.freezer.ImportDetection import detectEarlyImports
 from nuitka.importing.ImportCache import (
     isImportedModuleByName,
     replaceImportedModule,
@@ -39,12 +40,6 @@ from nuitka.Tracing import inclusion_logger
 
 
 def demoteSourceCodeToBytecode(module_name, source_code, filename):
-    # Second chance for plugins to modify source code just before turning it
-    # to bytecode.
-    source_code = Plugins.onFrozenModuleSourceCode(
-        module_name=module_name, is_package=False, source_code=source_code
-    )
-
     if isStandaloneMode():
         filename = module_name.asPath() + ".py"
 
@@ -77,11 +72,12 @@ def demoteCompiledModuleToBytecode(module):
 
     uncompiled_module = makeUncompiledPythonModule(
         module_name=full_name,
+        reason=module.reason,
         filename=filename,
         bytecode=bytecode,
         is_package=module.isCompiledPythonPackage(),
         user_provided=True,
-        technical=False,
+        technical=full_name in detectEarlyImports(),
     )
 
     used_modules = module.getUsedModules()

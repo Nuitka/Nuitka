@@ -161,6 +161,7 @@ class ExpressionImportlibResourcesFilesCallMixin:
             finding=finding,
             level=0,
             source_ref=self.source_ref,
+            reason="importlib.resources.files call",
         )
 
     # TODO: In standalone mode we could know a lot better.

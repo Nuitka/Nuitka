@@ -115,6 +115,7 @@ hard_modules_aliases = {
 }
 
 # Lets put here, hard modules that are kind of backports only.
+hard_modules_stdlib = hard_modules
 hard_modules_non_stdlib = frozenset(
     (
         "site",
@@ -376,6 +377,8 @@ class ExpressionImportAllowanceMixin(object):
             self.allowed = False
         elif self.finding == "built-in":
             self.allowed = True
+        elif self.module_name in hard_modules_stdlib:
+            self.allowed = True
         else:
             self.allowed, _reason = decideRecursion(
                 using_module_name=None,
@@ -487,6 +490,7 @@ class ExpressionImportModuleFixed(ExpressionBase):
             module_kind=self.module_kind,
             level=0,
             source_ref=self.source_ref,
+            reason="import",
         )
 
     def computeExpressionRaw(self, trace_collection):
@@ -1025,6 +1029,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                 finding=self.finding,
                 level=level,
                 source_ref=self.source_ref,
+                reason="import",
             )
         ]
 
@@ -1066,6 +1071,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                             finding=name_import_finding,
                             level=1,
                             source_ref=self.source_ref,
+                            reason="import",
                         )
                     )
 
@@ -1098,6 +1104,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                         finding=finding,
                         level=level,
                         source_ref=self.source_ref,
+                        reason="import",
                     )
                 )
 

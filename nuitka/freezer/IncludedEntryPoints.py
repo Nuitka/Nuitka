@@ -274,8 +274,9 @@ def addExtensionModuleEntryPoint(module):
             dest_path=module.getFullName().asPath()
             + getSharedLibrarySuffix(preferred=False),
             package_name=module.getFullName().getPackageName(),
-            # TODO: Which module(s) us it?
-            reason="used extension module",
+            reason="required extension module for CPython library startup"
+            if module.isTechnical()
+            else "used extension module",
         )
     )
 

@@ -65,6 +65,7 @@ def getModuleMetaPathLoaderEntryCode(module, bytecode_accessor):
         and not Options.shallMakeModule()
         and python_version >= 0x370
     ):
+        # File system paths that will hopefully work, spell-checker: ignore getfilesystemencoding
         if Options.isWin32Windows():
             file_path = encodePythonUnicodeToC(module.getCompileTimeFilename())
         else:
@@ -138,6 +139,7 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
                 % {"module_identifier": other_module.getCodeName()}
             )
 
+    # Do them now
     for uncompiled_module in uncompiled_modules:
         metapath_loader_inittab.append(
             getModuleMetaPathLoaderEntryCode(
@@ -147,6 +149,7 @@ extern PyObject *modulecode_%(module_identifier)s(PyObject *, struct Nuitka_Meta
 
     frozen_defs = []
 
+    # Only the non-technical ones need to be there.
     for uncompiled_module in getUncompiledTechnicalModules():
         module_name = uncompiled_module.getFullName()
         code_data = uncompiled_module.getByteCode()

@@ -167,6 +167,7 @@ def _addModulesToReport(root, report_input_data, diffable):
             "module",
             name=module_name,
             kind=report_input_data["module_kinds"][module_name],
+            usage=active_module_info.usage_tag,
             reason=active_module_info.reason,
         )
 

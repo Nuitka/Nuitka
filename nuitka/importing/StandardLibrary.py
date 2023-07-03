@@ -254,6 +254,7 @@ _stdlib_no_auto_inclusion_list = (
     "_curses_panel",
     "sqlite3",
     "_sqlite3",
+    "shelve",
     "dbm",
     "_dbm",
     "bdb",

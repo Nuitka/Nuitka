@@ -29,6 +29,7 @@ import sys
 
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Errors import NuitkaForbiddenImportEncounter
+from nuitka.ModuleRegistry import getModuleByName
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import getYamlPackageConfiguration
@@ -506,9 +507,24 @@ which can and should be a top level package and then one choice, "error",
         return result
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module_name, source_ref
+        self,
+        module_name,
+        module_filename,
+        module_kind,
+        using_module_name,
+        source_ref,
+        reason,
     ):
-        # This will allow "unittest.mock" to pass these things.
+        # Do not even look at these. It's either included by a module that is in standard
+        # library, or included for a module in standard library.
+        if reason == "stdlib" or (
+            using_module_name is not None
+            and getModuleByName(using_module_name).reason == "stdlib"
+        ):
+            return
+
+        # This will allow "unittest.mock" to pass "unittest". It's kind of a hack and
+        # hopefully unusual.
         if module_name == "unittest.mock" and module_name not in self.handled_modules:
             return
 

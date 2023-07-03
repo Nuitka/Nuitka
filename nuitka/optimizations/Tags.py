@@ -26,7 +26,7 @@ tags to execute other steps.
 
 allowed_tags = (
     # New code means new statements.
-    # Could be a new module, or an inlined exec statement.
+    # Could be an inlined exec statement.
     "new_code",
     # Added new import.
     "new_import",
