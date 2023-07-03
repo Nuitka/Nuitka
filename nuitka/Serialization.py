@@ -25,7 +25,13 @@ import sys
 
 from nuitka import OutputDirectories
 from nuitka.__past__ import ExceptionGroup  # pylint: disable=I0021,redefined-builtin
-from nuitka.__past__ import UnionType, basestring, to_byte, xrange
+from nuitka.__past__ import (
+    GenericAlias,
+    UnionType,
+    basestring,
+    to_byte,
+    xrange,
+)
 from nuitka.Builtins import (
     builtin_anon_codes,
     builtin_anon_values,
@@ -54,7 +60,17 @@ class BuiltinAnonValue(object):
         return to_byte(self.anon_values.index(self.anon_name))
 
 
+class BuiltinGenericAliasValue(object):
+    """For transporting GenericAlias values through pickler."""
+
+    def __init__(self, origin, args):
+        self.origin = origin
+        self.args = args
+
+
 class BuiltinUnionTypeValue(object):
+    """For transporting UnionType values through pickler."""
+
     def __init__(self, args):
         self.args = args
 
@@ -68,7 +84,7 @@ class BuiltinSpecialValue(object):
     def getStreamValueByte(self):
         """Return byte value, encoding the special built-in value."""
 
-        # Currently the only one.
+        # Currently the only ones.
         if self.value == "Ellipsis":
             return to_byte(0)
         elif self.value == "NotImplemented":
@@ -108,8 +124,12 @@ def _pickleAnonValues(pickler, value):
         pickler.save_global(value)
 
 
-def _pickeUnionType(picker, value):
-    picker.save(BuiltinUnionTypeValue(value.__args__))
+def _pickleGenericAlias(pickler, value):
+    pickler.save(BuiltinGenericAliasValue(origin=value.__origin__, args=value.__args__))
+
+
+def _pickleUnionType(pickler, value):
+    pickler.save(BuiltinUnionTypeValue(args=value.__args__))
 
 
 class ConstantStreamWriter(object):
@@ -135,8 +155,11 @@ class ConstantStreamWriter(object):
             self.pickle.dispatch[type(sys.version_info)] = _pickleAnonValues
 
         # Standard pickling doesn't work with our necessary wrappers.
+        if python_version >= 0x390:
+            self.pickle.dispatch[GenericAlias] = _pickleGenericAlias
+
         if python_version >= 0x3A0:
-            self.pickle.dispatch[UnionType] = _pickeUnionType
+            self.pickle.dispatch[UnionType] = _pickleUnionType
 
     def addConstantValue(self, constant_value):
         self.pickle.dump(constant_value)
