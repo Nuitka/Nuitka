@@ -6,6 +6,12 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
+****************************
+ Nuitka Release 1.8 (Draft)
+****************************
+
+This release is not done yet.
+
 ********************
  Nuitka Release 1.7
 ********************
