@@ -36,8 +36,6 @@ endif
 	dh $@ --with $(BUILD_WITH_ARGUMENT) --buildsystem=pybuild
 
 override_dh_auto_build:
-	$(RUN_TEST_PYTHON) -c 'from nuitka.utils.Rest import createPDF; createPDF("README.rst"); createPDF("Developer_Manual.rst")'
-
 	cp Changelog.rst changelog
 	cp Developer_Manual.rst Developer_Manual.txt
 

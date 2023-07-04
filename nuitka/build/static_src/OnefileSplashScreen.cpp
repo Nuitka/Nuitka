@@ -30,6 +30,7 @@
 #ifndef _NUITKA_NON_C11_MODE
 extern "C" {
 #endif
+#include "nuitka/filesystem_paths.h"
 #include "nuitka/safe_string_ops.h"
 #include "nuitka/tracing.h"
 #ifndef _NUITKA_NON_C11_MODE

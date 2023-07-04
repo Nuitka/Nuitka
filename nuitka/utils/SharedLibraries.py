@@ -23,11 +23,11 @@ import os
 import re
 import sys
 
-from nuitka import Options
 from nuitka.__past__ import WindowsError  # pylint: disable=I0021,redefined-builtin
 from nuitka.__past__ import unicode
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.containers.OrderedSets import OrderedSet
+from nuitka.Options import getMacOSTargetArch, isShowInclusion, isUnstripped
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import inclusion_logger, postprocessing_logger
 
@@ -410,7 +410,7 @@ def _setSharedLibraryRPATHDarwin(filename, rpath):
 
 
 def setSharedLibraryRPATH(filename, rpath):
-    if Options.isShowInclusion():
+    if isShowInclusion():
         inclusion_logger.info(
             "Setting 'RPATH' value '%s' for '%s'." % (rpath, filename)
         )
@@ -581,7 +581,7 @@ def hasUniversalOrMatchingMacOSArchitecture(filename):
 
     file_output = _getFileCommandOutput(filename)
 
-    return "universal" in file_output or Options.getMacOSTargetArch() in file_output
+    return "universal" in file_output or getMacOSTargetArch() in file_output
 
 
 # spell-checker: ignore lipo
@@ -594,7 +594,7 @@ _lipo_usage = (
 def makeMacOSThinBinary(dest_path, original_path):
     file_output = _getFileCommandOutput(dest_path)
 
-    macos_target_arch = Options.getMacOSTargetArch()
+    macos_target_arch = getMacOSTargetArch()
 
     if "universal" in file_output:
         executeToolChecked(
@@ -631,7 +631,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
     if isWin32Windows() and python_version < 0x300:
         _removeSxsFromDLL(target_filename)
 
-    if isMacOS() and Options.getMacOSTargetArch() != "universal":
+    if isMacOS() and getMacOSTargetArch() != "universal":
         makeMacOSThinBinary(dest_path=target_filename, original_path=source_path)
 
     if isLinux():
@@ -641,7 +641,7 @@ def copyDllFile(source_path, dist_dir, dest_path, executable):
         rpath = os.path.join("$ORIGIN", *([".."] * count))
         setSharedLibraryRPATH(target_filename, rpath)
 
-    if isWin32Windows() and Options.is_debug:
+    if isWin32Windows() and isUnstripped():
         pdb_filename = changeFilenameExtension(path=source_path, extension=".pdb")
 
         if os.path.exists(pdb_filename):
@@ -765,7 +765,7 @@ def getDllExportedSymbols(logger, filename):
     if isLinux():
         output = executeToolChecked(
             logger=logger,
-            command=("nm", "-D", "--without-symbol-versions", filename),
+            command=("nm", "-D", filename),
             absence_message=_nm_usage,
         )
 

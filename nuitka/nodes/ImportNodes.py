@@ -98,6 +98,8 @@ hard_modules = frozenset(
         "pkgutil",
         "functools",
         "sysconfig",
+        "unittest",
+        "unittest.mock",
         # "cStringIO",
         "io",
         "ctypes",
@@ -263,6 +265,9 @@ hard_modules_trust = {
     "pkgutil": {"get_data": trust_node},
     "functools": {"partial": trust_exist},
     "sysconfig": {},
+    # TODO: We should have trust_module too.
+    "unittest": {"mock": trust_exist},
+    "unittest.mock": {},
     "io": {"BytesIO": trust_exist},
     # "cStringIO": {"StringIO": trust_exist},
     "pkg_resources": {
@@ -272,7 +277,11 @@ hard_modules_trust = {
         "resource_string": trust_node,
         "resource_stream": trust_node,
     },
-    "importlib.resources": {"read_binary": trust_node, "read_text": trust_node},
+    "importlib.resources": {
+        "read_binary": trust_node,
+        "read_text": trust_node,
+        "files": trust_node,
+    },
     "ctypes": module_ctypes_trust,
     "site": {},
     "ctypes.wintypes": {},
@@ -369,6 +378,7 @@ class ExpressionImportAllowanceMixin(object):
             self.allowed = True
         else:
             self.allowed, _reason = decideRecursion(
+                using_module_name=None,
                 module_filename=self.module_filename,
                 module_name=self.module_name,
                 module_kind=self.module_kind,
@@ -573,7 +583,7 @@ class ExpressionImportModuleHard(
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Trace the module usage attempt.
-        trace_collection.onModuleUsageAttempt(self.getModulesUsageAttempt())
+        trace_collection.onModuleUsageAttempt(self.getModuleUsageAttempt())
 
         return self, None, None
 

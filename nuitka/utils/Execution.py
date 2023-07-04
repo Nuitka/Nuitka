@@ -152,6 +152,11 @@ def check_call(*popenargs, **kwargs):
     Note: We use same name as in Python stdlib, violating our rules to
     make it more recognizable what this does.
     """
+    logger = kwargs.pop("logger", None)
+
+    if logger is not None:
+        logger.info("Executing command '%s'." % popenargs[0])
+
     try:
         subprocess.check_call(*popenargs, **kwargs)
     except OSError:
@@ -162,7 +167,12 @@ def check_call(*popenargs, **kwargs):
 
 def callProcess(*popenargs, **kwargs):
     """Call a process and return result code."""
-    subprocess.call(*popenargs, **kwargs)
+    logger = kwargs.pop("logger", None)
+
+    if logger is not None:
+        logger.info("Executing command '%s'." % popenargs[0])
+
+    return subprocess.call(*popenargs, **kwargs)
 
 
 @contextmanager

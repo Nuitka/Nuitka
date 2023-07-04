@@ -40,7 +40,7 @@
 {% if is_statement %}
 {% set base_class = "StatementBase" %}
 from nuitka.nodes.NodeBases import StatementBase
-{% elif is_compute_final or node_attributes or is_compute_no_raise %}
+{% elif is_compute_final or node_attributes or raise_mode in ("no_raise", "raise") or awaited_constant_attributes %}
 {% set base_class = "ExpressionBase" %}
 from nuitka.nodes.ExpressionBases import ExpressionBase
 {% else %}
@@ -349,8 +349,25 @@ class {{mixin_name}}({{base_class}}):
 {% endif %}
 {% endif %}
 
+{% for named_child in awaited_constant_attributes %}
+        if self.subnode_{{named_child}}.isCompileTimeConstant():
+{% if raise_mode in ("raise", "raise_operation") %}
+            try:
+                return self.computeExpressionConstant{{named_child.title()}}(trace_collection)
+            finally:
+{% if raise_mode =="raise" %}
+                trace_collection.onExceptionRaiseExit(BaseException)
+{% elif raise_mode =="raise_operation" %}
+                if self.mayRaiseExceptionOperation():
+                    trace_collection.onExceptionRaiseExit(BaseException)
+{% endif %}
+{% else %}
+            return self.computeExpressionConstant{{named_child.title()}}(trace_collection)
+{% endif %}
+{% endfor %}
+
 {% if is_compute_final %}
-{% if not is_compute_no_raise %}
+{% if raise_mode != "no_raise" %}
         trace_collection.onExceptionRaiseExit(BaseException)
 {% endif %}
         return self, None, None
@@ -359,7 +376,7 @@ class {{mixin_name}}({{base_class}}):
         return self.computeExpression(trace_collection)
 {% endif %}
 
-{% if is_compute_no_raise %}
+{% if raise_mode == "no_raise" %}
     @staticmethod
     def mayRaiseExceptionOperation():
         return False
@@ -428,6 +445,12 @@ class {{mixin_name}}({{base_class}}):
 {% else  %}
         self.subnode_{{named_child}}.collectVariableAccesses(emit_read, emit_write)
 {% endif %}
+{% endfor %}
+
+{% for named_child in awaited_constant_attributes %}
+    @abstractmethod
+    def computeExpressionConstant{{named_child.title()}}(self, trace_collection):
+        """Called when attribute {{named_child}} is constant."""
 {% endfor %}
 
 # Assign the names that are easier to import with a stable name.

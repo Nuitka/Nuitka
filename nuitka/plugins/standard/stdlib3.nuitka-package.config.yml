@@ -93,9 +93,10 @@
     - description: 'avoid socket module usage'
       replacements_plain:
         'import socket': ''
-      change_function:
-        'make_msgid': 'un-callable'
-      when: 'not use_socket'
+        'socket.': '__import__("socket").'
+      no-auto-follow:
+        - 'socket'
+      when: 'not has_builtin_module("_socket")'
 
 - module-name: 'encodings'
   implicit-imports:
@@ -189,6 +190,13 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         '_main': "'(lambda: None)'"
+
+- module-name: 'multiprocessing.resource_tracker'
+  anti-bloat:
+    - description: "workaround for starting 'multiprocessing resource tracker"
+      replacements_plain:
+        "args += ['-c', cmd % r]": "args += ['--multiprocessing-resource-tracker', str(r)]"
+      when: 'not module_mode'
 
 - module-name: 'pathlib'
   implicit-imports:

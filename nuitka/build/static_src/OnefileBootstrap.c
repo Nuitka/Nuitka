@@ -29,6 +29,9 @@
 
 #if !defined(_WIN32)
 #define _POSIX_C_SOURCE 200809L
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #endif
 
 #ifdef __NUITKA_NO_ASSERT__
@@ -120,35 +123,13 @@
 // For tracing outputs if enabled at compile time.
 #include "nuitka/tracing.h"
 
-#ifdef _WIN32
-typedef DWORD error_code_t;
-static inline error_code_t getCurrentErrorCode(void) { return GetLastError(); }
-#else
-typedef int error_code_t;
-static inline error_code_t getCurrentErrorCode(void) { return errno; }
-#endif
-
-static void printError(char const *message, error_code_t error_code) {
-#if defined(_WIN32)
-    LPCTSTR err_buffer;
-
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-                  error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&err_buffer, 0, NULL);
-
-    printf("%s ([Error %d] %s)\n", message, error_code, err_buffer);
-#else
-    printf("%s: %s\n", message, strerror(error_code));
-    perror(message);
-#endif
-}
-
 static void fatalError(char const *message) {
     puts(message);
     exit(2);
 }
 
 static void fatalIOError(char const *message, error_code_t error_code) {
-    printError(message, error_code);
+    printOSErrorMessage(message, error_code);
     exit(2);
 }
 
@@ -158,13 +139,6 @@ static void fatalErrorTempFiles(void) { fatalError("Error, couldn't runtime expa
 #if _NUITKA_ONEFILE_COMPRESSION_BOOL == 1
 static void fatalErrorAttachedData(void) { fatalError("Error, couldn't decode attached data."); }
 #endif
-
-static void fatalErrorFindAttachedData(char const *erroring_function, error_code_t error_code) {
-    char buffer[1024] = "Error, couldn't find attached data:";
-    appendStringSafe(buffer, erroring_function, sizeof(buffer));
-
-    fatalIOError(buffer, error_code);
-}
 
 static void fatalErrorHeaderAttachedData(void) { fatalError("Error, could find attached data header."); }
 
@@ -268,6 +242,13 @@ static void initPayloadData(void) {
 static void closePayloadData(void) {}
 
 #else
+
+static void fatalErrorFindAttachedData(char const *erroring_function, error_code_t error_code) {
+    char buffer[1024] = "Error, couldn't find attached data:";
+    appendStringSafe(buffer, erroring_function, sizeof(buffer));
+
+    fatalIOError(buffer, error_code);
+}
 
 static struct MapFileToMemoryInfo exe_file_mapped;
 
@@ -567,6 +548,7 @@ static bool createContainingDirectory(filename_char_t const *path) {
     return true;
 }
 
+#if _NUITKA_ONEFILE_TEMP_BOOL == 1
 #if defined(_WIN32)
 
 static bool isDirectory(wchar_t const *path) {
@@ -647,6 +629,7 @@ static int removeDirectory(char const *path) {
     return r;
 }
 #endif
+#endif
 
 #if !defined(_WIN32)
 static int waitpid_retried(pid_t pid, int *status, bool async) {
@@ -726,7 +709,7 @@ static void cleanupChildProcess(bool send_sigint) {
             BOOL res = GenerateConsoleCtrlEvent(CTRL_C_EVENT, GetProcessId(handle_process));
 
             if (res == false) {
-                printError("Failed to send CTRL-C to child process.", GetLastError());
+                printOSErrorMessage("Failed to send CTRL-C to child process.", GetLastError());
                 // No error exit is done, we still want to cleanup when it does exit
             }
 #else
@@ -1034,7 +1017,7 @@ int main(int argc, char **argv) {
             int res = fstat(fd, &stat_buffer);
 
             if (res == -1) {
-                printError("fstat", errno);
+                printOSErrorMessage("fstat", errno);
             }
 
             // User shall be able to execute if at least.
@@ -1052,7 +1035,7 @@ int main(int argc, char **argv) {
             res = fchmod(fd, stat_buffer.st_mode);
 
             if (res == -1) {
-                printError("fchmod", errno);
+                printOSErrorMessage("fchmod", errno);
             }
         }
 #endif

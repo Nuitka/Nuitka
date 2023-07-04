@@ -29,6 +29,7 @@ from nuitka.importing.Importing import locateModule
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
+from nuitka.Options import hasPythonFlagIsolated
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.tree.SourceHandling import parsePyIFile, readSourceCodeFromFilename
@@ -110,6 +111,7 @@ class PythonModuleBase(NodeBase):
             # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
 
             decision, _reason = decideRecursion(
+                using_module_name=self.getFullName(),
                 module_filename=package_filename,
                 module_name=package_name,
                 module_kind=package_module_kind,
@@ -123,7 +125,7 @@ class PythonModuleBase(NodeBase):
                     module_name=package_name,
                     module_filename=package_filename,
                     module_kind=package_module_kind,
-                    using_module=self,
+                    using_module_name=self.module_name,
                     source_ref=self.source_ref,
                     reason="Containing package of '%s'." % self.getFullName(),
                 )
@@ -712,7 +714,7 @@ class CompiledPythonPackage(CompiledPythonModule):
 
     @staticmethod
     def canHaveExternalImports():
-        return True
+        return not hasPythonFlagIsolated()
 
 
 def makeUncompiledPythonModule(

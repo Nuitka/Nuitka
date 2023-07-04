@@ -33,7 +33,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.Yaml import getYamlPackageConfiguration
 
-# spell-checker: ignore dask,numba
+# spell-checker: ignore dask,numba,statsmodels,matplotlib
 
 _mode_choices = ("error", "warning", "nofollow", "allow")
 
@@ -86,47 +86,66 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         self.control_tags = OrderedDict()
 
         if noinclude_setuptools_mode != "allow":
-            self.handled_modules["setuptools"] = noinclude_setuptools_mode
-            self.handled_modules["setuptools_scm"] = noinclude_setuptools_mode
+            self.handled_modules["setuptools"] = noinclude_setuptools_mode, "setuptools"
+            self.handled_modules["setuptools_scm"] = (
+                noinclude_setuptools_mode,
+                "setuptools",
+            )
         else:
             self.control_tags["use_setuptools"] = True
 
         if noinclude_pytest_mode != "allow":
-            self.handled_modules["_pytest"] = noinclude_pytest_mode
-            self.handled_modules["pytest"] = noinclude_pytest_mode
-            self.handled_modules["py"] = noinclude_pytest_mode
-            self.handled_modules["nose2"] = noinclude_pytest_mode
-            self.handled_modules["nose"] = noinclude_pytest_mode
+            self.handled_modules["_pytest"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["pytest"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["py"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["nose2"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["nose"] = noinclude_pytest_mode, "pytest"
+            self.handled_modules["statsmodels.tools._testing"] = (
+                noinclude_pytest_mode,
+                "pytest",
+            )
         else:
             self.control_tags["use_pytest"] = True
 
         if noinclude_unittest_mode != "allow":
-            self.handled_modules["unittest"] = noinclude_unittest_mode
-            self.handled_modules["doctest"] = noinclude_unittest_mode
+            self.handled_modules["unittest"] = noinclude_unittest_mode, "unittest"
+            self.handled_modules["doctest"] = noinclude_unittest_mode, "unittest"
         else:
             self.control_tags["use_unittest"] = True
 
         if noinclude_ipython_mode != "allow":
-            self.handled_modules["IPython"] = noinclude_ipython_mode
+            self.handled_modules["IPython"] = noinclude_ipython_mode, "IPython"
+            self.handled_modules["matplotlib_inline.backend_inline"] = (
+                noinclude_ipython_mode,
+                "IPython",
+            )
         else:
             self.control_tags["use_ipython"] = True
 
         if noinclude_dask_mode != "allow":
-            self.handled_modules["dask"] = noinclude_dask_mode
+            self.handled_modules["dask"] = noinclude_dask_mode, "dask"
+            self.handled_modules["distributed"] = noinclude_dask_mode, "dask"
         else:
             self.control_tags["use_dask"] = True
 
         if noinclude_numba_mode != "allow":
-            self.handled_modules["numba"] = noinclude_numba_mode
-            self.handled_modules["sparse"] = noinclude_numba_mode
+            self.handled_modules["numba"] = noinclude_numba_mode, "numba"
+            self.handled_modules["sparse"] = noinclude_numba_mode, "numba"
+            self.handled_modules["stumpy"] = noinclude_numba_mode, "numba"
+            self.handled_modules["pandas.core._numba.kernels"] = (
+                noinclude_numba_mode,
+                "numba",
+            )
         else:
             self.control_tags["use_numba"] = True
 
         for custom_choice in custom_choices:
-            if ":" not in custom_choice:
+            if custom_choice.count(":") != 1:
                 self.sysexit(
-                    "Error, malformed value '%s' for '--noinclude-custom-mode' used."
-                    % custom_choice
+                    """\
+Error, malformed value '%s' for '--noinclude-custom-mode' used. It has to be of \
+form 'module_name:[%s]'."""
+                    % (custom_choice, "|".join(_mode_choices))
                 )
 
             module_name, mode = custom_choice.rsplit(":", 1)
@@ -137,18 +156,39 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
                     % (mode, custom_choice)
                 )
 
-            self.handled_modules[ModuleName(module_name)] = mode
+            self.handled_modules[ModuleName(module_name)] = mode, module_name
 
             if mode == "allow":
                 self.control_tags["use_%s" % module_name] = True
 
+        self.handled_module_namespaces = {}
+
+        for handled_module_name, (
+            mode,
+            intended_module_name,
+        ) in self.handled_modules.items():
+            if mode == "warning":
+                if intended_module_name not in self.handled_module_namespaces:
+                    self.handled_module_namespaces[intended_module_name] = set()
+                self.handled_module_namespaces[intended_module_name].add(
+                    handled_module_name
+                )
+
         self.warnings_given = set()
+
+    def getEvaluationConditionControlTags(self):
+        return self.control_tags
 
     def getCacheContributionValues(self, module_name):
         config = self.config.get(module_name, section="anti-bloat")
 
         if config:
             yield str(config)
+
+            # TODO: Until we can change the evaluation to tell us exactly what
+            # control tag values were used, we have to make this one. We sort
+            # the values, to try and have order changes in code not matter.
+            yield str(tuple(sorted(self.handled_modules.items())))
 
     @classmethod
     def addPluginCommandLineOptions(cls, group):
@@ -382,10 +422,7 @@ which can and should be a top level package and then one choice, "error",
     def onModuleSourceCode(self, module_name, source_code):
         for anti_bloat_config in self.config.get(module_name, section="anti-bloat"):
             if self.evaluateCondition(
-                full_name=module_name,
-                condition=anti_bloat_config.get("when", "True"),
-                # Allow disabling config for a module with matching control tags.
-                control_tags=self.control_tags,
+                full_name=module_name, condition=anti_bloat_config.get("when", "True")
             ):
                 source_code = self._onModuleSourceCode(
                     module_name=module_name,
@@ -414,79 +451,105 @@ which can and should be a top level package and then one choice, "error",
                 function_name,
             )
 
-        if replace_code is not None:
-            if not context_ready:
-                exec(context_code, context)
-                context_ready = True
+        if replace_code is None:
+            return False
 
-            try:
-                replacement = eval(replace_code, context)
-            except Exception as e:  # pylint: disable=broad-except
-                self.sysexit(
-                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                    % (replace_code, context_code, e)
-                )
+        if not context_ready:
+            exec(context_code, context)
+            context_ready = True
 
-            # Single node is required, extract the generated module body with
-            # single expression only statement value or a function body.
-            replacement = ast.parse(replacement).body[0]
+        try:
+            replacement = eval(replace_code, context)
+        except Exception as e:  # pylint: disable=broad-except
+            self.sysexit(
+                "Error, cannot evaluate code '%s' in '%s' due to: %s"
+                % (replace_code, context_code, e)
+            )
 
-            if type(replacement) is ast.Expr:
-                if type(replacement.value) is ast.Lambda:
-                    body[:] = [ast.Return(replacement.value.body)]
-                else:
-                    body[:] = [ast.Return(replacement.value)]
-            elif type(replacement) is ast.Raise:
-                body[:] = [replacement]
+        # Single node is required, extract the generated module body with
+        # single expression only statement value or a function body.
+        replacement = ast.parse(replacement).body[0]
+
+        if type(replacement) is ast.Expr:
+            if type(replacement.value) is ast.Lambda:
+                body[:] = [ast.Return(replacement.value.body)]
             else:
-                body[:] = replacement.body
+                body[:] = [ast.Return(replacement.value)]
+        elif type(replacement) is ast.Raise:
+            body[:] = [replacement]
+        else:
+            body[:] = replacement.body
 
-            if self.show_changes:
-                self.info(
-                    "Updated module '%s' function '%s'."
-                    % (module_name.asString(), function_name)
-                )
+        if self.show_changes:
+            self.info(
+                "Updated module '%s' function '%s'."
+                % (module_name.asString(), function_name)
+            )
+
+        return True
 
     def onFunctionBodyParsing(self, module_name, function_name, body):
+        result = False
+
         config = self.config.get(module_name, section="anti-bloat")
 
         if config:
             for anti_bloat_config in config:
-                self._onFunctionBodyParsing(
+                if self._onFunctionBodyParsing(
                     module_name=module_name,
                     anti_bloat_config=anti_bloat_config,
                     function_name=function_name,
                     body=body,
-                )
+                ):
+                    result = True
+
+        return result
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module, source_ref
+        self, module_name, module_filename, module_kind, using_module_name, source_ref
     ):
-        for handled_module_name, mode in self.handled_modules.items():
+        # This will allow "unittest.mock" to pass these things.
+        if module_name == "unittest.mock" and module_name not in self.handled_modules:
+            return
+
+        for handled_module_name, (
+            mode,
+            intended_module_name,
+        ) in self.handled_modules.items():
+            # This will ignore internal usages. In case of error, e.g. above unittest
+            # could cause them to happen.
+            if using_module_name is not None and using_module_name.hasNamespace(
+                handled_module_name
+            ):
+                return
+
             if module_name.hasNamespace(handled_module_name):
                 # Make sure the compilation aborts or warns if asked to
                 if mode == "error":
-                    raise NuitkaForbiddenImportEncounter(module_name)
-                if mode == "warning" and (
-                    (
-                        using_module is None
-                        or not using_module.getFullName().hasNamespace(
-                            handled_module_name
-                        )
+                    raise NuitkaForbiddenImportEncounter(
+                        module_name, intended_module_name
                     )
-                    and source_ref is not None
-                ):
+                if mode == "warning" and source_ref is not None:
+                    if using_module_name.hasOneOfNamespaces(
+                        self.handled_module_namespaces[intended_module_name]
+                    ):
+                        continue
+
                     key = (
-                        handled_module_name,
-                        using_module,
+                        module_name,
+                        using_module_name,
                         source_ref.getLineNumber(),
                     )
+
                     if key not in self.warnings_given:
                         self.warning(
-                            "Undesirable import of '%s' in '%s' (at '%s') encountered. It may slow down compilation."
+                            """\
+Undesirable import of '%s' (intending to avoid '%s') in \
+'%s' (at '%s') encountered. It may slow down compilation."""
                             % (
                                 handled_module_name,
-                                using_module.getFullName(),
+                                intended_module_name,
+                                using_module_name,
                                 source_ref.getAsString(),
                             ),
                             mnemonic="unwanted-module",
@@ -494,26 +557,56 @@ which can and should be a top level package and then one choice, "error",
 
                         self.warnings_given.add(key)
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
-        for handled_module_name, mode in self.handled_modules.items():
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
+        for handled_module_name, (
+            mode,
+            intended_module_name,
+        ) in self.handled_modules.items():
             if module_name.hasNamespace(handled_module_name):
                 # Either issue a warning, or pretend the module doesn't exist for standalone or
                 # at least will not be included.
                 if mode == "nofollow":
                     if self.show_changes:
                         self.info(
-                            "Forcing import of '%s' to not be followed." % module_name
+                            "Forcing import of '%s' (intending to avoid '%s') to not be followed."
+                            % (module_name, intended_module_name)
                         )
                     return (
                         False,
-                        "user requested to not follow '%s' import" % module_name,
+                        "user requested to not follow '%s' (intending to avoid '%s') import"
+                        % (module_name, intended_module_name),
                     )
+
+        if using_module_name is not None:
+            config = self.config.get(using_module_name, section="anti-bloat")
+
+            if config:
+                for anti_bloat_config in config:
+                    if self.evaluateCondition(
+                        full_name=module_name,
+                        condition=anti_bloat_config.get("when", "True"),
+                    ):
+                        match, reason = module_name.matchesToShellPatterns(
+                            anti_bloat_config.get("no-auto-follow", ())
+                        )
+
+                        if match:
+                            return (
+                                False,
+                                "according to yaml 'no-auto-follow' configuration of '%s' and '%s'"
+                                % (using_module_name, reason),
+                            )
 
         # Do not provide an opinion about it.
         return None
 
     def decideCompilation(self, module_name):
-        for handled_module_name, mode in self.handled_modules.items():
+        for handled_module_name, (
+            mode,
+            _intended_module_name,
+        ) in self.handled_modules.items():
             if mode != "bytecode":
                 continue
 

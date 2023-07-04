@@ -145,7 +145,13 @@ not do what you want it to do."""
             % (arg_name, value)
         )
 
-    for candidate in ("%PROGRAM%", "%CACHE_DIR%", "%HOME%", "%TEMP%"):
+    for candidate in (
+        "%PROGRAM%",
+        "%PROGRAM_BASE%",
+        "%CACHE_DIR%",
+        "%HOME%",
+        "%TEMP%",
+    ):
         if candidate in value[1:]:
             Tracing.options_logger.sysexit(
                 """Absolute run time path of '%s' can only be at the \
@@ -1199,7 +1205,7 @@ def isUnstripped():
     Passed to Scons as ``unstripped_mode`` to it can ask the linker to
     include symbol information.
     """
-    return options.unstripped or options.profile
+    return options.unstripped or options.profile or is_debug
 
 
 def isProfile():
@@ -1542,6 +1548,7 @@ def isOnefileTempDirMode():
         "%PID",
         "%TIME%",
         "%PROGRAM%",
+        "%PROGRAM_BASE%",
     ):
         if candidate in spec:
             return True
@@ -1819,6 +1826,8 @@ def _getPythonFlags():
                     _python_flags.add("unbuffered")
                 elif part in ("-m", "package_mode"):
                     _python_flags.add("package_mode")
+                elif part in ("-I", "isolated"):
+                    _python_flags.add("isolated")
                 else:
                     Tracing.options_logger.sysexit(
                         "Unsupported python flag '%s'." % part
@@ -1855,6 +1864,12 @@ def hasPythonFlagNoWarnings():
     """*bool* = "no_warnings" in python flags given"""
 
     return "no_warnings" in _getPythonFlags()
+
+
+def hasPythonFlagIsolated():
+    """*bool* = "isolated" in python flags given"""
+
+    return "isolated" in _getPythonFlags()
 
 
 def hasPythonFlagTraceImports():

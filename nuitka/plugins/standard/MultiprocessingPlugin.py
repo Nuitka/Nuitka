@@ -153,10 +153,12 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             module_name,
             source_code,
             root_module.getCompileTimeFilename(),
-            "Autoenable multiprocessing freeze support",
+            "Auto enable multiprocessing freeze support",
         )
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         # Enforce recursion in to multiprocessing for accelerated mode, which
         # would normally avoid this.
         if module_name.hasNamespace("multiprocessing"):
@@ -166,17 +168,8 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
         if module_name.hasNamespace("multiprocessing"):
             return "bytecode"
 
-        # TODO: Make this demotable too.
+        # TODO: Make this demoted too.
         # or module_name in( "multiprocessing-preLoad", "multiprocessing-postLoad"):
-
-    def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
-        if module_name == "multiprocessing.resource_tracker":
-            source_code = source_code.replace(
-                "args += ['-c', cmd % r]",
-                "args += ['--multiprocessing-resource-tracker', str(r)]",
-            )
-
-        return source_code
 
     @staticmethod
     def getPreprocessorSymbols():

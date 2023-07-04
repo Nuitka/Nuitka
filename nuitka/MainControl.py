@@ -45,6 +45,7 @@ from nuitka.freezer.IncludedEntryPoints import (
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import (
     getPythonPgoInput,
+    hasPythonFlagIsolated,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
@@ -695,6 +696,9 @@ def runSconsBackend():
 
     if hasPythonFlagUnbuffered():
         options["python_sysflag_unbuffered"] = asBoolStr(True)
+
+    if hasPythonFlagIsolated():
+        options["python_sysflag_isolated"] = asBoolStr(True)
 
     abiflags = getPythonABI()
     if abiflags:

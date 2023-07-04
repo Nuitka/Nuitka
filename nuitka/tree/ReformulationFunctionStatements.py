@@ -22,6 +22,8 @@ source code comments with Developer Manual sections.
 
 """
 
+import ast
+
 from nuitka.nodes.AsyncgenNodes import (
     ExpressionAsyncgenObjectBody,
     ExpressionMakeAsyncgenObject,
@@ -33,10 +35,12 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinTypeRef
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject,
 )
+from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionRef,
@@ -50,6 +54,7 @@ from nuitka.nodes.GeneratorNodes import (
 from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
+from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableAssignNodes import makeStatementAssignmentVariable
 from nuitka.nodes.VariableNameNodes import (
     ExpressionVariableNameRef,
@@ -61,10 +66,11 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.nodes.VariableReleaseNodes import makeStatementReleaseVariable
 from nuitka.Options import hasPythonFlagNoAnnotations
-from nuitka.plugins.Plugins import Plugins
+from nuitka.plugins.Plugins import Plugins, hasActivePlugin
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
+from .ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
@@ -78,6 +84,7 @@ from .TreeHelpers import (
     getKind,
     makeCallNode,
     makeDictCreationOrConstant2,
+    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     mangleName,
 )
@@ -130,14 +137,124 @@ def _injectDecorator(decorators, inject, acceptable, source_ref):
         )
 
 
+_has_pyqt_plugin = None
+
+
+def decideFunctionCompilationMode(decorators):
+    """Decide how to compile a function based on decorator names."""
+
+    global _has_pyqt_plugin  # singleton, pylint: disable=global-statement
+
+    if _has_pyqt_plugin is None:
+        _has_pyqt_plugin = hasActivePlugin("pyqt5") or hasActivePlugin("pyqt6")
+
+    # TODO: Expose the interface to plugins, so we don't hardcode stuff for
+    # specific plugins here, but for performance I guess, we would have to add a
+    # registry for the plugins to use, so not every decorator name is being
+    # called for every plugin.
+    if _has_pyqt_plugin:
+        for decorator in decorators:
+            if (
+                decorator.isExpressionCall()
+                and decorator.subnode_called.isExpressionVariableNameRef()
+            ):
+                if decorator.subnode_called.variable_name == "pyqtSlot":
+                    return "bytecode"
+
+    return "compiled"
+
+
+def _buildBytecodeOrSourceFunction(provider, node, compilation_mode, source_ref):
+    # TODO: We should have a compile() builtin usage here, lookup "co_code" and
+    # support that as a constant value. We then would have the "bytecode" only
+    # in the binary, right now "bytecode" and "source" make no difference. For
+    # commercial, we need to protect this constant just like all the others, and
+    # ideally maybe, we add (delayed creation) code objects from blobs for use
+    # by compiled code, while doing this. pylint: disable=unused-argument
+    source_code = ast.unparse(node)
+
+    source = makeConstantRefNode(
+        constant=source_code,
+        source_ref=source_ref,
+        user_provided=True,
+    )
+
+    # if compilation_mode == "bytecode":
+    #     source = ExpressionBuiltinCompile(
+    #         source_code=source,
+    #         filename=makeConstantRefNode(constant="<exec>", source_ref=source_ref),
+    #         mode=makeConstantRefNode(constant="exec", source_ref=source_ref),
+    #         flags=None,
+    #         dont_inherit=None,
+    #         optimize=None,
+    #         source_ref=source_ref
+    #     )
+
+    # This is actually for the globals locals usage to be default values of the
+    # scope.
+
+    temp_scope = provider.allocateTempScope("function_exec")
+
+    globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
+        provider=provider,
+        globals_node=None,
+        locals_node=None,
+        temp_scope=temp_scope,
+        source_ref=source_ref,
+    )
+
+    tried = makeStatementsSequence(
+        statements=(
+            tried,
+            (
+                StatementExpressionOnly(
+                    expression=ExpressionBuiltinExec(
+                        source_code=source,
+                        globals_arg=globals_ref,
+                        locals_arg=locals_ref,
+                        source_ref=source_ref,
+                    ),
+                    source_ref=source_ref,
+                )
+            ),
+        ),
+        allow_none=False,
+        source_ref=source_ref,
+    )
+
+    # Hack: Allow some APIs to work already
+    # tried.parent = provider
+
+    return makeTryFinallyStatement(
+        provider=provider,
+        tried=tried,
+        final=final,
+        source_ref=source_ref,
+    )
+
+
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=too-many-locals
+    # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
 
     assert getKind(node) == "FunctionDef"
+
+    decorators = buildNodeList(
+        provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
+    )
+
+    compilation_mode = decideFunctionCompilationMode(decorators)
 
     Plugins.onFunctionBodyParsing(
         provider=provider, function_name=node.name, body=node.body
     )
+
+    if compilation_mode != "compiled":
+        return _buildBytecodeOrSourceFunction(
+            provider=provider,
+            node=node,
+            compilation_mode=compilation_mode,
+            source_ref=source_ref,
+        )
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
@@ -195,10 +312,6 @@ def buildFunctionNode(provider, node, source_ref):
                 )
             )
         )
-
-    decorators = buildNodeList(
-        provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
-    )
 
     defaults = buildNodeTuple(
         provider=provider, nodes=node.args.defaults, source_ref=source_ref
@@ -298,9 +411,23 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     # many details each, pylint: disable=too-many-locals
     assert getKind(node) == "AsyncFunctionDef"
 
+    decorators = buildNodeList(
+        provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
+    )
+
+    compilation_mode = decideFunctionCompilationMode(decorators)
+
     Plugins.onFunctionBodyParsing(
         provider=provider, function_name=node.name, body=node.body
     )
+
+    if compilation_mode != "compiled":
+        return _buildBytecodeOrSourceFunction(
+            provider=provider,
+            node=node,
+            compilation_mode=compilation_mode,
+            source_ref=source_ref,
+        )
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
@@ -341,10 +468,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     for variable in creator_function_body.getProvidedVariables():
         function_body.getVariableForReference(variable.getName())
-
-    decorators = buildNodeList(
-        provider=provider, nodes=reversed(node.decorator_list), source_ref=source_ref
-    )
 
     defaults = buildNodeTuple(
         provider=provider, nodes=node.args.defaults, source_ref=source_ref
@@ -460,6 +583,10 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
 
 def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=too-many-branches
+
+    # The ast uses funny names a bunch.
+    # spellchecker: ignore varnames,elts,posonlyargs,kwonlyargs,varargannotation,vararg
+    # spellchecker: ignore kwargannotation
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
     if python_version < 0x300 or hasPythonFlagNoAnnotations():

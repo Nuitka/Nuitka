@@ -618,6 +618,7 @@ def autoFormatFile(
             ".spec",
             "-rpmlintrc",
             "Containerfile",
+            ".containerfile",
         )
     ) or os.path.basename(filename) in (
         "changelog",

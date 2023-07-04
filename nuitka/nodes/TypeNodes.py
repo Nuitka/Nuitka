@@ -22,6 +22,7 @@ them, their relationship or check for them in re-formulations.
 
 """
 
+from nuitka.__past__ import GenericAlias
 from nuitka.Builtins import builtin_names
 from nuitka.Options import isExperimental
 
@@ -93,7 +94,10 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
             # The above code is supposed to catch these in a better way.
             value = value.getCompileTimeConstant()
 
-            type_name = value.__class__.__name__
+            if type(value) is GenericAlias:
+                type_name = "GenericAlias"
+            else:
+                type_name = value.__class__.__name__
 
             if type_name in builtin_names:
                 new_node = makeExpressionBuiltinRef(

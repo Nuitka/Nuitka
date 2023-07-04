@@ -263,6 +263,10 @@ python_sysflag_no_randomization = getArgumentBool(
 # python_sysflag_unbuffered
 python_sysflag_unbuffered = getArgumentBool("python_sysflag_unbuffered", False)
 
+# python_sysflag_isolated
+python_sysflag_isolated = getArgumentBool("python_sysflag_isolated", False)
+
+
 # Preprocessor defines from plugins
 cpp_defines = getArgumentList("cpp_defines", "")
 cpp_include_dirs = getArgumentList("cpp_include_dirs", "")
@@ -337,7 +341,7 @@ env.the_compiler = env["CC"]
 env.the_cc_name = os.path.normcase(os.path.basename(env.the_compiler))
 env.standalone_mode = standalone_mode
 env.debug_mode = debug_mode
-env.unstripped_mode = debug_mode or unstripped_mode
+env.unstripped_mode = unstripped_mode
 env.disable_console = disable_console
 env.source_dir = source_dir
 env.low_memory = low_memory
@@ -795,8 +799,15 @@ if module_mode:
         assert False, env.the_cc_name
 else:
     if env.msvc_mode:
-        env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
-
+        # For complete outputs, we have to match the C runtime of the Python DLL, if any,
+        # for Nuitka-Python there is of course none.
+        if not env.nuitka_python and (
+            forced_stdout_path not in ("%NONE%", "%NULL%", None)
+            or forced_stderr_path not in ("%NONE%", "%NULL%", None)
+        ):
+            env.Append(CCFLAGS=["/MD"])  # Multithreaded, dynamic version of C run time.
+        else:
+            env.Append(CCFLAGS=["/MT"])  # Multithreaded, static version of C run time.
 
 if module_mode:
     env.Append(CPPDEFINES=["_NUITKA_MODULE"])
@@ -922,6 +933,8 @@ def createBuildDefinitionsFile():
     )
 
     build_definitions["SYSFLAG_UNBUFFERED"] = 1 if python_sysflag_unbuffered else 0
+
+    build_definitions["SYSFLAG_ISOLATED"] = 1 if python_sysflag_isolated else 0
 
     if forced_stdout_path:
         if forced_stdout_path == "%NONE%":

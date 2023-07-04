@@ -17,12 +17,17 @@
 #
 """ Nodes the represent ways to access package data for pkglib, pkg_resources, etc. """
 
+from nuitka.importing.Importing import locateModule, makeModuleUsageAttempt
+from nuitka.importing.ImportResolving import resolveModuleName
+
 from .ConstantRefNodes import makeConstantRefNode
+from .ExpressionBases import ExpressionBase
 from .ExpressionShapeMixins import (
     ExpressionBytesShapeExactMixin,
     ExpressionStrShapeExactMixin,
 )
 from .HardImportNodesGenerated import (
+    ExpressionImportlibResourcesFilesCallBase,
     ExpressionImportlibResourcesReadBinaryCallBase,
     ExpressionImportlibResourcesReadTextCallBase,
     ExpressionPkgResourcesResourceStreamCallBase,
@@ -134,5 +139,115 @@ class ExpressionImportlibResourcesReadTextCall(
 
     def replaceWithCompileTimeValue(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesFilesCallMixin:
+    __slots__ = ()
+
+    # TODO: Looks as if this could be a convenience function of more general use.
+    def makeModuleUsageAttempt(self, package_name):
+        _package_name, module_filename, module_kind, finding = locateModule(
+            module_name=package_name,
+            parent_package=None,
+            level=0,
+        )
+
+        return makeModuleUsageAttempt(
+            module_name=package_name,
+            filename=module_filename,
+            module_kind=module_kind,
+            finding=finding,
+            level=0,
+            source_ref=self.source_ref,
+        )
+
+    # TODO: In standalone mode we could know a lot better.
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesFilesCallFixed(
+    ExpressionImportlibResourcesFilesCallMixin, ExpressionBase
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL_FIXED"
+
+    python_version_spec = ">= 0x370"
+
+    __slots__ = (
+        "package_name",
+        "module_usage_attempt",
+    )
+
+    def __init__(self, package_name, source_ref):
+        ExpressionBase.__init__(self, source_ref)
+
+        self.package_name = resolveModuleName(package_name)
+
+        self.module_usage_attempt = self.makeModuleUsageAttempt(
+            package_name=package_name
+        )
+
+    def finalize(self):
+        del self.module_usage_attempt
+
+    def getPackageNameUsed(self):
+        return makeConstantRefNode(
+            constant=self.package_name.asString(), source_ref=self.source_ref
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        trace_collection.onModuleUsageAttempt(self.module_usage_attempt)
+
+        return self, None, None
+
+
+class ExpressionImportlibResourcesFilesCall(
+    ExpressionImportlibResourcesFilesCallMixin,
+    ExpressionImportlibResourcesFilesCallBase,
+):
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_CALL"
+
+    python_version_spec = ">= 0x370"
+
+    named_children = ("package",)
+
+    __slots__ = ("module_usage_attempt",)
+
+    def __init__(self, package, source_ref):
+        ExpressionImportlibResourcesFilesCallBase.__init__(
+            self, package=package, source_ref=source_ref
+        )
+
+        self.module_usage_attempt = None
+
+    def getPackageNameUsed(self):
+        return self.subnode_package
+
+    def replaceWithCompileTimeValue(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        package_name = self.subnode_package.getCompileTimeConstant()
+
+        if type(package_name) is str:
+            package_name = resolveModuleName(package_name)
+            trace_collection.onModuleUsageAttempt(
+                self.makeModuleUsageAttempt(package_name)
+            )
+
+            result = ExpressionImportlibResourcesFilesCallFixed(
+                package_name=package_name, source_ref=self.source_ref
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Detected 'importlib.resources.files' with constant package name '%s'."
+                % package_name,
+            )
 
         return self, None, None
