@@ -65,7 +65,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
             elif getActiveQtPlugin() is not None:
                 result = module_name = "webview.platforms.qt"
                 reason = (
-                    "Platforms package of webview used due to '%s'."
+                    "Platforms package of webview used due to '%s' plugin being active."
                     % getActiveQtPlugin()
                 )
             else:
