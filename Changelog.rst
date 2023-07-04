@@ -170,6 +170,12 @@ Bug Fixes
 
 -  Standalone: Added support for newer ``skimage`` package.
 
+-  Standalone: Added support for newer ``matplotlib`` package.
+
+-  Standalone: Fix, our ``numpy.testing`` replacement, was lacking a
+   function ``assert_array_almost_equal`` used in at least the
+   ``pytransform3d`` package.
+
 New Features
 ============
 
@@ -393,6 +399,9 @@ Cleanups
 -  Solve TODO and use more modern git command ``git branch
    --show-current`` to detect branch, our CI will have this for sure.
 
+-  In our Yaml configuration prefer the GUI toolkit control tags, e.g.
+   ``use_pyside6`` over the ``plugin("pyside6")`` method.
+
 Tests
 =====
 
@@ -403,8 +412,8 @@ Tests
    selected ones, there is many of them and they should all exist on
    every system. Added in 1.6.1 already.
 
--  Made the ``pendulum`` actually useful to cover new and old pendulum
-   actually working properly.
+-  Made the ``pendulum`` test actually useful to cover new and old
+   pendulum actually working properly.
 
 Summary
 =======
