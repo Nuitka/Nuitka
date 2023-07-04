@@ -536,7 +536,7 @@ class CompiledPythonModule(
 
         self.trace_collection = TraceCollectionModule(
             self,
-            old_collection.getVeryTrustedModuleVariables()
+            very_trusted_module_variables=old_collection.getVeryTrustedModuleVariables()
             if old_collection is not None
             else {},
         )
