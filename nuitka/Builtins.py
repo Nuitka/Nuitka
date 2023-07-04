@@ -22,7 +22,7 @@
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType, ModuleType
 
-from nuitka.__past__ import builtins
+from nuitka.__past__ import GenericAlias, builtins
 from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.PythonVersions import python_version
 
@@ -204,6 +204,12 @@ def _getAnonBuiltins():
     if python_version >= 0x270:
         anon_names["version_info"] = type(sys.version_info)
         anon_codes["version_info"] = 'Py_TYPE(Nuitka_SysGetObject("version_info"))'
+
+    if python_version >= 0x390:
+        assert GenericAlias is not None
+
+        anon_names["GenericAlias"] = GenericAlias
+        anon_codes["GenericAlias"] = "&Py_GenericAliasType"
 
     if python_version >= 0x3A0:
         # 3.10 only code, pylint: disable=I0021,unsupported-binary-operation

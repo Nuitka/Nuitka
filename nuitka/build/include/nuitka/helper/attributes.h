@@ -33,6 +33,9 @@ extern int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name);
 // Check for an attribute, cannot raise an exception.
 extern bool HAS_ATTR_BOOL(PyObject *source, PyObject *attr_name);
 
+// Check for an attribute, can raise an exception.
+extern int HAS_ATTR_BOOL2(PyObject *source, PyObject *attr_name);
+
 // Set an attribute except for attribute slots below.
 extern bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value);
 

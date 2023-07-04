@@ -361,7 +361,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME0(PyObject *module) {
     return DICT_GET_ITEM0(module_dict, const_str_plain___name__);
 }
 
-// Get the binary directory was wide characters.
+// Get the binary directory as wide characters.
 extern wchar_t const *getBinaryDirectoryWideChars(bool resolve_symlinks);
 
 // Get the binary directory, translated to ANSI/native path

@@ -45,6 +45,7 @@ from nuitka.Serialization import (
     BuiltinAnonValue,
     BuiltinSpecialValue,
     BuiltinUnionTypeValue,
+    BuiltinGenericAliasValue,
     ConstantStreamReader,
 )
 from nuitka.Tracing import data_composer_logger
@@ -282,11 +283,11 @@ def _writeConstantValue(output, constant_value):
         output.write(b"X")
         output.write(struct.pack("i", len(constant_value)))
         output.write(constant_value)
-    elif constant_type is GenericAlias:
+    elif constant_type is BuiltinGenericAliasValue:
         output.write(b"G")
         _last_written = None
-        _writeConstantValue(output, constant_value.__origin__)
-        _writeConstantValue(output, constant_value.__args__)
+        _writeConstantValue(output, constant_value.origin)
+        _writeConstantValue(output, constant_value.args)
     elif constant_type is BuiltinUnionTypeValue:
         output.write(b"H")
         _last_written = None
@@ -340,7 +341,7 @@ def _writeConstantStream(constants_reader):
     # TODO: Debug mode only?
     result.write(b".")
 
-    return count, struct.pack("h", count) + result.getvalue()
+    return count, struct.pack("H", count) + result.getvalue()
 
 
 crc32 = 0
@@ -401,26 +402,30 @@ def main():
     for fullpath, filename in const_files:
         data_composer_logger.info("Working on constant file '%s'." % filename)
 
-        with open(fullpath, "rb") as const_file:
-            constants_reader = ConstantStreamReader(const_file)
-            count, part = _writeConstantStream(constants_reader)
-        total += count
+        try:
+            with open(fullpath, "rb") as const_file:
+                constants_reader = ConstantStreamReader(const_file)
+                count, part = _writeConstantStream(constants_reader)
+            total += count
 
-        name = deriveModuleConstantsBlobName(filename)
+            name = deriveModuleConstantsBlobName(filename)
 
-        # Make sure that is not repeated.
-        assert name not in names, name
-        names.add(name)
+            # Make sure that is not repeated.
+            assert name not in names, name
+            names.add(name)
 
-        data_composer_logger.info(
-            "Storing %r chunk with %s values size %r." % (name, count, len(part))
-        )
+            data_composer_logger.info(
+                "Storing %r chunk with %s values size %r." % (name, count, len(part))
+            )
 
-        if str is not bytes:
-            # Encoding needs to match generated source code output.
-            name = name.encode("latin1")
+            if str is not bytes:
+                # Encoding needs to match generated source code output.
+                name = name.encode("latin1")
 
-        desc.append((name, part))
+            desc.append((name, part))
+        except Exception:
+            data_composer_logger.warning("Problem with constant file '%s'." % filename)
+            raise
 
     data_composer_logger.info("Total amount of constants is %d." % total)
 

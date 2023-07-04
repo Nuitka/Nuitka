@@ -20,10 +20,15 @@ import os
 
 from nuitka.Options import isStandaloneMode
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.plugins.Plugins import getActiveQtPlugin, hasActivePlugin
+from nuitka.plugins.Plugins import (
+    getActiveQtPluginBindingName,
+    hasActivePlugin,
+)
 from nuitka.utils.FileOperations import getFileContentByLine
+from nuitka.utils.Jinja2 import renderTemplateFromString
 
-# spellchecker: ignore matplotlib, scipy, scikit, matplotlibrc, matplotlibdata, mpl_toolkits, tkagg
+# spellchecker: ignore matplotlib, scipy, scikit, matplotlibrc, matplotlibdata
+# spellchecker: ignore mpl_toolkits, tkagg, MPLBACKEND
 
 
 class NuitkaPluginMatplotlib(NuitkaPluginBase):
@@ -80,7 +85,7 @@ from inspect import getsource
                 ("matplotlib_version", "__version__"),
                 (
                     "needs_matplotlibdata_env",
-                    "'MATPLOTLIBDATA' in getsource(get_data_path)",
+                    "'MATPLOTLIBDATA' in getsource(get_data_path) or 'MATPLOTLIBRC' in getsource(get_data_path)",
                 ),
             ),
         )
@@ -133,12 +138,14 @@ from inspect import getsource
             new_lines.append("backend: %s" % matplotlib_info.backend)
 
         yield self.makeIncludedGeneratedDataFile(
-            data=new_lines,
+            data="\n".join(new_lines),
             dest_path=os.path.join("matplotlib", "mpl-data", "matplotlibrc"),
             reason="updated matplotlib config file with backend to use",
         )
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         if module_name.hasNamespace("mpl_toolkits"):
             return True, "Needed by matplotlib"
 
@@ -152,20 +159,6 @@ from inspect import getsource
                 "matplotlib.backend.tkagg",
             ):
                 return True, "Needed for tkinter matplotlib backend"
-
-        if getActiveQtPlugin() is not None:
-            # Note, their code tries everything behind that name, the qt5 is
-            # misleading therefore, PySide will work there too.
-            if module_name in (
-                "matplotlib.backends.backend_qt5",
-                "matplotlib.backends.backend_qt5.py",
-                "matplotlib.backends.backend_qt5cairo.py",
-                "matplotlib.backend.backend_qt5.py",
-            ):
-                return True, "Needed for Qt matplotlib backend"
-
-        if module_name == "matplotlib.backends.backend_agg":
-            return True, "Needed as standard matplotlib backend"
 
     def createPreModuleLoadCode(self, module):
         """Method called when a module is being imported.
@@ -186,11 +179,20 @@ from inspect import getsource
             module.getFullName() == "matplotlib"
             and self._getMatplotlibInfo().needs_matplotlibdata_env
         ):
-            code = r"""
+            code = renderTemplateFromString(
+                r"""
 import os
 os.environ["MATPLOTLIBDATA"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data")
-"""
+os.environ["MATPLOTLIBRC"] = os.path.join(__nuitka_binary_dir, "matplotlib", "mpl-data", "matplotlibrc")
+os.environ["MPLBACKEND"] = {{matplotlib_info.backend}}
+{% if qt_binding_name %}
+os.environ["QT_API"] = "{{qt_binding_name}}"
+{% endif %}
+""",
+                matplotlib_info=self._getMatplotlibInfo(),
+                qt_binding_name=getActiveQtPluginBindingName(),
+            )
             return (
                 code,
-                "Setting 'MATPLOTLIBDATA' environment variable for matplotlib to find package data.",
+                "Setting environment variables for 'matplotlib' to find package configuration.",
             )

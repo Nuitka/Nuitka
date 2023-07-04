@@ -18,6 +18,7 @@
 #ifndef __NUITKA_SAFE_STRING_OPS_H__
 #define __NUITKA_SAFE_STRING_OPS_H__
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -36,8 +37,14 @@ extern void appendCharSafeW(wchar_t *target, char c, size_t buffer_size);
 extern void appendStringSafeW(wchar_t *target, char const *source, size_t buffer_size);
 extern void appendWStringSafeW(wchar_t *target, wchar_t const *source, size_t buffer_size);
 
-/* Expand symbolic paths, containing %TEMP%, %PID% without overflowing. */
-extern bool expandTemplatePathW(wchar_t *target, wchar_t const *source, size_t buffer_size);
-extern bool expandTemplatePath(char *target, char const *source, size_t buffer_size);
+/* Get OS error code and print it to stderr. */
+#ifdef _WIN32
+typedef DWORD error_code_t;
+static inline error_code_t getCurrentErrorCode(void) { return GetLastError(); }
+#else
+typedef int error_code_t;
+static inline error_code_t getCurrentErrorCode(void) { return errno; }
+#endif
+extern void printOSErrorMessage(char const *message, error_code_t error_code);
 
 #endif

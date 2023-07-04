@@ -22,15 +22,14 @@
 """
 
 import os
-import subprocess
 import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.auto_format.AutoFormat import cleanupWindowsNewlines
 from nuitka.tools.quality.ScanSources import scanTargets
-from nuitka.Tracing import my_print
-from nuitka.utils.Execution import withEnvironmentPathAdded
+from nuitka.Tracing import my_print, tools_logger
+from nuitka.utils.Execution import callProcess, check_output, getExecutablePath
 from nuitka.utils.FileOperations import (
     areSamePaths,
     getFileContents,
@@ -49,8 +48,22 @@ def runCodespell(filenames, verbose, write):
     if verbose:
         my_print("Consider", " ".join(filenames))
 
+    if os.name == "nt":
+        extra_path = os.path.join(sys.prefix, "Scripts")
+    else:
+        extra_path = None
+
+    codespell_binary = getExecutablePath("codespell", extra_dir=extra_path)
+
+    codespell_version = check_output([codespell_binary, "--version"])
+
+    if str is not bytes:
+        codespell_version = codespell_version.decode("utf8").strip()
+
+    my_print("Using codespell version:", codespell_version)
+
     command = [
-        "codespell",
+        codespell_binary,
         "-f",
         "-I",
         os.path.join(
@@ -62,17 +75,12 @@ def runCodespell(filenames, verbose, write):
             "misc/codespell-ignore.txt",
         ),
     ]
+
     if write:
         command.append("-w")
     command += filenames
 
-    if os.name == "nt":
-        extra_path = os.path.join(sys.prefix, "Scripts")
-    else:
-        extra_path = None
-
-    with withEnvironmentPathAdded("PATH", extra_path):
-        result = subprocess.call(command)
+    result = callProcess(command, logger=tools_logger if verbose else None)
 
     if result == 0:
         for filename in filenames:
@@ -89,12 +97,6 @@ def runCodespell(filenames, verbose, write):
             if old_contents != contents:
                 putTextFileContents(filename, contents)
                 cleanupWindowsNewlines(filename, filename)
-
-    if verbose:
-        if result != 0:
-            my_print("FAILED.")
-        else:
-            my_print("OK.")
 
     return result == 0
 
@@ -158,7 +160,8 @@ def main():
     if result:
         my_print("OK.")
     else:
-        sys.exit(
+        my_print("FAILED.")
+        tools_logger.sysexit(
             "\nError, please correct the spelling problems found or extend 'misc/codespell-ignore.txt' if applicable."
         )
 

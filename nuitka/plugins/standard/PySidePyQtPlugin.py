@@ -61,7 +61,12 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     warned_about = set()
 
     def __init__(self, qt_plugins, no_qt_translations):
-        self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins.split(","))
+        if not qt_plugins:
+            qt_plugins = ["sensible"]
+
+        qt_plugins = sum([value.split(",") for value in qt_plugins], [])
+
+        self.qt_plugins = OrderedSet(x.strip().lower() for x in qt_plugins)
         self.no_qt_translations = no_qt_translations
 
         self.web_engine_done_binaries = False
@@ -92,9 +97,9 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
     def addPluginCommandLineOptions(cls, group):
         group.add_option(
             "--include-qt-plugins",
-            action="store",
+            action="append",
             dest="qt_plugins",
-            default="sensible",
+            default=[],
             help="""\
 Which Qt plugins to include. These can be big with dependencies, so
 by default only the sensible ones are included, but you can also put
@@ -1052,7 +1057,9 @@ Prefix = .
                         if os.path.basename(sub_dll_filename).startswith(badword):
                             yield sub_dll_filename
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():
@@ -1213,12 +1220,15 @@ The standard PySide2 is not supported before CPython <3.6. For full support: htt
             self, qt_plugins=qt_plugins, no_qt_translations=no_qt_translations
         )
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         if module_name == self.binding_name and self._getNuitkaPatchLevel() < 1:
             return True, "Need to monkey patch PySide2 for abstract methods."
 
         return NuitkaPluginQtBindingsPluginBase.onModuleEncounter(
             self,
+            using_module_name=using_module_name,
             module_name=module_name,
             module_filename=module_filename,
             module_kind=module_kind,
@@ -1405,7 +1415,9 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
 
     warned_about = set()
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():

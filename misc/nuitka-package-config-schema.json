@@ -155,6 +155,12 @@
                         "append_plain": {
                             "type": "string"
                         },
+                        "no-auto-follow": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                             }
+                        },
                         "when": {
                             "type": "string"
                         }

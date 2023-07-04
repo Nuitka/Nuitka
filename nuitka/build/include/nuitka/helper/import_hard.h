@@ -99,3 +99,9 @@ extern PyObject *IMPORT_HARD_TYPES(void);
 #if PYTHON_VERSION >= 0x350
 extern PyObject *IMPORT_HARD_TYPING(void);
 #endif
+
+/* C helper for hard import of module "unittest" import. */
+extern PyObject *IMPORT_HARD_UNITTEST(void);
+
+/* C helper for hard import of module "unittest.mock" import. */
+extern PyObject *IMPORT_HARD_UNITTEST__MOCK(void);

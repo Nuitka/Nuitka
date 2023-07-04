@@ -332,15 +332,9 @@ PyObject *modulecode_%(module_identifier)s(PyObject *module, struct Nuitka_MetaP
 #endif
 
         /* The constants only used by this module are created now. */
-#ifdef _NUITKA_TRACE
-        PRINT_STRING("%(module_name)s: Calling createModuleConstants().\n");
-#endif
+        NUITKA_PRINT_TRACE("%(module_name)s: Calling createModuleConstants().\n");
         createModuleConstants();
 
-        /* The code objects used by this module are created now. */
-#ifdef _NUITKA_TRACE
-        PRINT_STRING("%(module_name)s: Calling createModuleCodeObjects().\n");
-#endif
         createModuleCodeObjects();
 
         init_done = true;

@@ -34,8 +34,6 @@ from nuitka.utils.FileOperations import listDir
 from nuitka.utils.Importing import getSharedLibrarySuffixes
 from nuitka.utils.ModuleNames import ModuleName
 
-from .Importing import locateModule
-
 
 def _recurseTo(module_name, module_filename, module_kind):
     from nuitka.tree import Building
@@ -61,7 +59,7 @@ def recurseTo(
     module_name,
     module_filename,
     module_kind,
-    using_module,
+    using_module_name,
     source_ref,
     reason,
 ):
@@ -77,7 +75,7 @@ def recurseTo(
             module_filename=module_filename,
             module_name=module_name,
             module_kind=module_kind,
-            using_module=using_module,
+            using_module_name=using_module_name,
             source_ref=source_ref,
         )
 
@@ -96,18 +94,26 @@ def recurseTo(
 _recursion_decision_cache = {}
 
 
-def decideRecursion(module_filename, module_name, module_kind, extra_recursion=False):
-    key = module_filename, module_name, module_kind, extra_recursion
+def decideRecursion(
+    using_module_name, module_filename, module_name, module_kind, extra_recursion=False
+):
+    key = using_module_name, module_filename, module_name, module_kind, extra_recursion
 
     if key not in _recursion_decision_cache:
         _recursion_decision_cache[key] = _decideRecursion(
-            module_filename, module_name, module_kind, extra_recursion
+            using_module_name,
+            module_filename,
+            module_name,
+            module_kind,
+            extra_recursion,
         )
 
     return _recursion_decision_cache[key]
 
 
-def _decideRecursion(module_filename, module_name, module_kind, extra_recursion):
+def _decideRecursion(
+    using_module_name, module_filename, module_name, module_kind, extra_recursion
+):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=too-many-branches,too-many-return-statements
     if module_name == "__main__":
@@ -123,6 +129,7 @@ def _decideRecursion(module_filename, module_name, module_kind, extra_recursion)
             return False, "Main program is already included in package mode."
 
     plugin_decision = Plugins.onModuleEncounter(
+        using_module_name=using_module_name,
         module_filename=module_filename,
         module_name=module_name,
         module_kind=module_kind,
@@ -292,6 +299,7 @@ the compiled result, and therefore asking to include them makes no sense.
 
     if module_kind is not None:
         decision, reason = decideRecursion(
+            using_module_name=None,
             module_filename=plugin_filename,
             module_name=module_name,
             module_kind=module_kind,
@@ -304,7 +312,7 @@ the compiled result, and therefore asking to include them makes no sense.
                 module_filename=plugin_filename,
                 module_name=module_name,
                 module_kind=module_kind,
-                using_module=None,
+                using_module_name=None,
                 source_ref=None,
                 reason=reason,
             )
@@ -376,53 +384,6 @@ def checkPluginFilenamePattern(pattern):
         )
 
 
-def _addParentPackageUsages(using_module, module_name, signal_change, source_ref):
-    for parent_package_name in module_name.getParentPackageNames():
-        (
-            _parent_package_name,
-            parent_package_filename,
-            package_module_kind,
-            finding,
-        ) = locateModule(module_name=parent_package_name, parent_package=None, level=0)
-
-        if parent_package_filename is None:
-            recursion_logger.sysexit(
-                "Error, failed to locate parent package file for '%s' parent of '%s' (used by '%s') module (%s)"
-                % (
-                    parent_package_name,
-                    module_name,
-                    using_module.getFullName(),
-                    finding,
-                )
-            )
-
-        assert _parent_package_name == parent_package_name
-
-        _decision, reason = decideRecursion(
-            module_filename=parent_package_filename,
-            module_name=parent_package_name,
-            module_kind=package_module_kind,
-        )
-
-        used_package_module = recurseTo(
-            signal_change=signal_change,
-            module_name=parent_package_name,
-            module_filename=parent_package_filename,
-            module_kind=package_module_kind,
-            using_module=using_module,
-            source_ref=source_ref,
-            reason=reason,
-        )
-
-        addUsedModule(
-            module=used_package_module,
-            using_module=using_module,
-            usage_tag="package",
-            reason=reason,
-            source_ref=source_ref,
-        )
-
-
 def considerUsedModules(module, signal_change):
     for used_module in module.getUsedModules():
         if used_module.finding == "not-found":
@@ -439,26 +400,20 @@ def considerUsedModules(module, signal_change):
 
         try:
             decision, reason = decideRecursion(
+                using_module_name=module.getFullName(),
                 module_filename=used_module.filename,
                 module_name=used_module.module_name,
                 module_kind=used_module.module_kind,
             )
 
             if decision:
-                _addParentPackageUsages(
-                    using_module=module,
-                    module_name=used_module.module_name,
-                    signal_change=signal_change,
-                    source_ref=used_module.source_ref,
-                )
-
                 new_module = recurseTo(
                     signal_change=signal_change,
                     module_name=used_module.module_name,
                     module_filename=used_module.filename,
                     module_kind=used_module.module_kind,
                     source_ref=used_module.source_ref,
-                    using_module=module,
+                    using_module_name=module.module_name,
                     reason=reason,
                 )
 
@@ -471,9 +426,10 @@ def considerUsedModules(module, signal_change):
                 )
         except NuitkaForbiddenImportEncounter as e:
             recursion_logger.sysexit(
-                "Error, forbidden import of '%s' in module '%s' at '%s' encountered."
+                "Error, forbidden import of '%s' (intending to avoid '%s') in module '%s' at '%s' encountered."
                 % (
-                    e,
+                    e.args[0],
+                    e.args[1],
                     module.getFullName(),
                     used_module.source_ref.getAsString(),
                 )
@@ -483,6 +439,6 @@ def considerUsedModules(module, signal_change):
         Plugins.considerImplicitImports(module=module, signal_change=signal_change)
     except NuitkaForbiddenImportEncounter as e:
         recursion_logger.sysexit(
-            "Error, forbidden import of '%s' done implicitly by module '%s'."
-            % (e, module.getFullName())
+            "Error, forbidden import of '%s' (intending to avoid '%s') done implicitly by module '%s'."
+            % (e.args[0], e.args[1], module.getFullName())
         )

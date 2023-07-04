@@ -29,7 +29,11 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment,
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
-from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
+from .PythonAPICodes import (
+    generateCAPIObjectCode,
+    generateCAPIObjectCode0,
+    makeArgDescFromExpression,
+)
 
 
 def generateAssignmentAttributeCode(statement, emit, context):
@@ -270,33 +274,52 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
         expression=expression, emit=emit, context=context
     )
 
-    res_name = context.getBoolResName()
+    if expression.mayRaiseExceptionOperation():
+        res_name = context.getIntResName()
 
-    emit(
-        "%s = HAS_ATTR_BOOL(%s, %s);"
-        % (
-            res_name,
-            source_name,
-            context.getConstantCode(constant=expression.getAttributeName()),
+        emit(
+            "%s = HAS_ATTR_BOOL2(%s, %s);"
+            % (
+                res_name,
+                source_name,
+                context.getConstantCode(constant=expression.getAttributeName()),
+            )
         )
-    )
 
-    getReleaseCode(release_name=source_name, emit=emit, context=context)
+        getErrorExitBoolCode(
+            condition="%s == -1" % res_name,
+            release_name=source_name,
+            emit=emit,
+            context=context,
+        )
 
-    to_name.getCType().emitAssignmentCodeFromBoolCondition(
-        to_name=to_name, condition=res_name, emit=emit
-    )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name=to_name, condition="%s != 0" % res_name, emit=emit
+        )
+    else:
+        res_name = context.getBoolResName()
+
+        emit(
+            "%s = HAS_ATTR_BOOL(%s, %s);"
+            % (
+                res_name,
+                source_name,
+                context.getConstantCode(constant=expression.getAttributeName()),
+            )
+        )
+
+        getReleaseCode(release_name=source_name, emit=emit, context=context)
+
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name=to_name, condition=res_name, emit=emit
+        )
 
 
 def generateBuiltinGetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name=to_name,
         capi="BUILTIN_GETATTR",
-        arg_desc=(
-            ("getattr_target", expression.subnode_expression),
-            ("getattr_attr", expression.subnode_name),
-            ("getattr_default", expression.subnode_default),
-        ),
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),
@@ -310,11 +333,7 @@ def generateBuiltinSetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode0(
         to_name=to_name,
         capi="BUILTIN_SETATTR",
-        arg_desc=(
-            ("setattr_target", expression.subnode_expression),
-            ("setattr_attr", expression.subnode_attribute),
-            ("setattr_value", expression.subnode_value),
-        ),
+        arg_desc=makeArgDescFromExpression(expression),
         may_raise=expression.mayRaiseException(BaseException),
         conversion_check=decideConversionCheckNeeded(to_name, expression),
         source_ref=expression.getCompatibleSourceReference(),

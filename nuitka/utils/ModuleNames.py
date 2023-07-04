@@ -192,7 +192,7 @@ class ModuleName(str):
         """
 
         for package_name in package_names:
-            if type(package_name) in (tuple, list):
+            if type(package_name) in (tuple, list, set):
                 if self.hasOneOfNamespaces(*package_name):
                     return True
             elif self.hasNamespace(package_name):

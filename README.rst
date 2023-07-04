@@ -514,31 +514,33 @@ which uses version information, and user specific cache directory.
 
 Currently these expanded tokens are available:
 
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| Token       | What this Expands to                                      | Example                               |
-+=============+===========================================================+=======================================+
-| %TEMP%      | User temporary file directory                             | C:\\Users\\...\\AppData\\Locals\\Temp |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %PID%       | Process ID                                                | 2772                                  |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %TIME%      | Time in seconds since the epoch.                          | 1299852985                            |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %PROGRAM%   | Full program run-time filename of executable.             | C:\\SomeWhere\\YourOnefile.exe        |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %CACHE_DIR% | Cache directory for the user.                             | C:\\Users\\SomeBody\\AppData\\Local   |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %COMPANY%   | Value given as ``--company-name``                         | YourCompanyName                       |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %PRODUCT%   | Value given as ``--product-name``                         | YourProductName                       |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %VERSION%   | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                       |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %HOME%      | Home directory for the user.                              | /home/somebody                        |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %NONE%      | When provided for file outputs, ``None`` is used          | see notice below                      |
-+-------------+-----------------------------------------------------------+---------------------------------------+
-| %NULL%      | When provided for file outputs, ``os.devnull`` is used    | see notice below                      |
-+-------------+-----------------------------------------------------------+---------------------------------------+
++----------------+-----------------------------------------------------------+---------------------------------------+
+| Token          | What this Expands to                                      | Example                               |
++================+===========================================================+=======================================+
+| %TEMP%         | User temporary file directory                             | C:\\Users\\...\\AppData\\Locals\\Temp |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %PID%          | Process ID                                                | 2772                                  |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %TIME%         | Time in seconds since the epoch.                          | 1299852985                            |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %PROGRAM%      | Full program run-time filename of executable.             | C:\\SomeWhere\\YourOnefile.exe        |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %PROGRAM_BASE% | No-suffix of run-time filename of executable.             | C:\\SomeWhere\\YourOnefile            |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %CACHE_DIR%    | Cache directory for the user.                             | C:\\Users\\SomeBody\\AppData\\Local   |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %COMPANY%      | Value given as ``--company-name``                         | YourCompanyName                       |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %PRODUCT%      | Value given as ``--product-name``                         | YourProductName                       |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %VERSION%      | Combination of ``--file-version`` & ``--product-version`` | 3.0.0.0-1.0.0.0                       |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %HOME%         | Home directory for the user.                              | /home/somebody                        |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %NONE%         | When provided for file outputs, ``None`` is used          | see notice below                      |
++----------------+-----------------------------------------------------------+---------------------------------------+
+| %NULL%         | When provided for file outputs, ``os.devnull`` is used    | see notice below                      |
++----------------+-----------------------------------------------------------+---------------------------------------+
 
 .. important::
 
@@ -943,7 +945,7 @@ be able to compile it and find the used modules from these paths as
 well.
 
 Manual Python File Loading
---------------------------
+==========================
 
 A very frequent pattern with private code is that it scans plugin
 directories of some kind, and e.g. uses ``os.listdir``, then considers
@@ -1095,7 +1097,7 @@ own code, here is what you can do:
       return result
 
 Compiled functions cannot be used to create uncompiled ones from, so the
-above code, will not work. However, there is a dedicated ``clone``
+above code will not work. However, there is a dedicated ``clone``
 method, that is specific to them, so use this instead.
 
 .. code:: python
@@ -1110,6 +1112,20 @@ method, that is specific to them, so use this instead.
 
       result.__name__ = name
       return result
+
+Modules: Extension modules are not executable directly
+======================================================
+
+A package can be compiled with Nuitka, no problem, but when it comes to
+executing it, ``python -m compiled_module`` is not going to work and
+give the error ``No code object available for AssertsTest`` because the
+compiled module is not source code, and Python will not just load it.
+The closest would be ``python -c "import compile_module"`` and you might
+have to call the main function yourself.
+
+To support this, the CPython ``runpy`` and/or ``ExtensionFileLoader``
+would need improving such that Nuitka could supply its compiled module
+object for Python to use.
 
 ******
  Tips

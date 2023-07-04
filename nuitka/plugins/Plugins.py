@@ -57,7 +57,7 @@ from nuitka.utils.ModuleNames import (
     pre_module_load_trigger_name,
 )
 
-from .PluginBase import NuitkaPluginBase
+from .PluginBase import NuitkaPluginBase, control_tags
 
 # Maps plugin name to plugin instances.
 active_plugins = OrderedDict()
@@ -127,11 +127,29 @@ def _addActivePlugin(plugin_class, args, force=False):
 
     active_plugins[plugin_name] = plugin_instance
 
+    is_gui_toolkit_plugin = getattr(plugin_class, "plugin_gui_toolkit", False)
+
     # Singleton, pylint: disable=global-statement
     global has_active_gui_toolkit_plugin
-    has_active_gui_toolkit_plugin = has_active_gui_toolkit_plugin or getattr(
-        plugin_class, "plugin_gui_toolkit", False
+    has_active_gui_toolkit_plugin = (
+        has_active_gui_toolkit_plugin or is_gui_toolkit_plugin
     )
+
+    # Do GUI toolkit exclusion control tags generically. You may have two of
+    # them and we don't want them to override each other.
+    if is_gui_toolkit_plugin:
+        for binding_name in getGUIBindingNames():
+            is_matching = binding_name.lower() == plugin_class.binding_name.lower()
+
+            tag_name = "use_%s" % binding_name.lower()
+
+            # Set if matching, set to False only if not matching and not already set.
+            if is_matching:
+                control_tags[tag_name] = True
+            elif is_matching not in control_tags:
+                control_tags[tag_name] = False
+
+    control_tags.update(plugin_instance.getEvaluationConditionControlTags())
 
 
 def getActivePlugins():
@@ -146,6 +164,7 @@ def getActivePlugins():
 
 
 def getActiveQtPlugin():
+    """Get active Qt plugin name."""
     for plugin_name in getQtPluginNames():
         if hasActivePlugin(plugin_name):
             if hasActivePlugin(plugin_name):
@@ -154,12 +173,26 @@ def getActiveQtPlugin():
     return None
 
 
+def getActiveQtPluginBindingName():
+    """Get active Qt plugin binding name."""
+    plugin_name = getActiveQtPlugin()
+
+    if plugin_name is None:
+        return None
+    else:
+        return getPluginClass(plugin_name).binding_name
+
+
 def getQtBindingNames():
     return ("PySide", "PySide2", "PySide6", "PyQt4", "PyQt5", "PyQt6")
 
 
 def getOtherGUIBindingNames():
     return ("wx", "tkinter", "Tkinter")
+
+
+def getGUIBindingNames():
+    return getQtBindingNames() + getOtherGUIBindingNames()
 
 
 def getQtPluginNames():
@@ -428,6 +461,7 @@ class Plugins(object):
 
             # This will get back to all other plugins allowing them to inhibit it though.
             decision, reason = Recursion.decideRecursion(
+                using_module_name=module.getFullName(),
                 module_filename=module_filename,
                 module_name=full_name,
                 module_kind=module_kind,
@@ -439,7 +473,7 @@ class Plugins(object):
                     module_name=full_name,
                     module_filename=module_filename,
                     module_kind=module_kind,
-                    using_module=module,
+                    using_module_name=module.module_name,
                     source_ref=module.getSourceReference(),
                     reason=reason,
                 )
@@ -969,12 +1003,13 @@ class Plugins(object):
         return bytecode
 
     @staticmethod
-    def onModuleEncounter(module_name, module_filename, module_kind):
+    def onModuleEncounter(using_module_name, module_name, module_filename, module_kind):
         result = None
         deciding_plugins = []
 
         for plugin in getActivePlugins():
             must_recurse = plugin.onModuleEncounter(
+                using_module_name=using_module_name,
                 module_name=module_name,
                 module_filename=module_filename,
                 module_kind=module_kind,
@@ -1002,14 +1037,14 @@ class Plugins(object):
 
     @staticmethod
     def onModuleRecursion(
-        module_name, module_filename, module_kind, using_module, source_ref
+        module_name, module_filename, module_kind, using_module_name, source_ref
     ):
         for plugin in getActivePlugins():
             plugin.onModuleRecursion(
                 module_name=module_name,
                 module_filename=module_filename,
                 module_kind=module_kind,
-                using_module=using_module,
+                using_module_name=using_module_name,
                 source_ref=source_ref,
             )
 
@@ -1281,6 +1316,8 @@ class Plugins(object):
         module_name = provider.getParentModule().getFullName()
 
         for plugin in getActivePlugins():
+            # TODO: Could record what functions got modified by what plugin
+            # and in what way checking the return value
             plugin.onFunctionBodyParsing(
                 module_name=module_name,
                 function_name=function_name,
