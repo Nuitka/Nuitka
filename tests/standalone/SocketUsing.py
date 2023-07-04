@@ -21,6 +21,9 @@
 """ Test that shows that the socket module can properly be used.
 
 """
+
+# nuitka-project: --standalone
+
 import signal
 import socket
 import sys

@@ -21,7 +21,7 @@
 
 import os
 
-from nuitka.utils.Execution import check_output
+from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
 from nuitka.utils.FileOperations import (
     getFileContents,
     getFileFirstLine,
@@ -46,8 +46,11 @@ def checkAtHome(expected="Nuitka Staging"):
 
 
 def getBranchName():
-    # TODO: Switch to "git branch --show-current" once we know to have new git everywhere.
-    branch_name = check_output("git symbolic-ref --short HEAD".split()).strip()
+    # Using a fallback for old git, hopefully not necessary as much anymore.
+    try:
+        branch_name = check_output("git branch --show-current".split()).strip()
+    except NuitkaCalledProcessError:
+        branch_name = check_output("git symbolic-ref --short HEAD".split()).strip()
 
     if str is not bytes:
         branch_name = branch_name.decode()

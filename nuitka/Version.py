@@ -1,4 +1,4 @@
-#     Copyright 2022, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V1.6.6
+Nuitka V1.7
 Copyright (C) 2023 Kay Hayen."""
 
 

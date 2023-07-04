@@ -41,6 +41,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN(PyObject *name) {
     return result;
 }
 
+// Returns a reference.
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
     CHECK_OBJECT(dict_builtin);
 
@@ -54,6 +55,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN_STR(char const *name) {
 
     CHECK_OBJECT(result);
 
+    Py_INCREF(result);
     return result;
 }
 

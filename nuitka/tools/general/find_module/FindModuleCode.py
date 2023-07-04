@@ -58,7 +58,9 @@ def editModuleCode(module_search_desc):
 
             candidate = module_search_desc
 
-            while not candidate.endswith(".DIS"):
+            while not candidate.endswith(".DIS") and not os.path.basename(
+                candidate
+            ).startswith("ONEFIL"):
                 candidate = os.path.dirname(candidate)
 
             module_name = relpath(module_search_desc, start=candidate).replace(
@@ -105,4 +107,5 @@ def editModuleCode(module_search_desc):
             "code.cmd" if isWin32Windows() else "code"
         )
 
-        callProcess([visual_code_binary, module_filename])
+        if visual_code_binary:
+            callProcess([visual_code_binary, module_filename])

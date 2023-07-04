@@ -45,7 +45,9 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
         """
         return isStandaloneMode()
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         # Make sure webview platforms are included as needed.
         if module_name.isBelowNamespace("webview.platforms"):
             if isWin32Windows():
@@ -63,7 +65,7 @@ class NuitkaPluginPywebview(NuitkaPluginBase):
             elif getActiveQtPlugin() is not None:
                 result = module_name = "webview.platforms.qt"
                 reason = (
-                    "Platforms package of webview used due to '%s'."
+                    "Platforms package of webview used due to '%s' plugin being active."
                     % getActiveQtPlugin()
                 )
             else:

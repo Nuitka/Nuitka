@@ -28,10 +28,12 @@ it being used.
 
 import ast
 import functools
+import imp
 import inspect
 import os
 import sys
 
+from nuitka import Options
 from nuitka.__past__ import getMetaClassBase
 from nuitka.containers.Namedtuples import makeNamedtupleClass
 from nuitka.containers.OrderedSets import OrderedSet
@@ -61,7 +63,10 @@ from nuitka.Options import (
     shallShowExecutedCommands,
 )
 from nuitka.PythonFlavors import isAnacondaPython, isDebianPackagePython
-from nuitka.PythonVersions import getSupportedPythonVersions, python_version
+from nuitka.PythonVersions import (
+    getTestExecutionPythonVersions,
+    python_version,
+)
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Distributions import isDistributionCondaPackage
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
@@ -83,6 +88,10 @@ _warned_unused_plugins = set()
 
 # TODO: Could share data cache with meta data nodes
 _package_versions = {}
+
+# Populated during plugin instance creation from their tags given by
+# "getEvaluationConditionControlTags" value.
+control_tags = {}
 
 
 def _convertVersionToTuple(version_str):
@@ -418,10 +427,13 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    def onModuleEncounter(self, module_name, module_filename, module_kind):
+    def onModuleEncounter(
+        self, using_module_name, module_name, module_filename, module_kind
+    ):
         """Help decide whether to include a module.
 
         Args:
+            using_module_name: module that does this (can be None if user)
             module_name: full module name
             module_filename: filename
             module_kind: one of "py", "extension" (shared library)
@@ -432,7 +444,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
         return None
 
     def onModuleRecursion(
-        self, module_name, module_filename, module_kind, using_module, source_ref
+        self, module_name, module_filename, module_kind, using_module_name, source_ref
     ):
         """React to recursion to a module coming up.
 
@@ -440,7 +452,7 @@ class NuitkaPluginBase(getMetaClassBase("Plugin")):
             module_name: full module name
             module_filename: filename
             module_kind: one of "py", "extension" (shared library)
-            using_module: module object that does the usage (None if it is a user choice)
+            using_module_name: name of module that does the usage (None if it is a user choice)
             source_ref: code making the import (None if it is a user choice)
         Returns:
             None
@@ -1066,9 +1078,12 @@ except ImportError:
         ).key
 
     def onFunctionBodyParsing(self, module_name, function_name, body):
-        """Provide a different function body for the function of that module."""
+        """Provide a different function body for the function of that module.
+
+        Should return a boolean, indicating if any actual change was done.
+        """
         # Virtual method, pylint: disable=no-self-use,unused-argument
-        return None
+        return False
 
     def getCacheContributionValues(self, module_name):
         """Provide values that represent the include of a plugin on the compilation.
@@ -1095,7 +1110,11 @@ except ImportError:
         """Provide package version of a distribution."""
         return _getPackageVersion(distribution_name)
 
-    def evaluateCondition(self, full_name, condition, control_tags=()):
+    def getEvaluationConditionControlTags(self):
+        # Virtual method, pylint: disable=no-self-use
+        return {}
+
+    def evaluateCondition(self, full_name, condition):
         # Note: Caching makes no sense yet, this should all be very fast and
         # cache themselves. TODO: Allow plugins to contribute their own control
         # tag values during creation and during certain actions.
@@ -1125,6 +1144,8 @@ except ImportError:
                 "no_asserts": hasPythonFlagNoAsserts(),
                 "no_docstrings": hasPythonFlagNoDocStrings(),
                 "no_annotations": hasPythonFlagNoAnnotations(),
+                # Querying package properties
+                "has_builtin_module": imp.is_builtin,
             }
         )
 
@@ -1137,7 +1158,7 @@ except ImportError:
                 }
             )
 
-        versions = getSupportedPythonVersions()
+        versions = getTestExecutionPythonVersions()
 
         for version in versions:
             big, major = version.split(".")
@@ -1154,6 +1175,9 @@ except ImportError:
         try:
             result = eval(condition, context)
         except Exception as e:  # Catch all the things, pylint: disable=broad-except
+            if Options.is_debug:
+                raise
+
             self.sysexit(
                 "Error, failed to evaluate condition '%s' in this context, exception was '%s'."
                 % (condition, e)

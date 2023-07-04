@@ -61,6 +61,9 @@ class NuitkaPluginTkinter(NuitkaPluginBase):
     # Automatically suppress detectors for any other toolkit
     plugin_gui_toolkit = True
 
+    # Only used in control tags
+    binding_name = "tkinter"
+
     def __init__(self, tcl_library_dir, tk_library_dir):
         self.tcl_library_dir = tcl_library_dir
         self.tk_library_dir = tk_library_dir

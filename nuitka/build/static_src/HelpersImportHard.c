@@ -439,3 +439,41 @@ PyObject *IMPORT_HARD_TYPING(void) {
     return module_import_hard_typing;
 }
 #endif
+
+/* C helper for hard import of module "unittest" import. */
+PyObject *IMPORT_HARD_UNITTEST(void) {
+    static PyObject *module_import_hard_unittest = NULL;
+
+    if (module_import_hard_unittest == NULL) {
+        module_import_hard_unittest = PyImport_ImportModule("unittest");
+
+        if (unlikely(module_import_hard_unittest == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'unittest'");
+            abort();
+        }
+    }
+
+    return module_import_hard_unittest;
+}
+
+/* C helper for hard import of module "unittest.mock" import. */
+PyObject *IMPORT_HARD_UNITTEST__MOCK(void) {
+    static PyObject *module_import_hard_unittest__mock = NULL;
+
+    if (module_import_hard_unittest__mock == NULL) {
+        module_import_hard_unittest__mock = PyImport_ImportModule("unittest.mock");
+
+        if (unlikely(module_import_hard_unittest__mock == NULL)) {
+#ifndef __NUITKA_NO_ASSERT__
+            PyErr_PrintEx(0);
+#endif
+            NUITKA_CANNOT_GET_HERE("failed hard import of 'unittest.mock'");
+            abort();
+        }
+    }
+
+    return module_import_hard_unittest__mock;
+}
