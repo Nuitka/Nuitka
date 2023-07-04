@@ -157,8 +157,7 @@ class NuitkaPluginDllFiles(NuitkaPluginBase):
     def _handleDllConfigByCode(self, dll_config, full_name, dest_path, count):
         # The "when" is at that level too for these.
         if not self.evaluateCondition(
-            full_name=full_name,
-            condition=dll_config.get("when", "True"),
+            full_name=full_name, condition=dll_config.get("when", "True")
         ):
             return
 

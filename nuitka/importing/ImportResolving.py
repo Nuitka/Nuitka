@@ -23,6 +23,9 @@ from nuitka.__past__ import unicode
 from nuitka.PythonVersions import python_version
 from nuitka.utils.ModuleNames import ModuleName
 
+# spell-checker: ignore Tkdnd gdbm cookielib htmlentitydefs CGIHTTPServer Tkconstants
+# spell-checker: ignore tkinter_tkfiledialog tkinter_tksimpledialog xmlrpclib
+
 _six_moves = {
     "six.moves.builtins": "__builtin__" if python_version < 0x300 else "builtins",
     "six.moves.configparser": "ConfigParser"
@@ -117,6 +120,9 @@ _six_moves = {
     if python_version < 0x300
     else "xmlrpc.server",
     "six.moves.winreg": "_winreg" if python_version < 0x300 else "winreg",
+    "six.moves.urllib.request": "urllib2"
+    if python_version < 0x300
+    else "urllib.request",
 }
 
 

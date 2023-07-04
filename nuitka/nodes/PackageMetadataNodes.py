@@ -292,10 +292,12 @@ class ExpressionPkgResourcesDistributionValueRef(
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.isKnownToHaveAttribute(
-            attribute_name
-        ) or isCompileTimeConstantValue(
-            getattr(self.distribution, attribute_name, None)
+        if (
+            self.isKnownToHaveAttribute(attribute_name)
+            and isCompileTimeConstantValue(
+                getattr(self.distribution, attribute_name, None)
+            )
+            and (attribute_name != "location" or not isStandaloneMode())
         ):
             return trace_collection.getCompileTimeComputationResult(
                 node=lookup_node,
@@ -453,9 +455,7 @@ class ExpressionPkgResourcesEntryPointValueRef(
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.isKnownToHaveAttribute(
-            attribute_name
-        ) or isCompileTimeConstantValue(
+        if self.isKnownToHaveAttribute(attribute_name) and isCompileTimeConstantValue(
             getattr(self.entry_point, attribute_name, None)
         ):
             return trace_collection.getCompileTimeComputationResult(
@@ -513,6 +513,8 @@ class ExpressionImportlibMetadataDistributionCall(
     ImportlibMetadataDistributionCallMixin,
     ExpressionImportlibMetadataDistributionCallBase,
 ):
+    """Represents call to importlib.metadata.distribution(distribution_name)"""
+
     kind = "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL"
 
     python_version_spec = ">= 0x380"
@@ -524,6 +526,8 @@ class ExpressionImportlibMetadataBackportDistributionCall(
     ImportlibMetadataDistributionCallMixin,
     ExpressionImportlibMetadataDistributionCallBase,
 ):
+    """Represents call to importlib_metadata.distribution(distribution_name)"""
+
     kind = "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL"
     importlib_metadata_name = "importlib_metadata"
 
@@ -586,9 +590,7 @@ class ExpressionImportlibMetadataEntryPointValueMixin(object):
     def computeExpressionAttribute(self, lookup_node, attribute_name, trace_collection):
         # If it raises, or the attribute itself is a compile time constant,
         # then do execute it.
-        if not self.isKnownToHaveAttribute(
-            attribute_name
-        ) or isCompileTimeConstantValue(
+        if self.isKnownToHaveAttribute(attribute_name) and isCompileTimeConstantValue(
             getattr(self.entry_point, attribute_name, None)
         ):
             return trace_collection.getCompileTimeComputationResult(

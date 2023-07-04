@@ -205,6 +205,10 @@ def _getAnonBuiltins():
         anon_names["version_info"] = type(sys.version_info)
         anon_codes["version_info"] = 'Py_TYPE(Nuitka_SysGetObject("version_info"))'
 
+    if python_version >= 0x390:
+        anon_names["GenericAlias"] = type(list[int])
+        anon_codes["GenericAlias"] = "&Py_GenericAliasType"
+
     if python_version >= 0x3A0:
         # 3.10 only code, pylint: disable=I0021,unsupported-binary-operation
 

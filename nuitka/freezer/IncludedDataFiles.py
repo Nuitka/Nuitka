@@ -49,7 +49,6 @@ from nuitka.utils.FileOperations import (
     isRelativePath,
     makePath,
     openTextFile,
-    putTextFileContents,
     relpath,
     resolveShellPatternToFilenames,
 )
@@ -251,10 +250,10 @@ def makeIncludedDataDirectory(
 def makeIncludedGeneratedDataFile(data, dest_path, reason, tracer, tags):
     assert isRelativePath(dest_path), dest_path
 
-    # Handle lists of bytes here already by converting to single bytes value.
-    if type(data) is list:
-        if str is not bytes and all(type(element) is bytes for element in data):
-            data = b"\n".join(data)
+    if type(data) is str and str is not bytes:
+        data = data.encode("utf8")
+
+    assert type(data) is bytes, type(data)
 
     return IncludedDataFile(
         kind="data_blob",
@@ -520,11 +519,8 @@ def _handleDataFile(included_datafile):
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
         makePath(os.path.dirname(dest_path))
 
-        if type(included_datafile.data) is bytes:
-            with openTextFile(filename=dest_path, mode="wb") as output_file:
-                output_file.write(included_datafile.data)
-        else:
-            putTextFileContents(filename=dest_path, contents=included_datafile.data)
+        with openTextFile(filename=dest_path, mode="wb") as output_file:
+            output_file.write(included_datafile.data)
     elif included_datafile.kind == "data_file":
         dest_path = os.path.join(dist_dir, included_datafile.dest_path)
 

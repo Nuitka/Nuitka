@@ -249,4 +249,14 @@ class NuitkaPluginTransformers(NuitkaPluginBase):
                 info_name="import_structure_for_%s"
                 % full_name.asString().replace(".", "_"),
             ):
-                yield full_name.getChildNamed(sub_module_name)
+                sub_module_name = full_name.getChildNamed(sub_module_name)
+
+                if (
+                    sub_module_name == "transformers.testing_utils"
+                    and not self.evaluateCondition(
+                        full_name="transformers", condition="use_pytest"
+                    )
+                ):
+                    continue
+
+                yield sub_module_name

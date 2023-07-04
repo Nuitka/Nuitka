@@ -47,6 +47,7 @@ from nuitka.specs.HardImportSpecs import (
     importlib_metadata_entry_points_since_310_spec,
     importlib_metadata_metadata_spec,
     importlib_metadata_version_spec,
+    importlib_resources_files_spec,
     importlib_resources_read_binary_spec,
     importlib_resources_read_text_spec,
     os_listdir_spec,
@@ -68,6 +69,7 @@ from nuitka.specs.HardImportSpecs import (
 from .ChildrenHavingMixins import (
     ChildHavingDistMixin,
     ChildHavingDistributionNameMixin,
+    ChildHavingPackageMixin,
     ChildHavingParamsTupleMixin,
     ChildHavingPathMixin,
     ChildHavingPathOptionalMixin,
@@ -1081,6 +1083,98 @@ class ExpressionImportlibMetadataVersionCallBase(
             self.attempted
             or not importlib_metadata_version_spec.isCompileTimeComputable(
                 (self.subnode_distribution_name,)
+            )
+        ):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+            return self, None, None
+
+        try:
+            return self.replaceWithCompileTimeValue(trace_collection)
+        finally:
+            self.attempted = True
+
+    @abstractmethod
+    def replaceWithCompileTimeValue(self, trace_collection):
+        pass
+
+    @staticmethod
+    def mayRaiseExceptionOperation():
+        return True
+
+
+class ExpressionImportlibResourcesFilesRef(
+    ExpressionImportModuleNameHardExistsSpecificBase
+):
+    """Function reference importlib.resources.files"""
+
+    kind = "EXPRESSION_IMPORTLIB_RESOURCES_FILES_REF"
+
+    def __init__(self, source_ref):
+        ExpressionImportModuleNameHardExistsSpecificBase.__init__(
+            self,
+            module_name="importlib.resources",
+            import_name="files",
+            module_guaranteed=True,
+            source_ref=source_ref,
+        )
+
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
+        # Anything may happen on call trace before this. On next pass, if
+        # replaced, we might be better but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        from .PackageResourceNodes import ExpressionImportlibResourcesFilesCall
+
+        result = extractBuiltinArgs(
+            node=call_node,
+            builtin_class=ExpressionImportlibResourcesFilesCall,
+            builtin_spec=importlib_resources_files_spec,
+        )
+
+        return (
+            result,
+            "new_expression",
+            "Call to 'importlib.resources.files' recognized.",
+        )
+
+
+hard_import_node_classes[
+    ExpressionImportlibResourcesFilesRef
+] = importlib_resources_files_spec
+
+
+class ExpressionImportlibResourcesFilesCallBase(
+    ChildHavingPackageMixin, ExpressionBase
+):
+    """Base class for ImportlibResourcesFilesCall
+
+    Generated boiler plate code.
+    """
+
+    named_children = ("package",)
+
+    __slots__ = ("attempted",)
+
+    spec = importlib_resources_files_spec
+
+    def __init__(self, package, source_ref):
+
+        ChildHavingPackageMixin.__init__(
+            self,
+            package=package,
+        )
+
+        ExpressionBase.__init__(self, source_ref)
+
+        # In module mode, we expect a changing environment, cannot optimize this
+        self.attempted = shallMakeModule()
+
+    def computeExpression(self, trace_collection):
+        if (
+            self.attempted
+            or not importlib_resources_files_spec.isCompileTimeComputable(
+                (self.subnode_package,)
             )
         ):
             trace_collection.onExceptionRaiseExit(BaseException)
