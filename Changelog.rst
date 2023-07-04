@@ -6,20 +6,25 @@ In this document, we track the per version changes and comments. This
 becomes a document on the website, as well as individual posts on the
 Nuitka blog.
 
-****************************
- Nuitka Release 1.7 (Draft)
-****************************
+********************
+ Nuitka Release 1.7
+********************
 
 There release is focused on adding plenty of new features in Nuitka,
-with the new isolated mode for standalone being a headliner, but there
+with the new isolated mode for standalone being headliners, but there
 are beginnings for including functions as not compiled, and really a lot
 of new anti-bloat new features for improved handling, and improving user
 interaction.
 
-Also many packages were improved specifically.
+Also many packages were improved specifically to use less unnecessary
+stuff, some of which are commonly used. For some things, e.g. avoiding
+tkinter, this got also down to polishing modules that have GUI plugins
+to avoid those if another GUI toolkit is used.
 
 In terms of bug fixes, it's also a lot, and macOS got again a lot of
-improvements that solve issues in our dependency detection.
+improvements that solve issues in our dependency detection. But also a
+long standing corruption for code generation of cell variables of
+contractions in loops has finally been solved.
 
 Bug Fixes
 =========
@@ -164,6 +169,12 @@ Bug Fixes
 -  Standalone: Added DLLs for ``rtree`` package.
 
 -  Standalone: Added support for newer ``skimage`` package.
+
+-  Standalone: Added support for newer ``matplotlib`` package.
+
+-  Standalone: Fix, our ``numpy.testing`` replacement, was lacking a
+   function ``assert_array_almost_equal`` used in at least the
+   ``pytransform3d`` package.
 
 New Features
 ============
@@ -388,6 +399,9 @@ Cleanups
 -  Solve TODO and use more modern git command ``git branch
    --show-current`` to detect branch, our CI will have this for sure.
 
+-  In our Yaml configuration prefer the GUI toolkit control tags, e.g.
+   ``use_pyside6`` over the ``plugin("pyside6")`` method.
+
 Tests
 =====
 
@@ -398,8 +412,8 @@ Tests
    selected ones, there is many of them and they should all exist on
    every system. Added in 1.6.1 already.
 
--  Made the ``pendulum`` actually useful to cover new and old pendulum
-   actually working properly.
+-  Made the ``pendulum`` test actually useful to cover new and old
+   pendulum actually working properly.
 
 Summary
 =======

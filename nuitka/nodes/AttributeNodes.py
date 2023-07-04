@@ -384,7 +384,7 @@ class ExpressionAttributeCheck(
 
         @staticmethod
         def mayRaiseExceptionOperation():
-            return True
+            return False
 
     else:
 

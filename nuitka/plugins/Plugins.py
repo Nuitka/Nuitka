@@ -164,12 +164,23 @@ def getActivePlugins():
 
 
 def getActiveQtPlugin():
+    """Get active Qt plugin name."""
     for plugin_name in getQtPluginNames():
         if hasActivePlugin(plugin_name):
             if hasActivePlugin(plugin_name):
                 return plugin_name
 
     return None
+
+
+def getActiveQtPluginBindingName():
+    """Get active Qt plugin binding name."""
+    plugin_name = getActiveQtPlugin()
+
+    if plugin_name is None:
+        return None
+    else:
+        return getPluginClass(plugin_name).binding_name
 
 
 def getQtBindingNames():

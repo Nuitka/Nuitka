@@ -58,7 +58,7 @@ class NuitkaPluginOptionsNanny(NuitkaPluginBase):
         if support_info == "ignore":
             return
 
-        message = "Using module ('%s' version %s) with no support: %s" % (
+        message = "Using module ('%s' version %s) with no full support: %s" % (
             full_name.asString(),
             ".".join(str(d) for d in self.getPackageVersion(full_name)),
             description,

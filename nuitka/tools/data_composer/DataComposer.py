@@ -24,14 +24,7 @@ import struct
 import sys
 from math import copysign, isinf, isnan
 
-from nuitka.__past__ import (
-    BytesIO,
-    GenericAlias,
-    long,
-    to_byte,
-    unicode,
-    xrange,
-)
+from nuitka.__past__ import BytesIO, long, to_byte, unicode, xrange
 from nuitka.build.DataComposerInterface import deriveModuleConstantsBlobName
 from nuitka.Builtins import builtin_exception_values_list, builtin_named_values
 from nuitka.PythonVersions import (
@@ -43,6 +36,7 @@ from nuitka.PythonVersions import (
 from nuitka.Serialization import (
     BlobData,
     BuiltinAnonValue,
+    BuiltinGenericAliasValue,
     BuiltinSpecialValue,
     BuiltinUnionTypeValue,
     ConstantStreamReader,
@@ -282,11 +276,11 @@ def _writeConstantValue(output, constant_value):
         output.write(b"X")
         output.write(struct.pack("i", len(constant_value)))
         output.write(constant_value)
-    elif constant_type is GenericAlias:
+    elif constant_type is BuiltinGenericAliasValue:
         output.write(b"G")
         _last_written = None
-        _writeConstantValue(output, constant_value.__origin__)
-        _writeConstantValue(output, constant_value.__args__)
+        _writeConstantValue(output, constant_value.origin)
+        _writeConstantValue(output, constant_value.args)
     elif constant_type is BuiltinUnionTypeValue:
         output.write(b"H")
         _last_written = None

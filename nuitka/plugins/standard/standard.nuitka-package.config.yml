@@ -513,6 +513,13 @@
     - depends:
         - 'cytoolz.utils'
 
+- module-name: 'dash._jupyter'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+      when: 'not use_ipython'
+
 - module-name: 'dash.dash'
   anti-bloat:
     - description: 'remove pytest reference'
@@ -1229,6 +1236,18 @@
         - 'matplotlib.backends._tkagg'
         - 'matplotlib.backends.backend_tkagg'
       when: 'use_tkinter'
+    - depends:
+        - 'matplotlib.backends._tkagg'
+        - 'matplotlib.backends.backend_tkagg'
+      when: 'use_tkinter'
+    - depends:
+        - 'matplotlib.backends.backend_qt5'
+        - 'matplotlib.backends.backend_qt5cairo'
+      when: 'use_pyqt5'
+    - depends:
+        - 'matplotlib.backends.backend_qtagg'
+        - 'matplotlib.backends.backend_qt'
+      when: 'use_pyqt5 or use_pyqt6 or use_pyside2 or use_pyside6'
 
 - module-name: 'matplotlib.backends.backend_cairo'
   implicit-imports:
@@ -1600,6 +1619,9 @@
               raise AssertionError(smsg)
 
         def assert_equal(actual, desired, err_msg='', verbose=True):
+          pass
+
+        def assert_array_almost_equal(x, y, decimal=6, err_msg='', verbose=True):
           pass
 
 - module-name: 'numpy.testing._private.pytesttester'
@@ -2493,20 +2515,20 @@
     checks:
       - description: 'PyQt5 is a GUI framework'
         console: 'recommend'
-        when: 'plugin("pyqt5")'
+        when: 'use_pyqt5'
       - description: 'PyQt5 cannot be used without bundle'
         macos_bundle: 'yes'
-        when: 'macos and not is_conda_package("pyqt5") and plugin("pyqt5")'
+        when: 'macos and not is_conda_package("pyqt5") and use_pyqt5'
       - description: 'PyQt5 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
-        when: 'macos and plugin("pyqt5")'
+        when: 'macos and use_pyqt5'
 
 - module-name: 'PyQt6'
   options:
     checks:
       - description: 'PyQt6 is a GUI framework'
         console: 'recommend'
-        when: 'plugin("pyqt6")'
+        when: 'use_pyqt6'
 
 - module-name: 'pyqtgraph'
   data-files:
@@ -2665,10 +2687,10 @@
     checks:
       - description: 'PySide2 is a GUI framework'
         console: 'recommend'
-        when: 'plugin("pyside2")'
+        when: 'use_pyside2'
       - description: 'PySide2 cannot be signed unless onefile'
         macos_bundle_as_onefile: 'yes'
-        when: 'macos and plugin("pyside2")'
+        when: 'macos and use_pyside2'
   import-hacks:
     - find-dlls-near-module:
         - 'shiboken2'
@@ -2678,7 +2700,7 @@
     checks:
       - description: 'PySide6 is a GUI framework'
         console: 'recommend'
-        when: 'plugin("pyside6")'
+        when: 'use_pyside6'
 
   import-hacks:
     - find-dlls-near-module:
@@ -3846,6 +3868,15 @@
         'test': 'un-callable'
       when: 'not use_pytest'
 
+- module-name: 'statsmodels.api'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        # TODO: Should make an un-callable object that is not just None for non-deployment.
+        'from .tools.print_version import show_versions': 'show_versions = None'
+        'from .__init__ import test': 'from . import test'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.base'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
@@ -3854,6 +3885,13 @@
       when: 'not use_pytest'
 
 - module-name: 'statsmodels.compat'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.datasets'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
       replacements_plain:
@@ -3874,6 +3912,13 @@
         'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
       when: 'not use_pytest'
 
+- module-name: 'statsmodels.duration'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.emplike'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
@@ -3882,6 +3927,13 @@
       when: 'not use_pytest'
 
 - module-name: 'statsmodels.formula'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.gam'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
       replacements_plain:
@@ -3909,6 +3961,13 @@
         'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
       when: 'not use_pytest'
 
+- module-name: 'statsmodels.imputation'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.iolib'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
@@ -3916,7 +3975,21 @@
         'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
       when: 'not use_pytest'
 
+- module-name: 'statsmodels.miscmodels'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.multivariate'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.multivariate.factor_rotation'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
       replacements_plain:
@@ -3934,7 +4007,21 @@
         - 'statsmodels.nonparametric.linbin'
         - 'statsmodels.nonparametric._smoothers_lowess'
 
+- module-name: 'statsmodels.othermod'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.regression'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.robust'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
       replacements_plain:
@@ -3989,6 +4076,18 @@
         'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
       when: 'not use_pytest'
 
+- module-name: 'statsmodels.tsa.filters'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+  implicit-imports:
+    - depends:
+        - 'statsmodels.tsa.regime_switching._hamilton_filter'
+        - 'statsmodels.tsa.regime_switching._kim_smoother'
+
 - module-name: 'statsmodels.tsa.innovations'
   anti-bloat:
     - description: 'remove statsmodels testing framework'
@@ -3999,16 +4098,24 @@
     - depends:
         - 'statsmodels.tsa.innovations._arma_innovations'
 
+- module-name: 'statsmodels.tsa.interp'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
 - module-name: 'statsmodels.tsa.kalmanf'
   implicit-imports:
     - depends:
         - 'statsmodels.tsa.kalmanf.kalman_loglike'
 
 - module-name: 'statsmodels.tsa.regime_switching'
-  implicit-imports:
-    - depends:
-        - 'statsmodels.tsa.regime_switching._hamilton_filter'
-        - 'statsmodels.tsa.regime_switching._kim_smoother'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
 
 - module-name: 'statsmodels.tsa.statespace'
   anti-bloat:
@@ -4043,6 +4150,20 @@
         - 'statsmodels.tsa.statespace._smoothers._conventional'
         - 'statsmodels.tsa.statespace._smoothers._univariate'
         - 'statsmodels.tsa.statespace._smoothers._univariate_diffuse'
+
+- module-name: 'statsmodels.tsa.stl'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
+
+- module-name: 'statsmodels.tsa.vector_ar'
+  anti-bloat:
+    - description: 'remove statsmodels testing framework'
+      replacements_plain:
+        'from statsmodels.tools._testing import PytestTester': 'from statsmodels.sandbox import PytestTester'
+      when: 'not use_pytest'
 
 - module-name: 'strawberry'
   data-files:

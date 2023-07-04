@@ -120,6 +120,9 @@ _six_moves = {
     if python_version < 0x300
     else "xmlrpc.server",
     "six.moves.winreg": "_winreg" if python_version < 0x300 else "winreg",
+    "six.moves.urllib.request": "urllib2"
+    if python_version < 0x300
+    else "urllib.request",
 }
 
 
