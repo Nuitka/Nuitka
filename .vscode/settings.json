@@ -86,7 +86,7 @@
         "nuitka/build/inline_copy/lib/scons-3.1.2",
         "nuitka/build/inline_copy/clcache"
     ],
-    "python.formatting.provider": "black",
+    "python.formatting.provider": "none",
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none"
     },
@@ -349,5 +349,8 @@
             "*.nuitka-package.config.yml",
         ]
     },
-    "yaml.maxItemsComputed": 10000
+    "yaml.maxItemsComputed": 10000,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    }
 }
