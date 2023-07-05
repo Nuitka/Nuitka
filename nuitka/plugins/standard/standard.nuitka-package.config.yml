@@ -1691,6 +1691,25 @@
       replacements_plain:
         'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
 
+- module-name: 'opentelemetry.propagate'
+  data-files:
+    include-metadata:
+      - 'opentelemetry-api'
+
+  implicit-imports:
+    - depends:
+        - 'opentelemetry.trace.propagation.tracecontext'
+        - 'opentelemetry.baggage.propagation'
+
+- module-name: 'opentelemetry.sdk.resources'
+  data-files:
+    include-metadata:
+      - 'opentelemetry-sdk'
+  anti-bloat:
+    - description: 'workaround for metadata functions'
+      replacements_plain:
+        'opentelemetry.util._importlib_metadata': 'importlib_metadata'
+
 - module-name: 'openvino'
   data-files:
     dirs:
