@@ -34,6 +34,8 @@ from nuitka.utils.Execution import check_output
 
 
 def main():
+    # many cases, pylint: disable=too-many-branches
+
     my_print("Querying openSUSE build service status of Nuitka packages.")
 
     # spell-checker: ignore kayhayen
@@ -125,6 +127,21 @@ def main():
         my_print(
             "\n".join("%s: %s (%s)" % problem for problem in problems), style="yellow"
         )
+
+        if any(problem[0] == "Nuitka" for problem in problems):
+            my_print(
+                "Check here: https://build.opensuse.org/package/show/home:kayhayen/Nuitka"
+            )
+
+        if any(problem[0] == "Nuitka-Unstable" for problem in problems):
+            my_print(
+                "Check here: https://build.opensuse.org/package/show/home:kayhayen/Nuitka-Unstable"
+            )
+
+        if any(problem[0] == "Nuitka-experimental" for problem in problems):
+            my_print(
+                "Check here: https://build.opensuse.org/package/show/home:kayhayen/Nuitka-experimental"
+            )
 
         sys.exit(1)
     else:
