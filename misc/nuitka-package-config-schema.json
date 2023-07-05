@@ -50,6 +50,12 @@
                             }
                         ]
                     },
+                    "include-metadata": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "when": {
                         "type": "string"
                     }

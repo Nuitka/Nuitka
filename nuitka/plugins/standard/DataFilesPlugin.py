@@ -23,9 +23,11 @@ import os
 import pkgutil
 
 from nuitka import Options
+from nuitka.code_generation.ConstantCodes import addDistributionMetadataValue
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonFlavors import isDebianPackagePython
+from nuitka.utils.Distributions import getDistribution
 from nuitka.utils.FileOperations import (
     changeFilenameExtension,
     getFileList,
@@ -167,6 +169,14 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                     % module_name.asString(),
                     tags="config",
                 )
+
+        distribution_names = data_file_config.get("include-metadata", ())
+
+        for distribution_name in distribution_names:
+            distribution = getDistribution(distribution_name)
+
+            if distribution is not None:
+                addDistributionMetadataValue(distribution_name, distribution)
 
     def considerDataFiles(self, module):
         full_name = module.getFullName()
