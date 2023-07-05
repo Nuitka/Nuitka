@@ -67,7 +67,7 @@ def printLine(*what, **kwargs):
 
 
 def printError(message):
-    print(message, file=sys.stderr)
+    my_print(message, file=sys.stderr)
 
 
 def flushStandardOutputs():
