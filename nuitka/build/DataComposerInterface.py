@@ -23,6 +23,7 @@ import subprocess
 import sys
 
 from nuitka.Options import isExperimental
+from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
 
 
@@ -51,15 +52,20 @@ def _runDataComposer(source_dir):
     blob_filename = getConstantBlobFilename(source_dir)
 
     with withEnvironmentVarsOverridden(mapping):
-        subprocess.check_call(
-            [
-                sys.executable,
-                data_composer_path,
-                source_dir,
-                blob_filename,
-            ],
-            shell=False,
-        )
+        try:
+            subprocess.check_call(
+                [
+                    sys.executable,
+                    data_composer_path,
+                    source_dir,
+                    blob_filename,
+                ],
+                shell=False,
+            )
+        except subprocess.CalledProcessError:
+            data_composer_logger.sysexit(
+                "Error executing data composer, please report the above exception."
+            )
 
     return blob_filename
 
