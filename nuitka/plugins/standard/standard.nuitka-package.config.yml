@@ -1511,6 +1511,13 @@
             pass
 
 - module-name: 'numpy.core'
+  anti-bloat:
+    - description: 'remove misleading numpy message'
+      replacements_plain:
+        'except ImportError as exc:': |
+          except ImportError as exc:
+              raise
+
   implicit-imports:
     - depends:
         - 'numpy.core._dtype_ctypes'
