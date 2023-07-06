@@ -92,6 +92,49 @@
     dirs:
       - 'resources'
 
+- module-name: 'astropy'
+  data-files:
+    patterns:
+      - 'CITATION'
+
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'from .tests.runner import TestRunner': ''
+        'test = TestRunner.make_test_runner_in(__path__[0])': 'test = None'
+      when: 'not use_pytest'
+
+- module-name: 'astropy.constants.config'
+  implicit-imports:
+    - depends:
+        # TODO: These should probably be compile time computed
+        - 'astropy.constants.codata2018'
+        - 'astropy.constants.iau2015'
+
+- module-name: 'astropy.table.table'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      change_function:
+        'show_in_notebook': 'un-callable'
+      when: 'not use_ipython'
+
+- module-name: 'astropy.utils.console'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from IPython import get_ipython': 'raise ImportError'
+        'from IPython.utils import io': 'raise ImportError'
+        'from IPython import version_info': 'raise ImportError'
+        'from IPython.display import display': 'raise ImportError'
+      when: 'not use_ipython'
+
+- module-name: 'astropy.visualization.wcsaxes'
+  anti-bloat:
+    - description: 'remove pytest reference'
+      replacements_plain:
+        'import pytest': 'raise ImportError'
+      when: 'not use_pytest'
+
 - module-name: 'asyncpg.pgproto.pgproto'
   implicit-imports:
     - depends:
