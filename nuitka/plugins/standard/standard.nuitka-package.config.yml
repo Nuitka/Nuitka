@@ -525,6 +525,7 @@
     - description: 'remove pytest reference'
       replacements_plain:
         '"_pytest" in sys.modules': 'False'
+      when: 'not use_pytest'
 
 - module-name: 'dash.dash_table'
   data-files:
@@ -1366,6 +1367,7 @@
     - description: 'remove pytest testing framework'
       replacements:
         "imp.find_module('pytest')": "'None'"
+      when: 'not use_pytest'
 
 - module-name: 'mozilla-ca'
   data-files:
