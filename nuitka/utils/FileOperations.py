@@ -51,7 +51,7 @@ from nuitka.Tracing import (
 
 from .Importing import importFromInlineCopy
 from .ThreadedExecutor import RLock, getThreadIdent
-from .Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
+from .Utils import isLinux, isMacOS, isWin32OrPosixWindows, isWin32Windows
 
 # Locking seems to be only required for Windows mostly, but we can keep
 # it for all.
@@ -1272,3 +1272,30 @@ def containsPathElements(path, elements):
     parts = os.path.normpath(path).split(os.path.sep)
 
     return any(element in parts for element in elements)
+
+
+def syncFileOutput(file_handle):
+    """Synchronize a file contents to disk
+
+    On this, this not only flushes, but calls "syncfs" to make sure things work
+    properly.
+
+    # spell-checker: ignore syncfs
+    """
+
+    file_handle.flush()
+
+    if isLinux():
+        import ctypes
+
+        try:
+            libc = ctypes.CDLL("libc.so.6")
+        except OSError:
+            # We cannot do it easily for this Linux apparently.
+            return
+
+        try:
+            libc.syncfs(file_handle.fileno())
+        except AttributeError:
+            # Too old to have "syncfs" available.
+            return

@@ -42,7 +42,7 @@ from nuitka.Serialization import (
     ConstantStreamReader,
 )
 from nuitka.Tracing import data_composer_logger
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import listDir, syncFileOutput
 
 
 def scanConstFiles(build_dir):
@@ -372,6 +372,8 @@ def _writeConstantsBlob(output_filename, desc):
             "Total constants blob size without header %d." % data_size
         )
         data_composer_logger.info("Total constants blob CRC32 is %d." % crc32)
+
+        syncFileOutput(output)
 
 
 def main():
