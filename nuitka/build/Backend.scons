@@ -254,7 +254,13 @@ python_sysflag_unicode = getArgumentBool("python_sysflag_unicode", False)
 # python_sysflag_utf8
 python_sysflag_utf8 = getArgumentBool("python_sysflag_utf8", False)
 # python_sysflag_optimize
-python_sysflag_optimize = getArgumentBool("python_sysflag_optimize", False)
+python_sysflag_optimize = getArgumentInt("python_sysflag_optimize", 0)
+# python_flag_no_asserts
+python_flag_no_asserts = getArgumentBool("python_flag_no_asserts", False)
+# python_flag_no_docstrings
+python_flag_no_docstrings = getArgumentBool("python_flag_no_docstrings", False)
+# python_flag_no_annotations
+python_flag_no_annotations = getArgumentBool("python_flag_no_annotations", False)
 # python_sysflag_no_randomization
 python_sysflag_no_randomization = getArgumentBool(
     "python_sysflag_no_randomization", False
@@ -926,7 +932,13 @@ def createBuildDefinitionsFile():
 
     build_definitions["SYSFLAG_UTF8"] = 1 if python_sysflag_utf8 else 0
 
-    build_definitions["SYSFLAG_OPTIMIZE"] = 1 if python_sysflag_optimize else 0
+    build_definitions["SYSFLAG_OPTIMIZE"] = python_sysflag_optimize
+
+    build_definitions["_NUITKA_NO_ASSERTS"] = 1 if python_flag_no_asserts else 0
+
+    build_definitions["_NUITKA_NO_DOCSTRINGS"] = 1 if python_flag_no_docstrings else 0
+
+    build_definitions["_NUITKA_NO_ANNOTATIONS"] = 1 if python_flag_no_annotations else 0
 
     build_definitions["SYSFLAG_NO_RANDOMIZATION"] = (
         1 if python_sysflag_no_randomization else 0

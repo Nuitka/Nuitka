@@ -46,7 +46,9 @@ from nuitka.importing import Importing, Recursion
 from nuitka.Options import (
     getPythonPgoInput,
     hasPythonFlagIsolated,
+    hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
+    hasPythonFlagNoDocStrings,
     hasPythonFlagNoWarnings,
     hasPythonFlagUnbuffered,
 )
@@ -640,7 +642,17 @@ def runSconsBackend():
         options["no_python_warnings"] = asBoolStr(True)
 
     if hasPythonFlagNoAsserts():
-        options["python_sysflag_optimize"] = asBoolStr(True)
+        options["python_sysflag_optimize"] = str(
+            2 if hasPythonFlagNoDocStrings() else 1
+        )
+
+        options["python_flag_no_asserts"] = asBoolStr(True)
+
+    if hasPythonFlagNoDocStrings():
+        options["python_flag_no_docstrings"] = asBoolStr(True)
+
+    if hasPythonFlagNoAnnotations():
+        options["python_flag_no_annotations"] = asBoolStr(True)
 
     if python_version < 0x300 and sys.flags.py3k_warning:
         options["python_sysflag_py3k_warning"] = asBoolStr(True)
