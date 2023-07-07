@@ -2512,6 +2512,11 @@
     - depends:
         - 'autograd.numpy'
 
+- module-name: 'pymssql'
+  implicit-imports:
+    - depends:
+        - 'pymssql._mssql'
+
 - module-name: 'pyodbc'
   implicit-imports:
     - depends:
