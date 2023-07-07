@@ -964,11 +964,11 @@ int main(int argc, char **argv) {
             needs_write = false;
 
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
-            printf(stderr, "CACHE HIT for '" FILENAME_FORMAT_STR "'.", target_path);
+            fprintf(stderr, "CACHE HIT for '" FILENAME_FORMAT_STR "'.\n", target_path);
 #endif
         } else {
 #ifdef _NUITKA_EXPERIMENTAL_DEBUG_ONEFILE_CACHING
-            printf(stderr, "CACHE HIT for '" FILENAME_FORMAT_STR "'.", target_path);
+            fprintf(stderr, "CACHE MISS for '" FILENAME_FORMAT_STR "'.\n", target_path);
 #endif
         }
 #endif
