@@ -95,6 +95,12 @@ static PyObject *Nuitka_ResourceReaderFiles_iterdir(struct Nuitka_ResourceReader
     PyObject *file_names = OS_LISTDIR(file_path);
     Py_DECREF(file_path);
 
+    // TODO: Actually we ought to behave like a generator and delay this error,
+    // but we currently spare us the effort and raise this immediately.
+    if (unlikely(file_names == NULL)) {
+        return NULL;
+    }
+
     PyObject *files_objects = MAKE_LIST_EMPTY(0);
 
     Py_ssize_t n = PyList_GET_SIZE(file_names);
