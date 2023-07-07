@@ -111,6 +111,15 @@ class NuitkaPluginAntiBloat(NuitkaPluginBase):
         if noinclude_unittest_mode != "allow":
             self.handled_modules["unittest"] = noinclude_unittest_mode, "unittest"
             self.handled_modules["doctest"] = noinclude_unittest_mode, "unittest"
+            self.handled_modules["test.support"] = noinclude_unittest_mode, "unittest"
+            self.handled_modules["test.test_support"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
+            self.handled_modules["future.moves.test.support"] = (
+                noinclude_unittest_mode,
+                "unittest",
+            )
         else:
             self.control_tags["use_unittest"] = True
 
