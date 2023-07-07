@@ -208,12 +208,6 @@ python_version = "%(python_version)s"
 
                 check_call([installed_python.getPythonExe(), "-m", "pipenv", "install"])
 
-            nuitka_binary = os.path.normpath(
-                os.path.join(
-                    os.path.dirname(__file__), "..", "..", "..", "bin", "nuitka"
-                )
-            )
-
             check_call(
                 [
                     installed_python.getPythonExe(),
@@ -238,8 +232,15 @@ def updateCases(case_dir, dry_run):
 
 installed_pythons = OrderedDict()
 
+nuitka_binary = None
+
 
 def main():
+    global nuitka_binary  # shared for all run, pylint: disable=global-statement
+    nuitka_binary = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "bin", "nuitka")
+    )
+
     parser = OptionParser()
 
     parser.add_option(
@@ -260,6 +261,15 @@ Do not change anything, just report what would be done. Default %default.""",
 Python versions to consider, by default all supported versions in descending order or in given order.""",
     )
 
+    parser.add_option(
+        "--nuitka-binary",
+        action="store",
+        dest="nuitka_binary",
+        default=nuitka_binary,
+        help="""\
+Nuitka binary to compile with. Defaults to one near the nuitka-watch usage.""",
+    )
+
     options, positional_args = parser.parse_args()
 
     assert len(positional_args) <= 1, positional_args
@@ -273,6 +283,10 @@ Python versions to consider, by default all supported versions in descending ord
         getTestExecutionPythonVersions()
     ):
         installed_pythons[python_version] = findPythons(python_version)
+
+    nuitka_binary = os.path.abspath(options.nuitka_binary)
+
+    assert os.path.exists(nuitka_binary)
 
     base_dir = os.path.abspath(base_dir)
 
