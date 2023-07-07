@@ -3568,6 +3568,8 @@
   implicit-imports:
     - depends:
         - 'sklearn.datasets._svmlight_format'
+        - 'sklearn.datasets.data'
+        - 'sklearn.datasets.descr'
 
 - module-name: 'sklearn.decomposition'
   implicit-imports:
