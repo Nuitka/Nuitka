@@ -584,15 +584,16 @@ Undesirable import of '%s' (intending to avoid '%s') in \
 
             if config:
                 for anti_bloat_config in config:
-                    if self.evaluateCondition(
-                        full_name=module_name,
-                        condition=anti_bloat_config.get("when", "True"),
-                    ):
-                        match, reason = module_name.matchesToShellPatterns(
-                            anti_bloat_config.get("no-auto-follow", ())
-                        )
+                    match, reason = module_name.matchesToShellPatterns(
+                        anti_bloat_config.get("no-auto-follow", ())
+                    )
 
-                        if match:
+                    if match:
+                        if self.evaluateCondition(
+                            full_name=module_name,
+                            condition=anti_bloat_config.get("when", "True"),
+                        ):
+
                             return (
                                 False,
                                 "according to yaml 'no-auto-follow' configuration of '%s' and '%s'"
