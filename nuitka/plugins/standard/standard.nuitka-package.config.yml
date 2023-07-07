@@ -1101,6 +1101,11 @@
     dirs:
       - 'schemas'
 
+- module-name: 'jsonschema_specifications'
+  data-files:
+    dirs:
+      - 'schemas'
+
 - module-name: 'keras.api._v2.keras.__internal__.utils'
   anti-bloat:
     - description: 'remove keras testing tools reference'
