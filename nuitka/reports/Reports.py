@@ -21,6 +21,7 @@ These reports are in XML form, and with Jinja2 templates in any form you like.
 
 """
 
+import atexit
 import os
 import sys
 import traceback
@@ -485,10 +486,32 @@ def writeCompilationReportFromTemplate(
         )
 
 
+_crash_report_filename = "nuitka-crash-report.xml"
+
+
+def _informAboutCrashReport():
+    reports_logger.info(
+        """\
+Compilation crash report written to file '%s'. Please include it in \
+your bug report."""
+        % _crash_report_filename,
+        style="red",
+    )
+
+
 def writeCompilationReports(aborted):
     report_filename = getCompilationReportFilename()
     template_specs = getCompilationReportTemplates()
     diffable = shallCreateDiffableCompilationReport()
+
+    if (
+        report_filename is None
+        and aborted
+        and sys.exc_info()[0] is not KeyboardInterrupt
+    ):
+        report_filename = _crash_report_filename
+
+        atexit.register(_informAboutCrashReport)
 
     if report_filename or template_specs:
         report_input_data = _getReportInputData(aborted)
