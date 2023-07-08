@@ -57,6 +57,7 @@ from nuitka.Options import (
     hasPythonFlagNoAnnotations,
     hasPythonFlagNoAsserts,
     hasPythonFlagNoDocStrings,
+    isDeploymentMode,
     isStandaloneMode,
     shallCreateAppBundle,
     shallMakeModule,
@@ -1129,8 +1130,7 @@ except ImportError:
                 "debian_python": isDebianPackagePython(),
                 "standalone": isStandaloneMode(),
                 "module_mode": shallMakeModule(),
-                # TODO: Allow to provide this.
-                "deployment": False,
+                "deployment": isDeploymentMode(),
                 # Querying package versions.
                 "version": _getPackageVersion,
                 "plugin": _isPluginActive,

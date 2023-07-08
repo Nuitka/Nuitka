@@ -161,6 +161,12 @@ full_compat_mode = getArgumentBool("full_compat", False)
 # Experimental indications. Do things that are not yet safe to do.
 experimental = getArgumentList("experimental", "")
 
+# Deployment mode
+deployment_mode = getArgumentBool("deployment", False)
+
+# Experimental indications. Do things that are not yet safe to do.
+no_deployment = getArgumentList("no_deployment", "")
+
 # Tracing mode. Output program progress.
 trace_mode = getArgumentBool("trace_mode", False)
 
@@ -310,6 +316,7 @@ env = createEnvironment(
     msvc_version=msvc_version,
     target_arch=target_arch,
     experimental=experimental,
+    no_deployment=no_deployment,
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))
@@ -506,6 +513,9 @@ if onefile_mode:
 
 if onefile_temp_mode:
     env.Append(CPPDEFINES=["_NUITKA_ONEFILE_TEMP_BOOL"])
+
+if deployment_mode:
+    env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
 
 # We need "dl" in accelerated mode.
 if "linux" in sys.platform:

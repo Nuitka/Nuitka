@@ -392,6 +392,7 @@ For Python version %s MSVC %s or later is required, not %s which is too old."""
                     msvc_version=None,
                     target_arch=target_arch,
                     experimental=env.experimental_flags,
+                    no_deployment=env.no_deployment_flags,
                 )
 
                 if clang_mode:

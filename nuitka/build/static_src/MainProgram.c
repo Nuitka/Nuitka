@@ -461,9 +461,9 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
                 break;
             }
 
-#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
             if (i == 1) {
-#if PYTHON_VERSION < 0x300
+#ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
                 if (strcmp(argv[i], "install") == 0)
 #else
                 if (wcscmp(argv[i], L"install") == 0)
@@ -474,8 +474,21 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
                     SvcInstall();
                     NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
                 }
-            }
 #endif
+
+#if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
+                if (strcmp(argv[i], "-c") == 0)
+#else
+                if (wcscmp(argv[i], L"-c") == 0)
+#endif
+                {
+                    fprintf(stderr, "Error, the program tried to call itself with '-c' argument. Disable with "
+                                    "'--no-deployment-flag=self-execution'.\n");
+                    exit(2);
+                }
+#endif
+            }
         }
     }
 }
