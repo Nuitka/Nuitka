@@ -126,6 +126,12 @@ module_mode = getArgumentBool("module_mode", False)
 # Debug mode: Less optimizations, debug information in the resulting binary.
 debug_mode = getArgumentBool("debug_mode", False)
 
+# Deployment mode
+deployment_mode = getArgumentBool("deployment", False)
+
+# Experimental indications. Do things that are not yet safe to do.
+no_deployment = getArgumentList("no_deployment", "")
+
 # Experimental indications. Do things that are not yet safe to do.
 experimental = getArgumentList("experimental", "")
 
@@ -236,6 +242,7 @@ env = createEnvironment(
     msvc_version=msvc_version,
     target_arch=target_arch,
     experimental=experimental,
+    no_deployment=no_deployment,
 )
 
 scons_details_logger.info("Initial CC: %r" % env.get("CC"))
@@ -395,6 +402,9 @@ if debug_mode:
 
 if trace_mode:
     env.Append(CPPDEFINES=["_NUITKA_TRACE"])
+
+if deployment_mode:
+    env.Append(CPPDEFINES=["_NUITKA_DEPLOYMENT_MODE"])
 
 env.Append(CPPDEFINES=["_NUITKA_ONEFILE_MODE"])
 

@@ -758,14 +758,26 @@ debug_group.add_option(
 )
 
 debug_group.add_option(
-    "--generate-c-only",
+    "--deployment",
     action="store_true",
-    dest="generate_c_only",
+    dest="is_deployment",
     default=False,
     help="""\
-Generate only C source code, and do not compile it to binary or module. This
-is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
-off. Do not think you can use this directly.""",
+Disable code aimed at making finding compatibility issues easier. This
+will e.g. prevent execution with "-c" argument, which is often used by
+code that attempts run a module, and causes a program to start itself
+over and over potentially. Default off.""",
+)
+
+debug_group.add_option(
+    "--no-deployment-flag",
+    action="append",
+    dest="no_deployment_flags",
+    metavar="FLAG",
+    default=[],
+    help="""\
+Keep deployment mode, but disable selectively parts of it. Errors from
+deployment mode will output these identifiers. Default empty.""",
 )
 
 debug_group.add_option(
@@ -809,6 +821,18 @@ debug_group.add_option(
 Create a new virtualenv in that non-existing path from the report file given with
 e.g. '--report=compilation-report.xml'. Default not done.""",
 )
+
+debug_group.add_option(
+    "--generate-c-only",
+    action="store_true",
+    dest="generate_c_only",
+    default=False,
+    help="""\
+Generate only C source code, and do not compile it to binary or module. This
+is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
+off. Do not think you can use this directly.""",
+)
+
 
 del debug_group
 

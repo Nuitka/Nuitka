@@ -374,6 +374,10 @@ def setCommonSconsOptions(options):
 
     options["python_prefix"] = getDirectoryRealPath(getSystemPrefixPath())
 
+    options["experimental"] = ",".join(Options.getExperimentalIndications())
+
+    options["no_deployment"] = ",".join(Options.getNoDeploymentIndications())
+
     if Options.shallRunInDebugger():
         options["full_names"] = asBoolStr(True)
 

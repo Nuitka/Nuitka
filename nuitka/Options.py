@@ -1485,6 +1485,16 @@ def isRemoveBuildDir():
     return options.remove_build and not options.generate_c_only
 
 
+def isDeploymentMode():
+    """:returns: bool derived from ``--deployment``"""
+    return options.is_deployment
+
+
+def getNoDeploymentIndications():
+    """:returns: list derived from ``--no-deployment-flag``"""
+    return options.no_deployment_flags
+
+
 _experimental = set()
 
 
