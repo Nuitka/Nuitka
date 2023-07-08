@@ -780,6 +780,13 @@
         'import distributed': 'raise ImportError'
       when: 'not use_dask'
 
+- module-name: 'future.standard_library'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'from future.moves.test import support': 'raise ImportError'
+      when: 'not use_unittest'
+
 - module-name: 'gevent'
   implicit-imports:
     - depends:
