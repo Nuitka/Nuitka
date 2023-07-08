@@ -179,10 +179,11 @@
         '_test': "'(lambda: None)'"
 
 - module-name: 'platform'
-  implicit-imports:
-    - depends:
-        - 'plistlib'
-      when: 'macos'
+  anti-bloat:
+    - description: 'avoid using plistlib dependency on non-macOS'
+      replacements_plain:
+        'import plistlib': 'return None'
+      when: 'not macos'
 
 - module-name: 'pyclbr'
   anti-bloat:
