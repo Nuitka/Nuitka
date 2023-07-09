@@ -1086,7 +1086,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
                     break
 
                 (
-                    _module_name_found,
+                    found_module_name,
                     module_filename,
                     module_kind,
                     finding,
@@ -1098,7 +1098,7 @@ class ExpressionBuiltinImport(ChildrenExpressionBuiltinImportMixin, ExpressionBa
 
                 self.used_modules.append(
                     makeModuleUsageAttempt(
-                        module_name=module_name,
+                        module_name=found_module_name,
                         filename=module_filename,
                         module_kind=module_kind,
                         finding=finding,
