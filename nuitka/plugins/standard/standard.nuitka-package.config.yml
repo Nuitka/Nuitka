@@ -711,6 +711,13 @@
     - depends:
         - 'Equation.equation_*'
 
+- module-name: 'eventlet.patcher'
+  implicit-imports:
+    - depends:
+        - 'dns.rdtypes.*'
+        - 'dns.rdtypes.IN.*'
+        - 'dns.rdtypes.ANY.*'
+
 - module-name: 'exchangelib'
   implicit-imports:
     - depends:
