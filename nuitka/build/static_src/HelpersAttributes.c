@@ -713,11 +713,15 @@ int HAS_ATTR_BOOL2(PyObject *source, PyObject *attr_name) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_ATTR_OPT
     PyObject *result = PyObject_GetAttr(source, attr_name);
 
-    if (result == NULL) {
+    if (CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() == false) {
         return -1;
     }
 
-    return CHECK_IF_TRUE(result) = 1 : 0;
+    if (result == NULL) {
+        return 0;
+    }
+
+    return CHECK_IF_TRUE(result) ? 1 : 0;
 #else
     PyTypeObject *type = Py_TYPE(source);
 
@@ -790,8 +794,6 @@ int HAS_ATTR_BOOL2(PyObject *source, PyObject *attr_name) {
                 return -1;
             }
 
-            DROP_ERROR_OCCURRED();
-
             Py_DECREF(dict);
 
             if (result != NULL) {
@@ -835,8 +837,6 @@ int HAS_ATTR_BOOL2(PyObject *source, PyObject *attr_name) {
         PyObject *result = LOOKUP_INSTANCE(source, attr_name);
 
         if (result == NULL) {
-            DROP_ERROR_OCCURRED();
-
             return -1;
         }
 
