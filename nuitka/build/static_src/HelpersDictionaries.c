@@ -1313,26 +1313,54 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 }
 
 PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {
-    PyObject *result = MAKE_DICT_EMPTY();
+    PyObject *result;
 
     if (seq_obj != NULL) {
-        int res;
+        CHECK_OBJECT(seq_obj);
 
-        if (PyObject_HasAttrString(seq_obj, "keys")) {
-            res = PyDict_Merge(result, seq_obj, 1);
+        // Fast path for dictionaries.
+        if (PyDict_CheckExact(seq_obj)) {
+            result = DICT_COPY(seq_obj);
         } else {
-            res = PyDict_MergeFromSeq2(result, seq_obj, 1);
-        }
+            result = MAKE_DICT_EMPTY();
 
-        if (res == -1) {
-            return NULL;
+            Py_INCREF(seq_obj);
+
+#if PYTHON_VERSION >= 0x300
+            int res = HAS_ATTR_BOOL2(seq_obj, const_str_plain_keys);
+
+            if (unlikely(res == -1)) {
+                Py_DECREF(seq_obj);
+                return NULL;
+            }
+#else
+            int res = HAS_ATTR_BOOL(seq_obj, const_str_plain_keys) ? 1 : 0;
+#endif
+
+            if (res) {
+                res = PyDict_Merge(result, seq_obj, 1);
+            } else {
+                res = PyDict_MergeFromSeq2(result, seq_obj, 1);
+            }
+
+            Py_DECREF(seq_obj);
+
+            if (unlikely(res == -1)) {
+                return NULL;
+            }
         }
+    } else {
+        result = MAKE_DICT_EMPTY();
     }
 
+    // TODO: Should specialize for dict_obj/seq_obj presence to save a bit of time
+    // and complexity.
     if (dict_obj != NULL) {
+        CHECK_OBJECT(dict_obj);
+
         int res = PyDict_Merge(result, dict_obj, 1);
 
-        if (res == -1) {
+        if (unlikely(res == -1)) {
             return NULL;
         }
     }
