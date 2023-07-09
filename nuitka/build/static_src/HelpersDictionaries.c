@@ -1313,26 +1313,48 @@ bool Nuitka_DictNext(PyObject *dict, Py_ssize_t *pos, PyObject **key_ptr, PyObje
 }
 
 PyObject *TO_DICT(PyObject *seq_obj, PyObject *dict_obj) {
+    // Fast path for dictionaries.
+    if (seq_obj != NULL) {
+        CHECK_OBJECT(seq_obj);
+
+        if (PyDict_CheckExact(seq_obj)) {
+            return DICT_COPY(seq_obj);
+        }
+    }
+
     PyObject *result = MAKE_DICT_EMPTY();
 
     if (seq_obj != NULL) {
-        int res;
+        Py_INCREF(seq_obj);
 
-        if (PyObject_HasAttrString(seq_obj, "keys")) {
+        int res = HAS_ATTR_BOOL2(seq_obj, const_str_plain_keys);
+
+        if (unlikely(res == -1)) {
+            Py_DECREF(seq_obj);
+            return NULL;
+        }
+
+        if (res) {
             res = PyDict_Merge(result, seq_obj, 1);
         } else {
             res = PyDict_MergeFromSeq2(result, seq_obj, 1);
         }
 
-        if (res == -1) {
+        Py_DECREF(seq_obj);
+
+        if (unlikely(res == -1)) {
             return NULL;
         }
     }
 
+    // TODO: Should specialize for dict_obj/seq_obj presence to save a bit of time
+    // and complexity.
     if (dict_obj != NULL) {
+        CHECK_OBJECT(dict_obj);
+
         int res = PyDict_Merge(result, dict_obj, 1);
 
-        if (res == -1) {
+        if (unlikely(res == -1)) {
             return NULL;
         }
     }
