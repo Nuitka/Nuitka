@@ -1856,9 +1856,9 @@ void setEarlyFrozenModulesFileAttribute(void) {
 
     while (Nuitka_DictNext(sys_modules, &pos, &key, &value)) {
         if (key != NULL && value != NULL && PyModule_Check(value)) {
-            if (HAS_ATTR_BOOL(value, const_str_plain___file__)) {
-                bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);
+            bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);
 
+            if (is_package || HAS_ATTR_BOOL(value, const_str_plain___file__)) {
                 PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(Nuitka_String_AsString(key), is_package, false);
                 PyObject_SetAttr(value, const_str_plain___file__, file_value);
                 Py_DECREF(file_value);
