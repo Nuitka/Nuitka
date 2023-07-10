@@ -1107,6 +1107,17 @@ behavior with the uncompiled code."""
 
         return source_code
 
+    def onDataFileTags(self, included_datafile):
+        if included_datafile.dest_path.endswith(
+            ".qml"
+        ) and not self.hasQtPluginSelected("qml"):
+            self.warning(
+                """Including QML file %s, but not having Qt qml plugins is unlikely \
+to work. Consider using '--include-qt-plugins=qml' to include the \
+necessary files to use it."""
+                % included_datafile.dest_path
+            )
+
 
 class NuitkaPluginPyQt5QtPluginsPlugin(NuitkaPluginQtBindingsPluginBase):
     """This is for plugins of PyQt5.
