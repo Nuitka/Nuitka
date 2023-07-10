@@ -1219,6 +1219,20 @@ in CI systems where things might be non-standard.
 For the MSVC compilers and ClangCL setups, using the ``clcache`` is
 automatic and included in Nuitka.
 
+On macOS and Intel, there is an automatic download of a ``ccache``
+binary from our site, for arm64 arches, it's recommended to use this
+setup, which installs Homebrew and ccache in there. Nuitka picks that
+one up automatically if it on that kind of machine. You need and should
+not use Homebrew with Nuitka otherwise, it's not the best for standalone
+deployments, but we can take ``ccache`` from there.
+
+.. code:: bash
+
+   export HOMEBREW_INSTALL_FROM_API=1
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+   eval $(/opt/homebrew/bin/brew shellenv)
+   brew install ccache
+
 Control where Caches live
 =========================
 
