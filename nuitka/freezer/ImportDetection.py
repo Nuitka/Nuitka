@@ -32,7 +32,7 @@ from nuitka.importing.StandardLibrary import (
     isStandardLibraryPath,
     scanStandardLibraryPath,
 )
-from nuitka.Options import isStandaloneMode, shallFollowStandardLibrary
+from nuitka.Options import isStandaloneMode
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import general, printError
 from nuitka.utils.Execution import executeProcess
@@ -236,7 +236,7 @@ def _detectEarlyImports():
     import_code += ";import locale;"
 
     # For Python3 we patch inspect without knowing if it is used.
-    if python_version >= 0x300 and (isStandaloneMode() or shallFollowStandardLibrary()):
+    if python_version >= 0x300:
         import_code += "import inspect;import importlib._bootstrap"
 
     return _detectImports(command=import_code)

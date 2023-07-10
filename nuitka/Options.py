@@ -824,10 +824,15 @@ to work. You need to instead selectively add them with \
             % standalone_mode
         )
 
-    if options.follow_stdlib and not standalone_mode:
-        Tracing.options_logger.warning(
-            "Following imports to stdlib is unlikely to work without --standalone/--onefile and should not be specified."
-        )
+    if options.follow_stdlib:
+        if standalone_mode:
+            Tracing.options_logger.warning(
+                "Following imports to stdlib is the default in standalone mode.."
+            )
+        else:
+            Tracing.options_logger.warning(
+                "Following imports to stdlib not well tested and should not be specified."
+            )
 
     if (
         not standalone_mode
