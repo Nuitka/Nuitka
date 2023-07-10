@@ -5172,12 +5172,41 @@
         'boolean_sparse': 'un-callable'
       when: 'not use_numba'
 
+- module-name: 'trio._core._ki'
+  anti-bloat:
+    - description: 'workaround for trio compatibility'
+      # The only incompatibility in Trio is the way it handles KeyboardInterrupt exceptions (ctrl+C):
+      # https://github.com/Nuitka/Nuitka/issues/561
+      # https://github.com/python-trio/trio/issues/1752
+      # It does this to ensure that Trio's internal data structures stay consistent and that the
+      # `finally` blocks in suspended coroutines are all run:
+      # https://vorpus.org/blog/control-c-handling-in-python-and-trio/
+      # So, be warned, when this plugin is enabled, your Trio code may not behave as expected when the
+      # user hits CTRL+C. One option to cope with this is to run your Trio code in a separate thread,
+      # listen for it in the main thread (with a try/except block), then notify the Trio thread to
+      # shutdown (e.g. with `trio_token.run_sync_soon(cancel_scope.cancel())`).
+      append_plain: |
+        def enable_ki_protection(fn):
+          return fn
+        def disable_ki_protection(fn):
+          return fn
+  options:
+    checks:
+      - description: "Disabled careful handling of KeyboardInterrupt in 'trio'"
+        support_info: 'info'
+
 - module-name: 'trio._core._multierror'
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
+
+- module-name: 'trio._core._run'
+  anti-bloat:
+    - description: 'workaround for trio compatibility'
+      replacements_plain:
+        'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
 
 - module-name: 'triton.compiler'
   anti-bloat:
