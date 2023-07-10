@@ -4237,6 +4237,16 @@
     dirs:
       - 'static'
 
+- module-name: 'streamlit.delta_generator'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from streamlit.elements.legacy_altair import LegacyAltairMixin': ''
+        'LegacyAltairMixin,': ''
+        'from streamlit.elements.arrow_altair import ArrowAltairMixin': ''
+        'ArrowAltairMixin,': ''
+      when: 'not use_ipython'
+
 - module-name: 'sv_ttk'
   data-files:
     dirs:
