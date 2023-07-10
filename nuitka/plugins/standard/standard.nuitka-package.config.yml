@@ -2808,6 +2808,9 @@
                       myconnect._protected = getattr(myconnect, "_protected", set())
                       myconnect._protected.add(func)
 
+                  if not func.im_func.__name__.startswith("_pyside2_workaround_"):
+                      func.im_func.__name__ = "_nuitka_" + func.im_func.__name__
+
               return orig_connect(self, func)
 
           from PySide2 import QtCore
@@ -2855,6 +2858,9 @@
                   if hasattr(func.im_func, "__compiled__"):
                       myconnect._protected = getattr(myconnect, "_protected", set())
                       myconnect._protected.add(func)
+
+                  if not func.im_func.__name__.startswith("_pyside6_workaround_"):
+                      func.im_func.__name__ = "_nuitka_" + func.im_func.__name__
 
               return orig_connect(self, func)
 
