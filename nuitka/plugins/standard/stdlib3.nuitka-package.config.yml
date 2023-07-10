@@ -32,17 +32,44 @@
       change_function:
         '_test': "'(lambda: None)'"
 
+- module-name: 'bisect'
+  anti-bloat:
+    - description: 'avoid _bisect module usage'
+      no-auto-follow:
+        '_bisect': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_bisect")'
+
+- module-name: 'calendar'
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
+
 - module-name: 'copy'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
 
+- module-name: 'crypt'
+  anti-bloat:
+    - description: 'avoid _crypt module usage'
+      replacements_plain:
+        '_crypt module was not built as part of CPython': '_crypt module was not included, used --include-module=_crypt'
+      when: 'not has_builtin_module("_crypt")'
+
 - module-name: 'ctypes.util'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
+
+- module-name: 'datetime'
+  anti-bloat:
+    - description: 'avoid _datetime module usage'
+      no-auto-follow:
+        '_datetime': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_datetime")'
 
 - module-name: 'difflib'
   anti-bloat:
@@ -103,6 +130,13 @@
         '_test': "'(lambda: None)'"
         'main': "'(lambda: None)'"
 
+- module-name: 'heapq'
+  anti-bloat:
+    - description: 'avoid _heapq module usage'
+      no-auto-follow:
+        '_datetime': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_heapq")'
+
 - module-name: 'imghdr'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
@@ -114,6 +148,27 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         '_main': "'(lambda: None)'"
+
+- module-name: 'json.decoder'
+  anti-bloat:
+    - description: 'avoid _json module usage'
+      no-auto-follow:
+        '_json': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_json")'
+
+- module-name: 'json.encoder'
+  anti-bloat:
+    - description: 'avoid _json module usage'
+      no-auto-follow:
+        '_json': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_json")'
+
+- module-name: 'json.scanner'
+  anti-bloat:
+    - description: 'avoid _json module usage'
+      no-auto-follow:
+        '_json': 'may slow down by using fallback implementation'
+      when: 'not has_builtin_module("_json")'
 
 - module-name: 'keyword'
   anti-bloat:
@@ -143,6 +198,13 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         '_test': "'(lambda: None)'"
+
+- module-name: 'mailbox'
+  anti-bloat:
+    - description: 'avoid fcntl module usage'
+      no-auto-follow:
+        'fcntl': 'may not lock mailbox files properly using fallback implementation'
+      when: 'not has_builtin_module("fcntl")'
 
 - module-name: 'mailcap'
   anti-bloat:
@@ -288,6 +350,12 @@
     - description: 'remove module ability to run as a binary'
       change_function:
         'test': "'(lambda: None)'"
+
+- module-name: 'zipapp'
+  anti-bloat:
+    - description: 'remove module ability to run as a binary'
+      change_function:
+        'main': "'(lambda: None)'"
 
 - module-name: 'zipfile'
   anti-bloat:
