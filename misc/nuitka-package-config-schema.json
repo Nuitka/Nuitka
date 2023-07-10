@@ -162,10 +162,7 @@
                             "type": "string"
                         },
                         "no-auto-follow": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                             }
+                            "type": "object"
                         },
                         "when": {
                             "type": "string"

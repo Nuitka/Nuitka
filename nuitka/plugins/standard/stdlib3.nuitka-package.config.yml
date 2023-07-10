@@ -69,7 +69,7 @@
         'import socket': ''
         'socket.': '__import__("socket").'
       no-auto-follow:
-        - 'socket'
+        'socket': "can break calls of 'email.utils.make_msgid()'"
       when: 'not has_builtin_module("_socket")'
 
 - module-name: 'ensurepip'

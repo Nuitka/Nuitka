@@ -186,6 +186,10 @@ form 'module_name:[%s]'."""
 
         self.warnings_given = set()
 
+        # Keep track of modules prevented from automatically following and the
+        # information given for that.
+        self.no_auto_follows = {}
+
     def getEvaluationConditionControlTags(self):
         return self.control_tags
 
@@ -609,20 +613,20 @@ Undesirable import of '%s' (intending to avoid '%s') in \
 
             if config:
                 for anti_bloat_config in config:
-                    match, reason = module_name.matchesToShellPatterns(
-                        anti_bloat_config.get("no-auto-follow", ())
-                    )
+                    no_auto_follows = anti_bloat_config.get("no-auto-follow", {})
 
-                    if match:
-                        if self.evaluateCondition(
-                            full_name=module_name,
-                            condition=anti_bloat_config.get("when", "True"),
-                        ):
+                    for no_auto_follow, description in no_auto_follows.items():
+                        if module_name.hasNamespace(no_auto_follow):
+                            if self.evaluateCondition(
+                                full_name=module_name,
+                                condition=anti_bloat_config.get("when", "True"),
+                            ):
+                                self.no_auto_follows[no_auto_follow] = description
 
                             return (
                                 False,
-                                "according to yaml 'no-auto-follow' configuration of '%s' and '%s'"
-                                % (using_module_name, reason),
+                                "according to yaml 'no-auto-follow' configuration of '%s'"
+                                % using_module_name,
                             )
 
         # Do not provide an opinion about it.
@@ -638,3 +642,22 @@ Undesirable import of '%s' (intending to avoid '%s') in \
 
             if module_name.hasNamespace(handled_module_name):
                 return "bytecode"
+
+    def onModuleCompleteSet(self, module_set):
+        # TODO: Maybe have an entry point that works on the set of names
+        # instead, we are not looking at the modules, and most plugins probably
+        # do not care.
+        module_names = set(module.getFullName() for module in module_set)
+
+        for module_name, description in self.no_auto_follows.items():
+            # Some are irrelevant, e.g. when registering to a module that would have to
+            # be used elsewhere.
+            if description == "ignore":
+                continue
+
+            if module_name not in module_names:
+                self.info(
+                    """\
+Not including '%s' automatically in order to avoid bloat, but this may cause: %s."""
+                    % (module_name, description)
+                )

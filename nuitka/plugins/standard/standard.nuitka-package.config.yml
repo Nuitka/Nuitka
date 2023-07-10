@@ -1161,6 +1161,11 @@
         'from distributed import get_worker': 'raise ImportError'
       when: 'not use_dask'
 
+- module-name: 'joblib.externals.cloudpickle.cloudpickle'
+  anti-bloat:
+    - no-auto-follow:
+        'tornado': 'can break tornado integration of joblib'
+
 - module-name: 'jpype'
   data-files:
     dest_path: './jpype'
@@ -5143,7 +5148,7 @@
 - module-name: 'tqdm.std'
   anti-bloat:
     - no-auto-follow:
-        - 'pandas'
+        'pandas': 'ignore'
 
 - module-name: 'transformers.integrations'
   anti-bloat:
