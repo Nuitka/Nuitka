@@ -1232,6 +1232,11 @@
     - depends:
         - 'lxml.etree'
 
+- module-name: 'markdown'
+  implicit-imports:
+    - depends:
+        - 'markdown.extensions.*'
+
 - module-name: 'matplotlib'
   anti-bloat:
     - description: 'remove setuptools and pytest testing framework reference'
