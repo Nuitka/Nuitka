@@ -604,7 +604,8 @@
 - module-name: 'dns.rdtypes'
   implicit-imports:
     - depends:
-        - '.IN.A'
+        - '.ANY.*'
+        - '.IN.*'
         - '.CH.A'
 
 - module-name: 'dotenv'
