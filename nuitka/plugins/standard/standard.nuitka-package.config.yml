@@ -959,6 +959,20 @@
         - 'gevent.resolver.cares'
         - 'gevent.resolver.thread'
 
+- module-name: 'git.objects.submodule.base'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'if HIDE_WINDOWS_KNOWN_ERRORS': 'if False'
+      when: 'not use_unittest'
+
+- module-name: 'git.util'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'if HIDE_WINDOWS_KNOWN_ERRORS': 'if False'
+      when: 'not use_unittest'
+
 - module-name: 'gooey'
   data-files:
     dirs:
