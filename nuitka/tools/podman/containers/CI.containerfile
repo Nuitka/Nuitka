@@ -43,7 +43,3 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Do what git asks us to do, for working with git checkouts.
 RUN git config --global --add safe.directory /src
-
-# Avoid DNS lookups when accessing the Nuitka website, the occasionally can fail
-# in our CI setup.
-RUN echo >>/etc/hosts ssh.nuitka.net 116.202.30.188
