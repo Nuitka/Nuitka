@@ -251,6 +251,11 @@
     - depends:
         - '_cffi_backend'
 
+- module-name: 'cairo'
+  implicit-imports:
+    - depends:
+        - 'gi._gi_cairo'
+
 - module-name: 'cairo._cairo'
   implicit-imports:
     - depends:
