@@ -172,6 +172,11 @@
       change_function:
         'test': "'(lambda: None)'"
 
+- module-name: 'lib2to3.refactor'
+  implicit-imports:
+    - depends:
+        - 'lib2to3.fixes.*'
+
 - module-name: 'locale'
   anti-bloat:
     - description: 'remove module ability to run as a binary'
