@@ -508,6 +508,12 @@
         support_info: 'warning'
         when: 'version("opencv-python") < (4,6)'
 
+- module-name: 'cvxpy.utilities.key_utils'
+  anti-bloat:
+    - description: 'workaround for disallowed slice optimization'
+      replacements_plain:
+        'key[i].step': '(key[i].step if key[i].step is not None else 1)'
+
 - module-name: 'cytoolz.functoolz'
   implicit-imports:
     - depends:
