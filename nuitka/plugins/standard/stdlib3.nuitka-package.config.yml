@@ -162,7 +162,6 @@
 
 - module-name: 'lib2to3.pgen2'
   data-files:
-    dest_path: 'lib2to3'
     patterns:
       - '../*.pickle'
     when: 'not debian_python'
