@@ -335,8 +335,9 @@ which can and should be a top level package and then one choice, "error",
                         exec(context_code, context)
                     except Exception as e:  # pylint: disable=broad-except
                         self.sysexit(
-                            "Error, cannot execute context code '%s' due to: %s"
-                            % (context_code, e)
+                            """\
+Error, cannot exec module '%s', execute context code '%s' due to: %s"""
+                            % (module_name, context_code, e)
                         )
 
                     context_ready = True
@@ -348,16 +349,18 @@ which can and should be a top level package and then one choice, "error",
                     replace_dst = eval(replace_code, context)
                 except Exception as e:  # pylint: disable=broad-except
                     self.sysexit(
-                        "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                        % (replace_code, context_code, e)
+                        """\
+Error, cannot eval module '%s' replacement expression code '%s' in '%s' due to: %s"""
+                        % (module_name, replace_code, context_code, e)
                     )
             else:
                 replace_dst = ""
 
             if type(replace_dst) is not str:
                 self.sysexit(
-                    "Error, expression code '%s' needs to generate string, not %s"
-                    % (replace_code, type(replace_dst))
+                    """\
+Error, module '%s' replacement expression code for '%s' needs to generate string, not %s"""
+                    % (module_name, replace_code, type(replace_dst))
                 )
 
             old = source_code
@@ -397,8 +400,9 @@ which can and should be a top level package and then one choice, "error",
                 append_result = eval(append_code, context)
             except Exception as e:  # pylint: disable=broad-except
                 self.sysexit(
-                    "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                    % (append_code, context_code, e)
+                    """\
+Error, cannot evaluate module '%s' append code '%s' in '%s' due to: %s"""
+                    % (module_name, append_code, context_code, e)
                 )
 
             source_code += "\n" + append_result
@@ -476,8 +480,9 @@ which can and should be a top level package and then one choice, "error",
             replacement = eval(replace_code, context)
         except Exception as e:  # pylint: disable=broad-except
             self.sysexit(
-                "Error, cannot evaluate code '%s' in '%s' due to: %s"
-                % (replace_code, context_code, e)
+                """\
+Error, cannot eval module '%s' function '%s' replacement code '%s' in '%s' due to: %s"""
+                % (module_name, function_name, replace_code, context_code, e)
             )
 
         # Single node is required, extract the generated module body with
@@ -623,11 +628,11 @@ Undesirable import of '%s' (intending to avoid '%s') in \
                             ):
                                 self.no_auto_follows[no_auto_follow] = description
 
-                            return (
-                                False,
-                                "according to yaml 'no-auto-follow' configuration of '%s'"
-                                % using_module_name,
-                            )
+                                return (
+                                    False,
+                                    "according to yaml 'no-auto-follow' configuration of '%s'"
+                                    % using_module_name,
+                                )
 
         # Do not provide an opinion about it.
         return None
