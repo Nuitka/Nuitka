@@ -1359,7 +1359,7 @@ def buildModule(
                         plugins_logger.warning(line)
 
                     if len(contributing_plugins) == 1:
-                        next(iter(contributing_plugins[0])).sysexit(
+                        next(iter(contributing_plugins)).sysexit(
                             "Making changes to '%s' that cause SyntaxError '%s'"
                             % (module_name, e)
                         )

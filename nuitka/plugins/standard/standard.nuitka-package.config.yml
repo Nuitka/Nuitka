@@ -294,6 +294,11 @@
     - depends:
         - '_cffi_backend'
 
+- module-name: 'cairo'
+  implicit-imports:
+    - depends:
+        - 'gi._gi_cairo'
+
 - module-name: 'cairo._cairo'
   implicit-imports:
     - depends:
@@ -546,6 +551,12 @@
         support_info: 'warning'
         when: 'version("opencv-python") < (4,6)'
 
+- module-name: 'cvxpy.utilities.key_utils'
+  anti-bloat:
+    - description: 'workaround for disallowed slice optimization'
+      replacements_plain:
+        'key[i].step': '(key[i].step if key[i].step is not None else 1)'
+
 - module-name: 'cytoolz.functoolz'
   implicit-imports:
     - depends:
@@ -647,7 +658,8 @@
 - module-name: 'dns.rdtypes'
   implicit-imports:
     - depends:
-        - '.IN.A'
+        - '.ANY.*'
+        - '.IN.*'
         - '.CH.A'
 
 - module-name: 'dotenv'
@@ -1001,6 +1013,20 @@
         - 'gevent.resolver.cares'
         - 'gevent.resolver.thread'
 
+- module-name: 'git.objects.submodule.base'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'if HIDE_WINDOWS_KNOWN_ERRORS': 'if False'
+      when: 'not use_unittest'
+
+- module-name: 'git.util'
+  anti-bloat:
+    - description: 'remove unittest reference'
+      replacements_plain:
+        'if HIDE_WINDOWS_KNOWN_ERRORS': 'if False'
+      when: 'not use_unittest'
+
 - module-name: 'gooey'
   data-files:
     dirs:
@@ -1259,6 +1285,11 @@
   implicit-imports:
     - depends:
         - 'lxml.etree'
+
+- module-name: 'markdown'
+  implicit-imports:
+    - depends:
+        - 'markdown.extensions.*'
 
 - module-name: 'matplotlib'
   anti-bloat:
@@ -4267,6 +4298,16 @@
     dirs:
       - 'static'
 
+- module-name: 'streamlit.delta_generator'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      replacements_plain:
+        'from streamlit.elements.legacy_altair import LegacyAltairMixin': ''
+        'LegacyAltairMixin,': ''
+        'from streamlit.elements.arrow_altair import ArrowAltairMixin': ''
+        'ArrowAltairMixin,': ''
+      when: 'not use_ipython'
+
 - module-name: 'sv_ttk'
   data-files:
     dirs:
@@ -5202,12 +5243,41 @@
         'boolean_sparse': 'un-callable'
       when: 'not use_numba'
 
+- module-name: 'trio._core._ki'
+  anti-bloat:
+    - description: 'workaround for trio compatibility'
+      # The only incompatibility in Trio is the way it handles KeyboardInterrupt exceptions (ctrl+C):
+      # https://github.com/Nuitka/Nuitka/issues/561
+      # https://github.com/python-trio/trio/issues/1752
+      # It does this to ensure that Trio's internal data structures stay consistent and that the
+      # `finally` blocks in suspended coroutines are all run:
+      # https://vorpus.org/blog/control-c-handling-in-python-and-trio/
+      # So, be warned, when this plugin is enabled, your Trio code may not behave as expected when the
+      # user hits CTRL+C. One option to cope with this is to run your Trio code in a separate thread,
+      # listen for it in the main thread (with a try/except block), then notify the Trio thread to
+      # shutdown (e.g. with `trio_token.run_sync_soon(cancel_scope.cancel())`).
+      append_plain: |
+        def enable_ki_protection(fn):
+          return fn
+        def disable_ki_protection(fn):
+          return fn
+  options:
+    checks:
+      - description: "Disabled careful handling of KeyboardInterrupt in 'trio'"
+        support_info: 'info'
+
 - module-name: 'trio._core._multierror'
   anti-bloat:
     - description: 'remove IPython reference'
       replacements_plain:
         '"IPython" in sys.modules': 'False'
       when: 'not use_ipython'
+
+- module-name: 'trio._core._run'
+  anti-bloat:
+    - description: 'workaround for trio compatibility'
+      replacements_plain:
+        'coro.cr_frame.f_locals.setdefault(LOCALS_KEY_KI_PROTECTION_ENABLED, system_task)': ''
 
 - module-name: 'triton.compiler'
   anti-bloat:
