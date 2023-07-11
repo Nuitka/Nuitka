@@ -1,11 +1,10 @@
-#!/usr/bin/env python
-
 """ Debian/Ubuntu package release.
 
 """
 
 import os
 import shutil
+import sys
 
 from nuitka.tools.release.Debian import cleanupTarfileForDebian, runPy2dsc
 from nuitka.tools.release.Documentation import createReleaseDocumentation
@@ -18,7 +17,7 @@ def main():
     assert branch_name == "main"
 
     createReleaseDocumentation()
-    assert os.system("python setup.py sdist --formats=gztar") == 0
+    assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     os.chdir("dist")
 

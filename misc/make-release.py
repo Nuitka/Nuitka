@@ -33,11 +33,7 @@ sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), ".."
 import shutil
 from optparse import OptionParser
 
-from nuitka.tools.release.Debian import (
-    checkChangeLog,
-    cleanupTarfileForDebian,
-    runPy2dsc,
-)
+from nuitka.tools.release.Debian import checkChangeLog
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import (
     checkAtHome,
@@ -78,7 +74,7 @@ shutil.rmtree("dist", ignore_errors=True)
 shutil.rmtree("build", ignore_errors=True)
 
 createReleaseDocumentation()
-assert os.system("python setup.py sdist --formats=bztar,gztar,zip") == 0
+assert os.system("%s setup.py sdist --formats=bztar,gztar,zip" % sys.executable) == 0
 
 checkAtHome()
 
