@@ -67,30 +67,30 @@ def _normalizePath(path):
 
 def _moduleRepr(module):
     try:
-        module_file = module.__file__
-        module_file = module_file.replace(".pyc", ".py")
+        module_filename = module.__file__
+        module_filename = module_filename.replace(".pyc", ".py")
 
-        if module_file.endswith(".so"):
-            module_file = os.path.join(
-                os.path.dirname(module_file),
-                os.path.basename(module_file).split(".")[0] + ".so",
+        if module_filename.endswith(".so"):
+            module_filename = os.path.join(
+                os.path.dirname(module_filename),
+                os.path.basename(module_filename).split(".")[0] + ".so",
             )
 
-        file_desc = "file " + _normalizePath(module_file).replace(".pyc", ".py")
+        file_desc = "file " + _normalizePath(module_filename).replace(".pyc", ".py")
     except AttributeError:
         file_desc = "built-in"
 
     return "<module %s %s>" % (module.__name__, file_desc)
 
 
-normalize_paths = None
-show_source = None
+do_normalize_paths = None
+do_show_source = None
 
 
 def _ourimport(
     name,
-    globals=None,
-    locals=None,
+    globals=None,  # pylint: disable=redefined-builtin
+    locals=None,  # pylint: disable=redefined-builtin
     fromlist=None,
     level=-1 if sys.version_info[0] < 3 else 0,
 ):
@@ -112,12 +112,15 @@ def _ourimport(
             else:
                 entry = list(entry)
 
-                if not show_source:
+                if not do_show_source:
                     del entry[-1]
                     del entry[-1]
 
-                if normalize_paths:
+                if do_normalize_paths:
                     entry[0] = _normalizePath(entry[0])
+
+                if entry[0].startswith("<frozen importlib._bootstrap"):
+                    continue
 
                 print(_indentation * " " + "by " + "|".join(str(s) for s in entry))
 
@@ -142,16 +145,19 @@ def _ourimport(
         _indentation -= 1
 
 
+_ourimport_reference = None
+
+
 def enableImportTracing(normalize_paths=True, show_source=False):
+    # Remember these settings for the import replacement, pylint: disable=global-statement
     global do_normalize_paths, do_show_source
+
     do_normalize_paths = normalize_paths
     do_show_source = show_source
-
-    # pylint: disable=redefined-builtin
 
     builtins.__import__ = _ourimport
 
     # Since we swap this around, prevent it from releasing by giving it a global
-    # name too, not only a local one.
+    # name too, not only a local one, pylint: disable=global-statement
     global _ourimport_reference
-    _ourimport
+    _ourimport_reference = _ourimport
