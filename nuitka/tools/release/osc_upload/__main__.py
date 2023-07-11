@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #     Copyright 2023, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,7 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
 """ OpenSUSE Build Service (OSC) upload release tool.
 
 Uploads Nuitka branches adapting the RPM configuration to the different
@@ -41,7 +39,7 @@ def main():
     shutil.rmtree("build", ignore_errors=True)
 
     createReleaseDocumentation()
-    assert os.system("python setup.py sdist --formats=gztar") == 0
+    assert os.system("%s setup.py sdist --formats=gztar" % sys.executable) == 0
 
     # Upload stable releases to OpenSUSE Build Service:
     if (

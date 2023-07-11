@@ -203,7 +203,9 @@ def main():
         "type=bind,source=.,dst=/src,relabel=shared",
     ]
 
-    if not options.network:
+    if options.network:
+        command.append("--add-host=ssh.nuitka.net:116.202.30.188")
+    else:
         command.append("--network=none")
 
     # May need to allow pbuilder to create device nodes, makes the container insecure
