@@ -2270,9 +2270,13 @@
 
 - module-name: 'PIL.Image'
   anti-bloat:
-    - description: 'avoid qt usage for plugin no-qt'
-      replacements_plain:
-        'from . import ImageQt': 'raise ImportError'
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'PIL.ImageQt': 'PIL will not be able to create Qt image objects'
+      when: 'not plugin("pyqt5") and not plugin("pyqt6") and not plugin("pyside2") and not plugin("pyside6")'
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'PIL.ImageQt': 'ignore'
       when: 'plugin("no-qt")'
 
   implicit-imports:
