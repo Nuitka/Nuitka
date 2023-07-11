@@ -3231,6 +3231,11 @@
 
               wrapped_callback = eval("lambda x: wrapped_callback2(x)", locals())
 
+- module-name: 'scipy.optimize._shgo_lib.triangulation'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
+
 - module-name: 'scipy.sparse.csgraph'
   implicit-imports:
     - depends:
@@ -3262,6 +3267,11 @@
     - depends:
         - 'scipy.spatial.transform'
 
+- module-name: 'scipy.spatial._plotutils'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
+
 - module-name: 'scipy.spatial.transform'
   implicit-imports:
     - depends:
@@ -3272,10 +3282,20 @@
     - depends:
         - 'scipy.special._ufuncs_cxx'
 
+- module-name: 'scipy.stats._fit'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
+
 - module-name: 'scipy.stats._stats'
   implicit-imports:
     - depends:
         - 'scipy.special.cython_special'
+
+- module-name: 'scipy.stats._survival'
+  anti-bloat:
+    - no-auto-follow:
+        'matplotlib': 'plotting will lack matplotlib'
 
 - module-name: 'scipy.stats.morestats'
   anti-bloat:
