@@ -102,6 +102,7 @@ hard_modules = frozenset(
         "unittest.mock",
         # "cStringIO",
         "io",
+        "_io",
         "ctypes",
         "ctypes.wintypes",
         "ctypes.macholib",
@@ -270,7 +271,8 @@ hard_modules_trust = {
     # TODO: We should have trust_module too.
     "unittest": {"mock": trust_exist},
     "unittest.mock": {},
-    "io": {"BytesIO": trust_exist},
+    "io": {"BytesIO": trust_exist, "StringIO": trust_exist},
+    "_io": {"BytesIO": trust_exist, "StringIO": trust_exist},
     # "cStringIO": {"StringIO": trust_exist},
     "pkg_resources": {
         "require": trust_node,

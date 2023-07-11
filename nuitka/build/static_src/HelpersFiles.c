@@ -43,13 +43,9 @@ PyObject *BUILTIN_OPEN_SIMPLE(PyObject *filename, char const *mode, bool bufferi
 #else
     if ((strcmp(mode, "w") == 0) && buffering == false) {
         // TODO: Hard import code could be used for this.
-        static PyObject *_io_module = NULL;
         static PyObject *_io_module_text_io_wrapper = NULL;
-        if (_io_module == NULL) {
-            _io_module = PyImport_ImportModule("_io");
-            CHECK_OBJECT(_io_module);
-
-            _io_module_text_io_wrapper = PyObject_GetAttrString(_io_module, "TextIOWrapper");
+        if (_io_module_text_io_wrapper == NULL) {
+            _io_module_text_io_wrapper = PyObject_GetAttrString(IMPORT_HARD__IO(), "TextIOWrapper");
             CHECK_OBJECT(_io_module_text_io_wrapper);
         }
 
