@@ -1854,11 +1854,14 @@ void setEarlyFrozenModulesFileAttribute(void) {
     Py_ssize_t pos = 0;
     PyObject *key, *value;
 
+    PyObject *builtin_module_names = Nuitka_SysGetObject("builtin_module_names");
+
     while (Nuitka_DictNext(sys_modules, &pos, &key, &value)) {
         if (key != NULL && value != NULL && PyModule_Check(value)) {
             bool is_package = HAS_ATTR_BOOL(value, const_str_plain___path__);
 
-            if (is_package || HAS_ATTR_BOOL(value, const_str_plain___file__)) {
+            if (is_package || HAS_ATTR_BOOL(value, const_str_plain___file__) ||
+                PySequence_Contains(builtin_module_names, key) == 0) {
                 PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(Nuitka_String_AsString(key), is_package, false);
                 PyObject_SetAttr(value, const_str_plain___file__, file_value);
                 Py_DECREF(file_value);
