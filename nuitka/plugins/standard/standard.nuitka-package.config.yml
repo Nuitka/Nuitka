@@ -3462,6 +3462,8 @@
       when: 'not use_pytest'
 
 - module-name: 'skimage.draw'
+  data-files:
+    include-pyi-file: 'yes'
   implicit-imports:
     - depends:
         - 'skimage.draw._draw'
@@ -3510,6 +3512,10 @@
         - 'skimage.filters.rank.core_cy_3d'
         - 'skimage.filters.rank.generic_cy'
         - 'skimage.filters.rank.percentile_cy'
+
+- module-name: 'skimage.future'
+  data-files:
+    include-pyi-file: 'yes'
 
 - module-name: 'skimage.future.graph'
   implicit-imports:
