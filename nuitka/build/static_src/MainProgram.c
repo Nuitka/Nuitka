@@ -20,6 +20,11 @@
  * It needs to prepare the interpreter and then loads and executes
  * the "__main__" module.
  *
+ * For multiprocessing, joblib, loky there is things here that will
+ * allow them to fork properly with their intended entry points.
+ *
+ * spell-checker: ignore joblib loky
+ *
  */
 
 #if defined(_WIN32)
@@ -422,6 +427,11 @@ static bool is_multiprocessing_fork = false;
 // This is a multiprocessing resource tracker if not -1
 static int multiprocessing_resource_tracker_arg = -1;
 
+// This is a joblib loky fork
+static bool is_joblib_popen_loky_posix = false;
+// This is a joblib resource tracker if not -1
+static int loky_resource_tracker_arg = -1;
+
 // Parse the command line parameters and provide it to "sys" built-in module,
 // as well as decide if it's a multiprocessing usage.
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
@@ -430,29 +440,36 @@ static void setCommandLineParameters(int argc, char **argv, bool initial) {
 static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
 #endif
     if (initial) {
-        /* We might need to handle special parameters from plugins that are
-           very deeply woven into command line handling. These are right now
-           multiprocessing, which indicates that it's forking via extra
-           command line argument. And Windows Service indicates need to
-           install and exit here too.
-         */
-        for (int i = 1; i < argc; i++) {
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
-            if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i + 1 < argc))
+        printf("Commandline: ");
+        for (int i = 0; i < argc; i++) {
+            if (i != 0) {
+                printf(" ");
+            }
+            printf("'%s'", argv[i]);
+        }
+        printf("\n");
 #else
-            if ((wcscmp(argv[i], L"--multiprocessing-fork")) == 0 && (i + 1 < argc))
+        wprintf(L"Commandline: '%lS' %d\n", GetCommandLineW(), argc);
 #endif
-            {
+#endif
+
+        // We might need to handle special parameters from plugins that are
+        // very deeply woven into command line handling. These are right now
+        // multiprocessing, which indicates that it's forking via extra
+
+        // command line argument. And Windows Service indicates need to
+        //   install and exit here too.
+
+        for (int i = 1; i < argc; i++) {
+            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-fork")) == 0) {
                 is_multiprocessing_fork = true;
                 break;
             }
 
-#if _NUITKA_NATIVE_WCHAR_ARGV == 0
-            if ((strcmp(argv[i], "--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
-#else
-            if ((wcscmp(argv[i], L"--multiprocessing-resource-tracker")) == 0 && (i + 1 < argc))
-#endif
-            {
+            if ((i + 1 < argc) &&
+                (strcmpFilename(argv[i], FILENAME_EMPTY_STR "--multiprocessing-resource-tracker")) == 0) {
 #if _NUITKA_NATIVE_WCHAR_ARGV == 0
                 multiprocessing_resource_tracker_arg = atoi(argv[i + 1]);
 #else
@@ -463,33 +480,56 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
 
             if (i == 1) {
 #ifdef _NUITKA_PLUGIN_WINDOWS_SERVICE_ENABLED
-#if _NUITKA_NATIVE_WCHAR_ARGV == 0
-                if (strcmp(argv[i], "install") == 0)
-#else
-                if (wcscmp(argv[i], L"install") == 0)
-#endif
-                {
+                if (strcmpFilename(argv[i], FILENAME_EMPTY_STR "install") == 0) {
                     NUITKA_PRINT_TRACE("main(): Calling plugin SvcInstall().");
 
                     SvcInstall();
                     NUITKA_CANNOT_GET_HERE("SvcInstall must not return");
                 }
 #endif
+            }
+
+            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0)) {
+                // The joblib loky resource tracker is launched like this.
+#if _NUITKA_NATIVE_WCHAR_ARGV == 0
+                int res = sscanf(argv[i + 1],
+                                 "from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
+                                 &loky_resource_tracker_arg);
+#else
+                int res = swscanf(argv[i + 1],
+                                  L"from joblib.externals.loky.backend.resource_tracker import main; main(%i, False)",
+                                  &loky_resource_tracker_arg);
+#endif
+                if (res == 1) {
+                    break;
+                }
+            }
+
+            if ((i + 1 < argc) && (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+                // The joblib loky posix popen is launching like this.
+                if (strcmpFilename(argv[i + 1], FILENAME_EMPTY_STR "joblib.externals.loky.backend.popen_loky_posix") ==
+                    0) {
+                    is_joblib_popen_loky_posix = true;
+                    break;
+                }
+            }
 
 #if !defined(_NUITKA_DEPLOYMENT_MODE) && !defined(_NUITKA_NO_DEPLOYMENT_SELF_EXECUTION)
-#if _NUITKA_NATIVE_WCHAR_ARGV == 0
-                if (strcmp(argv[i], "-c") == 0)
-#else
-                if (wcscmp(argv[i], L"-c") == 0)
-#endif
-                {
-                    fprintf(stderr, "Error, the program tried to call itself with '-c' argument. Disable with "
-                                    "'--no-deployment-flag=self-execution'.\n");
-                    exit(2);
-                }
-#endif
+            if ((strcmpFilename(argv[i], FILENAME_EMPTY_STR "-c") == 0) ||
+                (strcmpFilename(argv[i], FILENAME_EMPTY_STR "-m") == 0)) {
+                fprintf(stderr,
+                        "Error, the program tried to call itself with '" FILENAME_FORMAT_STR "' argument. Disable with "
+                        "'--no-deployment-flag=self-execution'.\n",
+                        argv[i]);
+                exit(2);
             }
+#endif
         }
+
+#ifdef _NUITKA_EXPERIMENTAL_DEBUG_SELF_FORKING
+        assert(argc == 1 || is_multiprocessing_fork || is_joblib_popen_loky_posix || loky_resource_tracker_arg != -1 ||
+               multiprocessing_resource_tracker_arg != -1);
+#endif
     }
 }
 
@@ -1354,7 +1394,6 @@ orig_argv = argv;
 
     /* Set the command line parameters for run time usage. */
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
-
     setCommandLineParameters(argc, argv, false);
 
     PySys_SetArgv(argc, orig_argv);
@@ -1500,10 +1539,10 @@ orig_argv = argv;
     PGO_Initialize();
 #endif
 
-    /* Execute the main module unless plugins want to do something else. In case of
-       multiprocessing making a fork on Windows, we should execute "__parents_main__"
-       instead. And for Windows Service we call the plugin C code to call us back
-       to launch main code in a callback. */
+    // Execute the main module unless plugins want to do something else. In case
+    // of multiprocessing making a fork on Windows, we should execute
+    // "__parents_main__" instead. And for Windows Service we call the plugin C
+    // code to call us back to launch main code in a callback.
 #ifdef _NUITKA_PLUGIN_MULTIPROCESSING_ENABLED
     if (unlikely(is_multiprocessing_fork)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
@@ -1512,22 +1551,51 @@ orig_argv = argv;
         int exit_code = HANDLE_PROGRAM_EXIT();
 
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__ Py_Exit.");
+        Py_Exit(exit_code);
+    } else if (unlikely(is_joblib_popen_loky_posix)) {
+        NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix.");
+        PyObject *joblib_popen_loky_posix_module =
+            EXECUTE_MAIN_MODULE("joblib.externals.loky.backend.popen_loky_posix");
 
-        // TODO: Should maybe call Py_Exit here, but there were issues with that.
-        exit(exit_code);
+        // Remove the "-m" like CPython would do as well.
+        int res = PyList_SetSlice(Nuitka_SysGetObject("argv"), 0, 2, const_tuple_empty);
+        assert(res == 0);
+
+        PyObject *main_function = PyObject_GetAttrString(joblib_popen_loky_posix_module, "main");
+        CHECK_OBJECT(main_function);
+
+        CALL_FUNCTION_NO_ARGS(main_function);
+
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
+        NUITKA_PRINT_TRACE("main(): Calling joblib.externals.loky.backend.popen_loky_posix Py_Exit.");
+        Py_Exit(exit_code);
     } else if (unlikely(multiprocessing_resource_tracker_arg != -1)) {
-        NUITKA_PRINT_TRACE("main(): Calling resource_tracker.");
+        NUITKA_PRINT_TRACE("main(): Launching as 'multiprocessing.resource_tracker'.");
         PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("multiprocessing.resource_tracker");
 
         PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
+        CHECK_OBJECT(main_function);
 
         CALL_FUNCTION_WITH_SINGLE_ARG(main_function, PyInt_FromLong(multiprocessing_resource_tracker_arg));
 
         int exit_code = HANDLE_PROGRAM_EXIT();
 
         NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
-        // TODO: Should maybe call Py_Exit here, but there were issues with that.
-        exit(exit_code);
+        Py_Exit(exit_code);
+    } else if (unlikely(loky_resource_tracker_arg != -1)) {
+        NUITKA_PRINT_TRACE("main(): Launching as 'joblib.externals.loky.backend.resource_tracker'.");
+        PyObject *resource_tracker_module = EXECUTE_MAIN_MODULE("joblib.externals.loky.backend.resource_tracker");
+
+        PyObject *main_function = PyObject_GetAttrString(resource_tracker_module, "main");
+        CHECK_OBJECT(main_function);
+
+        CALL_FUNCTION_WITH_SINGLE_ARG(main_function, PyInt_FromLong(loky_resource_tracker_arg));
+
+        int exit_code = HANDLE_PROGRAM_EXIT();
+
+        NUITKA_PRINT_TRACE("main(): Calling resource_tracker Py_Exit.");
+        Py_Exit(exit_code);
     } else {
 #endif
 #if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
