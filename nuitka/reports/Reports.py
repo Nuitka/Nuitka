@@ -98,6 +98,11 @@ def _getReportInputData(aborted):
         (module.getFullName(), module.getUsedModules()) for module in getDoneModules()
     )
 
+    module_distribution_names = dict(
+        (module.getFullName(), module.getUsedDistributions())
+        for module in getDoneModules()
+    )
+
     all_distributions = tuple(
         sorted(
             set(sum(module_distributions.values(), ())),
@@ -214,8 +219,26 @@ def _addModulesToReport(root, report_input_data, diffable):
             for distribution in distributions:
                 TreeXML.appendTreeElement(
                     distributions_xml_node,
-                    "distribution",
+                    "distribution-used",
                     name=distribution.metadata["Name"],
+                )
+
+        module_distribution_names = report_input_data["module_distribution_names"][
+            module_name
+        ]
+
+        if module_distribution_names:
+            module_distribution_names_xml_node = TreeXML.appendTreeElement(
+                module_xml_node,
+                "distribution-lookups",
+            )
+
+            for distribution_name, found in module_distribution_names.items():
+                TreeXML.appendTreeElement(
+                    module_distribution_names_xml_node,
+                    "distribution",
+                    name=distribution_name,
+                    found="yes" if found else "no",
                 )
 
         used_modules_xml_node = TreeXML.appendTreeElement(

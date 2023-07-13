@@ -176,7 +176,7 @@ redundant-u-string-prefix,consider-using-f-string,consider-using-dict-comprehens
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
 --persistent=no
---method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$
+--method-rgx=[a-z_][a-zA-Z0-9_]{2,55}$
 --module-rgx=.*
 --function-rgx=.*
 --variable-rgx=.*

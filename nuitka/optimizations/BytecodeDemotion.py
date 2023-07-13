@@ -82,6 +82,10 @@ def demoteCompiledModuleToBytecode(module):
 
     used_modules = module.getUsedModules()
     uncompiled_module.setUsedModules(used_modules)
+
+    distribution_names = module.getUsedDistributions()
+    uncompiled_module.setUsedDistributions(distribution_names)
+
     module.finalize()
 
     if isImportedModuleByName(full_name):
@@ -92,5 +96,8 @@ def demoteCompiledModuleToBytecode(module):
         replaceTriggerModule(old=module, new=uncompiled_module)
 
     writeImportedModulesNamesToCache(
-        module_name=full_name, source_code=source_code, used_modules=used_modules
+        module_name=full_name,
+        source_code=source_code,
+        used_modules=used_modules,
+        distribution_names=distribution_names,
     )

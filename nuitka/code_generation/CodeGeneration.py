@@ -930,6 +930,8 @@ addExpressionDispatchDict(
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_VERSION_CALL": generateImportlibMetadataBackportVersionCallCode,
         "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_CALL": generateImportlibMetadataDistributionCallCode,
         "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_CALL": generateImportlibMetadataDistributionCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_BACKPORT_DISTRIBUTION_FAILED_CALL": generateImportlibMetadataDistributionCallCode,
+        "EXPRESSION_IMPORTLIB_METADATA_DISTRIBUTION_FAILED_CALL": generateImportlibMetadataDistributionCallCode,
         "EXPRESSION_OS_UNAME_CALL": generateOsUnameCallCode,
         "EXPRESSION_OS_PATH_EXISTS_CALL": generateOsPathExistsCallCode,
         "EXPRESSION_OS_PATH_ISFILE_CALL": generateOsPathIsfileCallCode,

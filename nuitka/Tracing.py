@@ -372,7 +372,11 @@ class FileLogger(OurLogger):
             style = style or self.base_style
             self.my_print(message, style=style)
 
-    def info_fileoutput(self, message, other_logger, style=None):
+    def info_to_file_only(self, message, style=None):
+        if self.file_handle:
+            self.info(message, style=style)
+
+    def info_if_file(self, message, other_logger, style=None):
         if self.file_handle:
             self.info(message, style=style)
         else:

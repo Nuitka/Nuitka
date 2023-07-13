@@ -66,7 +66,7 @@ def signalChange(tags, source_ref, message):
 
 
 def optimizeCompiledPythonModule(module):
-    optimization_logger.info_fileoutput(
+    optimization_logger.info_if_file(
         "Doing module local optimizations for '{module_name}'.".format(
             module_name=module.getFullName()
         ),
@@ -106,20 +106,20 @@ def optimizeCompiledPythonModule(module):
             unchanged_count += 1
 
             if unchanged_count == 1 and pass_count == 1:
-                optimization_logger.info_fileoutput(
+                optimization_logger.info_if_file(
                     "Not changed, but retrying one more time.",
                     other_logger=progress_logger,
                 )
                 continue
 
-            optimization_logger.info_fileoutput(
+            optimization_logger.info_if_file(
                 "Finished with the module.", other_logger=progress_logger
             )
             break
 
         unchanged_count = 0
 
-        optimization_logger.info_fileoutput(
+        optimization_logger.info_if_file(
             "Not finished with the module due to following change kinds: %s"
             % ",".join(sorted(tag_set)),
             other_logger=progress_logger,
@@ -191,7 +191,7 @@ def _restartProgress():
     closeProgressBar()
     pass_count += 1
 
-    optimization_logger.info_fileoutput(
+    optimization_logger.info_if_file(
         "PASS %d:" % pass_count, other_logger=progress_logger
     )
 
@@ -206,7 +206,7 @@ def _restartProgress():
 
 
 def _traceProgressModuleStart(current_module):
-    optimization_logger.info_fileoutput(
+    optimization_logger.info_if_file(
         """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that.""".format(

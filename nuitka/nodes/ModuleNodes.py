@@ -480,6 +480,9 @@ class CompiledPythonModule(
     def getUsedModules(self):
         return self.trace_collection.getModuleUsageAttempts()
 
+    def getUsedDistributions(self):
+        return self.trace_collection.getUsedDistributions()
+
     def addUsedFunction(self, function_body):
         assert function_body in self.subnode_functions, function_body
 
@@ -749,11 +752,18 @@ def makeUncompiledPythonModule(
 
 
 class UncompiledPythonModule(PythonModuleBase):
-    """Compiled Python Module"""
+    """Uncompiled Python Module"""
 
     kind = "UNCOMPILED_PYTHON_MODULE"
 
-    __slots__ = "bytecode", "filename", "user_provided", "technical", "used_modules"
+    __slots__ = (
+        "bytecode",
+        "filename",
+        "user_provided",
+        "technical",
+        "used_modules",
+        "distribution_names",
+    )
 
     def __init__(
         self,
@@ -779,6 +789,7 @@ class UncompiledPythonModule(PythonModuleBase):
         self.technical = technical
 
         self.used_modules = ()
+        self.distribution_names = ()
 
     def finalize(self):
         del self.used_modules
@@ -806,6 +817,12 @@ class UncompiledPythonModule(PythonModuleBase):
 
     def setUsedModules(self, used_modules):
         self.used_modules = used_modules
+
+    def getUsedDistributions(self):
+        return self.distribution_names
+
+    def setUsedDistributions(self, distribution_names):
+        self.distribution_names = distribution_names
 
     @staticmethod
     def startTraversal():
@@ -1045,6 +1062,10 @@ class PythonExtensionModule(PythonModuleBase):
         # The PyI contents is currently delivered via implicit imports
         # plugin.
         return ()
+
+    @staticmethod
+    def getUsedDistributions():
+        return {}
 
     def getParentModule(self):
         return self

@@ -65,7 +65,7 @@ def hasCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
 
 
 # Bump this is format is changed or enhanced implementation might different ones.
-_cache_format_version = 5
+_cache_format_version = 6
 
 
 def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
@@ -125,10 +125,17 @@ def getCachedImportedModuleUsageAttempts(module_name, source_code, source_ref):
             )
         )
 
+    for module_used in data["distribution_names"]:
+        # TODO: Consider distributions found and not found and return None if
+        # something changed there.
+        pass
+
     return result
 
 
-def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
+def writeImportedModulesNamesToCache(
+    module_name, source_code, used_modules, distribution_names
+):
     cache_name = makeCacheName(module_name, source_code)
     cache_filename = _getCacheFilename(cache_name, "json")
 
@@ -142,6 +149,7 @@ def writeImportedModulesNamesToCache(module_name, source_code, used_modules):
         "module_name": module_name.asString(),
         # We use a tuple, so preserve the order.
         "modules_used": used_modules,
+        "distribution_names": distribution_names,
     }
 
     makePath(os.path.dirname(cache_filename))

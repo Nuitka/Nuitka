@@ -841,6 +841,8 @@ from nuitka.nodes.Checkers import (
 
             is_compute_final = pop("final")
 
+            is_compute_final_children = pop("final_children")
+
             is_compute_no_raise = pop("no_raise")
             is_compute_raise = pop("raise")
             is_compute_raise_operation = pop("raise_operation")
@@ -885,6 +887,7 @@ from nuitka.nodes.Checkers import (
                 ),
                 intended_for=intended_for,
                 is_compute_final=is_compute_final,
+                is_compute_final_children=is_compute_final_children,
                 raise_mode=raise_mode,
                 is_compute_statement=is_compute_statement,
                 awaited_constant_attributes=awaited_constant_attributes,
