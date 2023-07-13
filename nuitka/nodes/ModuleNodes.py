@@ -725,7 +725,7 @@ class CompiledPythonPackage(CompiledPythonModule):
 
 
 def makeUncompiledPythonModule(
-    module_name, reason, filename, bytecode, is_package, user_provided, technical
+    module_name, reason, filename, bytecode, is_package, technical
 ):
     source_ref = fromFilename(filename)
 
@@ -735,7 +735,6 @@ def makeUncompiledPythonModule(
             reason=reason,
             bytecode=bytecode,
             filename=filename,
-            user_provided=user_provided,
             technical=technical,
             source_ref=source_ref,
         )
@@ -745,7 +744,6 @@ def makeUncompiledPythonModule(
             reason=reason,
             bytecode=bytecode,
             filename=filename,
-            user_provided=user_provided,
             technical=technical,
             source_ref=source_ref,
         )
@@ -759,7 +757,6 @@ class UncompiledPythonModule(PythonModuleBase):
     __slots__ = (
         "bytecode",
         "filename",
-        "user_provided",
         "technical",
         "used_modules",
         "distribution_names",
@@ -771,7 +768,6 @@ class UncompiledPythonModule(PythonModuleBase):
         reason,
         bytecode,
         filename,
-        user_provided,
         technical,
         source_ref,
     ):
@@ -785,7 +781,6 @@ class UncompiledPythonModule(PythonModuleBase):
         self.bytecode = bytecode
         self.filename = filename
 
-        self.user_provided = user_provided
         self.technical = technical
 
         self.used_modules = ()
@@ -798,9 +793,6 @@ class UncompiledPythonModule(PythonModuleBase):
     @staticmethod
     def isUncompiledPythonModule():
         return True
-
-    def isUserProvided(self):
-        return self.user_provided
 
     def isTechnical(self):
         """Must be bytecode as it's used in CPython library initialization."""

@@ -76,7 +76,6 @@ def demoteCompiledModuleToBytecode(module):
         filename=filename,
         bytecode=bytecode,
         is_package=module.isCompiledPythonPackage(),
-        user_provided=True,
         technical=full_name in detectEarlyImports(),
     )
 

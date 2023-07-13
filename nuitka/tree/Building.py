@@ -1017,7 +1017,6 @@ def _loadUncompiledModuleFromCache(
             source_code=source_code,
             filename=source_ref.getFilename(),
         ),
-        user_provided=False,
         technical=module_name in detectEarlyImports(),
         is_package=is_package,
     )
@@ -1243,7 +1242,6 @@ Cannot compile module '%s' because its code is too complex, included as bytecode
             compile(source_code, module_filename, "exec", dont_inherit=True)
         ),
         is_package=is_package,
-        user_provided=True,
         technical=module_name in detectEarlyImports(),
     )
 
@@ -1293,7 +1291,6 @@ def buildModule(
             filename=module_filename,
             bytecode=loadCodeObjectData(module_filename),
             is_package=is_package,
-            user_provided=False,
             technical=module_name in detectEarlyImports(),
         )
 

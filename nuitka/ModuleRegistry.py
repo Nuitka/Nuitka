@@ -195,20 +195,12 @@ def hasDoneModule(module_name):
     return any(module.getFullName() == module_name for module in done_modules)
 
 
-def getModuleInclusionInfos():
-    return active_modules_info
-
-
 def getModuleInclusionInfoByName(module_name):
     for module, info in active_modules_info.items():
         if module.getFullName() == module_name:
             return info
 
     return None
-
-
-def removeDoneModule(module):
-    done_modules.remove(module)
 
 
 def getModuleFromCodeName(code_name):
