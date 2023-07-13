@@ -36,7 +36,7 @@ from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
 from nuitka.tools.quality.ScanSources import scanTargets
-from nuitka.Tracing import my_print
+from nuitka.Tracing import my_print, tools_logger
 from nuitka.utils.FileOperations import (
     getFileContents,
     openTextFile,
@@ -53,7 +53,7 @@ from nuitka.utils.Yaml import (
 def checkYamllint(document):
     import yamllint.cli  # pylint: disable=I0021,import-error
 
-    my_print("Checking %r for proper yaml ..." % document, style="blue")
+    my_print("Checking %r for proper yaml:" % document, style="blue")
     try:
         yamllint.cli.run([document])
     except SystemExit as e:
@@ -64,7 +64,7 @@ def checkYamllint(document):
     if lint_result != 0:
         sys.exit("Error, no lint clean yaml.")
 
-    my_print("OK.", style="blue")
+    my_print("OK, yamllint passed.", style="blue")
 
 
 def checkSchema(document):
@@ -82,7 +82,11 @@ def checkSchema(document):
                     schema=json.loads(schema_file.read())
                 ).validate(instance=yaml.load(yaml_file, yaml.BaseLoader))
             except ValidationError:
-                sys.exit("Error, please fix the errors in yaml.")
+                tools_logger.sysexit(
+                    "Error, please fix the schema errors in '%s' yaml file." % document
+                )
+            else:
+                my_print("OK, schema validated", style="blue")
 
 
 def _checkValues(filename, module_name, section, value):
