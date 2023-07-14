@@ -5122,6 +5122,13 @@
     - no-auto-follow:
         - 'pandas'
 
+- module-name: 'transformers'
+  data-files:
+    include-metadata:
+      - 'torch'
+      - 'flax'
+      - 'tensorflow'
+
 - module-name: 'transformers.integrations'
   anti-bloat:
     - description: 'remove IPython reference'
