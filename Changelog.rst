@@ -10,6 +10,102 @@ Nuitka blog.
  Nuitka Release 1.8 (Draft)
 ****************************
 
+Bug Fixes
+=========
+
+-  Standalone: Added support for "opentelemetry" package. Added in 1.7.1
+   already.
+
+-  Reports: Fix, do not report plugin influence when there are not
+   ``no-auto-follow`` in an anti-bloat section. Fixed in 1.7.2 already.
+
+-  Anti-Bloat: Add missing usage tag ``use_pytest`` for anti-bloat
+   changes that remove ``pytest`` related codes. Fixed in 1.7.2 already.
+
+-  Standalone: Added support for newer ``jsonschema`` package. Fixed in
+   1.7.2 already.
+
+-  Standalone: Fix, our ``iterdir`` implementation was crashing in
+   ``files`` for packages that don't actually have a directory for data
+   files to live in. Fixed in 1.7.2 already.
+
+-  Fix, parent package imports could pick the wrong name internally and
+   then collide with sub-packages of that package during collision.
+   Fixed in 1.7.3 already.
+
+-  Standalone: Added support for ``pymssql`` package. Fixed in 1.7.3
+   already.
+
+-  Standalone: Added support for ``cvxpy`` package. Fixed in 1.7.4
+   already.
+
+-  Standalone: Added missing dependencies of ``lib2to3.refactor``. Fixed
+   in 1.7.4 already.
+
+-  Standalone: Fix, data files for ``lib2to3.pgen`` were regressed.
+   Fixed in 1.7.4 already.
+
+-  Standalone: Added missing dependency of ``cairo`` package. Fixed in
+   1.7.4 already.
+
+-  Standalone: Added support for new ``trio`` package. Fixed in 1.7.4
+   already.
+
+-  Standalone: Added support for ``markdown`` package. Fixed in 1.7.4
+   already.
+
+-  Standalone: Added support to ``eventlet`` package. Fixed in 1.7.4
+   already.
+
+-
+
+-  Added support for more newer ``sklearn`` package. Fixed in 1.7.5
+   already.
+
+-  Added support for more newer ``skimage`` package. Fixed in 1.7.5
+   already.
+
+-  Added support for more newer ``transformers`` package. Fixed in 1.7.5
+   already.
+
+New Features
+============
+
+-  Plugins: Added support to specify embedding of metadata for given
+   packages via the package configuration. With this, entry points,
+   version, etc. can even be resolved if not currently possible at
+   compile time to so through the code with static optimization. Added
+   in 1.7.1 already.
+
+   .. code:: yaml
+
+      - module-name: 'opentelemetry.propagate'
+        data-files:
+          include-metadata:
+            - 'opentelemetry-api'
+
+Optimization
+============
+
+-  Anti-Bloat: Avoid using ``unittest`` in ``future`` and
+   ``multiprocessing`` package. Added in 1.7.3 already.
+
+-  Anti-Bloat: Avoid using ``unittest`` in ``git`` package. Added in
+   1.7.3 already.
+
+-  Anti-Bloat: Avoid ``IPython`` in ``streamlit`` package.
+
+Organisational
+==============
+
+-  Debugging: Catch errors during data composer phase cleaner. Added in
+   1.7.1 already.
+
+-  Plugins: More clear error messages for Yaml files checker. Added in
+   1.7.5 already.
+
+-  Release: Avoid DNS lookup by container, these sometimes failed.
+
 This release is not done yet.
 
 ********************
@@ -474,7 +570,7 @@ Bug Fixes
    .. code:: python
 
       # Was crashing
-      "value" in ``some_dict if condition else other_dict``
+      "value" in some_dict if condition else other_dict
 
    Fixed in 1.5.1 already.
 
