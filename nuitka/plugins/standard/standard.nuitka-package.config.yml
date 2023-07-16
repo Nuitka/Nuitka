@@ -5547,6 +5547,13 @@
         macos_bundle: 'yes'
         when: 'macos'
 
+- module-name: 'wx.html2'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32'
+
 - module-name: 'xarray'
   data-files:
     dirs:
