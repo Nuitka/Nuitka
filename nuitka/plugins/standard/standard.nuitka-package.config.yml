@@ -1215,6 +1215,13 @@
       replacements_plain:
         'from keras.testing_infra.test_utils import layer_test': ''
 
+- module-name: 'keras.src.utils.vis_utils'
+  anti-bloat:
+    - description: 'remove IPython reference'
+      no-auto-follow:
+        'IPython': 'ignore'
+      when: 'not use_ipython'
+
 - module-name: 'keras.utils.vis_utils'
   anti-bloat:
     - description: 'remove IPython reference'
