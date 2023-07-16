@@ -5047,6 +5047,24 @@
           @classmethod
           def _dp_init_subclass
 
+- module-name: 'torch_scatter'
+  anti-bloat:
+    - description: 'workaround finding DLLs as modules by wrong names'
+      replacements_plain:
+        "f'{library}_cuda', [osp.dirname(__file__)]": "f'torch_scatter.{library}_cuda'"
+        "f'{library}_cpu', [osp.dirname(__file__)]": "f'torch_scatter.{library}_cpu'"
+        'importlib.machinery.PathFinder()': 'importlib.util'
+  implicit-imports:
+    - depends:
+        - '._version_cpu'
+        - '._scatter_cpu'
+        - '._segment_csr_cpu'
+        - '._segment_coo_cpu'
+        - '._version_cuda'
+        - '._scatter_cuda'
+        - '._segment_csr_cuda'
+        - '._segment_coo_cuda'
+
 - module-name: 'torchaudio'
   import-hacks:
     - find-dlls-near-module:
