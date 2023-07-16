@@ -613,8 +613,6 @@ class TraceCollectionBase(object):
         if expression is None and allow_none:
             return None
 
-        # assert expression.isExpression(), expression
-
         parent = expression.parent
         assert parent, expression
 
@@ -634,8 +632,6 @@ class TraceCollectionBase(object):
 
     def onStatement(self, statement):
         try:
-            assert statement.isStatement(), statement
-
             new_statement, change_tags, change_desc = statement.computeStatement(self)
 
             # print new_statement, change_tags, change_desc

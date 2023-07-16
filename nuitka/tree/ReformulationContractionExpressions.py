@@ -453,7 +453,8 @@ def _buildContractionBodyNode(
             source_ref=source_ref,
         )
 
-    if current_body.isExpression():
+    # TODO: For as long as statement/expression merge are not complete.
+    if current_body.kind.startswith("EXPRESSION"):
         current_body = StatementExpressionOnly(
             expression=current_body, source_ref=source_ref
         )

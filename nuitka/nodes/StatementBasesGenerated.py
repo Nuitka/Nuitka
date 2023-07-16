@@ -870,7 +870,7 @@ StatementRaiseExceptionBase = StatementChildrenHavingExceptionTypeExceptionValue
 StatementRaiseExceptionImplicitBase = StatementChildrenHavingExceptionTypeExceptionValueOptionalExceptionTraceOptionalExceptionCauseOptionalOperationPostInitMixin
 
 
-class StatementChildHavingExpressionAttributeNameMixin(StatementBase):
+class StatementChildHavingExpressionOperationAttributeNameMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -935,6 +935,20 @@ class StatementChildHavingExpressionAttributeNameMixin(StatementBase):
         self.subnode_expression.finalize()
         del self.subnode_expression
 
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
     def collectVariableAccesses(self, emit_read, emit_write):
         """Collect variable reads and writes of child nodes."""
 
@@ -942,7 +956,7 @@ class StatementChildHavingExpressionAttributeNameMixin(StatementBase):
 
 
 # Assign the names that are easier to import with a stable name.
-StatementDelAttributeBase = StatementChildHavingExpressionAttributeNameMixin
+StatementDelAttributeBase = StatementChildHavingExpressionOperationAttributeNameMixin
 
 
 class StatementChildHavingExpressionMixin(StatementBase):
@@ -2129,7 +2143,9 @@ StatementAssignmentVariableIteratorBase = (
 )
 
 
-class StatementChildHavingSourcePostInitLocalsScopeVariableNameMixin(StatementBase):
+class StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin(
+    StatementBase
+):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2204,6 +2220,20 @@ class StatementChildHavingSourcePostInitLocalsScopeVariableNameMixin(StatementBa
 
         del self.locals_scope
 
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
     def collectVariableAccesses(self, emit_read, emit_write):
         """Collect variable reads and writes of child nodes."""
 
@@ -2212,11 +2242,11 @@ class StatementChildHavingSourcePostInitLocalsScopeVariableNameMixin(StatementBa
 
 # Assign the names that are easier to import with a stable name.
 StatementLocalsDictOperationSetBase = (
-    StatementChildHavingSourcePostInitLocalsScopeVariableNameMixin
+    StatementChildHavingSourceOperationPostInitLocalsScopeVariableNameMixin
 )
 
 
-class StatementChildrenHavingSourceExpressionAttributeNameMixin(StatementBase):
+class StatementChildrenHavingSourceExpressionOperationAttributeNameMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2302,6 +2332,20 @@ class StatementChildrenHavingSourceExpressionAttributeNameMixin(StatementBase):
         self.subnode_expression.finalize()
         del self.subnode_expression
 
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
     def collectVariableAccesses(self, emit_read, emit_write):
         """Collect variable reads and writes of child nodes."""
 
@@ -2311,7 +2355,7 @@ class StatementChildrenHavingSourceExpressionAttributeNameMixin(StatementBase):
 
 # Assign the names that are easier to import with a stable name.
 StatementAssignmentAttributeBase = (
-    StatementChildrenHavingSourceExpressionAttributeNameMixin
+    StatementChildrenHavingSourceExpressionOperationAttributeNameMixin
 )
 
 
@@ -2469,7 +2513,7 @@ StatementAssignmentSliceBase = (
 )
 
 
-class StatementChildrenHavingSourceSubscribedSubscriptMixin(StatementBase):
+class StatementChildrenHavingSourceSubscribedSubscriptOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2565,6 +2609,20 @@ class StatementChildrenHavingSourceSubscribedSubscriptMixin(StatementBase):
         self.subnode_subscript.finalize()
         del self.subnode_subscript
 
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
     def collectVariableAccesses(self, emit_read, emit_write):
         """Collect variable reads and writes of child nodes."""
 
@@ -2574,7 +2632,9 @@ class StatementChildrenHavingSourceSubscribedSubscriptMixin(StatementBase):
 
 
 # Assign the names that are easier to import with a stable name.
-StatementAssignmentSubscriptBase = StatementChildrenHavingSourceSubscribedSubscriptMixin
+StatementAssignmentSubscriptBase = (
+    StatementChildrenHavingSourceSubscribedSubscriptOperationMixin
+)
 
 
 class StatementChildrenHavingSourceCodeGlobalsArgAutoNoneLocalsArgAutoNoneOperationMixin(
@@ -2831,7 +2891,7 @@ StatementsFrameModuleBase = StatementChildHavingStatementsTupleMixin
 StatementsSequenceBase = StatementChildHavingStatementsTupleMixin
 
 
-class StatementChildrenHavingSubscribedSubscriptMixin(StatementBase):
+class StatementChildrenHavingSubscribedSubscriptOperationMixin(StatementBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()
 
@@ -2910,6 +2970,20 @@ class StatementChildrenHavingSubscribedSubscriptMixin(StatementBase):
         self.subnode_subscript.finalize()
         del self.subnode_subscript
 
+    def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection=trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        return self.computeStatementOperation(trace_collection)
+
+    @abstractmethod
+    def computeStatementOperation(self, trace_collection):
+        """Must be overloaded for non-final node."""
+
     def collectVariableAccesses(self, emit_read, emit_write):
         """Collect variable reads and writes of child nodes."""
 
@@ -2918,7 +2992,7 @@ class StatementChildrenHavingSubscribedSubscriptMixin(StatementBase):
 
 
 # Assign the names that are easier to import with a stable name.
-StatementDelSubscriptBase = StatementChildrenHavingSubscribedSubscriptMixin
+StatementDelSubscriptBase = StatementChildrenHavingSubscribedSubscriptOperationMixin
 
 
 class StatementChildrenHavingTriedStatementsExceptHandlerOptionalStatementsOrNoneBreakHandlerOptionalStatementsOrNoneContinueHandlerOptionalStatementsOrNoneReturnHandlerOptionalStatementsOrNonePostInitMixin(

@@ -313,12 +313,12 @@ def mergeStatements(statements, allow_none=False):
             pass
         elif type(statement) in (tuple, list):
             merged_statements += mergeStatements(statement, allow_none)
-        elif statement.isStatement() or statement.isStatementsFrame():
+        elif statement.isStatementsFrame():
             merged_statements.append(statement)
         elif statement.isStatementsSequence():
             merged_statements.extend(mergeStatements(statement.subnode_statements))
         else:
-            assert False, statement
+            merged_statements.append(statement)
 
     return tuple(merged_statements)
 
@@ -332,8 +332,6 @@ def makeStatementsSequenceReplacementNode(statements, node):
 
 
 def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
-    assert new_node.isExpression()
-
     from .SideEffectNodes import ExpressionSideEffects
 
     if side_effects:

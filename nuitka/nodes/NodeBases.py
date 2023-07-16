@@ -332,14 +332,6 @@ class NodeBase(NodeMetaClassBase):
         # For overload by module nodes
         return False
 
-    @abstractmethod
-    def isExpression(self):
-        """Is an expression node."""
-
-    @abstractmethod
-    def isStatement(self):
-        """Is a statement node."""
-
     def isExpressionBuiltin(self):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
 
@@ -711,14 +703,6 @@ class StatementBase(NodeBase):
 
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    @staticmethod
-    def isStatement():
-        return True
-
-    @staticmethod
-    def isExpression():
-        return False
-
     # TODO: Have them all.
     # @abstractmethod
     @staticmethod
@@ -735,8 +719,6 @@ class StatementBase(NodeBase):
         expressions = self.getVisitableNodes()
 
         for count, expression in enumerate(expressions):
-            assert expression.isExpression(), (self, expression)
-
             expression = trace_collection.onExpression(expression)
 
             if expression.willRaiseAnyException():

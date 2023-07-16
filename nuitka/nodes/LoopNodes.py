@@ -54,7 +54,7 @@ class StatementLoop(StatementLoopBase):
         "incomplete_count",
     )
 
-    # false alarm due to post_init, pylint: disable=attribute-defined-outside-init
+    # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     def postInitNode(self):
         # Variables used inside the loop.

@@ -866,8 +866,6 @@ def makeExpressionFunctionCreation(
     if kw_defaults is not None and kw_defaults.isExpressionConstantDictEmptyRef():
         kw_defaults = None
 
-    assert kw_defaults is None or kw_defaults.isExpression()
-    assert annotations is None or annotations.isExpression()
     assert function_ref.isExpressionFunctionRef()
 
     return ExpressionFunctionCreation(

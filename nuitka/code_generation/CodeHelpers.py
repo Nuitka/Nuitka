@@ -82,12 +82,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none=False
     assert not hasattr(expression, "code_generated"), expression
     expression.code_generated = True
 
-    if not expression.isExpression():
-        printError("No expression %r" % expression)
-
-        expression.dump()
-        assert False, expression
-
     try:
         code_generator = expression_dispatch_dict[expression.kind]
     except KeyError:

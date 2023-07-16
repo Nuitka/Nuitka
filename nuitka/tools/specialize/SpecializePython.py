@@ -676,8 +676,9 @@ def _addFromNode(node_class):
     ) = _parseNamedChildrenSpec(named_children)
 
     mixin_name = makeMixinName(
-        node_class.isExpression(),
-        node_class.isStatement() or node_class.isStatementsSequence(),
+        # TODO: Subject to dying, we now make this up on the fly.
+        node_class.kind.startswith("EXPRESSION"),
+        node_class.kind.startswith("STATEMENT"),
         tuple(new_named_children),
         named_children_types,
         named_children_checkers,
@@ -697,8 +698,9 @@ def _addFromNode(node_class):
         print("Not done", node_class.__name__, named_children, mixin_name)
 
     addChildrenMixin(
-        node_class.isExpression(),
-        node_class.isStatement() or node_class.isStatementsSequence(),
+        # TODO: Subject to dying, we now make this up on the fly.
+        node_class.kind.startswith("EXPRESSION"),
+        node_class.kind.startswith("STATEMENT"),
         node_class.__name__,
         tuple(new_named_children),
         named_children_types,
