@@ -2102,6 +2102,21 @@
         'maybe_use_numba(engine)': 'False'
       when: 'not use_numba'
 
+- module-name: 'pandas.io.clipboard'
+  anti-bloat:
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'qtpy': 'pandas will not be able to use Qt for clipboard interaction'
+        'PyQt5': 'pandas will not be able to use Qt for clipboard interaction'
+        'PyQt4': 'pandas will not be able to use Qt for clipboard interaction'
+      when: 'not plugin("pyqt5") and not plugin("pyqt6") and not plugin("pyside2") and not plugin("pyside6")'
+    - description: 'avoid Qt dependency'
+      no-auto-follow:
+        'qtpy': 'ignore'
+        'PyQt5': 'ignore'
+        'PyQt4': 'ignore'
+      when: 'plugin("no-qt")'
+
 - module-name: 'pandas.io.excel._base'
   anti-bloat:
     - description: 'remove useless distutils usage'
