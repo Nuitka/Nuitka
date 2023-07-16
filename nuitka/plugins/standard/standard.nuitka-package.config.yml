@@ -4925,8 +4925,8 @@
 - module-name: 'tensorflow.python.keras.utils.vis_utils'
   anti-bloat:
     - description: 'remove IPython reference'
-      replacements_plain:
-        'from IPython import display': 'raise ImportError'
+      no-auto-follow:
+        'IPython': 'ignore'
       when: 'not use_ipython'
 
 - module-name: 'tensorflow.python.ops.distributions.distribution'
