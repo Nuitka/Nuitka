@@ -57,16 +57,23 @@ Bug Fixes
 -  Standalone: Added support to ``eventlet`` package. Fixed in 1.7.4
    already.
 
--
+-  Standalone: Added support for more newer ``sklearn`` package. Fixed
+   in 1.7.5 already.
 
--  Added support for more newer ``sklearn`` package. Fixed in 1.7.5
-   already.
+-  Standalone: Added support for more newer ``skimage`` package. Fixed
+   in 1.7.5 already.
 
--  Added support for more newer ``skimage`` package. Fixed in 1.7.5
-   already.
+-  Standalone: Added support for more newer ``transformers`` package.
+   Fixed in 1.7.5 already.
 
--  Added support for more newer ``transformers`` package. Fixed in 1.7.5
-   already.
+-  Standalone: Added support for ``torch_scatter`` package. Fixed in
+   1.7.6 already.
+
+-  Standalone: Added missing DLL for ``wx.html2`` to work well on
+   Windows. Fixed in 1.7.6 already.
+
+-  Fix, the ``@qtqtSlot`` decoration could crash the compilation and was
+   effective even if no pyqt plugin was active. Fixed in 1.7.6 already.
 
 New Features
 ============
