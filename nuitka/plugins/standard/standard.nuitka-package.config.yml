@@ -1755,6 +1755,19 @@
       replacements_plain:
         'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
 
+- module-name: 'opentelemetry.exporter.jaeger.thrift'
+  import-hacks:
+    - global-sys-path:
+        # This package forces itself into "sys.path" and expects absolute
+        # imports like "jaeger" to be available.
+        - 'gen'
+
+- module-name: 'opentelemetry.exporter.jaeger.thrift.gen'
+  anti-bloat:
+    - description: 'remove "sys.path" hack'
+      replacements_plain:
+        'sys.path.append': ''
+
 - module-name: 'opentelemetry.propagate'
   data-files:
     include-metadata:
