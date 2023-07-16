@@ -5054,6 +5054,11 @@
     - acceptable-missing-dlls:
         - '_torchaudio_ffmpeg'
 
+- module-name: 'torchaudio.lib._torchaudio'
+  implicit-imports:
+    - depends:
+        - 'torchaudio.lib.libtorchaudio'
+
 - module-name: 'torchmetrics.utilities.checks'
   anti-bloat:
     - description: 'remove unittest reference'
