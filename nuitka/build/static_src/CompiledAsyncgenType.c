@@ -1283,8 +1283,7 @@ static PyObject *Nuitka_AsyncgenValueWrapper_New(PyObject *value) {
     CHECK_OBJECT(value);
 
 #if _DEBUG_REFCOUNTS
-    count_active_Nuitka_AsyncgenValueWrapper_Type -= 1;
-    count_released_Nuitka_AsyncgenValueWrapper_Type += 1;
+    count_active_Nuitka_AsyncgenValueWrapper_Type += 1;
 #endif
 
     struct Nuitka_AsyncgenWrappedValueObject *result;
