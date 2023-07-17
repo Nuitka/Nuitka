@@ -403,17 +403,6 @@ def _buildContractionBodyNode(
             )
         )
 
-    if for_asyncgen and python_version >= 0x370 and node.generators[0].is_async:
-        statements.append(
-            makeStatementAssignmentVariable(
-                variable=iter_tmp,
-                source=ExpressionTempVariableRef(
-                    variable=iter_tmp, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
     if start_value is not None:
         statements.append(
             makeStatementAssignmentVariable(
@@ -440,7 +429,11 @@ def _buildContractionBodyNode(
             assert emit_class is ExpressionYield
 
             current_body = emit_class(
-                buildNode(provider=function_body, node=node.elt, source_ref=source_ref),
+                buildNode(
+                    provider=function_body,
+                    node=node.elt,
+                    source_ref=source_ref,
+                ),
                 source_ref=source_ref,
             )
     else:
