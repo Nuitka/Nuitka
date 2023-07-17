@@ -312,6 +312,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
 
     if (asyncgen->m_status == status_Unused && value != NULL && value != Py_None) {
         // No exception if value is given.
+        Py_XDECREF(value);
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started async generator");
         return PYGEN_ERROR;
@@ -319,6 +320,8 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
 
     if (asyncgen->m_status != status_Finished) {
         if (asyncgen->m_running) {
+            Py_XDECREF(value);
+
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "async generator already executing");
             return PYGEN_ERROR;
         }
@@ -332,6 +335,10 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
         if (asyncgen->m_status == status_Unused) {
             asyncgen->m_status = status_Running;
             assert(asyncgen->m_resume_frame == NULL);
+
+            // Value will not be used, can only be Py_None or NULL.
+            Py_XDECREF(value);
+            value = NULL;
         } else {
             assert(asyncgen->m_resume_frame);
             pushFrameStackGenerator(asyncgen->m_resume_frame);
@@ -367,7 +374,9 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
         if (asyncgen->m_yieldfrom == NULL) {
             yielded = ((asyncgen_code)asyncgen->m_code)(asyncgen, value);
         } else {
+            // This does not release the value if any, so we need to do it afterwards.
             yielded = Nuitka_YieldFromAsyncgenInitial(asyncgen, value);
+            Py_XDECREF(value);
         }
 
         // If the asyncgen returns with m_yieldfrom set, it wants us to yield
@@ -458,7 +467,7 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
         } else {
             // For normal yield, wrap the result value before returning.
             if (asyncgen->m_yieldfrom == NULL) {
-                // TODO: Why not transfer ownership to constructor.
+                // Transferred ownership to constructor of Nuitka_AsyncgenValueWrapper
                 PyObject *wrapped = Nuitka_AsyncgenValueWrapper_New(yielded);
                 yielded = wrapped;
 
@@ -469,6 +478,8 @@ static PySendResult _Nuitka_Asyncgen_sendR(struct Nuitka_AsyncgenObject *asyncge
             return PYGEN_NEXT;
         }
     } else {
+        Py_XDECREF(value);
+
         // Release exception if any, we are finished with it and will raise another.
         Py_XDECREF(exception_type);
         Py_XDECREF(exception_value);
@@ -907,12 +918,13 @@ static PyObject *Nuitka_Asyncgen_athrow(struct Nuitka_AsyncgenObject *asyncgen, 
 }
 
 #if PYTHON_VERSION >= 0x3a0
-static PySendResult _Nuitka_Asyncgen_amsend(struct Nuitka_AsyncgenObject *asyncgen, PyObject *arg, PyObject **result) {
+static PySendResult _Nuitka_Asyncgen_am_send(struct Nuitka_AsyncgenObject *asyncgen, PyObject *arg, PyObject **result) {
 #if _DEBUG_ASYNCGEN
     PRINT_ASYNCGEN_STATUS("Enter", asyncgen);
 #endif
 
     *result = NULL;
+    Py_INCREF(arg);
     PySendResult res = _Nuitka_Asyncgen_sendR(asyncgen, arg, false, NULL, NULL, NULL, result);
 
 #if _DEBUG_ASYNCGEN
@@ -1057,7 +1069,7 @@ static PyAsyncMethods Nuitka_Asyncgen_as_async = {
     (unaryfunc)Nuitka_Asyncgen_anext // am_anext
 #if PYTHON_VERSION >= 0x3a0
     ,
-    (sendfunc)_Nuitka_Asyncgen_amsend // am_anext
+    (sendfunc)_Nuitka_Asyncgen_am_send // am_send
 #endif
 };
 
@@ -1491,14 +1503,13 @@ static PyObject *Nuitka_AsyncgenAsend_send(struct Nuitka_AsyncgenAsendObject *as
 #if PYTHON_VERSION >= 0x380
     asyncgen_asend->m_gen->m_running_async = true;
 #endif
-    // TODO: Who releases arg.
-    // Py_INCREF(arg);
 
 #if _DEBUG_ASYNCGEN
     PRINT_STRING("Deferring to _Nuitka_Asyncgen_send\n");
     PRINT_NEW_LINE();
 #endif
 
+    Py_INCREF(arg);
     PyObject *result = _Nuitka_Asyncgen_send(asyncgen_asend->m_gen, arg, false, NULL, NULL, NULL);
 
 #if _DEBUG_ASYNCGEN

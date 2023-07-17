@@ -96,7 +96,7 @@ def simpleFunction3():
     async def f():
         result = []
 
-        # Python 3.5 before 3.2 won't allow this.
+        # Python 3.5 before 3.5.2 won't allow this.
         try:
             async for letter in AsyncIteratorWrapper("abcdefg"):
                 result.append(letter)
