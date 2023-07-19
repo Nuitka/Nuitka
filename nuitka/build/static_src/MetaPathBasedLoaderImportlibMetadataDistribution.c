@@ -46,9 +46,9 @@ PyObject *Nuitka_Distribution_New(PyObject *name) {
         static char const *nuitka_distribution_code = "\n\
 import os,sys\n\
 if sys.version_info >= (3, 8):\n\
-    from importlib.metadata import Distribution,distribution,EntryPoints\n\
+    from importlib.metadata import Distribution,distribution\n\
 else:\n\
-    from importlib_metadata import Distribution,distribution,EntryPoints\n\
+    from importlib_metadata import Distribution,distribution\n\
 class nuitka_distribution(Distribution):\n\
     def __init__(self, base_path, metadata, entry_points):\n\
         self.base_path = base_path; self.metadata_data = metadata\n\
