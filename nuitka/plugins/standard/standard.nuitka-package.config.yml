@@ -1153,6 +1153,19 @@
         'from IPython import display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'keyring'
+  data-files:
+    include-metadata:
+      - 'keyring'
+  implicit-imports:
+    - depends:
+        - 'keyring.backends.*'
+
+- module-name: 'keyring.backends.Windows'
+  implicit-imports:
+    - depends:
+        - 'win32timezone'
+
 - module-name: 'kivy'
   data-files:
     dirs:
