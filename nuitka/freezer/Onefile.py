@@ -48,8 +48,14 @@ from nuitka.utils.FileOperations import (
     removeDirectory,
 )
 from nuitka.utils.InstalledPythons import findInstalledPython
+from nuitka.utils.SharedLibraries import cleanupHeaderForAndroid
 from nuitka.utils.Signing import addMacOSCodeSignature
-from nuitka.utils.Utils import isMacOS, isWin32OrPosixWindows, isWin32Windows
+from nuitka.utils.Utils import (
+    isAndroidBasedLinux,
+    isMacOS,
+    isWin32OrPosixWindows,
+    isWin32Windows,
+)
 from nuitka.utils.WindowsResources import RT_RCDATA, addResourceToFile
 
 
@@ -227,6 +233,9 @@ def packDistFolderToOnefileBootstrap(onefile_output_filename, dist_dir):
 
     if isWin32Windows():
         executePostProcessingResources(manifest=None, onefile=True)
+
+    if isAndroidBasedLinux():
+        cleanupHeaderForAndroid(onefile_output_filename)
 
     Plugins.onBootstrapBinary(onefile_output_filename)
 

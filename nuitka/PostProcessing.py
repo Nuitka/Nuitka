@@ -45,7 +45,7 @@ from nuitka.utils.Images import convertImageToIconFormat
 from nuitka.utils.MacOSApp import createPlistInfoFile
 from nuitka.utils.SharedLibraries import (
     callInstallNameTool,
-    convertRPathToRunPath,
+    cleanupHeaderForAndroid,
 )
 from nuitka.utils.Utils import isAndroidBasedLinux, isMacOS, isWin32Windows
 from nuitka.utils.WindowsResources import (
@@ -377,8 +377,8 @@ def executePostProcessing():
         if os.path.exists(candidate):
             os.unlink(candidate)
 
-    if isAndroidBasedLinux() and not Options.shallMakeModule():
-        convertRPathToRunPath(result_filename)
+    if isAndroidBasedLinux():
+        cleanupHeaderForAndroid(result_filename)
 
     # Might have to create a CMD file, potentially with debugger run.
     if Options.shallCreateCmdFileForExecution():

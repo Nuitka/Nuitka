@@ -333,14 +333,20 @@ def getNullInput():
         return subprocess.NULLDEV
 
 
-def executeToolChecked(logger, command, absence_message, stderr_filter=None):
+def executeToolChecked(
+    logger, command, absence_message, stderr_filter=None, optional=False
+):
     """Execute external tool, checking for success and no error outputs, returning result."""
 
     command = list(command)
     tool = command[0]
 
     if not isExecutableCommand(tool):
-        logger.sysexit(absence_message)
+        if optional:
+            logger.warning(absence_message)
+            return 0, b"", b""
+        else:
+            logger.sysexit(absence_message)
 
     # Allow to avoid repeated scans in PATH for the tool.
     command[0] = getExecutablePath(tool)
