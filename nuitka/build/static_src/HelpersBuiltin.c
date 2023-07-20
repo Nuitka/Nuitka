@@ -243,6 +243,25 @@ PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering,
 
 #endif
 
+NUITKA_DEFINE_BUILTIN(input);
+
+PyObject *BUILTIN_INPUT(PyObject *prompt) {
+    NUITKA_ASSIGN_BUILTIN(input);
+
+#if NUITKA_STDERR_NOT_VISIBLE && (PYTHON_VERSION >= 0x300 || !defined(_WIN32))
+    if (prompt != NULL) {
+        PRINT_ITEM(prompt);
+        prompt = NULL;
+    }
+#endif
+
+    if (prompt == NULL) {
+        return CALL_FUNCTION_NO_ARGS(NUITKA_ACCESS_BUILTIN(input));
+    } else {
+        return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(input), prompt);
+    }
+}
+
 /** The "staticmethod" built-in.
  *
  **/

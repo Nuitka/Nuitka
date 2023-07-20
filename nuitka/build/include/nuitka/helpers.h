@@ -279,6 +279,9 @@ extern PyObject *BUILTIN_STATICMETHOD(PyObject *function);
 // For built-in classmethod() functionality.
 extern PyObject *BUILTIN_CLASSMETHOD(PyObject *function);
 
+// For built-in input() functionality, prompt can be NULL.
+extern PyObject *BUILTIN_INPUT(PyObject *prompt);
+
 // For built-in "int()" functionality with 2 arguments.
 extern PyObject *BUILTIN_INT2(PyObject *value, PyObject *base);
 
