@@ -1412,7 +1412,7 @@ def isShowScons():
 def getJobLimit():
     """*int*, value of ``--jobs`` / "-j" or number of CPU kernels"""
     if options.jobs is None:
-        if options.low_memory:
+        if isLowMemory():
             return 1
         else:
             return getCPUCoreCount()

@@ -163,6 +163,7 @@ def runOnefileCompressor(
             expect_compression=compressor_python is not None,
             file_checksums=file_checksums,
             win_path_sep=win_path_sep,
+            low_memory=Options.isLowMemory(),
         )
     else:
         onefile_compressor_path = os.path.normpath(
@@ -192,6 +193,7 @@ def runOnefileCompressor(
                     start_binary,
                     str(file_checksums),
                     str(win_path_sep),
+                    str(Options.isLowMemory()),
                 ],
                 shell=False,
             )
