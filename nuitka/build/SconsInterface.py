@@ -280,10 +280,6 @@ def runScons(options, env_values, scons_filename):
                 options["result_exe"] = getExternalUsePath(
                     options["result_exe"], only_dirname=True
                 )
-            if "compiled_exe" in options:
-                options["compiled_exe"] = getExternalUsePath(
-                    options["compiled_exe"], only_dirname=True
-                )
 
         else:
             source_dir = None

@@ -111,9 +111,6 @@ static_src = os.path.join(source_dir, "static")
 # The name of executable that we produce
 result_exe = getArgumentDefaulted("result_exe", None)
 
-# The name of executable that we that copy resources from
-compiled_exe = getArgumentDefaulted("compiled_exe", None)
-
 # The suffix for an extension module (in module mode).
 module_suffix = getArgumentDefaulted("module_suffix", None)
 

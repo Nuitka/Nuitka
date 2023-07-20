@@ -82,7 +82,6 @@ def _runOnefileScons(onefile_compression):
         "debug_mode": asBoolStr(Options.is_debug),
         "trace_mode": asBoolStr(Options.shallTraceExecution()),
         "nuitka_src": getSconsDataPath(),
-        "compiled_exe": OutputDirectories.getResultFullpath(onefile=False),
         "onefile_splash_screen": asBoolStr(
             Options.getWindowsSplashScreen() is not None
         ),
