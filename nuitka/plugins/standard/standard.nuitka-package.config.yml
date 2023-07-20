@@ -5585,6 +5585,12 @@
       replacements_plain:
         "';' + interop_dll_path(platform)": "';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', platform))"
 
+- module-name: 'werkzeug.serving'
+  anti-bloat:
+    - description: 'remove ability to run with reloader'
+      replacements_plain:
+        'if use_reloader:': 'if False:'
+
 - module-name: 'win32com'
   import-hacks:
     # This package adds another directory to the search path of itself,
