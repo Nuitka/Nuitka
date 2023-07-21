@@ -5596,6 +5596,21 @@
       - 'lib'
   dlls:
     - from_filenames:
+        relative_path: 'lib/runtimes/win-x86/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'lib/runtimes/win-x64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'lib/runtimes/win-arm64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
         relative_path: 'lib/x86'
         prefixes:
           - 'WebView2Loader'
