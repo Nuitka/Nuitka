@@ -301,23 +301,34 @@ class OurLogger(object):
                 style=style,
             )
 
-    def sysexit(self, message="", exit_code=1):
+    def sysexit(self, message="", style=None, mnemonic=None, exit_code=1):
         from nuitka.Progress import closeProgressBar
 
         closeProgressBar()
+
+        if exit_code != 0 and style is None:
+            style = "red"
 
         if message:
             if exit_code != 0:
                 self.my_print(
                     "FATAL: %s" % message,
-                    style="red",
+                    style=style,
                     file=sys.stderr,
                 )
             else:
                 self.my_print(
                     message,
+                    style=style,
                     file=sys.stderr,
                 )
+
+        if mnemonic is not None:
+            self.warning(
+                """    Complex topic! More information can be found at %shttps://nuitka.net/info/%s.html"""
+                % (_getEnableStyleCode("link"), mnemonic),
+                style=style,
+            )
 
         sys.exit(exit_code)
 

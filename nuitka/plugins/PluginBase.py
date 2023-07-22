@@ -1198,7 +1198,7 @@ except ImportError:
         # user errors still.
         mnemonic = kwargs.pop("mnemonic", None)
         if kwargs:
-            plugins_logger.sysexit("Illegal arguments for self.warning")
+            plugins_logger.sysexit("Illegal keyword arguments for self.warning")
 
         plugins_logger.warning(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
@@ -1207,8 +1207,8 @@ except ImportError:
         plugins_logger.info(cls.plugin_name + ": " + message)
 
     @classmethod
-    def sysexit(cls, message):
-        plugins_logger.sysexit(cls.plugin_name + ": " + message)
+    def sysexit(cls, message, mnemonic=None):
+        plugins_logger.sysexit(cls.plugin_name + ": " + message, mnemonic=mnemonic)
 
 
 def standalone_only(func):
