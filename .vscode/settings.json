@@ -296,6 +296,7 @@
         "subclasscheck",
         "sysexit",
         "sysflag",
+        "Termux",
         "ternaryfunc",
         "Themida",
         "Tkinter",

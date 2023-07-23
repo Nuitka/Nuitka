@@ -44,6 +44,7 @@ from nuitka.PythonFlavors import (
     isMSYS2MingwPython,
     isNuitkaPython,
     isPyenvPython,
+    isTermuxPython,
     isUninstalledPython,
 )
 from nuitka.PythonVersions import (
@@ -719,6 +720,17 @@ download. With that, your program will work on macOS 10.9 or higher."""
         Tracing.options_logger.sysexit(
             "Error, path '%s' to binary to use for PGO is not executable."
             % pgo_executable
+        )
+
+    if (
+        isOnefileMode()
+        and isTermuxPython()
+        and getExecutablePath("termux-elf-cleaner") is None
+    ):
+        Tracing.options_logger.sysexit(
+            """\
+Error, onefile mode on Termux requires 'termux-elf-cleaner' to be installed, \
+use 'pkg install termux-elf-cleaner' to use it."""
         )
 
     # This triggers checks inside that code
