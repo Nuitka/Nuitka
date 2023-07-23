@@ -27,6 +27,7 @@ import sys
 import traceback
 
 from nuitka import TreeXML
+from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
 from nuitka.freezer.IncludedEntryPoints import getStandaloneEntryPoints
@@ -127,6 +128,8 @@ def _getReportInputData(aborted):
     nuitka_exception = sys.exc_info()
 
     user_data = getCompilationReportUserData()
+
+    data_composer = getDataComposerReportValues()
 
     return dict(
         (var_name, var_value)
@@ -288,7 +291,7 @@ def _addUserDataToReport(root, user_data):
 
 def writeCompilationReport(report_filename, report_input_data, diffable):
     """Write the compilation report in XML format."""
-    # Many details, pylint: disable=too-many-branches,too-many-locals
+    # Many details, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if not report_input_data["nuitka_aborted"]:
         completion = "yes"
@@ -376,6 +379,32 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
             reason=standalone_entry_point.reason
             # TODO: No reason yet.
         )
+
+    if not diffable:
+        data_composer_values = getDataComposerReportValues()
+
+        data_composer_xml_node = TreeXML.appendTreeElement(
+            root,
+            "data_composer",
+            blob_size=str(data_composer_values["blob_size"]),
+        )
+
+        data_composer_stats = data_composer_values["stats"]
+        if data_composer_stats:
+            for item, item_value in data_composer_stats.items():
+                assert type(item) is str
+                if type(item_value) is int:
+                    data_composer_xml_node.attrib[item] = str(item_value)
+                else:
+                    for key in item_value:
+                        item_value[key] = str(item_value[key])
+
+                    TreeXML.appendTreeElement(
+                        data_composer_xml_node,
+                        "module_data",
+                        filename=item,
+                        **item_value
+                    )
 
     options_xml_node = TreeXML.appendTreeElement(
         root,

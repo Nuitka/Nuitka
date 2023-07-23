@@ -22,17 +22,34 @@ import os
 import subprocess
 import sys
 
+from nuitka.containers.OrderedDicts import OrderedDict
 from nuitka.Options import isExperimental
 from nuitka.Tracing import data_composer_logger
 from nuitka.utils.Execution import withEnvironmentVarsOverridden
+from nuitka.utils.FileOperations import changeFilenameExtension, getFileSize
+from nuitka.utils.Json import loadJsonFromFilename
+
+# Indicate not done with -1
+_data_composer_size = None
+_data_composer_stats = None
+
+
+def getDataComposerReportValues():
+    return OrderedDict(blob_size=_data_composer_size, stats=_data_composer_stats)
 
 
 def runDataComposer(source_dir):
     from nuitka.plugins.Plugins import Plugins
 
+    # This module is a singleton, pylint: disable=global-statement
+    global _data_composer_stats
+
     Plugins.onDataComposerRun()
-    blob_filename = _runDataComposer(source_dir=source_dir)
+    blob_filename, _data_composer_stats = _runDataComposer(source_dir=source_dir)
     Plugins.onDataComposerResult(blob_filename)
+
+    global _data_composer_size
+    _data_composer_size = getFileSize(blob_filename)
 
 
 def _runDataComposer(source_dir):
@@ -51,6 +68,8 @@ def _runDataComposer(source_dir):
 
     blob_filename = getConstantBlobFilename(source_dir)
 
+    stats_filename = changeFilenameExtension(blob_filename, ".txt")
+
     with withEnvironmentVarsOverridden(mapping):
         try:
             subprocess.check_call(
@@ -59,6 +78,7 @@ def _runDataComposer(source_dir):
                     data_composer_path,
                     source_dir,
                     blob_filename,
+                    stats_filename,
                 ],
                 shell=False,
             )
@@ -67,7 +87,7 @@ def _runDataComposer(source_dir):
                 "Error executing data composer, please report the above exception."
             )
 
-    return blob_filename
+    return blob_filename, loadJsonFromFilename(stats_filename)
 
 
 def getConstantBlobFilename(source_dir):
