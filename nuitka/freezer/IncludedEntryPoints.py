@@ -169,6 +169,14 @@ standalone_entry_points = []
 
 
 def _warnNonIdenticalEntryPoints(entry_point1, entry_point2):
+    # Well know case, where they duplicate all the DLLs, seems to work well
+    # enough to not report this. TODO: When we are adding to the report, it
+    # ought to be still added. spell-checker: ignore scipy
+    if frozenset((entry_point1.package_name, entry_point2.package_name)) == frozenset(
+        ("numpy", "scipy")
+    ):
+        return
+
     inclusion_logger.warning(
         """\
 Ignoring non-identical DLLs for '%s', '%s' different from '%s'. Using first one and hoping for the best."""
