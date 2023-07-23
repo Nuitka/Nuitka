@@ -32,8 +32,10 @@ from nuitka.Options import (
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.plugins.Plugins import (
     getActiveQtPlugin,
+    getOtherGUIBindingNames,
     getQtBindingNames,
     getQtPluginNames,
+    hasActiveGuiPluginForBinding,
 )
 from nuitka.PythonFlavors import isAnacondaPython
 from nuitka.PythonVersions import python_version
@@ -46,9 +48,6 @@ from nuitka.utils.Utils import (
     isMacOS,
     isWin32Windows,
 )
-
-# Use to detect the Qt plugin that is active and check for conflicts.
-_qt_binding_names = getQtBindingNames()
 
 
 class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
@@ -80,7 +79,7 @@ class NuitkaPluginQtBindingsPluginBase(NuitkaPluginBase):
             self.qt_plugins = set()
 
         # Prevent the list of binding names from being incomplete, it's used for conflicts.
-        assert self.binding_name in _qt_binding_names, self.binding_name
+        assert self.binding_name in getQtBindingNames(), self.binding_name
 
         # Also lets have consistency in naming.
         assert self.plugin_name in getQtPluginNames()
@@ -109,7 +108,7 @@ not exist, a list of all available will be given.""",
 
         group.add_option(
             "--noinclude-qt-translations",
-            action="store",
+            action="store_true",
             dest="no_qt_translations",
             default=False,
             help="""\
@@ -1064,7 +1063,7 @@ Prefix = .
 
         if isStandaloneMode():
             if (
-                top_package_name in _qt_binding_names
+                top_package_name in getQtBindingNames()
                 and top_package_name != self.binding_name
             ):
                 if top_package_name not in self.warned_about:
@@ -1086,6 +1085,15 @@ behavior with the uncompiled code."""
                     False,
                     "Not included due to potentially conflicting Qt versions with selected Qt binding '%s'."
                     % self.binding_name,
+                )
+
+            if (
+                top_package_name in getOtherGUIBindingNames()
+                and not hasActiveGuiPluginForBinding(top_package_name)
+            ):
+                return (
+                    False,
+                    "Not included due to its plugin not being active, but a Qt plugin is.",
                 )
 
     def onModuleCompleteSet(self, module_set):
@@ -1421,7 +1429,7 @@ class NuitkaPluginNoQt(NuitkaPluginBase):
         top_package_name = module_name.getTopLevelPackageName()
 
         if isStandaloneMode():
-            if top_package_name in _qt_binding_names:
+            if top_package_name in getQtBindingNames():
                 if top_package_name not in self.warned_about:
                     self.info(
                         """\
