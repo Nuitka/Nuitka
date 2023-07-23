@@ -906,6 +906,7 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
             suggested_python_version_str,
         )
 
+    # Important to have the same error
     sys.exit(error_message)
 
 
@@ -965,7 +966,7 @@ def _main():
 
     # Exit if compilation failed.
     if not result:
-        sys.exit(1)
+        general.sysexit(exit_code=1, reporting=True)
 
     # Relaunch in case of Python PGO input to be produced.
     if Options.shallCreatePgoInput():
@@ -1093,9 +1094,10 @@ not use compiled code while it exists."""
 def main():
     try:
         _main()
-    finally:
-        if sys.exc_info() != (None, None, None):
-            try:
-                writeCompilationReports(aborted=True)
-            except BaseException as e:  # Catch all the things, pylint: disable=broad-except
-                general.warning("Report writing prevented by exception %s" % e)
+    except BaseException as orig_exception:
+        try:
+            writeCompilationReports(aborted=True)
+        except BaseException as e:  # Catch all the things, pylint: disable=broad-except
+            general.warning("Report writing was prevented by exception %s" % e)
+
+        raise orig_exception
