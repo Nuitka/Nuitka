@@ -253,6 +253,10 @@ def my_print(*args, **kwargs):
         _my_print(file_output, is_atty, args, kwargs)
 
 
+class ReportingSystemExit(SystemExit):
+    """Our own system exit, after which a report should be written."""
+
+
 class OurLogger(object):
     def __init__(self, name, quiet=False, base_style=None):
         self.name = name
@@ -301,7 +305,9 @@ class OurLogger(object):
                 style=style,
             )
 
-    def sysexit(self, message="", style=None, mnemonic=None, exit_code=1):
+    def sysexit(
+        self, message="", style=None, mnemonic=None, exit_code=1, reporting=False
+    ):
         from nuitka.Progress import closeProgressBar
 
         closeProgressBar()
@@ -330,13 +336,16 @@ class OurLogger(object):
                 style=style,
             )
 
+        if reporting:
+            raise ReportingSystemExit(exit_code)
+
         sys.exit(exit_code)
 
     def sysexit_exception(self, message, exception, exit_code=1):
         self.my_print("FATAL: %s" % message, style="red", file=sys.stderr)
 
         traceback.print_exc()
-        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code)
+        self.sysexit("FATAL:" + repr(exception), exit_code=exit_code, reporting=True)
 
     def isQuiet(self):
         return is_quiet or self.is_quiet
