@@ -1208,7 +1208,9 @@ except ImportError:
 
     @classmethod
     def sysexit(cls, message, mnemonic=None):
-        plugins_logger.sysexit(cls.plugin_name + ": " + message, mnemonic=mnemonic)
+        plugins_logger.sysexit(
+            cls.plugin_name + ": " + message, mnemonic=mnemonic, reporting=True
+        )
 
 
 def standalone_only(func):

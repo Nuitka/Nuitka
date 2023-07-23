@@ -906,6 +906,7 @@ of the precise Python interpreter binary and '-m nuitka', e.g. use this
             suggested_python_version_str,
         )
 
+    # Important to have the same error
     sys.exit(error_message)
 
 
@@ -965,7 +966,7 @@ def _main():
 
     # Exit if compilation failed.
     if not result:
-        sys.exit(1)
+        general.sysexit(1, reporting=True)
 
     # Relaunch in case of Python PGO input to be produced.
     if Options.shallCreatePgoInput():
