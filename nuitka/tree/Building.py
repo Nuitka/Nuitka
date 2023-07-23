@@ -258,7 +258,7 @@ def buildNamedConstantNode(node, source_ref):
 def buildConditionNode(provider, node, source_ref):
     # Conditional statements may have one or two branches. We will never see an
     # "elif", because that's already dealt with by module "ast", which turns it
-    # into nested conditional statements.
+    # into nested conditional statements. spell-checker: ignore orelse
 
     return makeStatementConditional(
         condition=buildNode(provider, node.test, source_ref),
@@ -296,7 +296,7 @@ def buildTryNode(provider, node, source_ref):
     if not node.handlers:
         return buildTryFinallyNode2(provider, node, source_ref)
 
-    if not node.finalbody:
+    if not node.finalbody:  # spell-checker: ignore finalbody
         return buildTryExceptionNode(
             provider=provider, node=node, source_ref=source_ref
         )
@@ -323,7 +323,7 @@ def buildTryNode(provider, node, source_ref):
 def buildRaiseNode(provider, node, source_ref):
     # Raise statements. Under Python2 they may have type, value and traceback
     # attached, for Python3, you can only give type (actually value) and cause.
-
+    # spell-checker: ignore tback
     if python_version < 0x300:
         exception_type = buildNode(provider, node.type, source_ref, allow_none=True)
         exception_value = buildNode(provider, node.inst, source_ref, allow_none=True)
