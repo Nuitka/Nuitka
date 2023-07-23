@@ -53,6 +53,7 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinOct,
 )
 from nuitka.nodes.BuiltinHashNodes import ExpressionBuiltinHash
+from nuitka.nodes.BuiltinInputNodes import ExpressionBuiltinInput
 from nuitka.nodes.BuiltinIntegerNodes import (
     ExpressionBuiltinInt1,
     ExpressionBuiltinInt2,
@@ -1326,6 +1327,14 @@ def hash_extractor(node):
     )
 
 
+def input_extractor(node):
+    return BuiltinParameterSpecs.extractBuiltinArgs(
+        node=node,
+        builtin_class=ExpressionBuiltinInput,
+        builtin_spec=BuiltinParameterSpecs.builtin_input_spec,
+    )
+
+
 def format_extractor(node):
     def makeFormat0(source_ref):
         # pylint: disable=unused-argument
@@ -1432,6 +1441,7 @@ _dispatch_dict = {
     "staticmethod": staticmethod_extractor,
     "classmethod": classmethod_extractor,
     "divmod": divmod_extractor,
+    "input": input_extractor,
 }
 
 if python_version < 0x300:

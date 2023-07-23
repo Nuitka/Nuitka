@@ -28,7 +28,6 @@ it being used.
 
 import ast
 import functools
-import imp
 import inspect
 import os
 import sys
@@ -70,6 +69,7 @@ from nuitka.PythonVersions import (
 from nuitka.Tracing import plugins_logger
 from nuitka.utils.Distributions import isDistributionCondaPackage
 from nuitka.utils.Execution import NuitkaCalledProcessError, check_output
+from nuitka.utils.Importing import isBuiltinModuleName
 from nuitka.utils.ModuleNames import (
     ModuleName,
     makeTriggerModuleName,
@@ -1145,7 +1145,7 @@ except ImportError:
                 "no_docstrings": hasPythonFlagNoDocStrings(),
                 "no_annotations": hasPythonFlagNoAnnotations(),
                 # Querying package properties
-                "has_builtin_module": imp.is_builtin,
+                "has_builtin_module": isBuiltinModuleName,
             }
         )
 

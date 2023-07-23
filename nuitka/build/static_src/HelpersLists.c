@@ -334,7 +334,7 @@ bool LIST_EXTEND_FOR_UNPACK(PyObject *list, PyObject *other) {
 
 bool LIST_APPEND1(PyObject *target, PyObject *item) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
-    int res == PyList_Append(target, item);
+    int res = PyList_Append(target, item);
     Py_DECREF(item);
     return res == 0;
 #else
@@ -362,7 +362,7 @@ bool LIST_APPEND1(PyObject *target, PyObject *item) {
 
 bool LIST_APPEND0(PyObject *target, PyObject *item) {
 #if _NUITKA_EXPERIMENTAL_DISABLE_LIST_OPT
-    int res == PyList_Append(target, item);
+    int res = PyList_Append(target, item);
     return res == 0;
 #else
     CHECK_OBJECT(target);

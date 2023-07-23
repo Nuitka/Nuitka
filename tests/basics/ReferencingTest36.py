@@ -65,7 +65,7 @@ def run_until_complete(coro):
             else:
                 fut = coro.send(None)
         except StopIteration as ex:
-            return ex.args[0]
+            return ex.args[0] if ex.args else None
 
         if fut == ("throw",):
             exc = True
@@ -81,7 +81,7 @@ def simpleFunction1():
     async def run():
         g = gen1()
         await g.asend(None)
-        await g.asend(None)
+        await g.asend(2772)
 
     try:
         run_async(run())
@@ -176,9 +176,31 @@ def simpleFunction5():
     return C()
 
 
+async def funcTrace1():
+    return [await awaitable() for _i in range(50)]
+
+
+def simpleFunction6():
+    run_async(funcTrace1())
+
+
+async def funcTrace2():
+    result = []
+
+    for _i in range(50):
+        value = await awaitable()
+        result.append(value)
+
+    return result
+
+
+def simpleFunction7():
+    run_async(funcTrace2())
+
+
 # This refleaks big time, but the construct is rare enough to not bother
 # as this proves hard to find.
-def disabled_simpleFunction6():
+def disabled_simpleFunction8():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(None)
 

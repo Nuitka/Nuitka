@@ -187,6 +187,17 @@ def _resolveBinaryPathDLLsMacOS(
         else:
             resolved_path = path
 
+        # Some extension modules seem to reference themselves a wrong name,
+        # duplicating their module name into the filename, but that does
+        # not exist.
+        if not os.path.exists(resolved_path) and package_name is not None:
+            parts = os.path.basename(resolved_path).split(".")
+
+            if parts[0] == package_name.asString():
+                resolved_path = os.path.join(
+                    os.path.dirname(resolved_path), ".".join(parts[1:])
+                )
+
         # Some extension modules seem to reference themselves by a different
         # extension module name, so use that if it exists.
         if not os.path.exists(resolved_path) and python_version >= 0x300:

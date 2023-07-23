@@ -44,13 +44,13 @@ from nuitka.utils.Utils import (
 )
 
 
-def getCompressorFunction(expect_compression):
+def getCompressorFunction(expect_compression, low_memory):
     # spell-checker: ignore zstd, closefd
 
     if expect_compression:
         from zstandard import ZstdCompressor  # pylint: disable=I0021,import-error
 
-        compressor_context = ZstdCompressor(level=22)
+        compressor_context = ZstdCompressor(level=3 if low_memory else 22)
 
         @contextmanager
         def useCompressedFile(output_file):
@@ -121,10 +121,12 @@ def attachOnefilePayload(
     expect_compression,
     file_checksums,
     win_path_sep,
+    low_memory,
 ):
     # Somewhat detail rich, pylint: disable=too-many-statements
     compression_indicator, compressor = getCompressorFunction(
-        expect_compression=expect_compression
+        expect_compression=expect_compression,
+        low_memory=low_memory,
     )
 
     def _attachOnefilePayloadFile(
@@ -287,6 +289,7 @@ def main():
     start_binary = os.path.normpath(sys.argv[3])  # Might switch from MSYS2 to CPython
     file_checksums = sys.argv[4] == "True"
     win_path_sep = sys.argv[5] == "True"
+    low_memory = sys.argv[6] == "True"
 
     if os.environ.get("NUITKA_PROGRESS_BAR") == "1":
         enableProgressBar()
@@ -299,6 +302,7 @@ def main():
         expect_compression=True,
         file_checksums=file_checksums,
         win_path_sep=win_path_sep,
+        low_memory=low_memory,
     )
 
     sys.exit(0)

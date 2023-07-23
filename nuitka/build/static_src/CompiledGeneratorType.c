@@ -324,13 +324,14 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(struct Nuitka_GeneratorObject *g
         // Passing ownership of exception fetch to it.
         retval = _Nuitka_YieldFromPassExceptionTo(yieldfrom, exception_type, exception_value, exception_tb);
 
+        // TODO: This wants to look at retval most definitely, send_value is going to be NULL.
         if (unlikely(send_value == NULL)) {
             PyObject *error = GET_ERROR_OCCURRED();
 
             if (error != NULL && EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
                 generator->m_returned = ERROR_GET_STOP_ITERATION_VALUE();
-
                 assert(!ERROR_OCCURRED());
+
                 return NULL;
             }
         }
@@ -480,6 +481,8 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
     if (generator->m_status != status_Finished) {
         if (generator->m_running) {
+            Py_XDECREF(value);
+
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "generator already executing");
             return NULL;
         }
@@ -505,6 +508,9 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
 
         if (generator->m_status == status_Unused) {
             generator->m_status = status_Running;
+
+            Py_XDECREF(value);
+            value = NULL;
         } else {
             // Put the generator back on the frame stack.
             pushFrameStackGeneratorCompiledFrame(generator->m_frame);
@@ -535,7 +541,9 @@ static PyObject *_Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator
         if (generator->m_yieldfrom == NULL) {
             yielded = ((generator_code)generator->m_code)(generator, value);
         } else {
+            // This does not release the value if any, so we need to do it afterwards.
             yielded = Nuitka_YieldFromGeneratorInitial(generator, value);
+            Py_XDECREF(value);
         }
 #else
         yielded = ((generator_code)generator->m_code)(generator, value);
@@ -723,6 +731,8 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
         return NULL;
     }
 
+    // We need to transfer ownership of the sent value.
+    Py_INCREF(value);
     PyObject *result = _Nuitka_Generator_send(generator, value, NULL, NULL, NULL);
 
     if (result == NULL) {
@@ -735,12 +745,14 @@ static PyObject *Nuitka_Generator_send(struct Nuitka_GeneratorObject *generator,
 }
 
 static PyObject *Nuitka_Generator_tp_iternext(struct Nuitka_GeneratorObject *generator) {
+    Py_INCREF(Py_None);
     return _Nuitka_Generator_send(generator, Py_None, NULL, NULL, NULL);
 }
 
 /* Our own qiter interface, which is for quicker simple loop style iteration,
    that does not send anything in. */
 PyObject *Nuitka_Generator_qiter(struct Nuitka_GeneratorObject *generator, bool *finished) {
+    Py_INCREF(Py_None);
     PyObject *result = _Nuitka_Generator_send(generator, Py_None, NULL, NULL, NULL);
 
     if (result == NULL) {
@@ -1435,8 +1447,8 @@ static PyAsyncMethods Nuitka_Generator_as_async = {
     NULL, /* am_await */
     NULL, /* am_aiter */
     NULL, /* am_anext */
-    // TODO: have this too, (sendfunc)_Nuitka_Generator_amsend
-    NULL /* am_anext */
+    // TODO: have this too, (sendfunc)_Nuitka_Generator_am_send
+    NULL /* am_send */
 };
 #endif
 

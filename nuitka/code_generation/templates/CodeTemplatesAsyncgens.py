@@ -33,6 +33,7 @@ struct %(function_identifier)s_locals {
 static PyObject *%(function_identifier)s_context(struct Nuitka_AsyncgenObject *asyncgen, PyObject *yield_return_value) {
     CHECK_OBJECT(asyncgen);
     assert(Nuitka_Asyncgen_Check((PyObject *)asyncgen));
+    CHECK_OBJECT_X(yield_return_value);
 
 #if %(has_heap_declaration)s
     // Heap access.

@@ -687,7 +687,7 @@ static void _Nuitka_take_ownership(PyFrameObject *f, _PyInterpreterFrame *frame)
     }
 
     if (!_PyObject_GC_IS_TRACKED((PyObject *)f)) {
-        _PyObject_GC_TRACK((PyObject *)f);
+        Nuitka_GC_Track((PyObject *)f);
     }
 }
 

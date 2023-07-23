@@ -122,6 +122,20 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
         context.addCleanupTempName(value_name)
 
 
+def generateBuiltinInputCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name=to_name,
+        capi="BUILTIN_INPUT",
+        arg_desc=(("input_arg", expression.subnode_prompt),),
+        may_raise=expression.mayRaiseExceptionOperation(),
+        conversion_check=decideConversionCheckNeeded(to_name, expression),
+        none_null=True,
+        source_ref=expression.getCompatibleSourceReference(),
+        emit=emit,
+        context=context,
+    )
+
+
 def generateBuiltinOpenCode(to_name, expression, emit, context):
     arg_desc = (
         ("open_filename", expression.subnode_filename),

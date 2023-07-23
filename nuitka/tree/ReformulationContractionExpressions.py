@@ -46,7 +46,6 @@ from nuitka.nodes.DictionaryNodes import (
 )
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
-    StatementsFrameFunction,
     StatementsFrameGenerator,
 )
 from nuitka.nodes.FunctionNodes import ExpressionFunctionRef
@@ -403,17 +402,6 @@ def _buildContractionBodyNode(
             )
         )
 
-    if for_asyncgen and python_version >= 0x370 and node.generators[0].is_async:
-        statements.append(
-            makeStatementAssignmentVariable(
-                variable=iter_tmp,
-                source=ExpressionTempVariableRef(
-                    variable=iter_tmp, source_ref=source_ref
-                ),
-                source_ref=source_ref,
-            )
-        )
-
     if start_value is not None:
         statements.append(
             makeStatementAssignmentVariable(
@@ -440,7 +428,11 @@ def _buildContractionBodyNode(
             assert emit_class is ExpressionYield
 
             current_body = emit_class(
-                buildNode(provider=function_body, node=node.elt, source_ref=source_ref),
+                buildNode(
+                    provider=function_body,
+                    node=node.elt,
+                    source_ref=source_ref,
+                ),
                 source_ref=source_ref,
             )
     else:
@@ -590,7 +582,8 @@ def _buildContractionBodyNode(
 def _buildContractionNode(provider, node, name, emit_class, start_value, source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the Developer Manual. They use a lot of temporary names,
-    # nested blocks, etc. and so a lot of variable names, pylint:disable=too-many-locals
+    # nested blocks, etc. and so a lot of variable names.
+    # pylint: disable=too-many-locals
 
     function_body = ExpressionOutlineFunction(
         provider=provider, name=intern(name[1:-1]), source_ref=source_ref
@@ -643,7 +636,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
         ),
     )
 
-    if python_version < 0x300:
+    if python_version < 0x300 or emit_class is not ExpressionYield:
         body = makeStatementsSequenceFromStatements(assign_iter_statement, statements)
     else:
         parent_module = provider.getParentModule()
@@ -666,7 +659,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value, source_
 
         body = makeStatementsSequenceFromStatements(
             assign_iter_statement,
-            StatementsFrameFunction(
+            StatementsFrameGenerator(
                 statements=mergeStatements(statements, False),
                 code_object=code_object,
                 source_ref=source_ref,

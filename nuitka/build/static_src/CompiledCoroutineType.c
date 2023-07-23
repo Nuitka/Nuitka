@@ -215,13 +215,14 @@ static PyObject *_Nuitka_YieldFromCore(PyObject *yieldfrom, PyObject *send_value
         // Transfer exception owner this.
         retval = _Nuitka_YieldFromPassExceptionTo(yieldfrom, exception_type, exception_value, exception_tb);
 
+        // TODO: This wants to look at retval most definitely, send_value is going to be NULL.
         if (unlikely(send_value == NULL)) {
             PyObject *error = GET_ERROR_OCCURRED();
 
             if (error != NULL && EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_StopIteration)) {
                 *returned_value = ERROR_GET_STOP_ITERATION_VALUE();
-
                 assert(!ERROR_OCCURRED());
+
                 return NULL;
             }
         }
@@ -231,6 +232,7 @@ static PyObject *_Nuitka_YieldFromCore(PyObject *yieldfrom, PyObject *send_value
         struct Nuitka_CoroutineObject *yieldfrom_coroutine =
             ((struct Nuitka_CoroutineWrapperObject *)yieldfrom)->m_coroutine;
 
+        Py_INCREF(Py_None);
         retval = _Nuitka_Coroutine_send(yieldfrom_coroutine, Py_None, mode ? false : true, NULL, NULL, NULL);
     } else if (send_value == Py_None && Py_TYPE(yieldfrom)->tp_iternext != NULL) {
         retval = Py_TYPE(yieldfrom)->tp_iternext(yieldfrom);
@@ -257,8 +259,9 @@ static PyObject *_Nuitka_YieldFromCore(PyObject *yieldfrom, PyObject *send_value
             // the expression value of this "yield from", and we are done. All
             // other errors, we need to raise.
             *returned_value = ERROR_GET_STOP_ITERATION_VALUE();
-            assert(*returned_value != NULL);
             assert(!ERROR_OCCURRED());
+
+            assert(*returned_value != NULL);
         } else {
             *returned_value = NULL;
         }
@@ -392,6 +395,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
     PRINT_NEW_LINE();
 #endif
 
+    // Not both a value and an exception please.
     if (value != NULL) {
         assert(exception_type == NULL);
         assert(exception_value == NULL);
@@ -400,6 +404,7 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 
     if (coroutine->m_status == status_Unused && value != NULL && value != Py_None) {
         // No exception if value is given.
+        Py_XDECREF(value);
 
         SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_TypeError, "can't send non-None value to a just-started coroutine");
         return PYGEN_ERROR;
@@ -407,6 +412,8 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
 
     if (coroutine->m_status != status_Finished) {
         if (coroutine->m_running) {
+            Py_XDECREF(value);
+
             SET_CURRENT_EXCEPTION_TYPE0_STR(PyExc_ValueError, "coroutine already executing");
             return PYGEN_ERROR;
         }
@@ -421,6 +428,9 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
             coroutine->m_status = status_Running;
             assert(coroutine->m_resume_frame == NULL);
 
+            // Value will not be used, can only be Py_None or NULL.
+            Py_XDECREF(value);
+            value = NULL;
         } else {
             assert(coroutine->m_resume_frame);
             pushFrameStackGenerator(coroutine->m_resume_frame);
@@ -452,7 +462,9 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
         if (coroutine->m_yieldfrom == NULL) {
             yielded = ((coroutine_code)coroutine->m_code)(coroutine, value);
         } else {
+            // This does not release the value if any, so we need to do it afterwards.
             yielded = Nuitka_YieldFromCoroutineInitial(coroutine, value);
+            Py_XDECREF(value);
         }
 
         // If the coroutine returns with m_yieldfrom set, it wants us to yield
@@ -568,6 +580,8 @@ static PySendResult _Nuitka_Coroutine_sendR(struct Nuitka_CoroutineObject *corou
             return PYGEN_NEXT;
         }
     } else {
+        Py_XDECREF(value);
+
         // Release exception if any, we are finished with it and will raise another.
         Py_XDECREF(exception_type);
         Py_XDECREF(exception_value);
@@ -636,8 +650,8 @@ static PyObject *Nuitka_Coroutine_send(struct Nuitka_CoroutineObject *coroutine,
     CHECK_OBJECT(coroutine);
     CHECK_OBJECT(value);
 
-    // TODO: Does it release value ?
-    // Py_INCREF(value);
+    // We need to transfer ownership of the sent value.
+    Py_INCREF(value);
     PyObject *result = _Nuitka_Coroutine_send(coroutine, value, false, NULL, NULL, NULL);
 
     if (result == NULL) {
@@ -854,6 +868,7 @@ static PyObject *_Nuitka_Coroutine_throw2(struct Nuitka_CoroutineObject *corouti
                 PRINT_NEW_LINE();
 #endif
 
+                // The ownership of val is transferred.
                 ret = _Nuitka_Coroutine_send(coroutine, val, false, NULL, NULL, NULL);
             } else {
 #if _DEBUG_COROUTINE
@@ -1053,12 +1068,14 @@ static PyObject *Nuitka_Coroutine_await(struct Nuitka_CoroutineObject *coroutine
 }
 
 #if PYTHON_VERSION >= 0x3a0
-static PySendResult _Nuitka_Coroutine_amsend(struct Nuitka_CoroutineObject *coroutine, PyObject *arg,
-                                             PyObject **result) {
+static PySendResult _Nuitka_Coroutine_am_send(struct Nuitka_CoroutineObject *coroutine, PyObject *arg,
+                                              PyObject **result) {
 #if _DEBUG_COROUTINE
     PRINT_COROUTINE_STATUS("Enter", coroutine);
 #endif
 
+    // We need to transfer ownership of the sent value.
+    Py_INCREF(arg);
     PySendResult res = _Nuitka_Coroutine_sendR(coroutine, arg, false, NULL, NULL, NULL, result);
 
 #if _DEBUG_COROUTINE
@@ -1182,12 +1199,12 @@ static PyMemberDef Nuitka_Coroutine_members[] = {
     {NULL}};
 
 static PyAsyncMethods Nuitka_Coroutine_as_async = {
-    (unaryfunc)Nuitka_Coroutine_await, /* am_await */
-    0,                                 /* am_aiter */
-    0                                  /* am_anext */
+    (unaryfunc)Nuitka_Coroutine_await, // am_await
+    0,                                 // am_aiter
+    0                                  // am_anext
 #if PYTHON_VERSION >= 0x3a0
     ,
-    (sendfunc)_Nuitka_Coroutine_amsend /* am_send */
+    (sendfunc)_Nuitka_Coroutine_am_send // am_send
 #endif
 
 };
@@ -1546,8 +1563,7 @@ static PyObject *Nuitka_GetAwaitableIter(PyObject *value) {
             }
 
             if (unlikely(!HAS_ITERNEXT(result))) {
-                PyErr_Format(PyExc_TypeError, "__await__() returned non-iterator of type '%s'",
-                             Py_TYPE(result)->tp_name);
+                SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("__await__() returned non-iterator of type '%s'", result);
 
                 Py_DECREF(result);
 
@@ -1558,7 +1574,7 @@ static PyObject *Nuitka_GetAwaitableIter(PyObject *value) {
         return result;
     }
 
-    PyErr_Format(PyExc_TypeError, "object %s can't be used in 'await' expression", Py_TYPE(value)->tp_name);
+    SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("object %s can't be used in 'await' expression", value);
 
     return NULL;
 }
@@ -1845,8 +1861,7 @@ PyObject *ASYNC_ITERATOR_NEXT(PyObject *value) {
     }
 
     if (unlikely(getter == NULL)) {
-        PyErr_Format(PyExc_TypeError, "'async for' requires an iterator with __anext__ method, got %s",
-                     Py_TYPE(value)->tp_name);
+        SET_CURRENT_EXCEPTION_TYPE_COMPLAINT("'async for' requires an iterator with __anext__ method, got %s", value);
 
         return NULL;
     }

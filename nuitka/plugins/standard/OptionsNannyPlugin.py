@@ -97,7 +97,9 @@ Otherwise a terminal window will open"""
                 self.info(
                     """\
 Note, when using '%s', consider using '--disable-console' option. %s. However for \
-debugging, terminal output is the easiest way to see informative traceback information."""
+debugging, terminal output is the easiest way to see informative traceback \
+and error information, so delay this until your program working and remove \
+once you find it non-working."""
                     % (full_name, downside_message)
                 )
 
