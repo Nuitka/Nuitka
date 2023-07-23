@@ -93,6 +93,8 @@ class ExpressionImportlibResourcesReadBinaryCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadBinaryCallBase,
 ):
+    """Call to "importlib.resources.read_binary" """
+
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_BINARY_CALL"
 
     python_version_spec = ">= 0x370"
@@ -133,6 +135,8 @@ class ExpressionImportlibResourcesReadTextCall(
     SideEffectsFromChildrenMixin,
     ExpressionImportlibResourcesReadTextCallBase,
 ):
+    """Call to "importlib.resources.read_text" """
+
     kind = "EXPRESSION_IMPORTLIB_RESOURCES_READ_TEXT_CALL"
 
     python_version_spec = ">= 0x370"
