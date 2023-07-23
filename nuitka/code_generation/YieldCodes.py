@@ -119,8 +119,9 @@ def _getYieldPreserveCode(
 
     getErrorExitCode(check_name=yield_return_name, emit=emit, context=context)
 
-    # Called with object
+    # Called with object, so we can simply do this.
     emit("%s = %s;" % (to_name, yield_return_name))
+    context.addCleanupTempName(to_name)
 
 
 def generateYieldCode(to_name, expression, emit, context):
@@ -193,8 +194,6 @@ return NULL;
             context=context,
         )
 
-        context.addCleanupTempName(result_name)
-
 
 def generateYieldFromWaitableCode(to_name, expression, emit, context):
 
@@ -236,12 +235,6 @@ return NULL;
             emit=emit,
             context=context,
         )
-
-        # TODO: Seems to be redundant with and _getYieldPreserveCode doing
-        # it and could be removed
-        getErrorExitCode(check_name=result_name, emit=emit, context=context)
-
-        context.addCleanupTempName(result_name)
 
 
 def getYieldReturnDispatchCode(context):

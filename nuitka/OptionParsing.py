@@ -328,7 +328,7 @@ onefile_group.add_option(
     action="store",
     dest="onefile_child_grace_time",
     metavar="GRACE_TIME_MS",
-    default="5000",
+    default=None,
     help="""\
 When stopping the child, e.g. due to CTRL-C or shutdown, etc. the
 Python code gets a "KeyboardInterrupt", that it may handle e.g. to

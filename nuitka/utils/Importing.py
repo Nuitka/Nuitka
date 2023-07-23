@@ -216,3 +216,12 @@ def importFromCompileTime(module_name, must_exist):
     assert _compile_time_modules[module_name] or not must_exist
 
     return _compile_time_modules[module_name] or None
+
+
+def isBuiltinModuleName(module_name):
+    if python_version < 0x300:
+        import imp as _imp
+    else:
+        import _imp
+
+    return _imp.is_builtin(module_name)

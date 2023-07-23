@@ -55,7 +55,10 @@ from nuitka.Tracing import my_print, recursion_logger
 from nuitka.tree.ReformulationMultidist import locateMultidistModule
 from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir, removeDirectory
-from nuitka.utils.Importing import getSharedLibrarySuffixes
+from nuitka.utils.Importing import (
+    getSharedLibrarySuffixes,
+    isBuiltinModuleName,
+)
 from nuitka.utils.ModuleNames import ModuleName
 from nuitka.utils.SharedLibraries import (
     hasUniversalOrMatchingMacOSArchitecture,
@@ -674,8 +677,8 @@ def _findModuleInPath(module_name):
         if candidate:
             return candidate, "py"
 
-    # Free pass for built-in modules, the need not exist.
-    if package_name is None and imp.is_builtin(module_name):
+    # Free pass for built-in modules, they need not exist.
+    if package_name is None and isBuiltinModuleName(module_name):
         return None
 
     search_path = getPackageSearchPath(package_name)

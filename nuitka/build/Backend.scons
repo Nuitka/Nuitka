@@ -982,6 +982,9 @@ def createBuildDefinitionsFile():
     createDefinitionsFile(source_dir, "build_definitions.h", build_definitions)
 
 
+if forced_stderr_path and not forced_stdout_path:
+    env.Append(CPPDEFINES=["NUITKA_STDERR_NOT_VISIBLE"])
+
 createBuildDefinitionsFile()
 
 # The meta path based loader might want to respect that, so it does verbose traces in module

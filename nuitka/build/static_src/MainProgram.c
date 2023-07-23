@@ -337,7 +337,47 @@ static wchar_t **convertCommandLineParameters(int argc, char **argv) {
 }
 #endif
 
+#if _DEBUG_REFCOUNTS
+static void PRINT_REFCOUNTS(void) {
+    // spell-checker: ignore Asend, Athrow
+
+    PRINT_STRING("REFERENCE counts at program end:\n");
+    PRINT_STRING("active | allocated | released\n");
+#if PYTHON_VERSION >= 0x350
+    PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
+                 count_allocated_Nuitka_Coroutine_Type, count_released_Nuitka_Coroutine_Type);
+    PRINT_FORMAT("Compiled Coroutines Wrappers: %d | %d | %d\n", count_active_Nuitka_CoroutineWrapper_Type,
+                 count_allocated_Nuitka_CoroutineWrapper_Type, count_released_Nuitka_CoroutineWrapper_Type);
+
+    PRINT_FORMAT("Compiled Coroutines AIter Wrappers: %d | %d | %d\n", count_active_Nuitka_AIterWrapper_Type,
+                 count_allocated_Nuitka_AIterWrapper_Type, count_released_Nuitka_AIterWrapper_Type);
+#endif
+#if PYTHON_VERSION >= 0x360
+    PRINT_FORMAT("Compiled Asyncgen: %d | %d | %d\n", count_active_Nuitka_Asyncgen_Type,
+                 count_allocated_Nuitka_Asyncgen_Type, count_released_Nuitka_Asyncgen_Type);
+    PRINT_FORMAT("Compiled Asyncgen Wrappers: %d | %d | %d\n", count_active_Nuitka_AsyncgenValueWrapper_Type,
+                 count_allocated_Nuitka_AsyncgenValueWrapper_Type, count_released_Nuitka_AsyncgenValueWrapper_Type);
+    PRINT_FORMAT("Compiled Asyncgen Asend: %d | %d | %d\n", count_active_Nuitka_AsyncgenAsend_Type,
+                 count_allocated_Nuitka_AsyncgenAsend_Type, count_released_Nuitka_AsyncgenAsend_Type);
+    PRINT_FORMAT("Compiled Asyncgen Athrow: %d | %d | %d\n", count_active_Nuitka_AsyncgenAthrow_Type,
+                 count_allocated_Nuitka_AsyncgenAthrow_Type, count_released_Nuitka_AsyncgenAthrow_Type);
+#endif
+
+    PRINT_FORMAT("Compiled Frames: %d | %d | %d (cache usage may occur)\n", count_active_Nuitka_Frame_Type,
+                 count_allocated_Nuitka_Frame_Type, count_released_Nuitka_Frame_Type);
+    PRINT_STRING("CACHED counts at program end:\n");
+    PRINT_STRING("active | allocated | released | hits\n");
+    PRINT_FORMAT("Cached Frames: %d | %d | %d | %d\n", count_active_frame_cache_instances,
+                 count_allocated_frame_cache_instances, count_released_frame_cache_instances,
+                 count_hit_frame_cache_instances);
+}
+#endif
+
 static int HANDLE_PROGRAM_EXIT(void) {
+#if _DEBUG_REFCOUNTS
+    PRINT_REFCOUNTS();
+#endif
+
     int exit_code;
 
     PyThreadState *thread_state = PyThreadState_GET();
@@ -532,40 +572,6 @@ static void setCommandLineParameters(int argc, wchar_t **argv, bool initial) {
 #endif
     }
 }
-
-#if _DEBUG_REFCOUNTS
-static void PRINT_REFCOUNTS(void) {
-    PRINT_STRING("REFERENCE counts at program end:\n");
-    PRINT_STRING("active | allocated | released\n");
-#if PYTHON_VERSION >= 0x350
-    PRINT_FORMAT("Compiled Coroutines: %d | %d | %d\n", count_active_Nuitka_Coroutine_Type,
-                 count_allocated_Nuitka_Coroutine_Type, count_released_Nuitka_Coroutine_Type);
-    PRINT_FORMAT("Compiled Coroutines Wrappers: %d | %d | %d\n", count_active_Nuitka_CoroutineWrapper_Type,
-                 count_allocated_Nuitka_CoroutineWrapper_Type, count_released_Nuitka_CoroutineWrapper_Type);
-
-    PRINT_FORMAT("Compiled Coroutines AIter Wrappers: %d | %d | %d\n", count_active_Nuitka_AIterWrapper_Type,
-                 count_allocated_Nuitka_AIterWrapper_Type, count_released_Nuitka_AIterWrapper_Type);
-#endif
-#if PYTHON_VERSION >= 0x360
-    PRINT_FORMAT("Compiled Asyncgen: %d | %d | %d\n", count_active_Nuitka_Asyncgen_Type,
-                 count_allocated_Nuitka_Asyncgen_Type, count_released_Nuitka_Asyncgen_Type);
-    PRINT_FORMAT("Compiled Asyncgen Wrappers: %d | %d | %d\n", count_active_Nuitka_AsyncgenValueWrapper_Type,
-                 count_allocated_Nuitka_AsyncgenValueWrapper_Type, count_released_Nuitka_AsyncgenValueWrapper_Type);
-    PRINT_FORMAT("Compiled Asyncgen Asend: %d | %d | %d\n", count_active_Nuitka_AsyncgenAsend_Type,
-                 count_allocated_Nuitka_AsyncgenAsend_Type, count_released_Nuitka_AsyncgenAsend_Type);
-    PRINT_FORMAT("Compiled Asyncgen Athrow: %d | %d | %d\n", count_active_Nuitka_AsyncgenAthrow_Type,
-                 count_allocated_Nuitka_AsyncgenAthrow_Type, count_released_Nuitka_AsyncgenAthrow_Type);
-#endif
-
-    PRINT_FORMAT("Compiled Frames: %d | %d | %d (cache usage may occur)\n", count_active_Nuitka_Frame_Type,
-                 count_allocated_Nuitka_Frame_Type, count_released_Nuitka_Frame_Type);
-    PRINT_STRING("CACHED counts at program end:\n");
-    PRINT_STRING("active | allocated | released | hits\n");
-    PRINT_FORMAT("Cached Frames: %d | %d | %d | %d\n", count_active_frame_cache_instances,
-                 count_allocated_frame_cache_instances, count_released_frame_cache_instances,
-                 count_hit_frame_cache_instances);
-}
-#endif
 
 #if defined(_NUITKA_ONEFILE_MODE) && defined(_WIN32)
 
@@ -1646,10 +1652,6 @@ orig_argv = argv;
 #endif
 
     int exit_code = HANDLE_PROGRAM_EXIT();
-
-#if _DEBUG_REFCOUNTS
-    PRINT_REFCOUNTS();
-#endif
 
     NUITKA_PRINT_TIMING("main(): Calling Py_Exit.");
     Py_Exit(exit_code);

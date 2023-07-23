@@ -327,16 +327,27 @@ typedef long Py_hash_t;
  * "_PyObject_GC_TRACK" were not exported before 3.8 and we need to use a
  * function that does it instead.
  *
- * TODO: Make it work for Win32 Python <= 3.7 too.
- * TODO: The Python 3.7.0 on Linux doesn't work this way either, was a bad
- * CPython release apparently.
+ * The Python 3.7.0 release on at Linux doesn't work this way either, was
+ * a bad CPython release apparently and between 3.7.3 and 3.7.4 these have
+ * become runtime incompatible.
  */
 #if (defined(_WIN32) || defined(__MSYS__)) && PYTHON_VERSION < 0x380
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
 #elif PYTHON_VERSION == 0x370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#elif defined(_NUITKA_MODULE) && PYTHON_VERSION >= 0x370 && PYTHON_VERSION < 0x380
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#undef _PyObject_GC_TRACK
+#undef _PyObject_GC_UNTRACK
+#undef PyThreadState_GET
+#define PyThreadState_GET PyThreadState_Get
 #else
 #define Nuitka_GC_Track _PyObject_GC_TRACK
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK

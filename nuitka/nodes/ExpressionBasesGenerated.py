@@ -1593,6 +1593,112 @@ ExpressionImportlibMetadataSelectableGroupsValueRefBase = (
 )
 
 
+class ChildHavingPromptOptionalFinalMixin(ExpressionBase):
+    # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
+    __slots__ = ()
+
+    # This is generated for use in
+    #   ExpressionBuiltinInput
+
+    def __init__(self, prompt, source_ref):
+        if prompt is not None:
+            prompt.parent = self
+
+        self.subnode_prompt = prompt
+
+        ExpressionBase.__init__(self, source_ref)
+
+    def getVisitableNodes(self):
+        """The visitable nodes, with tuple values flattened."""
+
+        value = self.subnode_prompt
+
+        if value is None:
+            return ()
+        else:
+            return (value,)
+
+    def getVisitableNodesNamed(self):
+        """Named children dictionary.
+
+        For use in cloning nodes, debugging and XML output.
+        """
+
+        return (("prompt", self.subnode_prompt),)
+
+    def replaceChild(self, old_node, new_node):
+        value = self.subnode_prompt
+        if old_node is value:
+            if new_node is not None:
+                new_node.parent = self
+
+            self.subnode_prompt = new_node
+
+            return
+
+        raise AssertionError("Didn't find child", old_node, "in", self)
+
+    def getCloneArgs(self):
+        """Get clones of all children to pass for a new node.
+
+        Needs to make clones of child nodes too.
+        """
+
+        values = {
+            "prompt": self.subnode_prompt.makeClone()
+            if self.subnode_prompt is not None
+            else None,
+        }
+
+        values.update(self.getDetails())
+
+        return values
+
+    def finalize(self):
+        del self.parent
+
+        if self.subnode_prompt is not None:
+            self.subnode_prompt.finalize()
+        del self.subnode_prompt
+
+    def computeExpressionRaw(self, trace_collection):
+        """Compute an expression.
+
+        Default behavior is to just visit the child expressions first, and
+        then the node "computeExpression". For a few cases this needs to
+        be overloaded, e.g. conditional expressions.
+        """
+
+        # First apply the sub-expression, as they it's evaluated before.
+        expression = self.subnode_prompt
+
+        if expression is not None:
+            expression = trace_collection.onExpression(expression)
+
+            if expression.willRaiseAnyException():
+                return (
+                    expression,
+                    "new_raise",
+                    lambda: "For '%s' the child expression '%s' will raise."
+                    % (self.getChildNameNice(), expression.getChildNameNice()),
+                )
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+        return self, None, None
+
+    def collectVariableAccesses(self, emit_read, emit_write):
+        """Collect variable reads and writes of child nodes."""
+
+        subnode_prompt = self.subnode_prompt
+
+        if subnode_prompt is not None:
+            self.subnode_prompt.collectVariableAccesses(emit_read, emit_write)
+
+
+# Assign the names that are easier to import with a stable name.
+ExpressionBuiltinInputBase = ChildHavingPromptOptionalFinalMixin
+
+
 class ChildHavingValueFinalNoRaiseMixin(ExpressionBase):
     # Mixins are not allowed to specify slots, pylint: disable=assigning-non-slot
     __slots__ = ()

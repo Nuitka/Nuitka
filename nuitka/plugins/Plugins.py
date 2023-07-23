@@ -207,6 +207,17 @@ def getGuiPluginNames():
     return getQtPluginNames() + getOtherGuiPluginNames()
 
 
+def hasActiveGuiPluginForBinding(binding_name):
+    if binding_name in ("tkinter", "Tkinter"):
+        return hasActivePlugin("tk-inter")
+    elif binding_name in getQtBindingNames():
+        return hasActivePlugin(binding_name.lower())
+    else:
+        # For wx, we do not have a plugin right now, it just works, but
+        # also means it cannot be picked.
+        return False
+
+
 def hasActivePlugin(plugin_name):
     """Decide if a plugin is active.
 

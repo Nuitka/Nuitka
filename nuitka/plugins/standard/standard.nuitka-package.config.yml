@@ -1222,6 +1222,19 @@
         'from IPython import display': 'raise ImportError'
       when: 'not use_ipython'
 
+- module-name: 'keyring'
+  data-files:
+    include-metadata:
+      - 'keyring'
+  implicit-imports:
+    - depends:
+        - 'keyring.backends.*'
+
+- module-name: 'keyring.backends.Windows'
+  implicit-imports:
+    - depends:
+        - 'win32timezone'
+
 - module-name: 'kivy'
   data-files:
     dirs:
@@ -1746,22 +1759,22 @@
                   smsg = msg
               raise AssertionError(smsg)
 
-        def assert_equal(actual, desired, err_msg='', verbose=True):
+        def assert_equal(*args, **kwargs):
           pass
 
-        def assert_approx_equal(actual, desired, significant=7, err_msg='', verbose=True):
+        def assert_approx_equal(*args, **kwargs):
           pass
 
-        def assert_almost_equal(actual, desired, decimal=7, err_msg='', verbose=True):
+        def assert_almost_equal(*args, **kwargs):
           pass
 
-        def assert_array_equal(x, y, err_msg='', verbose=True, *, strict=False):
+        def assert_array_equal(*args, **kwargs):
           pass
 
-        def assert_array_less(x, y, err_msg='', verbose=True):
+        def assert_array_less(*args, **kwargs):
           pass
 
-        def assert_array_almost_equal(x, y, decimal=6, err_msg='', verbose=True):
+        def assert_array_almost_equal(*args, **kwargs):
           pass
 
 - module-name: 'numpy.testing._private.pytesttester'
@@ -1830,6 +1843,19 @@
     - description: 'workaround compiled function decorator issues'
       replacements_plain:
         'bases = func.__class__.__bases__': 'bases = func.__class__.__bases__ if func.__class__.__bases__ != (FunctionType,) else (object,)'
+
+- module-name: 'opentelemetry.exporter.jaeger.thrift'
+  import-hacks:
+    - global-sys-path:
+        # This package forces itself into "sys.path" and expects absolute
+        # imports like "jaeger" to be available.
+        - 'gen'
+
+- module-name: 'opentelemetry.exporter.jaeger.thrift.gen'
+  anti-bloat:
+    - description: 'remove "sys.path" hack'
+      replacements_plain:
+        'sys.path.append': ''
 
 - module-name: 'opentelemetry.propagate'
   data-files:
@@ -5158,12 +5184,35 @@
           @classmethod
           def _dp_init_subclass
 
+- module-name: 'torch_scatter'
+  anti-bloat:
+    - description: 'workaround finding DLLs as modules by wrong names'
+      replacements_plain:
+        "f'{library}_cuda', [osp.dirname(__file__)]": "f'torch_scatter.{library}_cuda'"
+        "f'{library}_cpu', [osp.dirname(__file__)]": "f'torch_scatter.{library}_cpu'"
+        'importlib.machinery.PathFinder()': 'importlib.util'
+  implicit-imports:
+    - depends:
+        - '._version_cpu'
+        - '._scatter_cpu'
+        - '._segment_csr_cpu'
+        - '._segment_coo_cpu'
+        - '._version_cuda'
+        - '._scatter_cuda'
+        - '._segment_csr_cuda'
+        - '._segment_coo_cuda'
+
 - module-name: 'torchaudio'
   import-hacks:
     - find-dlls-near-module:
         - 'torch'
     - acceptable-missing-dlls:
         - '_torchaudio_ffmpeg'
+
+- module-name: 'torchaudio.lib._torchaudio'
+  implicit-imports:
+    - depends:
+        - 'torchaudio.lib.libtorchaudio'
 
 - module-name: 'torchmetrics.utilities.checks'
   anti-bloat:
@@ -5267,6 +5316,12 @@
       change_function:
         'load_cuda_kernels': "'(lambda : False)'"
       when: 'not use_setuptools'
+
+- module-name: 'transformers.processing_utils'
+  anti-bloat:
+    - description: 'workaround manual import issue'
+      replacements_plain:
+        'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
 
 - module-name: 'transformers.trainer'
   anti-bloat:
@@ -5596,6 +5651,21 @@
       - 'lib'
   dlls:
     - from_filenames:
+        relative_path: 'lib/runtimes/win-x86/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_x86'
+    - from_filenames:
+        relative_path: 'lib/runtimes/win-x64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_amd64'
+    - from_filenames:
+        relative_path: 'lib/runtimes/win-arm64/native'
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32 and arch_arm64'
+    - from_filenames:
         relative_path: 'lib/x86'
         prefixes:
           - 'WebView2Loader'
@@ -5632,6 +5702,12 @@
       replacements_plain:
         "';' + interop_dll_path(platform)": "';' + os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib', platform))"
 
+- module-name: 'werkzeug.serving'
+  anti-bloat:
+    - description: 'remove ability to run with reloader'
+      replacements_plain:
+        'if use_reloader:': 'if False:'
+
 - module-name: 'win32com'
   import-hacks:
     # This package adds another directory to the search path of itself,
@@ -5657,6 +5733,13 @@
       - description: 'wx requires program to be in bundle form'
         macos_bundle: 'yes'
         when: 'macos'
+
+- module-name: 'wx.html2'
+  dlls:
+    - from_filenames:
+        prefixes:
+          - 'WebView2Loader'
+      when: 'win32'
 
 - module-name: 'xarray'
   data-files:

@@ -741,7 +741,13 @@ def getWindowsRunningProcessDLLPaths():
     return result
 
 
-def convertRPathToRunPath(filename):
+# spell-checker: ignore termux DT_RUNPATH
+_termux_elf_cleaner_usage = (
+    "Needs 'termux-elf-cleaner' to clean up created files. Install it for best results."
+)
+
+
+def cleanupHeaderForAndroid(filename):
     """Change a DT_RPATH to DT_RUNPATH
 
     On Android this seems required, because the linker doesn't support the one
@@ -752,8 +758,15 @@ def convertRPathToRunPath(filename):
         executeToolChecked(
             logger=postprocessing_logger,
             command=("patchelf", "--shrink-rpath", filename),
-            stderr_filter=_filterPatchelfErrorOutput,
             absence_message=_patchelf_usage,
+            stderr_filter=_filterPatchelfErrorOutput,
+        )
+
+        executeToolChecked(
+            logger=postprocessing_logger,
+            command=("termux-elf-cleaner", "--quiet", filename),
+            absence_message=_termux_elf_cleaner_usage,
+            optional=True,
         )
 
 

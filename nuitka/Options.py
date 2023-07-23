@@ -367,6 +367,42 @@ def parseArgs():
     if options.onefile_tempdir_spec:
         _checkOnefileTargetSpec()
 
+        if not options.is_onefile:
+            Tracing.options_logger.warning(
+                """\
+Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
+when '--onefile' is not specified."""
+            )
+
+    # Check onefile splash image
+    if options.splash_screen_image:
+        if not os.path.exists(options.splash_screen_image):
+            Tracing.options_logger.sysexit(
+                "Error, splash screen image path '%s' does not exist."
+                % options.splash_screen_image
+            )
+
+        if not options.is_onefile:
+            Tracing.options_logger.warning(
+                """\
+Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
+when '--onefile' is not specified."""
+            )
+
+    if options.onefile_child_grace_time is not None:
+        if not options.onefile_child_grace_time.isdigit():
+            Tracing.options_logger.sysexit(
+                """\
+Error, value given for '--onefile-child-grace-time' must be integer."""
+            )
+
+        if not options.is_onefile:
+            Tracing.options_logger.warning(
+                """\
+Using onefile specific option '--onefile-windows-splash-screen-image' has no effect \
+when '--onefile-child-grace-time' is not specified."""
+            )
+
     if options.force_stdout_spec:
         checkPathSpec(
             options.force_stdout_spec, "--force-stdout-spec", allow_disable=True
@@ -1381,7 +1417,7 @@ def isShowScons():
 def getJobLimit():
     """*int*, value of ``--jobs`` / "-j" or number of CPU kernels"""
     if options.jobs is None:
-        if options.low_memory:
+        if isLowMemory():
             return 1
         else:
             return getCPUCoreCount()
@@ -1624,7 +1660,11 @@ def getOnefileTempDirSpec():
 
 def getOnefileChildGraceTime():
     """*int* = ``--onefile-child-grace-time``"""
-    return int(options.onefile_child_grace_time)
+    return (
+        int(options.onefile_child_grace_time)
+        if options.onefile_child_grace_time is not None
+        else 5000
+    )
 
 
 def shallNotCompressOnefile():

@@ -491,6 +491,10 @@ builtin_slice_spec = BuiltinParameterSpecNoKeywords(
 
 builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), default_count=0)
 
+builtin_input_spec = BuiltinParameterSpecNoKeywords(
+    "input", ("prompt",), default_count=1
+)
+
 builtin_format_spec = BuiltinParameterSpecNoKeywords(
     "format", ("value", "format_spec"), default_count=1
 )

@@ -590,7 +590,7 @@ def snapObjRefCntMap(before):
                 k = "<module dict %s>" % x["__name__"]
             else:
                 k = str(x)
-        elif x.__class__.__name__ == "compiled_frame":
+        elif hasattr(x, "__class__") and x.__class__.__name__ == "compiled_frame":
             k = "<compiled_frame at xxx, line %d code %s" % (x.f_lineno, x.f_code)
         else:
             k = str(x)
