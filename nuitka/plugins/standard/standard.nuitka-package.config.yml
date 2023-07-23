@@ -5206,6 +5206,12 @@
         'load_cuda_kernels': "'(lambda : False)'"
       when: 'not use_setuptools'
 
+- module-name: 'transformers.processing_utils'
+  anti-bloat:
+    - description: 'workaround manual import issue'
+      replacements_plain:
+        'transformers_module = direct_transformers_import(Path(__file__).parent)': 'import transformers as transformers_module'
+
 - module-name: 'transformers.trainer'
   anti-bloat:
     - description: 'remove IPython reference'
