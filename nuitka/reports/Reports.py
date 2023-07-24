@@ -27,6 +27,7 @@ import sys
 import traceback
 
 from nuitka import TreeXML
+from nuitka.__past__ import unicode
 from nuitka.build.DataComposerInterface import getDataComposerReportValues
 from nuitka.containers.OrderedSets import OrderedSet
 from nuitka.freezer.IncludedDataFiles import getIncludedDataFiles
@@ -392,7 +393,7 @@ def writeCompilationReport(report_filename, report_input_data, diffable):
         data_composer_stats = data_composer_values["stats"]
         if data_composer_stats:
             for item, item_value in data_composer_stats.items():
-                assert type(item) is str
+                assert type(item) in (str, unicode)
                 if type(item_value) is int:
                     data_composer_xml_node.attrib[item] = str(item_value)
                 else:
