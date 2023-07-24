@@ -152,7 +152,9 @@ def decideFunctionCompilationMode(decorators):
     # specific plugins here, but for performance I guess, we would have to add a
     # registry for the plugins to use, so not every decorator name is being
     # called for every plugin.
-    if _has_pyqt_plugin:
+
+    # TODO: This can only work with 3.9 or higher so far.
+    if _has_pyqt_plugin and python_version >= 0x390:
         for decorator in decorators:
             if (
                 decorator.isExpressionCall()
