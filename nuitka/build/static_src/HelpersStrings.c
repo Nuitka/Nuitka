@@ -449,9 +449,12 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
     PyObject *unicode = *p_unicode;
     Py_ssize_t old_length;
 
+#if PYTHON_VERSION < 0x3c0
     if (_PyUnicode_KIND(unicode) == PyUnicode_WCHAR_KIND) {
         old_length = PyUnicode_WSTR_LENGTH(unicode);
-    } else {
+    } else
+#endif
+    {
         old_length = PyUnicode_GET_LENGTH(unicode);
     }
 
