@@ -190,7 +190,7 @@ static void _initDeepCopy(void) {
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_Ellipsis), _deep_noop);
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)Py_TYPE(Py_NotImplemented), _deep_noop);
 
-    // Sets can be changed, but frozensets not.
+    // Sets can be changed, but not a frozenset.
     PyDict_SetItem(_deep_copy_dispatch, (PyObject *)&PyFrozenSet_Type, _deep_noop);
 }
 
@@ -241,7 +241,7 @@ PyObject *DEEP_COPY(PyObject *value) {
     } else if (PySet_CheckExact(value)) {
         return DEEP_COPY_SET(value);
     } else if (PyFrozenSet_CheckExact(value)) {
-        // Sets cannot contain unhashable types, so they must be immutable and
+        // Sets cannot contain non-hashable types, so they must be immutable and
         // the frozenset itself is immutable.
         return value;
     } else if (
