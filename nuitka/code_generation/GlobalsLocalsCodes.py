@@ -49,7 +49,6 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_ref_value", expression, emit, context
     ) as value_name:
-
         emit("%s = %s;" % (value_name, locals_declaration))
 
 
@@ -69,7 +68,6 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_ref_value", expression, emit, context
     ) as value_name:
-
         if updated:
             locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
             is_dict = locals_scope.hasShapeDictionaryExact()

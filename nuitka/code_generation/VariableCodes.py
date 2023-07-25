@@ -67,7 +67,6 @@ def generateAssignmentVariableCode(statement, emit, context):
             source_shape is tshape_int_or_long
             and variable_declaration.c_type == "nuitka_ilong"
         ):
-
             tmp_name = context.allocateTempName("assign_source", "nuitka_ilong")
         else:
             tmp_name = context.allocateTempName("assign_source")
@@ -267,7 +266,6 @@ def decideLocalVariableCodeType(context, variable):
 
         result = prefix + result
     elif context.isForDirectCall():
-
         if user.isExpressionGeneratorObjectBody():
             closure_index = user.getClosureVariableIndex(variable)
 

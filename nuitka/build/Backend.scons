@@ -455,7 +455,6 @@ if env.msvc_mode:
 if not module_mode:
     enableWindowsStackSize(env=env, target_arch=target_arch)
 if env.debug_mode:
-
     if env.gcc_mode:
         # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.

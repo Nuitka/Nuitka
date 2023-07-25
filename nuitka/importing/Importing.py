@@ -404,7 +404,6 @@ def _reportCandidates(package_name, module_name, candidate, candidates):
 
             if c.search_order == candidate.search_order:
                 if not module_name.hasOneOfNamespaces(unworthy_namespaces):
-
                     recursion_logger.info(
                         """\
 Should decide '--prefer-source-code' vs. '--no-prefer-source-code', using \

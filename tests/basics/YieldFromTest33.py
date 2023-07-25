@@ -36,6 +36,7 @@ print("Result", list(f()))
 
 print("Yielder with return value", list(g()))
 
+
 # This will raise when looking up any attribute.
 class Broken:
     def __iter__(self):

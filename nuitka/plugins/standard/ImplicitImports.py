@@ -341,7 +341,6 @@ class NuitkaPluginImplicitImports(NuitkaPluginBase):
 
     def onModuleSourceCode(self, module_name, source_code):
         if module_name == "numexpr.cpuinfo":
-
             # We cannot intercept "is" tests, but need it to be "isinstance",
             # so we patch it on the file. TODO: This is only temporary, in
             # the future, we may use optimization that understands the right

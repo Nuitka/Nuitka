@@ -136,6 +136,7 @@ def _getWindowsSpawnFunction(env, module_mode, source_files):
     def spawnWindowsCommand(
         sh, escape, cmd, args, os_env
     ):  # pylint: disable=unused-argument
+        """Our own spawn implementation for use on Windows."""
 
         # The "del" appears to not work reliably, but is used with large amounts of
         # files to link. So, lets do this ourselves, plus it avoids a process

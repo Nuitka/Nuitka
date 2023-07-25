@@ -92,7 +92,6 @@ def makeDiffable(output, ignore_warnings, syntax_errors):
 
     lines = output.split(b"\n")
     if syntax_errors:
-
         for line in lines:
             if line.startswith(b"SyntaxError:"):
                 lines = [line]

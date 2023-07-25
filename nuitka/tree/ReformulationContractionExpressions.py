@@ -370,7 +370,6 @@ def _buildContractionBodyNode(
     for_asyncgen,
     source_ref,
 ):
-
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
     # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals

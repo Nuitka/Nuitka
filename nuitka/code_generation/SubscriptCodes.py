@@ -131,7 +131,6 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "subscript_result", expression, emit, context
     ) as value_name:
-
         if integer_subscript:
             _getIntegerSubscriptLookupCode(
                 to_name=value_name,

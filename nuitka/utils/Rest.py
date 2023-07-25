@@ -114,7 +114,6 @@ def makeTable(grid):
             return num_cols * ("+" + (col_width) * "-") + "+\n"
 
     def normalizeCell(string, length):
-
         return string + ((length - len(string)) * " ")
 
     cell_width = 2 + max(

@@ -120,6 +120,7 @@ def defaultKeepsIdentity(arg="str_value"):
 
 defaultKeepsIdentity()
 
+
 # Dictionary creation from call arguments.
 def dd(**d):
     return d

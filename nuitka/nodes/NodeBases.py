@@ -415,7 +415,6 @@ class NodeBase(NodeMetaClassBase):
 
     @staticmethod
     def getVisitableNodes():
-
         return ()
 
     @staticmethod

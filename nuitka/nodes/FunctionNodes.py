@@ -396,7 +396,6 @@ class ExpressionFunctionBodyBase(
         changed = False
 
         for closure_variable in self.getClosureVariables():
-
             # Need to take closure of those either way
             if (
                 closure_variable.isParameterVariable()
@@ -931,7 +930,6 @@ class ExpressionFunctionCreationMixin(SideEffectsFromChildrenMixin):
         return False
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-
         trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: Until we have something to re-order the keyword arguments, we

@@ -425,7 +425,6 @@ def generateCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "call_result", expression, emit, context
     ) as result_name:
-
         if call_kw is None or call_kw.isExpressionConstantDictEmptyRef():
             _generateCallCodePosOnly(
                 to_name=result_name,
@@ -440,7 +439,6 @@ def generateCallCode(to_name, expression, emit, context):
 
             if call_args is None or call_args.isExpressionConstantTupleEmptyRef():
                 if call_kw.isExpressionConstantDictRef():
-
                     # Optimization should have turned that into a raise exception.
                     assert call_kw.isMappingWithConstantStringKeys()
 
@@ -646,7 +644,6 @@ def _getInstanceCallCodePosArgsQuick(
 
 
 def getCallCodePosArgsQuick(to_name, called_name, arg_names, expression, emit, context):
-
     arg_size = len(arg_names)
 
     # For 0 arguments, NOARGS is supposed to be used.

@@ -55,7 +55,6 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "builtin_value", expression, emit, context
     ) as value_name:
-
         emit(
             "%s = LOOKUP_BUILTIN(%s);"
             % (value_name, context.getConstantCode(constant=builtin_name))
@@ -72,7 +71,6 @@ def generateBuiltinAnonymousRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "builtin_value", expression, emit, context
     ) as value_name:
-
         emit(
             "%s = (PyObject *)%s;"
             % (value_name, Builtins.builtin_anon_codes[builtin_name])
@@ -100,7 +98,6 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "type3_result", expression, emit, context
     ) as value_name:
-
         emit(
             "%s = BUILTIN_TYPE3(%s, %s, %s, %s);"
             % (

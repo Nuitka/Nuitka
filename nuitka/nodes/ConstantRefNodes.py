@@ -1258,7 +1258,6 @@ class ExpressionConstantTypeRef(ExpressionConstantUntrackedRefBase):
         return tshape_type
 
     def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
-
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
         trace_collection.onExceptionRaiseExit(BaseException)

@@ -155,7 +155,6 @@ def generateStringConcatenationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "string_concat_result", expression, emit, context
     ) as value_name:
-
         tuple_temp_name = context.allocateTempName("string_concat_values")
 
         # TODO: Consider using _PyUnicode_JoinArray which avoids the tuple,
@@ -203,7 +202,6 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "format_result", expression, emit, context
     ) as result_name:
-
         emit(
             "%s = BUILTIN_FORMAT(%s, %s);" % (result_name, value_name, format_spec_name)
         )

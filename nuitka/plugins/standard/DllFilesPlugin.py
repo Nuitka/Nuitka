@@ -322,7 +322,6 @@ conditions are missing, or this version of the module needs treatment added."""
 
             if pywin_dir is not None:
                 for dll_name in "pythoncom", "pywintypes":
-
                     pythoncom_filename = "%s%d%d.dll" % (
                         dll_name,
                         sys.version_info[0],

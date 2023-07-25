@@ -228,7 +228,6 @@ def generateAsyncIterCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "aiter_result", expression, emit, context
     ) as result_name:
-
         emit("%s = ASYNC_MAKE_ITERATOR(%s);" % (result_name, value_name))
 
         getErrorExitCode(
@@ -246,7 +245,6 @@ def generateAsyncNextCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "anext_result", expression, emit, context
     ) as result_name:
-
         emit("%s = ASYNC_ITERATOR_NEXT(%s);" % (result_name, value_name))
 
         getErrorExitCode(

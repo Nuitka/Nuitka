@@ -27,7 +27,6 @@ def compiled_func(a, b, c, d, e, f):
 
 
 def calledRepeatedly():
-
     compiled_f = compiled_func
     # This is supposed to make a call to a compiled function, which is
     # being optimized separately.

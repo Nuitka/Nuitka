@@ -231,7 +231,6 @@ class ExpressionLocalsVariableRef(ExpressionBase):
     __slots__ = "variable", "locals_scope", "variable_trace"
 
     def __init__(self, locals_scope, variable_name, source_ref):
-
         ExpressionBase.__init__(self, source_ref)
 
         self.locals_scope = locals_scope
@@ -365,7 +364,6 @@ class StatementLocalsDictOperationSet(StatementLocalsDictOperationSetBase):
     # False alarm due to post_init, pylint: disable=attribute-defined-outside-init
 
     def postInitNode(self):
-
         self.variable = self.locals_scope.getLocalsDictVariable(
             variable_name=self.variable_name
         )

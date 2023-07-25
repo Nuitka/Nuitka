@@ -57,7 +57,6 @@ def getErrorExitReleaseCode(context):
 
 
 def getFrameVariableTypeDescriptionCode(context):
-
     type_description = context.getFrameVariableTypeDescription()
 
     if type_description:

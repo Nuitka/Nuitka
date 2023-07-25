@@ -196,7 +196,6 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_lookup_value", expression, emit, context
     ) as value_name:
-
         generateExpressionCode(
             to_name=value_name,
             expression=expression.subnode_fallback,
@@ -260,7 +259,6 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "locals_lookup_value", expression, emit, context
     ) as value_name:
-
         emit(
             template
             % {

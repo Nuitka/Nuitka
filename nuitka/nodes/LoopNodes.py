@@ -232,7 +232,6 @@ class StatementLoop(StatementLoopBase):
             self.loop_variables = []
 
             for loop_variable, loop_entry_trace in loop_entry_traces:
-
                 # Giving up
                 if self.incomplete_count >= 20:
                     self.loop_previous_resume[loop_variable] = self.loop_resume[

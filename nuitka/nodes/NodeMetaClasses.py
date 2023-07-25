@@ -106,7 +106,6 @@ class NodeCheckMetaClass(ABCMeta):
         return ABCMeta.__new__(mcs, name, bases, dictionary)
 
     def __init__(cls, name, bases, dictionary):
-
         if not name.endswith(("Base", "Mixin")):
             if "kind" not in dictionary:
                 raise NuitkaNodeDesignError(name, "Must provide class variable 'kind'")

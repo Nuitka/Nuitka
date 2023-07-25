@@ -175,7 +175,6 @@ class ExpressionCtypesCdllSince38CallBase(
     def __init__(
         self, name, mode, handle, use_errno, use_lasterror, winmode, source_ref
     ):
-
         ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalWinmodeOptionalMixin.__init__(
             self,
             name=name,
@@ -244,7 +243,6 @@ class ExpressionCtypesCdllBefore38CallBase(
     spec = ctypes_cdll_before_38_spec
 
     def __init__(self, name, mode, handle, use_errno, use_lasterror, source_ref):
-
         ChildrenHavingNameModeOptionalHandleOptionalUseErrnoOptionalUseLasterrorOptionalMixin.__init__(
             self,
             name=name,
@@ -345,7 +343,6 @@ class ExpressionImportlibMetadataBackportDistributionCallBase(
     spec = importlib_metadata_backport_distribution_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -439,7 +436,6 @@ class ExpressionImportlibMetadataBackportEntryPointsCallBase(
     spec = importlib_metadata_backport_entry_points_spec
 
     def __init__(self, params, source_ref):
-
         ChildHavingParamsTupleMixin.__init__(
             self,
             params=params,
@@ -533,7 +529,6 @@ class ExpressionImportlibMetadataBackportMetadataCallBase(
     spec = importlib_metadata_backport_metadata_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -627,7 +622,6 @@ class ExpressionImportlibMetadataBackportVersionCallBase(
     spec = importlib_metadata_backport_version_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -721,7 +715,6 @@ class ExpressionImportlibMetadataDistributionCallBase(
     spec = importlib_metadata_distribution_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -835,7 +828,6 @@ class ExpressionImportlibMetadataEntryPointsSince310CallBase(
     spec = importlib_metadata_entry_points_since_310_spec
 
     def __init__(self, params, source_ref):
-
         ChildHavingParamsTupleMixin.__init__(
             self,
             params=params,
@@ -886,7 +878,6 @@ class ExpressionImportlibMetadataEntryPointsBefore310CallBase(
     spec = importlib_metadata_entry_points_before_310_spec
 
     def __init__(self, source_ref):
-
         ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
@@ -973,7 +964,6 @@ class ExpressionImportlibMetadataMetadataCallBase(
     spec = importlib_metadata_metadata_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -1067,7 +1057,6 @@ class ExpressionImportlibMetadataVersionCallBase(
     spec = importlib_metadata_version_spec
 
     def __init__(self, distribution_name, source_ref):
-
         ChildHavingDistributionNameMixin.__init__(
             self,
             distribution_name=distribution_name,
@@ -1159,7 +1148,6 @@ class ExpressionImportlibResourcesFilesCallBase(
     spec = importlib_resources_files_spec
 
     def __init__(self, package, source_ref):
-
         ChildHavingPackageMixin.__init__(
             self,
             package=package,
@@ -1256,7 +1244,6 @@ class ExpressionImportlibResourcesReadBinaryCallBase(
     spec = importlib_resources_read_binary_spec
 
     def __init__(self, package, resource, source_ref):
-
         ChildrenHavingPackageResourceMixin.__init__(
             self,
             package=package,
@@ -1361,7 +1348,6 @@ class ExpressionImportlibResourcesReadTextCallBase(
     spec = importlib_resources_read_text_spec
 
     def __init__(self, package, resource, encoding, errors, source_ref):
-
         ChildrenHavingPackageResourceEncodingOptionalErrorsOptionalMixin.__init__(
             self,
             package=package,
@@ -1455,7 +1441,6 @@ class ExpressionOsListdirCallBase(ChildHavingPathOptionalMixin, ExpressionBase):
     spec = os_listdir_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathOptionalMixin.__init__(
             self,
             path=path,
@@ -1538,7 +1523,6 @@ class ExpressionOsPathAbspathCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_abspath_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -1621,7 +1605,6 @@ class ExpressionOsPathBasenameCallBase(ChildHavingPMixin, ExpressionBase):
     spec = os_path_basename_spec
 
     def __init__(self, p, source_ref):
-
         ChildHavingPMixin.__init__(
             self,
             p=p,
@@ -1704,7 +1687,6 @@ class ExpressionOsPathExistsCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_exists_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -1789,7 +1771,6 @@ class ExpressionOsPathIsabsCallBase(
     spec = os_path_isabs_spec
 
     def __init__(self, s, source_ref):
-
         ChildHavingSMixin.__init__(
             self,
             s=s,
@@ -1872,7 +1853,6 @@ class ExpressionOsPathIsdirCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_isdir_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -1955,7 +1935,6 @@ class ExpressionOsPathIsfileCallBase(ChildHavingPathMixin, ExpressionBase):
     spec = os_path_isfile_spec
 
     def __init__(self, path, source_ref):
-
         ChildHavingPathMixin.__init__(
             self,
             path=path,
@@ -2036,7 +2015,6 @@ class ExpressionOsUnameCallBase(ExpressionBase):
     spec = os_uname_spec
 
     def __init__(self, source_ref):
-
         ExpressionBase.__init__(self, source_ref)
 
         # In module mode, we expect a changing environment, cannot optimize this
@@ -2123,7 +2101,6 @@ class ExpressionPkgResourcesGetDistributionCallBase(
     spec = pkg_resources_get_distribution_spec
 
     def __init__(self, dist, source_ref):
-
         ChildHavingDistMixin.__init__(
             self,
             dist=dist,
@@ -2220,7 +2197,6 @@ class ExpressionPkgResourcesIterEntryPointsCallBase(
     spec = pkg_resources_iter_entry_points_spec
 
     def __init__(self, group, name, source_ref):
-
         ChildrenHavingGroupNameOptionalMixin.__init__(
             self,
             group=group,
@@ -2314,7 +2290,6 @@ class ExpressionPkgResourcesRequireCallBase(
     spec = pkg_resources_require_spec
 
     def __init__(self, requirements, source_ref):
-
         ChildHavingRequirementsTupleMixin.__init__(
             self,
             requirements=requirements,
@@ -2408,7 +2383,6 @@ class ExpressionPkgResourcesResourceStreamCallBase(
     spec = pkg_resources_resource_stream_spec
 
     def __init__(self, package_or_requirement, resource_name, source_ref):
-
         ChildrenHavingPackageOrRequirementResourceNameMixin.__init__(
             self,
             package_or_requirement=package_or_requirement,
@@ -2509,7 +2483,6 @@ class ExpressionPkgResourcesResourceStringCallBase(
     spec = pkg_resources_resource_string_spec
 
     def __init__(self, package_or_requirement, resource_name, source_ref):
-
         ChildrenHavingPackageOrRequirementResourceNameMixin.__init__(
             self,
             package_or_requirement=package_or_requirement,
@@ -2604,7 +2577,6 @@ class ExpressionPkgutilGetDataCallBase(
     spec = pkgutil_get_data_spec
 
     def __init__(self, package, resource, source_ref):
-
         ChildrenHavingPackageResourceMixin.__init__(
             self,
             package=package,

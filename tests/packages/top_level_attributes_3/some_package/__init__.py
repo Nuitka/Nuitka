@@ -34,7 +34,6 @@ def getPathEnd(filename, elements):
 
 
 def main():
-
     try:
         print("SPEC from name", getPathEnd(__spec__.origin, 2))
         print("SPEC from name", getPathEnd(__spec__.submodule_search_locations[0], 1))

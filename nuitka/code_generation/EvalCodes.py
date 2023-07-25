@@ -141,7 +141,6 @@ def generateBuiltinCompileCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "compile_result", expression, emit, context
     ) as value_name:
-
         _getBuiltinCompileCode(
             to_name=value_name,
             source_name=source_name,
@@ -283,7 +282,6 @@ def generateExecCode(statement, emit, context):
         if Options.is_full_compat
         else statement.getSourceReference()
     ):
-
         res_name = context.getBoolResName()
 
         emit(
