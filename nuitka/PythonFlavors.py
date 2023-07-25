@@ -141,7 +141,7 @@ def isMSYS2MingwPython():
 
     import sysconfig
 
-    return "-mingw_" in sysconfig.get_config_var("SO")
+    return "-mingw_" in sysconfig.get_config_var("EXT_SUFFIX")
 
 
 def isTermuxPython():
