@@ -27,12 +27,14 @@ def f():
 
 print(f())
 
+
 # Empty f string fully optimized:
 def f():
     return f""
 
 
 print(f())
+
 
 # Text only f string fully optimized:
 def f():

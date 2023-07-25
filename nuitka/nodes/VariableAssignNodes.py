@@ -379,7 +379,6 @@ Assignment raises exception in assigned value, removed assignment.""",
             and source.isExpressionVariableRef()
             and source.getVariable() is variable
         ):
-
             # A variable access that has a side effect, must be preserved,
             # so it can e.g. raise an exception, otherwise we can be fully
             # removed.

@@ -316,7 +316,6 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
         if Options.is_full_compat
         else statement.getSourceReference()
     ):
-
         getBuiltinLoopBreakNextCode(
             to_name=tmp_name2, value=tmp_name, emit=emit, context=context
         )

@@ -165,7 +165,6 @@ def setup(suite="", needs_io_encoding=False, silent=False, go_main=True):
         and os.environ["PYTHON"].isdigit()
         and not isWin32Windows()
     ):
-
         os.environ["PYTHON"] = "python%s.%s" % (
             os.environ["PYTHON"][0],
             os.environ["PYTHON"][1],

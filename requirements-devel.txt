@@ -9,26 +9,26 @@ orderedset == 2.0.3 ; sys.platform == 'darwin' and python_version < '3.7'
 subprocess32 == 3.5.4 ; python_version == '2.7'
 
 # PyLint wouldn't be installable on 2.6 and not work with too old Python3
-pylint == 2.17.2 ; python_version >= '3.7'
-astroid == 2.15.3 ; python_version >= '3.7'
+pylint == 2.17.2 ; python_version >= '3.8'
+astroid == 2.15.3 ; python_version >= '3.8'
 
 # linting rest code snippets
-restructuredtext-lint==1.3.2 ; python_version == '2.7' or python_version >= '3.7'
-Pygments == 2.10.0 ; python_version >= '3.7'
-rstcheck == 3.3.1 ; python_version == '2.7' or python_version >= '3.7'
+restructuredtext-lint==1.4.0 ; python_version >= '3.8'
+Pygments == 2.15.1 ; python_version >= '3.8'
+rstcheck == 6.1.2 ; python_version >= '3.8'
 
 # Auto-format needs
-black == 22.8.0 ; python_version >= '3.7'
-toml >= 0.10.1 ; python_version >= '3.7'
-isort == 5.11.4 ; python_version >= '3.7'
-yamllint == 1.28.0 ; python_version >= '3.7'
-rstfmt == 0.0.12 ; python_version >= '3.7'
-jsonschema == 4.6.0 ; python_version >= '3.7'
-ruamel.yaml == 0.17.21 ; python_version >= '3.7'
-deepdiff==5.8.1 ; python_version >= '3.7'
+black == 23.7.0 ; python_version >= '3.8'
+toml >= 0.10.1 ; python_version >= '3.8'
+isort == 5.11.4 ; python_version >= '3.8'
+yamllint == 1.28.0 ; python_version >= '3.8'
+rstfmt == 0.0.13 ; python_version >= '3.8'
+jsonschema == 4.6.0 ; python_version >= '3.8'
+ruamel.yaml == 0.17.21 ; python_version >= '3.8'
+deepdiff==5.8.1 ; python_version >= '3.8'
 
 # Codespell can be used as well, no need to fix version
-codespell ; python_version >= '3.7'
+codespell ; python_version >= '3.8'
 
 # API doc, doxygen helper for Python
 doxypypy == 0.8.8.6 ; python_version >= '2.7'

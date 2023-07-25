@@ -61,7 +61,6 @@ def _getBuiltinExceptionNames():
             if isExceptionName(name):
                 exceptions[name] = getattr(builtins, key)
     else:
-
         for key in sorted(dir(builtins)):
             if isExceptionName(key):
                 exceptions[key] = getattr(builtins, key)

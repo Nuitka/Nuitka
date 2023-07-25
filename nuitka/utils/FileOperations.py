@@ -864,7 +864,6 @@ def copyFileWithPermissions(source_path, dest_path, dist_dir):
             path=dist_dir,
             filename=os.path.join(os.path.dirname(dest_path), link_target_rel),
         ):
-
             os.symlink(link_target_rel, dest_path)
             return
 

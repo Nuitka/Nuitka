@@ -56,7 +56,6 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "long_value", expression, emit, context
     ) as result_name:
-
         emit("%s = BUILTIN_LONG2(%s, %s);" % (result_name, value_name, base_name))
 
         getErrorExitCode(
@@ -91,7 +90,6 @@ def generateBuiltinInt2Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "int_value", expression, emit, context
     ) as result_name:
-
         emit("%s = BUILTIN_INT2(%s, %s);" % (result_name, value_name, base_name))
 
         getErrorExitCode(

@@ -58,7 +58,6 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "dict_value", expression, emit, context
     ) as value_name:
-
         if expression.subnode_pairs:
             # If there is no sequence to mix in, then directly generate
             # into to_name.

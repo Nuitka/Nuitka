@@ -219,7 +219,6 @@ class Broken:
         return 1
 
     def __getattr__(self, attr):
-
         1 / 0  # pylint: disable=pointless-statement
 
 

@@ -95,6 +95,7 @@ candidates = (
     ("dict", "{1:2}", "{3:4}"),
 )
 
+
 # For making an operator usage, needed because divmod is function style.
 def makeOperatorUsage(operator, left, right):
     if operator == "divmod":

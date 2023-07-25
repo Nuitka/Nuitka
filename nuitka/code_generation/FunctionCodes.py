@@ -82,7 +82,6 @@ def getFunctionMakerDecl(
     kw_defaults_name,
     annotations_name,
 ):
-
     function_creation_args = getFunctionCreationArgs(
         defaults_name=defaults_name,
         kw_defaults_name=kw_defaults_name,
@@ -505,7 +504,6 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
 def setupFunctionLocalVariables(
     context, parameters, closure_variables, user_variables, temp_variables
 ):
-
     # Parameter variable initializations
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
@@ -633,7 +631,6 @@ def _getFunctionCode(
     file_scope,
     needs_exception_exit,
 ):
-
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=too-many-locals
 
@@ -762,7 +759,6 @@ def generateFunctionCallCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "call_result", expression, emit, context
     ) as value_name:
-
         getDirectFunctionCallCode(
             to_name=value_name,
             function_identifier=function_identifier,

@@ -244,7 +244,6 @@ def executePostProcessingResources(manifest, onefile):
         or Options.getProductVersion()
         or Options.getFileVersion()
     ):
-
         addVersionInfoResource(
             string_values=Options.getWindowsVersionInfoStrings(),
             product_version=Options.getProductVersion(),

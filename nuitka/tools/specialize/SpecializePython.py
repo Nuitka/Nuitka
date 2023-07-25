@@ -376,7 +376,6 @@ def makeAttributeNodes():
         emit("attribute_typed_classes = set()")
 
         for attribute_name, shape_names in sorted(attribute_information.items()):
-
             code = template.render(
                 attribute_name=attribute_name,
                 python3_operation_name=_getPython3OperationName(attribute_name),
@@ -917,7 +916,7 @@ def getSpecVersions(spec_module):
     result = {}
 
     for spec_name, spec in getSpecs(spec_module):
-        for (version, str_version) in (
+        for version, str_version in (
             (0x370, "37"),
             (0x380, "38"),
             (0x390, "39"),

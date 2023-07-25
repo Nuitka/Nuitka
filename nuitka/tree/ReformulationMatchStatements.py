@@ -101,7 +101,6 @@ def _buildMatchAs(provider, pattern, make_against, source_ref):
         assignments = None
         conditions = None
     else:
-
         assert "." not in variable_name, variable_name
         assert "!" not in variable_name, variable_name
 

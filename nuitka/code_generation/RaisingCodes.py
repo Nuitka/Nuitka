@@ -189,7 +189,6 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "raise_exception_result", expression, emit, context
     ) as value_name:
-
         # That's how we indicate exception to the surrounding world.
         emit("%s = NULL;" % value_name)
 

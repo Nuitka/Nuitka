@@ -43,7 +43,6 @@ def generateTupleCreationCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "tuple_value", expression, emit, context
     ) as value_name:
-
         getTupleCreationCode(
             to_name=value_name,
             elements=expression.subnode_elements,

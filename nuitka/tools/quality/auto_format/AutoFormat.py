@@ -675,7 +675,8 @@ def autoFormatFile(
 
                     try:
                         check_call(black_call + ["-q", "--fast", tmp_filename])
-                    except Exception:  # Catch all the things, pylint: disable=broad-except
+                    # Catch all the things, pylint: disable=broad-except
+                    except Exception:
                         tools_logger.warning(
                             "Problem formatting for '%s'." % effective_filename
                         )

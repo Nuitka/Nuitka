@@ -74,7 +74,6 @@ def addToPythonPath(python_path, in_front=False):
 # Class name enforced by distutils, must match the command name.
 # Required by distutils, used as command name, pylint: disable=invalid-name
 class build(distutils.command.build.build):
-
     # pylint: disable=attribute-defined-outside-init
     def run(self):
         wheel_logger.info("Specified packages: %s." % self.distribution.packages)
@@ -93,7 +92,8 @@ class build(distutils.command.build.build):
                         script_module_name = (
                             script_spec.split("=", 1)[1].strip().split(":")[0]
                         )
-                    except Exception as e:  # Catch all the things, pylint: disable=broad-except
+                        # Catch all the things, pylint: disable=broad-except
+                    except Exception as e:
                         wheel_logger.warning(
                             "Problem parsing '%s' script specification in '%s' due to %s"
                             % (script_spec, group, e)
@@ -356,7 +356,6 @@ class build(distutils.command.build.build):
 
 # Required by distutils, used as command name, pylint: disable=invalid-name
 class install(distutils.command.install.install):
-
     # pylint: disable=attribute-defined-outside-init
     def finalize_options(self):
         distutils.command.install.install.finalize_options(self)

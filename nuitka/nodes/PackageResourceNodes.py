@@ -61,7 +61,6 @@ class ExpressionPkgResourcesResourceStringCall(
     SideEffectsFromChildrenMixin,
     ExpressionPkgResourcesResourceStringCallBase,
 ):
-
     kind = "EXPRESSION_PKG_RESOURCES_RESOURCE_STRING_CALL"
 
     def replaceWithCompileTimeValue(self, trace_collection):

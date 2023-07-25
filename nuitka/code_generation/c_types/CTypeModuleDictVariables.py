@@ -85,7 +85,6 @@ if (%(orig_name)s != %(tmp_name)s) {
     def getDeleteObjectCode(
         cls, to_name, value_name, needs_check, tolerant, emit, context
     ):
-
         if not needs_check or tolerant:
             emit(
                 template_del_global_known

@@ -550,14 +550,16 @@ it before using it: '%s' (from --output-filename='%s')."""
 
     try:
         file_version = getFileVersion()
-    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+    # Catch all the things, don't want any interface, pylint: disable=broad-except
+    except Exception:
         Tracing.options_logger.sysexit(
             "Error, file version must be a tuple of up to 4 integer values."
         )
 
     try:
         product_version = getProductVersion()
-    except Exception:  # Catch all the things, don't want any interface, pylint: disable=broad-except
+    # Catch all the things, don't want any interface, pylint: disable=broad-except
+    except Exception:
         Tracing.options_logger.sysexit(
             "Error, product version must be a tuple of up to 4 integer values."
         )

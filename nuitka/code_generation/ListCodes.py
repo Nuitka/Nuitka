@@ -426,7 +426,6 @@ def generateListOperationRemoveCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "list_remove_result", expression, emit, context
     ) as result_name:
-
         # TODO: Have a dedicated list helper instead, this could be more efficient,
         # this call is also very bad.
         emit("assert(PyList_CheckExact(%s));" % list_arg_name)

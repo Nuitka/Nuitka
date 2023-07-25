@@ -547,7 +547,6 @@ def _makeVarFileInfoBlock():
 def makeVersionInfoResource(
     string_values, product_version, file_version, file_date, is_exe
 ):
-
     # Every item has name and gets padded.
     block_name = _getVersionString("VS_VERSION_INFO")
     size = 6 + len(block_name) + 2

@@ -256,7 +256,6 @@ class ExpressionBuiltinHasattr(ExpressionBuiltinHasattrBase):
 
             # TODO: Something needs to be done if it has no string value.
             if attribute_name is not None:
-
                 # If source or attribute have side effects, they must be
                 # evaluated, before the lookup.
                 (

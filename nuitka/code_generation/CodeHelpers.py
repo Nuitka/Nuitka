@@ -39,7 +39,6 @@ _ignore_list_overrides = set(("EXPRESSION_STR_OPERATION_FORMAT",))
 
 def addExpressionDispatchDict(dispatch_dict):
     for key, value in dispatch_dict.items():
-
         if key in expression_dispatch_dict:
             if key not in _ignore_list_overrides:
                 assert False, key
@@ -418,7 +417,6 @@ class HelperCallHandle(object):
 
 @contextmanager
 def withCleanupFinally(name, release_name, needs_exception, emit, context):
-
     assert not context.needsCleanup(release_name)
 
     if needs_exception:

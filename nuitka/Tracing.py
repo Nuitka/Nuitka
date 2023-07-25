@@ -105,7 +105,6 @@ def _enableAnsi():
     # singleton, pylint: disable=global-statement
     global _enabled_ansi
     if not _enabled_ansi:
-
         # Only necessary on Windows, as a side effect of this, ANSI colors get enabled
         # for the terminal and never deactivated, so we are free to use them after
         # this.

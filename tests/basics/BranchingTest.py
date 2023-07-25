@@ -135,7 +135,6 @@ x = 3
 
 
 def optimizationVictim():
-
     if x:
         pass
     else:

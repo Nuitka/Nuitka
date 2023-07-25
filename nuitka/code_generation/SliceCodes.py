@@ -118,7 +118,6 @@ def generateSliceLookupCode(to_name, expression, emit, context):
         with withObjectCodeTemporaryAssignment(
             to_name, "slice_result", expression, emit, context
         ) as result_name:
-
             _getSliceLookupIndexesCode(
                 to_name=result_name,
                 source_name=source_name,

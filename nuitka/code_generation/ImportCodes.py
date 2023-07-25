@@ -51,7 +51,6 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-
         _getBuiltinImportCode(
             expression=expression,
             to_name=value_name,
@@ -116,7 +115,6 @@ def _getBuiltinImportCode(
     emit,
     context,
 ):
-
     emitLineNumberUpdateCode(expression, emit, context)
 
     _getCountedArgumentsHelperCallCode(
@@ -376,7 +374,6 @@ def generateImportNameCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "imported_value", expression, emit, context
     ) as value_name:
-
         if python_version >= 0x350:
             emit(
                 """\

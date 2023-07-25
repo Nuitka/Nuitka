@@ -44,7 +44,6 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "metaclass_result", expression, emit, context
     ) as value_name:
-
         emit(
             "%s = SELECT_METACLASS(%s);"
             % (value_name, ", ".join(str(arg_name) for arg_name in arg_names))
@@ -65,7 +64,6 @@ def generateBuiltinSuper1Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "super_value", expression, emit, context
     ) as value_name:
-
         emit(
             "%s = BUILTIN_SUPER2(moduledict_%s, %s, NULL);"
             % (
@@ -93,7 +91,6 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "super_value", expression, emit, context
     ) as value_name:
-
         emit(
             "%s = BUILTIN_SUPER%d(moduledict_%s, %s, %s);"
             % (

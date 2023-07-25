@@ -54,7 +54,6 @@ def main():
 
     # Now run all the tests in this directory.
     for filename, filename_main in scanDirectoryForTestCaseFolders("."):
-
         active = search_mode.consider(dirname=None, filename=filename)
 
         if active:

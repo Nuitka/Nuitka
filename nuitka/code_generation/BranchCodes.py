@@ -26,7 +26,6 @@ from .LabelCodes import getGotoCode, getLabelCode
 
 
 def generateBranchCode(statement, emit, context):
-
     true_target = context.allocateLabel("branch_yes")
     false_target = context.allocateLabel("branch_no")
     end_target = context.allocateLabel("branch_end")

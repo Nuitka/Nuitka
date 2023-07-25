@@ -54,7 +54,6 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "next_value", expression, emit, context
     ) as result_name:
-
         emit("%s = %s;" % (result_name, "ITERATOR_NEXT(%s)" % value_name))
 
         getErrorExitCode(
@@ -174,7 +173,6 @@ def generateUnpackCheckCode(statement, emit, context):
     var_description_code = getFrameVariableTypeDescriptionCode(context)
 
     with context.withCurrentSourceCodeReference(statement.getSourceReference()):
-
         (
             exception_type,
             exception_value,

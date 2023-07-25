@@ -249,7 +249,6 @@ class ExpressionBase(NodeBase):
         return set_node, None, None
 
     def computeExpressionDelAttribute(self, set_node, attribute_name, trace_collection):
-
         # By default, an attribute lookup may change everything about the lookup
         # source. Virtual method, pylint: disable=unused-argument
         # trace_collection.removeKnowledge(self)

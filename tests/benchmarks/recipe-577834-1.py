@@ -308,7 +308,6 @@ def make_nonlocal_writer():
     v_nonlocal = 1
 
     def inner(trials=trials):
-
         # nonlocal v_nonlocal            # this is invalid syntax in Py2.x
         for t in trials:
             v_nonlocal = 1

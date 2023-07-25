@@ -207,6 +207,7 @@ print("Call function with default value that is a list", defaultValueTest6("igno
 
 x = len("hey")
 
+
 # TODO: Doesn't belong here.
 def in_test(a):
     # if 7 in a:
@@ -243,7 +244,6 @@ print("Function with decoration", decoriert(3, 9))
 
 
 def functionWithGlobalReturnValue():
-
     global a  # pylint: disable=global-statement
     return a
 

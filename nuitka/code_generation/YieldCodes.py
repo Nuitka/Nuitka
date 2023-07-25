@@ -141,7 +141,6 @@ def generateYieldCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(
         to_name, "yield_result", expression, emit, context
     ) as result_name:
-
         _getYieldPreserveCode(
             to_name=result_name,
             value_name=value_name,
@@ -183,7 +182,6 @@ return NULL;
     with withObjectCodeTemporaryAssignment(
         to_name, "yieldfrom_result", expression, emit, context
     ) as result_name:
-
         _getYieldPreserveCode(
             to_name=result_name,
             value_name=value_name,
@@ -196,7 +194,6 @@ return NULL;
 
 
 def generateYieldFromWaitableCode(to_name, expression, emit, context):
-
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
